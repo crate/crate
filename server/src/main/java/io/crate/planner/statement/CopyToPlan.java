@@ -63,7 +63,6 @@ import io.crate.metadata.DocReferences;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
-import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.DependencyCarrier;
@@ -223,11 +222,11 @@ public final class CopyToPlan implements Plan {
             }
             columnsDefined = true;
         } else {
-            SimpleReference sourceRef;
+            Reference sourceRef;
             if (table.isPartitioned() && partitions.isEmpty()) {
                 // table is partitioned, insert partitioned columns into the output
                 overwrites = new HashMap<>();
-                for (SimpleReference reference : table.partitionedByColumns()) {
+                for (Reference reference : table.partitionedByColumns()) {
                     if (!(reference instanceof GeneratedReference)) {
                         overwrites.put(reference.column(), reference);
                     }

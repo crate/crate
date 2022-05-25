@@ -21,14 +21,27 @@
 
 package io.crate.planner.statement;
 
+import static java.util.Collections.singletonList;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.is;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import com.carrotsearch.randomizedtesting.RandomizedTest;
+
+import org.elasticsearch.common.settings.Settings;
+import org.junit.Before;
+import org.junit.Test;
+
 import io.crate.analyze.TableDefinitions;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.projection.WriterProjection;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.SimpleReference;
+import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.planner.Merge;
@@ -37,18 +50,6 @@ import io.crate.planner.operators.SubQueryResults;
 import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.elasticsearch.common.settings.Settings;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
-import static java.util.Collections.singletonList;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.is;
 
 public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -102,7 +103,7 @@ public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
         Merge plan = plan("copy users (name) to directory '/tmp'");
         Collect innerPlan = (Collect) plan.subPlan();
         RoutedCollectPhase node = ((RoutedCollectPhase) innerPlan.collectPhase());
-        SimpleReference nameRef = (SimpleReference) node.toCollect().get(0);
+        Reference nameRef = (Reference) node.toCollect().get(0);
 
         assertThat(nameRef.column().name(), is(DocSysColumns.DOC.name()));
         assertThat(nameRef.column().path().get(0), is("name"));

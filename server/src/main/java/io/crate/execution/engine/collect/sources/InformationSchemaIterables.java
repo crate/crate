@@ -21,6 +21,29 @@
 
 package io.crate.execution.engine.collect.sources;
 
+import static java.util.Collections.emptyList;
+import static java.util.stream.Stream.concat;
+import static java.util.stream.StreamSupport.stream;
+
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.Objects;
+import java.util.PrimitiveIterator;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
+
+import org.elasticsearch.cluster.ClusterChangedEvent;
+import org.elasticsearch.cluster.ClusterStateListener;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.inject.Inject;
+
 import io.crate.execution.engine.collect.files.SqlFeatureContext;
 import io.crate.execution.engine.collect.files.SqlFeatures;
 import io.crate.expression.reference.information.ColumnContext;
@@ -32,7 +55,7 @@ import io.crate.metadata.IndexParts;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionInfo;
 import io.crate.metadata.PartitionInfos;
-import io.crate.metadata.SimpleReference;
+import io.crate.metadata.Reference;
 import io.crate.metadata.RelationInfo;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RoutineInfo;
@@ -54,28 +77,6 @@ import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.types.DataTypes;
 import io.crate.types.Regclass;
 import io.crate.types.Regproc;
-import org.elasticsearch.cluster.ClusterChangedEvent;
-import org.elasticsearch.cluster.ClusterStateListener;
-import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
-
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.Objects;
-import java.util.PrimitiveIterator;
-import java.util.Set;
-import java.util.function.Function;
-import java.util.stream.IntStream;
-import java.util.stream.Stream;
-
-import static java.util.Collections.emptyList;
-import static java.util.stream.Stream.concat;
-import static java.util.stream.StreamSupport.stream;
 
 public class InformationSchemaIterables implements ClusterStateListener {
 
@@ -381,7 +382,7 @@ public class InformationSchemaIterables implements ClusterStateListener {
      */
     static class NotNullConstraintIterator implements Iterator<ConstraintInfo> {
         private final RelationInfo relationInfo;
-        private final Iterator<SimpleReference> nullableColumns;
+        private final Iterator<Reference> nullableColumns;
 
         NotNullConstraintIterator(RelationInfo relationInfo) {
             this.relationInfo = relationInfo;
@@ -443,7 +444,7 @@ public class InformationSchemaIterables implements ClusterStateListener {
 
     static class ColumnsIterator implements Iterator<ColumnContext> {
 
-        private final Iterator<SimpleReference> columns;
+        private final Iterator<Reference> columns;
         private final RelationInfo tableInfo;
 
         ColumnsIterator(RelationInfo tableInfo) {

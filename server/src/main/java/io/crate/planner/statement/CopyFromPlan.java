@@ -21,7 +21,29 @@
 
 package io.crate.planner.statement;
 
+import static io.crate.analyze.CopyStatementSettings.INPUT_FORMAT_SETTING;
+import static io.crate.analyze.CopyStatementSettings.settingAsEnum;
+import static io.crate.analyze.GenericPropertiesConverter.genericPropertiesToSettings;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+
+import javax.annotation.Nullable;
+
 import com.carrotsearch.hppc.cursors.ObjectCursor;
+
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.node.DiscoveryNodes;
+import org.elasticsearch.common.settings.Settings;
+
 import io.crate.analyze.AnalyzedCopyFrom;
 import io.crate.analyze.AnalyzedCopyFromReturnSummary;
 import io.crate.analyze.BoundCopyFrom;
@@ -56,7 +78,7 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.SimpleReference;
+import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.DependencyCarrier;
@@ -67,25 +89,6 @@ import io.crate.planner.PlannerContext;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.types.DataTypes;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.cluster.node.DiscoveryNodes;
-import org.elasticsearch.common.settings.Settings;
-
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.function.Function;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
-
-import static io.crate.analyze.CopyStatementSettings.INPUT_FORMAT_SETTING;
-import static io.crate.analyze.CopyStatementSettings.settingAsEnum;
-import static io.crate.analyze.GenericPropertiesConverter.genericPropertiesToSettings;
 
 public final class CopyFromPlan implements Plan {
 
@@ -176,7 +179,7 @@ public final class CopyFromPlan implements Plan {
         var header = settings.getAsBoolean("header", true);
         var targetColumns = copyFrom.targetColumns();
         if (!header && copyFrom.targetColumns().isEmpty()) {
-            targetColumns = Lists2.map(copyFrom.tableInfo().columns(), SimpleReference::toString);
+            targetColumns = Lists2.map(copyFrom.tableInfo().columns(), Reference::toString);
         }
 
         return new BoundCopyFrom(
@@ -219,7 +222,7 @@ public final class CopyFromPlan implements Plan {
         if (DocSysColumns.ID.equals(clusteredBy)) {
             clusteredBy = null;
         }
-        List<SimpleReference> primaryKeyRefs = table.primaryKey().stream()
+        List<Reference> primaryKeyRefs = table.primaryKey().stream()
             .filter(r -> !r.equals(DocSysColumns.ID))
             .map(table::getReference)
             .collect(Collectors.toList());
@@ -229,7 +232,7 @@ public final class CopyFromPlan implements Plan {
             table.partitionedByColumns(),
             clusteredBy == null ? null : table.getReference(clusteredBy)
         );
-        SimpleReference rawOrDoc = rawOrDoc(table, partitionIdent);
+        Reference rawOrDoc = rawOrDoc(table, partitionIdent);
         final int rawOrDocIdx = toCollect.size();
         toCollect.add(rawOrDoc);
 
@@ -342,14 +345,14 @@ public final class CopyFromPlan implements Plan {
         return Merge.ensureOnHandler(collect, context, handlerProjections);
     }
 
-    private static void rewriteToCollectToUsePartitionValues(List<SimpleReference> partitionedByColumns,
+    private static void rewriteToCollectToUsePartitionValues(List<Reference> partitionedByColumns,
                                                              List<String> partitionValues,
                                                              List<Symbol> toCollect) {
         for (int i = 0; i < partitionValues.size(); i++) {
-            SimpleReference partitionedByColumn = partitionedByColumns.get(i);
+            Reference partitionedByColumn = partitionedByColumns.get(i);
             int idx;
-            if (partitionedByColumn instanceof GeneratedReference) {
-                idx = toCollect.indexOf(((GeneratedReference) partitionedByColumn).generatedExpression());
+            if (partitionedByColumn instanceof GeneratedReference genRef) {
+                idx = toCollect.indexOf(genRef.generatedExpression());
             } else {
                 idx = toCollect.indexOf(partitionedByColumn);
             }
@@ -368,9 +371,9 @@ public final class CopyFromPlan implements Plan {
      *  - primaryKeys + clusteredBy  (+ indexName)
      *      -> to calculate the shardId
      */
-    private static List<Symbol> getSymbolsRequiredForShardIdCalc(List<SimpleReference> primaryKeyRefs,
-                                                                 List<SimpleReference> partitionedByRefs,
-                                                                 @Nullable SimpleReference clusteredBy) {
+    private static List<Symbol> getSymbolsRequiredForShardIdCalc(List<Reference> primaryKeyRefs,
+                                                                 List<Reference> partitionedByRefs,
+                                                                 @Nullable Reference clusteredBy) {
         HashSet<Symbol> toCollectUnique = new HashSet<>();
         primaryKeyRefs.forEach(r -> addWithRefDependencies(toCollectUnique, r));
         partitionedByRefs.forEach(r -> addWithRefDependencies(toCollectUnique, r));
@@ -380,7 +383,7 @@ public final class CopyFromPlan implements Plan {
         return new ArrayList<>(toCollectUnique);
     }
 
-    private static void addWithRefDependencies(HashSet<Symbol> toCollectUnique, SimpleReference ref) {
+    private static void addWithRefDependencies(HashSet<Symbol> toCollectUnique, Reference ref) {
         if (ref instanceof GeneratedReference) {
             toCollectUnique.add(((GeneratedReference) ref).generatedExpression());
         } else {
@@ -401,7 +404,7 @@ public final class CopyFromPlan implements Plan {
      *    -> exclude partitioned by columns from document
      *    -> insert into es index (partition determined by partition by value)
      */
-    private static SimpleReference rawOrDoc(DocTableInfo table, String selectedPartitionIdent) {
+    private static Reference rawOrDoc(DocTableInfo table, String selectedPartitionIdent) {
         if (table.isPartitioned() && selectedPartitionIdent == null) {
             return table.getReference(DocSysColumns.DOC);
         }

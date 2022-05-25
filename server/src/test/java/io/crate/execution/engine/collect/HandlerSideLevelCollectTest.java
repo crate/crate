@@ -21,6 +21,26 @@
 
 package io.crate.execution.engine.collect;
 
+import static org.hamcrest.core.Is.is;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
+
+import org.elasticsearch.common.Randomness;
+import org.elasticsearch.test.ESIntegTestCase;
+import org.hamcrest.Matchers;
+import org.junit.Before;
+import org.junit.Test;
+
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
 import io.crate.data.BatchIterator;
@@ -37,7 +57,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
-import io.crate.metadata.SimpleReference;
+import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
@@ -45,6 +65,7 @@ import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.SearchPath;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.sys.SysClusterTableInfo;
@@ -53,25 +74,6 @@ import io.crate.planner.distribution.DistributionInfo;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.Randomness;
-import org.elasticsearch.test.ESIntegTestCase;
-import org.hamcrest.Matchers;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
-
-import static org.hamcrest.core.Is.is;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 0, supportsDedicatedMasters = false)
 public class HandlerSideLevelCollectTest extends SQLIntegrationTestCase {
@@ -147,7 +149,7 @@ public class HandlerSideLevelCollectTest extends SQLIntegrationTestCase {
             routingProvider,
             WhereClause.MATCH_ALL, RoutingProvider.ShardSelection.ANY, SessionContext.systemSessionContext());
         List<Symbol> toCollect = new ArrayList<>();
-        for (SimpleReference reference : tablesTableInfo.columns()) {
+        for (Reference reference : tablesTableInfo.columns()) {
             toCollect.add(reference);
         }
         Symbol tableNameRef = toCollect.get(12);
@@ -173,7 +175,7 @@ public class HandlerSideLevelCollectTest extends SQLIntegrationTestCase {
             routingProvider,
             WhereClause.MATCH_ALL, RoutingProvider.ShardSelection.ANY, SessionContext.systemSessionContext());
         List<Symbol> toCollect = new ArrayList<>();
-        for (SimpleReference ref : tableInfo.columns()) {
+        for (Reference ref : tableInfo.columns()) {
             if (Set.of("column_name", "data_type", "table_name").contains(ref.column().name())) {
                 toCollect.add(ref);
             }

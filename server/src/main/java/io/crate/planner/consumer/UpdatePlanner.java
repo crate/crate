@@ -21,6 +21,18 @@
 
 package io.crate.planner.consumer;
 
+import static java.util.Collections.singletonList;
+import static java.util.Objects.requireNonNull;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+
+import javax.annotation.Nullable;
+
+import org.elasticsearch.Version;
+
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.AnalyzedUpdateStatement;
 import io.crate.analyze.WhereClause;
@@ -45,7 +57,7 @@ import io.crate.expression.symbol.Assignments;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.SimpleReference;
+import io.crate.metadata.Reference;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.doc.DocSysColumns;
@@ -67,16 +79,6 @@ import io.crate.planner.operators.SubQueryAndParamBinder;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.planner.optimizer.symbol.Optimizer;
 import io.crate.types.DataTypes;
-import org.elasticsearch.Version;
-
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-
-import static java.util.Collections.singletonList;
-import static java.util.Objects.requireNonNull;
 
 public final class UpdatePlanner {
 
@@ -123,7 +125,7 @@ public final class UpdatePlanner {
     }
 
     private static Plan plan(DocTableRelation docTable,
-                             Map<SimpleReference, Symbol> assignmentByTargetCol,
+                             Map<Reference, Symbol> assignmentByTargetCol,
                              Symbol query,
                              PlannerContext plannerCtx,
                              @Nullable List<Symbol> returnValues) {
@@ -203,13 +205,13 @@ public final class UpdatePlanner {
 
     private static ExecutionPlan sysUpdate(PlannerContext plannerContext,
                                            TableRelation table,
-                                           Map<SimpleReference, Symbol> assignmentByTargetCol,
+                                           Map<Reference, Symbol> assignmentByTargetCol,
                                            Symbol query,
                                            Row params,
                                            SubQueryResults subQueryResults,
                                            @Nullable List<Symbol> returnValues) {
         TableInfo tableInfo = table.tableInfo();
-        SimpleReference idReference = requireNonNull(tableInfo.getReference(DocSysColumns.ID), "Table must have a _id column");
+        Reference idReference = requireNonNull(tableInfo.getReference(DocSysColumns.ID), "Table must have a _id column");
         Symbol[] outputSymbols;
         if (returnValues == null) {
             outputSymbols = new Symbol[]{new InputColumn(0, DataTypes.LONG)};
@@ -250,13 +252,13 @@ public final class UpdatePlanner {
 
     private static ExecutionPlan updateByQuery(PlannerContext plannerCtx,
                                                DocTableRelation table,
-                                               Map<SimpleReference, Symbol> assignmentByTargetCol,
+                                               Map<Reference, Symbol> assignmentByTargetCol,
                                                WhereClauseOptimizer.DetailedQuery detailedQuery,
                                                Row params,
                                                SubQueryResults subQueryResults,
                                                @Nullable List<Symbol> returnValues) {
         DocTableInfo tableInfo = table.tableInfo();
-        SimpleReference idReference = requireNonNull(tableInfo.getReference(DocSysColumns.ID),
+        Reference idReference = requireNonNull(tableInfo.getReference(DocSysColumns.ID),
                                                "Table must have a _id column");
         Assignments assignments = Assignments.convert(assignmentByTargetCol, plannerCtx.nodeContext());
         Symbol[] assignmentSources = assignments.bindSources(tableInfo, params, subQueryResults);
@@ -309,7 +311,7 @@ public final class UpdatePlanner {
 
     private static ExecutionPlan createCollectAndMerge(PlannerContext plannerCtx,
                                                        TableInfo tableInfo,
-                                                       SimpleReference idReference,
+                                                       Reference idReference,
                                                        Projection updateProjection,
                                                        WhereClause where,
                                                        int numOutPuts,

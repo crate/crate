@@ -21,13 +21,10 @@
 
 package io.crate.lucene;
 
-import io.crate.data.Input;
-import io.crate.execution.engine.fetch.ReaderContext;
-import io.crate.expression.InputCondition;
-import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
-import io.crate.expression.symbol.Function;
-import io.crate.expression.symbol.RefVisitor;
-import io.crate.expression.symbol.SymbolVisitors;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
@@ -43,9 +40,13 @@ import org.apache.lucene.search.TwoPhaseIterator;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.util.Bits;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
+import io.crate.data.Input;
+import io.crate.execution.engine.fetch.ReaderContext;
+import io.crate.expression.InputCondition;
+import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.RefVisitor;
+import io.crate.expression.symbol.SymbolVisitors;
 
 /**
  * Query implementation which filters docIds by evaluating {@code condition} on each docId to verify if it matches.

@@ -55,7 +55,7 @@ import io.crate.execution.engine.aggregation.impl.HyperLogLogPlusPlus;
 import io.crate.execution.engine.aggregation.impl.templates.SortedNumericDocValueAggregator;
 import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
-import io.crate.metadata.SimpleReference;
+import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.Signature;
 import io.crate.module.ExtraFunctionsModule;
@@ -164,13 +164,13 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
 
     @Nullable
     @Override
-    public DocValueAggregator<?> getDocValueAggregator(List<SimpleReference> aggregationReferences,
+    public DocValueAggregator<?> getDocValueAggregator(List<Reference> aggregationReferences,
                                                        DocTableInfo table,
                                                        List<Literal<?>> optionalParams) {
         if (aggregationReferences.stream().anyMatch(x -> !x.hasDocValues())) {
             return null;
         }
-        SimpleReference reference = aggregationReferences.get(0);
+        Reference reference = aggregationReferences.get(0);
         var dataType = reference.valueType();
         switch (dataType.id()) {
             case ByteType.ID:

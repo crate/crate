@@ -57,10 +57,11 @@ import io.crate.expression.reference.doc.lucene.LongColumnReference;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.metadata.Functions;
 import io.crate.metadata.IndexType;
-import io.crate.metadata.SimpleReference;
+import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.Signature;
 import io.crate.sql.tree.ColumnPolicy;
@@ -184,7 +185,7 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
             List.of()
         );
         var keyExpressions = List.of(new BytesRefColumnReference("x"), new LongColumnReference("y"));
-        var keyRefs = List.of(
+        var keyRefs = List.<Reference>of(
             new SimpleReference(
                 new ReferenceIdent(RelationName.fromIndexName("test"), "x"),
                 RowGranularity.DOC,

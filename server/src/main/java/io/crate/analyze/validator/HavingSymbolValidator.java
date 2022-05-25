@@ -21,6 +21,10 @@
 
 package io.crate.analyze.validator;
 
+import java.util.List;
+
+import javax.annotation.Nullable;
+
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
@@ -28,10 +32,7 @@ import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.WindowFunction;
 import io.crate.metadata.FunctionType;
-import io.crate.metadata.SimpleReference;
-
-import javax.annotation.Nullable;
-import java.util.List;
+import io.crate.metadata.Reference;
 
 
 public class HavingSymbolValidator {
@@ -75,7 +76,7 @@ public class HavingSymbolValidator {
         }
 
         @Override
-        public Void visitReference(SimpleReference ref, HavingContext context) {
+        public Void visitReference(Reference ref, HavingContext context) {
             ensurePresentInGroupBY(ref, context);
             return null;
         }

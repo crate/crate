@@ -21,14 +21,16 @@
 
 package io.crate.metadata;
 
-import io.crate.expression.symbol.SymbolType;
-import io.crate.types.DataTypes;
+import java.io.IOException;
+import java.util.Objects;
+
+import javax.annotation.Nullable;
+
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
-import javax.annotation.Nullable;
-import java.io.IOException;
-import java.util.Objects;
+import io.crate.expression.symbol.SymbolType;
+import io.crate.types.DataTypes;
 
 public class GeoReference extends SimpleReference {
 

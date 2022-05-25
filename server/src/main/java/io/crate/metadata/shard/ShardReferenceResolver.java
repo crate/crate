@@ -21,6 +21,16 @@
 
 package io.crate.metadata.shard;
 
+import static io.crate.execution.engine.collect.NestableCollectExpression.constant;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.index.Index;
+
 import io.crate.common.collections.MapBuilder;
 import io.crate.exceptions.ResourceUnknownException;
 import io.crate.exceptions.UnhandledServerException;
@@ -33,20 +43,11 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.MapBackedRefResolver;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.SimpleReference;
+import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.sys.SysShardsTableInfo;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.index.Index;
-
-import java.util.Collections;
-import java.util.List;
-import java.util.Locale;
-
-import static io.crate.execution.engine.collect.NestableCollectExpression.constant;
 
 public class ShardReferenceResolver implements ReferenceResolver<NestableInput<?>> {
 
@@ -75,7 +76,7 @@ public class ShardReferenceResolver implements ReferenceResolver<NestableInput<?
             List<String> partitionValue = partitionName.values();
             assert partitionValue.size() ==
                    numPartitionedColumns : "invalid number of partitioned columns";
-            for (SimpleReference partitionedInfo : info.partitionedByColumns()) {
+            for (Reference partitionedInfo : info.partitionedByColumns()) {
                 builder.put(
                     partitionedInfo.column(),
                     constant(partitionedInfo.valueType().implicitCast(partitionValue.get(i)))
@@ -107,7 +108,7 @@ public class ShardReferenceResolver implements ReferenceResolver<NestableInput<?
     }
 
     @Override
-    public NestableInput<?> getImplementation(SimpleReference ref) {
+    public NestableInput<?> getImplementation(Reference ref) {
         NestableInput<?> partitionColImpl = partitionColumnResolver.getImplementation(ref);
         if (partitionColImpl != null) {
             return partitionColImpl;

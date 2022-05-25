@@ -21,7 +21,15 @@
 
 package io.crate.metadata;
 
+import java.io.IOException;
+
+import javax.annotation.Nullable;
+
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.SymbolType;
 import io.crate.sql.tree.ColumnPolicy;
 
 public interface Reference extends Symbol {
@@ -41,4 +49,19 @@ public interface Reference extends Symbol {
     int position();
 
     boolean hasDocValues();
+
+    @Nullable
+    Symbol defaultExpression();
+
+    Reference getRelocated(ReferenceIdent referenceIdent);
+
+    static void toStream(Reference ref, StreamOutput out) throws IOException {
+        out.writeVInt(ref.symbolType().ordinal());
+        ref.writeTo(out);
+    }
+
+    @SuppressWarnings("unchecked")
+    static <T extends Reference> T fromStream(StreamInput in) throws IOException {
+        return (T) SymbolType.VALUES.get(in.readVInt()).newInstance(in);
+    }
 }

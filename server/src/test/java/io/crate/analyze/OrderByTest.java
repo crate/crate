@@ -21,25 +21,31 @@
 
 package io.crate.analyze;
 
+import static org.hamcrest.Matchers.is;
+
+import java.util.List;
+
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
+
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.SimpleReference;
+import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
-import org.elasticsearch.test.ESTestCase;
+import io.crate.metadata.SimpleReference;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.junit.Test;
-import java.util.List;
-
-import static org.hamcrest.Matchers.is;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.SimpleReference;
+import io.crate.types.DataTypes;
 
 public class OrderByTest extends ESTestCase {
 
     private static final RelationName TI = new RelationName("doc", "people");
 
-    private SimpleReference ref(String name) {
+    private Reference ref(String name) {
         return new SimpleReference(new ReferenceIdent(TI, name), RowGranularity.DOC, DataTypes.STRING, 0, null);
     }
 

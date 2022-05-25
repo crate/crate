@@ -44,7 +44,7 @@ import io.crate.common.unit.TimeValue;
 import io.crate.execution.dml.ShardRequest;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
-import io.crate.metadata.SimpleReference;
+import io.crate.metadata.Reference;
 import io.crate.metadata.settings.SessionSettings;
 
 public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUpsertRequest.Item> {
@@ -71,7 +71,7 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
      * List of references used on insert
      */
     @Nullable
-    private SimpleReference[] insertColumns;
+    private Reference[] insertColumns;
 
     /**
      * List of references or expressions to compute values for returning for update.
@@ -88,7 +88,7 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
         DuplicateKeyAction duplicateKeyAction,
         SessionSettings sessionSettings,
         @Nullable String[] updateColumns,
-        @Nullable SimpleReference[] insertColumns,
+        @Nullable Reference[] insertColumns,
         @Nullable Symbol[] returnValues) {
         super(shardId, jobId);
         assert updateColumns != null || insertColumns != null : "Missing updateAssignments, whether for update nor for insert";
@@ -113,9 +113,9 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
         int missingAssignmentsColumnsSize = in.readVInt();
         Streamer[] insertValuesStreamer = null;
         if (missingAssignmentsColumnsSize > 0) {
-            insertColumns = new SimpleReference[missingAssignmentsColumnsSize];
+            insertColumns = new Reference[missingAssignmentsColumnsSize];
             for (int i = 0; i < missingAssignmentsColumnsSize; i++) {
-                insertColumns[i] = SimpleReference.fromStream(in);
+                insertColumns[i] = Reference.fromStream(in);
             }
             insertValuesStreamer = Symbols.streamerArray(List.of(insertColumns));
         }
@@ -160,8 +160,8 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
         Streamer[] insertValuesStreamer = null;
         if (insertColumns != null) {
             out.writeVInt(insertColumns.length);
-            for (SimpleReference reference : insertColumns) {
-                SimpleReference.toStream(reference, out);
+            for (Reference reference : insertColumns) {
+                Reference.toStream(reference, out);
             }
             insertValuesStreamer = Symbols.streamerArray(List.of(insertColumns));
         } else {
@@ -218,7 +218,7 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
     }
 
     @Nullable
-    public SimpleReference[] insertColumns() {
+    public Reference[] insertColumns() {
         return insertColumns;
     }
 
@@ -484,7 +484,7 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
         @Nullable
         private final String[] assignmentsColumns;
         @Nullable
-        private final SimpleReference[] missingAssignmentsColumns;
+        private final Reference[] missingAssignmentsColumns;
         private final UUID jobId;
         private final boolean validation;
         @Nullable
@@ -495,7 +495,7 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
                        DuplicateKeyAction duplicateKeyAction,
                        boolean continueOnError,
                        @Nullable String[] assignmentsColumns,
-                       @Nullable SimpleReference[] missingAssignmentsColumns,
+                       @Nullable Reference[] missingAssignmentsColumns,
                        @Nullable Symbol[] returnValue,
                        UUID jobId,
                        boolean validation) {

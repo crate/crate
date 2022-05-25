@@ -22,22 +22,22 @@
 package io.crate.execution.engine.collect.collectors;
 
 
-import io.crate.analyze.OrderBy;
-import io.crate.breaker.RamAccounting;
-import io.crate.breaker.RowAccounting;
-import io.crate.breaker.RowAccountingWithEstimators;
-import io.crate.data.BatchIterator;
-import io.crate.data.Row;
-import io.crate.execution.engine.sort.OrderingByPosition;
-import io.crate.expression.reference.doc.lucene.CollectorContext;
-import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
-import io.crate.expression.reference.doc.lucene.OrderByCollectorExpression;
-import io.crate.metadata.SimpleReference;
-import org.elasticsearch.test.ESTestCase;
-import io.crate.testing.BatchIteratorTester;
-import io.crate.testing.TestingRowConsumer;
-import io.crate.types.DataTypes;
-import io.crate.types.LongType;
+import static io.crate.testing.TestingHelpers.createReference;
+import static org.hamcrest.Matchers.is;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
+import java.util.stream.LongStream;
+
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.NumericDocValuesField;
@@ -53,24 +53,25 @@ import org.apache.lucene.store.ByteBuffersDirectory;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.test.ESTestCase;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
-import java.util.stream.LongStream;
-
-import static io.crate.testing.TestingHelpers.createReference;
-import static org.hamcrest.Matchers.is;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
+import io.crate.analyze.OrderBy;
+import io.crate.breaker.RamAccounting;
+import io.crate.breaker.RowAccounting;
+import io.crate.breaker.RowAccountingWithEstimators;
+import io.crate.data.BatchIterator;
+import io.crate.data.Row;
+import io.crate.execution.engine.sort.OrderingByPosition;
+import io.crate.expression.reference.doc.lucene.CollectorContext;
+import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
+import io.crate.expression.reference.doc.lucene.OrderByCollectorExpression;
+import io.crate.metadata.Reference;
+import io.crate.testing.BatchIteratorTester;
+import io.crate.testing.TestingRowConsumer;
+import io.crate.types.DataTypes;
+import io.crate.types.LongType;
 
 public class OrderedLuceneBatchIteratorFactoryTest extends ESTestCase {
 
@@ -80,7 +81,7 @@ public class OrderedLuceneBatchIteratorFactoryTest extends ESTestCase {
     );
 
     private String columnName = "x";
-    private SimpleReference reference = createReference(columnName, DataTypes.LONG);
+    private Reference reference = createReference(columnName, DataTypes.LONG);
     private IndexSearcher searcher1;
     private IndexSearcher searcher2;
     private OrderBy orderBy;

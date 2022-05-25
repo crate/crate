@@ -46,7 +46,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.SimpleReference;
+import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.Signature;
@@ -242,7 +242,7 @@ public class CountAggregation extends AggregationFunction<MutableLong, Long> {
         return previousAggState;
     }
 
-    private DocValueAggregator<?> getDocValueAggregator(SimpleReference ref) {
+    private DocValueAggregator<?> getDocValueAggregator(Reference ref) {
         if (!ref.hasDocValues()) {
             return null;
         }
@@ -282,17 +282,17 @@ public class CountAggregation extends AggregationFunction<MutableLong, Long> {
 
     @Nullable
     @Override
-    public DocValueAggregator<?> getDocValueAggregator(List<SimpleReference> aggregationReferences,
+    public DocValueAggregator<?> getDocValueAggregator(List<Reference> aggregationReferences,
                                                        DocTableInfo table,
                                                        List<Literal<?>> optionalParams) {
         if (aggregationReferences.size() != 1) {
             return null;
         }
-        SimpleReference reference = aggregationReferences.get(0);
+        Reference reference = aggregationReferences.get(0);
         if (reference.valueType().id() == ObjectType.ID) {
             // Count on object would require loading the source just to check if there is a value.
             // Try to count on a non-null sub-column to be able to utilize doc-values.
-            var aggregationRef = (SimpleReference) aggregationReferences.get(0);
+            var aggregationRef = (Reference) aggregationReferences.get(0);
             for (var notNullCol : table.notNullColumns()) {
                 // the first seen not-null sub-column will be used
                 if (notNullCol.isChildOf(aggregationRef.column())) {

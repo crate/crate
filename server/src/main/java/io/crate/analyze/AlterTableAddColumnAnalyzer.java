@@ -21,6 +21,14 @@
 
 package io.crate.analyze;
 
+import static java.util.Collections.singletonList;
+
+import java.util.List;
+import java.util.Locale;
+import java.util.stream.Collectors;
+
+import javax.annotation.Nullable;
+
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.TableReferenceResolver;
@@ -30,11 +38,12 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.SimpleReference;
+import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.AddColumnDefinition;
@@ -42,13 +51,6 @@ import io.crate.sql.tree.AlterTableAddColumn;
 import io.crate.sql.tree.CheckColumnConstraint;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.QualifiedName;
-
-import javax.annotation.Nullable;
-import java.util.List;
-import java.util.Locale;
-import java.util.stream.Collectors;
-
-import static java.util.Collections.singletonList;
 
 class AlterTableAddColumnAnalyzer {
 
@@ -124,7 +126,7 @@ class AlterTableAddColumnAnalyzer {
         return new AnalyzedAlterTableAddColumn(tableInfo, analyzedTableElements, analyzedTableElementsWithExpressions);
     }
 
-    private static class SelfReferenceFieldProvider implements FieldProvider<SimpleReference> {
+    private static class SelfReferenceFieldProvider implements FieldProvider<Reference> {
 
         private final RelationName relationName;
         private final TableReferenceResolver referenceResolver;
@@ -139,14 +141,14 @@ class AlterTableAddColumnAnalyzer {
         }
 
         @Override
-        public SimpleReference resolveField(QualifiedName qualifiedName,
+        public Reference resolveField(QualifiedName qualifiedName,
                                       @Nullable List<String> path,
                                       Operation operation,
                                       boolean errorOnUnknownObjectKey) {
             try {
                 // SQL Semantics: CHECK expressions cannot refer to other
                 // columns to not invalidate existing data inadvertently.
-                SimpleReference ref = referenceResolver.resolveField(qualifiedName, path, operation, errorOnUnknownObjectKey);
+                Reference ref = referenceResolver.resolveField(qualifiedName, path, operation, errorOnUnknownObjectKey);
                 throw new IllegalArgumentException(String.format(
                     Locale.ENGLISH,
                     "CHECK expressions defined in this context cannot refer to other columns: %s",

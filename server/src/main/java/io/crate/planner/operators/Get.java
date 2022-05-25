@@ -21,6 +21,25 @@
 
 package io.crate.planner.operators;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
+
+import javax.annotation.Nullable;
+
+import org.elasticsearch.cluster.routing.ShardRouting;
+import org.elasticsearch.common.lucene.uid.Versions;
+import org.elasticsearch.index.IndexNotFoundException;
+import org.elasticsearch.index.seqno.SequenceNumbers;
+import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.index.shard.ShardNotFoundException;
+
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.DocTableRelation;
@@ -38,7 +57,7 @@ import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.SimpleReference;
+import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocSysColumns;
@@ -47,23 +66,6 @@ import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.node.dql.Collect;
 import io.crate.statistics.TableStats;
-import org.elasticsearch.cluster.routing.ShardRouting;
-import org.elasticsearch.common.lucene.uid.Versions;
-import org.elasticsearch.index.IndexNotFoundException;
-import org.elasticsearch.index.seqno.SequenceNumbers;
-import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.index.shard.ShardNotFoundException;
-
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Consumer;
 
 public class Get implements LogicalPlan {
 
@@ -166,7 +168,7 @@ public class Get implements LogicalPlan {
         // If the query contains only DocKeys, no filter is needed as all DocKeys are handled by the PKLookupOperation
         AtomicBoolean requiresAdditionalFilteringOnNonDocKeyColumns = new AtomicBoolean(false);
         var toCollectSet = new LinkedHashSet<>(boundOutputs);
-        Consumer<SimpleReference> addRefIfMatch = ref -> {
+        Consumer<Reference> addRefIfMatch = ref -> {
             toCollectSet.add(ref);
             if (docKeyColumns.contains(ref.column()) == false) {
                 requiresAdditionalFilteringOnNonDocKeyColumns.set(true);

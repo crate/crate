@@ -21,25 +21,25 @@
 
 package io.crate.execution.dml.upsert;
 
+import java.util.List;
+import java.util.Map;
+
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.ValueExtractors;
 import io.crate.expression.reference.ReferenceResolver;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.SimpleReference;
-
-import java.util.List;
-import java.util.Map;
+import io.crate.metadata.Reference;
 
 class FromSourceRefResolver implements ReferenceResolver<CollectExpression<Map<String, Object>, ?>> {
 
     static final FromSourceRefResolver WITHOUT_PARTITIONED_BY_REFS = new FromSourceRefResolver(List.of(), "");
 
-    private final List<SimpleReference> partitionedBy;
+    private final List<Reference> partitionedBy;
     private final PartitionName partitionName;
 
-    FromSourceRefResolver(List<SimpleReference> partitionedBy,
+    FromSourceRefResolver(List<Reference> partitionedBy,
                           String indexName) {
         this.partitionedBy = partitionedBy;
         this.partitionName = partitionedBy.isEmpty()
@@ -48,7 +48,7 @@ class FromSourceRefResolver implements ReferenceResolver<CollectExpression<Map<S
     }
 
     @Override
-    public CollectExpression<Map<String, Object>, Object> getImplementation(SimpleReference ref) {
+    public CollectExpression<Map<String, Object>, Object> getImplementation(Reference ref) {
         int partitionPos = partitionedBy.indexOf(ref);
         if (partitionPos >= 0 && !(ref instanceof GeneratedReference)) {
             return NestableCollectExpression

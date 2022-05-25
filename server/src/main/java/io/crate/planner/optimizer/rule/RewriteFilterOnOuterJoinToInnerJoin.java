@@ -21,6 +21,15 @@
 
 package io.crate.planner.optimizer.rule;
 
+import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
+import static io.crate.planner.optimizer.matcher.Patterns.source;
+import static io.crate.planner.optimizer.rule.FilterOnJoinsUtil.getNewSource;
+
+import java.util.Map;
+import java.util.Set;
+
+import javax.annotation.Nullable;
+
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.QuerySplitter;
@@ -44,14 +53,6 @@ import io.crate.planner.optimizer.matcher.Capture;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
 import io.crate.statistics.TableStats;
-
-import javax.annotation.Nullable;
-import java.util.Map;
-import java.util.Set;
-
-import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
-import static io.crate.planner.optimizer.matcher.Patterns.source;
-import static io.crate.planner.optimizer.rule.FilterOnJoinsUtil.getNewSource;
 
 /**
  * If we can determine that a filter on an OUTER JOIN turns all NULL rows that the join could generate into a NO-MATCH

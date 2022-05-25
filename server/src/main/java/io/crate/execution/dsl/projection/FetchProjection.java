@@ -21,10 +21,20 @@
 
 package io.crate.execution.dsl.projection;
 
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+
 import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.IntObjectMap;
 import com.carrotsearch.hppc.IntSet;
 import com.carrotsearch.hppc.cursors.IntCursor;
+
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.monitor.jvm.JvmInfo;
+
 import io.crate.Streamer;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists2;
@@ -38,15 +48,6 @@ import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.RelationName;
 import io.crate.planner.node.fetch.FetchSource;
 import io.crate.types.DataType;
-
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.monitor.jvm.JvmInfo;
-
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
 
 public class FetchProjection extends Projection {
 

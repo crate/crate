@@ -49,7 +49,7 @@ public class SysNodesTableInfoTest extends CrateDummyClusterServiceUnitTest {
     public void testRegistered() {
         var info = SysNodesTableInfo.create();
         ReferenceResolver<?> referenceResolver = new StaticTableReferenceResolver<>(info.expressions());
-        for (SimpleReference reference : info) {
+        for (var reference : info) {
             assertNotNull(referenceResolver.getImplementation(reference));
         }
     }
@@ -69,7 +69,7 @@ public class SysNodesTableInfoTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_column_that_is_a_child_of_an_array_has_array_type_on_select() {
         var table = SysNodesTableInfo.create();
-        SimpleReference ref = table.getReference(new ColumnIdent("fs", List.of("data", "path")));
+        Reference ref = table.getReference(new ColumnIdent("fs", List.of("data", "path")));
         assertThat(ref.valueType(), is(new ArrayType<>(DataTypes.STRING)));
 
         SQLExecutor e = SQLExecutor.builder(clusterService).build();
@@ -80,7 +80,7 @@ public class SysNodesTableInfoTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_fs_data_is_a_object_array() {
         var table = SysNodesTableInfo.create();
-        SimpleReference ref = table.getReference(new ColumnIdent("fs", "data"));
+        Reference ref = table.getReference(new ColumnIdent("fs", "data"));
         assertThat(ref.valueType().id(), Matchers.is(ArrayType.ID));
         assertThat(((ArrayType<?>) ref.valueType()).innerType().id(), is(ObjectType.ID));
     }

@@ -21,6 +21,15 @@
 
 package io.crate.planner.operators;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
+
+import javax.annotation.Nullable;
+
 import io.crate.analyze.OrderBy;
 import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
@@ -36,21 +45,13 @@ import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.IndexType;
-import io.crate.metadata.SimpleReference;
+import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.statistics.TableStats;
-
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
 
 public class HashAggregate extends ForwardingLogicalPlan {
 
@@ -226,7 +227,7 @@ public class HashAggregate extends ForwardingLogicalPlan {
         }
 
         @Override
-        public Void visitReference(SimpleReference symbol, OutputValidatorContext context) {
+        public Void visitReference(Reference symbol, OutputValidatorContext context) {
             if (context.insideAggregation) {
                 IndexType indexType = symbol.indexType();
                 if (indexType == IndexType.FULLTEXT) {

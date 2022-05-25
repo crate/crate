@@ -21,13 +21,22 @@
 
 package io.crate.planner.optimizer.rule;
 
+import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
+import static io.crate.planner.optimizer.matcher.Patterns.source;
+
+import java.util.Collections;
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Set;
+import java.util.function.Consumer;
+
 import io.crate.analyze.OrderBy;
 import io.crate.expression.symbol.FieldsVisitor;
 import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.SimpleReference;
+import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.LogicalPlan;
@@ -38,15 +47,6 @@ import io.crate.planner.optimizer.matcher.Capture;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
 import io.crate.statistics.TableStats;
-
-import java.util.Collections;
-import java.util.IdentityHashMap;
-import java.util.List;
-import java.util.Set;
-import java.util.function.Consumer;
-
-import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
-import static io.crate.planner.optimizer.matcher.Patterns.source;
 
 /* Move the orderBy expression to the sub-relation if possible.
  *
@@ -86,7 +86,7 @@ public final class MoveOrderBeneathNestedLoop implements Rule<Order> {
         Set<RelationName> relationsInOrderBy =
             Collections.newSetFromMap(new IdentityHashMap<>());
         Consumer<ScopedSymbol> gatherRelationsFromField = f -> relationsInOrderBy.add(f.relation());
-        Consumer<SimpleReference> gatherRelationsFromRef = r -> relationsInOrderBy.add(r.ident().tableIdent());
+        Consumer<Reference> gatherRelationsFromRef = r -> relationsInOrderBy.add(r.ident().tableIdent());
         OrderBy orderBy = order.orderBy();
         for (Symbol orderExpr : orderBy.orderBySymbols()) {
             FieldsVisitor.visitFields(orderExpr, gatherRelationsFromField);

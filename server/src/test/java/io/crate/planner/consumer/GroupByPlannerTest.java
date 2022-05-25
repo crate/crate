@@ -21,7 +21,25 @@
 
 package io.crate.planner.consumer;
 
+import static io.crate.testing.SymbolMatchers.isAggregation;
+import static io.crate.testing.SymbolMatchers.isReference;
+import static io.crate.testing.TestingHelpers.isSQL;
+import static java.util.Collections.singletonList;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
+
+import java.io.IOException;
+import java.util.List;
+
 import com.carrotsearch.randomizedtesting.RandomizedTest;
+
+import org.hamcrest.Matchers;
+import org.hamcrest.core.Is;
+import org.junit.Test;
 
 import io.crate.analyze.TableDefinitions;
 import io.crate.execution.dsl.phases.CollectPhase;
@@ -42,7 +60,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.SimpleReference;
+import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.planner.ExecutionPlan;
@@ -54,23 +72,11 @@ import io.crate.testing.SQLExecutor;
 import io.crate.testing.SymbolMatchers;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.hamcrest.Matchers;
-import org.hamcrest.core.Is;
-import org.junit.Test;
-
-import java.io.IOException;
-import java.util.List;
-
-import static io.crate.testing.SymbolMatchers.isAggregation;
-import static io.crate.testing.SymbolMatchers.isReference;
-import static io.crate.testing.TestingHelpers.isSQL;
-import static java.util.Collections.singletonList;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
+import io.crate.types.DataTypes;
+import io.crate.types.DataTypes;
+import io.crate.types.DataTypes;
+import io.crate.types.DataTypes;
+import io.crate.types.DataTypes;
 
 public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -310,7 +316,7 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
             "select count(*) from sys.cluster group by name");
         // just testing the dispatching here.. making sure it is not a ESSearchNode
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) collect.collectPhase());
-        assertThat(collectPhase.toCollect().get(0), instanceOf(SimpleReference.class));
+        assertThat(collectPhase.toCollect().get(0), instanceOf(Reference.class));
         assertThat(collectPhase.toCollect().size(), is(1));
 
         assertThat(collectPhase.projections(), contains(
@@ -330,10 +336,10 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
         CollectPhase collectPhase = ((Collect) reducerMerge.subPlan()).collectPhase();
 
         // collect
-        assertThat(collectPhase.toCollect().get(0), instanceOf(SimpleReference.class));
+        assertThat(collectPhase.toCollect().get(0), instanceOf(Reference.class));
         assertThat(collectPhase.toCollect().size(), is(2));
-        assertThat(((SimpleReference) collectPhase.toCollect().get(0)).column().name(), is("id"));
-        assertThat(((SimpleReference) collectPhase.toCollect().get(1)).column().name(), is("name"));
+        assertThat(((Reference) collectPhase.toCollect().get(0)).column().name(), is("id"));
+        assertThat(((Reference) collectPhase.toCollect().get(1)).column().name(), is("name"));
         Projection projection = collectPhase.projections().get(0);
         assertThat(projection, instanceOf(GroupProjection.class));
         GroupProjection groupProjection = (GroupProjection) projection;

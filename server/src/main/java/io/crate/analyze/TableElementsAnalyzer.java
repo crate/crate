@@ -21,10 +21,15 @@
 
 package io.crate.analyze;
 
+import java.util.List;
+import java.util.Locale;
+
+import javax.annotation.Nullable;
+
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
-import io.crate.metadata.SimpleReference;
+import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.AddColumnDefinition;
@@ -48,10 +53,6 @@ import io.crate.sql.tree.PrimaryKeyConstraint;
 import io.crate.sql.tree.TableElement;
 import io.crate.types.ArrayType;
 import io.crate.types.ObjectType;
-
-import javax.annotation.Nullable;
-import java.util.List;
-import java.util.Locale;
 
 public class TableElementsAnalyzer {
 
@@ -162,7 +163,7 @@ public class TableElementsAnalyzer {
                     // Check if parent is already defined.
                     // If it is an array, set the collection type to array, or if it's an object keep the object column
                     // policy.
-                    SimpleReference parentRef = context.tableInfo.getReference(parent.ident());
+                    Reference parentRef = context.tableInfo.getReference(parent.ident());
                     int childrenCnt = 0;
                     if (parentRef != null) {
                         parent.position = parentRef.position();

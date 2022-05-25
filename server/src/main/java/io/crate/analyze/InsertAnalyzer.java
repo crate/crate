@@ -57,7 +57,6 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
@@ -77,9 +76,9 @@ class InsertAnalyzer {
 
     private static class ValuesResolver implements io.crate.analyze.ValuesResolver {
 
-        private final List<SimpleReference> targetColumns;
+        private final List<Reference> targetColumns;
 
-        ValuesResolver(List<SimpleReference> targetColumns) {
+        ValuesResolver(List<Reference> targetColumns) {
             this.targetColumns = targetColumns;
         }
 
@@ -110,7 +109,7 @@ class InsertAnalyzer {
             txnCtx.sessionContext().sessionUser(),
             txnCtx.sessionContext().searchPath()
         );
-        List<SimpleReference> targetColumns;
+        List<Reference> targetColumns;
         if (insert.columns().isEmpty()) {
             targetColumns = new ArrayList<>(tableInfo.columns());
         } else {
@@ -136,7 +135,7 @@ class InsertAnalyzer {
             Operation.READ
         );
         verifyOnConflictTargets(txnCtx, expressionAnalyzer, tableInfo, insert.duplicateKeyContext());
-        Map<SimpleReference, Symbol> onDuplicateKeyAssignments = processUpdateAssignments(
+        Map<Reference, Symbol> onDuplicateKeyAssignments = processUpdateAssignments(
             tableRelation,
             targetColumns,
             typeHints,
@@ -228,12 +227,12 @@ class InsertAnalyzer {
         }
     }
 
-    private static void ensureClusteredByPresentOrNotRequired(List<SimpleReference> targetColumnRefs, DocTableInfo tableInfo) {
+    private static void ensureClusteredByPresentOrNotRequired(List<Reference> targetColumnRefs, DocTableInfo tableInfo) {
         ColumnIdent clusteredBy = tableInfo.clusteredBy();
         if (clusteredBy == null || clusteredBy.equals(DocSysColumns.ID)) {
             return;
         }
-        SimpleReference clusteredByRef = tableInfo.getReference(clusteredBy);
+        Reference clusteredByRef = tableInfo.getReference(clusteredBy);
         if (clusteredByRef.defaultExpression() != null) {
             return;
         }
@@ -244,12 +243,11 @@ class InsertAnalyzer {
         // and need to rely on later runtime failures
         ColumnIdent clusteredByRoot = clusteredBy.getRoot();
 
-        List<ColumnIdent> targetColumns = Lists2.mapLazy(targetColumnRefs, SimpleReference::column);
+        List<ColumnIdent> targetColumns = Lists2.mapLazy(targetColumnRefs, Reference::column);
         if (targetColumns.contains(clusteredByRoot)) {
             return;
         }
-        if (clusteredByRef instanceof GeneratedReference) {
-            GeneratedReference generatedClusteredBy = (GeneratedReference) clusteredByRef;
+        if (clusteredByRef instanceof GeneratedReference generatedClusteredBy) {
             var topLevelDependencies = Lists2.mapLazy(generatedClusteredBy.referencedReferences(), x -> x.column().getRoot());
             if (targetColumns.containsAll(topLevelDependencies)) {
                 return;
@@ -260,8 +258,8 @@ class InsertAnalyzer {
             "Column `" + clusteredBy + "` is required but is missing from the insert statement");
     }
 
-    private static void checkSourceAndTargetColsForLengthAndTypesCompatibility(
-        List<SimpleReference> targetColumns, List<Symbol> sources) {
+    private static void checkSourceAndTargetColsForLengthAndTypesCompatibility(List<Reference> targetColumns,
+                                                                               List<Symbol> sources) {
         if (targetColumns.size() != sources.size()) {
             Collector<CharSequence, ?, String> commaJoiner = Collectors.joining(", ");
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
@@ -271,7 +269,7 @@ class InsertAnalyzer {
         }
 
         for (int i = 0; i < targetColumns.size(); i++) {
-            SimpleReference targetCol = targetColumns.get(i);
+            Reference targetCol = targetColumns.get(i);
             Symbol source = sources.get(i);
             DataType<?> targetType = targetCol.valueType();
             if (targetType.id() == DataTypes.UNDEFINED.id() || source.valueType().isConvertableTo(targetType, false)) {
@@ -287,8 +285,8 @@ class InsertAnalyzer {
         }
     }
 
-    private static Map<SimpleReference, Symbol> getUpdateAssignments(DocTableRelation targetTable,
-                                                               List<SimpleReference> targetCols,
+    private static Map<Reference, Symbol> getUpdateAssignments(DocTableRelation targetTable,
+                                                               List<Reference> targetCols,
                                                                ExpressionAnalyzer exprAnalyzer,
                                                                CoordinatorTxnCtx txnCtx,
                                                                NodeContext nodeCtx,
@@ -308,9 +306,9 @@ class InsertAnalyzer {
         }
         var expressionAnalyzer = new ExpressionAnalyzer(txnCtx, nodeCtx, paramTypeHints, fieldProvider, null);
         var normalizer = new EvaluatingNormalizer(nodeCtx, RowGranularity.CLUSTER, null, targetTable);
-        Map<SimpleReference, Symbol> updateAssignments = new HashMap<>(duplicateKeyContext.getAssignments().size());
+        Map<Reference, Symbol> updateAssignments = new HashMap<>(duplicateKeyContext.getAssignments().size());
         for (Assignment<Expression> assignment : duplicateKeyContext.getAssignments()) {
-            SimpleReference targetCol = (SimpleReference) exprAnalyzer.convert(assignment.columnName(), exprCtx);
+            Reference targetCol = (Reference) exprAnalyzer.convert(assignment.columnName(), exprCtx);
             Symbol valueSymbol = ValueNormalizer.normalizeInputForReference(
                 normalizer.normalize(expressionAnalyzer.convert(assignment.expression(), exprCtx), txnCtx),
                 targetCol,
@@ -322,8 +320,8 @@ class InsertAnalyzer {
         return updateAssignments;
     }
 
-    private Map<SimpleReference, Symbol> processUpdateAssignments(DocTableRelation tableRelation,
-                                                            List<SimpleReference> targetColumns,
+    private Map<Reference, Symbol> processUpdateAssignments(DocTableRelation tableRelation,
+                                                            List<Reference> targetColumns,
                                                             ParamTypeHints paramTypeHints,
                                                             CoordinatorTxnCtx coordinatorTxnCtx,
                                                             NodeContext nodeCtx,
@@ -334,7 +332,14 @@ class InsertAnalyzer {
         }
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
             coordinatorTxnCtx, nodeCtx, paramTypeHints, fieldProvider, null, Operation.UPDATE);
-        return getUpdateAssignments(tableRelation, targetColumns, expressionAnalyzer,
-            coordinatorTxnCtx, nodeCtx, paramTypeHints, duplicateKeyContext);
+        return getUpdateAssignments(
+            tableRelation,
+            targetColumns,
+            expressionAnalyzer,
+            coordinatorTxnCtx,
+            nodeCtx,
+            paramTypeHints,
+            duplicateKeyContext
+        );
     }
 }

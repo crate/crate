@@ -47,7 +47,6 @@ import javax.annotation.Nullable;
 
 import com.carrotsearch.hppc.IntArrayList;
 
-import io.crate.execution.dml.upsert.ShardUpsertAction;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.CreatePartitionsAction;
 import org.elasticsearch.action.admin.indices.create.CreatePartitionsRequest;
@@ -84,6 +83,7 @@ import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.dml.ShardRequest;
 import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.dml.upsert.InsertSourceFromCells;
+import io.crate.execution.dml.upsert.ShardUpsertAction;
 import io.crate.execution.dml.upsert.ShardUpsertRequest;
 import io.crate.execution.dsl.projection.ColumnIndexWriterProjection;
 import io.crate.execution.dsl.projection.builder.InputColumns;
@@ -103,7 +103,7 @@ import io.crate.expression.symbol.Assignments;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.IndexParts;
-import io.crate.metadata.SimpleReference;
+import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
@@ -249,7 +249,7 @@ public class InsertFromValues implements LogicalPlan {
                 : ShardUpsertRequest.DuplicateKeyAction.UPDATE_OR_FAIL,
             rows.size() > 1, // continueOnErrors
             onConflictColumns,
-            writerProjection.allTargetColumns().toArray(new SimpleReference[0]),
+            writerProjection.allTargetColumns().toArray(new Reference[0]),
             returnValues.isEmpty() ? null : returnValues.toArray(new Symbol[0]),
             plannerContext.jobId(),
             false);
@@ -365,7 +365,7 @@ public class InsertFromValues implements LogicalPlan {
                 : ShardUpsertRequest.DuplicateKeyAction.UPDATE_OR_FAIL,
             true, // continueOnErrors
             updateColumnNames,
-            writerProjection.allTargetColumns().toArray(new SimpleReference[0]),
+            writerProjection.allTargetColumns().toArray(new Reference[0]),
             null,
             plannerContext.jobId(),
             true);
@@ -524,7 +524,7 @@ public class InsertFromValues implements LogicalPlan {
 
     private static Iterator<Row> evaluateValueTableFunction(TableFunctionImplementation<?> funcImplementation,
                                                             List<Symbol> arguments,
-                                                            List<SimpleReference> allTargetReferences,
+                                                            List<Reference> allTargetReferences,
                                                             DocTableInfo tableInfo,
                                                             Row params,
                                                             PlannerContext plannerContext,
@@ -550,13 +550,13 @@ public class InsertFromValues implements LogicalPlan {
             .iterator();
     }
 
-    private static Row cast(Row row, List<SimpleReference> columnReferences, DocTableInfo tableInfo) {
+    private static Row cast(Row row, List<Reference> columnReferences, DocTableInfo tableInfo) {
         if (row == null) {
             return null;
         }
         Object[] cells = new Object[row.numColumns()];
         for (int i = 0; i < cells.length; i++) {
-            SimpleReference reference = columnReferences.get(i);
+            var reference = columnReferences.get(i);
             DataType<?> targetType = reference.valueType();
             Object value = row.get(i);
             try {

@@ -21,25 +21,6 @@
 
 package io.crate.metadata;
 
-import io.crate.action.sql.SessionContext;
-import io.crate.analyze.WhereClause;
-import io.crate.execution.engine.collect.NestableCollectExpression;
-import io.crate.expression.NestableInput;
-import io.crate.expression.reference.MapLookupByPathExpression;
-import io.crate.expression.symbol.DynamicReference;
-import io.crate.metadata.expressions.RowCollectExpressionFactory;
-import io.crate.metadata.table.Operation;
-import io.crate.metadata.table.TableInfo;
-import io.crate.sql.tree.ColumnPolicy;
-import io.crate.types.ArrayType;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
-import io.crate.types.ObjectType;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.common.settings.Settings;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -54,20 +35,41 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.common.settings.Settings;
+
+import io.crate.action.sql.SessionContext;
+import io.crate.analyze.WhereClause;
+import io.crate.execution.engine.collect.NestableCollectExpression;
+import io.crate.expression.NestableInput;
+import io.crate.expression.reference.MapLookupByPathExpression;
+import io.crate.expression.symbol.DynamicReference;
+import io.crate.metadata.expressions.RowCollectExpressionFactory;
+import io.crate.metadata.table.Operation;
+import io.crate.metadata.table.TableInfo;
+import io.crate.sql.tree.ColumnPolicy;
+import io.crate.types.ArrayType;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
+
 public final class SystemTable<T> implements TableInfo {
 
     private final RelationName name;
-    private final Map<ColumnIdent, SimpleReference> columns;
+    private final Map<ColumnIdent, Reference> columns;
     private final Map<ColumnIdent, RowCollectExpressionFactory<T>> expressions;
     private final List<ColumnIdent> primaryKeys;
-    private final List<SimpleReference> rootColumns;
+    private final List<Reference> rootColumns;
     private final GetRouting getRouting;
     private final Map<ColumnIdent, Function<ColumnIdent, DynamicReference>> dynamicColumns;
     private final Set<Operation> supportedOperations;
     private final RowGranularity rowGranularity;
 
     public SystemTable(RelationName name,
-                       Map<ColumnIdent, SimpleReference> columns,
+                       Map<ColumnIdent, Reference> columns,
                        Map<ColumnIdent, RowCollectExpressionFactory<T>> expressions,
                        List<ColumnIdent> primaryKeys,
                        Map<ColumnIdent, Function<ColumnIdent, DynamicReference>> dynamicColumns,
@@ -91,13 +93,13 @@ public final class SystemTable<T> implements TableInfo {
 
     @Nullable
     @Override
-    public SimpleReference getReference(ColumnIdent column) {
+    public Reference getReference(ColumnIdent column) {
         return getReadReference(column);
     }
 
     @Nullable
     @Override
-    public SimpleReference getReadReference(ColumnIdent column) {
+    public Reference getReadReference(ColumnIdent column) {
         var ref = columns.get(column);
         if (ref != null) {
             return ref;
@@ -122,7 +124,7 @@ public final class SystemTable<T> implements TableInfo {
     }
 
     @Override
-    public Collection<SimpleReference> columns() {
+    public Collection<Reference> columns() {
         return rootColumns;
     }
 
@@ -158,7 +160,7 @@ public final class SystemTable<T> implements TableInfo {
 
     @Override
     @Nonnull
-    public Iterator<SimpleReference> iterator() {
+    public Iterator<Reference> iterator() {
         return columns.values().iterator();
     }
 
@@ -275,7 +277,7 @@ public final class SystemTable<T> implements TableInfo {
 
         public SystemTable<T> build() {
             HashMap<ColumnIdent, Function<ColumnIdent, DynamicReference>> dynamicColumns = new HashMap<>();
-            LinkedHashMap<ColumnIdent, SimpleReference> refByColumns = new LinkedHashMap<>();
+            LinkedHashMap<ColumnIdent, Reference> refByColumns = new LinkedHashMap<>();
             HashMap<ColumnIdent, RowCollectExpressionFactory<T>> expressions = new HashMap<>();
             columns.sort(Comparator.comparing(x -> x.column));
             for (int i = 0; i < columns.size(); i++) {

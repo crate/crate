@@ -21,33 +21,7 @@
 
 package io.crate.statistics;
 
-import io.crate.Streamer;
-import io.crate.action.FutureActionListener;
-import io.crate.common.annotations.VisibleForTesting;
-import io.crate.concurrent.CompletableFutures;
-import io.crate.data.Row;
-import io.crate.execution.ddl.AnalyzeRequest;
-import io.crate.execution.support.MultiActionListener;
-import io.crate.execution.support.NodeActionRequestHandler;
-import io.crate.expression.symbol.Symbols;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.SimpleReference;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.Schemas;
-import io.crate.metadata.doc.DocSchemaInfo;
-import io.crate.metadata.table.SchemaInfo;
-import io.crate.metadata.table.TableInfo;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
-import org.elasticsearch.Version;
-import org.elasticsearch.action.ActionListenerResponseHandler;
-import org.elasticsearch.action.support.master.AcknowledgedResponse;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.TransportService;
+import static java.util.concurrent.CompletableFuture.completedFuture;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -58,7 +32,34 @@ import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import static java.util.concurrent.CompletableFuture.completedFuture;
+import org.elasticsearch.Version;
+import org.elasticsearch.action.ActionListenerResponseHandler;
+import org.elasticsearch.action.support.master.AcknowledgedResponse;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.transport.TransportService;
+
+import io.crate.Streamer;
+import io.crate.action.FutureActionListener;
+import io.crate.common.annotations.VisibleForTesting;
+import io.crate.concurrent.CompletableFutures;
+import io.crate.data.Row;
+import io.crate.execution.ddl.AnalyzeRequest;
+import io.crate.execution.support.MultiActionListener;
+import io.crate.execution.support.NodeActionRequestHandler;
+import io.crate.expression.symbol.Symbols;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.Schemas;
+import io.crate.metadata.doc.DocSchemaInfo;
+import io.crate.metadata.table.SchemaInfo;
+import io.crate.metadata.table.TableInfo;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
 @Singleton
 public final class TransportAnalyzeAction {
@@ -136,7 +137,7 @@ public final class TransportAnalyzeAction {
                 continue;
             }
             for (TableInfo table : schema.getTables()) {
-                List<SimpleReference> primitiveColumns = StreamSupport.stream(table.spliterator(), false)
+                List<Reference> primitiveColumns = StreamSupport.stream(table.spliterator(), false)
                     .filter(x -> !x.column().isSystemColumn())
                     .filter(x -> DataTypes.isPrimitive(x.valueType()))
                     .map(x -> table.getReadReference(x.column()))
@@ -178,12 +179,12 @@ public final class TransportAnalyzeAction {
     }
 
     @VisibleForTesting
-    static Stats createTableStats(Samples samples, List<SimpleReference> primitiveColumns) {
+    static Stats createTableStats(Samples samples, List<Reference> primitiveColumns) {
         List<Row> records = samples.records;
         List<Object> columnValues = new ArrayList<>(records.size());
         Map<ColumnIdent, ColumnStats> statsByColumn = new HashMap<>(primitiveColumns.size());
         for (int i = 0; i < primitiveColumns.size(); i++) {
-            SimpleReference primitiveColumn = primitiveColumns.get(i);
+            Reference primitiveColumn = primitiveColumns.get(i);
             columnValues.clear();
             int nullCount = 0;
             for (Row record : records) {
@@ -208,7 +209,7 @@ public final class TransportAnalyzeAction {
         return new Stats(samples.numTotalDocs, samples.numTotalSizeInBytes, statsByColumn);
     }
 
-    private CompletableFuture<Samples> fetchSamples(RelationName relationName, List<SimpleReference> columns) {
+    private CompletableFuture<Samples> fetchSamples(RelationName relationName, List<Reference> columns) {
         FutureActionListener<FetchSampleResponse, Samples> listener = new FutureActionListener<>(FetchSampleResponse::samples);
         List<DiscoveryNode> nodesOn41OrAfter = StreamSupport.stream(clusterService.state().nodes().spliterator(), false)
             .filter(x -> x.getVersion().onOrAfter(Version.V_4_1_0))

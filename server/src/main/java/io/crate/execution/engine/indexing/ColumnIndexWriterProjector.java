@@ -21,6 +21,20 @@
 
 package io.crate.execution.engine.indexing;
 
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.function.Supplier;
+
+import javax.annotation.Nullable;
+
+import org.elasticsearch.client.ElasticsearchClient;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.breaker.CircuitBreaker;
+import org.elasticsearch.common.settings.Settings;
+
 import io.crate.breaker.RamAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.CollectingBatchIterator;
@@ -37,20 +51,8 @@ import io.crate.expression.symbol.Assignments;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.SimpleReference;
+import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
-import org.elasticsearch.client.ElasticsearchClient;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.breaker.CircuitBreaker;
-import org.elasticsearch.common.settings.Settings;
-
-import javax.annotation.Nullable;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.Executor;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.function.Supplier;
 
 public class ColumnIndexWriterProjector implements Projector {
 
@@ -73,11 +75,11 @@ public class ColumnIndexWriterProjector implements Projector {
                                       List<? extends Symbol> primaryKeySymbols,
                                       @Nullable Symbol routingSymbol,
                                       ColumnIdent clusteredByColumn,
-                                      List<SimpleReference> columnReferences,
+                                      List<Reference> columnReferences,
                                       List<Input<?>> insertInputs,
                                       List<? extends CollectExpression<Row, ?>> collectExpressions,
                                       boolean ignoreDuplicateKeys,
-                                      @Nullable Map<SimpleReference, Symbol> onConflictAssignmentsByRef,
+                                      @Nullable Map<Reference, Symbol> onConflictAssignmentsByRef,
                                       int bulkActions,
                                       boolean autoCreateIndices,
                                       List<Symbol> returnValues,
@@ -105,7 +107,7 @@ public class ColumnIndexWriterProjector implements Projector {
             ignoreDuplicateKeys ? DuplicateKeyAction.IGNORE : DuplicateKeyAction.UPDATE_OR_FAIL,
             true, // continueOnErrors
             onConflictColumns,
-            columnReferences.toArray(new SimpleReference[columnReferences.size()]),
+            columnReferences.toArray(new Reference[columnReferences.size()]),
             returnValues.isEmpty() ? null : returnValues.toArray(new Symbol[0]),
             jobId,
             true);

@@ -70,7 +70,7 @@ import io.crate.metadata.DocReferences;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.SimpleReference;
+import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
@@ -152,7 +152,7 @@ public class LuceneQueryBuilder {
                 IndexCache indexCache,
                 QueryShardContext queryShardContext,
                 String indexName,
-                List<SimpleReference> partitionColumns) {
+                List<Reference> partitionColumns) {
             this.table = table;
             this.nodeContext = nodeCtx;
             this.txnCtx = txnCtx;
@@ -222,7 +222,7 @@ public class LuceneQueryBuilder {
         }
 
         @Nullable
-        public SimpleReference getRef(ColumnIdent column) {
+        public Reference getRef(ColumnIdent column) {
             return table.getReadReference(column);
         }
     }
@@ -283,7 +283,7 @@ public class LuceneQueryBuilder {
             Symbol left = function.arguments().get(0);
             Symbol right = function.arguments().get(1);
             if (left.symbolType() == SymbolType.REFERENCE && right.symbolType().isValueSymbol()) {
-                String columnName = ((SimpleReference) left).column().name();
+                String columnName = ((Reference) left).column().name();
                 if (Context.FILTERED_FIELDS.contains(columnName)) {
                     context.filteredFieldValues.put(columnName, ((Input) right).value());
                     return true;
@@ -302,7 +302,7 @@ public class LuceneQueryBuilder {
                 Symbol left = arguments.get(0);
                 Symbol right = arguments.get(1);
                 if (left.symbolType() == SymbolType.REFERENCE && right.symbolType().isValueSymbol()) {
-                    SimpleReference ref = (SimpleReference) left;
+                    Reference ref = (Reference) left;
                     if (ref.column().equals(DocSysColumns.UID)) {
                         return new Function(
                             function.signature(),
@@ -322,7 +322,7 @@ public class LuceneQueryBuilder {
 
 
         @Override
-        public Query visitReference(SimpleReference ref, Context context) {
+        public Query visitReference(Reference ref, Context context) {
             // called for queries like: where boolColumn
             if (ref.valueType() == DataTypes.BOOLEAN) {
                 if (ref.indexType() == IndexType.NONE) {

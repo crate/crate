@@ -21,8 +21,34 @@
 
 package io.crate.execution.engine.collect.collectors;
 
+import static io.crate.testing.DiscoveryNodes.newNode;
+import static io.crate.testing.TestingHelpers.createNodeContext;
+import static org.hamcrest.Matchers.is;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.ArgumentCaptor;
+
 import io.crate.action.FutureActionListener;
 import io.crate.analyze.OrderBy;
+import io.crate.common.unit.TimeValue;
 import io.crate.data.BatchIterator;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.engine.collect.stats.NodeStatsRequest;
@@ -34,38 +60,14 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.SimpleReference;
+import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.sys.SysNodesTableInfo;
-import org.elasticsearch.test.ESTestCase;
 import io.crate.testing.BatchIteratorTester;
 import io.crate.types.DataTypes;
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import io.crate.common.unit.TimeValue;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.ArgumentCaptor;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.stream.Collectors;
-
-import static io.crate.testing.DiscoveryNodes.newNode;
-import static io.crate.testing.TestingHelpers.createNodeContext;
-import static org.hamcrest.Matchers.is;
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.when;
 
 public class NodeStatsTest extends ESTestCase {
 
@@ -75,9 +77,9 @@ public class NodeStatsTest extends ESTestCase {
     private ActionExecutor<NodeStatsRequest, NodeStatsResponse> nodeStatesExecutor;
     private TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
 
-    private SimpleReference idRef;
-    private SimpleReference nameRef;
-    private SimpleReference hostnameRef;
+    private Reference idRef;
+    private Reference nameRef;
+    private Reference hostnameRef;
     private NodeContext nodeCtx;
 
     @Before

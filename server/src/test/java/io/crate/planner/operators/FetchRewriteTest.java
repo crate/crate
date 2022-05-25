@@ -21,27 +21,6 @@
 
 package io.crate.planner.operators;
 
-import io.crate.analyze.WhereClause;
-import io.crate.analyze.relations.AliasedAnalyzedRelation;
-import io.crate.analyze.relations.DocTableRelation;
-import io.crate.expression.symbol.AliasSymbol;
-import io.crate.expression.symbol.FetchStub;
-import io.crate.expression.symbol.Function;
-import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.SimpleReference;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.functions.Signature;
-import io.crate.metadata.table.Operation;
-import io.crate.statistics.TableStats;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.SQLExecutor;
-import io.crate.types.DataTypes;
-import org.hamcrest.Matchers;
-import org.junit.Test;
-
-import java.util.List;
-
 import static io.crate.planner.operators.LogicalPlannerTest.isPlan;
 import static io.crate.testing.SymbolMatchers.isAlias;
 import static io.crate.testing.SymbolMatchers.isFetchMarker;
@@ -51,6 +30,29 @@ import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isReference;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
+
+import java.util.List;
+
+import org.hamcrest.Matchers;
+import org.junit.Test;
+
+import io.crate.analyze.WhereClause;
+import io.crate.analyze.relations.AliasedAnalyzedRelation;
+import io.crate.analyze.relations.DocTableRelation;
+import io.crate.expression.symbol.AliasSymbol;
+import io.crate.expression.symbol.FetchStub;
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.functions.Signature;
+import io.crate.metadata.table.Operation;
+import io.crate.statistics.TableStats;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
+import io.crate.types.DataTypes;
+import io.crate.types.DataTypes;
 
 public class FetchRewriteTest extends CrateDummyClusterServiceUnitTest {
 
@@ -99,7 +101,7 @@ public class FetchRewriteTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table tbl (x int)")
             .build();
         DocTableInfo tableInfo = e.resolveTableInfo("tbl");
-        SimpleReference x = (SimpleReference) e.asSymbol("x");
+        Reference x = (Reference) e.asSymbol("x");
         var relation = new DocTableRelation(tableInfo);
         var alias = new AliasedAnalyzedRelation(relation, new RelationName(null, "t1"));
         var collect = new Collect(relation, List.of(x), WhereClause.MATCH_ALL, 1L, DataTypes.INTEGER.fixedSize());

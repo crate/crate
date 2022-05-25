@@ -21,11 +21,11 @@
 
 package io.crate.metadata;
 
+import java.util.function.Predicate;
+
 import io.crate.expression.symbol.RefReplacer;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.doc.DocSysColumns;
-
-import java.util.function.Predicate;
 
 /**
  * Visitor to change a _doc reference into a regular column reference.
@@ -65,7 +65,7 @@ public final class DocReferences {
      *     x -> _doc['x']
      * </pre>
      */
-    public static Symbol toSourceLookup(Symbol tree, Predicate<SimpleReference> condition) {
+    public static Symbol toSourceLookup(Symbol tree, Predicate<Reference> condition) {
         return RefReplacer.replaceRefs(tree, r -> toSourceLookup(r, condition));
     }
 
@@ -77,11 +77,11 @@ public final class DocReferences {
      *     x -> _doc['x']
      * </pre>
      */
-    public static SimpleReference toSourceLookup(SimpleReference reference) {
+    public static Reference toSourceLookup(Reference reference) {
         return toSourceLookup(reference, r -> true);
     }
 
-    private static SimpleReference toSourceLookup(SimpleReference reference, Predicate<SimpleReference> condition) {
+    private static Reference toSourceLookup(Reference reference, Predicate<Reference> condition) {
         ReferenceIdent ident = reference.ident();
         if (ident.columnIdent().isSystemColumn()) {
             return reference;
@@ -94,7 +94,7 @@ public final class DocReferences {
         return reference;
     }
 
-    public static SimpleReference docRefToRegularRef(SimpleReference ref) {
+    public static Reference docRefToRegularRef(Reference ref) {
         ColumnIdent column = ref.column();
         if (!column.isTopLevel() && column.name().equals(DocSysColumns.Names.DOC)) {
             return ref.getRelocated(new ReferenceIdent(ref.ident().tableIdent(), column.shiftRight()));

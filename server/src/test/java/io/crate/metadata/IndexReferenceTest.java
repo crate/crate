@@ -21,15 +21,16 @@
 
 package io.crate.metadata;
 
-import org.elasticsearch.test.ESTestCase;
-import io.crate.types.StringType;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.junit.Test;
+import static org.hamcrest.core.Is.is;
 
 import java.util.List;
 
-import static org.hamcrest.core.Is.is;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
+
+import io.crate.types.StringType;
 
 public class IndexReferenceTest extends ESTestCase {
 
@@ -46,10 +47,10 @@ public class IndexReferenceTest extends ESTestCase {
             IndexType.FULLTEXT, List.of(reference), "my_analyzer");
 
         BytesStreamOutput out = new BytesStreamOutput();
-        SimpleReference.toStream(indexReferenceInfo, out);
+        Reference.toStream(indexReferenceInfo, out);
 
         StreamInput in = out.bytes().streamInput();
-        IndexReference indexReferenceInfo2 = SimpleReference.fromStream(in);
+        IndexReference indexReferenceInfo2 = Reference.fromStream(in);
 
         assertThat(indexReferenceInfo2, is(indexReferenceInfo));
     }

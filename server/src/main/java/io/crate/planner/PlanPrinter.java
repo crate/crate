@@ -21,8 +21,18 @@
 
 package io.crate.planner;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Nullable;
+
 import com.carrotsearch.hppc.IntIndexedContainer;
 import com.carrotsearch.hppc.cursors.IntCursor;
+
+import org.elasticsearch.index.shard.ShardId;
+
 import io.crate.analyze.OrderBy;
 import io.crate.common.collections.Lists2;
 import io.crate.common.collections.MapBuilder;
@@ -41,19 +51,12 @@ import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.phases.UpstreamPhase;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.SimpleReference;
+import io.crate.metadata.Reference;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.CountPlan;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.dql.join.Join;
-import org.elasticsearch.index.shard.ShardId;
-
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 public final class PlanPrinter {
 
@@ -171,7 +174,7 @@ public final class PlanPrinter {
         @Override
         public MapBuilder<String, Object> visitFetchPhase(FetchPhase phase, Void context) {
             return createMap(phase, createSubMap(phase)
-                .put("fetchRefs", Lists2.joinOn(", ", phase.fetchRefs(), SimpleReference::toString)));
+                .put("fetchRefs", Lists2.joinOn(", ", phase.fetchRefs(), Reference::toString)));
         }
 
         @Override

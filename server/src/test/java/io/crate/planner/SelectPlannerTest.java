@@ -23,7 +23,6 @@ package io.crate.planner;
 
 import static io.crate.planner.operators.LogicalPlannerTest.isPlan;
 import static io.crate.testing.Asserts.assertThrowsMatches;
-import static io.crate.testing.SymbolMatchers.isField;
 import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.SymbolMatchers.isReference;
@@ -37,7 +36,6 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -46,15 +44,13 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import org.hamcrest.Matchers;
-import org.junit.Test;
-
 import com.carrotsearch.hppc.IntIndexedContainer;
 import com.carrotsearch.randomizedtesting.RandomizedTest;
 
-import io.crate.analyze.QueriedSelectRelation;
+import org.hamcrest.Matchers;
+import org.junit.Test;
+
 import io.crate.analyze.TableDefinitions;
-import io.crate.analyze.relations.AliasedAnalyzedRelation;
 import io.crate.data.RowN;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.VersioningValidationException;
@@ -70,9 +66,9 @@ import io.crate.execution.dsl.projection.FilterProjection;
 import io.crate.execution.dsl.projection.GroupProjection;
 import io.crate.execution.dsl.projection.MergeCountProjection;
 import io.crate.execution.dsl.projection.OrderedTopNProjection;
+import io.crate.execution.dsl.projection.ProjectSetProjection;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.ProjectionType;
-import io.crate.execution.dsl.projection.ProjectSetProjection;
 import io.crate.execution.dsl.projection.TopNDistinctProjection;
 import io.crate.execution.dsl.projection.TopNProjection;
 import io.crate.execution.dsl.projection.WindowAggProjection;
@@ -86,7 +82,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.SimpleReference;
+import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
@@ -373,8 +369,8 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         Symbol aggregationInput = aggregation.inputs().get(0);
         assertThat(aggregationInput.symbolType(), is(SymbolType.INPUT_COLUMN));
 
-        assertThat(collectPhase.toCollect().get(0), instanceOf(SimpleReference.class));
-        assertThat(((SimpleReference) collectPhase.toCollect().get(0)).column().name(), is("name"));
+        assertThat(collectPhase.toCollect().get(0), instanceOf(Reference.class));
+        assertThat(((Reference) collectPhase.toCollect().get(0)).column().name(), is("name"));
 
         MergePhase mergePhase = globalAggregate.mergePhase();
         assertThat(mergePhase.projections().size(), is(2));

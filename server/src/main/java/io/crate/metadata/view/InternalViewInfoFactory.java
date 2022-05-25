@@ -21,25 +21,27 @@
 
 package io.crate.metadata.view;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Provider;
+
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.exceptions.ResourceUnknownException;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.SimpleReference;
+import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.SimpleReference;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Query;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Provider;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 
 public class InternalViewInfoFactory implements ViewInfoFactory {
 
@@ -60,13 +62,13 @@ public class InternalViewInfoFactory implements ViewInfoFactory {
         if (view == null) {
             return null;
         }
-        List<SimpleReference> columns;
+        List<Reference> columns;
         try {
             AnalyzedRelation relation = analyzerProvider.get().analyze(
                 (Query) SqlParser.createStatement(view.stmt()),
                 CoordinatorTxnCtx.systemTransactionContext(),
                 ParamTypeHints.EMPTY);
-            final List<SimpleReference> collectedColumns = new ArrayList<>(relation.outputs().size());
+            final List<Reference> collectedColumns = new ArrayList<>(relation.outputs().size());
             int position = 1;
             for (var field : relation.outputs()) {
                 collectedColumns.add(

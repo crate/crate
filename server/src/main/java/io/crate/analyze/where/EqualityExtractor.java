@@ -53,7 +53,6 @@ import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
-import io.crate.metadata.SimpleReference;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
@@ -298,7 +297,7 @@ public class EqualityExtractor {
             if (this == NULL_MARKER_PROXY) {
                 return "NULL";
             }
-            String s = "(" + ((SimpleReference) origin.arguments().get(0)).column().fqn() + "=" +
+            String s = "(" + ((Reference) origin.arguments().get(0)).column().fqn() + "=" +
                        ((Literal<?>) origin.arguments().get(1)).value() + ")";
             if (current != origin) {
                 s += " TRUE";
@@ -396,7 +395,7 @@ public class EqualityExtractor {
         }
 
         @Override
-        public Symbol visitReference(SimpleReference symbol, Context context) {
+        public Symbol visitReference(Reference symbol, Context context) {
             if (!context.comparisons.containsKey(symbol.column())) {
                 context.seenUnknown = true;
             }

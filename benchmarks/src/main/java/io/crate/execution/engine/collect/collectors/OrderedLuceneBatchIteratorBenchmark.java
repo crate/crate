@@ -21,22 +21,10 @@
 
 package io.crate.execution.engine.collect.collectors;
 
-import io.crate.analyze.OrderBy;
-import io.crate.breaker.RamAccounting;
-import io.crate.breaker.RowAccountingWithEstimators;
-import io.crate.data.BatchIterator;
-import io.crate.data.Row;
-import io.crate.execution.engine.sort.OrderingByPosition;
-import io.crate.expression.reference.doc.lucene.CollectorContext;
-import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
-import io.crate.expression.reference.doc.lucene.OrderByCollectorExpression;
-import io.crate.metadata.SimpleReference;
-import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.RowGranularity;
-import io.crate.metadata.Schemas;
-import io.crate.types.DataTypes;
-import io.crate.types.LongType;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.NumericDocValuesField;
@@ -61,9 +49,23 @@ import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.infra.Blackhole;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
+import io.crate.analyze.OrderBy;
+import io.crate.breaker.RamAccounting;
+import io.crate.breaker.RowAccountingWithEstimators;
+import io.crate.data.BatchIterator;
+import io.crate.data.Row;
+import io.crate.execution.engine.sort.OrderingByPosition;
+import io.crate.expression.reference.doc.lucene.CollectorContext;
+import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
+import io.crate.expression.reference.doc.lucene.OrderByCollectorExpression;
+import io.crate.metadata.Reference;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.Schemas;
+import io.crate.metadata.SimpleReference;
+import io.crate.types.DataTypes;
+import io.crate.types.LongType;
 
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.SECONDS)
@@ -79,7 +81,7 @@ public class OrderedLuceneBatchIteratorBenchmark {
     private IndexSearcher indexSearcher;
     private boolean[] reverseFlags = new boolean[]{true};
     private boolean[] nullsFirst = new boolean[]{true};
-    private SimpleReference reference;
+    private Reference reference;
     private OrderBy orderBy;
     private CollectorContext collectorContext;
     private ShardId dummyShardId;

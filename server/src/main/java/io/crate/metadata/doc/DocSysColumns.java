@@ -21,21 +21,22 @@
 
 package io.crate.metadata.doc;
 
-import io.crate.execution.engine.fetch.FetchId;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.IndexType;
-import io.crate.metadata.SimpleReference;
-import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.RowGranularity;
-import io.crate.sql.tree.ColumnPolicy;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
+
+import io.crate.execution.engine.fetch.FetchId;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.IndexType;
+import io.crate.metadata.Reference;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.SimpleReference;
+import io.crate.sql.tree.ColumnPolicy;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
 public class DocSysColumns {
 
@@ -91,7 +92,7 @@ public class DocSysColumns {
         ID, UID.name()
     );
 
-    private static SimpleReference newInfo(RelationName table, ColumnIdent column, DataType<?> dataType, int position) {
+    private static Reference newInfo(RelationName table, ColumnIdent column, DataType<?> dataType, int position) {
         return new SimpleReference(new ReferenceIdent(table, column),
                              RowGranularity.DOC,
                              dataType,
@@ -107,7 +108,7 @@ public class DocSysColumns {
     /**
      * Calls {@code consumer} for each sys column with a reference containing {@code relationName}
      */
-    public static void forTable(RelationName relationName, BiConsumer<ColumnIdent, SimpleReference> consumer) {
+    public static void forTable(RelationName relationName, BiConsumer<ColumnIdent, Reference> consumer) {
         int position = 1;
         for (Map.Entry<ColumnIdent, DataType<?>> entry : COLUMN_IDENTS.entrySet()) {
             ColumnIdent columnIdent = entry.getKey();
@@ -115,16 +116,16 @@ public class DocSysColumns {
         }
     }
 
-    public static List<SimpleReference> forTable(RelationName relationName) {
+    public static List<Reference> forTable(RelationName relationName) {
         int position = 1;
-        var columns = new ArrayList<SimpleReference>();
+        var columns = new ArrayList<Reference>();
         for (Map.Entry<ColumnIdent, DataType<?>> entry : COLUMN_IDENTS.entrySet()) {
             columns.add(newInfo(relationName, entry.getKey(), entry.getValue(), position++));
         }
         return columns;
     }
 
-    public static SimpleReference forTable(RelationName table, ColumnIdent column) {
+    public static Reference forTable(RelationName table, ColumnIdent column) {
         return newInfo(table, column, COLUMN_IDENTS.get(column), 0);
     }
 

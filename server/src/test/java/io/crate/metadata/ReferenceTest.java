@@ -70,10 +70,10 @@ public class ReferenceTest extends ESTestCase {
         );
 
         BytesStreamOutput out = new BytesStreamOutput();
-        SimpleReference.toStream(reference, out);
+        Reference.toStream(reference, out);
 
         StreamInput in = out.bytes().streamInput();
-        SimpleReference reference2 = SimpleReference.fromStream(in);
+        Reference reference2 = Reference.fromStream(in);
 
         assertThat(reference2, is(reference));
     }
@@ -97,11 +97,11 @@ public class ReferenceTest extends ESTestCase {
 
         BytesStreamOutput out = new BytesStreamOutput();
         out.setVersion(Version.V_4_5_0);
-        SimpleReference.toStream(reference, out);
+        Reference.toStream(reference, out);
 
         StreamInput in = out.bytes().streamInput();
         in.setVersion(Version.V_4_5_0);
-        SimpleReference reference2 = SimpleReference.fromStream(in);
+        Reference reference2 = Reference.fromStream(in);
 
         assertThat(reference2, is(reference));
     }

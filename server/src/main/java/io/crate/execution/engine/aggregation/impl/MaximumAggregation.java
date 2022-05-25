@@ -44,7 +44,7 @@ import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.aggregation.DocValueAggregator;
 import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
-import io.crate.metadata.SimpleReference;
+import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.ByteType;
@@ -214,10 +214,10 @@ public abstract class MaximumAggregation extends AggregationFunction<Comparable,
 
         @Nullable
         @Override
-        public DocValueAggregator<?> getDocValueAggregator(List<SimpleReference> aggregationReferences,
+        public DocValueAggregator<?> getDocValueAggregator(List<Reference> aggregationReferences,
                                                            DocTableInfo table,
                                                            List<Literal<?>> optionalParams) {
-            SimpleReference reference = aggregationReferences.get(0);
+            Reference reference = aggregationReferences.get(0);
             if (!reference.hasDocValues()) {
                 return null;
             }

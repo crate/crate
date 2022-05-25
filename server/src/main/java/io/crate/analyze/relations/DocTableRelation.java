@@ -21,21 +21,22 @@
 
 package io.crate.analyze.relations;
 
+import static io.crate.common.collections.Lists2.concat;
+
+import java.util.List;
+
+import javax.annotation.Nullable;
+
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.exceptions.AmbiguousColumnException;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
-import io.crate.metadata.SimpleReference;
+import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
-
-import javax.annotation.Nullable;
-import java.util.List;
-
-import static io.crate.common.collections.Lists2.concat;
 
 public class DocTableRelation extends AbstractTableRelation<DocTableInfo> {
 
@@ -57,17 +58,17 @@ public class DocTableRelation extends AbstractTableRelation<DocTableInfo> {
 
     @Nullable
     @Override
-    public SimpleReference getField(ColumnIdent path) {
+    public Reference getField(ColumnIdent path) {
         return getField(path, Operation.READ, true);
     }
 
     @Override
-    public SimpleReference getField(ColumnIdent column, Operation operation, boolean errorOnUnknownObjectKey)
+    public Reference getField(ColumnIdent column, Operation operation, boolean errorOnUnknownObjectKey)
             throws AmbiguousColumnException, ColumnUnknownException, UnsupportedOperationException {
         if (operation == Operation.UPDATE) {
             ensureColumnCanBeUpdated(column);
         }
-        SimpleReference reference = tableInfo.getReadReference(column);
+        Reference reference = tableInfo.getReadReference(column);
         if (reference == null) {
             reference = tableInfo.indexColumn(column);
             if (reference == null) {
@@ -96,7 +97,7 @@ public class DocTableRelation extends AbstractTableRelation<DocTableInfo> {
         }
         List<GeneratedReference> generatedReferences = tableInfo.generatedColumns();
 
-        for (SimpleReference partitionRef : tableInfo.partitionedByColumns()) {
+        for (var partitionRef : tableInfo.partitionedByColumns()) {
             ensureNotUpdated(ci, partitionRef.column(), "Updating a partitioned-by column is not supported");
             if (!(partitionRef instanceof GeneratedReference)) {
                 continue;
@@ -104,7 +105,7 @@ public class DocTableRelation extends AbstractTableRelation<DocTableInfo> {
             int idx = generatedReferences.indexOf(partitionRef);
             if (idx >= 0) {
                 GeneratedReference generatedReference = generatedReferences.get(idx);
-                for (SimpleReference reference : generatedReference.referencedReferences()) {
+                for (var reference : generatedReference.referencedReferences()) {
                     ensureNotUpdated(ci, reference.column(),
                         "Updating a column which is referenced in a partitioned by generated column expression is not supported");
                 }

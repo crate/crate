@@ -22,9 +22,9 @@
 package io.crate.expression.reference;
 
 import io.crate.data.Input;
-import io.crate.metadata.SimpleReference;
+import io.crate.metadata.Reference;
 
 public interface ReferenceResolver<E extends Input<?>> {
 
-    E getImplementation(SimpleReference ref);
+    E getImplementation(Reference ref);
 }

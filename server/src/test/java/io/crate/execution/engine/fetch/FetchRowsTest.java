@@ -20,8 +20,18 @@
  */
 package io.crate.execution.engine.fetch;
 
+import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
+import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
+import static io.crate.testing.TestingHelpers.createNodeContext;
+import static org.hamcrest.Matchers.is;
+
+import java.util.List;
+import java.util.Map;
+
 import com.carrotsearch.hppc.IntHashSet;
 import com.carrotsearch.hppc.IntObjectHashMap;
+
+import org.junit.Test;
 
 import io.crate.breaker.RamAccounting;
 import io.crate.data.ArrayBucket;
@@ -30,20 +40,11 @@ import io.crate.data.RowN;
 import io.crate.expression.symbol.FetchReference;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.SimpleReference;
+import io.crate.metadata.Reference;
 import io.crate.planner.node.fetch.FetchSource;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
-import org.junit.Test;
-
-import java.util.List;
-import java.util.Map;
-
-import static io.crate.testing.TestingHelpers.createNodeContext;
-import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
-import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
-import static org.hamcrest.Matchers.is;
 
 public class FetchRowsTest extends CrateDummyClusterServiceUnitTest {
 
@@ -54,13 +55,13 @@ public class FetchRowsTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table t2 (y text, z int)")
             .build();
         var t1 = e.resolveTableInfo("t1");
-        var x = (SimpleReference) e.asSymbol("x");
+        var x = (Reference) e.asSymbol("x");
         var fetchSource1 = new FetchSource();
         fetchSource1.addFetchIdColumn(new InputColumn(0, DataTypes.LONG));
         fetchSource1.addRefToFetch(x);
 
         var t2 = e.resolveTableInfo("t2");
-        var y = (SimpleReference) e.asSymbol("y");
+        var y = (Reference) e.asSymbol("y");
         var fetchSource2 = new FetchSource();
         fetchSource2.addFetchIdColumn(new InputColumn(1, DataTypes.LONG));
         fetchSource2.addRefToFetch(y);

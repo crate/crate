@@ -76,12 +76,13 @@ import io.crate.execution.dml.upsert.ShardUpsertRequest.DuplicateKeyAction;
 import io.crate.execution.jobs.TasksService;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.SimpleReference;
+import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.SearchPath;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.metadata.table.Operation;
@@ -157,7 +158,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         // Avoid null pointer exceptions
         DocTableInfo tableInfo = mock(DocTableInfo.class);
         Schemas schemas = mock(Schemas.class);
-        when(tableInfo.columns()).thenReturn(Collections.<SimpleReference>emptyList());
+        when(tableInfo.columns()).thenReturn(Collections.<Reference>emptyList());
         when(schemas.getTableInfo(any(RelationName.class), eq(Operation.INSERT))).thenReturn(tableInfo);
 
         transportShardUpsertAction = new TestingTransportShardUpsertAction(

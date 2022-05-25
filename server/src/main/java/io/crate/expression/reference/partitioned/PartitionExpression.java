@@ -23,15 +23,15 @@ package io.crate.expression.reference.partitioned;
 
 import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.SimpleReference;
+import io.crate.metadata.Reference;
 
 public class PartitionExpression implements NestableCollectExpression<PartitionName, Object> {
 
-    private final SimpleReference ref;
+    private final Reference ref;
     private final int valuesIndex;
     private Object value;
 
-    public PartitionExpression(SimpleReference ref, int valuesIndex) {
+    public PartitionExpression(Reference ref, int valuesIndex) {
         this.ref = ref;
         this.valuesIndex = valuesIndex;
     }
@@ -47,7 +47,7 @@ public class PartitionExpression implements NestableCollectExpression<PartitionN
         return value;
     }
 
-    public SimpleReference reference() {
+    public Reference reference() {
         return ref;
     }
 }

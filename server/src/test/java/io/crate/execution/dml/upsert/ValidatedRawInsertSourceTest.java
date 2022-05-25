@@ -21,12 +21,29 @@
 
 package io.crate.execution.dml.upsert;
 
+import static io.crate.testing.SymbolMatchers.isDynamicReference;
+import static io.crate.testing.SymbolMatchers.isReference;
+import static io.crate.testing.TestingHelpers.createReference;
+import static java.util.Collections.singletonList;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+
+import org.elasticsearch.index.mapper.StrictDynamicMappingException;
+import org.hamcrest.Matchers;
+import org.junit.Before;
+import org.junit.Test;
+
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.common.collections.Maps;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.Reference;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
@@ -34,22 +51,6 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.Asserts;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
-
-import org.elasticsearch.index.mapper.StrictDynamicMappingException;
-import org.hamcrest.Matchers;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-
-import static io.crate.testing.SymbolMatchers.isDynamicReference;
-import static io.crate.testing.SymbolMatchers.isReference;
-import static io.crate.testing.TestingHelpers.createReference;
-import static java.util.Collections.singletonList;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
 
 public class ValidatedRawInsertSourceTest extends CrateDummyClusterServiceUnitTest {
 
@@ -174,7 +175,7 @@ public class ValidatedRawInsertSourceTest extends CrateDummyClusterServiceUnitTe
     @Test
     public void test_lookUpCache_presentColumns() throws IOException {
         ValidatedRawInsertSource.RefLookUpCache cache = new ValidatedRawInsertSource.RefLookUpCache();
-        SimpleReference t = createReference("t", DataTypes.INTEGER);
+        Reference t = createReference("t", DataTypes.INTEGER);
 
         cache.get("t");
         assertThat(cache.presentColumns.size(), is(0)); // cache.get() of unknown columns do not mutate presentColumns
@@ -358,7 +359,7 @@ public class ValidatedRawInsertSourceTest extends CrateDummyClusterServiceUnitTe
     public void test_nested_default_is_injected() throws Exception {
         // create table t5 (obj object as (x int default 0, y int))
         DocTableInfo t5 = e.resolveTableInfo("t5");
-        SimpleReference obj = t5.getReference(new ColumnIdent("obj"));
+        Reference obj = t5.getReference(new ColumnIdent("obj"));
         assertThat(obj, Matchers.notNullValue());
         ValidatedRawInsertSource sourceFromCells = new ValidatedRawInsertSource(t5, txnCtx, e.nodeCtx, "t4");
 
@@ -371,7 +372,7 @@ public class ValidatedRawInsertSourceTest extends CrateDummyClusterServiceUnitTe
     public void test_nested_default_expr_does_not_override_provided_values() throws Exception {
         // create table t5 (obj object as (x int default 0, y int))
         DocTableInfo t5 = e.resolveTableInfo("t5");
-        SimpleReference obj = t5.getReference(new ColumnIdent("obj"));
+        Reference obj = t5.getReference(new ColumnIdent("obj"));
         assertThat(obj, Matchers.notNullValue());
         ValidatedRawInsertSource sourceFromCells = new ValidatedRawInsertSource(t5, txnCtx, e.nodeCtx, "t5");
 

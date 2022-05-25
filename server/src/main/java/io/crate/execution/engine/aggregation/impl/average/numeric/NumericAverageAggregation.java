@@ -21,6 +21,22 @@
 
 package io.crate.execution.engine.aggregation.impl.average.numeric;
 
+import static io.crate.execution.engine.aggregation.impl.average.AverageAggregation.NAMES;
+import static io.crate.execution.engine.aggregation.impl.average.numeric.NumericAverageStateType.INIT_SIZE;
+
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.util.List;
+
+import javax.annotation.Nullable;
+
+import org.apache.lucene.index.DocValues;
+import org.apache.lucene.index.LeafReader;
+import org.apache.lucene.index.SortedNumericDocValues;
+import org.apache.lucene.util.NumericUtils;
+import org.elasticsearch.Version;
+import org.elasticsearch.common.breaker.CircuitBreakingException;
+
 import io.crate.breaker.RamAccounting;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Input;
@@ -32,7 +48,7 @@ import io.crate.execution.engine.aggregation.impl.util.OverflowAwareMutableLong;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbols;
 import io.crate.memory.MemoryManager;
-import io.crate.metadata.SimpleReference;
+import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.ByteType;
@@ -44,20 +60,6 @@ import io.crate.types.IntegerType;
 import io.crate.types.LongType;
 import io.crate.types.NumericType;
 import io.crate.types.ShortType;
-import org.apache.lucene.index.DocValues;
-import org.apache.lucene.index.LeafReader;
-import org.apache.lucene.index.SortedNumericDocValues;
-import org.apache.lucene.util.NumericUtils;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.breaker.CircuitBreakingException;
-
-import javax.annotation.Nullable;
-import java.io.IOException;
-import java.math.BigDecimal;
-import java.util.List;
-
-import static io.crate.execution.engine.aggregation.impl.average.AverageAggregation.NAMES;
-import static io.crate.execution.engine.aggregation.impl.average.numeric.NumericAverageStateType.INIT_SIZE;
 
 public class NumericAverageAggregation extends AggregationFunction<NumericAverageState, BigDecimal> {
 
@@ -185,10 +187,10 @@ public class NumericAverageAggregation extends AggregationFunction<NumericAverag
 
     @Nullable
     @Override
-    public DocValueAggregator<?> getDocValueAggregator(List<SimpleReference> aggregationReferences,
+    public DocValueAggregator<?> getDocValueAggregator(List<Reference> aggregationReferences,
                                                        DocTableInfo table,
                                                        List<Literal<?>> optionalParams) {
-        SimpleReference reference = aggregationReferences.get(0);
+        Reference reference = aggregationReferences.get(0);
         if (!reference.hasDocValues()) {
             return null;
         }

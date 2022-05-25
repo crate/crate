@@ -45,7 +45,6 @@ import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Scalar;
-import io.crate.metadata.SimpleReference;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.sql.tree.ColumnPolicy;
@@ -114,14 +113,14 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
     private final SymbolToNotNullRangeQueryArgs INNER_VISITOR = new SymbolToNotNullRangeQueryArgs();
 
     private static class SymbolToNotNullContext {
-        private final HashSet<SimpleReference> references = new HashSet<>();
+        private final HashSet<Reference> references = new HashSet<>();
         boolean hasStrictThreeValuedLogicFunction = false;
 
-        void add(SimpleReference symbol) {
+        void add(Reference symbol) {
             references.add(symbol);
         }
 
-        Set<SimpleReference> references() {
+        Set<Reference> references() {
             return references;
         }
     }
@@ -149,7 +148,7 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
             );
 
         @Override
-        public Void visitReference(SimpleReference symbol, SymbolToNotNullContext context) {
+        public Void visitReference(Reference symbol, SymbolToNotNullContext context) {
             context.add(symbol);
             return null;
         }
@@ -205,7 +204,7 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
         builder.add(notX, BooleanClause.Occur.MUST);
         SymbolToNotNullContext ctx = new SymbolToNotNullContext();
         arg.accept(INNER_VISITOR, ctx);
-        for (SimpleReference reference : ctx.references()) {
+        for (Reference reference : ctx.references()) {
             if (reference.isNullable()) {
                 builder.add(IsNullPredicate.refExistsQuery(reference, context), BooleanClause.Occur.MUST);
             }

@@ -21,52 +21,30 @@
 
 package io.crate.operation.aggregation;
 
-import io.crate.Constants;
-import io.crate.action.sql.SessionContext;
-import io.crate.analyze.WhereClause;
-import io.crate.breaker.RamAccounting;
-import io.crate.common.collections.Lists2;
-import io.crate.common.io.IOUtils;
-import io.crate.data.ArrayBucket;
-import io.crate.data.BatchIterators;
-import io.crate.data.Row;
-import io.crate.execution.dsl.phases.RoutedCollectPhase;
-import io.crate.execution.dsl.projection.AggregationProjection;
-import io.crate.execution.engine.aggregation.AggregationFunction;
-import io.crate.execution.engine.collect.CollectTask;
-import io.crate.execution.engine.collect.DocValuesAggregates;
-import io.crate.execution.engine.collect.InputCollectExpression;
-import io.crate.execution.engine.collect.MapSideDataCollectOperation;
-import io.crate.execution.jobs.SharedShardContexts;
-import io.crate.expression.symbol.AggregateMode;
-import io.crate.expression.symbol.Aggregation;
-import io.crate.expression.symbol.Function;
-import io.crate.expression.symbol.InputColumn;
-import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.Symbol;
-import io.crate.lucene.LuceneQueryBuilder;
-import io.crate.memory.MemoryManager;
-import io.crate.memory.OnHeapMemoryManager;
-import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.IndexType;
-import io.crate.metadata.NodeContext;
-import io.crate.metadata.SimpleReference;
-import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.Routing;
-import io.crate.metadata.RowGranularity;
-import io.crate.metadata.SearchPath;
-import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.functions.Signature;
-import io.crate.planner.distribution.DistributionInfo;
-import io.crate.sql.tree.BitString;
-import io.crate.sql.tree.ColumnPolicy;
-import io.crate.testing.TestingRowConsumer;
-import io.crate.types.ArrayType;
-import io.crate.types.BitStringType;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
-import io.crate.types.StringType;
+import static io.crate.metadata.RelationName.fromIndexName;
+import static io.crate.testing.TestingHelpers.createNodeContext;
+import static org.elasticsearch.index.mapper.MapperService.MergeReason.MAPPING_RECOVERY;
+import static org.elasticsearch.index.shard.IndexShardTestCase.EMPTY_EVENT_LISTENER;
+import static org.elasticsearch.index.translog.Translog.UNSET_AUTO_GENERATED_TIMESTAMP;
+import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.function.UnaryOperator;
+import java.util.stream.Collectors;
+
+import javax.annotation.Nullable;
+
 import org.elasticsearch.Version;
 import org.elasticsearch.action.support.PlainActionFuture;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -111,28 +89,62 @@ import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.threadpool.TestThreadPool;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import javax.annotation.Nullable;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-import java.util.function.UnaryOperator;
-import java.util.stream.Collectors;
-
-import static io.crate.metadata.RelationName.fromIndexName;
-import static io.crate.testing.TestingHelpers.createNodeContext;
-import static org.elasticsearch.index.mapper.MapperService.MergeReason.MAPPING_RECOVERY;
-import static org.elasticsearch.index.shard.IndexShardTestCase.EMPTY_EVENT_LISTENER;
-import static org.elasticsearch.index.translog.Translog.UNSET_AUTO_GENERATED_TIMESTAMP;
-import static org.hamcrest.CoreMatchers.not;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import io.crate.Constants;
+import io.crate.action.sql.SessionContext;
+import io.crate.analyze.WhereClause;
+import io.crate.breaker.RamAccounting;
+import io.crate.common.collections.Lists2;
+import io.crate.common.io.IOUtils;
+import io.crate.data.ArrayBucket;
+import io.crate.data.BatchIterators;
+import io.crate.data.Row;
+import io.crate.execution.dsl.phases.RoutedCollectPhase;
+import io.crate.execution.dsl.projection.AggregationProjection;
+import io.crate.execution.engine.aggregation.AggregationFunction;
+import io.crate.execution.engine.collect.CollectTask;
+import io.crate.execution.engine.collect.DocValuesAggregates;
+import io.crate.execution.engine.collect.InputCollectExpression;
+import io.crate.execution.engine.collect.MapSideDataCollectOperation;
+import io.crate.execution.jobs.SharedShardContexts;
+import io.crate.expression.symbol.AggregateMode;
+import io.crate.expression.symbol.Aggregation;
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.InputColumn;
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
+import io.crate.lucene.LuceneQueryBuilder;
+import io.crate.memory.MemoryManager;
+import io.crate.memory.OnHeapMemoryManager;
+import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.IndexType;
+import io.crate.metadata.NodeContext;
+import io.crate.metadata.Reference;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.Routing;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.SearchPath;
+import io.crate.metadata.SimpleReference;
+import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.functions.Signature;
+import io.crate.planner.distribution.DistributionInfo;
+import io.crate.sql.tree.BitString;
+import io.crate.sql.tree.ColumnPolicy;
+import io.crate.testing.TestingRowConsumer;
+import io.crate.types.ArrayType;
+import io.crate.types.BitStringType;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
+import io.crate.types.StringType;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
+import io.crate.types.StringType;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
+import io.crate.types.StringType;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
+import io.crate.types.StringType;
 
 public abstract class AggregationTestCase extends ESTestCase {
 
@@ -587,8 +599,8 @@ public abstract class AggregationTestCase extends ESTestCase {
         );
     }
 
-    public static List<SimpleReference> toReference(List<DataType<?>> dataTypes) {
-        var references = new ArrayList<SimpleReference>(dataTypes.size());
+    public static List<Reference> toReference(List<DataType<?>> dataTypes) {
+        var references = new ArrayList<Reference>(dataTypes.size());
         for (int i = 0; i < dataTypes.size(); i++) {
             references.add(
                 new SimpleReference(

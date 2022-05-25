@@ -30,7 +30,7 @@ public class DocReferencesTest {
 
     private static final RelationName RELATION_ID = new RelationName(Schemas.DOC_SCHEMA_NAME, "users");
 
-    private static SimpleReference stringRef(String path) {
+    private static Reference stringRef(String path) {
         ColumnIdent columnIdent = ColumnIdent.fromPath(path);
         return new SimpleReference(new ReferenceIdent(RELATION_ID, columnIdent), RowGranularity.DOC, DataTypes.STRING, 0, null);
     }
@@ -38,28 +38,28 @@ public class DocReferencesTest {
     @Test
     public void testConvertDocReference() throws Exception {
         // users._doc['name'] -> users.name
-        SimpleReference reference = stringRef("_doc.name");
-        SimpleReference newRef = (SimpleReference) DocReferences.inverseSourceLookup(reference);
+        Reference reference = stringRef("_doc.name");
+        Reference newRef = (Reference) DocReferences.inverseSourceLookup(reference);
         assertEquals(stringRef("name").ident(), newRef.ident());
 
         // users._doc -> users._doc
         reference = stringRef("_doc");
-        newRef = (SimpleReference) DocReferences.inverseSourceLookup(reference);
+        newRef = (Reference) DocReferences.inverseSourceLookup(reference);
         assertEquals(stringRef("_doc").ident(), newRef.ident());
     }
 
     @Test
     public void testDontConvertOtherReferences() throws Exception {
-        SimpleReference reference = stringRef("_raw");
-        SimpleReference newRef = (SimpleReference) DocReferences.inverseSourceLookup(reference);
+        Reference reference = stringRef("_raw");
+        Reference newRef = (Reference) DocReferences.inverseSourceLookup(reference);
         assertEquals(reference.ident(), newRef.ident());
 
         reference = stringRef("_id");
-        newRef = (SimpleReference) DocReferences.inverseSourceLookup(reference);
+        newRef = (Reference) DocReferences.inverseSourceLookup(reference);
         assertEquals(reference.ident(), newRef.ident());
 
         reference = stringRef("address.zip_code");
-        newRef = (SimpleReference) DocReferences.inverseSourceLookup(reference);
+        newRef = (Reference) DocReferences.inverseSourceLookup(reference);
         assertEquals(reference.ident(), newRef.ident());
     }
 }

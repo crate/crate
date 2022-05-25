@@ -21,6 +21,11 @@
 
 package io.crate.planner.operators;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.symbol.DefaultTraversalSymbolVisitor;
@@ -28,13 +33,8 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
-import io.crate.metadata.SimpleReference;
+import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
-
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
 
 /**
  * Extracts all symbols per relations from any EQ join conditions to use them for building hashes for the hash join
@@ -141,7 +141,7 @@ public final class HashJoinConditionSymbolsExtractor {
         }
 
         @Override
-        public RelationName visitReference(SimpleReference ref, Void context) {
+        public RelationName visitReference(Reference ref, Void context) {
             return ref.ident().tableIdent();
         }
     }

@@ -22,8 +22,8 @@
 package io.crate.execution.engine.fetch;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
@@ -37,12 +37,11 @@ import io.crate.breaker.BlockBasedRamAccounting;
 import io.crate.breaker.EstimateCellsSize;
 import io.crate.data.Bucket;
 import io.crate.data.CollectionBucket;
-import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.expression.symbol.FetchReference;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.SimpleReference;
+import io.crate.metadata.Reference;
 import io.crate.planner.node.fetch.FetchSource;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -57,7 +56,7 @@ public class ReaderBucketsTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table t1 (x text)")
             .build();
         var t1 = e.resolveTableInfo("t1");
-        var x = (SimpleReference) e.asSymbol("x");
+        var x = (Reference) e.asSymbol("x");
         var fetchSource = new FetchSource();
         fetchSource.addFetchIdColumn(new InputColumn(0, DataTypes.LONG));
         fetchSource.addRefToFetch(x);

@@ -36,7 +36,6 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
-import io.crate.metadata.SimpleReference;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
 import io.crate.planner.optimizer.symbol.FunctionSymbolResolver;
@@ -65,7 +64,7 @@ public class SimplifyEqualsOperationOnIdenticalReferences implements Rule<Functi
 
     @Override
     public Symbol apply(Function operator, Captures captures, NodeContext nodeCtx, Symbol parentNode) {
-        SimpleReference ref = (SimpleReference) operator.arguments().get(0);
+        Reference ref = (Reference) operator.arguments().get(0);
         // if ref is not null or the parent node is ignore3vl
         if (ref.isNullable() == false || (parentNode != null && Ignore3vlFunction.NAME.equals(((Function) parentNode).name()))) {
             // WHERE COL = COL  =>  WHERE TRUE

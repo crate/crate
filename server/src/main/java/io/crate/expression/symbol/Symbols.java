@@ -44,7 +44,6 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.Reference;
-import io.crate.metadata.SimpleReference;
 import io.crate.sql.tree.ColumnDefinition;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.Expression;
@@ -227,7 +226,7 @@ public class Symbols {
         }
 
         @Override
-        public Boolean visitReference(SimpleReference symbol, ColumnIdent column) {
+        public Boolean visitReference(Reference symbol, ColumnIdent column) {
             return column.equals(symbol.column());
         }
     }

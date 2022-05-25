@@ -21,21 +21,23 @@
 
 package io.crate.statistics;
 
-import io.crate.breaker.SizeEstimatorFactory;
-import io.crate.data.Row1;
-import io.crate.metadata.SimpleReference;
-import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.RowGranularity;
-import io.crate.metadata.Schemas;
-import org.elasticsearch.test.ESTestCase;
-import io.crate.types.DataTypes;
-import org.junit.Test;
+import static org.hamcrest.Matchers.is;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.hamcrest.Matchers.is;
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
+
+import io.crate.breaker.SizeEstimatorFactory;
+import io.crate.data.Row1;
+import io.crate.metadata.Reference;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.Schemas;
+import io.crate.metadata.SimpleReference;
+import io.crate.types.DataTypes;
 
 
 public class TransportAnalyzeActionTest extends ESTestCase {
@@ -51,7 +53,7 @@ public class TransportAnalyzeActionTest extends ESTestCase {
             2,
             SizeEstimatorFactory.create(DataTypes.STRING_ARRAY).estimateSize(rows)
         );
-        var references = List.of(
+        var references = List.<Reference>of(
             new SimpleReference(
                 new ReferenceIdent(new RelationName(Schemas.DOC_SCHEMA_NAME, "dummy"), "dummy"),
                 RowGranularity.DOC,

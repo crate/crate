@@ -68,7 +68,6 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Scalar;
-import io.crate.metadata.SimpleReference;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.ArrayType;
@@ -185,7 +184,7 @@ public class ArrayUpperFunction extends Scalar<Integer, Object> {
         if (dimension != 1) {
             return null;
         }
-        SimpleReference arrayRef = (SimpleReference) arraySymbol;
+        Reference arrayRef = (Reference) arraySymbol;
         DataType<?> elementType = ArrayType.unnest(arrayRef.valueType());
         if (elementType.id() == ObjectType.ID || elementType.equals(DataTypes.GEO_SHAPE)) {
             // No doc-values for these, can't utilize doc-value-count
@@ -258,7 +257,7 @@ public class ArrayUpperFunction extends Scalar<Integer, Object> {
 
     private static Query genericAndDocValueCount(Function parent,
                                                  LuceneQueryBuilder.Context context,
-                                                 SimpleReference arrayRef,
+                                                 Reference arrayRef,
                                                  IntPredicate valueCountIsMatch) {
         return new BooleanQuery.Builder()
             .add(
@@ -269,7 +268,7 @@ public class ArrayUpperFunction extends Scalar<Integer, Object> {
             .build();
     }
 
-    private static NumTermsPerDocQuery numTermsPerDocQuery(SimpleReference arrayRef, IntPredicate valueCountIsMatch) {
+    private static NumTermsPerDocQuery numTermsPerDocQuery(Reference arrayRef, IntPredicate valueCountIsMatch) {
         return new NumTermsPerDocQuery(
             arrayRef.column().fqn(),
             leafReaderContext -> getNumTermsPerDocFunction(leafReaderContext.reader(), arrayRef),
@@ -299,7 +298,7 @@ public class ArrayUpperFunction extends Scalar<Integer, Object> {
         }
     }
 
-    private static IntUnaryOperator getNumTermsPerDocFunction(LeafReader reader, SimpleReference ref) {
+    private static IntUnaryOperator getNumTermsPerDocFunction(LeafReader reader, Reference ref) {
         DataType<?> elementType = ArrayType.unnest(ref.valueType());
         switch (elementType.id()) {
             case BooleanType.ID:

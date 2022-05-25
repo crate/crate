@@ -21,25 +21,26 @@
 
 package io.crate.executor.transport.task.elasticsearch;
 
-import io.crate.execution.engine.collect.CollectExpression;
-import io.crate.expression.reference.Doc;
-import io.crate.expression.reference.DocRefResolver;
-import io.crate.metadata.SimpleReference;
-import io.crate.metadata.RowGranularity;
-import io.crate.metadata.doc.DocSysColumns;
-import org.elasticsearch.test.ESTestCase;
-import org.elasticsearch.common.bytes.BytesArray;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.xcontent.XContentHelper;
-import org.elasticsearch.common.xcontent.XContentType;
-import org.junit.Test;
+import static io.crate.testing.TestingHelpers.refInfo;
+import static org.hamcrest.Matchers.is;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import static io.crate.testing.TestingHelpers.refInfo;
-import static org.hamcrest.Matchers.is;
+import org.elasticsearch.common.bytes.BytesArray;
+import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.xcontent.XContentHelper;
+import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
+
+import io.crate.execution.engine.collect.CollectExpression;
+import io.crate.expression.reference.Doc;
+import io.crate.expression.reference.DocRefResolver;
+import io.crate.metadata.Reference;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.doc.DocSysColumns;
 
 public class DocRefResolverTest extends ESTestCase {
 
@@ -57,7 +58,7 @@ public class DocRefResolverTest extends ESTestCase {
 
     @Test
     public void testSystemColumnsCollectExpressions() throws Exception {
-        List<SimpleReference> references = List.of(
+        List<Reference> references = List.of(
             refInfo("t1._id", DocSysColumns.COLUMN_IDENTS.get(DocSysColumns.ID), RowGranularity.DOC),
             refInfo("t1._version", DocSysColumns.COLUMN_IDENTS.get(DocSysColumns.VERSION), RowGranularity.DOC),
             refInfo("t1._doc", DocSysColumns.COLUMN_IDENTS.get(DocSysColumns.DOC), RowGranularity.DOC),
@@ -68,7 +69,7 @@ public class DocRefResolverTest extends ESTestCase {
         );
 
         List<CollectExpression<Doc, ?>> collectExpressions = new ArrayList<>(4);
-        for (SimpleReference reference : references) {
+        for (Reference reference : references) {
             CollectExpression<Doc, ?> collectExpression = REF_RESOLVER.getImplementation(reference);
             collectExpression.setNextRow(GET_RESULT);
             collectExpressions.add(collectExpression);

@@ -21,6 +21,22 @@
 
 package io.crate.metadata.doc;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.common.settings.Settings;
+
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
 import io.crate.exceptions.ColumnUnknownException;
@@ -31,7 +47,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.SimpleReference;
+import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
@@ -44,20 +60,6 @@ import io.crate.metadata.table.StoredTable;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.CheckConstraint;
 import io.crate.sql.tree.ColumnPolicy;
-import org.elasticsearch.Version;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.common.settings.Settings;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 
 /**
@@ -114,13 +116,13 @@ import java.util.stream.Collectors;
  */
 public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
 
-    private final Collection<SimpleReference> columns;
+    private final Collection<Reference> columns;
     private final List<GeneratedReference> generatedColumns;
-    private final List<SimpleReference> partitionedByColumns;
-    private final List<SimpleReference> defaultExpressionColumns;
+    private final List<Reference> partitionedByColumns;
+    private final List<Reference> defaultExpressionColumns;
     private final Collection<ColumnIdent> notNullColumns;
     private final Map<ColumnIdent, IndexReference> indexColumns;
-    private final Map<ColumnIdent, SimpleReference> references;
+    private final Map<ColumnIdent, Reference> references;
     private final Map<ColumnIdent, String> analyzers;
     private final RelationName ident;
     private final List<ColumnIdent> primaryKeys;
@@ -147,12 +149,12 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     private final ColumnPolicy columnPolicy;
 
     public DocTableInfo(RelationName ident,
-                        Collection<SimpleReference> columns,
-                        List<SimpleReference> partitionedByColumns,
+                        Collection<Reference> columns,
+                        List<Reference> partitionedByColumns,
                         List<GeneratedReference> generatedColumns,
                         Collection<ColumnIdent> notNullColumns,
                         Map<ColumnIdent, IndexReference> indexColumns,
-                        Map<ColumnIdent, SimpleReference> references,
+                        Map<ColumnIdent, Reference> references,
                         Map<ColumnIdent, String> analyzers,
                         List<ColumnIdent> primaryKeys,
                         List<CheckConstraint<Symbol>> checkConstraints,
@@ -206,21 +208,20 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     }
 
     @Nullable
-    public SimpleReference getReference(ColumnIdent columnIdent) {
-        SimpleReference reference = references.get(columnIdent);
+    public Reference getReference(ColumnIdent columnIdent) {
+        Reference reference = references.get(columnIdent);
         if (reference == null) {
             return docColumn.getReference(ident(), columnIdent);
         }
         return reference;
     }
 
-
     @Override
-    public Collection<SimpleReference> columns() {
+    public Collection<Reference> columns() {
         return columns;
     }
 
-    public List<SimpleReference> defaultExpressionColumns() {
+    public List<Reference> defaultExpressionColumns() {
         return defaultExpressionColumns;
     }
 
@@ -312,7 +313,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
      *
      * @return always a list, never null
      */
-    public List<SimpleReference> partitionedByColumns() {
+    public List<Reference> partitionedByColumns() {
         return partitionedByColumns;
     }
 
@@ -351,7 +352,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     }
 
     @Override
-    public Iterator<SimpleReference> iterator() {
+    public Iterator<Reference> iterator() {
         return references.values().iterator();
     }
 
@@ -414,7 +415,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         if (!ident.isTopLevel()) {
             // see if parent is strict object
             ColumnIdent parentIdent = ident.getParent();
-            SimpleReference parentInfo = null;
+            Reference parentInfo = null;
 
             while (parentIdent != null) {
                 parentInfo = getReference(parentIdent);
@@ -462,11 +463,11 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     }
 
     @Nonnull
-    public SimpleReference resolveColumn(String targetColumnName,
+    public Reference resolveColumn(String targetColumnName,
                                    boolean forWrite,
                                    boolean errorOnUnknownObjectKey) throws ColumnUnknownException {
         ColumnIdent columnIdent = ColumnIdent.fromPath(targetColumnName);
-        SimpleReference reference = getReference(columnIdent);
+        Reference reference = getReference(columnIdent);
         if (reference == null) {
             reference = getDynamic(columnIdent, forWrite, errorOnUnknownObjectKey);
             if (reference == null) {

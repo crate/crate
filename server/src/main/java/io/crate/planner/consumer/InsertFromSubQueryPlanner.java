@@ -25,7 +25,6 @@ package io.crate.planner.consumer;
 import java.util.ArrayList;
 import java.util.List;
 
-
 import org.elasticsearch.Version;
 import org.elasticsearch.common.settings.Settings;
 
@@ -37,7 +36,7 @@ import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
-import io.crate.metadata.SimpleReference;
+import io.crate.metadata.Reference;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.SubqueryPlanner;
 import io.crate.planner.operators.Insert;
@@ -64,9 +63,9 @@ public final class InsertFromSubQueryPlanner {
             throw new UnsupportedFeatureException(RETURNING_VERSION_ERROR_MSG);
         }
 
-        List<SimpleReference> targetColsExclPartitionCols = new ArrayList<>(
+        List<Reference> targetColsExclPartitionCols = new ArrayList<>(
             statement.columns().size() - statement.tableInfo().partitionedBy().size());
-        for (SimpleReference column : statement.columns()) {
+        for (Reference column : statement.columns()) {
             if (statement.tableInfo().partitionedBy().contains(column.column())) {
                 continue;
             }

@@ -21,30 +21,31 @@
 
 package io.crate.metadata.doc;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
+
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.VoidReference;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
-import io.crate.metadata.SimpleReference;
+import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.testing.Asserts;
-import org.elasticsearch.test.ESTestCase;
 import io.crate.types.DataTypes;
-import org.elasticsearch.Version;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.common.settings.Settings;
-import org.junit.Test;
-
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
 
 public class DocTableInfoTest extends ESTestCase {
 
@@ -87,7 +88,7 @@ public class DocTableInfoTest extends ESTestCase {
             Operation.ALL
         );
         final ColumnIdent col = new ColumnIdent("o", List.of("foobar"));
-        SimpleReference foobar = info.getReference(col);
+        Reference foobar = info.getReference(col);
         assertNull(foobar);
 
         // forWrite: false, errorOnUnknownObjectKey: true, parentPolicy: dynamic
@@ -127,7 +128,7 @@ public class DocTableInfoTest extends ESTestCase {
             null
         );
 
-        Map<ColumnIdent, SimpleReference> references = Map.of(new ColumnIdent("foobar"), strictParent);
+        Map<ColumnIdent, Reference> references = Map.of(new ColumnIdent("foobar"), strictParent);
 
         DocTableInfo info = new DocTableInfo(
             dummy,
@@ -202,7 +203,7 @@ public class DocTableInfoTest extends ESTestCase {
             "Column foobar['foo'] unknown"
         );
 
-        SimpleReference colInfo = info.getReference(new ColumnIdent("foobar"));
+        Reference colInfo = info.getReference(new ColumnIdent("foobar"));
         assertNotNull(colInfo);
     }
 }

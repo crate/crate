@@ -21,24 +21,9 @@
 
 package io.crate.execution.engine.collect.files;
 
-import io.crate.analyze.CopyFromParserProperties;
-import io.crate.data.BatchIterator;
-import io.crate.data.Input;
-import io.crate.data.Row;
-import io.crate.execution.dsl.phases.FileUriCollectPhase;
-import io.crate.expression.InputFactory;
-import io.crate.expression.reference.file.FileLineReferenceResolver;
-import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.Functions;
-import io.crate.metadata.NodeContext;
-import io.crate.metadata.SimpleReference;
-import io.crate.metadata.TransactionContext;
-import io.crate.testing.BatchIteratorTester;
-import io.crate.types.DataTypes;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.test.ESTestCase;
-import org.junit.Before;
-import org.junit.Test;
+import static io.crate.execution.dsl.phases.FileUriCollectPhase.InputFormat.CSV;
+import static io.crate.execution.dsl.phases.FileUriCollectPhase.InputFormat.JSON;
+import static io.crate.testing.TestingHelpers.createReference;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -52,9 +37,25 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 
-import static io.crate.execution.dsl.phases.FileUriCollectPhase.InputFormat.CSV;
-import static io.crate.execution.dsl.phases.FileUriCollectPhase.InputFormat.JSON;
-import static io.crate.testing.TestingHelpers.createReference;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Before;
+import org.junit.Test;
+
+import io.crate.analyze.CopyFromParserProperties;
+import io.crate.data.BatchIterator;
+import io.crate.data.Input;
+import io.crate.data.Row;
+import io.crate.execution.dsl.phases.FileUriCollectPhase;
+import io.crate.expression.InputFactory;
+import io.crate.expression.reference.file.FileLineReferenceResolver;
+import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
+import io.crate.metadata.Reference;
+import io.crate.metadata.TransactionContext;
+import io.crate.testing.BatchIteratorTester;
+import io.crate.types.DataTypes;
 
 public class FileReadingIteratorTest extends ESTestCase {
 
@@ -162,7 +163,7 @@ public class FileReadingIteratorTest extends ESTestCase {
 
     private BatchIterator<Row> createBatchIterator(Collection<String> fileUris,
                                                    FileUriCollectPhase.InputFormat format) {
-        SimpleReference raw = createReference("_raw", DataTypes.STRING);
+        Reference raw = createReference("_raw", DataTypes.STRING);
         InputFactory.Context<LineCollectorExpression<?>> ctx =
             inputFactory.ctxForRefs(txnCtx, FileLineReferenceResolver::getImplementation);
 

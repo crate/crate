@@ -21,22 +21,22 @@
 
 package io.crate.execution.dml.upsert;
 
-import io.crate.data.Input;
-import io.crate.execution.engine.collect.CollectExpression;
-import io.crate.expression.InputFactory;
-import io.crate.expression.ValueExtractors;
-import io.crate.expression.reference.ReferenceResolver;
-import io.crate.metadata.GeneratedReference;
-import io.crate.metadata.SimpleReference;
-import io.crate.metadata.TransactionContext;
-import io.crate.types.DataType;
-
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import io.crate.data.Input;
+import io.crate.execution.engine.collect.CollectExpression;
+import io.crate.expression.InputFactory;
+import io.crate.expression.ValueExtractors;
+import io.crate.expression.reference.ReferenceResolver;
+import io.crate.metadata.GeneratedReference;
+import io.crate.metadata.Reference;
+import io.crate.metadata.TransactionContext;
+import io.crate.types.DataType;
 
 public final class GeneratedColumns<T> {
 
@@ -47,8 +47,8 @@ public final class GeneratedColumns<T> {
         return (GeneratedColumns<T>) EMPTY;
     }
 
-    private final Map<SimpleReference, Input<?>> toValidate;
-    private final Map<SimpleReference, Input<?>> generatedToInject;
+    private final Map<GeneratedReference, Input<?>> toValidate;
+    private final Map<GeneratedReference, Input<?>> generatedToInject;
     private final List<CollectExpression<T, ?>> expressions;
 
     private GeneratedColumns() {
@@ -61,7 +61,7 @@ public final class GeneratedColumns<T> {
                      TransactionContext txnCtx,
                      boolean validation,
                      ReferenceResolver<CollectExpression<T, ?>> refResolver,
-                     Collection<SimpleReference> presentColumns,
+                     Collection<Reference> presentColumns,
                      List<GeneratedReference> allGeneratedColumns) {
         InputFactory.Context<CollectExpression<T, ?>> ctx = inputFactory.ctxForRefs(txnCtx, refResolver);
         generatedToInject = new HashMap<>();
@@ -96,7 +96,7 @@ public final class GeneratedColumns<T> {
 
     void validateValues(Map<String, Object> source) {
         for (var entry : toValidate.entrySet()) {
-            SimpleReference ref = entry.getKey();
+            GeneratedReference ref = entry.getKey();
             Object providedValue = ValueExtractors.fromMap(source, ref.column());
             if (providedValue == null && !ref.column().isTopLevel()) {
                 // Nested columns will be present in `toValidate` even if they are *not* provided by the user but injected
@@ -118,14 +118,14 @@ public final class GeneratedColumns<T> {
                 throw new IllegalArgumentException(
                     "Given value " + providedValue +
                     " for generated column " + ref.column() +
-                    " does not match calculation " + ((GeneratedReference) ref).formattedGeneratedExpression() + " = " +
+                    " does not match calculation " + ref.formattedGeneratedExpression() + " = " +
                     generatedValue
                 );
             }
         }
     }
 
-    Iterable<? extends Map.Entry<SimpleReference, Input<?>>> generatedToInject() {
+    Iterable<? extends Map.Entry<? extends Reference, Input<?>>> generatedToInject() {
         return generatedToInject.entrySet();
     }
 }

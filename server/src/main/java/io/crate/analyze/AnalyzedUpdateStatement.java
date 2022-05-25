@@ -21,19 +21,20 @@
 
 package io.crate.analyze;
 
-import io.crate.analyze.relations.AbstractTableRelation;
-import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.SimpleReference;
-
-import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
+import javax.annotation.Nullable;
+
+import io.crate.analyze.relations.AbstractTableRelation;
+import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.Reference;
+
 public final class AnalyzedUpdateStatement implements AnalyzedStatement {
 
     private final AbstractTableRelation<?> table;
-    private final Map<SimpleReference, Symbol> assignmentByTargetCol;
+    private final Map<Reference, Symbol> assignmentByTargetCol;
     private final Symbol query;
 
     /**
@@ -43,7 +44,7 @@ public final class AnalyzedUpdateStatement implements AnalyzedStatement {
     private final List<Symbol> returnValues;
 
     public AnalyzedUpdateStatement(AbstractTableRelation<?> table,
-                                   Map<SimpleReference, Symbol> assignmentByTargetCol,
+                                   Map<Reference, Symbol> assignmentByTargetCol,
                                    Symbol query,
                                    @Nullable List<Symbol> returnValues) {
         this.table = table;
@@ -56,7 +57,7 @@ public final class AnalyzedUpdateStatement implements AnalyzedStatement {
         return table;
     }
 
-    public Map<SimpleReference, Symbol> assignmentByTargetCol() {
+    public Map<Reference, Symbol> assignmentByTargetCol() {
         return assignmentByTargetCol;
     }
 

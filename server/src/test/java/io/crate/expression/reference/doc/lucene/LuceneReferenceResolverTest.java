@@ -30,10 +30,11 @@ import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import io.crate.expression.symbol.DynamicReference;
-import io.crate.metadata.SimpleReference;
+import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.SimpleReference;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataTypes;
 
@@ -75,7 +76,7 @@ public class LuceneReferenceResolverTest extends ESTestCase {
 
     @Test
     public void test_ignored_dynamic_references_are_resolved_using_sourcelookup() {
-        SimpleReference ignored = new DynamicReference(
+        Reference ignored = new DynamicReference(
             new ReferenceIdent(name, "a", List.of("b")), RowGranularity.DOC, ColumnPolicy.IGNORED, 0);
 
         assertThat(luceneReferenceResolver.getImplementation(ignored),
