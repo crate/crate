@@ -339,9 +339,9 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     @Test
     public void testIsNullOnObjectArray() throws Exception {
         Query isNull = convert("o_array IS NULL");
-        assertThat(isNull.toString(), is("+*:* -ConstantScore(ConstantScore(DocValuesFieldExistsQuery [field=o_array.xs]))"));
+        assertThat(isNull.toString(), is("+*:* -ConstantScore(ConstantScore(FieldExistsQuery [field=o_array.xs]))"));
         Query isNotNull = convert("o_array IS NOT NULL");
-        assertThat(isNotNull.toString(), is("ConstantScore(ConstantScore(DocValuesFieldExistsQuery [field=o_array.xs]))"));
+        assertThat(isNotNull.toString(), is("ConstantScore(ConstantScore(FieldExistsQuery [field=o_array.xs]))"));
     }
 
     @Test
@@ -398,7 +398,7 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     @Test
     public void testIsNullOnGeoPoint() throws Exception {
         Query query = convert("point is null");
-        assertThat(query.toString(), is("+*:* -ConstantScore(DocValuesFieldExistsQuery [field=point])"));
+        assertThat(query.toString(), is("+*:* -ConstantScore(FieldExistsQuery [field=point])"));
     }
 
     @Test
@@ -622,6 +622,6 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     @Test
     public void test_is_null_on_analyzed_text_column_uses_norms_query() throws Exception {
         Query query = convert("content is null");
-        assertThat(query.toString(), is("+*:* -NormsFieldExistsQuery [field=content]"));
+        assertThat(query.toString(), is("+*:* -FieldExistsQuery [field=content]"));
     }
 }

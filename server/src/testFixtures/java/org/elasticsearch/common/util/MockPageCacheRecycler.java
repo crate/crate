@@ -19,7 +19,7 @@
 
 package org.elasticsearch.common.util;
 
-import org.apache.lucene.util.LuceneTestCase;
+import org.apache.lucene.tests.util.LuceneTestCase;
 import org.elasticsearch.common.recycler.Recycler.V;
 import org.elasticsearch.common.settings.Settings;
 import io.crate.common.collections.Sets;

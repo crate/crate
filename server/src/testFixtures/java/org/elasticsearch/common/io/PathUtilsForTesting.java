@@ -19,7 +19,7 @@
 
 package org.elasticsearch.common.io;
 
-import org.apache.lucene.util.LuceneTestCase;
+import org.apache.lucene.tests.util.LuceneTestCase;
 
 import java.nio.file.FileSystem;
 

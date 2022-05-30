@@ -24,7 +24,7 @@ import com.carrotsearch.randomizedtesting.SeedUtils;
 import org.apache.lucene.util.Accountable;
 import org.apache.lucene.util.Accountables;
 import org.apache.lucene.util.BytesRef;
-import org.apache.lucene.util.LuceneTestCase;
+import org.apache.lucene.tests.util.LuceneTestCase;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import io.crate.common.collections.Sets;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;

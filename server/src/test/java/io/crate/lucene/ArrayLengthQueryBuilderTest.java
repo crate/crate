@@ -39,7 +39,7 @@ public class ArrayLengthQueryBuilderTest extends LuceneQueryBuilderTest {
         Query query = convert("array_length(y_array, 1) > 0");
         assertThat(
             query.toString(),
-            is("ConstantScore(DocValuesFieldExistsQuery [field=y_array])"));
+            is("ConstantScore(FieldExistsQuery [field=y_array])"));
     }
 
     @Test
