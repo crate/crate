@@ -412,25 +412,14 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         boolean parentIsIgnored = false;
         ColumnPolicy parentPolicy = columnPolicy();
         int position = 0;
-        if (!ident.isTopLevel()) {
-            // see if parent is strict object
-            ColumnIdent parentIdent = ident.getParent();
-            Reference parentInfo = null;
 
-            while (parentIdent != null) {
-                parentInfo = getReference(parentIdent);
-                if (parentInfo != null) {
-                    break;
-                }
-                parentIdent = parentIdent.getParent();
-            }
-
-            if (parentInfo != null) {
-                parentPolicy = parentInfo.columnPolicy();
-                position = parentInfo.position();
+        for (var parent : getParents(ident)) {
+            if (parent != null) {
+                parentPolicy = parent.columnPolicy();
+                position = parent.position();
+                break;
             }
         }
-
         switch (parentPolicy) {
             case DYNAMIC:
                 if (!forWrite) {
