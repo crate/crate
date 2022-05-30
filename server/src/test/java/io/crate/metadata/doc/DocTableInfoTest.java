@@ -21,6 +21,8 @@
 
 package io.crate.metadata.doc;
 
+import static org.hamcrest.Matchers.contains;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -43,11 +45,14 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.table.Operation;
+import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.ColumnPolicy;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.Asserts;
+import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
 
-public class DocTableInfoTest extends ESTestCase {
+public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testGetColumnInfo() throws Exception {
@@ -205,5 +210,19 @@ public class DocTableInfoTest extends ESTestCase {
 
         Reference colInfo = info.getReference(new ColumnIdent("foobar"));
         assertNotNull(colInfo);
+    }
+
+    @Test
+    public void test_can_retrieve_all_parents_of_nested_object_column() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (o1 object as (o2 object as (x int)))")
+            .build();
+
+        TableInfo table = e.resolveTableInfo("tbl");
+        Iterable<Reference> parents = table.getParents(new ColumnIdent("o1", List.of("o2", "x")));
+        assertThat(parents, contains(
+            table.getReference(new ColumnIdent("o1", "o2")),
+            table.getReference(new ColumnIdent("o1"))
+        ));
     }
 }

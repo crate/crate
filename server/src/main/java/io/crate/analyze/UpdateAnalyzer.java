@@ -44,7 +44,6 @@ import io.crate.analyze.relations.select.SelectAnalyzer;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
@@ -187,13 +186,10 @@ public final class UpdateAnalyzer {
     }
 
     private static boolean hasMatchingParent(TableInfo tableInfo, Reference info, Predicate<Reference> parentMatchPredicate) {
-        ColumnIdent parent = info.column().getParent();
-        while (parent != null) {
-            Reference parentInfo = tableInfo.getReference(parent);
-            if (parentMatchPredicate.test(parentInfo)) {
+        for (var parent : tableInfo.getParents(info.column())) {
+            if (parentMatchPredicate.test(parent)) {
                 return true;
             }
-            parent = parent.getParent();
         }
         return false;
     }

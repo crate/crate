@@ -23,6 +23,9 @@ package io.crate.metadata.table;
 
 import static io.crate.types.ArrayType.makeArray;
 
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.NoSuchElementException;
 import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
@@ -83,6 +86,34 @@ public interface TableInfo extends RelationInfo {
     }
 
     /**
+     * Get a Iterable over the parents of a column.
+     * Elements can be null if the column itself is unknown.
+     **/
+    default Iterable<Reference> getParents(ColumnIdent column) {
+        if (column.isTopLevel()) {
+            return Collections.emptyList();
+        }
+        return () -> new Iterator<Reference>() {
+
+            ColumnIdent current = column;
+
+            @Override
+            public boolean hasNext() {
+                return !current.isTopLevel();
+            }
+
+            @Override
+            public Reference next() {
+                if (!hasNext()) {
+                    throw new NoSuchElementException("Column has no more parent");
+                }
+                current = current.getParent();
+                return getReference(current);
+            }
+        };
+    }
+
+    /**
      * Returns the type of the column for reading.
      * <p>
      *      Columns can have two different types. Given the schema:
@@ -109,12 +140,9 @@ public interface TableInfo extends RelationInfo {
         if (ref == null) {
             return DataTypes.UNDEFINED;
         }
-        Reference rootRef = ref;
         int arrayDimensions = 0;
-        while (!rootRef.column().isTopLevel()) {
-            rootRef = getReference(rootRef.column().getParent());
-            assert rootRef != null : "The parent column of a nested column must exist";
-            if (IS_OBJECT_ARRAY.test(rootRef.valueType())) {
+        for (var parent : getParents(column)) {
+            if (IS_OBJECT_ARRAY.test(parent.valueType())) {
                 arrayDimensions++;
             }
         }
