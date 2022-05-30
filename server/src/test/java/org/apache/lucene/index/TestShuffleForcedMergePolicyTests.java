@@ -26,7 +26,8 @@ import org.apache.lucene.document.StringField;
 import org.apache.lucene.search.Sort;
 import org.apache.lucene.search.SortField;
 import org.apache.lucene.store.Directory;
-import org.apache.lucene.util.VerifyTestClassNamingConvention;
+import org.apache.lucene.tests.index.BaseMergePolicyTestCase;
+import org.apache.lucene.tests.util.VerifyTestClassNamingConvention;
 import org.junit.Test;
 
 import java.io.IOException;

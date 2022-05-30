@@ -214,7 +214,11 @@ public abstract class AnalysisFactoryTestCase extends ESTestCase {
         entry("patterntyping", Void.class),
         // LUCENE-10083
         entry("telugustem", Void.class),
-        entry("telugunormalization", Void.class)
+        entry("telugunormalization", Void.class),
+        // LUCENE 9.2.0 upgrade
+        entry("daitchmokotoffsoundex", Void.class),
+        entry("persianstem", Void.class),
+        entry("spanishpluralstem", Void.class)
     );
 
     static final Map<String, Class<?>> KNOWN_CHARFILTERS = Map.of(

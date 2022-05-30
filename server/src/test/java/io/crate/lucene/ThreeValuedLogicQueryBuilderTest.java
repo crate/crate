@@ -57,7 +57,7 @@ public class ThreeValuedLogicQueryBuilderTest extends LuceneQueryBuilderTest {
     public void testComplexOperatorTreeWith3vlAndIgnore3vl() {
         assertThat(
             convert("NOT name = 'foo' AND NOT ignore3vl(name = 'bar')").toString(),
-            is("+(+(+*:* -name:foo) +ConstantScore(DocValuesFieldExistsQuery [field=name])) +(+(+*:* -name:bar))")
+            is("+(+(+*:* -name:foo) +ConstantScore(FieldExistsQuery [field=name])) +(+(+*:* -name:bar))")
         );
     }
 

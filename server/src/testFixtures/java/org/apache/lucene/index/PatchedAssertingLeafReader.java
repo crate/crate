@@ -1028,6 +1028,11 @@ public class PatchedAssertingLeafReader extends FilterLeafReader {
         }
 
         @Override
+        public long docValueCount() {
+            return in.docValueCount();
+        }
+
+        @Override
         public BytesRef lookupOrd(long ord) throws IOException {
             assertThread("Sorted set doc values", creationThread);
             assert ord >= 0 && ord < valueCount;
@@ -1078,18 +1083,8 @@ public class PatchedAssertingLeafReader extends FilterLeafReader {
         }
 
         @Override
-        public void intersect(IntersectVisitor visitor) throws IOException {
-            assertThread("Points", creationThread);
-            in.intersect(new AssertingIntersectVisitor(in.getNumDimensions(), in.getNumIndexDimensions(),
-                    in.getBytesPerDimension(), visitor));
-        }
-
-        @Override
-        public long estimatePointCount(IntersectVisitor visitor) {
-            assertThread("Points", creationThread);
-            long cost = in.estimatePointCount(visitor);
-            assert cost >= 0;
-            return cost;
+        public PointTree getPointTree() throws IOException {
+            return in.getPointTree();
         }
 
         @Override

@@ -25,7 +25,7 @@ package org.elasticsearch.cluster.coordination;
 import io.crate.integrationtests.SQLIntegrationTestCase;
 import io.crate.testing.UseJdbc;
 import joptsimple.OptionSet;
-import org.apache.lucene.util.LuceneTestCase;
+import org.apache.lucene.tests.util.LuceneTestCase;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.cli.MockTerminal;
 import org.elasticsearch.cluster.ClusterState;

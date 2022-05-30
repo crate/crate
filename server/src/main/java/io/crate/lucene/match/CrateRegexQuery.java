@@ -45,14 +45,14 @@ public class CrateRegexQuery extends MultiTermQuery {
 
     /** Constructs a query for terms matching <code>term</code>. */
     public CrateRegexQuery(Term term) {
-        super(term.field());
+        super(term.field(), MultiTermQuery.CONSTANT_SCORE_REWRITE);
         this.term = term;
         this.flags = 0;
     }
 
     /** Constructs a query for terms matching <code>term</code>. */
     public CrateRegexQuery(Term term, int flags) {
-        super(term.field());
+        super(term.field(), MultiTermQuery.CONSTANT_SCORE_REWRITE);
         this.term = term;
         this.flags = flags;
     }
