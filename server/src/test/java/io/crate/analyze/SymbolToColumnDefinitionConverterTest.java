@@ -23,9 +23,9 @@ package io.crate.analyze;
 
 import static io.crate.testing.NodeMatchers.isCollectionColumnType;
 import static io.crate.testing.NodeMatchers.isColumnDefinition;
-import static io.crate.testing.NodeMatchers.isColumnPolicy;
 import static io.crate.testing.NodeMatchers.isColumnType;
 import static io.crate.testing.NodeMatchers.isObjectColumnType;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 
@@ -47,8 +47,6 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 
 public class SymbolToColumnDefinitionConverterTest extends CrateDummyClusterServiceUnitTest {
-
-    private final static ColumnPolicy OBJECT_TYPE_DEFAULT_COLUMN_POLICY = ColumnPolicy.STRICT;
 
     private List<ColumnDefinition<Expression>> getAllColumnDefinitionsFrom(String createTableStmt) throws IOException {
         SQLExecutor e = SQLExecutor.builder(clusterService).addTable(createTableStmt).build();
@@ -134,15 +132,15 @@ public class SymbolToColumnDefinitionConverterTest extends CrateDummyClusterServ
                 isColumnDefinition(
                     "col_strict_object",
                     isObjectColumnType(DataTypes.UNTYPED_OBJECT.getName(),
-                                       isColumnPolicy(OBJECT_TYPE_DEFAULT_COLUMN_POLICY))),
+                                       is(ColumnPolicy.STRICT))),
                 isColumnDefinition(
                     "col_dynamic_object",
                     isObjectColumnType(DataTypes.UNTYPED_OBJECT.getName(),
-                                       isColumnPolicy(OBJECT_TYPE_DEFAULT_COLUMN_POLICY))),
+                                       is(ColumnPolicy.STRICT))),
                 isColumnDefinition(
                     "col_ignored_object",
                     isObjectColumnType(DataTypes.UNTYPED_OBJECT.getName(),
-                                       isColumnPolicy(OBJECT_TYPE_DEFAULT_COLUMN_POLICY)))
+                                       is(ColumnPolicy.STRICT)))
             )
         );
     }
@@ -171,7 +169,7 @@ public class SymbolToColumnDefinitionConverterTest extends CrateDummyClusterServ
                 "col_default_object",
                 isObjectColumnType(
                     DataTypes.UNTYPED_OBJECT.getName(),
-                    isColumnPolicy(OBJECT_TYPE_DEFAULT_COLUMN_POLICY),
+                    is(ColumnPolicy.STRICT),
                     containsInAnyOrder(
                         isColumnDefinition(
                             "col_nested_integer",
@@ -180,7 +178,7 @@ public class SymbolToColumnDefinitionConverterTest extends CrateDummyClusterServ
                             "col_nested_object",
                             isObjectColumnType(
                                 DataTypes.UNTYPED_OBJECT.getName(),
-                                isColumnPolicy(OBJECT_TYPE_DEFAULT_COLUMN_POLICY),
+                                is(ColumnPolicy.STRICT),
                                 contains(
                                     isColumnDefinition(
                                         "col_nested_timestamp_with_time_zone",
@@ -206,7 +204,7 @@ public class SymbolToColumnDefinitionConverterTest extends CrateDummyClusterServ
                 "col_default_object",
                 isObjectColumnType(
                     DataTypes.UNTYPED_OBJECT.getName(),
-                    isColumnPolicy(OBJECT_TYPE_DEFAULT_COLUMN_POLICY),
+                    is(ColumnPolicy.STRICT),
                     containsInAnyOrder(
                         isColumnDefinition(
                             "col_nested_integer",
@@ -215,7 +213,7 @@ public class SymbolToColumnDefinitionConverterTest extends CrateDummyClusterServ
                             "col_nested_object",
                             isObjectColumnType(
                                 DataTypes.UNTYPED_OBJECT.getName(),
-                                isColumnPolicy(OBJECT_TYPE_DEFAULT_COLUMN_POLICY),
+                                is(ColumnPolicy.STRICT),
                                 contains(
                                     isColumnDefinition(
                                         "col_nested_timestamp_with_time_zone",
@@ -257,7 +255,7 @@ public class SymbolToColumnDefinitionConverterTest extends CrateDummyClusterServ
                     "col_default_object['col_nested_object']",
                     isObjectColumnType(
                         DataTypes.UNTYPED_OBJECT.getName(),
-                        isColumnPolicy(OBJECT_TYPE_DEFAULT_COLUMN_POLICY),
+                        is(ColumnPolicy.STRICT),
                         contains(
                             isColumnDefinition(
                                 "col_nested_timestamp_with_time_zone",
@@ -360,7 +358,7 @@ public class SymbolToColumnDefinitionConverterTest extends CrateDummyClusterServ
                     "col3",
                     isObjectColumnType(
                         DataTypes.UNTYPED_OBJECT.getName(),
-                        isColumnPolicy(OBJECT_TYPE_DEFAULT_COLUMN_POLICY),
+                        is(ColumnPolicy.STRICT),
                         contains(
                             isColumnDefinition(
                                 "col_nested_timestamp_with_time_zone",
@@ -409,7 +407,7 @@ public class SymbolToColumnDefinitionConverterTest extends CrateDummyClusterServ
                     "col3",
                     isObjectColumnType(
                         DataTypes.UNTYPED_OBJECT.getName(),
-                        isColumnPolicy(OBJECT_TYPE_DEFAULT_COLUMN_POLICY),
+                        is(ColumnPolicy.STRICT),
                         contains(
                             isColumnDefinition(
                                 "col_nested_timestamp_with_time_zone",
@@ -457,7 +455,7 @@ public class SymbolToColumnDefinitionConverterTest extends CrateDummyClusterServ
                     "col_default_object['col_nested_object']",
                     isObjectColumnType(
                         DataTypes.UNTYPED_OBJECT.getName(),
-                        isColumnPolicy(OBJECT_TYPE_DEFAULT_COLUMN_POLICY),
+                        is(ColumnPolicy.STRICT),
                         contains(
                             isColumnDefinition(
                                 "col_nested_timestamp_with_time_zone",
