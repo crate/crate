@@ -48,13 +48,6 @@ public class NodeMatchers {
         );
     }
 
-    public static Matcher<ColumnPolicy> isColumnPolicy(ColumnPolicy columnPolicy) {
-        return allOf(
-            instanceOf(ColumnPolicy.class),
-            withFeature(x -> ((ColumnPolicy) x).lowerCaseName(), "lowerCaseName", is(columnPolicy.lowerCaseName()))
-        );
-    }
-
     public static Matcher<Node> isObjectColumnType(String typeName, Matcher<ColumnPolicy> columnPolicyMatcher) {
         return allOf(
             isColumnType(typeName),

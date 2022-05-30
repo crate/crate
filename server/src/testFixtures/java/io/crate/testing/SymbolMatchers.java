@@ -53,24 +53,6 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.types.DataType;
-import io.crate.metadata.RelationName;
-import io.crate.types.DataType;
-import io.crate.metadata.RelationName;
-import io.crate.types.DataType;
-import io.crate.metadata.RelationName;
-import io.crate.types.DataType;
-import io.crate.metadata.RelationName;
-import io.crate.types.DataType;
-import io.crate.metadata.RelationName;
-import io.crate.types.DataType;
-import io.crate.metadata.RelationName;
-import io.crate.types.DataType;
-import io.crate.metadata.RelationName;
-import io.crate.types.DataType;
-import io.crate.metadata.RelationName;
-import io.crate.types.DataType;
-import io.crate.metadata.RelationName;
-import io.crate.types.DataType;
 
 public class SymbolMatchers {
 
