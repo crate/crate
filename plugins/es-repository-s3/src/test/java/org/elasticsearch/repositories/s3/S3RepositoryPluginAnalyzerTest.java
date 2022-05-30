@@ -24,6 +24,7 @@ package org.elasticsearch.repositories.s3;
 import static org.hamcrest.Matchers.is;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -102,19 +103,20 @@ public class S3RepositoryPluginAnalyzerTest extends CrateDummyClusterServiceUnit
 
     @Test
     public void testValidateS3ConfigParams() {
-        GenericProperties<Expression> genericProperties = new GenericProperties<>();
-        genericProperties.add(new GenericProperty<>("access_key", new StringLiteral("foobar")));
-        genericProperties.add(new GenericProperty<>("base_path", new StringLiteral("/data")));
-        genericProperties.add(new GenericProperty<>("bucket", new StringLiteral("myBucket")));
-        genericProperties.add(new GenericProperty<>("buffer_size", new StringLiteral("5mb")));
-        genericProperties.add(new GenericProperty<>("canned_acl", new StringLiteral("cannedACL")));
-        genericProperties.add(new GenericProperty<>("chunk_size", new StringLiteral("4g")));
-        genericProperties.add(new GenericProperty<>("compress", new StringLiteral("true")));
-        genericProperties.add(new GenericProperty<>("endpoint", new StringLiteral("myEndpoint")));
-        genericProperties.add(new GenericProperty<>("max_retries", new StringLiteral("8")));
-        genericProperties.add(new GenericProperty<>("protocol", new StringLiteral("http")));
-        genericProperties.add(new GenericProperty<>("secret_key", new StringLiteral("thisIsASecretKey")));
-        genericProperties.add(new GenericProperty<>("server_side_encryption", new StringLiteral("false")));
+        Map<String, Expression> properties = new HashMap<>();
+        properties.put("access_key", new StringLiteral("foobar"));
+        properties.put("base_path", new StringLiteral("/data"));
+        properties.put("bucket", new StringLiteral("myBucket"));
+        properties.put("buffer_size", new StringLiteral("5mb"));
+        properties.put("canned_acl", new StringLiteral("cannedACL"));
+        properties.put("chunk_size", new StringLiteral("4g"));
+        properties.put("compress", new StringLiteral("true"));
+        properties.put("endpoint", new StringLiteral("myEndpoint"));
+        properties.put("max_retries", new StringLiteral("8"));
+        properties.put("protocol", new StringLiteral("http"));
+        properties.put("secret_key", new StringLiteral("thisIsASecretKey"));
+        properties.put("server_side_encryption", new StringLiteral("false"));
+        GenericProperties<Expression> genericProperties = new GenericProperties<>(properties);
         repositoryParamValidator.validate(
             "s3",
             genericProperties,

@@ -23,6 +23,7 @@ package io.crate.analyze;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -52,7 +53,6 @@ import io.crate.sql.tree.ColumnType;
 import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.GenericProperties;
-import io.crate.sql.tree.GenericProperty;
 import io.crate.sql.tree.IndexColumnConstraint;
 import io.crate.sql.tree.IndexDefinition;
 import io.crate.sql.tree.Literal;
@@ -153,28 +153,32 @@ public class MetadataToASTNodeResolver {
                     constraints.add(IndexColumnConstraint.off());
                 } else if (ref.indexType().equals(IndexType.FULLTEXT)) {
                     String analyzer = tableInfo.getAnalyzerForColumnIdent(ident);
-                    GenericProperties<Expression> properties = new GenericProperties<>();
-                    if (analyzer != null) {
-                        properties.add(new GenericProperty<>(FulltextAnalyzerResolver.CustomType.ANALYZER.getName(),
-                                                             new StringLiteral(analyzer)));
+                    GenericProperties<Expression> properties;
+                    if (analyzer == null) {
+                        properties = GenericProperties.empty();
+                    } else {
+                        properties = new GenericProperties<>(Map.of(
+                            FulltextAnalyzerResolver.CustomType.ANALYZER.getName(),
+                            new StringLiteral(analyzer)
+                        ));
                     }
                     constraints.add(new IndexColumnConstraint<>("fulltext", properties));
                 } else if (ref.valueType().equals(DataTypes.GEO_SHAPE)) {
                     GeoReference geoReference = (GeoReference) ref;
-                    GenericProperties<Expression> properties = new GenericProperties<>();
+                    Map<String, Expression> properties = new HashMap<>();
                     if (geoReference.distanceErrorPct() != null) {
-                        properties.add(new GenericProperty<>("distance_error_pct",
-                                                             StringLiteral.fromObject(geoReference.distanceErrorPct())));
+                        properties.put(
+                            "distance_error_pct",
+                            StringLiteral.fromObject(geoReference.distanceErrorPct())
+                        );
                     }
                     if (geoReference.precision() != null) {
-                        properties.add(new GenericProperty<>("precision",
-                                                             StringLiteral.fromObject(geoReference.precision())));
+                        properties.put("precision", StringLiteral.fromObject(geoReference.precision()));
                     }
                     if (geoReference.treeLevels() != null) {
-                        properties.add(new GenericProperty<>("tree_levels",
-                                                             StringLiteral.fromObject(geoReference.treeLevels())));
+                        properties.put("tree_levels", StringLiteral.fromObject(geoReference.treeLevels()));
                     }
-                    constraints.add(new IndexColumnConstraint<>(geoReference.geoTree(), properties));
+                    constraints.add(new IndexColumnConstraint<>(geoReference.geoTree(), new GenericProperties<>(properties)));
                 }
 
                 Expression generatedExpression = null;
@@ -193,8 +197,9 @@ public class MetadataToASTNodeResolver {
                 assert storageSupport != null : "Column without storage support must not appear in table meta data";
                 boolean hasDocValuesPerDefault = storageSupport.getComputedDocValuesDefault(ref.indexType());
                 if (hasDocValuesPerDefault != ref.hasDocValues()) {
-                    GenericProperties<Expression> properties = new GenericProperties<>();
-                    properties.add(new GenericProperty<>("columnstore", BooleanLiteral.fromObject(ref.hasDocValues())));
+                    GenericProperties<Expression> properties = new GenericProperties<>(Map.of(
+                        "columnstore", BooleanLiteral.fromObject(ref.hasDocValues())
+                    ));
                     constraints.add(new ColumnStorageDefinition<>(properties));
                 }
 
@@ -229,10 +234,14 @@ public class MetadataToASTNodeResolver {
                     List<Expression> columns = expressionsFromReferences(indexRef.columns());
                     if (indexRef.indexType().equals(IndexType.FULLTEXT)) {
                         String analyzer = indexRef.analyzer();
-                        GenericProperties<Expression> properties = new GenericProperties<>();
-                        if (analyzer != null) {
-                            properties.add(new GenericProperty<>(FulltextAnalyzerResolver.CustomType.ANALYZER.getName(),
-                                                                 new StringLiteral(analyzer)));
+                        GenericProperties<Expression> properties;
+                        if (analyzer == null) {
+                            properties = GenericProperties.empty();
+                        } else {
+                            properties = new GenericProperties<>(Map.of(
+                                FulltextAnalyzerResolver.CustomType.ANALYZER.getName(),
+                                new StringLiteral(analyzer))
+                            );
                         }
                         elements.add(new IndexDefinition<>(name, "fulltext", columns, properties));
                     } else if (indexRef.indexType().equals(IndexType.PLAIN)) {
@@ -262,30 +271,22 @@ public class MetadataToASTNodeResolver {
 
         private GenericProperties<Expression> extractTableProperties() {
             // WITH ( key = value, ... )
-            GenericProperties<Expression> properties = new GenericProperties<>();
+            Map<String, Expression> properties = new HashMap<>();
             Expression numReplicas = new StringLiteral(tableInfo.numberOfReplicas());
-            properties.add(new GenericProperty<>(
-                TableParameters.NUMBER_OF_REPLICAS.getKey(),
-                numReplicas
-                )
-            );
+            properties.put(TableParameters.NUMBER_OF_REPLICAS.getKey(), numReplicas);
             // we want a sorted map of table parameters
 
             TreeMap<String, Object> tableParameters = new TreeMap<>(
                 TableParameters.tableParametersFromIndexMetadata(tableInfo.parameters())
             );
             for (Map.Entry<String, Object> entry : tableParameters.entrySet()) {
-                properties.add(new GenericProperty<>(
-                        TableParameters.stripIndexPrefix(entry.getKey()),
-                        Literal.fromObject(entry.getValue())
-                    )
+                properties.put(
+                    TableParameters.stripIndexPrefix(entry.getKey()),
+                    Literal.fromObject(entry.getValue())
                 );
             }
-            properties.add(new GenericProperty<>(
-                "column_policy",
-                new StringLiteral(tableInfo.columnPolicy().lowerCaseName())
-            ));
-            return properties;
+            properties.put("column_policy", new StringLiteral(tableInfo.columnPolicy().lowerCaseName()));
+            return new GenericProperties<>(properties);
         }
 
 

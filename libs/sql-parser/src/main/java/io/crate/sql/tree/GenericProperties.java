@@ -49,35 +49,23 @@ public class GenericProperties<T> extends Node {
 
     private static final GenericProperties<?> EMPTY = new GenericProperties<>(Map.of());
 
+    @SuppressWarnings("unchecked")
     public static <T> GenericProperties<T> empty() {
         return (GenericProperties<T>) EMPTY;
     }
 
     private final Map<String, T> properties;
 
-    public GenericProperties() {
-        properties = new HashMap<>();
-    }
-
     public GenericProperties(Map<String, T> map) {
-        this.properties = map;
+        this.properties = Collections.unmodifiableMap(map);
     }
 
     public Map<String, T> properties() {
-        return Collections.unmodifiableMap(properties);
+        return properties;
     }
 
     public T get(String key) {
         return properties.get(key);
-    }
-
-    /**
-     * merge the given {@linkplain io.crate.sql.tree.GenericProperty} into the contained map.
-     *
-     * @param property
-     */
-    public void add(GenericProperty<T> property) {
-        properties.put(property.key(), property.value());
     }
 
     public boolean isEmpty() {
