@@ -55,45 +55,45 @@ public class InformationColumnsTableInfo {
 
     public static SystemTable<ColumnContext> create() {
         return SystemTable.<ColumnContext>builder(IDENT)
-            .addNonNull("table_schema", STRING, r -> r.info.ident().tableIdent().schema())
-            .addNonNull("table_name", STRING, r -> r.info.ident().tableIdent().name())
-            .addNonNull("table_catalog", STRING, r -> r.info.ident().tableIdent().schema())
-            .addNonNull("column_name", STRING, r -> r.info.column().sqlFqn())
-            .addNonNull("ordinal_position", INTEGER, r -> r.info.position())
-            .addNonNull("data_type", STRING, r -> r.info.valueType().getName())
+            .addNonNull("table_schema", STRING, r -> r.ref().ident().tableIdent().schema())
+            .addNonNull("table_name", STRING, r -> r.ref().ident().tableIdent().name())
+            .addNonNull("table_catalog", STRING, r -> r.ref().ident().tableIdent().schema())
+            .addNonNull("column_name", STRING, r -> r.ref().column().sqlFqn())
+            .addNonNull("ordinal_position", INTEGER, r -> r.ref().position())
+            .addNonNull("data_type", STRING, r -> r.ref().valueType().getName())
             .addNonNull("is_generated", STRING, r -> {
-                if (r.info instanceof GeneratedReference) {
+                if (r.ref() instanceof GeneratedReference) {
                     return IS_GENERATED_ALWAYS;
                 }
                 return IS_GENERATED_NEVER;
             })
-            .addNonNull("is_nullable", BOOLEAN, r -> !r.tableInfo.primaryKey().contains(r.info.column()) && r.info.isNullable())
+            .addNonNull("is_nullable", BOOLEAN, r -> !r.relation().primaryKey().contains(r.ref().column()) && r.ref().isNullable())
             .add("generation_expression", STRING, r -> {
-                if (r.info instanceof GeneratedReference) {
-                    return ((GeneratedReference) r.info).formattedGeneratedExpression();
+                if (r.ref() instanceof GeneratedReference) {
+                    return ((GeneratedReference) r.ref()).formattedGeneratedExpression();
                 }
                 return null;
             })
             .add("column_default", STRING, r -> {
-                Symbol defaultExpression = r.info.defaultExpression();
+                Symbol defaultExpression = r.ref().defaultExpression();
                 if (defaultExpression != null) {
                     return defaultExpression.toString();
                 } else {
                     return null;
                 }
             })
-            .add("character_maximum_length", INTEGER, ColumnContext::characterMaximumLength)
+            .add("character_maximum_length", INTEGER, r -> r.ref().valueType().characterMaximumLength())
             .add("character_octet_length", INTEGER, ignored -> null)
-            .add("numeric_precision", INTEGER, r -> PRECISION_BY_TYPE_ID.get(r.info.valueType().id()))
+            .add("numeric_precision", INTEGER, r -> PRECISION_BY_TYPE_ID.get(r.ref().valueType().id()))
             .add("numeric_precision_radix", INTEGER, r -> {
-                if (DataTypes.isNumericPrimitive(r.info.valueType())) {
+                if (DataTypes.isNumericPrimitive(r.ref().valueType())) {
                     return NUMERIC_PRECISION_RADIX;
                 }
                 return null;
             })
             .add("numeric_scale", INTEGER, ignored -> null)
             .add("datetime_precision", INTEGER, r -> {
-                if (r.info.valueType() == TIMESTAMPZ || r.info.valueType() == TIMESTAMP) {
+                if (r.ref().valueType() == TIMESTAMPZ || r.ref().valueType() == TIMESTAMP) {
                     return DATETIME_PRECISION;
                 }
                 return null;
@@ -115,8 +115,8 @@ public class InformationColumnsTableInfo {
             .add("check_references", STRING, ignored -> null)
             .add("check_action", INTEGER, ignored -> null)
             .startObject("column_details")
-                .add("name", STRING , r -> r.info.column().name())
-                .add("path", STRING_ARRAY, r -> r.info.column().path())
+                .add("name", STRING , r -> r.ref().column().name())
+                .add("path", STRING_ARRAY, r -> r.ref().column().path())
             .endObject()
             .setPrimaryKeys(
                 new ColumnIdent("table_catalog"),

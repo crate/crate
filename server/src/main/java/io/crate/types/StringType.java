@@ -328,4 +328,13 @@ public class StringType extends DataType<String> implements Streamer<String> {
     public StorageSupport<String> storageSupport() {
         return STORAGE;
     }
+
+    @Override
+    public Integer characterMaximumLength() {
+        if (unbound()) {
+            return null;
+        } else {
+            return lengthLimit();
+        }
+    }
 }
