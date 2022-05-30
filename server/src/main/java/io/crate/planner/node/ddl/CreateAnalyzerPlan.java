@@ -21,6 +21,24 @@
 
 package io.crate.planner.node.ddl;
 
+import static io.crate.metadata.FulltextAnalyzerResolver.encodeSettings;
+import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.ANALYZER;
+import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.CHAR_FILTER;
+import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.TOKENIZER;
+import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.TOKEN_FILTER;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.function.Function;
+
+import javax.annotation.Nullable;
+
+import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsAction;
+import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
+import org.elasticsearch.common.settings.Settings;
+
 import io.crate.analyze.AnalyzedCreateAnalyzer;
 import io.crate.analyze.GenericPropertiesConverter;
 import io.crate.analyze.SymbolEvaluator;
@@ -30,7 +48,6 @@ import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
 import io.crate.execution.support.OneRowActionListener;
-import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FulltextAnalyzerResolver;
@@ -40,23 +57,6 @@ import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.GenericProperties;
-import io.crate.sql.tree.GenericProperty;
-import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsAction;
-import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
-import org.elasticsearch.common.settings.Settings;
-
-import javax.annotation.Nullable;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.function.Function;
-
-import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.ANALYZER;
-import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.CHAR_FILTER;
-import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.TOKENIZER;
-import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.TOKEN_FILTER;
-import static io.crate.metadata.FulltextAnalyzerResolver.encodeSettings;
 
 public class CreateAnalyzerPlan implements Plan {
 
@@ -222,10 +222,9 @@ public class CreateAnalyzerPlan implements Plan {
                                                           String analyzerIdent,
                                                           Function<? super Symbol, Object> eval,
                                                           FulltextAnalyzerResolver ftResolver) {
-        HashMap<String, Settings> boundedTokenFilters = new HashMap<>(tokenFilters.size());
+        HashMap<String, Settings> boundTokenFilters = new HashMap<>(tokenFilters.size());
 
         for (Map.Entry<String, GenericProperties<Symbol>> tokenFilter : tokenFilters.entrySet()) {
-
             var name = tokenFilter.getKey();
             var properties = tokenFilter.getValue();
 
@@ -236,9 +235,11 @@ public class CreateAnalyzerPlan implements Plan {
                     throw new IllegalArgumentException(String.format(
                         Locale.ENGLISH, "Non-existing built-in token-filter '%s'", name));
                 }
-                boundedTokenFilters.put(name, Settings.EMPTY);
+                boundTokenFilters.put(name, Settings.EMPTY);
             } else {
-                // validate
+                Settings.Builder builder = Settings.builder();
+                // transform name as token-filter is not publicly available
+                String fullName = analyzerIdent + '_' + name;
                 if (!ftResolver.hasBuiltInTokenFilter(name)) {
                     // type mandatory when name is not a builtin filter
                     String evaluatedType = extractType(properties, eval);
@@ -254,23 +255,21 @@ public class CreateAnalyzerPlan implements Plan {
                             Locale.ENGLISH,
                             "token-filter name '%s' is reserved, 'type' property forbidden here", name));
                     }
-                    properties.add(new GenericProperty<>("type", Literal.of(name)));
+
+                    builder.put(TOKEN_FILTER.buildSettingChildName(fullName, "type"), name);
                 }
 
-                // transform name as token-filter is not publicly available
-                name = String.format(Locale.ENGLISH, "%s_%s", analyzerIdent, name);
-                Settings.Builder builder = Settings.builder();
                 for (Map.Entry<String, Symbol> property : properties.properties().entrySet()) {
                     GenericPropertiesConverter.genericPropertyToSetting(
                         builder,
-                        TOKEN_FILTER.buildSettingChildName(name, property.getKey()),
+                        TOKEN_FILTER.buildSettingChildName(fullName, property.getKey()),
                         eval.apply(property.getValue())
                     );
                 }
-                boundedTokenFilters.put(name, builder.build());
+                boundTokenFilters.put(fullName, builder.build());
             }
         }
-        return boundedTokenFilters;
+        return boundTokenFilters;
     }
 
     private static Map<String, Settings> bindCharFilters(Map<String, GenericProperties<Symbol>> charFilters,
