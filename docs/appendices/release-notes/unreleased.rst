@@ -103,42 +103,4 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
-- Enabled users to alter settings on tables subscribed in a logical replication.
-
-- Enabled to alter the setting ``blocks.read_only_allow_delete`` on blob tables
-  to make it possible to drop read-only blob tables.
-
-- Fixed an issue that could cause queries on ``sys.snapshots`` to get stuck and
-  consume a significant amount of resources.
-
-- Fixed an issue with primary key columns that have a ``DEFAULT`` clause. That
-  could lead to queries on the primary key column not matching the row.
-
-- Fixed an issue with the logical replication of tables metadata which caused
-  to stop if the master node of the subscriber changed.
-
-- Fixed an issue with aliased sub-relation outputs when used inside the outer
-  where clause expression, resulting in a planner error. Example:
-  ``SELECT * FROM (SELECT id, true AS a FROM t1) WHERE a``
-
-- Fixed an edge case with the initial restore of subscribed tables when the
-  restore operation finish almost instantly (e.g. restoring small tables).
-
-- Fixed an issue with table functions parameter binding in ``SELECT`` queries
-  without ``FROM`` clause. Example: ``SELECT unnest(?)``.
-
-- Improved error handling when creating a subscription with unknown
-  publications. Instead of successfully creating the subscription, an error
-  is now presented to the user.
-
-- Fixed an issue with client caching which lead to authentication error when
-  creating a subscription with bad credentials and ``pg_tunnel`` followed by
-  re-creating it second time with the same name and valid credentials.
-
-- Fixed an issue with ``VARCHAR`` and ``BIT`` columns with a length
-  limited used in primary key, generated or default column expression. An
-  ``ALTER TABLE`` statement removed the length limit from such columns.
-
-- Fixed an issue resulting in a broken subscription when a subscription is
-  dropped and re-created within a short period of time.
-
+None
