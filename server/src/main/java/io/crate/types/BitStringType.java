@@ -234,4 +234,9 @@ public final class BitStringType extends DataType<BitString> implements Streamer
     public StorageSupport<BitString> storageSupport() {
         return STORAGE;
     }
+
+    @Override
+    public Integer characterMaximumLength() {
+        return length();
+    }
 }

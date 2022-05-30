@@ -99,9 +99,9 @@ public class PgCatalogTableDefinitions {
             false));
         tableDefinitions.put(PgAttributeTable.IDENT, new StaticTableDefinition<>(
             informationSchemaIterables::columns,
-            (user, c) -> user.hasAnyPrivilege(Privilege.Clazz.TABLE, c.tableInfo.ident().fqn())
-                         || user.hasAnyPrivilege(Privilege.Clazz.VIEW, c.tableInfo.ident().fqn())
-                         || isPgCatalogOrInformationSchema(c.tableInfo.ident().schema()),
+            (user, c) -> user.hasAnyPrivilege(Privilege.Clazz.TABLE, c.relation().ident().fqn())
+                         || user.hasAnyPrivilege(Privilege.Clazz.VIEW, c.relation().ident().fqn())
+                         || isPgCatalogOrInformationSchema(c.relation().ident().schema()),
             PgAttributeTable.create().expressions()
         ));
         tableDefinitions.put(PgIndexTable.IDENT, new StaticTableDefinition<>(

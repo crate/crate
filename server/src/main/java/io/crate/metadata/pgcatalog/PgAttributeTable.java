@@ -43,19 +43,19 @@ public class PgAttributeTable {
 
     public static SystemTable<ColumnContext> create() {
         return SystemTable.<ColumnContext>builder(IDENT)
-            .add("attrelid", REGCLASS, c -> Regclass.relationOid(c.tableInfo))
-            .add("attname", STRING, c -> c.info.column().sqlFqn())
-            .add("atttypid", INTEGER, c -> PGTypes.get(c.info.valueType()).oid())
+            .add("attrelid", REGCLASS, c -> Regclass.relationOid(c.relation()))
+            .add("attname", STRING, c -> c.ref().column().sqlFqn())
+            .add("atttypid", INTEGER, c -> PGTypes.get(c.ref().valueType()).oid())
             .add("attstattarget", INTEGER, c -> 0)
-            .add("attlen", SHORT, c -> PGTypes.get(c.info.valueType()).typeLen())
-            .add("attnum", INTEGER, c -> c.info.position())
-            .add("attndims", INTEGER, c -> isArray(c.info.valueType()) ? 1 : 0)
+            .add("attlen", SHORT, c -> PGTypes.get(c.ref().valueType()).typeLen())
+            .add("attnum", INTEGER, c -> c.ref().position())
+            .add("attndims", INTEGER, c -> isArray(c.ref().valueType()) ? 1 : 0)
             .add("attcacheoff", INTEGER, c -> -1)
-            .add("atttypmod", INTEGER, c -> PGTypes.get(c.info.valueType()).typeMod())
+            .add("atttypmod", INTEGER, c -> PGTypes.get(c.ref().valueType()).typeMod())
             .add("attbyval", BOOLEAN, c -> false)
             .add("attstorage", STRING, c -> null)
             .add("attalign", STRING, c -> null)
-            .add("attnotnull", BOOLEAN, c -> !c.info.isNullable())
+            .add("attnotnull", BOOLEAN, c -> !c.ref().isNullable())
             .add("atthasdef", BOOLEAN, c -> false) // don't support default values
             .add("attidentity", STRING, c -> "")
             .add("attisdropped", BOOLEAN, c -> false) // don't support dropping columns

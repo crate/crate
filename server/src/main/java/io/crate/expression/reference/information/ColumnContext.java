@@ -23,32 +23,6 @@ package io.crate.expression.reference.information;
 
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationInfo;
-import io.crate.types.BitStringType;
-import io.crate.types.DataType;
-import io.crate.types.StringType;
 
-public class ColumnContext {
-
-    public final RelationInfo tableInfo;
-    public final Reference info;
-
-    public ColumnContext(RelationInfo tableInfo, Reference ref) {
-        this.tableInfo = tableInfo;
-        this.info = ref;
-    }
-
-    public Integer characterMaximumLength() {
-        DataType<?> type = info.valueType();
-        if (type instanceof StringType stringType) {
-            if (stringType.unbound()) {
-                return null;
-            } else {
-                return stringType.lengthLimit();
-            }
-        } else if (type instanceof BitStringType bitStringType) {
-            return bitStringType.length();
-        } else {
-            return null;
-        }
-    }
+public record ColumnContext(RelationInfo relation, Reference ref) {
 }

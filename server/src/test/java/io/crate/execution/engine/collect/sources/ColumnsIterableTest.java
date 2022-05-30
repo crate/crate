@@ -62,7 +62,7 @@ public class ColumnsIterableTest extends CrateDummyClusterServiceUnitTest {
             .collect(Collectors.toList());
 
         assertThat(
-            contexts.stream().map(c -> c.info.column().name()).collect(Collectors.toList()),
+            contexts.stream().map(c -> c.ref().column().name()).collect(Collectors.toList()),
             Matchers.contains("a", "x", "i"));
     }
 
@@ -71,10 +71,10 @@ public class ColumnsIterableTest extends CrateDummyClusterServiceUnitTest {
         List<String> names = new ArrayList<>(6);
         InformationSchemaIterables.ColumnsIterable columns = new InformationSchemaIterables.ColumnsIterable(t1Info);
         for (ColumnContext column : columns) {
-            names.add(column.info.column().name());
+            names.add(column.ref().column().name());
         }
         for (ColumnContext column : columns) {
-            names.add(column.info.column().name());
+            names.add(column.ref().column().name());
         }
         assertThat(names, Matchers.contains("a", "x", "i", "a", "x", "i"));
     }
@@ -86,12 +86,12 @@ public class ColumnsIterableTest extends CrateDummyClusterServiceUnitTest {
             .collect(Collectors.toList());
 
         // sub columns must have NON-NULL ordinal value
-        assertThat(contexts.get(1).info.position(), is(2));
-        assertThat(contexts.get(2).info.position(), is(3));
+        assertThat(contexts.get(1).ref().position(), is(2));
+        assertThat(contexts.get(2).ref().position(), is(3));
 
         // array of object sub columns also
-        assertThat(contexts.get(3).info.position(), is(4));
-        assertThat(contexts.get(4).info.position(), is(5));
+        assertThat(contexts.get(3).ref().position(), is(4));
+        assertThat(contexts.get(4).ref().position(), is(5));
     }
 
     @Test
@@ -102,6 +102,6 @@ public class ColumnsIterableTest extends CrateDummyClusterServiceUnitTest {
         var columns = new InformationSchemaIterables.ColumnsIterable(e.resolveTableInfo("bit_table"));
         var contexts = StreamSupport.stream(columns.spliterator(), false).toList();
 
-        assertThat(contexts.get(0).characterMaximumLength(), is(12));
+        assertThat(contexts.get(0).ref().valueType().characterMaximumLength(), is(12));
     }
 }

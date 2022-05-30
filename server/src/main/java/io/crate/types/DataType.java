@@ -227,4 +227,8 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
             : "If the type parameters aren't empty, `" + getClass().getSimpleName() + "` must override `toColumnType`";
         return new ColumnType<>(getName());
     }
+
+    public Integer characterMaximumLength() {
+        return null;
+    }
 }
