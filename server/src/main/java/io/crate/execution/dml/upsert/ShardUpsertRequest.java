@@ -117,7 +117,7 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
             for (int i = 0; i < missingAssignmentsColumnsSize; i++) {
                 insertColumns[i] = Reference.fromStream(in);
             }
-            insertValuesStreamer = Symbols.streamerArray(List.of(insertColumns));
+            insertValuesStreamer = Symbols.streamerArray(insertColumns);
         }
         continueOnError = in.readBoolean();
         duplicateKeyAction = DuplicateKeyAction.values()[in.readVInt()];
@@ -163,7 +163,7 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
             for (Reference reference : insertColumns) {
                 Reference.toStream(reference, out);
             }
-            insertValuesStreamer = Symbols.streamerArray(List.of(insertColumns));
+            insertValuesStreamer = Symbols.streamerArray(insertColumns);
         } else {
             out.writeVInt(0);
         }
