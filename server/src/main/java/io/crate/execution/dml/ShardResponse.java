@@ -180,7 +180,7 @@ public class ShardResponse extends ReplicationResponse implements WriteResponse 
                     Symbol symbol = Symbols.fromStream(in);
                     resultColumns[i] = symbol;
                 }
-                Streamer[] resultRowStreamers = Symbols.streamerArray(List.of(resultColumns));
+                Streamer[] resultRowStreamers = Symbols.streamerArray(resultColumns);
                 int resultRowsSize = in.readVInt();
                 if (resultRowsSize > 0) {
                     resultRows = new ArrayList<>(resultRowsSize);
@@ -219,7 +219,7 @@ public class ShardResponse extends ReplicationResponse implements WriteResponse 
         if (out.getVersion().onOrAfter(Version.V_4_2_0)) {
             if (resultRows != null) {
                 assert resultColumns != null : "Result columns are required when writing result rows";
-                Streamer[] resultRowStreamers = Symbols.streamerArray(List.of(resultColumns));
+                Streamer[] resultRowStreamers = Symbols.streamerArray(resultColumns);
                 out.writeVInt(resultColumns.length);
                 for (int i = 0; i < resultColumns.length; i++) {
                     Symbols.toStream(resultColumns[i], out);

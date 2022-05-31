@@ -69,6 +69,14 @@ public class Symbols {
         return Lists2.mapLazy(symbols, s -> s.valueType().getTypeSignature());
     }
 
+    public static Streamer<?>[] streamerArray(Symbol[] symbols) {
+        Streamer<?>[] streamers = new Streamer<?>[symbols.length];
+        for (int i = 0; i < symbols.length; i++) {
+            streamers[i] = symbols[i].valueType().streamer();
+        }
+        return streamers;
+    }
+
     public static Streamer<?>[] streamerArray(Collection<? extends Symbol> symbols) {
         Streamer<?>[] streamers = new Streamer<?>[symbols.size()];
         Iterator<? extends Symbol> iter = symbols.iterator();
