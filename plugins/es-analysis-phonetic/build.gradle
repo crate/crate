@@ -23,7 +23,7 @@ apply from: "$rootDir/extensions/extensionModule.gradle"
 dependencies {
     implementation project(':libs:shared')
     implementation project(':server')
-    pluginDependency files('/Users/mkleen/lucene-9.0.0-SNAPSHOT-WITHOUT-LUCENE-9843/analysis/phonetic/lucene-analysis-phonetic-9.0.0-SNAPSHOT.jar')
+    pluginDependency files('/Users/mkleen/lucene-9.0.0-SNAPSHOT/analysis/phonetic/lucene-analysis-phonetic-9.0.0-SNAPSHOT.jar')
 
     implementation "commons-codec:commons-codec:${versions.commonscodec}"
 
