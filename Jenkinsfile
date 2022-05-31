@@ -53,6 +53,14 @@ pipeline {
             }
           }
         }
+        stage('Java tests windows') {
+          agent { label 'windows' }
+          steps {
+            bat 'git clean -xdff'
+            checkout scm
+            bat './gradlew --no-daemon --parallel -PtestForks=6 :server:test -Dtests.crate.run-windows-incompatible=false'
+          }
+        }
         stage('itest') {
           agent { label 'medium' }
           steps {
