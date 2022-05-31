@@ -24,7 +24,7 @@ apply from: "$rootDir/extensions/extensionModule.gradle"
 
 dependencies {
     implementation project(':server')
-    implementation "org.apache.lucene:lucene-analysis-common:${versions.lucene}"
+    implementation files('/Users/mkleen/lucene-9.0.0-SNAPSHOT-WITH-LUCENE-9843//analysis/common/lucene-analysis-common-9.0.0-SNAPSHOT.jar')
 
     testImplementation(testFixtures(project(':server')))
     testImplementation "junit:junit:${versions.junit}"

@@ -25,6 +25,7 @@ import io.crate.gradle.TestLogger;
 buildscript {
     repositories {
         mavenCentral()
+        maven { url 'https://jitpack.io' }
     }
     dependencies {
         classpath 'de.thetaphi:forbiddenapis:3.2'

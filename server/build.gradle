@@ -78,17 +78,17 @@ dependencies {
     implementation "io.netty:netty-transport-native-epoll:${versions.netty4}:linux-x86_64"
     implementation "io.netty:netty-transport:${versions.netty4}"
 
-    api "org.apache.lucene:lucene-core:${versions.lucene}"
-    implementation "org.apache.lucene:lucene-analysis-common:${versions.lucene}"
-    implementation "org.apache.lucene:lucene-backward-codecs:${versions.lucene}"
-    implementation "org.apache.lucene:lucene-grouping:${versions.lucene}"
-    implementation "org.apache.lucene:lucene-join:${versions.lucene}"
-    implementation "org.apache.lucene:lucene-misc:${versions.lucene}"
-    implementation "org.apache.lucene:lucene-queries:${versions.lucene}"
-    implementation "org.apache.lucene:lucene-sandbox:${versions.lucene}"
-    implementation "org.apache.lucene:lucene-spatial-extras:${versions.lucene}"
-    implementation "org.apache.lucene:lucene-spatial3d:${versions.lucene}"
-    implementation "org.apache.lucene:lucene-suggest:${versions.lucene}"
+    api files('/Users/mkleen/lucene-9.0.0-SNAPSHOT-WITH-LUCENE-9843/core/lucene-core-9.0.0-SNAPSHOT.jar')
+    implementation files('/Users/mkleen/lucene-9.0.0-SNAPSHOT-WITHOUT-LUCENE-9843/analysis/common/lucene-analysis-common-9.0.0-SNAPSHOT.jar')
+    implementation files('/Users/mkleen/lucene-9.0.0-SNAPSHOT-WITHOUT-LUCENE-9843/backward-codecs/lucene-backward-codecs-9.0.0-SNAPSHOT.jar')
+    implementation files('/Users/mkleen/lucene-9.0.0-SNAPSHOT-WITHOUT-LUCENE-9843/grouping/lucene-grouping-9.0.0-SNAPSHOT.jar')
+    implementation files('/Users/mkleen/lucene-9.0.0-SNAPSHOT-WITHOUT-LUCENE-9843/join/lucene-join-9.0.0-SNAPSHOT.jar')
+    implementation files('/Users/mkleen/lucene-9.0.0-SNAPSHOT-WITHOUT-LUCENE-9843/misc/lucene-misc-9.0.0-SNAPSHOT.jar')
+    implementation files('/Users/mkleen/lucene-9.0.0-SNAPSHOT-WITHOUT-LUCENE-9843/queries/lucene-queries-9.0.0-SNAPSHOT.jar')
+    implementation files('/Users/mkleen/lucene-9.0.0-SNAPSHOT-WITHOUT-LUCENE-9843/sandbox/lucene-sandbox-9.0.0-SNAPSHOT.jar')
+    implementation files('/Users/mkleen/lucene-9.0.0-SNAPSHOT-WITHOUT-LUCENE-9843/spatial-extras/lucene-spatial-extras-9.0.0-SNAPSHOT.jar')
+    implementation files('/Users/mkleen/lucene-9.0.0-SNAPSHOT-WITHOUT-LUCENE-9843/spatial3d/lucene-spatial3d-9.0.0-SNAPSHOT.jar')
+    implementation files('/Users/mkleen/lucene-9.0.0-SNAPSHOT-WITHOUT-LUCENE-9843/suggest/lucene-suggest-9.0.0-SNAPSHOT.jar')
     // lucene spatial
     implementation "org.locationtech.spatial4j:spatial4j:${versions.spatial4j}"
     implementation "org.locationtech.jts:jts-core:${versions.jts}"
@@ -117,7 +117,7 @@ dependencies {
     testRuntimeOnly project(':libs:es-plugin-classloader')
     testImplementation "com.carrotsearch.randomizedtesting:randomizedtesting-runner:${versions.randomizedrunner}"
 
-    testRuntimeOnly "org.apache.lucene:lucene-codecs:${versions.lucene}"
+    testRuntimeOnly files('/Users/mkleen/lucene-9.0.0-SNAPSHOT-WITHOUT-LUCENE-9843/backward-codecs/lucene-backward-codecs-9.0.0-SNAPSHOT.jar')
     testImplementation "com.pholser:junit-quickcheck-core:${versions.quickcheck}"
     testImplementation "com.pholser:junit-quickcheck-generators:${versions.quickcheck}"
     testImplementation 'org.skyscreamer:jsonassert:1.3.0'
@@ -131,7 +131,7 @@ dependencies {
     testRuntimeOnly "org.bouncycastle:bcpkix-jdk15on:1.68"
 
     testFixturesApi(testFixtures(project(':libs:dex')))
-    testFixturesApi "org.apache.lucene:lucene-test-framework:${versions.lucene}"
+    testFixturesApi files('/Users/mkleen/lucene-9.0.0-SNAPSHOT-WITHOUT-LUCENE-9843/test-framework/lucene-test-framework-9.0.0-SNAPSHOT.jar')
     testFixturesApi "org.hamcrest:hamcrest:${versions.hamcrest}"
     testFixturesApi "org.mockito:mockito-core:${versions.mockito}"
     testFixturesApi "org.postgresql:postgresql:${versions.jdbc}"
@@ -139,7 +139,7 @@ dependencies {
     testFixturesImplementation "joda-time:joda-time:${versions.jodatime}"
     testFixturesImplementation "com.carrotsearch:hppc:${versions.carrotsearch_hppc}"
     testFixturesImplementation "org.locationtech.spatial4j:spatial4j:${versions.spatial4j}"
-    testFixturesImplementation "org.apache.lucene:lucene-analysis-common:${versions.lucene}"
+    testFixturesImplementation files('/Users/mkleen/lucene-9.0.0-SNAPSHOT-WITHOUT-LUCENE-9843/analysis/common/lucene-analysis-common-9.0.0-SNAPSHOT.jar')
     testFixturesImplementation project(':libs:pgwire')
 }
 
