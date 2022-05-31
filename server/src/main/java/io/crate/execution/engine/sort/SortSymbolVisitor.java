@@ -198,8 +198,6 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
                       with which the field was indexed (e.g. sort on IntPoint field should use SortField.Type.INT).
 
                     The first requirement is not met (e.g. sort on IntPoint uses SortField.Type.LONG) so need to set it to false.  */
-                sortField.setOptimizeSortWithPoints(false);
-
                 sortField.setMissingValue(
                     NullSentinelValues.nullSentinelForReducedType(reducedType, nullValueOrder, reverse));
                 return sortField;

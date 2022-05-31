@@ -20,6 +20,7 @@
 package org.elasticsearch.index.codec;
 
 import org.apache.logging.log4j.Logger;
+import org.apache.lucene.backward_codecs.lucene80.Lucene80DocValuesFormat;
 import org.apache.lucene.codecs.Codec;
 import org.apache.lucene.codecs.DocValuesFormat;
 import org.apache.lucene.codecs.PostingsFormat;
@@ -63,7 +64,7 @@ public class PerFieldMappingPostingFormatCodec extends Lucene90Codec {
 
     @Override
     public DocValuesFormat getDocValuesFormatForField(String field) {
-        return new Lucene90DocValuesFormat();
+        return new Lucene80DocValuesFormat(Lucene80DocValuesFormat.Mode.BEST_SPEED);
     }
 
 }

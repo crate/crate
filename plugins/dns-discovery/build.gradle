@@ -31,7 +31,7 @@ dependencies {
     implementation "io.netty:netty-resolver-dns:${versions.netty4}"
     testImplementation(testFixtures(project(':server')))
     testImplementation "org.mockito:mockito-core:${versions.mockito}"
-    testImplementation "org.apache.lucene:lucene-test-framework:${versions.lucene}"
+    testImplementation files('/Users/mkleen/lucene-9.0.0-SNAPSHOT-WITHOUT-LUCENE-9843/test-framework/lucene-test-framework-9.0.0-SNAPSHOT.jar')
     testImplementation "org.hamcrest:hamcrest:${versions.hamcrest}"
     testImplementation "org.junit.jupiter:junit-jupiter:${versions.junit5}"
     testImplementation "junit:junit:${versions.junit}"
