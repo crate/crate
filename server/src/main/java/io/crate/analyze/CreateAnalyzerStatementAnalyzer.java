@@ -60,7 +60,7 @@ class CreateAnalyzerStatementAnalyzer {
 
         @Nullable
         private Tuple<String, GenericProperties<Symbol>> tokenizer;
-        private final GenericProperties<Symbol> genericAnalyzerProperties;
+        private final Map<String, Symbol> genericAnalyzerProperties;
         private final Map<String, GenericProperties<Symbol>> charFilters;
         private final Map<String, GenericProperties<Symbol>> tokenFilters;
 
@@ -70,7 +70,7 @@ class CreateAnalyzerStatementAnalyzer {
         Context(CoordinatorTxnCtx transactionContext,
                 NodeContext nodeCtx,
                 ParamTypeHints paramTypeHints) {
-            this.genericAnalyzerProperties = new GenericProperties<>();
+            this.genericAnalyzerProperties = new HashMap<>();
             this.charFilters = new HashMap<>();
             this.tokenFilters = new HashMap<>();
 
@@ -121,7 +121,7 @@ class CreateAnalyzerStatementAnalyzer {
             analyzerIdent,
             extendedAnalyzerName,
             context.tokenizer,
-            context.genericAnalyzerProperties,
+            new GenericProperties<>(context.genericAnalyzerProperties),
             context.tokenFilters,
             context.charFilters);
     }
@@ -151,12 +151,11 @@ class CreateAnalyzerStatementAnalyzer {
         public Void visitGenericProperty(GenericProperty<?> node, Context context) {
             var property = (GenericProperty<Expression>) node;
 
-            context.genericAnalyzerProperties.add(
-                new GenericProperty<>(
-                    property.key(),
-                    context.exprAnalyzerWithFieldsAsString.convert(
-                        property.value(),
-                        context.exprContext))
+            context.genericAnalyzerProperties.put(
+                property.key(),
+                context.exprAnalyzerWithFieldsAsString.convert(
+                    property.value(),
+                    context.exprContext)
             );
             return null;
         }

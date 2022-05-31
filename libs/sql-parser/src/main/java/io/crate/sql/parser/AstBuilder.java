@@ -1103,9 +1103,13 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     @Override
     public Node visitGenericProperties(SqlBaseParser.GenericPropertiesContext context) {
-        GenericProperties<Expression> properties = new GenericProperties<>();
-        context.genericProperty().forEach(p -> properties.add((GenericProperty<Expression>) visit(p)));
-        return properties;
+        Map<String, Expression> properties = new HashMap<>();
+        for (var property : context.genericProperty()) {
+            String key = getIdentText(property.ident());
+            Expression value = (Expression) visit(property.expr());
+            properties.put(key, value);
+        }
+        return new GenericProperties<>(properties);
     }
 
     @Override

@@ -21,6 +21,8 @@
 
 package io.crate.expression.scalar.arithmetic;
 
+import static io.crate.testing.Asserts.assertThrowsMatches;
+
 import io.crate.expression.scalar.ScalarTestCase;
 import org.hamcrest.Matchers;
 import org.joda.time.Period;
@@ -73,9 +75,10 @@ public class IntervalFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_unallowed_operations() {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Unknown function: (cast('1 second' AS interval) - cast('86401000' AS timestamp with time zone))," +
-                                        " no overload found for matching argument types: (interval, timestamp with time zone).");
-        assertEvaluate("interval '1 second' - '86401000'::timestamp", Matchers.is(86400000L));
+        assertThrowsMatches(
+            () -> assertEvaluate("interval '1 second' - '86401000'::timestamptz", Matchers.is(86400000L)),
+            UnsupportedOperationException.class,
+            "Unknown function: (cast('1 second' AS interval) - cast('86401000' AS timestamp with time zone)), "
+        );
     }
 }

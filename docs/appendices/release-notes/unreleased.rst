@@ -42,6 +42,10 @@ Unreleased Changes
 Breaking Changes
 ================
 
+- Changed the type of :ref:`TIMESTAMP <type-timestamp>` from :ref:`TIMESTAMP WITH
+  TIME ZONE <type-timestamp-with-tz>` to :ref:`TIMESTAMP WITHOUT TIME ZONE
+  <type-timestamp-without-tz>` to be compatible with the SQL standard.
+
 - Creating tables with soft deletes disabled is no longer supported.
   The setting :ref:`sql-create-table-soft-deletes-enabled` will
   always be set to ``true`` and removed in CrateDB 6.0.

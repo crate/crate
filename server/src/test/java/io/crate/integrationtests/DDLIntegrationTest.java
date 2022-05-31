@@ -863,7 +863,7 @@ public class DDLIntegrationTest extends SQLIntegrationTestCase {
             "create table test (" +
             "   ts timestamp with time zone," +
             "   day as date_trunc('day', ts)) with (number_of_replicas=0)");
-        execute("alter table test add column added timestamp generated always as date_trunc('day', ts)");
+        execute("alter table test add column added timestamp with time zone generated always as date_trunc('day', ts)");
         ensureYellow();
         String expectedMapping = "{\"default\":" +
                                  "{\"dynamic\":\"strict\"," +

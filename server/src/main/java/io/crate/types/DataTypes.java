@@ -401,14 +401,7 @@ public final class DataTypes {
         entry("character varying", STRING),
         entry("timetz", TIMETZ),
         entry("timestamptz", TIMESTAMPZ),
-        // The usage of the `timestamp` data type as a data type with time
-        // zone is deprecate, use `timestamp with time zone` or `timestamptz`
-        // instead. In future releases the `timestamp` data type will be changed
-        // to behave as a timestamp without time zone. For now, we use the
-        // `timestamp` as an alias for the `timestamp with time zone` data type
-        // to warn users about the data type semantic change and give a time
-        // to adjust to the change.
-        entry("timestamp", TIMESTAMPZ),
+        entry("timestamp", TIMESTAMP),
         entry("interval", INTERVAL),
         entry(DATE.getName(), DATE),
         entry(BitStringType.INSTANCE_ONE.getName(), BitStringType.INSTANCE_ONE),
