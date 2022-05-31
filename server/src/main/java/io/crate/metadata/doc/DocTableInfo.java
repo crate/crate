@@ -21,6 +21,7 @@
 
 package io.crate.metadata.doc;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
@@ -53,6 +54,7 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.TypedColumn;
 import io.crate.metadata.sys.TableColumn;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.ShardedTable;
@@ -403,6 +405,20 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
 
     public String getAnalyzerForColumnIdent(ColumnIdent ident) {
         return analyzers.get(ident);
+    }
+
+
+    @Override
+    public List<Reference> getReferences(TypedColumn[] columns) {
+        ArrayList<Reference> result = new ArrayList<>(columns.length);
+        for (var column : columns) {
+            Reference reference = getReference(column.name());
+            if (reference == null) {
+                reference = getDynamic(column.name(), true, false);
+            }
+            result.add(reference);
+        }
+        return result;
     }
 
     @Nullable

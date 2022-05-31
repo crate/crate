@@ -105,6 +105,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.TypedColumn;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
@@ -249,7 +250,7 @@ public class InsertFromValues implements LogicalPlan {
                 : ShardUpsertRequest.DuplicateKeyAction.UPDATE_OR_FAIL,
             rows.size() > 1, // continueOnErrors
             onConflictColumns,
-            writerProjection.allTargetColumns().toArray(new Reference[0]),
+            writerProjection.allTargetColumns().stream().map(Reference::toTypedColumn).toArray(TypedColumn[]::new),
             returnValues.isEmpty() ? null : returnValues.toArray(new Symbol[0]),
             plannerContext.jobId(),
             false);
@@ -365,7 +366,7 @@ public class InsertFromValues implements LogicalPlan {
                 : ShardUpsertRequest.DuplicateKeyAction.UPDATE_OR_FAIL,
             true, // continueOnErrors
             updateColumnNames,
-            writerProjection.allTargetColumns().toArray(new Reference[0]),
+            writerProjection.allTargetColumns().stream().map(Reference::toTypedColumn).toArray(TypedColumn[]::new),
             null,
             plannerContext.jobId(),
             true);

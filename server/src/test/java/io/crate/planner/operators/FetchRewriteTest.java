@@ -52,7 +52,6 @@ import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
-import io.crate.types.DataTypes;
 
 public class FetchRewriteTest extends CrateDummyClusterServiceUnitTest {
 

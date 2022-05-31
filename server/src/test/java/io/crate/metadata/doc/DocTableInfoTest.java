@@ -30,7 +30,6 @@ import java.util.Map;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import io.crate.exceptions.ColumnUnknownException;

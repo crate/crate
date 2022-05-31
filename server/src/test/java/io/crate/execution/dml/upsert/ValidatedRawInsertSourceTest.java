@@ -44,7 +44,6 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
-import io.crate.metadata.SimpleReference;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;

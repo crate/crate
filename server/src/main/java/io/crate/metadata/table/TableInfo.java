@@ -23,8 +23,10 @@ package io.crate.metadata.table;
 
 import static io.crate.types.ArrayType.makeArray;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.function.Predicate;
 
@@ -40,6 +42,7 @@ import io.crate.metadata.RelationInfo;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.SimpleReference;
+import io.crate.metadata.TypedColumn;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -56,6 +59,16 @@ public interface TableInfo extends RelationInfo {
      */
     @Nullable
     Reference getReference(ColumnIdent columnIdent);
+
+    default List<Reference> getReferences(TypedColumn[] columns) {
+        ArrayList<Reference> result = new ArrayList<>(columns.length);
+        for (var column : columns) {
+            Reference reference = getReference(column.name());
+            assert reference != null : "Reference for typed columns must exist";
+            result.add(reference);
+        }
+        return result;
+    }
 
     /**
      * This is like {@link #getReference(ColumnIdent)},

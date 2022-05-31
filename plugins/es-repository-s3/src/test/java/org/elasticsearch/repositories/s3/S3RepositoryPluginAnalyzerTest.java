@@ -51,7 +51,6 @@ import io.crate.planner.node.ddl.CreateRepositoryPlan;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.GenericProperties;
-import io.crate.sql.tree.GenericProperty;
 import io.crate.sql.tree.StringLiteral;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;

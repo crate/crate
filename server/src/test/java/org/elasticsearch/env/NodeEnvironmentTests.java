@@ -18,7 +18,6 @@
  */
 package org.elasticsearch.env;
 
-import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import io.crate.common.io.IOUtils;
 import org.apache.lucene.index.SegmentInfos;
 import org.apache.lucene.util.LuceneTestCase;

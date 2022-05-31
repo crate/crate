@@ -23,49 +23,54 @@ package io.crate.metadata;
 
 import java.io.IOException;
 
-import javax.annotation.Nullable;
-
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
-import io.crate.sql.tree.ColumnPolicy;
+import io.crate.expression.symbol.SymbolVisitor;
+import io.crate.expression.symbol.format.Style;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
-public interface Reference extends Symbol {
+/**
+ * A column with a type.
+ * This is a low footprint alternative to {@link Reference}
+ **/
+public record TypedColumn(ColumnIdent name, DataType<?> type) implements Symbol {
 
-    ReferenceIdent ident();
-
-    ColumnIdent column();
-
-    IndexType indexType();
-
-    ColumnPolicy columnPolicy();
-
-    boolean isNullable();
-
-    RowGranularity granularity();
-
-    int position();
-
-    boolean hasDocValues();
-
-    @Nullable
-    Symbol defaultExpression();
-
-    Reference getRelocated(ReferenceIdent referenceIdent);
-
-    static void toStream(Reference ref, StreamOutput out) throws IOException {
-        out.writeVInt(ref.symbolType().ordinal());
-        ref.writeTo(out);
+    public static TypedColumn fromStream(StreamInput in) throws IOException {
+        return new TypedColumn(new ColumnIdent(in), DataTypes.fromStream(in));
     }
 
-    @SuppressWarnings("unchecked")
-    static <T extends Reference> T fromStream(StreamInput in) throws IOException {
-        return (T) SymbolType.VALUES.get(in.readVInt()).newInstance(in);
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        name.writeTo(out);
+        DataTypes.toStream(type, out);
     }
 
-    default TypedColumn toTypedColumn() {
-        return new TypedColumn(column(), valueType());
+    @Override
+    public SymbolType symbolType() {
+        return SymbolType.COLUMN;
+    }
+
+    @Override
+    public <C, R> R accept(SymbolVisitor<C, R> visitor, C context) {
+        return visitor.visitTypedColumn(this, context);
+    }
+
+    @Override
+    public DataType<?> valueType() {
+        return type;
+    }
+
+    @Override
+    public String toString(Style style) {
+        return name.quotedOutputName();
+    }
+
+    @Override
+    public String toString() {
+        return name.quotedOutputName();
     }
 }

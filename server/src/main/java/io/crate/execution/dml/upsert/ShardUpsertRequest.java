@@ -44,7 +44,7 @@ import io.crate.common.unit.TimeValue;
 import io.crate.execution.dml.ShardRequest;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
-import io.crate.metadata.Reference;
+import io.crate.metadata.TypedColumn;
 import io.crate.metadata.settings.SessionSettings;
 
 public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUpsertRequest.Item> {
@@ -67,11 +67,8 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
     @Nullable
     private String[] updateColumns;
 
-    /**
-     * List of references used on insert
-     */
     @Nullable
-    private Reference[] insertColumns;
+    private TypedColumn[] insertColumns;
 
     /**
      * List of references or expressions to compute values for returning for update.
@@ -88,7 +85,7 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
         DuplicateKeyAction duplicateKeyAction,
         SessionSettings sessionSettings,
         @Nullable String[] updateColumns,
-        @Nullable Reference[] insertColumns,
+        @Nullable TypedColumn[] insertColumns,
         @Nullable Symbol[] returnValues) {
         super(shardId, jobId);
         assert updateColumns != null || insertColumns != null : "Missing updateAssignments, whether for update nor for insert";
@@ -113,9 +110,9 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
         int missingAssignmentsColumnsSize = in.readVInt();
         Streamer[] insertValuesStreamer = null;
         if (missingAssignmentsColumnsSize > 0) {
-            insertColumns = new Reference[missingAssignmentsColumnsSize];
+            insertColumns = new TypedColumn[missingAssignmentsColumnsSize];
             for (int i = 0; i < missingAssignmentsColumnsSize; i++) {
-                insertColumns[i] = Reference.fromStream(in);
+                insertColumns[i] = TypedColumn.fromStream(in);
             }
             insertValuesStreamer = Symbols.streamerArray(List.of(insertColumns));
         }
@@ -148,7 +145,6 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        // Stream References
         if (updateColumns != null) {
             out.writeVInt(updateColumns.length);
             for (String column : updateColumns) {
@@ -160,8 +156,14 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
         Streamer[] insertValuesStreamer = null;
         if (insertColumns != null) {
             out.writeVInt(insertColumns.length);
-            for (Reference reference : insertColumns) {
-                Reference.toStream(reference, out);
+            if (out.getVersion().onOrAfter(Version.V_5_0_0)) {
+                for (var column : insertColumns) {
+                    column.writeTo(out);
+                }
+            } else {
+                // Can't write Reference if only TypedColumn is available.
+                // Will need a dedicated new ShardUpsertRequest that is only used if all nodes are 5+
+                throw new UnsupportedOperationException("NOPE");
             }
             insertValuesStreamer = Symbols.streamerArray(List.of(insertColumns));
         } else {
@@ -218,7 +220,7 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
     }
 
     @Nullable
-    public Reference[] insertColumns() {
+    public TypedColumn[] insertColumns() {
         return insertColumns;
     }
 
@@ -484,7 +486,7 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
         @Nullable
         private final String[] assignmentsColumns;
         @Nullable
-        private final Reference[] missingAssignmentsColumns;
+        private final TypedColumn[] missingAssignmentsColumns;
         private final UUID jobId;
         private final boolean validation;
         @Nullable
@@ -495,7 +497,7 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
                        DuplicateKeyAction duplicateKeyAction,
                        boolean continueOnError,
                        @Nullable String[] assignmentsColumns,
-                       @Nullable Reference[] missingAssignmentsColumns,
+                       @Nullable TypedColumn[] missingAssignmentsColumns,
                        @Nullable Symbol[] returnValue,
                        UUID jobId,
                        boolean validation) {

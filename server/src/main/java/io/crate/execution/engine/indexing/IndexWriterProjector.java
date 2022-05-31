@@ -62,6 +62,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.TypedColumn;
 
 public class IndexWriterProjector implements Projector {
 
@@ -112,7 +113,7 @@ public class IndexWriterProjector implements Projector {
             overwriteDuplicates ? DuplicateKeyAction.OVERWRITE : DuplicateKeyAction.UPDATE_OR_FAIL,
             true,
             null,
-            new Reference[]{rawSourceReference},
+            new TypedColumn[]{ rawSourceReference.toTypedColumn() },
             null,
             jobId,
             validation);

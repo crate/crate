@@ -83,6 +83,7 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.SimpleReference;
+import io.crate.metadata.TypedColumn;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.metadata.table.Operation;
@@ -188,7 +189,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             DuplicateKeyAction.UPDATE_OR_FAIL,
             false,
             null,
-            new SimpleReference[]{ID_REF},
+            new TypedColumn[]{ID_REF.toTypedColumn()},
             null,
             UUID.randomUUID(),
             false
@@ -210,7 +211,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             DuplicateKeyAction.UPDATE_OR_FAIL,
             true,
             null,
-            new SimpleReference[]{ID_REF},
+            new TypedColumn[]{ID_REF.toTypedColumn()},
             null,
             UUID.randomUUID(),
             false
@@ -252,7 +253,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             DuplicateKeyAction.UPDATE_OR_FAIL,
             false,
             null,
-            new SimpleReference[]{ID_REF},
+            new TypedColumn[]{ID_REF.toTypedColumn()},
             null,
             UUID.randomUUID(),
             false
@@ -274,7 +275,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             DuplicateKeyAction.UPDATE_OR_FAIL,
             false,
             null,
-            new SimpleReference[]{ID_REF},
+            new TypedColumn[]{ID_REF.toTypedColumn()},
             null,
             UUID.randomUUID(),
             false

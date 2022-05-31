@@ -21,8 +21,6 @@ package org.elasticsearch.snapshots;
 
 import io.crate.common.unit.TimeValue;
 import io.crate.testing.UseJdbc;
-import org.elasticsearch.action.ActionFuture;
-import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.repositories.RepositoriesService;

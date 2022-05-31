@@ -53,6 +53,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.TypedColumn;
 
 public class ColumnIndexWriterProjector implements Projector {
 
@@ -107,7 +108,7 @@ public class ColumnIndexWriterProjector implements Projector {
             ignoreDuplicateKeys ? DuplicateKeyAction.IGNORE : DuplicateKeyAction.UPDATE_OR_FAIL,
             true, // continueOnErrors
             onConflictColumns,
-            columnReferences.toArray(new Reference[columnReferences.size()]),
+            columnReferences.stream().map(Reference::toTypedColumn).toArray(TypedColumn[]::new),
             returnValues.isEmpty() ? null : returnValues.toArray(new Symbol[0]),
             jobId,
             true);

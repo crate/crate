@@ -29,7 +29,6 @@ import io.crate.planner.PlannerContext;
 import io.crate.planner.node.ddl.AlterTableAddColumnPlan;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.Asserts;
 import io.crate.testing.SQLExecutor;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;

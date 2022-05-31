@@ -38,12 +38,13 @@ import io.crate.common.unit.TimeValue;
 import io.crate.execution.dml.upsert.ShardUpsertRequest.DuplicateKeyAction;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.SimpleReference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.SearchPath;
+import io.crate.metadata.SimpleReference;
+import io.crate.metadata.TypedColumn;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.types.DataTypes;
 
@@ -69,7 +70,7 @@ public class ShardUpsertRequestTest extends ESTestCase {
         ShardId shardId = new ShardId("test", UUIDs.randomBase64UUID(), 1);
         String[] assignmentColumns = new String[]{"id", "name"};
         UUID jobId = UUID.randomUUID();
-        SimpleReference[] missingAssignmentColumns = new SimpleReference[]{ID_REF, NAME_REF};
+        TypedColumn[] missingAssignmentColumns = new TypedColumn[]{ ID_REF.toTypedColumn(), NAME_REF.toTypedColumn() };
         ShardUpsertRequest request = new ShardUpsertRequest.Builder(
             new SessionSettings("dummyUser", SearchPath.createSearchPathFrom("dummySchema")),
             TimeValue.timeValueSeconds(30),
@@ -121,7 +122,7 @@ public class ShardUpsertRequestTest extends ESTestCase {
         ShardId shardId = new ShardId("test", UUIDs.randomBase64UUID(), 1);
         String[] assignmentColumns = new String[]{"id", "name"};
         UUID jobId = UUID.randomUUID();
-        SimpleReference[] missingAssignmentColumns = new SimpleReference[]{ID_REF, NAME_REF};
+        TypedColumn[] missingAssignmentColumns = new TypedColumn[]{ID_REF.toTypedColumn(), NAME_REF.toTypedColumn()};
         ShardUpsertRequest request = new ShardUpsertRequest.Builder(
             new SessionSettings("dummyUser", SearchPath.createSearchPathFrom("dummySchema")),
             TimeValue.timeValueSeconds(30),

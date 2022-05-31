@@ -22,7 +22,6 @@
 package io.crate.execution.engine.fetch;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.util.List;
 import java.util.Map;

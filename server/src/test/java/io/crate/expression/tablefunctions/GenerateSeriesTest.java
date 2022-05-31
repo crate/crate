@@ -23,7 +23,6 @@ package io.crate.expression.tablefunctions;
 
 import static io.crate.testing.Asserts.assertThrowsMatches;
 
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 public class GenerateSeriesTest extends AbstractTableFunctionsTest {

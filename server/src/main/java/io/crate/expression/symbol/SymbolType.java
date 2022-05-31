@@ -21,16 +21,18 @@
 
 package io.crate.expression.symbol;
 
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.util.List;
+
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.Writeable;
+
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.GeoReference;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.SimpleReference;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.Writeable;
-
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.util.List;
+import io.crate.metadata.TypedColumn;
 
 public enum SymbolType {
 
@@ -58,7 +60,8 @@ public enum SymbolType {
     FETCH_STUB(in -> {
         throw new UnsupportedEncodingException("FetchStub is not streamable");
     }),
-    VOID_REFERENCE(VoidReference::new);
+    VOID_REFERENCE(VoidReference::new),
+    COLUMN(TypedColumn::fromStream);
 
     public static final List<SymbolType> VALUES = List.of(values());
 

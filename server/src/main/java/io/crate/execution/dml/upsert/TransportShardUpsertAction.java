@@ -27,7 +27,6 @@ import static io.crate.execution.dml.upsert.InsertSourceGen.SOURCE_WRITERS;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Map;
@@ -80,6 +79,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.TypedColumn;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 
@@ -130,12 +130,19 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         ShardResponse shardResponse = new ShardResponse(request.returnValues());
         String indexName = request.index();
         DocTableInfo tableInfo = schemas.getTableInfo(RelationName.fromIndexName(indexName), Operation.INSERT);
-        Reference[] insertColumns = request.insertColumns();
+        TypedColumn[] insertColumns = request.insertColumns();
 
         TransactionContext txnCtx = TransactionContext.of(request.sessionSettings());
         InsertSourceGen insertSourceGen = insertColumns == null
             ? null
-            : InsertSourceGen.of(txnCtx, nodeCtx, tableInfo, indexName, request.validation(), Arrays.asList(insertColumns));
+            : InsertSourceGen.of(
+                txnCtx,
+                nodeCtx,
+                tableInfo,
+                indexName,
+                request.validation(),
+                tableInfo.getReferences(insertColumns)
+            );
 
         UpdateSourceGen updateSourceGen = request.updateColumns() == null
             ? null
