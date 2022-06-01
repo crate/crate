@@ -153,12 +153,6 @@ public class UserManagerService implements UserManager {
         return new AccessControlImpl(userLookup, sessionContext);
     }
 
-
-    @Override
-    public boolean isEnabled() {
-        return true;
-    }
-
     public Iterable<User> users() {
         return userLookup.users();
     }

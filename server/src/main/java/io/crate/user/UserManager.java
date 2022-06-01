@@ -73,8 +73,4 @@ public interface UserManager extends UserLookup {
     CompletableFuture<Long> applyPrivileges(Collection<String> userNames, Collection<Privilege> privileges);
 
     AccessControl getAccessControl(SessionContext sessionContext);
-
-    default boolean isEnabled() {
-        return false;
-    }
 }
