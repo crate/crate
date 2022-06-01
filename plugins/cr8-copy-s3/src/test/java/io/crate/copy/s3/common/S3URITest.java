@@ -21,7 +21,6 @@
 
 package io.crate.copy.s3.common;
 
-import io.crate.copy.s3.common.S3URI;
 import org.junit.jupiter.api.Test;
 
 import java.net.URI;

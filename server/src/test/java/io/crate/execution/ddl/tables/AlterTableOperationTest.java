@@ -23,7 +23,6 @@ package io.crate.execution.ddl.tables;
 
 import io.crate.metadata.RelationName;
 import io.crate.replication.logical.metadata.Publication;
-import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetadata;

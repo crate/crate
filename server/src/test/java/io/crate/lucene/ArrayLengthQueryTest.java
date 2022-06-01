@@ -26,7 +26,6 @@ import io.crate.testing.DataTypeTesting;
 import io.crate.testing.QueryTester;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
-import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 import org.elasticsearch.Version;
 import org.junit.After;

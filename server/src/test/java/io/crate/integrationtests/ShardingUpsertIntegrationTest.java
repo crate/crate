@@ -25,7 +25,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
 
-import io.crate.common.unit.TimeValue;
 
 import java.nio.file.Paths;
 

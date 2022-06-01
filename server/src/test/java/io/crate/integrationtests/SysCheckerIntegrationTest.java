@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
-import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
 

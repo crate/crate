@@ -21,45 +21,34 @@
 
 package io.crate.auth;
 
-import io.crate.user.User;
-import io.crate.user.UserLookup;
-import org.elasticsearch.test.ESTestCase;
-import io.crate.user.SecureHash;
-import org.elasticsearch.common.settings.SecureString;
-import org.junit.Test;
+import static org.hamcrest.core.Is.is;
 
-import javax.annotation.Nullable;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
 import java.util.Collections;
+import java.util.List;
 
-import static org.hamcrest.core.Is.is;
+import org.elasticsearch.common.settings.SecureString;
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
+
+import io.crate.user.SecureHash;
+import io.crate.user.User;
+import io.crate.user.UserLookup;
 
 public class UserAuthenticationMethodTest extends ESTestCase {
 
     class CrateOrNullUserLookup implements UserLookup {
 
-        @Nullable
         @Override
-        public User findUser(String userName) {
-            if (userName.equals("crate")) {
-                User user = null;
-                try {
-                    SecureHash pwHash = SecureHash.of(new SecureString("pw".toCharArray()));
-                    user = User.of("crate", Collections.emptySet(), pwHash);
-                } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
-                    // do nothing
-                }
-                assertNotNull(user);
-                return user;
+        public Iterable<User> users() {
+            SecureHash pwHash;
+            try {
+                pwHash = SecureHash.of(new SecureString("pw".toCharArray()));
+            } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
+                throw new RuntimeException(e);
             }
-            return null;
-        }
-
-        @Nullable
-        @Override
-        public User findUser(Integer userOid) {
-            return null;
+            return List.of(User.of("crate", Collections.emptySet(), pwHash));
         }
     }
 

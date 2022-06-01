@@ -178,11 +178,14 @@ public class TestingHelpers {
     }
 
     public static NodeContext createNodeContext(AbstractModule... additionalModules) {
-        return new NodeContext(prepareModulesBuilder(additionalModules).createInjector().getInstance(Functions.class), ignored -> User.CRATE_USER);
+        return createNodeContext(User.CRATE_USER, additionalModules);
     }
 
     public static NodeContext createNodeContext(User user, AbstractModule... additionalModules) {
-        return new NodeContext(prepareModulesBuilder(additionalModules).createInjector().getInstance(Functions.class), ignored -> user);
+        return new NodeContext(
+            prepareModulesBuilder(additionalModules).createInjector().getInstance(Functions.class),
+            () -> user == null ? List.of() : List.of(user)
+        );
     }
 
     private static ModulesBuilder prepareModulesBuilder(AbstractModule... additionalModules) {

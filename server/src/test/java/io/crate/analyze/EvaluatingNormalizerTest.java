@@ -57,12 +57,6 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.SimpleReference;
 import io.crate.types.DataTypes;
-import io.crate.metadata.SimpleReference;
-import io.crate.types.DataTypes;
-import io.crate.metadata.SimpleReference;
-import io.crate.types.DataTypes;
-import io.crate.metadata.SimpleReference;
-import io.crate.types.DataTypes;
 
 public class EvaluatingNormalizerTest extends ESTestCase {
 

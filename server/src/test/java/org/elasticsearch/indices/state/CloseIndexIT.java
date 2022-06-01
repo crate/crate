@@ -20,9 +20,7 @@ package org.elasticsearch.indices.state;
 
 import io.crate.execution.ddl.tables.TransportCloseTable;
 import io.crate.integrationtests.SQLIntegrationTestCase;
-import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;

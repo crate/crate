@@ -25,7 +25,6 @@ import io.crate.action.sql.BaseResultReceiver;
 import io.crate.action.sql.Session;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.AnalyzedStatement;
-import io.crate.auth.AccessControl;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;

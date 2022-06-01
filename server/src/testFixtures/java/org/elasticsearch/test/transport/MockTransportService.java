@@ -122,7 +122,7 @@ public final class MockTransportService extends TransportService {
             namedWriteableRegistry,
             new NoneCircuitBreakerService(),
             nettyBootstrap,
-            new AlwaysOKAuthentication(name -> User.CRATE_USER),
+            new AlwaysOKAuthentication(() -> List.of(User.CRATE_USER)),
             new SslContextProvider(allSettings)
         );
         return new MockTransportService(

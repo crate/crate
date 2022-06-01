@@ -30,6 +30,7 @@ import static org.mockito.Mockito.mock;
 
 import java.net.UnknownHostException;
 import java.util.Collections;
+import java.util.List;
 
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Settings;
@@ -182,7 +183,8 @@ public class PostgresNettyPublishPortTest extends ESTestCase {
             mock(SQLOperations.class),
             userManager,
             networkService,
-            null, new AlwaysOKAuthentication(userName -> User.CRATE_USER),
+            null,
+            new AlwaysOKAuthentication(() -> List.of(User.CRATE_USER)),
             nettyBootstrap,
             mock(Netty4Transport.class),
             PageCacheRecycler.NON_RECYCLING_INSTANCE,

@@ -21,15 +21,19 @@
 
 package io.crate.user;
 
+import java.util.Collection;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+
+import javax.annotation.Nullable;
+
 import io.crate.action.sql.SessionContext;
 import io.crate.auth.AccessControl;
 import io.crate.exceptions.UnsupportedFeatureException;
 
-import javax.annotation.Nullable;
-import java.util.Collection;
-import java.util.concurrent.CompletableFuture;
-
 public class StubUserManager implements UserManager {
+
+    private final List<User> users = List.of(User.CRATE_USER);
 
     @Override
     public CompletableFuture<Long> createUser(String userName, @Nullable SecureHash hashedPw) {
@@ -51,17 +55,19 @@ public class StubUserManager implements UserManager {
         return CompletableFuture.failedFuture(new UnsupportedFeatureException("GRANT or REVOKE privileges is only supported in enterprise version"));
     }
 
-    @Nullable
     @Override
-    public User findUser(String userName) {
-        // Without enterprise enabled everything runs as superuser
+    public User findUser(int userOid) {
         return User.CRATE_USER;
     }
 
-    @Nullable
     @Override
-    public User findUser(Integer userOid) {
+    public User findUser(String userName) {
         return User.CRATE_USER;
+    }
+
+    @Override
+    public Iterable<User> users() {
+        return users;
     }
 
     @Override
