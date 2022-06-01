@@ -72,8 +72,9 @@ public class SqlExpressions {
                           @Nullable FieldResolver fieldResolver,
                           User user,
                           AbstractModule... additionalModules) {
-        this.nodeCtx = createNodeContext(additionalModules);
-        coordinatorTxnCtx = new CoordinatorTxnCtx(new SessionContext(user));
+        this.nodeCtx = createNodeContext(user, additionalModules);
+        // In test_throws_error_when_user_is_not_found we explicitly inject null user but SessionContext user cannot be not null.
+        coordinatorTxnCtx = new CoordinatorTxnCtx(new SessionContext(user == null ? User.CRATE_USER : user));
         expressionAnalyzer = new ExpressionAnalyzer(
             coordinatorTxnCtx,
             nodeCtx,

@@ -19,7 +19,7 @@
 
 package org.elasticsearch.index.engine;
 
-import org.apache.lucene.util.RamUsageTester;
+import org.apache.lucene.tests.util.RamUsageTester;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.test.ESTestCase;
 

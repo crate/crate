@@ -43,7 +43,7 @@ import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.util.InfoStream;
-import org.apache.lucene.util.NullInfoStream;
+import org.apache.lucene.tests.util.NullInfoStream;
 import org.elasticsearch.test.ESTestCase;
 
 import java.io.IOException;

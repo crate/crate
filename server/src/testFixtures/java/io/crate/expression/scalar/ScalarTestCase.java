@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import io.crate.user.User;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
 import org.junit.Before;
@@ -154,7 +155,9 @@ public abstract class ScalarTestCase extends CrateDummyClusterServiceUnitTest {
             }
             Object expectedValue = ((Input) normalized).value();
             assertThat(((Scalar) impl).evaluate(txnCtx, null, inputs), is(expectedValue));
-            assertThat(((Scalar) impl).compile(function.arguments()).evaluate(txnCtx, sqlExpressions.nodeCtx, inputs), is(expectedValue));
+            assertThat(((Scalar) impl)
+                .compile(function.arguments(), "dummy", user -> User.CRATE_USER)
+                .evaluate(txnCtx, sqlExpressions.nodeCtx, inputs), is(expectedValue));
         }
     }
 
@@ -210,7 +213,8 @@ public abstract class ScalarTestCase extends CrateDummyClusterServiceUnitTest {
             Input<?> input = ctx.add(arg);
             arguments[i] = new AssertMax1ValueCallInput(input);
         }
-        Object actualValue = scalar.compile(function.arguments()).evaluate(txnCtx, sqlExpressions.nodeCtx, (Input[]) arguments);
+        Object actualValue = scalar.compile(function.arguments(), "dummy", user -> User.CRATE_USER)
+            .evaluate(txnCtx, sqlExpressions.nodeCtx, (Input[]) arguments);
         assertThat((T) actualValue, expectedValue);
 
         // Reset calls
@@ -251,7 +255,7 @@ public abstract class ScalarTestCase extends CrateDummyClusterServiceUnitTest {
         Scalar scalar = (Scalar) sqlExpressions.nodeCtx.functions().getQualified(function, txnCtx.sessionSettings().searchPath());
         assertThat("Function implementation not found using full qualified lookup", scalar, Matchers.notNullValue());
 
-        Scalar compiled = scalar.compile(function.arguments());
+        Scalar compiled = scalar.compile(function.arguments(), "dummy", user -> User.CRATE_USER);
         assertThat(compiled, matcher.apply(scalar));
     }
 

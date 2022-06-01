@@ -100,6 +100,10 @@ Changes
 
 - Added support for non-recursive :ref:`sql_dql_with`.
 
+- Added :ref:`has_schema_privilege <scalar-has-schema-priv>` scalar function
+  which checks whether user (or current user if not specified) has specific
+  privilege(s) for the specific schema.
+
 Fixes
 =====
 

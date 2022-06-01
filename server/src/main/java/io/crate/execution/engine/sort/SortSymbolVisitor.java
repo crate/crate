@@ -256,8 +256,12 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
         final boolean nullFirst = context.nullFirst;
 
         return new SortField(name, new FieldComparatorSource() {
+
             @Override
-            public FieldComparator<?> newComparator(String fieldName, int numHits, int sortPos, boolean reversed) {
+            public FieldComparator<?> newComparator(String fieldname,
+                                                    int numHits,
+                                                    boolean enableSkipping,
+                                                    boolean reversed) {
                 for (int i = 0; i < expressions.size(); i++) {
                     expressions.get(i).startCollect(collectorContext);
                 }

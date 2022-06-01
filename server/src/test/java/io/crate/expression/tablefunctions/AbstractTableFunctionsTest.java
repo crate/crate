@@ -37,6 +37,7 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
+import io.crate.user.User;
 import org.elasticsearch.test.ESTestCase;
 import io.crate.testing.SqlExpressions;
 import io.crate.types.DataTypes;
@@ -107,7 +108,7 @@ public abstract class AbstractTableFunctionsTest extends ESTestCase {
         Function function = (Function) functionSymbol;
         Scalar scalar = (Scalar) sqlExpressions.nodeCtx.functions().getQualified(function, txnCtx.sessionSettings().searchPath());
         assertThat("Function implementation not found using full qualified lookup", scalar, Matchers.notNullValue());
-        Scalar compiled = scalar.compile(function.arguments());
+        Scalar compiled = scalar.compile(function.arguments(), "dummy", user -> User.CRATE_USER);
         assertThat(compiled, matcher.apply(scalar));
     }
 

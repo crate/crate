@@ -22,11 +22,13 @@
 package io.crate.auth;
 
 import io.crate.user.User;
+import io.crate.user.UserLookup;
 import org.elasticsearch.test.ESTestCase;
 import io.crate.user.SecureHash;
 import org.elasticsearch.common.settings.SecureString;
 import org.junit.Test;
 
+import javax.annotation.Nullable;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
 import java.util.Collections;
@@ -35,24 +37,35 @@ import static org.hamcrest.core.Is.is;
 
 public class UserAuthenticationMethodTest extends ESTestCase {
 
-    private User userLookup(String userName) {
-        if (userName.equals("crate")) {
-            User user = null;
-            try {
-                SecureHash pwHash = SecureHash.of(new SecureString("pw".toCharArray()));
-                user = User.of("crate", Collections.emptySet(), pwHash);
-            } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
-                // do nothing
+    class CrateOrNullUserLookup implements UserLookup {
+
+        @Nullable
+        @Override
+        public User findUser(String userName) {
+            if (userName.equals("crate")) {
+                User user = null;
+                try {
+                    SecureHash pwHash = SecureHash.of(new SecureString("pw".toCharArray()));
+                    user = User.of("crate", Collections.emptySet(), pwHash);
+                } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
+                    // do nothing
+                }
+                assertNotNull(user);
+                return user;
             }
-            assertNotNull(user);
-            return user;
+            return null;
         }
-        return null;
+
+        @Nullable
+        @Override
+        public User findUser(Integer userOid) {
+            return null;
+        }
     }
 
     @Test
     public void testTrustAuthentication() throws Exception {
-        TrustAuthenticationMethod trustAuth = new TrustAuthenticationMethod(this::userLookup);
+        TrustAuthenticationMethod trustAuth = new TrustAuthenticationMethod(new CrateOrNullUserLookup());
         assertThat(trustAuth.name(), is("trust"));
 
         assertThat(trustAuth.authenticate("crate", null, null).name(), is("crate"));
@@ -63,7 +76,7 @@ public class UserAuthenticationMethodTest extends ESTestCase {
 
     @Test
     public void testAlwaysOKAuthentication() throws Exception {
-        AlwaysOKAuthentication alwaysOkAuth = new AlwaysOKAuthentication(this::userLookup);
+        AlwaysOKAuthentication alwaysOkAuth = new AlwaysOKAuthentication(new CrateOrNullUserLookup());
         AuthenticationMethod alwaysOkAuthMethod = alwaysOkAuth.resolveAuthenticationType("crate", null);
 
         assertThat(alwaysOkAuthMethod.name(), is("trust"));
@@ -74,7 +87,7 @@ public class UserAuthenticationMethodTest extends ESTestCase {
     }
 
     public void testPasswordAuthentication() throws Exception {
-        PasswordAuthenticationMethod pwAuth = new PasswordAuthenticationMethod(this::userLookup);
+        PasswordAuthenticationMethod pwAuth = new PasswordAuthenticationMethod(new CrateOrNullUserLookup());
         assertThat(pwAuth.name(), is("password"));
 
         assertThat(pwAuth.authenticate("crate", new SecureString("pw".toCharArray()), null).name(), is("crate"));
@@ -82,7 +95,7 @@ public class UserAuthenticationMethodTest extends ESTestCase {
 
     @Test
     public void testPasswordAuthenticationWrongPassword() throws Exception {
-        PasswordAuthenticationMethod pwAuth = new PasswordAuthenticationMethod(this::userLookup);
+        PasswordAuthenticationMethod pwAuth = new PasswordAuthenticationMethod(new CrateOrNullUserLookup());
         assertThat(pwAuth.name(), is("password"));
 
         expectedException.expectMessage("password authentication failed for user \"crate\"");
@@ -91,7 +104,7 @@ public class UserAuthenticationMethodTest extends ESTestCase {
 
     @Test
     public void testPasswordAuthenticationForNonExistingUser() throws Exception {
-        PasswordAuthenticationMethod pwAuth = new PasswordAuthenticationMethod(this::userLookup);
+        PasswordAuthenticationMethod pwAuth = new PasswordAuthenticationMethod(new CrateOrNullUserLookup());
         expectedException.expectMessage("password authentication failed for user \"cr8\"");
         pwAuth.authenticate("cr8", new SecureString("pw".toCharArray()), null);
     }

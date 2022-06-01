@@ -52,6 +52,7 @@ import javax.annotation.Nullable;
 
 import com.carrotsearch.randomizedtesting.RandomizedTest;
 
+import io.crate.user.User;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.ModulesBuilder;
@@ -177,6 +178,14 @@ public class TestingHelpers {
     }
 
     public static NodeContext createNodeContext(AbstractModule... additionalModules) {
+        return new NodeContext(prepareModulesBuilder(additionalModules).createInjector().getInstance(Functions.class), ignored -> User.CRATE_USER);
+    }
+
+    public static NodeContext createNodeContext(User user, AbstractModule... additionalModules) {
+        return new NodeContext(prepareModulesBuilder(additionalModules).createInjector().getInstance(Functions.class), ignored -> user);
+    }
+
+    private static ModulesBuilder prepareModulesBuilder(AbstractModule... additionalModules) {
         ModulesBuilder modulesBuilder = new ModulesBuilder()
             .add(new SessionSettingModule())
             .add(new OperatorModule())
@@ -190,7 +199,7 @@ public class TestingHelpers {
                 modulesBuilder.add(module);
             }
         }
-        return new NodeContext(modulesBuilder.createInjector().getInstance(Functions.class));
+        return modulesBuilder;
     }
 
     public static Reference createReference(String columnName, DataType dataType) {

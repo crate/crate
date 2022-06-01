@@ -27,12 +27,15 @@ import io.crate.action.sql.SessionContext;
 import io.crate.auth.AuthSettings;
 import io.crate.auth.AccessControl;
 import io.crate.user.User;
+import io.crate.user.UserLookup;
 import io.netty.handler.codec.http.DefaultHttpHeaders;
 import io.netty.handler.codec.http.FullHttpRequest;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.http.netty4.cors.Netty4CorsConfigBuilder;
 import org.junit.Test;
+
+import javax.annotation.Nullable;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
@@ -46,14 +49,29 @@ import static org.mockito.Mockito.when;
 
 public class SqlHttpHandlerTest {
 
+    class SameNameUserLookup implements UserLookup {
+
+        @Nullable
+        @Override
+        public User findUser(String userName) {
+            return User.of(userName);
+        }
+
+        @Nullable
+        @Override
+        public User findUser(Integer userOid) {
+            return null;
+        }
+    }
+
     @Test
     public void testDefaultUserIfHttpHeaderNotPresent() {
         SqlHttpHandler handler = new SqlHttpHandler(
             Settings.EMPTY,
             mock(SQLOperations.class),
             (s) -> new NoopCircuitBreaker("dummy"),
-            userName -> {
-                if (userName.equals("crate")) {
+            oid -> {
+                if (oid != null) {
                     return User.CRATE_USER;
                 }
                 return null;
@@ -75,7 +93,7 @@ public class SqlHttpHandlerTest {
             settings,
             mock(SQLOperations.class),
             (s) -> new NoopCircuitBreaker("dummy"),
-            User::of,
+            new SameNameUserLookup(),
             sessionContext -> AccessControl.DISABLED,
             Netty4CorsConfigBuilder.forAnyOrigin().build()
         );
@@ -90,7 +108,7 @@ public class SqlHttpHandlerTest {
             Settings.EMPTY,
             mock(SQLOperations.class),
             (s) -> new NoopCircuitBreaker("dummy"),
-            User::of,
+            new SameNameUserLookup(),
             sessionContext -> AccessControl.DISABLED,
             Netty4CorsConfigBuilder.forAnyOrigin().build()
         );

@@ -105,7 +105,7 @@ public class FileReadingCollectorTest extends ESTestCase {
 
     @Before
     public void prepare() throws Exception {
-        NodeContext nodeCtx = new NodeContext(new Functions(Map.of()));
+        NodeContext nodeCtx = new NodeContext(new Functions(Map.of()), null);
         inputFactory = new InputFactory(nodeCtx);
     }
 

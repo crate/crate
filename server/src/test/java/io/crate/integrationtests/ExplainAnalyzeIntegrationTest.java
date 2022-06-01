@@ -73,8 +73,8 @@ public class ExplainAnalyzeIntegrationTest extends SQLIntegrationTestCase {
                 Map<String, Object> timings = (Map) actual;
                 assertThat(timings, Matchers.hasKey("QueryBreakdown"));
 
-                Map<String, Object> queryBreakdown = ((Map) ((List) timings.get("QueryBreakdown")).get(0));
-                assertThat(queryBreakdown, Matchers.hasEntry("QueryName", "BooleanQuery"));
+                Map<String, String> queryBreakdown = ((Map) ((List) timings.get("QueryBreakdown")).get(0));
+                assertThat(queryBreakdown, Matchers.hasEntry(is("QueryName"), is("ConstantScoreQuery")));
             }
         }
     }

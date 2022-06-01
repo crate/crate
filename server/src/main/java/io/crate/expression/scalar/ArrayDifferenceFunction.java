@@ -29,6 +29,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
+import io.crate.user.UserLookup;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -87,7 +88,7 @@ class ArrayDifferenceFunction extends Scalar<List<Object>, List<Object>> {
     }
 
     @Override
-    public Scalar<List<Object>, List<Object>> compile(List<Symbol> arguments) {
+    public Scalar<List<Object>, List<Object>> compile(List<Symbol> arguments, String currentUser, UserLookup userLookup) {
         Symbol symbol = arguments.get(1);
 
         if (!symbol.symbolType().isValueSymbol()) {
