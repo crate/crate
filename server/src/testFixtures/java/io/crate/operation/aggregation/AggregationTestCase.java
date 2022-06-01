@@ -136,15 +136,6 @@ import io.crate.types.BitStringType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.StringType;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
-import io.crate.types.StringType;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
-import io.crate.types.StringType;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
-import io.crate.types.StringType;
 
 public abstract class AggregationTestCase extends ESTestCase {
 

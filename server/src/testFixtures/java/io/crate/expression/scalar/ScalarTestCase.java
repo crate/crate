@@ -32,7 +32,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-import io.crate.user.User;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
 import org.junit.Before;
@@ -63,6 +62,8 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.SqlExpressions;
 import io.crate.types.DataType;
+import io.crate.user.User;
+import io.crate.user.UserLookup;
 
 public abstract class ScalarTestCase extends CrateDummyClusterServiceUnitTest {
 
@@ -156,7 +157,7 @@ public abstract class ScalarTestCase extends CrateDummyClusterServiceUnitTest {
             Object expectedValue = ((Input) normalized).value();
             assertThat(((Scalar) impl).evaluate(txnCtx, null, inputs), is(expectedValue));
             assertThat(((Scalar) impl)
-                .compile(function.arguments(), "dummy", user -> User.CRATE_USER)
+                .compile(function.arguments(), "dummy", () -> List.of(User.CRATE_USER))
                 .evaluate(txnCtx, sqlExpressions.nodeCtx, inputs), is(expectedValue));
         }
     }
@@ -213,7 +214,7 @@ public abstract class ScalarTestCase extends CrateDummyClusterServiceUnitTest {
             Input<?> input = ctx.add(arg);
             arguments[i] = new AssertMax1ValueCallInput(input);
         }
-        Object actualValue = scalar.compile(function.arguments(), "dummy", user -> User.CRATE_USER)
+        Object actualValue = scalar.compile(function.arguments(), "dummy", () -> List.of(User.CRATE_USER))
             .evaluate(txnCtx, sqlExpressions.nodeCtx, (Input[]) arguments);
         assertThat((T) actualValue, expectedValue);
 
@@ -247,7 +248,14 @@ public abstract class ScalarTestCase extends CrateDummyClusterServiceUnitTest {
         }
     }
 
-    public void assertCompile(String functionExpression, java.util.function.Function<Scalar, Matcher<Scalar>> matcher) {
+    public void assertCompile(String functionExpression,
+                              java.util.function.Function<Scalar, Matcher<Scalar>> matcher) {
+        assertCompile(functionExpression, matcher, () -> List.of(User.CRATE_USER));
+    }
+
+    public void assertCompile(String functionExpression,
+                              java.util.function.Function<Scalar, Matcher<Scalar>> matcher,
+                              UserLookup userLookup) {
         Symbol functionSymbol = sqlExpressions.asSymbol(functionExpression);
         functionSymbol = sqlExpressions.normalize(functionSymbol);
         assertThat("function expression was normalized, compile would not be hit", functionSymbol, not(instanceOf(Literal.class)));
@@ -255,7 +263,7 @@ public abstract class ScalarTestCase extends CrateDummyClusterServiceUnitTest {
         Scalar scalar = (Scalar) sqlExpressions.nodeCtx.functions().getQualified(function, txnCtx.sessionSettings().searchPath());
         assertThat("Function implementation not found using full qualified lookup", scalar, Matchers.notNullValue());
 
-        Scalar compiled = scalar.compile(function.arguments(), "dummy", user -> User.CRATE_USER);
+        Scalar compiled = scalar.compile(function.arguments(), "dummy", userLookup);
         assertThat(compiled, matcher.apply(scalar));
     }
 

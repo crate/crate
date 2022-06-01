@@ -25,7 +25,6 @@ import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.MetadataTracker;
 import io.crate.testing.UseRandomizedSchema;
-import org.hamcrest.CoreMatchers;
 import org.junit.Test;
 
 import java.lang.reflect.Field;
@@ -33,7 +32,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.hamcrest.Matchers.greaterThan;

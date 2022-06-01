@@ -94,7 +94,7 @@ public class PgClientTest extends CrateDummyClusterServiceUnitTest {
         var networkService = new NetworkService(List.of());
         var namedWriteableRegistry = new NamedWriteableRegistry(List.of());
         var circuitBreakerService = new NoneCircuitBreakerService();
-        Authentication authentication = new AlwaysOKAuthentication(ignored -> User.CRATE_USER);
+        Authentication authentication = new AlwaysOKAuthentication(() -> List.of(User.CRATE_USER));
         var sslContextProvider = new SslContextProvider(serverNodeSettings);
         var serverTransport = new Netty4Transport(
             serverNodeSettings,
@@ -157,7 +157,10 @@ public class PgClientTest extends CrateDummyClusterServiceUnitTest {
             clientTransport,
             null, // sslContextProvider
             pageCacheRecycler,
-            new ConnectionInfo(List.of(serverAddress.getAddress() + ':' + serverAddress.getPort()), Settings.EMPTY)
+            new ConnectionInfo(
+                List.of(serverAddress.getAddress() + ':' + serverAddress.getPort()),
+                Settings.builder().put("user", "crate").build()
+            )
         );
 
         CompletableFuture<Connection> connect = pgClient.ensureConnected();

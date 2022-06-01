@@ -21,12 +21,11 @@
 
 package io.crate.user;
 
-import io.crate.metadata.pgcatalog.OidHash;
-
-import java.util.Collections;
-
 import javax.annotation.Nullable;
 
+import io.crate.metadata.pgcatalog.OidHash;
+
+@FunctionalInterface
 public interface UserLookup {
 
     /**
@@ -34,16 +33,26 @@ public interface UserLookup {
      */
     @Nullable
     default User findUser(String userName) {
-        return findUser(OidHash.userOid(userName));
+        for (var user : users()) {
+            if (user.name().equals(userName)) {
+                return user;
+            }
+        }
+        return null;
     }
 
     /**
      * finds a user by OID
      */
     @Nullable
-    User findUser(Integer userOid);
-
-    default Iterable<User> users() {
-        return Collections.emptyList();
+    default User findUser(int userOid) {
+        for (var user : users()) {
+            if (userOid == OidHash.userOid(user.name())) {
+                return user;
+            }
+        }
+        return null;
     }
+
+    Iterable<User> users();
 }

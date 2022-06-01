@@ -21,6 +21,22 @@
 
 package io.crate.expression.tablefunctions;
 
+import static io.crate.testing.TestingHelpers.printedTable;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.util.List;
+import java.util.Map;
+
+import org.elasticsearch.test.ESTestCase;
+import org.hamcrest.Matcher;
+import org.hamcrest.Matchers;
+import org.junit.Before;
+
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.data.Input;
 import io.crate.data.Row;
@@ -29,31 +45,17 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.SimpleReference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
-import io.crate.user.User;
-import org.elasticsearch.test.ESTestCase;
 import io.crate.testing.SqlExpressions;
 import io.crate.types.DataTypes;
-import org.hamcrest.Matcher;
-import org.hamcrest.Matchers;
-import org.junit.Before;
-
-import java.util.Map;
-
-import static io.crate.testing.TestingHelpers.printedTable;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.not;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.any;
+import io.crate.user.User;
 
 public abstract class AbstractTableFunctionsTest extends ESTestCase {
 
@@ -108,7 +110,7 @@ public abstract class AbstractTableFunctionsTest extends ESTestCase {
         Function function = (Function) functionSymbol;
         Scalar scalar = (Scalar) sqlExpressions.nodeCtx.functions().getQualified(function, txnCtx.sessionSettings().searchPath());
         assertThat("Function implementation not found using full qualified lookup", scalar, Matchers.notNullValue());
-        Scalar compiled = scalar.compile(function.arguments(), "dummy", user -> User.CRATE_USER);
+        Scalar compiled = scalar.compile(function.arguments(), "dummy", () -> List.of(User.CRATE_USER));
         assertThat(compiled, matcher.apply(scalar));
     }
 

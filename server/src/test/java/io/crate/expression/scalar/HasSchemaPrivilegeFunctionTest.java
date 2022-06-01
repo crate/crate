@@ -27,6 +27,7 @@ import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.testing.Asserts;
 import io.crate.testing.SqlExpressions;
 import io.crate.user.Privilege;
+import io.crate.user.StubUserManager;
 import io.crate.user.User;
 import org.hamcrest.core.IsSame;
 import org.junit.Before;
@@ -47,13 +48,13 @@ public class HasSchemaPrivilegeFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_no_user_compile_gets_new_instance() {
-        assertCompile("has_schema_privilege(name, 'USAGE')", (s) -> not(IsSame.sameInstance(s)));
+        assertCompile("has_schema_privilege(name, 'USAGE')", (s) -> not(IsSame.sameInstance(s)), new StubUserManager());
     }
 
     @Test
     public void test_user_is_literal_compile_gets_new_instance() {
         // Using name column as schema name since having 3 literals leads to skipping even compilation and returning computed Literal
-        assertCompile("has_schema_privilege('test_throws_error_when_user_is_not_foundcrate', name, 'USAGE')", (s) -> not(IsSame.sameInstance(s)));
+        assertCompile("has_schema_privilege('crate', name, 'USAGE')", (s) -> not(IsSame.sameInstance(s)));
     }
 
     @Test

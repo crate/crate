@@ -21,7 +21,6 @@ package org.elasticsearch.gateway;
 
 import io.crate.integrationtests.SQLIntegrationTestCase;
 
-import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.cluster.coordination.Coordinator;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.collect.ImmutableOpenMap;

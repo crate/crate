@@ -61,12 +61,6 @@ import io.crate.types.BitStringType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
-import io.crate.types.ObjectType;
-import io.crate.types.ObjectType;
-import io.crate.types.ObjectType;
-import io.crate.types.ObjectType;
-import io.crate.types.ObjectType;
-import io.crate.types.ObjectType;
 
 
 public class CountAggregationTest extends AggregationTestCase {

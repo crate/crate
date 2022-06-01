@@ -22,7 +22,6 @@
 package io.crate.analyze.parser;
 
 import org.elasticsearch.test.ESTestCase;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import java.util.List;

@@ -61,7 +61,7 @@ public class AccessControlMaySeeTest extends ESTestCase {
                 return true;
             }
         };
-        accessControl = new AccessControlImpl(userName -> user, new SessionContext(user));
+        accessControl = new AccessControlImpl(() -> List.of(user), new SessionContext(user));
     }
 
     @SuppressWarnings("unchecked")

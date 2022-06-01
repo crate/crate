@@ -71,7 +71,6 @@ import org.apache.lucene.index.Term;
 import org.apache.lucene.tests.store.BaseDirectoryWrapper;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.IOContext;
-import org.apache.lucene.tests.index.RandomIndexWriter;
 import org.apache.lucene.util.SetOnce;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.Version;

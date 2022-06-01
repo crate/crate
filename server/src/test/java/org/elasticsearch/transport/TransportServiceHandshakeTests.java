@@ -91,7 +91,7 @@ public class TransportServiceHandshakeTests extends ESTestCase {
             new NamedWriteableRegistry(Collections.emptyList()),
             new NoneCircuitBreakerService(),
             nettyBootstrap,
-            new AlwaysOKAuthentication(userName -> User.CRATE_USER),
+            new AlwaysOKAuthentication(() -> List.of(User.CRATE_USER)),
             new SslContextProvider(settings)
         );
         TransportService transportService = new MockTransportService(

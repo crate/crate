@@ -56,8 +56,6 @@ import io.crate.testing.SQLExecutor;
 import io.crate.testing.SqlExpressions;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
-import io.crate.types.ObjectType;
-import io.crate.types.ObjectType;
 
 public class DocValuesAggregatesTest extends CrateDummyClusterServiceUnitTest {
 

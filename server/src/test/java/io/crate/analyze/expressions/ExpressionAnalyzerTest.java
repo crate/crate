@@ -35,7 +35,6 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.sameInstance;
 
 import java.io.IOException;
-import java.sql.Ref;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;

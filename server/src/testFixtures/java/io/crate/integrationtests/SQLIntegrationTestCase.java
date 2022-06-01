@@ -415,7 +415,7 @@ public abstract class SQLIntegrationTestCase extends ESIntegTestCase {
             userLookup = internalCluster().getInstance(UserLookup.class, node);
         } catch (ConfigurationException ignored) {
             // If enterprise is not enabled there is no UserLookup instance bound in guice
-            userLookup = userName -> User.CRATE_USER;
+            userLookup = () -> List.of(User.CRATE_USER);
         }
         try (Session session = sqlOperations.createSession(schema, userLookup.findUser("crate"))) {
             response = sqlExecutor.exec(stmt, session);

@@ -22,7 +22,6 @@ package org.elasticsearch.repositories.blobstore;
 import io.crate.common.io.IOUtils;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.tests.util.TestUtil;
-import org.apache.lucene.tests.util.TestUtil;
 import org.elasticsearch.action.support.PlainActionFuture;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
