@@ -61,7 +61,15 @@ public class UnionSelect implements AnalyzedRelation {
             DataType<?> type = field.valueType().precedes(rightField.valueType())
                 ? field.valueType()
                 : rightField.valueType();
-            outputs.add(new ScopedSymbol(name, Symbols.pathFromSymbol(field), type));
+            if (Symbol.hasLiteralValue(field, null)) {
+                // Type is undefined but it's fine as it's explicit NULL selection:
+                // SELECT NULL FROM... or SELECT NULL as some_alias FROM...
+                // In this case we set the flag allowing to safely skip validation.
+                outputs.add(new ScopedSymbol(name, Symbols.pathFromSymbol(field), type, true));
+            } else {
+                outputs.add(new ScopedSymbol(name, Symbols.pathFromSymbol(field), type));
+            }
+
         }
         this.outputs = List.copyOf(outputs);
         this.isDistinct = isDistinct;

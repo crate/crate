@@ -54,11 +54,17 @@ public final class ScopedSymbol implements Symbol {
     private final RelationName relation;
     private final ColumnIdent column;
     private final DataType<?> dataType;
+    private final boolean nullLiteral;
 
     public ScopedSymbol(RelationName relation, ColumnIdent column, DataType<?> dataType) {
+        this(relation, column, dataType, false);
+    }
+
+    public ScopedSymbol(RelationName relation, ColumnIdent column, DataType<?> dataType, boolean nullLiteral) {
         this.relation = relation;
         this.column = column;
         this.dataType = dataType;
+        this.nullLiteral = nullLiteral;
     }
 
     public RelationName relation() {
@@ -130,5 +136,9 @@ public final class ScopedSymbol implements Symbol {
         result = 31 * result + column.hashCode();
         result = 31 * result + dataType.hashCode();
         return result;
+    }
+
+    public boolean nullLiteral() {
+        return nullLiteral;
     }
 }

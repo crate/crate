@@ -111,4 +111,6 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
-None
+- Fixed an issue that caused ``UNION`` statements containing constant ``NULL``
+  on both sides throw an error.
+  Example: ``SELECT NULL from t UNION SELECT NULL from t``.
