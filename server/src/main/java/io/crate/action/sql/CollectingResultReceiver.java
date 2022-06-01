@@ -21,19 +21,38 @@
 
 package io.crate.action.sql;
 
-import io.crate.data.Row;
-import io.crate.protocols.postgres.ClientInterrupted;
-
-import javax.annotation.Nonnull;
-import javax.annotation.OverridingMethodsMustInvokeSuper;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.BiConsumer;
+import java.util.function.Function;
+import java.util.stream.Collector;
 
-public class BaseResultReceiver implements ResultReceiver<Void> {
+import io.crate.data.Row;
 
-    private CompletableFuture<Void> completionFuture = new CompletableFuture<>();
+/**
+ * Collect rows using a {@link Collector}
+ **/
+public final class CollectingResultReceiver<A, R> implements ResultReceiver<R> {
+
+    private final BiConsumer<A, Row> accumulator;
+    private final Function<A, R> finisher;
+    private final CompletableFuture<R> result;
+    private A state;
+
+    public CollectingResultReceiver(Collector<Row, A, R> collector) {
+        this.state = collector.supplier().get();
+        this.accumulator = collector.accumulator();
+        this.finisher = collector.finisher();
+        this.result = new CompletableFuture<>();
+    }
+
+    @Override
+    public CompletableFuture<R> completionFuture() {
+        return result;
+    }
 
     @Override
     public void setNextRow(Row row) {
+        accumulator.accept(state, row);
     }
 
     @Override
@@ -41,23 +60,12 @@ public class BaseResultReceiver implements ResultReceiver<Void> {
     }
 
     @Override
-    @OverridingMethodsMustInvokeSuper
     public void allFinished(boolean interrupted) {
-        if (interrupted) {
-            completionFuture.completeExceptionally(new ClientInterrupted());
-        } else {
-            completionFuture.complete(null);
-        }
+        result.complete(finisher.apply(state));
     }
 
     @Override
-    @OverridingMethodsMustInvokeSuper
-    public void fail(@Nonnull Throwable t) {
-        completionFuture.completeExceptionally(t);
-    }
-
-    @Override
-    public CompletableFuture<Void> completionFuture() {
-        return completionFuture;
+    public void fail(Throwable t) {
+        result.completeExceptionally(t);
     }
 }
