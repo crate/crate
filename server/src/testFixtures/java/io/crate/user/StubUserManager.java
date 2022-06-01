@@ -37,22 +37,22 @@ public class StubUserManager implements UserManager {
 
     @Override
     public CompletableFuture<Long> createUser(String userName, @Nullable SecureHash hashedPw) {
-        return CompletableFuture.failedFuture(new UnsupportedFeatureException("CREATE USER is only supported in enterprise version"));
+        return CompletableFuture.failedFuture(new UnsupportedFeatureException("createUser is not implemented in StubUserManager"));
     }
 
     @Override
     public CompletableFuture<Long> dropUser(String userName, boolean suppressNotFoundError) {
-        return CompletableFuture.failedFuture(new UnsupportedFeatureException("DROP USER is only supported in enterprise version"));
+        return CompletableFuture.failedFuture(new UnsupportedFeatureException("dropUser is not implemented in StubUserManager"));
     }
 
     @Override
     public CompletableFuture<Long> alterUser(String userName, @Nullable SecureHash newHashedPw) {
-        return CompletableFuture.failedFuture(new UnsupportedFeatureException("ALTER USER is only supported in enterprise version"));
+        return CompletableFuture.failedFuture(new UnsupportedFeatureException("alterUser is not implemented in StubUserManager"));
     }
 
     @Override
     public CompletableFuture<Long> applyPrivileges(Collection<String> userNames, Collection<Privilege> privileges) {
-        return CompletableFuture.failedFuture(new UnsupportedFeatureException("GRANT or REVOKE privileges is only supported in enterprise version"));
+        return CompletableFuture.failedFuture(new UnsupportedFeatureException("applyPrivileges is not implemented in StubUserManager"));
     }
 
     @Override

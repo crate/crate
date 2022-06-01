@@ -54,12 +54,7 @@ public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
 
     private static final User GRANTOR_TEST_USER = User.of("test");
 
-    private static final UserManager USER_MANAGER = new StubUserManager() {
-        @Override
-        public boolean isEnabled() {
-            return true;
-        }
-    };
+    private static final UserManager USER_MANAGER = new StubUserManager();
 
     private SQLExecutor e;
 
@@ -275,17 +270,6 @@ public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
             SqlParser.createStatement(statement),
             new SessionContext(GRANTOR_TEST_USER),
             ParamTypeHints.EMPTY);
-    }
-
-    @Test
-    public void testGrantWithoutUserManagementEnabledThrowsException() {
-        e = SQLExecutor.builder(clusterService)
-            .setUserManager(new StubUserManager())
-            .build();
-
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("User management is not enabled");
-        e.analyze("GRANT DQL TO test");
     }
 
     @Test
