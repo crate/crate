@@ -21,8 +21,39 @@
 
 package io.crate.execution.ddl.tables;
 
+import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_BLOCKS_WRITE_SETTING;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_SHARDS;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
+
+import javax.annotation.Nullable;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.action.admin.indices.alias.Alias;
+import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
+import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
+import org.elasticsearch.action.admin.indices.shrink.ResizeRequest;
+import org.elasticsearch.action.admin.indices.shrink.ResizeType;
+import org.elasticsearch.action.admin.indices.shrink.TransportResizeAction;
+import org.elasticsearch.action.support.ActiveShardCount;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.settings.IndexScopedSettings;
+import org.elasticsearch.common.settings.Settings;
+
 import io.crate.action.FutureActionListener;
-import io.crate.action.sql.ResultReceiver;
+import io.crate.action.sql.CollectingResultReceiver;
 import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;
 import io.crate.analyze.AnalyzedAlterTableRename;
@@ -38,39 +69,8 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
-
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.metadata.Publication;
-import org.elasticsearch.Version;
-import org.elasticsearch.action.admin.indices.alias.Alias;
-import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
-import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
-import org.elasticsearch.action.admin.indices.shrink.ResizeRequest;
-import org.elasticsearch.action.admin.indices.shrink.ResizeType;
-import org.elasticsearch.action.admin.indices.shrink.TransportResizeAction;
-import org.elasticsearch.action.support.ActiveShardCount;
-import org.elasticsearch.action.support.master.AcknowledgedResponse;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.settings.IndexScopedSettings;
-import org.elasticsearch.common.settings.Settings;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
-
-import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_BLOCKS_WRITE_SETTING;
-import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_SHARDS;
 
 @Singleton
 public class AlterTableOperation {
@@ -119,21 +119,28 @@ public class AlterTableOperation {
     }
 
     public CompletableFuture<Long> executeAlterTableAddColumn(final BoundAddColumn analysis) {
-        FutureActionListener<AcknowledgedResponse, Long> result = new FutureActionListener<>(r -> -1L);
         if (analysis.newPrimaryKeys() || analysis.hasNewGeneratedColumns()) {
             RelationName ident = analysis.table().ident();
             String stmt =
                 String.format(Locale.ENGLISH, "SELECT COUNT(*) FROM \"%s\".\"%s\"", ident.schema(), ident.name());
 
+            var rowCountReceiver = new CollectingResultReceiver<>(Collectors.summingLong(row -> (long) row.get(0)));
             try {
-                session().quickExec(stmt, new ResultSetReceiver(analysis, result), Row.EMPTY);
+                session().quickExec(stmt, rowCountReceiver, Row.EMPTY);
             } catch (Throwable t) {
-                result.completeExceptionally(t);
+                return CompletableFuture.failedFuture(t);
             }
+            return rowCountReceiver.completionFuture().thenCompose(rowCount -> {
+                if (rowCount > 0) {
+                    String subject = analysis.newPrimaryKeys() ? "primary key" : "generated";
+                    throw new UnsupportedOperationException("Cannot add a " + subject + " column to a table that isn't empty");
+                } else {
+                    return addColumnToTable(analysis);
+                }
+            });
         } else {
-            return addColumnToTable(analysis, result);
+            return addColumnToTable(analysis);
         }
-        return result;
     }
 
     private Session session() {
@@ -381,7 +388,7 @@ public class AlterTableOperation {
         return transportRenameTableAction.execute(request, r -> -1L);
     }
 
-    private CompletableFuture<Long> addColumnToTable(BoundAddColumn analysis, final FutureActionListener<AcknowledgedResponse, Long> result) {
+    private CompletableFuture<Long> addColumnToTable(BoundAddColumn analysis) {
         try {
             AlterTableRequest request = new AlterTableRequest(
                 analysis.table().ident(),
@@ -391,54 +398,9 @@ public class AlterTableOperation {
                 analysis.settings(),
                 analysis.mapping()
             );
-            transportAlterTableAction.execute(request, result);
-            return result;
+            return transportAlterTableAction.execute(request).thenApply(resp -> -1L);
         } catch (IOException e) {
-            return FutureActionListener.failedFuture(e);
+            return CompletableFuture.failedFuture(e);
         }
-    }
-
-    private class ResultSetReceiver implements ResultReceiver {
-
-        private final BoundAddColumn analysis;
-        private final FutureActionListener<AcknowledgedResponse, Long> result;
-
-        private long count;
-
-        ResultSetReceiver(BoundAddColumn analysis, FutureActionListener<AcknowledgedResponse, Long> result) {
-            this.analysis = analysis;
-            this.result = result;
-        }
-
-        @Override
-        public void setNextRow(Row row) {
-            count = (long) row.get(0);
-        }
-
-        @Override
-        public void batchFinished() {
-        }
-
-        @Override
-        public void allFinished(boolean interrupted) {
-            if (count == 0L) {
-                addColumnToTable(analysis, result);
-            } else {
-                String columnFailure = analysis.newPrimaryKeys() ? "primary key" : "generated";
-                fail(new UnsupportedOperationException(String.format(Locale.ENGLISH,
-                    "Cannot add a %s column to a table that isn't empty", columnFailure)));
-            }
-        }
-
-        @Override
-        public void fail(@Nonnull Throwable t) {
-            result.completeExceptionally(t);
-        }
-
-        @Override
-        public CompletableFuture<?> completionFuture() {
-            return result;
-        }
-
     }
 }
