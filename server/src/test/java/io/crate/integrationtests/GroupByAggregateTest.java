@@ -1393,4 +1393,16 @@ public class GroupByAggregateTest extends SQLIntegrationTestCase {
             "122021430M| Rue Penavayre| 122021430M| Pt(x=2.573608970269561,y=44.35006999410689)| Rodez\n"
         ));
     }
+
+    @Test
+    public void test_group_by_of_constant_null() {
+        execute("create table tbl (x int)");
+        execute("insert into tbl (x) values (1), (1), (2), (3)");
+        execute("refresh table tbl");
+
+        response = execute("select nn, sum(x) \n" +
+            "from (select null as nn, x from tbl) t \n" +
+            "group by nn");
+        assertThat(printedTable(response.rows()), Matchers.is("NULL| 7\n"));
+    }
 }

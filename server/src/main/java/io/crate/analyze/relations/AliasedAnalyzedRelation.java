@@ -71,7 +71,13 @@ public class AliasedAnalyzedRelation implements AnalyzedRelation, FieldResolver 
                 columnAlias = new ColumnIdent(columnAliases.get(i));
             }
             aliasToColumnMapping.put(columnAlias, childColumn);
-            var scopedSymbol = new ScopedSymbol(alias, columnAlias, childOutput.valueType());
+            ScopedSymbol scopedSymbol;
+            if (Symbol.hasLiteralValue(childOutput, null)) {
+                scopedSymbol = new ScopedSymbol(alias, columnAlias, childOutput.valueType(), true);
+            } else {
+                scopedSymbol = new ScopedSymbol(alias, columnAlias, childOutput.valueType());
+            }
+
             outputs.add(scopedSymbol);
             scopedSymbols.add(scopedSymbol);
         }

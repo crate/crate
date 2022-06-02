@@ -111,6 +111,8 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
-- Fixed an issue that caused ``UNION`` statements containing constant ``NULL``
-  on both sides throw an error.
-  Example: ``SELECT NULL from t UNION SELECT NULL from t``.
+- Fixed an issue that caused ``UNION`` and ``GROUP BY`` statements containing
+  constant ``NULL`` throw an error. Examples:
+  ``SELECT NULL from t UNION SELECT NULL from t``,
+  ``SELECT nn, sum(x) from (SELECT NULL as nn, x from tbl) t GROUP BY nn``
+

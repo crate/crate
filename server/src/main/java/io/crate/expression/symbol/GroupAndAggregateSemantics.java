@@ -25,6 +25,8 @@ import java.util.List;
 
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Reference;
+import io.crate.types.ArrayType;
+import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
 public final class GroupAndAggregateSemantics {
@@ -78,7 +80,7 @@ public final class GroupAndAggregateSemantics {
         }
     }
 
-    private static void ensureTypedGroupKey(Symbol groupBy) {
+    public static void ensureTypedGroupKey(Symbol groupBy) {
         groupBy.accept(EnsureTypedGroupKey.INSTANCE, null);
     }
 
@@ -87,8 +89,20 @@ public final class GroupAndAggregateSemantics {
         static final EnsureTypedGroupKey INSTANCE = new EnsureTypedGroupKey();
 
         @Override
+        public Void visitField(ScopedSymbol symbol, Void context) {
+            var type = symbol.valueType();
+            raiseExceptionIfArrayType(type);
+            if (type == DataTypes.UNDEFINED && symbol.nullLiteral() == false) {
+                raiseException(symbol);
+            }
+            return null;
+        }
+
+        @Override
         public Void visitSymbol(Symbol symbol, Void context) {
-            if (symbol.valueType() == DataTypes.UNDEFINED) {
+            var type = symbol.valueType();
+            raiseExceptionIfArrayType(type);
+            if (type == DataTypes.UNDEFINED) {
                 raiseException(symbol);
             }
             return null;
@@ -96,7 +110,9 @@ public final class GroupAndAggregateSemantics {
 
         @Override
         public Void visitLiteral(Literal symbol, Void context) {
-            if (symbol.valueType() == DataTypes.UNDEFINED) {
+            var type = symbol.valueType();
+            raiseExceptionIfArrayType(type);
+            if (type == DataTypes.UNDEFINED) {
                 if (symbol.value() == null) {
                     // `NULL` is a valid case
                     return null;
@@ -112,6 +128,11 @@ public final class GroupAndAggregateSemantics {
             return aliasSymbol.symbol().accept(this, context);
         }
 
+        private static void raiseExceptionIfArrayType(DataType type) {
+            if (type instanceof ArrayType) {
+                throw new IllegalArgumentException("Cannot group or aggregate on ARRAY type.");
+            }
+        }
         private static void raiseException(Symbol symbol) {
             throw new IllegalArgumentException(
                 "Cannot group or aggregate on '" + symbol.toString() + "' with an undefined type." +

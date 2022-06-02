@@ -22,6 +22,7 @@
 package io.crate.planner.consumer;
 
 import static io.crate.testing.SymbolMatchers.isAggregation;
+import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.SymbolMatchers.isReference;
 import static io.crate.testing.TestingHelpers.isSQL;
 import static java.util.Collections.singletonList;
@@ -71,11 +72,6 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.SymbolMatchers;
 import io.crate.types.DataType;
-import io.crate.types.DataTypes;
-import io.crate.types.DataTypes;
-import io.crate.types.DataTypes;
-import io.crate.types.DataTypes;
-import io.crate.types.DataTypes;
 import io.crate.types.DataTypes;
 
 public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
@@ -710,5 +706,19 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
         Symbol orderBy = topNProjection.orderBy().get(0);
         assertThat(orderBy, instanceOf(InputColumn.class));
         assertThat(orderBy.valueType(), is(DataTypes.TIMESTAMPZ));
+    }
+
+    @Test
+    public void test_group_by_constant_null() throws IOException {
+        var e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
+            .build();
+        Merge merge = e.plan("select nn, sum(ints) \n" +
+            "from (select null as nn, ints from users) t \n" +
+            "group by nn");
+        Merge subMerge = (Merge) merge.subPlan();
+        Collect collect  = (Collect) subMerge.subPlan();
+        assertThat(collect.collectPhase().toCollect().get(0),  isLiteral(null));
+        assertThat(collect.collectPhase().toCollect().get(1),  isReference("ints"));
     }
 }
