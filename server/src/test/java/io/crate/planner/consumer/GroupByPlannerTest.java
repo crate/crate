@@ -721,4 +721,16 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(collect.collectPhase().toCollect().get(0),  isLiteral(null));
         assertThat(collect.collectPhase().toCollect().get(1),  isReference("ints"));
     }
+
+    @Test
+    public void test_group_by_of_constant_aliased_null() throws IOException {
+        var e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
+            .build();
+        Merge merge = e.plan("select null as nn, sum(ints) from users group by nn");
+        Merge subMerge = (Merge) merge.subPlan();
+        Collect collect  = (Collect) subMerge.subPlan();
+        assertThat(collect.collectPhase().toCollect().get(1), isLiteral(null));
+        assertThat(collect.collectPhase().toCollect().get(0),  isReference("ints"));
+    }
 }

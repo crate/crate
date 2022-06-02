@@ -34,9 +34,9 @@ import io.crate.execution.engine.pipeline.TopN;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.Aggregation;
 import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.GroupAndAggregateSemantics;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionInfo;
@@ -44,9 +44,7 @@ import io.crate.metadata.FunctionType;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SearchPath;
-import io.crate.types.ArrayType;
 import io.crate.types.DataType;
-import io.crate.types.DataTypes;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
@@ -98,7 +96,7 @@ public class ProjectionBuilder {
             subQueryAndParamBinder
         );
 
-        ensureAllTypesSupported(keys);
+        keys.forEach(GroupAndAggregateSemantics::ensureTypedGroupKey);
 
         return new GroupProjection(
             Lists2.map(InputColumns.create(keys, sourceSymbols), subQueryAndParamBinder),
@@ -106,22 +104,6 @@ public class ProjectionBuilder {
             mode,
             requiredGranularity
         );
-    }
-
-    /**
-     * Checks type support before creating projection while keys
-     * are not yet turned into InputColumns and haven't lost nullLiteral flag
-     * which can appear in some ScopedSymbols.
-     */
-    private static void ensureAllTypesSupported(Iterable<? extends Symbol> keys) {
-        for (Symbol key : keys) {
-            DataType type = key.valueType();
-            if (type instanceof ArrayType || type.equals(DataTypes.UNDEFINED)) {
-                if (!(key instanceof ScopedSymbol scopedSymbol && scopedSymbol.nullLiteral())) {
-                    throw new UnsupportedOperationException("Cannot GROUP BY type: " + type);
-                }
-            }
-        }
     }
 
     private ArrayList<Aggregation> getAggregations(Collection<Function> functions,

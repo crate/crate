@@ -112,7 +112,8 @@ Fixes
 .. an automated mergify backport.
 
 - Fixed an issue that caused ``UNION`` and ``GROUP BY`` statements containing
-  constant ``NULL`` throw an error. Examples:
+  constant ``NULL`` as union field or grouping key throw an error. Examples:
   ``SELECT NULL from t UNION SELECT NULL from t``,
-  ``SELECT nn, sum(x) from (SELECT NULL as nn, x from tbl) t GROUP BY nn``
+  ``SELECT nn, sum(x) from (SELECT NULL as nn, x from tbl) t GROUP BY nn``,
+  ``SELECT NULL as nn, sum(x) from tbl GROUP BY nn``.
 

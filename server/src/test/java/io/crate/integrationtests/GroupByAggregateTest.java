@@ -1405,4 +1405,13 @@ public class GroupByAggregateTest extends SQLIntegrationTestCase {
             "group by nn");
         assertThat(printedTable(response.rows()), Matchers.is("NULL| 7\n"));
     }
+
+    @Test
+    public void test_group_by_of_constant_aliased_null() {
+        execute("create table tbl (x int)");
+        execute("insert into tbl (x) values (1), (1), (2), (3)");
+        execute("refresh table tbl");
+        response = execute("select null as nn, sum(x) from tbl group by nn");
+        assertThat(printedTable(response.rows()), Matchers.is("NULL| 7\n"));
+    }
 }
