@@ -114,7 +114,7 @@ public class IsWriteOperationTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testInsertFromQueryIsAWriteOperation() {
-        assertWriteOperation("insert into t1 (x) (select col1 from unnest([1, 2]))");
+        assertWriteOperation("insert into t1 (x) (select unnest from unnest([1, 2]))");
     }
 
     @Test

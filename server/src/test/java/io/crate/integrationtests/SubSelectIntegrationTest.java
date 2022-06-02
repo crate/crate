@@ -503,7 +503,7 @@ public class SubSelectIntegrationTest extends SQLIntegrationTestCase {
 
     @Test
     public void testGlobalAggOnSubQueryWithWhereOnOuterRelation() throws Exception {
-        execute("select sum(x) from (select min(col1) as x from unnest([1])) as t where x = 2");
+        execute("select sum(x) from (select min(unnest) as x from unnest([1])) as t where x = 2");
         assertThat(printedTable(response.rows()), is("NULL\n"));
     }
 
@@ -522,9 +522,9 @@ public class SubSelectIntegrationTest extends SQLIntegrationTestCase {
 
     @Test
     public void testSimpleSelectOnSubQueryWithOrderByAndLimit() throws Exception {
-        execute("select col1 from (" +
-                "   select col1 from unnest([1, 2, 3, 4]) order by col1 asc limit 3" +
-                ") t order by col1 desc limit 1");
+        execute("select unnest from (" +
+                "   select unnest from unnest([1, 2, 3, 4]) order by unnest asc limit 3" +
+                ") t order by unnest desc limit 1");
         assertThat(printedTable(response.rows()), is("3\n"));
     }
 
@@ -605,7 +605,7 @@ public class SubSelectIntegrationTest extends SQLIntegrationTestCase {
     @Test
     public void testSubqueryExpressionWithInPredicateLeftFieldSymbol() throws Exception {
         setup.setUpCharacters();
-        execute("select id, name from characters where id in (select col1 from unnest([1,2,3])) order by id");
+        execute("select id, name from characters where id in (select unnest from unnest([1,2,3])) order by id");
         assertThat(
             printedTable(response.rows()),
             is("1| Arthur\n" +
@@ -616,18 +616,18 @@ public class SubSelectIntegrationTest extends SQLIntegrationTestCase {
 
     @Test
     public void testSubqueryExpressionWithInPredicateLeftValueSymbol() throws Exception {
-        execute("select 1 in (select col1 from unnest([1,2,3]))");
+        execute("select 1 in (select unnest from unnest([1,2,3]))");
         assertThat(response.rowCount(), is(1L));
         assertThat(printedTable(response.rows()), is("true\n"));
     }
 
     @Test
     public void testSubqueryExpressionWithInPredicateEvaluatesToNull() throws Exception {
-        execute("select 1 in (select col1 from unnest([2, cast(null as long)]))");
+        execute("select 1 in (select unnest from unnest([2, cast(null as long)]))");
         assertThat(response.rowCount(), is(1L));
         assertNull(response.rows()[0][0]);
 
-        execute("select NULL in (select col1 from unnest([1,2]))");
+        execute("select NULL in (select unnest from unnest([1,2]))");
         assertThat(response.rowCount(), is(1L));
         assertNull(response.rows()[0][0]);
     }
@@ -701,8 +701,8 @@ public class SubSelectIntegrationTest extends SQLIntegrationTestCase {
         execute(
             "select * from unnest([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]) t1 " +
             "where " +
-            "   t1 in (select col1 from unnest([1, 2, 4, 5, 6])) " +
-            "   and t1 in (select col1 from unnest([4, 5, 6])) " +
+            "   t1 in (select unnest from unnest([1, 2, 4, 5, 6])) " +
+            "   and t1 in (select unnest from unnest([4, 5, 6])) " +
             "order by t1 "
         );
         assertThat(
@@ -740,7 +740,7 @@ public class SubSelectIntegrationTest extends SQLIntegrationTestCase {
 
     @Test
     public void testSubscriptOnSubSelectFromUnnestWithObjectLiteral() {
-        execute("select col1['b'] from (select * from unnest([{b=1}])) t1");
+        execute("select unnest['b'] from (select * from unnest([{b=1}])) t1");
         assertThat(printedTable(response.rows()), is("1\n"));
     }
 

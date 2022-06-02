@@ -52,7 +52,7 @@ public final class MatchesFunction extends TableFunctionImplementation<List<Obje
 
     public static final String NAME = "regexp_matches";
     private static final RowType ROW_TYPE = new RowType(
-        List.of(DataTypes.STRING_ARRAY), List.of("groups"));
+        List.of(DataTypes.STRING_ARRAY), List.of(NAME));
 
     public static void register(TableFunctionModule module) {
         module.register(

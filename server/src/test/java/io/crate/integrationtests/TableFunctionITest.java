@@ -71,13 +71,13 @@ public class TableFunctionITest extends SQLIntegrationTestCase {
 
     @Test
     public void testGroupByFromUnnest() {
-        execute("select col1, count(*) from unnest(['Marvin', 'Marvin', 'Trillian']) group by col1 order by 2 desc");
+        execute("select unnest, count(*) from unnest(['Marvin', 'Marvin', 'Trillian']) group by unnest order by 2 desc");
         assertThat(printedTable(response.rows()), is("Marvin| 2\nTrillian| 1\n"));
     }
 
     @Test
     public void testGlobalAggregationFromUnnest() {
-        assertThat(execute("select max(col1) from unnest([1, 2, 3, 4])").rows()[0][0], is(4));
+        assertThat(execute("select max(unnest) from unnest([1, 2, 3, 4])").rows()[0][0], is(4));
     }
 
     @Test
@@ -86,13 +86,13 @@ public class TableFunctionITest extends SQLIntegrationTestCase {
         ensureYellow();
         execute("insert into t (id) values (1)");
         execute("refresh table t");
-        assertThat(printedTable(execute("select * from unnest([1, 2]) inner join t on t.id = col1::integer").rows()),
+        assertThat(printedTable(execute("select * from unnest([1, 2]) inner join t on t.id = unnest::integer").rows()),
             is("1| 1\n"));
     }
 
     @Test
     public void testWhereClauseIsEvaluated() {
-        execute("select col1 from unnest([1, 2]) where col1 = 2");
+        execute("select unnest from unnest([1, 2]) where unnest = 2");
         assertThat(printedTable(response.rows()), is("2\n"));
     }
 
@@ -130,7 +130,7 @@ public class TableFunctionITest extends SQLIntegrationTestCase {
 
     @Test
     public void testTableFunctionIsAppliedAfterAggregationAndAggregationCanBeAnArgumentToTableFunction() {
-        execute("select sum(col1), generate_series(1, sum(col1)) from unnest([1, 2])");
+        execute("select sum(unnest), generate_series(1, sum(unnest)) from unnest([1, 2])");
         assertThat(printedTable(response.rows()), is("" +
                                                      "3| 1\n" +
                                                      "3| 2\n" +
@@ -139,7 +139,7 @@ public class TableFunctionITest extends SQLIntegrationTestCase {
 
     @Test
     public void testDistinctIsAppliedAfterTableFunctions() {
-        execute("select distinct generate_series(1, 2), col1 from unnest([1, 1]) order by 1 asc");
+        execute("select distinct generate_series(1, 2), unnest from unnest([1, 1]) order by 1 asc");
         assertThat(printedTable(response.rows()),
             is("1| 1\n" +
                "2| 1\n"));

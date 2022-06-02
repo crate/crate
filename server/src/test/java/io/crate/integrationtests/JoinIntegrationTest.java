@@ -799,8 +799,8 @@ public class JoinIntegrationTest extends SQLIntegrationTestCase {
     @Test
     public void testJoinOnSimpleVirtualTables() throws Exception {
         execute("select * from " +
-                "   (select col1 as x from unnest([1, 2, 3])) t1, " +
-                "   (select max(col1) as y from unnest([4])) t2 " +
+                "   (select unnest as x from unnest([1, 2, 3])) t1, " +
+                "   (select max(unnest) as y from unnest([4])) t2 " +
                 "order by t1.x");
         assertThat(printedTable(response.rows()),
             is("1| 4\n" +
@@ -820,7 +820,7 @@ public class JoinIntegrationTest extends SQLIntegrationTestCase {
                 "       (select x from t1 order by x asc limit 4) tt1 " +
                 "   order by tt1.x desc limit 2 " +
                 "   ) ttt1, " +
-                "   (select col1 as y from unnest([10])) tt2 ");
+                "   (select unnest as y from unnest([10])) tt2 ");
         assertThat(printedTable(response.rows()),
             is("4| 10\n" +
                "3| 10\n"));
@@ -831,7 +831,7 @@ public class JoinIntegrationTest extends SQLIntegrationTestCase {
                 "   order by tt1.x desc limit 2 " +
                 "   ) ttt1, " +
                 "   (select max(y) as y from " +
-                "       (select min(col1) as y from unnest([10])) tt2 " +
+                "       (select min(unnest) as y from unnest([10])) tt2 " +
                 "   ) ttt2 ");
         assertThat(printedTable(response.rows()),
             is("4| 10\n" +
@@ -875,7 +875,7 @@ public class JoinIntegrationTest extends SQLIntegrationTestCase {
     public void testJoinOnVirtualTableWithSingleRowSubselect() throws Exception {
         execute("SELECT\n" +
                 "        (select min(t1.x) from\n" +
-                "            (select col1 as x from unnest([1, 2, 3])) t1,\n" +
+                "            (select unnest as x from unnest([1, 2, 3])) t1,\n" +
                 "            (select * from unnest([1, 2, 3])) t2\n" +
                 "        ) as min_col1,\n" +
                 "        *\n" +

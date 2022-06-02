@@ -67,11 +67,11 @@ public class SelectDistinctLogicalPlannerTest extends CrateDummyClusterServiceUn
 
     @Test
     public void testDistinctMixedWithTableFunctionInOutput() {
-        LogicalPlan plan = e.logicalPlan("select distinct generate_series(1, 2), col1 from unnest([1, 1])");
+        LogicalPlan plan = e.logicalPlan("select distinct generate_series(1, 2), unnest from unnest([1, 1])");
         assertThat(plan, isPlan(
-            "GroupHashAggregate[pg_catalog.generate_series(1, 2), col1]\n" +
-            "  └ ProjectSet[pg_catalog.generate_series(1, 2), col1]\n" +
-            "    └ TableFunction[unnest | [col1] | true]"));
+            "GroupHashAggregate[pg_catalog.generate_series(1, 2), unnest]\n" +
+            "  └ ProjectSet[pg_catalog.generate_series(1, 2), unnest]\n" +
+            "    └ TableFunction[unnest | [unnest] | true]"));
     }
 
     @Test

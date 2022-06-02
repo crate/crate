@@ -247,7 +247,7 @@ public class DeleteIntegrationTest extends SQLIntegrationTestCase {
         execute("delete from t1 where id = (select 2)");
         assertThat(response.rowCount(), is(1L));
 
-        execute("delete from t1 where id in (select col1 from unnest([1, 2, 3]))");
+        execute("delete from t1 where id in (select unnest from unnest([1, 2, 3]))");
         assertThat(response.rowCount(), is(1L));
     }
 
