@@ -2263,8 +2263,8 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     public void testUnnestWithObjectColumn() {
         var executor = SQLExecutor.builder(clusterService)
             .build();
-        QueriedSelectRelation rel = executor.analyze("select col1['x'] from unnest([{x=1}])");
-        assertThat(rel.outputs(), contains(isFunction("subscript_obj", isReference("col1"), isLiteral("x"))));
+        QueriedSelectRelation rel = executor.analyze("select unnest['x'] from unnest([{x=1}])");
+        assertThat(rel.outputs(), contains(isFunction("subscript_obj", isReference("unnest"), isLiteral("x"))));
     }
 
     @Test

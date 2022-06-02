@@ -7,8 +7,7 @@ Table functions
 ===============
 
 Table functions are :ref:`functions <gloss-function>` that produce a set of
-rows. They can either be used in place of a relation in the ``FROM`` clause, or
-within the select list of a query.
+rows. They can be used in place of a relation in the ``FROM`` clause.
 
 If used within the select list, the table functions will be :ref:`evaluated
 <gloss-evaluation>` per row of the relations in the ``FROM`` clause, generating
@@ -122,14 +121,14 @@ The return value always matches the ``start`` / ``stop`` types.
 ::
 
     cr> SELECT * FROM generate_series(1, 4);
-    +------+
-    | col1 |
-    +------+
-    |    1 |
-    |    2 |
-    |    3 |
-    |    4 |
-    +------+
+    +-----------------+
+    | generate_series |
+    +-----------------+
+    |               1 |
+    |               2 |
+    |               3 |
+    |               4 |
+    +-----------------+
     SELECT 4 rows in set (... sec)
 
 ::

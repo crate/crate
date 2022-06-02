@@ -1156,17 +1156,17 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         // Injecting an Eval operator as a workaround
         String stmt =
             "SELECT\n" +
-            "   col1,\n" +
-            "   sum(col1) OVER(ORDER BY power(col1, 2) RANGE BETWEEN 3 PRECEDING and CURRENT ROW)\n" +
+            "   unnest,\n" +
+            "   sum(unnest) OVER(ORDER BY power(unnest, 2) RANGE BETWEEN 3 PRECEDING and CURRENT ROW)\n" +
             "FROM\n" +
-            "   unnest(ARRAY[2.5, 4, 5, 6, 7.5, 8.5, 10, 12]) as t(col1)";
+            "   unnest(ARRAY[2.5, 4, 5, 6, 7.5, 8.5, 10, 12]) as t(unnest)";
         LogicalPlan plan = e.logicalPlan(stmt);
         String expectedPlan =
-            "Eval[col1, sum(col1) OVER (ORDER BY power(col1, 2.0) ASC RANGE BETWEEN 3 PRECEDING AND CURRENT ROW)]\n" +
-            "  └ WindowAgg[col1, power(col1, 2.0), sum(col1) OVER (ORDER BY power(col1, 2.0) ASC RANGE BETWEEN 3 PRECEDING AND CURRENT ROW)]\n" +
-            "    └ Eval[col1, power(col1, 2.0)]\n" +
-            "      └ Rename[col1] AS t\n" +
-            "        └ TableFunction[unnest | [col1] | true]";
+            "Eval[unnest, sum(unnest) OVER (ORDER BY power(unnest, 2.0) ASC RANGE BETWEEN 3 PRECEDING AND CURRENT ROW)]\n" +
+            "  └ WindowAgg[unnest, power(unnest, 2.0), sum(unnest) OVER (ORDER BY power(unnest, 2.0) ASC RANGE BETWEEN 3 PRECEDING AND CURRENT ROW)]\n" +
+            "    └ Eval[unnest, power(unnest, 2.0)]\n" +
+            "      └ Rename[unnest] AS t\n" +
+            "        └ TableFunction[unnest | [unnest] | true]";
         assertThat(plan, isPlan(expectedPlan));
     }
 

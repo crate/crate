@@ -30,7 +30,7 @@ public class WindowFunctionsIntegrationTest extends SQLIntegrationTestCase {
 
     @Test
     public void testAvgOnEmptyOver() {
-        execute("select avg(col1) OVER() from unnest([1, 2, null])");
+        execute("select avg(unnest) OVER() from unnest([1, 2, null])");
         assertThat(printedTable(response.rows()), is("1.5\n1.5\n1.5\n"));
     }
 
@@ -42,7 +42,7 @@ public class WindowFunctionsIntegrationTest extends SQLIntegrationTestCase {
 
     @Test
     public void testOrderedWindow() {
-        execute("select col1, avg(col1) OVER(ORDER BY col1 NULLS LAST) from unnest([2, 1, 1, 3, 3, null, 4]) order by 1 desc");
+        execute("select unnest, avg(unnest) OVER(ORDER BY unnest NULLS LAST) from unnest([2, 1, 1, 3, 3, null, 4]) order by 1 desc");
         assertThat(printedTable(response.rows()), is("NULL| 2.3333333333333335\n" +
                                                      "4| 2.3333333333333335\n" +
                                                      "3| 2.0\n" +
@@ -65,7 +65,7 @@ public class WindowFunctionsIntegrationTest extends SQLIntegrationTestCase {
 
     @Test
     public void testOrderedWindowWithSingleRowWindows() {
-        execute("select col1, sum(col1) OVER(ORDER BY col1) from unnest([1, 2, 3, 4])");
+        execute("select unnest, sum(unnest) OVER(ORDER BY unnest) from unnest([1, 2, 3, 4])");
         assertThat(printedTable(response.rows()), is("1| 1\n" +
                                                      "2| 3\n" +
                                                      "3| 6\n" +
@@ -86,7 +86,7 @@ public class WindowFunctionsIntegrationTest extends SQLIntegrationTestCase {
 
     @Test
     public void testPartitionedWindowResultSetUnordered() {
-        execute("select col1, sum(col1) over(partition by col1>2 order by col1) from unnest([1, 2, 2, 3, 4, 5])");
+        execute("select unnest, sum(unnest) over(partition by unnest>2 order by unnest) from unnest([1, 2, 2, 3, 4, 5])");
         assertThat(printedTable(response.rows()), is("1| 1\n" +
                                                      "2| 5\n" +
                                                      "2| 5\n" +
@@ -137,7 +137,7 @@ public class WindowFunctionsIntegrationTest extends SQLIntegrationTestCase {
 
     @Test
     public void testRowNumberOnEmptyOver() {
-        execute("select col1, row_number() OVER() from unnest(['a', 'c', 'd', 'b'])");
+        execute("select unnest, row_number() OVER() from unnest(['a', 'c', 'd', 'b'])");
         assertThat(printedTable(response.rows()), is("a| 1\n" +
                                                      "c| 2\n" +
                                                      "d| 3\n" +
@@ -146,7 +146,7 @@ public class WindowFunctionsIntegrationTest extends SQLIntegrationTestCase {
 
     @Test
     public void testRowNumberWithOrderByClauseNoPeers() {
-        execute("select col1, row_number() OVER(ORDER BY col1) from unnest(['a', 'c', 'd', 'b'])");
+        execute("select unnest, row_number() OVER(ORDER BY unnest) from unnest(['a', 'c', 'd', 'b'])");
         assertThat(printedTable(response.rows()), is("a| 1\n" +
                                                      "b| 2\n" +
                                                      "c| 3\n" +
@@ -155,7 +155,7 @@ public class WindowFunctionsIntegrationTest extends SQLIntegrationTestCase {
 
     @Test
     public void testRowNumberWithOrderByClauseHavingPeers() {
-        execute("select col1, row_number() OVER(ORDER BY col1) from unnest(['a', 'c', 'c', 'd', 'b'])");
+        execute("select unnest, row_number() OVER(ORDER BY unnest) from unnest(['a', 'c', 'c', 'd', 'b'])");
         assertThat(printedTable(response.rows()), is("a| 1\n" +
                                                      "b| 2\n" +
                                                      "c| 3\n" +

@@ -62,7 +62,7 @@ public class WindowDefinitionTest extends CrateDummyClusterServiceUnitTest {
         expectedException.expectMessage(
             "Frame start cannot be UNBOUNDED_FOLLOWING");
         e.analyze(
-            "select sum(col1) over(RANGE BETWEEN UNBOUNDED FOLLOWING and CURRENT ROW) FROM " +
+            "select sum(unnest) over(RANGE BETWEEN UNBOUNDED FOLLOWING and CURRENT ROW) FROM " +
             "unnest([1, 2, 1, 1, 1, 4])");
 
     }
@@ -73,7 +73,7 @@ public class WindowDefinitionTest extends CrateDummyClusterServiceUnitTest {
         expectedException.expectMessage(
             "Frame start cannot be FOLLOWING");
         e.analyze(
-            "select sum(col1) over(RANGE BETWEEN 1 FOLLOWING and CURRENT ROW) FROM " +
+            "select sum(unnest) over(RANGE BETWEEN 1 FOLLOWING and CURRENT ROW) FROM " +
             "unnest([1, 2, 1, 1, 1, 4])");
 
     }
@@ -84,7 +84,7 @@ public class WindowDefinitionTest extends CrateDummyClusterServiceUnitTest {
         expectedException.expectMessage(
             "Frame end cannot be PRECEDING");
         e.analyze(
-            "select sum(col1) over(RANGE BETWEEN CURRENT ROW and 1 PRECEDING) FROM " +
+            "select sum(unnest) over(RANGE BETWEEN CURRENT ROW and 1 PRECEDING) FROM " +
             "unnest([1, 2, 1, 1, 1, 4])");
     }
 
@@ -94,14 +94,14 @@ public class WindowDefinitionTest extends CrateDummyClusterServiceUnitTest {
         expectedException.expectMessage(
             "Frame end cannot be UNBOUNDED_PRECEDING");
         e.analyze(
-            "select sum(col1) over(RANGE BETWEEN CURRENT ROW and UNBOUNDED PRECEDING) FROM " +
+            "select sum(unnest) over(RANGE BETWEEN CURRENT ROW and UNBOUNDED PRECEDING) FROM " +
             "unnest([1, 2, 1, 1, 1, 4])");
     }
 
     @Test
     public void testFrameEndDefaultsToCurrentRowIfNotSpecified() {
         AnalyzedRelation analyze = e.analyze(
-            "select sum(col1) over(RANGE UNBOUNDED PRECEDING) FROM " +
+            "select sum(unnest) over(RANGE UNBOUNDED PRECEDING) FROM " +
             "unnest([1, 2, 1, 1, 1, 4])");
         assertThat(analyze, is(instanceOf(QueriedSelectRelation.class)));
         List<Symbol> outputs = analyze.outputs();
@@ -113,7 +113,7 @@ public class WindowDefinitionTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testUnboundedPrecedingUnboundedFollowingFrameIsAllowed() {
         Collect collect = e.plan(
-            "select sum(col1) over(RANGE BETWEEN UNBOUNDED PRECEDING and UNBOUNDED FOLLOWING) FROM " +
+            "select sum(unnest) over(RANGE BETWEEN UNBOUNDED PRECEDING and UNBOUNDED FOLLOWING) FROM " +
             "unnest([1, 2, 1, 1, 1, 4])");
         List<Projection> projections = collect.collectPhase().projections();
         assertThat(projections.size(), is(2));

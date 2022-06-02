@@ -49,23 +49,23 @@ public class ScalarIntegrationTest extends SQLIntegrationTestCase {
         session.sessionContext().setErrorOnUnknownObjectKey(true);
         Asserts.assertThrowsMatches(
             () -> {
-                sqlExecutor.exec("SELECT col1['x'] FROM UNNEST(['{\"x\":1,\"y\":2}','{\"y\":2,\"z\":3}']::ARRAY(OBJECT))",
+                sqlExecutor.exec("SELECT unnest['x'] FROM UNNEST(['{\"x\":1,\"y\":2}','{\"y\":2,\"z\":3}']::ARRAY(OBJECT))",
                                  session);
                 },
             ColumnUnknownException.class,
             "The object `{y=2, z=3}` does not contain the key `x`"
         );
         // This is documenting a bug. If this fails, it is a breaking change.
-        var response = sqlExecutor.exec("SELECT [col1]['x'] FROM UNNEST(['{\"x\":1,\"y\":2}','{\"y\":2,\"z\":3}']::ARRAY(OBJECT))",
+        var response = sqlExecutor.exec("SELECT [unnest]['x'] FROM UNNEST(['{\"x\":1,\"y\":2}','{\"y\":2,\"z\":3}']::ARRAY(OBJECT))",
                          session);
         assertThat(TestingHelpers.printedTable(response.rows()), is("[1]\n[null]\n"));
 
         var session2 = sqlExecutor.newSession();
         session2.sessionContext().setErrorOnUnknownObjectKey(false);
-        response = sqlExecutor.exec("SELECT col1['x'] FROM UNNEST(['{\"x\":1,\"y\":2}','{\"y\":2,\"z\":3}']::ARRAY(OBJECT))",
+        response = sqlExecutor.exec("SELECT unnest['x'] FROM UNNEST(['{\"x\":1,\"y\":2}','{\"y\":2,\"z\":3}']::ARRAY(OBJECT))",
                                  session2);
         assertThat(TestingHelpers.printedTable(response.rows()), is("1\nNULL\n"));
-        response = sqlExecutor.exec("SELECT [col1]['x'] FROM UNNEST(['{\"x\":1,\"y\":2}','{\"y\":2,\"z\":3}']::ARRAY(OBJECT))",
+        response = sqlExecutor.exec("SELECT [unnest]['x'] FROM UNNEST(['{\"x\":1,\"y\":2}','{\"y\":2,\"z\":3}']::ARRAY(OBJECT))",
                                         session2);
         assertThat(TestingHelpers.printedTable(response.rows()), is("[1]\n[null]\n"));
     }

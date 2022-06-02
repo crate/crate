@@ -99,10 +99,10 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testAggregationOnTableFunction() throws Exception {
-        LogicalPlan plan = plan("select max(col1) from unnest([1, 2, 3])");
+        LogicalPlan plan = plan("select max(unnest) from unnest([1, 2, 3])");
         assertThat(plan, isPlan(
-            "HashAggregate[max(col1)]\n" +
-            "  └ TableFunction[unnest | [col1] | true]"
+            "HashAggregate[max(unnest)]\n" +
+            "  └ TableFunction[unnest | [unnest] | true]"
         ));
     }
 

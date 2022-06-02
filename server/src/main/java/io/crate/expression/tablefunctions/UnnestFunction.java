@@ -60,7 +60,7 @@ public class UnnestFunction {
             (signature, boundSignature) -> new UnnestTableFunctionImplementation(
                 signature,
                 boundSignature,
-                new RowType(List.of(boundSignature.getReturnType().createType())))
+                new RowType(List.of(boundSignature.getReturnType().createType()), List.of(NAME)))
         );
         module.register(
             Signature

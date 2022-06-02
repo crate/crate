@@ -933,7 +933,7 @@ public class PostgresITest extends SQLIntegrationTestCase {
     public void test_insert_with_on_conflict_do_nothing_batch_error_resp_is_0_for_conflicting_items() throws Exception {
         try (Connection conn = DriverManager.getConnection(url(RW), properties)) {
             conn.prepareStatement("create table t (id int primary key) clustered into 1 shards").execute();
-            conn.prepareStatement("insert into t (id) (select col1 from generate_series(1, 3))").execute();
+            conn.prepareStatement("insert into t (id) (select generate_series from generate_series(1, 3))").execute();
 
             PreparedStatement stmt = conn.prepareStatement("insert into t (id) values (?) on conflict (id) do nothing");
             stmt.setInt(1, 4);

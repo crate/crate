@@ -605,9 +605,9 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             "  └ NestedLoopJoin[LEFT | ((time = time) AND (sensor_id = sensor_id))]\n" +
             "    ├ NestedLoopJoin[CROSS]\n" +
             "    │  ├ Rename[time] AS time_series\n" +
-            "    │  │  └ TableFunction[generate_series | [col1] | true]\n" +
+            "    │  │  └ TableFunction[generate_series | [generate_series] | true]\n" +
             "    │  └ Rename[sensor_id] AS sensors\n" +
-            "    │    └ TableFunction[unnest | [col1] | true]\n" +
+            "    │    └ TableFunction[unnest | [unnest] | true]\n" +
             "    └ Rename[battery_level, time, sensor_id] AS readings\n" +
             "      └ Collect[doc.sensor_readings | [battery_level, time, sensor_id] | true]"
         )));
