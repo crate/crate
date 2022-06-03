@@ -1424,18 +1424,6 @@ public class GroupByAggregateTest extends SQLIntegrationTestCase {
     }
 
     @Test
-    public void test_group_by_array_type() {
-        execute("select [1, 2], count(*) from unnest(['a', 'b']) group by 1");
-        assertThat(TestingHelpers.printedTable(response.rows()), Is.is("[1, 2]| 2\n"));
-
-        execute("create table arr (a array(int))");
-        execute("insert into arr(a) values ([1,2]), ([2,3,4])");
-        refresh();
-        execute("select a, count(*) from arr group by a order by array_length(a, 1)");
-        assertThat(TestingHelpers.printedTable(response.rows()), Is.is("[1, 2]| 1\n[2, 3, 4]| 1\n"));
-    }
-
-    @Test
     public void test_group_by_of_constant_null() {
         execute("create table tbl (x int)");
         execute("insert into tbl (x) values (1), (1), (2), (3)");

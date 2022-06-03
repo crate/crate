@@ -104,8 +104,6 @@ Changes
   which checks whether user (or current user if not specified) has specific
   privilege(s) for the specific schema.
 
-- Added support of ``GROUP BY`` on ``ARRAY`` typed columns.
-
 Fixes
 =====
 
