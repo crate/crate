@@ -310,10 +310,9 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testGroupByOnLiteral() throws Exception {
-        QueriedSelectRelation relation = analyze(
-            "select [1,2,3], count(*) from users group by 1");
-        assertThat(relation.outputs(), isSQL("[1, 2, 3], count(*)"));
-        assertThat(relation.groupBy(), isSQL("[1, 2, 3]"));
+        Assertions.assertThrows(IllegalArgumentException.class,
+            () ->  analyze("select [1,2,3], count(*) from users group by 1"),
+        " Cannot group or aggregate on ARRAY type.");
     }
 
     @Test

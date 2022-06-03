@@ -133,6 +133,7 @@ public final class GroupAndAggregateSemantics {
                 throw new IllegalArgumentException("Cannot group or aggregate on ARRAY type.");
             }
         }
+
         private static void raiseException(Symbol symbol) {
             throw new IllegalArgumentException(
                 "Cannot group or aggregate on '" + symbol.toString() + "' with an undefined type." +
