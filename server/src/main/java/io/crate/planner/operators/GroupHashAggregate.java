@@ -46,6 +46,7 @@ import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
@@ -79,8 +80,10 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
                 stats = tableStats.getStats(ref.ident().tableIdent());
                 columnStats = stats.statsByColumn().get(ref.column());
                 numKeysWithStats++;
-            } else if (groupKey instanceof ScopedSymbol) {
-                ScopedSymbol scopedSymbol = (ScopedSymbol) groupKey;
+            } else if (groupKey instanceof ScopedSymbol scopedSymbol) {
+                if (scopedSymbol.sourceSymbolType() == SymbolType.LITERAL) {
+                    return 1L;
+                }
                 stats = tableStats.getStats(scopedSymbol.relation());
                 columnStats = stats.statsByColumn().get(scopedSymbol.column());
                 numKeysWithStats++;

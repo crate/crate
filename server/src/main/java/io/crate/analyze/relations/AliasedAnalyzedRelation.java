@@ -23,6 +23,7 @@ package io.crate.analyze.relations;
 
 import io.crate.exceptions.AmbiguousColumnException;
 import io.crate.exceptions.ColumnUnknownException;
+import io.crate.expression.symbol.AliasResolver;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
@@ -71,13 +72,8 @@ public class AliasedAnalyzedRelation implements AnalyzedRelation, FieldResolver 
                 columnAlias = new ColumnIdent(columnAliases.get(i));
             }
             aliasToColumnMapping.put(columnAlias, childColumn);
-            ScopedSymbol scopedSymbol;
-            if (Symbol.hasLiteralValue(childOutput, null)) {
-                scopedSymbol = new ScopedSymbol(alias, columnAlias, childOutput.valueType(), true);
-            } else {
-                scopedSymbol = new ScopedSymbol(alias, columnAlias, childOutput.valueType());
-            }
-
+            Symbol unaliasedSymbol = childOutput.accept(AliasResolver.INSTANCE, null);
+            var scopedSymbol = new ScopedSymbol(alias, columnAlias, childOutput.valueType(), unaliasedSymbol.symbolType());
             outputs.add(scopedSymbol);
             scopedSymbols.add(scopedSymbol);
         }

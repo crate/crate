@@ -25,8 +25,6 @@ import java.util.List;
 
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Reference;
-import io.crate.types.ArrayType;
-import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
 public final class GroupAndAggregateSemantics {
@@ -91,7 +89,7 @@ public final class GroupAndAggregateSemantics {
         @Override
         public Void visitField(ScopedSymbol symbol, Void context) {
             var type = symbol.valueType();
-            if (type == DataTypes.UNDEFINED && symbol.nullLiteral() == false) {
+            if (type == DataTypes.UNDEFINED && symbol.sourceSymbolType() != SymbolType.LITERAL) {
                 raiseException(symbol);
             }
             return null;
