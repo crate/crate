@@ -21,7 +21,6 @@
 
 package io.crate.planner;
 
-import static io.crate.testing.SymbolMatchers.isLiteral;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.nullValue;
@@ -192,25 +191,6 @@ public class UnionPlannerTest extends CrateDummyClusterServiceUnitTest {
             instanceOf(EvalProjection.class), // returns NULL
             instanceOf(EvalProjection.class)  // casts NULL to long to match `id`
         ));
-    }
-
-    @Test
-    public void test_union_of_two_null_columns_is_null() {
-        // Without alias
-        UnionExecutionPlan union = e.plan("select null from users union select null from users");
-        Collect left = (Collect) union.left();
-        assertThat(left.collectPhase().toCollect().get(0),  isLiteral(null));
-
-        Collect right = (Collect) union.right();
-        assertThat(right.collectPhase().toCollect().get(0),  isLiteral(null));
-
-        // With alias
-        union = e.plan("select null as n1 from users union select null as n2 from users");
-        left = (Collect) union.left();
-        assertThat(left.collectPhase().toCollect().get(0),  isLiteral(null));
-
-        right = (Collect) union.right();
-        assertThat(right.collectPhase().toCollect().get(0),  isLiteral(null));
     }
 
 }

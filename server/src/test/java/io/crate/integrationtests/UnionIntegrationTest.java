@@ -327,18 +327,4 @@ public class UnionIntegrationTest extends SQLIntegrationTestCase {
         execute("select a from x union distinct select a from y order by a");
         assertThat(printedTable(response.rows()), is("1\n2\n3\n5\n"));
     }
-
-    @Test
-    public void test_union_of_two_null_columns_is_null() {
-        execute("select NULL UNION select NULL");
-        assertThat(printedTable(response.rows()), is("NULL\n"));
-
-        // with alias
-        execute("select NULL as nn from sys.nodes UNION select NULL as nn from sys.nodes");
-        assertThat(printedTable(response.rows()), is("NULL\n"));
-//
-//        // without alias
-        execute("select NULL from sys.nodes UNION select NULL from sys.nodes");
-        assertThat(printedTable(response.rows()), is("NULL\n"));
-    }
 }

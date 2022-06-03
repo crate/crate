@@ -1395,6 +1395,47 @@ public class GroupByAggregateTest extends SQLIntegrationTestCase {
     }
 
     @Test
+    public void test_group_by_null_literal() {
+        execute("select null, count(*) from unnest([1, 2]) group by 1");
+        assertThat(TestingHelpers.printedTable(response.rows()), Is.is("NULL| 2\n"));
+    }
+
+    @Test
+    public void test_group_by_null_ordinal() {
+        Assertions.assertThrows(
+            Exception.class,
+            () -> execute("select null, count(*) from unnest([1, 2]) group by null"),
+            "Cannot use NULL in GROUP BY clause"
+        );
+    }
+
+    @Test
+    public void test_union_distinct_with_null_literal() {
+        execute("select null union select null");
+        assertThat(TestingHelpers.printedTable(response.rows()), Is.is("NULL\n"));
+
+        // With alias
+        execute("select NULL as nn from sys.nodes UNION select NULL as nn from sys.nodes");
+        assertThat(printedTable(response.rows()), is("NULL\n"));
+
+        // Without alias
+        execute("select NULL from sys.nodes UNION select NULL from sys.nodes");
+        assertThat(printedTable(response.rows()), is("NULL\n"));
+    }
+
+    @Test
+    public void test_group_by_array_type() {
+        execute("select [1, 2], count(*) from unnest(['a', 'b']) group by 1");
+        assertThat(TestingHelpers.printedTable(response.rows()), Is.is("[1, 2]| 2\n"));
+
+        execute("create table arr (a array(int))");
+        execute("insert into arr(a) values ([1,2]), ([2,3,4])");
+        refresh();
+        execute("select a, count(*) from arr group by a order by array_length(a, 1)");
+        assertThat(TestingHelpers.printedTable(response.rows()), Is.is("[1, 2]| 1\n[2, 3, 4]| 1\n"));
+    }
+
+    @Test
     public void test_group_by_of_constant_null() {
         execute("create table tbl (x int)");
         execute("insert into tbl (x) values (1), (1), (2), (3)");

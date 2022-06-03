@@ -34,7 +34,6 @@ import io.crate.execution.engine.pipeline.TopN;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.Aggregation;
 import io.crate.expression.symbol.Function;
-import io.crate.expression.symbol.GroupAndAggregateSemantics;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
@@ -95,9 +94,6 @@ public class ProjectionBuilder {
             searchPath,
             subQueryAndParamBinder
         );
-
-        keys.forEach(GroupAndAggregateSemantics::ensureTypedGroupKey);
-
         return new GroupProjection(
             Lists2.map(InputColumns.create(keys, sourceSymbols), subQueryAndParamBinder),
             aggregations,

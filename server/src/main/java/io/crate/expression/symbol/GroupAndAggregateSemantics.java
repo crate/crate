@@ -80,7 +80,7 @@ public final class GroupAndAggregateSemantics {
         }
     }
 
-    public static void ensureTypedGroupKey(Symbol groupBy) {
+    private static void ensureTypedGroupKey(Symbol groupBy) {
         groupBy.accept(EnsureTypedGroupKey.INSTANCE, null);
     }
 
@@ -91,7 +91,6 @@ public final class GroupAndAggregateSemantics {
         @Override
         public Void visitField(ScopedSymbol symbol, Void context) {
             var type = symbol.valueType();
-            raiseExceptionIfArrayType(type);
             if (type == DataTypes.UNDEFINED && symbol.nullLiteral() == false) {
                 raiseException(symbol);
             }
@@ -100,9 +99,7 @@ public final class GroupAndAggregateSemantics {
 
         @Override
         public Void visitSymbol(Symbol symbol, Void context) {
-            var type = symbol.valueType();
-            raiseExceptionIfArrayType(type);
-            if (type == DataTypes.UNDEFINED) {
+            if (symbol.valueType() == DataTypes.UNDEFINED) {
                 raiseException(symbol);
             }
             return null;
@@ -110,9 +107,7 @@ public final class GroupAndAggregateSemantics {
 
         @Override
         public Void visitLiteral(Literal symbol, Void context) {
-            var type = symbol.valueType();
-            raiseExceptionIfArrayType(type);
-            if (type == DataTypes.UNDEFINED) {
+            if (symbol.valueType() == DataTypes.UNDEFINED) {
                 if (symbol.value() == null) {
                     // `NULL` is a valid case
                     return null;
@@ -126,12 +121,6 @@ public final class GroupAndAggregateSemantics {
         @Override
         public Void visitAlias(AliasSymbol aliasSymbol, Void context) {
             return aliasSymbol.symbol().accept(this, context);
-        }
-
-        private static void raiseExceptionIfArrayType(DataType type) {
-            if (type instanceof ArrayType) {
-                throw new IllegalArgumentException("Cannot group or aggregate on ARRAY type.");
-            }
         }
 
         private static void raiseException(Symbol symbol) {
