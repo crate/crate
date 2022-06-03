@@ -468,6 +468,29 @@ Output::
     Trust this certificate? [no]:  yes
     Certificate was added to keystore
 
+Optional: Import each node's signed certificate into the truststore
+...................................................................
+
+.. NOTE::
+
+    This step is only needed if communication between nodes or clusters should
+    be encrypted (:ref:`ssl.transport.mode` is set to ``on``).
+
+When self-signed certificates are used, the truststore must contain
+the (self-)signed certificate of each node inside the cluster
+(or remote cluster) as each node also act as a *client* and need to validate
+the remote side's identity.
+
+Command::
+
+    keytool -import -keystore truststore -file node_<N>.crt -alias node_<N>
+
+Output::
+
+    Enter keystore password:
+    Certificate was added to keystore
+
+Repeat this N times on every node inside the cluster.
 
 Import the signed certificate
 -----------------------------
