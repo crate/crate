@@ -104,6 +104,8 @@ Changes
   which checks whether user (or current user if not specified) has specific
   privilege(s) for the specific schema.
 
+- Updated Admin UI to 1.22.0, including an update with the new logo and colors.
+
 Fixes
 =====
 
