@@ -551,9 +551,18 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                 "Cannot use %s in %s clause", ordinal, clause));
         }
         if (ord == null) {
-            throw new IllegalArgumentException(String.format(
-                Locale.ENGLISH,
-                "Cannot use %s in %s clause", ordinal, clause));
+            if (!(clause.equals("GROUP BY") && ordinal.valueType().equals(DataTypes.UNDEFINED) == false)) {
+                // GROUP BY NULL should throw an error:
+                // In PG query select max(avg_width) from pg_stats group by NULL fails, aligning behavior
+                throw new IllegalArgumentException(String.format(
+                    Locale.ENGLISH,
+                    "Cannot use %s in %s clause", ordinal, clause));
+            } else {
+                // It's GROUP BY with NULL which explicitly casted to some type
+                // GROUP BY NULL::integer
+                // In PG query select max(avg_width) from pg_stats group by NULL::integer works, aligning behavior
+                return ordinal; // return NULL Literal
+            }
         }
         return ordinalOutputReference(outputSymbols, ord, clause);
     }

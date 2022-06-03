@@ -1410,6 +1410,12 @@ public class GroupByAggregateTest extends SQLIntegrationTestCase {
     }
 
     @Test
+    public void test_group_by_null_ordinal_with_explicit_cast_works() {
+        response = execute("select null, count(*) from unnest([1, 2]) group by null::integer");
+        assertThat(TestingHelpers.printedTable(response.rows()), Is.is("NULL| 2\n"));
+    }
+
+    @Test
     public void test_union_distinct_with_null_literal() {
         execute("select null union select null");
         assertThat(TestingHelpers.printedTable(response.rows()), Is.is("NULL\n"));

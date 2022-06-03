@@ -117,3 +117,7 @@ Fixes
   ``SELECT nn, sum(x) from (SELECT NULL as nn, x from tbl) t GROUP BY nn``,
   ``SELECT NULL as nn, sum(x) from tbl GROUP BY nn``.
 
+- Fixed an issue that caused ``GROUP BY`` statement with ``NULL`` ordinal,
+  casted to a type, throw an error. Example:
+  ``SELECT NULL, count(*) from unnest([1, 2]) GROUP BY NULL::integer``.
+
