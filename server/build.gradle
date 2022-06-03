@@ -93,6 +93,14 @@ dependencies {
     implementation "org.locationtech.spatial4j:spatial4j:${versions.spatial4j}"
     implementation "org.locationtech.jts:jts-core:${versions.jts}"
 
+    implementation ("org.apache.calcite:calcite-core:${versions.calcite}") {
+        exclude group: 'org.checkerframework', module: 'checker-qual'
+        exclude group: 'com.google.errorprone', module: 'error_prone_annotations'
+        exclude group: 'com.fasterxml.jackson.dataformat', module: 'jackson-dataformat-yaml'
+        //exclude group: 'com.google.guava', module: 'guava'
+        exclude group: 'com.google.uzaygezen', module: 'uzaygezen-core'
+    }
+
     implementation "net.java.dev.jna:jna:${versions.jna}"
 
     implementation "com.tdunning:t-digest:3.2"
@@ -126,6 +134,7 @@ dependencies {
     testRuntimeOnly ("org.junit.vintage:junit-vintage-engine") {
         because 'allows JUnit 3 and JUnit 4 tests to run'
     }
+
 
     // Required to use SelfSignedCertificate from netty
     testRuntimeOnly "org.bouncycastle:bcpkix-jdk15on:1.68"

@@ -4,9 +4,11 @@ dependencies {
     implementation project(':server')
     pluginDependency("com.microsoft.azure:azure-storage:${versions.azure_storage}") {
         exclude group: 'org.checkerframework', module: 'checker-compat-qual'
+        exclude group: 'com.google.guava', module: 'guava'
     }
     pluginDependency("com.microsoft.azure:azure-keyvault-core:${versions.azure_keyvault}") {
         exclude group: 'org.checkerframework', module: 'checker-compat-qual'
+        exclude group: 'com.google.guava', module: 'guava'
     }
 
     testImplementation(testFixtures(project(':server')))

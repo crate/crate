@@ -36,8 +36,11 @@ dependencies {
         exclude group: 'org.slf4j', module: 'slf4j-api'
         exclude group: 'commons-logging', module: 'commons-logging'
         exclude group: 'commons-codec', module: 'commons-codec'
+        exclude group: 'commons-io', module: 'commons-io'
         exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
         exclude group: 'org.apache.httpcomponents', module: 'httpclient'
+        exclude group: 'net.minidev', module: 'json-smart'
+        exclude group: 'com.google.guava', module: 'guava'
     }
     testImplementation project(':server')
     testImplementation(testFixtures(project(':server')))
@@ -46,8 +49,11 @@ dependencies {
         exclude group: 'javax.mail', module: 'mail'
         exclude group: 'commons-logging', module: 'commons-logging'
         exclude group: 'commons-codec', module: 'commons-codec'
+        exclude group: 'commons-io', module: 'commons-io'
         exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
         exclude group: 'org.apache.httpcomponents', module: 'httpclient'
+        exclude group: 'net.minidev', module: 'json-smart'
+        exclude group: 'com.google.guava', module: 'guava'
     }
     testImplementation "junit:junit:${versions.junit}"
     testRuntimeOnly("org.junit.vintage:junit-vintage-engine") {
