@@ -187,7 +187,7 @@ public class ShowIntegrationTest extends SQLIntegrationTestCase {
                 ") clustered into 8 shards");
         execute("show create table test_pk_single");
         assertRow("CREATE TABLE IF NOT EXISTS \"doc\".\"test_pk_single\" (\n" +
-                  "   \"id\" INTEGER,\n" +
+                  "   \"id\" INTEGER NOT NULL,\n" +
                   "   \"name\" TEXT,\n" +
                   "   PRIMARY KEY (\"id\")\n" +
                   ")\n" +
@@ -202,8 +202,8 @@ public class ShowIntegrationTest extends SQLIntegrationTestCase {
         execute("show create table test_pk_multi");
         assertRow("CREATE TABLE IF NOT EXISTS \"doc\".\"test_pk_multi\" (\n" +
                   "   \"id\" INTEGER,\n" +
-                  "   \"col_z\" TEXT,\n" +
-                  "   \"col_a\" TEXT,\n" +
+                  "   \"col_z\" TEXT NOT NULL,\n" +
+                  "   \"col_a\" TEXT NOT NULL,\n" +
                   "   PRIMARY KEY (\"col_z\", \"col_a\")\n" +
                   ")\n" +
                   "CLUSTERED INTO 8 SHARDS\n" +

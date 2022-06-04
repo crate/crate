@@ -1789,7 +1789,7 @@ public class TransportSQLActionTest extends SQLIntegrationTestCase {
             + "     c.relname,"
             + "     attnum");
         assertThat(printedTable(response.rows()),
-            is("doc| metrics| id| 23| false| -1| 4| 1| NULL| NULL| 0| b\n" +
+            is("doc| metrics| id| 23| true| -1| 4| 1| NULL| NULL| 0| b\n" +
                "doc| metrics| x| 23| false| -1| 4| 2| NULL| NULL| 0| b\n")
         );
     }

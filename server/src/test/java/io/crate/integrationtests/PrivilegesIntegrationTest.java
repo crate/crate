@@ -271,8 +271,11 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
                                                       "t2\n" +
                                                       "v1\n" +
                                                       "v2\n"));
-        execute("select table_name from information_schema.table_constraints order by table_name", null, testUserSession());
-        assertThat(printedTable(response.rows()), is("t2\n"));
+        execute("select table_name, constraint_name from information_schema.table_constraints order by table_name, constraint_name", null, testUserSession());
+        assertThat(printedTable(response.rows()), is(
+            "t2| my_schema_t2_x_not_null\n" +
+                "t2| t2_pk\n")
+        );
         execute("select routine_schema from information_schema.routines order by routine_schema", null, testUserSession());
         assertThat(printedTable(response.rows()), is("my_schema\n"));
 
