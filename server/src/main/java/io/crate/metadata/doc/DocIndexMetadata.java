@@ -518,10 +518,16 @@ public class DocIndexMetadata {
         return List.of();
     }
 
+    /**
+     * PostgreSQL adds not null constraint to every column of a primary key.
+     * This is reflected as a new row per each PK column in information_schema.table_constraints.
+     * Also, pg_catalog.pg_attribute.attnotnull has to be true for PK columns.
+     * @return columns with not_null constraint and columns of primary keys.
+     */
     private Collection<ColumnIdent> getNotNullColumns() {
         Map<String, Object> metaMap = Maps.get(mappingMap, "_meta");
+        HashSet<ColumnIdent> builder = new HashSet<ColumnIdent>();
         if (metaMap != null) {
-            HashSet<ColumnIdent> builder = new HashSet<ColumnIdent>();
             Map<String, Object> constraintsMap = Maps.get(metaMap, "constraints");
             if (constraintsMap != null) {
                 Object notNullColumnsMeta = constraintsMap.get("not_null");
@@ -531,12 +537,12 @@ public class DocIndexMetadata {
                         for (Object notNullColumn : notNullColumns) {
                             builder.add(ColumnIdent.fromPath(notNullColumn.toString()));
                         }
-                        return Collections.unmodifiableSet(builder);
                     }
                 }
             }
         }
-        return List.of();
+        builder.addAll(getPrimaryKey());
+        return Collections.unmodifiableSet(builder);
     }
 
     private static List<ColumnIdent> getPartitionedBy(List<List<String>> partitionedByList) {

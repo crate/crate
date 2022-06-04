@@ -111,4 +111,6 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
-None
+- Fixed issue which caused ``PRIMARY KEY`` columns to be shown
+  as nullable in the ``pg_catalog.pg_attribute`` table and ``NOT NULL``
+  constraints to be shown in the ``pg_catalog.pg_constraint``.

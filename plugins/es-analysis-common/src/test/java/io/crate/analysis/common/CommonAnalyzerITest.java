@@ -59,7 +59,7 @@ public class CommonAnalyzerITest extends SQLIntegrationTestCase {
 
         execute("select * from information_schema.table_constraints where table_schema = ? and table_name='quotes'",
             new Object[]{sqlExecutor.getCurrentSchema()});
-        assertEquals(1L, response.rowCount());
+        assertEquals(2L, response.rowCount()); // 1 PK + 1 NOT NULL derived from the PK
 
         execute("select table_name from information_schema.columns where table_schema = ? and table_name='quotes' " +
                 "and column_name='__quote_info'", new Object[]{sqlExecutor.getCurrentSchema()});

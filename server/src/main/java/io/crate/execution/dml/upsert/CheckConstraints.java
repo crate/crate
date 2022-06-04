@@ -35,6 +35,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.sql.tree.CheckConstraint;
 
@@ -72,6 +73,10 @@ public final class CheckConstraints<T, E extends CollectExpression<T, ?>> {
             expressions.get(i).setNextRow(values);
         }
         for (int i = 0; i < inputs.size(); i++) {
+            if (notNullColumns.get(i).name().equals(DocSysColumns.Names.ID)) {
+                // _id is generated if there are no PK-s.
+                continue;
+            }
             Object val = inputs.get(i).value();
             if (val == null) {
                 throw new IllegalArgumentException("\"" + notNullColumns.get(i) + "\" must not be null");

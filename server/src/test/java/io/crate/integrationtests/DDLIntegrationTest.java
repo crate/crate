@@ -900,6 +900,7 @@ public class DDLIntegrationTest extends SQLIntegrationTestCase {
     public void test_alter_table_add_column_keeps_existing_meta_information() throws Exception {
         execute("""
             CREATE TABLE tbl (
+                id INTEGER PRIMARY KEY,
                 author TEXT NOT NULL,
                 INDEX author_ft USING FULLTEXT (author) WITH (analyzer = 'standard')
             )
@@ -910,8 +911,10 @@ public class DDLIntegrationTest extends SQLIntegrationTestCase {
         execute("show create table tbl");
         assertThat((String) response.rows()[0][0], startsWith("""
             CREATE TABLE IF NOT EXISTS "doc"."tbl" (
+               "id" INTEGER NOT NULL,
                "author" TEXT NOT NULL,
                "dummy" TEXT NOT NULL,
+               PRIMARY KEY ("id"),
                INDEX "author_ft" USING FULLTEXT ("author") WITH (
                   analyzer = 'standard'
                )

@@ -21,6 +21,8 @@
 
 package io.crate.integrationtests;
 
+import io.crate.metadata.RelationName;
+import io.crate.metadata.pgcatalog.OidHash;
 import io.crate.testing.UseHashJoins;
 import io.crate.testing.UseRandomizedSchema;
 
@@ -34,9 +36,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import static io.crate.testing.TestingHelpers.printedTable;
-import static org.hamcrest.Matchers.arrayContaining;
-import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.*;
 
 public class PgCatalogITest extends SQLIntegrationTestCase {
 
@@ -76,7 +76,7 @@ public class PgCatalogITest extends SQLIntegrationTestCase {
     public void testPgAttributeTable() {
         execute("select a.* from pg_catalog.pg_attribute as a join pg_catalog.pg_class as c on a.attrelid = c.oid where c.relname = 't1' order by a.attnum");
         assertThat(printedTable(response.rows()), is(
-            "NULL| NULL| false| -1| 0| NULL| false| | 0| false| true| 4| id| 0| false| 1| NULL| 728874843| 0| NULL| 23| -1\n" +
+            "NULL| NULL| false| -1| 0| NULL| false| | 0| false| true| 4| id| 0| true| 1| NULL| 728874843| 0| NULL| 23| -1\n" +
             "NULL| NULL| false| -1| 0| NULL| false| | 0| false| true| -1| s| 0| false| 2| NULL| 728874843| 0| NULL| 1043| -1\n" +
             "NULL| NULL| false| -1| 0| NULL| false| | 0| false| true| -1| o| 0| false| 3| NULL| 728874843| 0| NULL| 114| -1\n" +
             "NULL| NULL| false| -1| 0| NULL| false| | 0| false| true| 4| o['a']| 0| false| 4| NULL| 728874843| 0| NULL| 23| -1\n"));
@@ -268,5 +268,30 @@ public class PgCatalogITest extends SQLIntegrationTestCase {
         assertThat(printedTable(response.rows()), is(
             ""
         ));
+    }
+
+    @Test
+    public void test_pg_constrains_not_null_is_not_included() throws Exception {
+        // From https://www.postgresql.org/docs/current/catalog-pg-constraint.html:
+        // Not-null constraints are represented in the pg_attribute catalog, not here.
+
+        execute("CREATE TABLE doc.tbl (" +
+            "not_null1 int not null," +
+            "int_col int," +
+            "long_col bigint," +
+            "str_col text," +
+            "not_null2 bigint not null," +
+            "checked int CHECK(checked>0)," +
+            "checked_and_not_null int not null check (checked_and_not_null > 10)," +
+            "PRIMARY KEY (int_col, long_col, str_col))"
+        );
+        int reloid = OidHash.relationOid(OidHash.Type.TABLE, new RelationName("doc", "tbl"));
+        response = execute("select i.conname, i.contype from pg_catalog.pg_constraint i where i.conrelid  = " + reloid);
+        assertThat(response.rows()[0][0], is("tbl_pk"));
+        assertThat(response.rows()[0][1], is("p"));
+        assertThat((String) response.rows()[1][0], containsString("check"));
+        assertThat(response.rows()[1][1], is("c"));
+        assertThat((String) response.rows()[2][0], containsString("check"));
+        assertThat(response.rows()[2][1], is("c"));
     }
 }

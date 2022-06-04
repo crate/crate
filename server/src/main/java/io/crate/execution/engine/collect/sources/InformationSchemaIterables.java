@@ -94,7 +94,8 @@ public class InformationSchemaIterables implements ClusterStateListener {
     private final PartitionInfos partitionInfos;
     private final Iterable<ColumnContext> columns;
     private final Iterable<RelationInfo> primaryKeys;
-    private final Iterable<ConstraintInfo> constraints;
+    private final Iterable<ConstraintInfo> tableConstraints;
+    private final Iterable<ConstraintInfo> allConstraints;
     private final Iterable<Void> referentialConstraints;
     private final Iterable<PgIndexTable.Entry> pgIndices;
     private final Iterable<PgClassTable.Entry> pgClasses;
@@ -143,7 +144,12 @@ public class InformationSchemaIterables implements ClusterStateListener {
                     .map(chk -> new ConstraintInfo(r, chk.name(), ConstraintInfo.Type.CHECK)))
                 .iterator();
 
-        constraints = () -> Stream.of(sequentialStream(primaryKeyConstraints),
+        tableConstraints = () -> Stream.of(sequentialStream(primaryKeyConstraints),
+                                        sequentialStream(checkConstraints))
+            .flatMap(Function.identity())
+            .iterator();
+
+        allConstraints = () -> Stream.of(sequentialStream(primaryKeyConstraints),
                                       sequentialStream(notnullConstraints),
                                       sequentialStream(checkConstraints))
             .flatMap(Function.identity())
@@ -288,8 +294,12 @@ public class InformationSchemaIterables implements ClusterStateListener {
         return columns;
     }
 
-    public Iterable<ConstraintInfo> constraints() {
-        return constraints;
+    public Iterable<ConstraintInfo> allConstraints() {
+        return allConstraints;
+    }
+
+    public Iterable<ConstraintInfo> tableConstraints() {
+        return tableConstraints;
     }
 
     public Iterable<RoutineInfo> routines() {
@@ -382,11 +392,11 @@ public class InformationSchemaIterables implements ClusterStateListener {
      */
     static class NotNullConstraintIterator implements Iterator<ConstraintInfo> {
         private final RelationInfo relationInfo;
-        private final Iterator<Reference> nullableColumns;
+        private final Iterator<Reference> notNullableColumns;
 
         NotNullConstraintIterator(RelationInfo relationInfo) {
             this.relationInfo = relationInfo;
-            nullableColumns = stream(relationInfo.spliterator(), false)
+            notNullableColumns = stream(relationInfo.spliterator(), false)
                 .filter(reference -> reference.column().isSystemColumn() == false &&
                                      reference.valueType() != DataTypes.NOT_SUPPORTED &&
                                      reference.isNullable() == false)
@@ -395,7 +405,7 @@ public class InformationSchemaIterables implements ClusterStateListener {
 
         @Override
         public boolean hasNext() {
-            return nullableColumns.hasNext();
+            return notNullableColumns.hasNext();
         }
 
         @Override
@@ -414,7 +424,7 @@ public class InformationSchemaIterables implements ClusterStateListener {
                 .append("_")
                 .append(this.relationInfo.ident().name())
                 .append("_")
-                .append(this.nullableColumns.next().column().name())
+                .append(this.notNullableColumns.next().column().name())
                 .append("_not_null")
                 .toString();
 
