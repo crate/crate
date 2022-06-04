@@ -432,7 +432,7 @@ public class DocIndexMetadata {
             ColumnIdent newIdent = childIdent(columnIdent, columnEntry.getKey());
 
 
-            boolean nullable = !notNullColumns.contains(newIdent);
+            boolean nullable = !notNullColumns.contains(newIdent) && !primaryKey.contains(newIdent);
             columnProperties = furtherColumnProperties(columnProperties);
             int position = columnPosition((int) columnProperties.getOrDefault("position", 0));
             String defaultExpression = (String) columnProperties.getOrDefault("default_expr", null);
@@ -616,7 +616,9 @@ public class DocIndexMetadata {
 
     public DocIndexMetadata build() {
         notNullColumns = getNotNullColumns();
+        primaryKey = getPrimaryKey();
         columnPolicy = getColumnPolicy();
+        // notNullColumns and primaryKey must be resolved before creating column definitions.
         createColumnDefinitions();
         indices = createIndexDefinitions();
         references = new LinkedHashMap<>();
@@ -634,7 +636,7 @@ public class DocIndexMetadata {
         // Order of the partitionedByColumns is important; Must be the same order as `partitionedBy` is in.
         partitionedByColumns = Lists2.map(partitionedBy, references::get);
         generatedColumnReferences = List.copyOf(generatedColumnReferencesBuilder);
-        primaryKey = getPrimaryKey();
+
         routingCol = getRoutingCol();
 
         Collection<Reference> references = this.references.values();

@@ -398,11 +398,11 @@ public class InformationSchemaIterables implements ClusterStateListener {
      */
     static class NotNullConstraintIterator implements Iterator<ConstraintInfo> {
         private final RelationInfo relationInfo;
-        private final Iterator<Reference> nullableColumns;
+        private final Iterator<Reference> notNullableColumns;
 
         NotNullConstraintIterator(RelationInfo relationInfo) {
             this.relationInfo = relationInfo;
-            nullableColumns = stream(relationInfo.spliterator(), false)
+            notNullableColumns = stream(relationInfo.spliterator(), false)
                 .filter(reference -> reference.column().isSystemColumn() == false &&
                                      reference.valueType() != DataTypes.NOT_SUPPORTED &&
                                      reference.isNullable() == false)
@@ -411,7 +411,7 @@ public class InformationSchemaIterables implements ClusterStateListener {
 
         @Override
         public boolean hasNext() {
-            return nullableColumns.hasNext();
+            return notNullableColumns.hasNext();
         }
 
         @Override
@@ -430,7 +430,7 @@ public class InformationSchemaIterables implements ClusterStateListener {
                 .append("_")
                 .append(this.relationInfo.ident().name())
                 .append("_")
-                .append(this.nullableColumns.next().column().name())
+                .append(this.notNullableColumns.next().column().name())
                 .append("_not_null")
                 .toString();
 
