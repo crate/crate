@@ -487,14 +487,15 @@ type, name and which table they are defined in.
     ...   or table_name = 'documents'
     ...   or table_name = 'tbl'
     ... order by table_schema desc, table_name asc limit 10;
-    +--------------------+------------+-...------------------+-------------+
-    | table_schema       | table_name | constraint_name      | type        |
-    +--------------------+------------+-...------------------+-------------+
-    | information_schema | tables     | tables_pk            | PRIMARY KEY |
-    | doc                | quotes     | quotes_pk            | PRIMARY KEY |
-    | doc                | tbl        | doc_tbl_col_not_null | CHECK       |
-    +--------------------+------------+-...------------------+-------------+
-    SELECT 3 rows in set (... sec)
+    +--------------------+------------+------------------------+-------------+
+    | table_schema       | table_name | constraint_name        | type        |
+    +--------------------+------------+------------------------+-------------+
+    | information_schema | tables     | tables_pk              | PRIMARY KEY |
+    | doc                | quotes     | quotes_pk              | PRIMARY KEY |
+    | doc                | quotes     | doc_quotes_id_not_null | CHECK       |
+    | doc                | tbl        | doc_tbl_col_not_null   | CHECK       |
+    +--------------------+------------+------------------------+-------------+
+    SELECT 4 rows in set (... sec)
 
 
 ``key_column_usage``

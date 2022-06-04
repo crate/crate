@@ -429,19 +429,25 @@ public class InformationSchemaTest extends SQLIntegrationTestCase {
         execute("SELECT constraint_type, constraint_name, table_name FROM information_schema.table_constraints " +
                 "WHERE table_schema = ?",
             new Object[]{sqlExecutor.getCurrentSchema()});
-        assertEquals(4L, response.rowCount());
+        assertEquals(6L, response.rowCount()); // 4 explicit constraints + 2 NOT NULL derived from composite PK
         assertThat(response.rows()[0][0], is("PRIMARY KEY"));
         assertThat(response.rows()[0][1], is("test_pk"));
         assertThat(response.rows()[0][2], is("test"));
         assertThat(response.rows()[1][0], is("CHECK"));
-        assertThat(response.rows()[1][1], is(sqlExecutor.getCurrentSchema() + "_test_col3_not_null"));
+        assertThat((String) response.rows()[1][1], is(sqlExecutor.getCurrentSchema() + "_test_col1_not_null"));
         assertThat(response.rows()[1][2], is("test"));
         assertThat(response.rows()[2][0], is("CHECK"));
-        assertThat(response.rows()[2][1], is("unnecessary_check"));
+        assertThat((String) response.rows()[2][1], is(sqlExecutor.getCurrentSchema() + "_test_col2_not_null"));
         assertThat(response.rows()[2][2], is("test"));
         assertThat(response.rows()[3][0], is("CHECK"));
-        assertThat(response.rows()[3][1], is("chk_1"));
+        assertThat(response.rows()[3][1], is(sqlExecutor.getCurrentSchema() + "_test_col3_not_null"));
         assertThat(response.rows()[3][2], is("test"));
+        assertThat(response.rows()[4][0], is("CHECK"));
+        assertThat(response.rows()[4][1], is("unnecessary_check"));
+        assertThat(response.rows()[4][2], is("test"));
+        assertThat(response.rows()[5][0], is("CHECK"));
+        assertThat(response.rows()[5][1], is("chk_1"));
+        assertThat(response.rows()[5][2], is("test"));
     }
 
     @Test
@@ -450,9 +456,11 @@ public class InformationSchemaTest extends SQLIntegrationTestCase {
         ensureGreen();
         execute("SELECT table_name, constraint_name FROM Information_schema" +
                 ".table_constraints WHERE table_schema = ?", new Object[]{sqlExecutor.getCurrentSchema()});
-        assertEquals(1L, response.rowCount());
+        assertEquals(2L, response.rowCount()); // 1 PK + 1 NOT NULL derived from PK
         assertThat(response.rows()[0][0], is("test"));
         assertThat(response.rows()[0][1], is("test_pk"));
+        assertThat(response.rows()[1][0], is("test"));
+        assertThat((String) response.rows()[1][1], is(sqlExecutor.getCurrentSchema() + "_test_col1_not_null"));
 
         execute("CREATE TABLE test2 (" +
             "   col1a STRING PRIMARY KEY," +
@@ -462,11 +470,13 @@ public class InformationSchemaTest extends SQLIntegrationTestCase {
                 "ORDER BY table_name ASC",
             new Object[]{sqlExecutor.getCurrentSchema()});
 
-        assertEquals(3L, response.rowCount());
-        assertThat(response.rows()[1][0], is("test2"));
-        assertThat(response.rows()[1][1], is("test2_pk"));
+        assertEquals(5L, response.rowCount()); // 2 PK + 1 explicit NOT NULL + 2 NOT NULL derived from PK-s.
         assertThat(response.rows()[2][0], is("test2"));
-        assertThat(response.rows()[2][1], is(sqlExecutor.getCurrentSchema() + "_test2_Col2a_not_null"));
+        assertThat(response.rows()[2][1], is("test2_pk"));
+        assertThat(response.rows()[3][0], is("test2"));
+        assertThat((String) response.rows()[3][1], is(sqlExecutor.getCurrentSchema() + "_test2_col1a_not_null"));
+        assertThat(response.rows()[4][0], is("test2"));
+        assertThat(response.rows()[4][1], is(sqlExecutor.getCurrentSchema() + "_test2_Col2a_not_null"));
     }
 
 
@@ -528,10 +538,16 @@ public class InformationSchemaTest extends SQLIntegrationTestCase {
         execute("select table_name from INFORMATION_SCHEMA.table_constraints " +
                 "where table_schema not in ('sys', 'information_schema')  " +
                 "ORDER BY table_name");
-        assertEquals(3L, response.rowCount());
-        assertEquals("abc", response.rows()[0][0]);
-        assertEquals("test1", response.rows()[1][0]);
-        assertEquals("test2", response.rows()[2][0]);
+        assertEquals(6L, response.rowCount()); // 3 PK + 3 NOT NULL derived from PK
+        // Aligned with PG, every PK column produces a new NOT NULL row in table_constraints.
+        assertThat(printedTable(response.rows()), is(
+            "abc\n" +
+                "abc\n" +
+                "test1\n" +
+                "test1\n" +
+                "test2\n" +
+                "test2\n")
+        );
     }
 
     @Test
