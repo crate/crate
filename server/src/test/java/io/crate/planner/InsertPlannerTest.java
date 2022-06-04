@@ -394,7 +394,7 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
             DataTypes.TIMESTAMPZ,
             ColumnPolicy.DYNAMIC,
             IndexType.PLAIN,
-            true,
+            false,
             true,
             3,
             null)));

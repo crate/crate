@@ -139,8 +139,8 @@ public class MetadataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
 
         CreateTable node = MetadataToASTNodeResolver.resolveCreateTable(tableInfo);
         assertEquals("CREATE TABLE IF NOT EXISTS \"myschema\".\"test\" (\n" +
-                     "   \"pk_col_one\" BIGINT,\n" +
-                     "   \"pk_col_two\" BIGINT,\n" +
+                     "   \"pk_col_one\" BIGINT NOT NULL,\n" +
+                     "   \"pk_col_two\" BIGINT NOT NULL,\n" +
                      "   PRIMARY KEY (\"pk_col_one\", \"pk_col_two\")\n" +
                      ")\n" +
                      "CLUSTERED INTO 5 SHARDS\n" +
@@ -189,7 +189,7 @@ public class MetadataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
 
         CreateTable node = MetadataToASTNodeResolver.resolveCreateTable(tableInfo);
         assertEquals("CREATE TABLE IF NOT EXISTS \"myschema\".\"test\" (\n" +
-                     "   \"col_a\" TEXT,\n" +
+                     "   \"col_a\" TEXT NOT NULL,\n" +
                      "   \"col_b\" TEXT NOT NULL INDEX USING FULLTEXT WITH (\n" +
                      "      analyzer = 'standard'\n" +
                      "   ),\n" +

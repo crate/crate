@@ -1718,7 +1718,7 @@ How to reindex
     | SHOW CREATE TABLE rx.metrics                        |
     +-----------------------------------------------------+
     | CREATE TABLE IF NOT EXISTS "rx"."metrics" (         |
-    |    "id" TEXT,                                       |
+    |    "id" TEXT NOT NULL,                                       |
     |    "temperature" REAL,                              |
     |    PRIMARY KEY ("id")                               |
     | )                                                   |
