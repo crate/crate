@@ -130,6 +130,9 @@ Changes
   function for improved compatibility with PostgreSQL. CrateDB does not support 
   sequences.
 
+- Added primary key and check constraint column positions into ``conkey`` field
+  of the ``pg_constraint`` table for improved compatibility with PostgreSQL.
+
 Fixes
 =====
 
