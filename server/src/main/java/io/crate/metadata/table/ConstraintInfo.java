@@ -24,6 +24,9 @@ package io.crate.metadata.table;
 import io.crate.metadata.RelationInfo;
 import io.crate.metadata.RelationName;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 /**
  * This class is used as information store of table constraints when
  * being displayed.
@@ -60,6 +63,7 @@ public class ConstraintInfo {
     }
 
     private final String constraintName;
+    private final List<Short> conkey;
     private final RelationInfo relationInfo;
     private final Type constraintType;
 
@@ -67,6 +71,21 @@ public class ConstraintInfo {
         this.relationInfo = relationInfo;
         this.constraintName = constraintName;
         this.constraintType = constraintType;
+        this.conkey = getConstraintColumnIndices(relationInfo, constraintName, constraintType);
+    }
+
+    private static List<Short> getConstraintColumnIndices(RelationInfo relationInfo, String constraintName, Type constraintType) {
+        if (relationInfo instanceof TableInfo tableInfo) {
+            if (constraintType == Type.PRIMARY_KEY) {
+                return relationInfo.primaryKey().stream().map(column -> (short) tableInfo.getReference(column).position()).collect(Collectors.toList());
+            } else if (constraintType == Type.CHECK) {
+                return tableInfo.checkConstraints().stream()
+                    .filter(checkConstraint -> checkConstraint.name().equals(constraintName))
+                    .map(checkConstraint -> checkConstraint.positions())
+                    .findFirst().orElse(List.of());
+            }
+        }
+        return List.of();
     }
 
     public RelationName relationName() {
@@ -83,5 +102,9 @@ public class ConstraintInfo {
 
     public Type constraintType() {
         return constraintType;
+    }
+
+    public List<Short> conkey() {
+        return conkey;
     }
 }
