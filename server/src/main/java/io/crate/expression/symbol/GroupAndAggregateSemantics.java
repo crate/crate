@@ -87,14 +87,6 @@ public final class GroupAndAggregateSemantics {
         static final EnsureTypedGroupKey INSTANCE = new EnsureTypedGroupKey();
 
         @Override
-        public Void visitSymbol(Symbol symbol, Void context) {
-            if (symbol.valueType() == DataTypes.UNDEFINED) {
-                raiseException(symbol);
-            }
-            return null;
-        }
-
-        @Override
         public Void visitLiteral(Literal symbol, Void context) {
             if (symbol.valueType() == DataTypes.UNDEFINED) {
                 if (symbol.value() == null) {

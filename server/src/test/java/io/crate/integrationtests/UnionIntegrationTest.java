@@ -327,4 +327,10 @@ public class UnionIntegrationTest extends SQLIntegrationTestCase {
         execute("select a from x union distinct select a from y order by a");
         assertThat(printedTable(response.rows()), is("1\n2\n3\n5\n"));
     }
+
+    @Test
+    public void test_null_literal_union_null_literal() {
+        execute("select null from unnest([1, 2]) union select null from unnest([1])");
+        assertThat(printedTable(response.rows()), is("NULL\n"));
+    }
 }
