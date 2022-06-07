@@ -34,7 +34,6 @@ import org.junit.Test;
 
 import io.crate.protocols.ssl.SslContextProviderService.FingerPrint;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.netty.handler.ssl.SslContext;
 
 public class SslContextProviderServiceTest extends CrateDummyClusterServiceUnitTest {
 

@@ -43,7 +43,6 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
 import io.crate.types.TypeSignature;
-import io.crate.types.TypeSignature;
 
 public class OidHashTest extends CrateDummyClusterServiceUnitTest {
 

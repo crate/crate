@@ -21,6 +21,15 @@
 
 package io.crate.testing;
 
+import static io.crate.testing.TestingHelpers.createNodeContext;
+import static org.mockito.Mockito.mock;
+
+import java.util.Map;
+
+import javax.annotation.Nullable;
+
+import org.elasticsearch.common.inject.AbstractModule;
+
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
@@ -32,7 +41,6 @@ import io.crate.analyze.relations.FullQualifiedNameFieldProvider;
 import io.crate.analyze.relations.ParentRelations;
 import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.analyze.relations.StatementAnalysisContext;
-import io.crate.user.User;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -42,13 +50,7 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.parser.SqlParser;
-import org.elasticsearch.common.inject.AbstractModule;
-
-import javax.annotation.Nullable;
-import java.util.Map;
-
-import static io.crate.testing.TestingHelpers.createNodeContext;
-import static org.mockito.Mockito.mock;
+import io.crate.user.User;
 
 public class SqlExpressions {
 

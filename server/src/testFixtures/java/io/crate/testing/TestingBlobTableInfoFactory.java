@@ -27,7 +27,6 @@ import io.crate.metadata.blob.BlobTableInfo;
 import io.crate.metadata.blob.BlobTableInfoFactory;
 import io.crate.metadata.blob.InternalBlobTableInfoFactory;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.settings.Settings;
 
 import java.io.File;

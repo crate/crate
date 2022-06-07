@@ -55,7 +55,6 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.SqlExpressions;
 import io.crate.types.DataTypes;
-import io.crate.types.DataTypes;
 
 public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
 

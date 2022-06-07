@@ -21,22 +21,6 @@
 
 package io.crate.rest.action;
 
-import io.crate.action.sql.SQLOperations;
-import io.crate.action.sql.Session;
-import io.crate.action.sql.SessionContext;
-import io.crate.auth.AuthSettings;
-import io.crate.auth.AccessControl;
-import io.crate.user.User;
-import io.crate.user.UserLookup;
-import io.netty.handler.codec.http.DefaultHttpHeaders;
-import io.netty.handler.codec.http.FullHttpRequest;
-import org.elasticsearch.common.breaker.NoopCircuitBreaker;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.http.netty4.cors.Netty4CorsConfigBuilder;
-import org.junit.Test;
-
-import javax.annotation.Nullable;
-
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertFalse;
@@ -47,22 +31,26 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
+
+import javax.annotation.Nullable;
+
+import org.elasticsearch.common.breaker.NoopCircuitBreaker;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.http.netty4.cors.Netty4CorsConfigBuilder;
+import org.junit.Test;
+
+import io.crate.action.sql.SQLOperations;
+import io.crate.action.sql.Session;
+import io.crate.action.sql.SessionContext;
+import io.crate.auth.AccessControl;
+import io.crate.auth.AuthSettings;
+import io.crate.user.User;
+import io.crate.user.UserLookup;
+import io.netty.handler.codec.http.DefaultHttpHeaders;
+import io.netty.handler.codec.http.FullHttpRequest;
+
 public class SqlHttpHandlerTest {
-
-    class SameNameUserLookup implements UserLookup {
-
-        @Nullable
-        @Override
-        public User findUser(String userName) {
-            return User.of(userName);
-        }
-
-        @Nullable
-        @Override
-        public User findUser(Integer userOid) {
-            return null;
-        }
-    }
 
     @Test
     public void testDefaultUserIfHttpHeaderNotPresent() {
@@ -70,12 +58,7 @@ public class SqlHttpHandlerTest {
             Settings.EMPTY,
             mock(SQLOperations.class),
             (s) -> new NoopCircuitBreaker("dummy"),
-            oid -> {
-                if (oid != null) {
-                    return User.CRATE_USER;
-                }
-                return null;
-            },
+            () -> List.of(User.CRATE_USER),
             sessionContext -> AccessControl.DISABLED,
             Netty4CorsConfigBuilder.forAnyOrigin().build()
         );
@@ -93,7 +76,7 @@ public class SqlHttpHandlerTest {
             settings,
             mock(SQLOperations.class),
             (s) -> new NoopCircuitBreaker("dummy"),
-            new SameNameUserLookup(),
+            () -> List.of(User.of("trillian")),
             sessionContext -> AccessControl.DISABLED,
             Netty4CorsConfigBuilder.forAnyOrigin().build()
         );
@@ -108,7 +91,7 @@ public class SqlHttpHandlerTest {
             Settings.EMPTY,
             mock(SQLOperations.class),
             (s) -> new NoopCircuitBreaker("dummy"),
-            new SameNameUserLookup(),
+            () -> List.of(User.of("Aladdin")),
             sessionContext -> AccessControl.DISABLED,
             Netty4CorsConfigBuilder.forAnyOrigin().build()
         );
@@ -119,7 +102,7 @@ public class SqlHttpHandlerTest {
 
     @Test
     public void testSessionSettingsArePreservedAcrossRequests() {
-        User dummyUser = User.of("dummy");
+        User dummyUser = User.of("crate");
         var sessionConext = new SessionContext(dummyUser);
 
         var mockedSession = mock(Session.class);
@@ -135,7 +118,7 @@ public class SqlHttpHandlerTest {
             Settings.EMPTY,
             mockedSqlOperations,
             (s) -> new NoopCircuitBreaker("dummy"),
-            userName -> dummyUser,
+            () -> List.of(dummyUser),
             sessionContext -> AccessControl.DISABLED,
             Netty4CorsConfigBuilder.forAnyOrigin().build()
         );

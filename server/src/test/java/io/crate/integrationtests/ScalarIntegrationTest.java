@@ -28,7 +28,6 @@ import io.crate.testing.UseJdbc;
 import io.crate.types.DataTypes;
 import org.junit.Test;
 
-import java.util.List;
 
 import static org.hamcrest.Matchers.is;
 

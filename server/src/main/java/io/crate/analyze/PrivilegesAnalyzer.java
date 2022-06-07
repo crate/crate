@@ -48,17 +48,14 @@ import java.util.Set;
  */
 class PrivilegesAnalyzer {
 
-    private final boolean userManagementEnabled;
     private final Schemas schemas;
     private static final String ERROR_MESSAGE = "GRANT/DENY/REVOKE Privileges on information_schema is not supported";
 
-    PrivilegesAnalyzer(boolean userManagementEnabled, Schemas schemas) {
-        this.userManagementEnabled = userManagementEnabled;
+    PrivilegesAnalyzer(Schemas schemas) {
         this.schemas = schemas;
     }
 
     AnalyzedPrivileges analyzeGrant(GrantPrivilege node, User user, SearchPath searchPath) {
-        ensureUserManagementEnabled();
         Privilege.Clazz clazz = Privilege.Clazz.valueOf(node.clazz());
         List<String> idents = validatePrivilegeIdents(clazz, node.privilegeIdents(), false, searchPath, schemas);
 
@@ -67,7 +64,6 @@ class PrivilegesAnalyzer {
     }
 
     AnalyzedPrivileges analyzeRevoke(RevokePrivilege node, User user, SearchPath searchPath) {
-        ensureUserManagementEnabled();
         Privilege.Clazz clazz = Privilege.Clazz.valueOf(node.clazz());
         List<String> idents = validatePrivilegeIdents(clazz, node.privilegeIdents(), true, searchPath, schemas);
 
@@ -76,18 +72,11 @@ class PrivilegesAnalyzer {
     }
 
     AnalyzedPrivileges analyzeDeny(DenyPrivilege node, User user, SearchPath searchPath) {
-        ensureUserManagementEnabled();
         Privilege.Clazz clazz = Privilege.Clazz.valueOf(node.clazz());
         List<String> idents = validatePrivilegeIdents(clazz, node.privilegeIdents(), false, searchPath, schemas);
 
         return new AnalyzedPrivileges(node.userNames(),
             privilegeTypesToPrivileges(getPrivilegeTypes(node.all(), node.privileges()), user, State.DENY, idents, clazz));
-    }
-
-    private void ensureUserManagementEnabled() {
-        if (!userManagementEnabled) {
-            throw new UnsupportedOperationException("User management is not enabled");
-        }
     }
 
     private static Collection<Privilege.Type> getPrivilegeTypes(boolean all, List<String> typeNames) {

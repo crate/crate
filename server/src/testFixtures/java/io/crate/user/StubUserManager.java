@@ -21,47 +21,53 @@
 
 package io.crate.user;
 
+import java.util.Collection;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+
+import javax.annotation.Nullable;
+
 import io.crate.action.sql.SessionContext;
 import io.crate.auth.AccessControl;
 import io.crate.exceptions.UnsupportedFeatureException;
 
-import javax.annotation.Nullable;
-import java.util.Collection;
-import java.util.concurrent.CompletableFuture;
-
 public class StubUserManager implements UserManager {
+
+    private final List<User> users = List.of(User.CRATE_USER);
 
     @Override
     public CompletableFuture<Long> createUser(String userName, @Nullable SecureHash hashedPw) {
-        return CompletableFuture.failedFuture(new UnsupportedFeatureException("CREATE USER is only supported in enterprise version"));
+        return CompletableFuture.failedFuture(new UnsupportedFeatureException("createUser is not implemented in StubUserManager"));
     }
 
     @Override
     public CompletableFuture<Long> dropUser(String userName, boolean suppressNotFoundError) {
-        return CompletableFuture.failedFuture(new UnsupportedFeatureException("DROP USER is only supported in enterprise version"));
+        return CompletableFuture.failedFuture(new UnsupportedFeatureException("dropUser is not implemented in StubUserManager"));
     }
 
     @Override
     public CompletableFuture<Long> alterUser(String userName, @Nullable SecureHash newHashedPw) {
-        return CompletableFuture.failedFuture(new UnsupportedFeatureException("ALTER USER is only supported in enterprise version"));
+        return CompletableFuture.failedFuture(new UnsupportedFeatureException("alterUser is not implemented in StubUserManager"));
     }
 
     @Override
     public CompletableFuture<Long> applyPrivileges(Collection<String> userNames, Collection<Privilege> privileges) {
-        return CompletableFuture.failedFuture(new UnsupportedFeatureException("GRANT or REVOKE privileges is only supported in enterprise version"));
+        return CompletableFuture.failedFuture(new UnsupportedFeatureException("applyPrivileges is not implemented in StubUserManager"));
     }
 
-    @Nullable
+    @Override
+    public User findUser(int userOid) {
+        return User.CRATE_USER;
+    }
+
     @Override
     public User findUser(String userName) {
-        // Without enterprise enabled everything runs as superuser
         return User.CRATE_USER;
     }
 
-    @Nullable
     @Override
-    public User findUser(Integer userOid) {
-        return User.CRATE_USER;
+    public Iterable<User> users() {
+        return users;
     }
 
     @Override

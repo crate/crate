@@ -195,7 +195,7 @@ public class Analyzer {
         this.decommissionNodeAnalyzer = new DecommissionNodeAnalyzer(nodeCtx);
         this.killAnalyzer = new KillAnalyzer(nodeCtx);
         this.alterTableRerouteAnalyzer = new AlterTableRerouteAnalyzer(nodeCtx, schemas);
-        this.privilegesAnalyzer = new PrivilegesAnalyzer(userManager.isEnabled(), schemas);
+        this.privilegesAnalyzer = new PrivilegesAnalyzer(schemas);
         this.copyAnalyzer = new CopyAnalyzer(schemas, nodeCtx);
         this.setStatementAnalyzer = new SetStatementAnalyzer(nodeCtx);
         this.resetStatementAnalyzer = new ResetStatementAnalyzer(nodeCtx);

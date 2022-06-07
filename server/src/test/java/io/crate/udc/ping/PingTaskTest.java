@@ -21,16 +21,13 @@
 
 package io.crate.udc.ping;
 
-import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.hasKey;
-import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 import org.hamcrest.Matchers;
 import org.junit.After;

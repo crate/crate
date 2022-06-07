@@ -21,8 +21,24 @@
 
 package io.crate.auth;
 
+import static io.crate.auth.HttpAuthUpstreamHandler.WWW_AUTHENTICATE_REALM_MESSAGE;
+import static org.hamcrest.core.Is.is;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.nio.charset.StandardCharsets;
+import java.security.cert.Certificate;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Locale;
+
+import javax.net.ssl.SSLSession;
+
 import org.apache.http.impl.conn.SystemDefaultDnsResolver;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESTestCase;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 import io.crate.user.User;
 import io.netty.buffer.Unpooled;
@@ -37,20 +53,6 @@ import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.ssl.util.SelfSignedCertificate;
-import org.elasticsearch.common.settings.Settings;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
-import javax.net.ssl.SSLSession;
-import java.nio.charset.StandardCharsets;
-import java.security.cert.Certificate;
-import java.util.EnumSet;
-import java.util.Locale;
-
-import static io.crate.auth.HttpAuthUpstreamHandler.WWW_AUTHENTICATE_REALM_MESSAGE;
-import static org.hamcrest.core.Is.is;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class HttpAuthUpstreamHandlerTest extends ESTestCase {
 
@@ -60,7 +62,7 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
         .build();
 
     // UserLookup always returns null, so there are no users (even no default crate superuser)
-    private final Authentication authService = new HostBasedAuthentication(hbaEnabled, userName -> null, SystemDefaultDnsResolver.INSTANCE);
+    private final Authentication authService = new HostBasedAuthentication(hbaEnabled, () -> List.of(), SystemDefaultDnsResolver.INSTANCE);
 
     private static void assertUnauthorized(DefaultFullHttpResponse resp, String expectedBody) {
         assertThat(resp.status(), is(HttpResponseStatus.UNAUTHORIZED));
@@ -120,7 +122,7 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
 
     @Test
     public void testAuthorized() throws Exception {
-        HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(Settings.EMPTY, new AlwaysOKAuthentication(userName -> User.CRATE_USER));
+        HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(Settings.EMPTY, new AlwaysOKAuthentication(() -> List.of(User.CRATE_USER)));
         EmbeddedChannel ch = new EmbeddedChannel(handler);
 
         DefaultHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
@@ -177,7 +179,7 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
     @Test
     public void testUserAuthenticationWithDisabledHBA() throws Exception {
         User crateUser = User.of("crate", EnumSet.of(User.Role.SUPERUSER));
-        Authentication authServiceNoHBA = new AlwaysOKAuthentication(userName -> crateUser);
+        Authentication authServiceNoHBA = new AlwaysOKAuthentication(() -> List.of(crateUser));
 
         HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(Settings.EMPTY, authServiceNoHBA);
         EmbeddedChannel ch = new EmbeddedChannel(handler);
@@ -192,7 +194,7 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
 
     @Test
     public void testUnauthorizedUserWithDisabledHBA() throws Exception {
-        Authentication authServiceNoHBA = new AlwaysOKAuthentication(userName -> null);
+        Authentication authServiceNoHBA = new AlwaysOKAuthentication(() -> List.of());
         HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(Settings.EMPTY, authServiceNoHBA);
         EmbeddedChannel ch = new EmbeddedChannel(handler);
 

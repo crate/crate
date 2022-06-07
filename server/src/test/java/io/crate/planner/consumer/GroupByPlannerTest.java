@@ -72,11 +72,6 @@ import io.crate.testing.SQLExecutor;
 import io.crate.testing.SymbolMatchers;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.DataTypes;
-import io.crate.types.DataTypes;
-import io.crate.types.DataTypes;
-import io.crate.types.DataTypes;
-import io.crate.types.DataTypes;
 
 public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
 

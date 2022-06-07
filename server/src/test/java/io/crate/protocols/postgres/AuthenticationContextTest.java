@@ -21,23 +21,25 @@
 
 package io.crate.protocols.postgres;
 
+import static org.hamcrest.core.Is.is;
+
+import java.net.InetAddress;
+import java.util.List;
+
+import org.apache.logging.log4j.LogManager;
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
+
 import io.crate.auth.AlwaysOKAuthentication;
 import io.crate.auth.Authentication;
 import io.crate.auth.AuthenticationMethod;
 import io.crate.auth.Protocol;
 import io.crate.user.User;
-import org.elasticsearch.test.ESTestCase;
-import org.apache.logging.log4j.LogManager;
-import org.junit.Test;
-
-import java.net.InetAddress;
-
-import static org.hamcrest.core.Is.is;
 
 
 public class AuthenticationContextTest extends ESTestCase {
 
-    private static final Authentication AUTHENTICATION = new AlwaysOKAuthentication(userName -> User.CRATE_USER);
+    private static final Authentication AUTHENTICATION = new AlwaysOKAuthentication(() -> List.of(User.CRATE_USER));
 
     @Test
     public void testAuthenticationContextCycle() throws Exception {
