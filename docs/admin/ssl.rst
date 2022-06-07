@@ -349,7 +349,7 @@ Now you can generate a signed cert from our certificate signing request.
 Command::
 
     openssl x509 -req -in server.csr -CA rootCA.crt -CAkey rootCA.key \
-        -CAcreateserial -out server.crt -sha256 -days 36500
+        -CAcreateserial -out server.crt -sha256 -days 36500 -extfile ssl.ext
 
 Output::
 
