@@ -121,14 +121,6 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void test_group_by_unknown_column() {
-        Assertions.assertThrows(IllegalArgumentException.class,
-                                () -> analyze("select max(age) from foo.users group by details_ignored['lol']"),
-                                "Cannot group or aggregate on 'details_ignored['lol']' with an undefined type." +
-                                " Using an explicit type cast will make this work but adds processing overhead to the query.");
-    }
-
-    @Test
     public void testGroupByScalarAliasedWithRealColumnNameFailsIfScalarColumnIsNotGrouped() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage(

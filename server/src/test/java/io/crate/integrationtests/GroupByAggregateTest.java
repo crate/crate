@@ -1393,4 +1393,27 @@ public class GroupByAggregateTest extends SQLIntegrationTestCase {
             "122021430M| Rue Penavayre| 122021430M| Pt(x=2.573608970269561,y=44.35006999410689)| Rodez\n"
         ));
     }
+
+    @Test
+    public void test_group_on_null_literal() {
+        execute("select null, count(*) from unnest([1, 2]) group by 1");
+        assertThat(TestingHelpers.printedTable(response.rows()), Is.is("NULL| 2\n"));
+
+        execute("SELECT nn, sum(x) from (SELECT NULL as nn, x from unnest([1]) tbl (x)) t GROUP BY nn");
+        assertThat(printedTable(response.rows()), is(
+            "NULL| 1\n"
+        ));
+    }
+
+    @Test
+    public void test_group_by_on_ignored_column() {
+        execute("create table tbl (o object (ignored))");
+        execute("insert into tbl (o) values ({x='foo'}), ({x=10})");
+        execute("refresh table tbl");
+        execute("select o['x'], count(*) from tbl group by o['x']");
+        assertThat(printedTable(response.rows()), Matchers.anyOf(
+            is("foo| 1\n10| 1\n"),
+            is("10| 1\nfoo| 1\n")
+        ));
+    }
 }
