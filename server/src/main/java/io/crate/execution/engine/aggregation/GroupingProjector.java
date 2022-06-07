@@ -33,7 +33,6 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.memory.MemoryManager;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
-import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
 
 import java.util.List;
@@ -102,8 +101,8 @@ public class GroupingProjector implements Projector {
 
     private static void ensureAllTypesSupported(Iterable<? extends Symbol> keys) {
         for (Symbol key : keys) {
-            DataType type = key.valueType();
-            if (type instanceof ArrayType || type.equals(DataTypes.UNDEFINED)) {
+            DataType<?> type = key.valueType();
+            if (type instanceof ArrayType) {
                 throw new UnsupportedOperationException("Cannot GROUP BY type: " + type);
             }
         }

@@ -64,5 +64,6 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
-None
-
+- Fixed an issue that caused queries operating on expressions with no defined
+  type to fail. Examples are queries with ``GROUP BY`` on an ignored object
+  column or ``UNION`` on ``NULL`` literals.
