@@ -28,6 +28,7 @@ import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.mapper.MapperService;
 
+
 /**
  * {@link PerFieldMappingPostingFormatCodec This postings format} is the default
  * {@link PostingsFormat} for Elasticsearch. It utilizes the
@@ -62,7 +63,7 @@ public class PerFieldMappingPostingFormatCodec extends Lucene92Codec {
 
     @Override
     public DocValuesFormat getDocValuesFormatForField(String field) {
-        return new CustomLucene90DocValuesFormat();
+        return new CustomLucene90DocValuesFormat(CustomLucene90DocValuesFormat.Mode.BEST_SPEED);
     }
 
 }

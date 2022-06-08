@@ -17,7 +17,6 @@
 
 package org.elasticsearch.index.codec;
 
-import static org.elasticsearch.index.codec.CustomLucene90DocValuesFormat.TERMS_DICT_BLOCK_LZ4_SHIFT;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -67,7 +66,8 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
     private int version = -1;
     private final boolean merging;
 
-    /** expert: instantiates a new reader */
+    /** expert: instantiates a new reader
+     * @param mode*/
     CustomLucene90DocValuesProducer(
             SegmentReadState state,
             String dataCodec,
@@ -279,12 +279,23 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
 
     private static void readTermDict(IndexInput meta, TermsDictEntry entry) throws IOException {
         entry.termsDictSize = meta.readVLong();
+        int termsDictBlockCode = meta.readInt();
+        if (CustomLucene90DocValuesFormat.TERMS_DICT_BLOCK_LZ4_CODE == termsDictBlockCode) {
+            // This is a LZ4 compressed block.
+            entry.compressed = true;
+            entry.termsDictBlockShift = CustomLucene90DocValuesFormat.TERMS_DICT_BLOCK_LZ4_SHIFT;
+        } else {
+            entry.termsDictBlockShift = termsDictBlockCode;
+        }
+
         final int blockShift = meta.readInt();
-        final long addressesSize = (entry.termsDictSize + (1L << TERMS_DICT_BLOCK_LZ4_SHIFT)
-                - 1) >>> TERMS_DICT_BLOCK_LZ4_SHIFT;
+        final long addressesSize =
+            (entry.termsDictSize + (1L << entry.termsDictBlockShift) - 1) >>> entry.termsDictBlockShift;
         entry.termsAddressesMeta = DirectMonotonicReader.loadMeta(meta, addressesSize, blockShift);
         entry.maxTermLength = meta.readInt();
-        entry.maxBlockLength = meta.readInt();
+        if (entry.compressed) {
+            entry.maxBlockLength = meta.readInt();
+        }
         entry.termsDataOffset = meta.readLong();
         entry.termsDataLength = meta.readLong();
         entry.termsAddressesOffset = meta.readLong();
@@ -356,6 +367,7 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
 
     private static class TermsDictEntry {
         long termsDictSize;
+        int termsDictBlockShift;
         DirectMonotonicReader.Meta termsAddressesMeta;
         int maxTermLength;
         long termsDataOffset;
@@ -369,6 +381,7 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
         long termsIndexAddressesOffset;
         long termsIndexAddressesLength;
 
+        boolean compressed;
         int maxBlockLength;
     }
 
@@ -1055,7 +1068,7 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
                     entry.termsAddressesLength);
             blockAddresses = DirectMonotonicReader.getInstance(entry.termsAddressesMeta, addressesSlice, merging);
             bytes = data.slice("terms", entry.termsDataOffset, entry.termsDataLength);
-            blockMask = (1L << TERMS_DICT_BLOCK_LZ4_SHIFT) - 1;
+            blockMask = (1L << entry.termsDictBlockShift) - 1;
             RandomAccessInput indexAddressesSlice = data.randomAccessSlice(entry.termsIndexAddressesOffset,
                     entry.termsIndexAddressesLength);
             indexAddresses = DirectMonotonicReader.getInstance(
@@ -1063,10 +1076,12 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
             indexBytes = data.slice("terms-index", entry.termsIndexOffset, entry.termsIndexLength);
             term = new BytesRef(entry.maxTermLength);
 
-            // add the max term length for the dictionary
-            // add 7 padding bytes can help decompression run faster.
-            int bufferSize = entry.maxBlockLength + entry.maxTermLength + LZ4_DECOMPRESSOR_PADDING;
-            blockBuffer = new BytesRef(new byte[bufferSize], 0, bufferSize);
+            if (entry.compressed) {
+                // add the max term length for the dictionary
+                // add 7 padding bytes can help decompression run faster.
+                int bufferSize = entry.maxBlockLength + entry.maxTermLength + LZ4_DECOMPRESSOR_PADDING;
+                blockBuffer = new BytesRef(new byte[bufferSize], 0, bufferSize);
+            }
         }
 
         @Override
@@ -1076,9 +1091,14 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
             }
 
             if ((ord & blockMask) == 0L) {
-                decompressBlock();
+                if (entry.compressed) {
+                    decompressBlock();
+                } else {
+                    term.length = bytes.readVInt();
+                    bytes.readBytes(term.bytes, 0, term.length);
+                }
             } else {
-                DataInput input = blockInput;
+                DataInput input = this.entry.compressed ? blockInput : bytes;
                 final int token = Byte.toUnsignedInt(input.readByte());
                 int prefixLength = token & 0x0F;
                 int suffixLength = 1 + (token >>> 4);
@@ -1100,14 +1120,14 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
                 throw new IndexOutOfBoundsException();
             }
             // Signed shift since ord is -1 when the terms enum is not positioned
-            final long currentBlockIndex = this.ord >> TERMS_DICT_BLOCK_LZ4_SHIFT;
-            final long blockIndex = ord >> TERMS_DICT_BLOCK_LZ4_SHIFT;
+            final long currentBlockIndex = this.ord >> entry.termsDictBlockShift;
+            final long blockIndex = ord >> entry.termsDictBlockShift;
             if (ord < this.ord || blockIndex != currentBlockIndex) {
                 // The looked up ord is before the current ord or belongs to a different block,
                 // seek again
                 final long blockAddress = blockAddresses.get(blockIndex);
                 bytes.seek(blockAddress);
-                this.ord = (blockIndex << TERMS_DICT_BLOCK_LZ4_SHIFT) - 1;
+                this.ord = (blockIndex << entry.termsDictBlockShift) - 1;
             }
             // Scan to the looked up ord
             while (this.ord < ord) {
@@ -1146,7 +1166,7 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
         }
 
         private BytesRef getFirstTermFromBlock(long block) throws IOException {
-            assert block >= 0 && block <= (entry.termsDictSize - 1) >>> TERMS_DICT_BLOCK_LZ4_SHIFT;
+            assert block >= 0 && block <= (entry.termsDictSize - 1) >>> entry.termsDictBlockShift;
             final long blockAddress = blockAddresses.get(block);
             bytes.seek(blockAddress);
             term.length = bytes.readVInt();
@@ -1163,8 +1183,8 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
             long ordLo = index << entry.termsDictIndexShift;
             long ordHi = Math.min(entry.termsDictSize, ordLo + (1L << entry.termsDictIndexShift)) - 1L;
 
-            long blockLo = ordLo >>> TERMS_DICT_BLOCK_LZ4_SHIFT;
-            long blockHi = ordHi >>> TERMS_DICT_BLOCK_LZ4_SHIFT;
+            long blockLo = ordLo >>> entry.termsDictBlockShift;
+            long blockHi = ordHi >>> entry.termsDictBlockShift;
 
             while (blockLo <= blockHi) {
                 final long blockMid = (blockLo + blockHi) >>> 1;
@@ -1178,7 +1198,7 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
             }
 
             assert blockHi < 0 || getFirstTermFromBlock(blockHi).compareTo(text) <= 0;
-            assert blockHi == ((entry.termsDictSize - 1) >>> TERMS_DICT_BLOCK_LZ4_SHIFT)
+            assert blockHi == ((entry.termsDictSize - 1) >>> entry.termsDictBlockShift)
                     || getFirstTermFromBlock(blockHi + 1).compareTo(text) > 0;
 
             return blockHi;
@@ -1198,9 +1218,14 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
                 }
             }
             final long blockAddress = blockAddresses.get(block);
-            this.ord = block << TERMS_DICT_BLOCK_LZ4_SHIFT;
+            this.ord = block << entry.termsDictBlockShift;
             bytes.seek(blockAddress);
-            decompressBlock();
+            if (entry.compressed) {
+                decompressBlock();
+            } else {
+                term.length = bytes.readVInt();
+                bytes.readBytes(term.bytes, 0, term.length);
+            }
 
             while (true) {
                 int cmp = term.compareTo(text);
