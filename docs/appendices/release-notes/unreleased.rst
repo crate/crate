@@ -74,6 +74,9 @@ None
 Changes
 =======
 
+- Added support for ``LIMIT NULL``, ``LIMIT ALL``, ``OFFSET NULL``,
+  ``OFFSET 10 ROW`` and ``OFFSET 10 ROWS``.
+
 - Added support for using ``NULL`` literals in a ``UNION`` without requiring an
   explicit cast.
 

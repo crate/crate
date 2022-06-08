@@ -929,7 +929,13 @@ public class TestStatementBuilder {
                     " from t1, t2 where t1.a='a' or t2.b='aa') as t)" +
             " as tt order by iiy");
         printStatement("select extract(day from x) from y");
+        printStatement("select * from foo order by 1, 2 limit all offset ?");
+        printStatement("select * from foo order by 1, 2 limit null offset ?");
         printStatement("select * from foo order by 1, 2 limit 1 offset ?");
+        printStatement("select * from foo order by 1, 2 limit 1 offset ? row");
+        printStatement("select * from foo order by 1, 2 limit 1 offset null row");
+        printStatement("select * from foo order by 1, 2 limit all offset ? rows");
+        printStatement("select * from foo order by 1, 2 limit all offset null rows");
         printStatement("select * from foo a (x, y, z)");
         printStatement("select *, 123, * from foo");
         printStatement("select show from foo");
@@ -959,7 +965,15 @@ public class TestStatementBuilder {
         printStatement("select \"TOTALPRICE\" \"my price\" from \"orders\"");
 
         printStatement("select * from foo limit 100 offset 20");
+        printStatement("select * from foo limit null offset 20");
+        printStatement("select * from foo limit all offset 20 row");
+        printStatement("select * from foo limit 100 offset 20 rows");
         printStatement("select * from foo offset 20");
+        printStatement("select * from foo offset null");
+        printStatement("select * from foo offset 20 row");
+        printStatement("select * from foo offset null row");
+        printStatement("select * from foo offset 20 rows");
+        printStatement("select * from foo offset null rows");
 
         printStatement("select * from t where 'value' LIKE ANY (col)");
         printStatement("select * from t where 'value' NOT LIKE ANY (col)");
@@ -1160,11 +1174,17 @@ public class TestStatementBuilder {
         // insert from query
         printStatement("insert into foo (id, name) select id, name from bar order by id");
         printStatement("insert into foo (id, name) select * from bar limit 3 offset 10");
+        printStatement("insert into foo (id, name) select * from bar limit null offset 10");
+        printStatement("insert into foo (id, name) select * from bar limit all offset 10 row");
+        printStatement("insert into foo (id, name) select * from bar limit 3 offset 10 rows");
         printStatement("insert into foo (wealth, name) select sum(money), name from bar group by name");
         printStatement("insert into foo select sum(money), name from bar group by name");
 
         printStatement("insert into foo (id, name) (select id, name from bar order by id)");
-        printStatement("insert into foo (id, name) (select * from bar limit 3 offset 10)");
+        printStatement("insert into foo (id, name) (select * from bar limit all offset 10)");
+        printStatement("insert into foo (id, name) (select * from bar limit 3 offset 10 row)");
+        printStatement("insert into foo (id, name) (select * from bar limit 3 offset 10 rows)");
+        printStatement("insert into foo (id, name) (select * from bar limit 3 offset null rows)");
         printStatement("insert into foo (wealth, name) (select sum(money), name from bar group by name)");
         printStatement("insert into foo (select sum(money), name from bar group by name)");
     }
@@ -1181,6 +1201,8 @@ public class TestStatementBuilder {
     public void testParameterExpressionLimitOffset() {
         // ORMs like SQLAlchemy generate these kind of queries.
         printStatement("select * from foo limit ? offset ?");
+        printStatement("select * from foo limit ? offset ? row");
+        printStatement("select * from foo limit ? offset ? rows");
     }
 
     @Test
