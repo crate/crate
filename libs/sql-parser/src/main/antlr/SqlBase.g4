@@ -134,8 +134,8 @@ query
 queryNoWith
     : queryTerm
       (ORDER BY sortItem (',' sortItem)*)?
-      (LIMIT limit=parameterOrInteger)?
-      (OFFSET offset=parameterOrInteger)?
+      (LIMIT (limit=parameterOrInteger | ALL))?
+      (OFFSET offset=parameterOrInteger (ROW | ROWS)?)?
     ;
 
 queryTerm
@@ -339,6 +339,7 @@ parameterOrSimpleLiteral
 parameterOrInteger
     : parameterExpr
     | integerLiteral
+    | nullLiteral
     ;
 
 parameterOrIdent
