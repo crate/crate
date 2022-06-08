@@ -22,20 +22,36 @@ import java.io.IOException;
 import org.apache.lucene.codecs.DocValuesConsumer;
 import org.apache.lucene.codecs.DocValuesFormat;
 import org.apache.lucene.codecs.DocValuesProducer;
+import org.apache.lucene.codecs.lucene90.Lucene90DocValuesFormat;
 import org.apache.lucene.index.SegmentReadState;
 import org.apache.lucene.index.SegmentWriteState;
 
+/**
+ * Copy of {@link Lucene90DocValuesFormat} that adds a configuration option for termsDict compression.
+ */
 public final class CustomLucene90DocValuesFormat extends DocValuesFormat {
+
+    enum Mode {
+        BEST_SPEED,
+        BEST_COMPRESSION
+    }
+
+    private final Mode mode;
 
     /** Default constructor. */
     public CustomLucene90DocValuesFormat() {
-        super("Lucene90");
+        this(Mode.BEST_SPEED);
+    }
+
+    public CustomLucene90DocValuesFormat(Mode mode) {
+        super("CrateDBLucene90");
+        this.mode = mode;
     }
 
     @Override
     public DocValuesConsumer fieldsConsumer(SegmentWriteState state) throws IOException {
         return new CustomLucene90DocValuesConsumer(
-                state, DATA_CODEC, DATA_EXTENSION, META_CODEC, META_EXTENSION);
+                state, DATA_CODEC, DATA_EXTENSION, META_CODEC, META_EXTENSION, mode);
     }
 
     @Override
@@ -63,6 +79,12 @@ public final class CustomLucene90DocValuesFormat extends DocValuesFormat {
     static final int NUMERIC_BLOCK_SHIFT = 14;
     static final int NUMERIC_BLOCK_SIZE = 1 << NUMERIC_BLOCK_SHIFT;
 
+    static final int TERMS_DICT_BLOCK_SHIFT = 4;
+    static final int TERMS_DICT_BLOCK_SIZE = 1 << TERMS_DICT_BLOCK_SHIFT;
+    static final int TERMS_DICT_BLOCK_MASK = TERMS_DICT_BLOCK_SIZE - 1;
+
+    static final int TERMS_DICT_BLOCK_COMPRESSION_THRESHOLD = 32;
+
     static final int TERMS_DICT_BLOCK_LZ4_SHIFT = 6;
     static final int TERMS_DICT_BLOCK_LZ4_SIZE = 1 << TERMS_DICT_BLOCK_LZ4_SHIFT;
     static final int TERMS_DICT_BLOCK_LZ4_MASK = TERMS_DICT_BLOCK_LZ4_SIZE - 1;
@@ -70,4 +92,9 @@ public final class CustomLucene90DocValuesFormat extends DocValuesFormat {
     static final int TERMS_DICT_REVERSE_INDEX_SHIFT = 10;
     static final int TERMS_DICT_REVERSE_INDEX_SIZE = 1 << TERMS_DICT_REVERSE_INDEX_SHIFT;
     static final int TERMS_DICT_REVERSE_INDEX_MASK = TERMS_DICT_REVERSE_INDEX_SIZE - 1;
+    static final int TERMS_DICT_COMPRESSOR_LZ4_CODE = 1;
+    // Writing a special code so we know this is a LZ4-compressed block.
+    static final int TERMS_DICT_BLOCK_LZ4_CODE =
+        TERMS_DICT_BLOCK_LZ4_SHIFT << 16 | TERMS_DICT_COMPRESSOR_LZ4_CODE;
+
 }
