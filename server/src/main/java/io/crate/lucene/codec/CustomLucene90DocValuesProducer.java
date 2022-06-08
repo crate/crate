@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.elasticsearch.index.codec;
+package io.crate.lucene.codec;
 
 
 import java.io.IOException;

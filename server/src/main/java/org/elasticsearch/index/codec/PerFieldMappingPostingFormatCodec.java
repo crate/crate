@@ -28,6 +28,8 @@ import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.mapper.MapperService;
 
+import io.crate.lucene.codec.CustomLucene90DocValuesFormat;
+
 
 /**
  * {@link PerFieldMappingPostingFormatCodec This postings format} is the default

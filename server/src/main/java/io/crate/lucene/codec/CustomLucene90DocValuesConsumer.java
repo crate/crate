@@ -15,11 +15,11 @@
  * limitations under the License.
  */
 
-package org.elasticsearch.index.codec;
+package io.crate.lucene.codec;
 
-import static org.elasticsearch.index.codec.CustomLucene90DocValuesFormat.DIRECT_MONOTONIC_BLOCK_SHIFT;
-import static org.elasticsearch.index.codec.CustomLucene90DocValuesFormat.NUMERIC_BLOCK_SHIFT;
-import static org.elasticsearch.index.codec.CustomLucene90DocValuesFormat.NUMERIC_BLOCK_SIZE;
+import static io.crate.lucene.codec.CustomLucene90DocValuesFormat.DIRECT_MONOTONIC_BLOCK_SHIFT;
+import static io.crate.lucene.codec.CustomLucene90DocValuesFormat.NUMERIC_BLOCK_SHIFT;
+import static io.crate.lucene.codec.CustomLucene90DocValuesFormat.NUMERIC_BLOCK_SIZE;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -61,7 +61,8 @@ import org.apache.lucene.util.StringHelper;
 import org.apache.lucene.util.compress.LZ4;
 import org.apache.lucene.util.packed.DirectMonotonicWriter;
 import org.apache.lucene.util.packed.DirectWriter;
-import org.elasticsearch.index.codec.CustomLucene90DocValuesFormat.Mode;
+
+import io.crate.lucene.codec.CustomLucene90DocValuesFormat.Mode;
 
 /** writer for {@link Lucene90DocValuesFormat} */
 final class CustomLucene90DocValuesConsumer extends DocValuesConsumer {

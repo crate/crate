@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.elasticsearch.index.codec;
+package io.crate.lucene.codec;
 
 import java.io.IOException;
 
@@ -31,7 +31,7 @@ import org.apache.lucene.index.SegmentWriteState;
  */
 public final class CustomLucene90DocValuesFormat extends DocValuesFormat {
 
-    enum Mode {
+    public enum Mode {
         BEST_SPEED,
         BEST_COMPRESSION
     }
