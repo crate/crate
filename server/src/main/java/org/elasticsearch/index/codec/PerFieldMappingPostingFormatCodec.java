@@ -23,7 +23,6 @@ import org.apache.logging.log4j.Logger;
 import org.apache.lucene.codecs.Codec;
 import org.apache.lucene.codecs.DocValuesFormat;
 import org.apache.lucene.codecs.PostingsFormat;
-import org.apache.lucene.codecs.lucene90.Lucene90DocValuesFormat;
 import org.apache.lucene.codecs.lucene92.Lucene92Codec;
 import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.index.mapper.MappedFieldType;
@@ -63,7 +62,7 @@ public class PerFieldMappingPostingFormatCodec extends Lucene92Codec {
 
     @Override
     public DocValuesFormat getDocValuesFormatForField(String field) {
-        return new Lucene90DocValuesFormat();
+        return new CustomLucene90DocValuesFormat();
     }
 
 }
