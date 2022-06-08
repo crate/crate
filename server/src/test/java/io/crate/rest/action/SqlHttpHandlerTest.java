@@ -33,7 +33,6 @@ import static org.mockito.Mockito.when;
 
 import java.util.List;
 
-import javax.annotation.Nullable;
 
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.settings.Settings;
@@ -46,7 +45,6 @@ import io.crate.action.sql.SessionContext;
 import io.crate.auth.AccessControl;
 import io.crate.auth.AuthSettings;
 import io.crate.user.User;
-import io.crate.user.UserLookup;
 import io.netty.handler.codec.http.DefaultHttpHeaders;
 import io.netty.handler.codec.http.FullHttpRequest;
 
