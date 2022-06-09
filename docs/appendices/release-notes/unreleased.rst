@@ -116,6 +116,10 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Fixed an issue that caused NPE to be thrown, instead of a user-friendly error
+  message when ``NULL`` is passed as shardId for the
+  ``ALTER TABLE XXX REROUTE XXX`` statements (MOVE, ALLOCATE, PROMOTE, CANCEL).
+
 - Fixed an issue that caused queries operating on expressions with no defined
   type to fail. Examples are queries with ``GROUP BY`` on an ignored object
   column or ``UNION`` on ``NULL`` literals.
