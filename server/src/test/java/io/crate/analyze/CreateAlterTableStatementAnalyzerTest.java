@@ -75,6 +75,7 @@ import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.ANALYZER;
 import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.TestingHelpers.mapToSortedString;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_ROUTING_EXCLUDE_GROUP_SETTING;
+import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.is;
@@ -717,6 +718,16 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     }
 
     @Test
+    public void testClusteredIntoNullShards() {
+        // If number of shards is null, use default setting
+        BoundCreateTable analysis = analyze(
+            "create table t (id int primary key) clustered into ? shards", (String) null);
+        assertThat(Integer.parseInt(
+                       analysis.tableParameter().settings().get(IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.getKey())),
+                   is(greaterThan(0)));
+    }
+
+    @Test
     public void testBlobTableClusteredIntoZeroShards() {
         AnalyzedCreateBlobTable blobTable = analyze("create blob table my_table clustered into 0 shards");
 
@@ -730,6 +741,23 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
             SubQueryResults.EMPTY,
             new NumberOfShards(clusterService));
 
+    }
+
+    @Test
+    public void testBlobTableClusteredIntoNullShards() {
+        // If number of shards is null, use default setting
+        AnalyzedCreateBlobTable blobTable = analyze("create blob table my_table clustered into ? shards", (String) null);
+
+        Settings settings = CreateBlobTablePlan.buildSettings(
+            blobTable.createBlobTable(),
+            plannerContext.transactionContext(),
+            plannerContext.nodeContext(),
+            new RowN(new Object[1]),
+            SubQueryResults.EMPTY,
+            new NumberOfShards(clusterService));
+
+        assertThat(Integer.parseInt(settings.get(IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.getKey())),
+                   is(greaterThan(0)));
     }
 
     @Test
