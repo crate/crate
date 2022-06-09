@@ -140,6 +140,7 @@ public class AlterTableReroutePlan implements Plan {
         public AllocationCommand visitReroutePromoteReplica(AnalyzedPromoteReplica statement,
                                                             Context context) {
             var boundedPromoteReplica = statement.promoteReplica().map(context.eval);
+            validateShardId(boundedPromoteReplica.shardId());
 
             String index = getRerouteIndex(
                 statement.shardedTable(),
@@ -161,6 +162,7 @@ public class AlterTableReroutePlan implements Plan {
         protected AllocationCommand visitRerouteMoveShard(AnalyzedRerouteMoveShard statement,
                                                           Context context) {
             var boundedMoveShard = statement.rerouteMoveShard().map(context.eval);
+            validateShardId(boundedMoveShard.shardId());
 
             String index = getRerouteIndex(
                 statement.shardedTable(),
@@ -183,6 +185,7 @@ public class AlterTableReroutePlan implements Plan {
             var boundedRerouteAllocateReplicaShard = statement
                 .rerouteAllocateReplicaShard()
                 .map(context.eval);
+            validateShardId(boundedRerouteAllocateReplicaShard.shardId());
 
             String index = getRerouteIndex(
                 statement.shardedTable(),
@@ -204,6 +207,7 @@ public class AlterTableReroutePlan implements Plan {
             var boundedRerouteCancelShard = statement
                 .rerouteCancelShard()
                 .map(context.eval);
+            validateShardId(boundedRerouteCancelShard.shardId());
 
             boolean allowPrimary = validateCancelRerouteProperty(
                 "allow_primary", boundedRerouteCancelShard.properties());
@@ -257,6 +261,12 @@ public class AlterTableReroutePlan implements Plan {
                 }
             }
             return false;
+        }
+
+        private void validateShardId(Object shardId) {
+            if (shardId == null) {
+                throw new IllegalArgumentException("Shard Id cannot be [null]");
+            }
         }
     }
 }
