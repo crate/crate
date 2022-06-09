@@ -30,7 +30,7 @@ import java.io.IOException;
 public class CreateTableAsAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
-    public void testSimpleCompareaAgainstAnalyzedCreateTable() throws IOException {
+    public void testSimpleCompareAgainstAnalyzedCreateTable() throws IOException {
 
         SQLExecutor e = SQLExecutor.builder(clusterService)
             .addTable(
