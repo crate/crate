@@ -26,10 +26,10 @@ import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.IntervalLiteral;
 import org.junit.Test;
 
+import static io.crate.sql.testing.Asserts.assertThrowsMatches;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class IntervalLiteralTest {
 
@@ -107,22 +107,25 @@ public class IntervalLiteralTest {
 
     @Test
     public void testSecondToHour() {
-        assertThrows(IllegalArgumentException.class,
-                     () -> SqlParser.createExpression("INTERVAL '1' SECOND TO HOUR"),
-                     "Startfield must be less significant than Endfield");
+        assertThrowsMatches(
+            () -> SqlParser.createExpression("INTERVAL '1' SECOND TO HOUR"),
+            IllegalArgumentException.class,
+            "Startfield must be less significant than Endfield");
     }
 
     @Test
     public void testSecondToYear() {
-        assertThrows(IllegalArgumentException.class,
-                     () -> SqlParser.createExpression("INTERVAL '1' SECOND TO YEAR"),
-                     "Startfield must be less significant than Endfield");
+        assertThrowsMatches(
+            () -> SqlParser.createExpression("INTERVAL '1' SECOND TO YEAR"),
+            IllegalArgumentException.class,
+            "Startfield must be less significant than Endfield");
     }
 
     @Test
     public void testDayToYear() {
-        assertThrows(IllegalArgumentException.class,
-                     () -> SqlParser.createExpression("INTERVAL '1' DAY TO YEAR"),
-                     "Startfield must be less significant than Endfield");
+        assertThrowsMatches(
+            () -> SqlParser.createExpression("INTERVAL '1' DAY TO YEAR"),
+            IllegalArgumentException.class,
+            "Startfield must be less significant than Endfield");
     }
 }
