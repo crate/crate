@@ -74,6 +74,10 @@ None
 Changes
 =======
 
+- Allowed ``LIMIT`` and ``OFFSET`` clauses to be declared in any order, i.e.:
+  ``SELECT * FROM t LIMIT 10 OFFSET 5`` or
+  ``SELECT * FROM t OFFSET 5 LIMIT 10``.
+
 - Added support for ``LIMIT NULL``, ``LIMIT ALL``, ``OFFSET NULL``,
   ``OFFSET 10 ROW`` and ``OFFSET 10 ROWS``.
 

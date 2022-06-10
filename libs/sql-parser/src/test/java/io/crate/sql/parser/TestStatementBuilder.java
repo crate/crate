@@ -950,6 +950,8 @@ public class TestStatementBuilder {
         printStatement("select * from foo order by 1, 2 limit 1 offset null row");
         printStatement("select * from foo order by 1, 2 limit all offset ? rows");
         printStatement("select * from foo order by 1, 2 limit all offset null rows");
+        printStatement("select * from foo order by 1, 2 offset 10 rows limit all");
+        printStatement("select * from foo order by 1, 2 offset 10 limit 5");
         printStatement("select * from foo a (x, y, z)");
         printStatement("select *, 123, * from foo");
         printStatement("select show from foo");

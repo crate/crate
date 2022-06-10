@@ -134,8 +134,15 @@ query
 queryNoWith
     : queryTerm
       (ORDER BY sortItem (',' sortItem)*)?
-      (LIMIT (limit=parameterOrInteger | ALL))?
-      (OFFSET offset=parameterOrInteger (ROW | ROWS)?)?
+      (limitClause? offsetClause? | offsetClause? limitClause?)?
+    ;
+
+limitClause
+    : LIMIT (limit=parameterOrInteger | ALL)
+    ;
+
+offsetClause
+    : OFFSET offset=parameterOrInteger (ROW | ROWS)?
     ;
 
 queryTerm
