@@ -33,6 +33,7 @@ import javax.annotation.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
+import io.crate.metadata.settings.SessionSettings;
 import io.crate.sql.tree.ColumnDefinition;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.ColumnType;
@@ -131,7 +132,7 @@ public class CharacterType extends StringType {
     }
 
     @Override
-    public String explicitCast(Object value) throws IllegalArgumentException, ClassCastException {
+    public String explicitCast(Object value, SessionSettings sessionSettings) throws IllegalArgumentException, ClassCastException {
         if (value == null) {
             return null;
         }

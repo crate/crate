@@ -21,6 +21,11 @@
 
 package io.crate.expression.scalar.string;
 
+import java.util.HashSet;
+import java.util.List;
+import java.util.function.BiFunction;
+
+import io.crate.common.StringUtils;
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.symbol.Symbol;
@@ -31,10 +36,6 @@ import io.crate.metadata.functions.Signature;
 import io.crate.sql.tree.TrimMode;
 import io.crate.types.DataTypes;
 import io.crate.user.UserLookup;
-
-import java.util.HashSet;
-import java.util.List;
-import java.util.function.BiFunction;
 
 
 public final class TrimFunctions {
@@ -222,19 +223,7 @@ public final class TrimFunctions {
             if (target == null) {
                 return null;
             }
-
-            int start = 0;
-            int len = target.length();
-
-            while (start < len && target.charAt(start) == charToTrim) {
-                start++;
-            }
-
-            while (start < len && target.charAt(len - 1) == charToTrim) {
-                len--;
-            }
-
-            return target.substring(start, len);
+            return StringUtils.trim(target, charToTrim);
         }
     }
 

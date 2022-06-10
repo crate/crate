@@ -30,11 +30,15 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
+import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.settings.SessionSettings;
 import io.crate.sql.tree.BitString;
 import io.crate.testing.Asserts;
 import io.crate.testing.DataTypeTesting;
 
 public class BitStringTypeTest extends ESTestCase {
+
+    private static final SessionSettings SESSION_SETTINGS = CoordinatorTxnCtx.systemTransactionContext().sessionSettings();
 
     @Test
     public void test_value_streaming_roundtrip() throws Exception {
@@ -61,14 +65,14 @@ public class BitStringTypeTest extends ESTestCase {
     @Test
     public void test_explicit_cast_can_trim_bitstring() throws Exception {
         BitStringType type = new BitStringType(3);
-        BitString result = type.explicitCast(BitString.ofRawBits("1111"));
+        BitString result = type.explicitCast(BitString.ofRawBits("1111"), SESSION_SETTINGS);
         assertThat(result, is(BitString.ofRawBits("111")));
     }
 
     @Test
     public void test_explicit_cast_can_extend_bitstring() throws Exception {
         BitStringType type = new BitStringType(4);
-        BitString result = type.explicitCast(BitString.ofRawBits("111"));
+        BitString result = type.explicitCast(BitString.ofRawBits("111"), SESSION_SETTINGS);
         assertThat(result, is(BitString.ofRawBits("1110")));
     }
 }

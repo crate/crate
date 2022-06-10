@@ -29,11 +29,14 @@ import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 
+import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.settings.SessionSettings;
+
 public class JsonTypeTest {
 
     @Test
     public void test_can_cast_object_to_json_string() throws Exception {
-        String result = JsonType.INSTANCE.explicitCast(Map.of("x", 200));
+        String result = JsonType.INSTANCE.explicitCast(Map.of("x", 200), CoordinatorTxnCtx.systemTransactionContext().sessionSettings());
         assertThat(result, is("{\"x\":200}"));
     }
 }

@@ -21,17 +21,22 @@
 
 package io.crate.types;
 
-import org.elasticsearch.test.ESTestCase;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.junit.Test;
+import static org.hamcrest.CoreMatchers.is;
 
 import java.io.IOException;
 import java.util.List;
 
-import static org.hamcrest.CoreMatchers.is;
+import org.elasticsearch.Version;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
+
+import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.settings.SessionSettings;
 
 public class StringTypeTest extends ESTestCase {
+
+    private static final SessionSettings SESSION_SETTINGS = CoordinatorTxnCtx.systemTransactionContext().sessionSettings();
 
     @Test
     public void test_implicit_cast_boolean_to_text() {
@@ -60,25 +65,25 @@ public class StringTypeTest extends ESTestCase {
 
     @Test
     public void test_explicit_cast_text_with_length_truncates_exceeding_length_chars() {
-        assertThat(StringType.of(1).explicitCast("abcde"), is("a"));
-        assertThat(StringType.of(2).explicitCast("a    "), is("a "));
+        assertThat(StringType.of(1).explicitCast("abcde", SESSION_SETTINGS), is("a"));
+        assertThat(StringType.of(2).explicitCast("a    ", SESSION_SETTINGS), is("a "));
     }
 
     @Test
     public void test_explicit_cast_text_with_length_on_literals_of_length_lte_length() {
-        assertThat(StringType.of(5).explicitCast("abc"), is("abc"));
-        assertThat(StringType.of(1).explicitCast("a"), is("a"));
+        assertThat(StringType.of(5).explicitCast("abc", SESSION_SETTINGS), is("abc"));
+        assertThat(StringType.of(1).explicitCast("a", SESSION_SETTINGS), is("a"));
     }
 
     @Test
     public void test_explicit_cast_text_without_length() {
-        assertThat(StringType.INSTANCE.explicitCast("abc"), is("abc"));
+        assertThat(StringType.INSTANCE.explicitCast("abc", SESSION_SETTINGS), is("abc"));
     }
 
     @Test
     public void test_explicit_cast_text_without_length_on_literals_of_length_lte_length() {
-        assertThat(StringType.INSTANCE.explicitCast("abc"), is("abc"));
-        assertThat(StringType.INSTANCE.explicitCast("a"), is("a"));
+        assertThat(StringType.INSTANCE.explicitCast("abc", SESSION_SETTINGS), is("abc"));
+        assertThat(StringType.INSTANCE.explicitCast("a", SESSION_SETTINGS), is("a"));
     }
 
     @Test
