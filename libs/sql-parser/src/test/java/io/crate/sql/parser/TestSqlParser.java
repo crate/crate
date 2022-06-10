@@ -327,14 +327,6 @@ public class TestSqlParser {
     }
 
     @Test
-    public void testParseErrorReverseLimitOffset() {
-        assertThrowsMatches(
-            () -> SqlParser.createStatement("select fuu from dual offset 20 limit 10"),
-            ParsingException.class,
-            "line 1:32: mismatched input 'limit' expecting {<EOF>, ';'}");
-    }
-
-    @Test
     public void testParsingExceptionPositionInfo() {
         try {
             SqlParser.createStatement("select *\nfrom x\nwhere from");

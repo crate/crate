@@ -1248,8 +1248,8 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
                     query.getHaving(),
                     query.getWindows(),
                     visitCollection(context.sortItem(), SortItem.class),
-                    visitIfPresent(context.limit, Expression.class),
-                    visitIfPresent(context.offset, Expression.class)),
+                    visitIfPresent(context.limitClause(), Expression.class),
+                    visitIfPresent(context.offsetClause(), Expression.class)),
                 List.of(),
                 Optional.empty(),
                 Optional.empty());
@@ -1258,8 +1258,18 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
             Optional.empty(),
             term,
             visitCollection(context.sortItem(), SortItem.class),
-            visitIfPresent(context.limit, Expression.class),
-            visitIfPresent(context.offset, Expression.class));
+            visitIfPresent(context.limitClause(), Expression.class),
+            visitIfPresent(context.offsetClause(), Expression.class));
+    }
+
+    @Override
+    public Node visitLimitClause(SqlBaseParser.LimitClauseContext ctx) {
+        return ctx.limit != null ? visit(ctx.limit) : null;
+    }
+
+    @Override
+    public Node visitOffsetClause(SqlBaseParser.OffsetClauseContext ctx) {
+        return ctx.offset != null ? visit(ctx.offset) : null;
     }
 
     @Override
