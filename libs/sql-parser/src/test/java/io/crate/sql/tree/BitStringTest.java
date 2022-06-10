@@ -22,6 +22,7 @@
 
 package io.crate.sql.tree;
 
+import static io.crate.sql.testing.Asserts.assertThrowsMatches;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
@@ -35,8 +36,8 @@ import com.pholser.junit.quickcheck.random.SourceOfRandomness;
 import com.pholser.junit.quickcheck.runner.JUnitQuickcheck;
 
 import org.junit.Test;
-import org.junit.jupiter.api.Assertions;
 import org.junit.runner.RunWith;
+
 
 @RunWith(JUnitQuickcheck.class)
 public class BitStringTest {
@@ -69,7 +70,10 @@ public class BitStringTest {
 
     @Test
     public void test_bit_string_cannot_contain_values_other_than_zeros_or_ones() {
-        Assertions.assertThrows(IllegalArgumentException.class, () -> BitString.ofRawBits("0021💀"));
+        assertThrowsMatches(
+            () -> BitString.ofRawBits("0021💀"),
+            IllegalArgumentException.class,
+            "Bit string must only contain `0` or `1` values. Encountered: 2");
     }
 
     @Test
