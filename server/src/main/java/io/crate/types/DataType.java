@@ -34,6 +34,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 
 import io.crate.Streamer;
+import io.crate.metadata.settings.SessionSettings;
 import io.crate.sql.tree.ColumnDefinition;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.ColumnType;
@@ -119,9 +120,10 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
      * a data type subclass.
      *
      * @param value The value to cast to the target {@link DataType}.
+     * @param sessionSettings
      * @return The value casted the target {@link DataType}.
      */
-    public T explicitCast(Object value) throws IllegalArgumentException, ClassCastException {
+    public T explicitCast(Object value, SessionSettings sessionSettings) throws IllegalArgumentException, ClassCastException {
         return implicitCast(value);
     }
 

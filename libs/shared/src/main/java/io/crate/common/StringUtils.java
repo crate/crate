@@ -104,4 +104,19 @@ public final class StringUtils {
             return sb.toString();
         }
     }
+
+    public static String trim(String target, char charToTrim) {
+        int start = 0;
+        int len = target.length();
+
+        while (start < len && target.charAt(start) == charToTrim) {
+            start++;
+        }
+
+        while (start < len && target.charAt(len - 1) == charToTrim) {
+            len--;
+        }
+
+        return target.substring(start, len);
+    }
 }

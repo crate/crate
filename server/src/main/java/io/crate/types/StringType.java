@@ -48,6 +48,7 @@ import org.elasticsearch.common.xcontent.XContentFactory;
 
 import io.crate.Streamer;
 import io.crate.common.unit.TimeValue;
+import io.crate.metadata.settings.SessionSettings;
 import io.crate.sql.tree.BitString;
 import io.crate.sql.tree.ColumnDefinition;
 import io.crate.sql.tree.ColumnPolicy;
@@ -209,7 +210,7 @@ public class StringType extends DataType<String> implements Streamer<String> {
     }
 
     @Override
-    public String explicitCast(Object value) throws IllegalArgumentException, ClassCastException {
+    public String explicitCast(Object value, SessionSettings sessionSettings) throws IllegalArgumentException, ClassCastException {
         if (value == null) {
             return null;
         }

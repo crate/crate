@@ -57,10 +57,10 @@ public final class Regclass implements Comparable<Regclass>, Writeable {
         );
     }
 
-    public static Regclass fromRelationName(String name) {
+    public static Regclass fromRelationName(RelationName relationName) {
         return new Regclass(
-            OidHash.relationOid(OidHash.Type.TABLE, new RelationName(null, name)),
-            name
+            OidHash.relationOid(OidHash.Type.TABLE, relationName),
+            relationName.fqn()
         );
     }
 

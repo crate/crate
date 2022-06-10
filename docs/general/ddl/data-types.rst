@@ -3371,6 +3371,13 @@ schema to reference relations in the `pg_class`_ table.
 :ref:`type-text` or :ref:`integer <type-numeric>` type will result
 in the corresponding relation name or ``oid`` value, respectively.
 
+.. NOTE::
+
+    String values casted to the ``REGCLASS`` type must match a valid relation
+    name identifier, see also
+    :ref:`identifier naming restrictions <ddl-create-table-naming>`.
+    The given relation name won't be validated against existing relations.
+
 .. _type-oidvector:
 
 ``OIDVECTOR``

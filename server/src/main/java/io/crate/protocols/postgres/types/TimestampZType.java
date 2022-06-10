@@ -21,14 +21,16 @@
 
 package io.crate.protocols.postgres.types;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Locale;
+
+import javax.annotation.Nonnull;
+
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.types.DataTypes;
-
-import javax.annotation.Nonnull;
-import java.nio.charset.StandardCharsets;
-import java.util.Locale;
 
 final class TimestampZType extends BaseTimestampType {
 
@@ -94,7 +96,7 @@ final class TimestampZType extends BaseTimestampType {
         // Other PostgreSQL clients send the parameter as Bigint or Varchar
         String s = new String(bytes, StandardCharsets.UTF_8);
         try {
-            return DataTypes.TIMESTAMPZ.explicitCast(s);
+            return DataTypes.TIMESTAMPZ.explicitCast(s, CoordinatorTxnCtx.systemTransactionContext().sessionSettings());
         } catch (Exception e) {
             int endOfSeconds = s.indexOf(".");
             int idx = endOfSeconds;

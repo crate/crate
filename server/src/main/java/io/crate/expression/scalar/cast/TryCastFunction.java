@@ -21,6 +21,9 @@
 
 package io.crate.expression.scalar.cast;
 
+import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
+import static io.crate.types.TypeSignature.parseTypeSignature;
+
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.symbol.Literal;
@@ -30,9 +33,6 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
-
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-import static io.crate.types.TypeSignature.parseTypeSignature;
 
 public class TryCastFunction extends Scalar<Object, Object> {
 
@@ -64,7 +64,7 @@ public class TryCastFunction extends Scalar<Object, Object> {
     @Override
     public Object evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object>[] args) {
         try {
-            return returnType.explicitCast(args[0].value());
+            return returnType.explicitCast(args[0].value(), txnCtx.sessionSettings());
         } catch (ClassCastException | IllegalArgumentException e) {
             return null;
         }
@@ -92,7 +92,7 @@ public class TryCastFunction extends Scalar<Object, Object> {
         if (argument instanceof Input) {
             Object value = ((Input<?>) argument).value();
             try {
-                return Literal.ofUnchecked(returnType, returnType.explicitCast(value));
+                return Literal.ofUnchecked(returnType, returnType.explicitCast(value, txnCtx.sessionSettings()));
             } catch (ClassCastException | IllegalArgumentException e) {
                 return Literal.NULL;
             }

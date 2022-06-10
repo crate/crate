@@ -21,16 +21,16 @@
 
 package io.crate.exceptions;
 
-import io.crate.metadata.RelationName;
-
 import java.util.Collections;
 import java.util.Locale;
+
+import io.crate.metadata.RelationName;
 
 public class InvalidRelationName extends RuntimeException implements TableScopeException {
 
     private final RelationName ident;
 
-    InvalidRelationName(String indexName, Throwable e) {
+    public InvalidRelationName(String indexName, Throwable e) {
         super(String.format(Locale.ENGLISH, "Relation name \"%s\" is invalid.", indexName), e);
         ident = RelationName.fromIndexName(indexName);
     }

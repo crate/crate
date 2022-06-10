@@ -21,22 +21,22 @@
 
 package io.crate.integrationtests;
 
-import io.crate.testing.UseHashJoins;
-import io.crate.testing.UseRandomizedSchema;
+import static io.crate.testing.TestingHelpers.printedTable;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.arrayContaining;
+import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
+import static org.hamcrest.Matchers.is;
+
+import java.util.Arrays;
+import java.util.List;
 
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-
-import java.util.Arrays;
-import java.util.List;
-
-import static io.crate.testing.TestingHelpers.printedTable;
-import static org.hamcrest.Matchers.arrayContaining;
-import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
-import static org.hamcrest.Matchers.is;
+import io.crate.testing.UseHashJoins;
+import io.crate.testing.UseRandomizedSchema;
 
 public class PgCatalogITest extends SQLIntegrationTestCase {
 
@@ -268,5 +268,16 @@ public class PgCatalogITest extends SQLIntegrationTestCase {
         assertThat(printedTable(response.rows()), is(
             ""
         ));
+    }
+
+    @UseRandomizedSchema(random = false)
+    @Test
+    public void test_pg_class_oid_equals_cast_of_string_to_regclass() {
+        execute("CREATE TABLE persons (x INT)");
+        execute("SELECT " +
+            " '\"persons\"'::regclass::integer oid_from_relname, " +
+            " oid " +
+            " FROM pg_class WHERE relname ='persons'");
+        assertThat(printedTable(response.rows()), is("1726373441| 1726373441\n"));
     }
 }
