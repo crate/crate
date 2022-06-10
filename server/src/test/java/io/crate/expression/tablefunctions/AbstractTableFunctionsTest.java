@@ -110,7 +110,7 @@ public abstract class AbstractTableFunctionsTest extends ESTestCase {
         Function function = (Function) functionSymbol;
         Scalar scalar = (Scalar) sqlExpressions.nodeCtx.functions().getQualified(function, txnCtx.sessionSettings().searchPath());
         assertThat("Function implementation not found using full qualified lookup", scalar, Matchers.notNullValue());
-        Scalar compiled = scalar.compile(function.arguments(), "dummy", () -> List.of(User.CRATE_USER));
+        Scalar compiled = scalar.compile(function.arguments(), txnCtx.sessionSettings(), () -> List.of(User.CRATE_USER));
         assertThat(compiled, matcher.apply(scalar));
     }
 

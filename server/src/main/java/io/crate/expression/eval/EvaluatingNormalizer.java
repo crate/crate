@@ -52,6 +52,7 @@ import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.WindowFunction;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
@@ -238,6 +239,12 @@ public class EvaluatingNormalizer {
                 context.sessionSettings().searchPath()
             );
             assert implementation != null : "Function implementation not found using full qualified lookup: " + function;
+
+            // Some scalar implementation may change their semantic by compile as session settings are passed it.
+            if (implementation instanceof Scalar scalar) {
+                implementation = scalar.compile(function.arguments(), context.sessionSettings(), nodeCtx.userLookup());
+            }
+
             return implementation.normalizeSymbol(function, context, nodeCtx);
         }
 

@@ -21,30 +21,6 @@
 
 package io.crate.expression.scalar.cast;
 
-import io.crate.exceptions.ConversionException;
-import io.crate.expression.scalar.ScalarTestCase;
-import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.format.Style;
-import io.crate.geo.GeoJSONUtils;
-import io.crate.metadata.functions.Signature;
-import io.crate.types.ArrayType;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
-import io.crate.types.ObjectType;
-import io.crate.types.RegclassType;
-import io.crate.types.RegclassType;
-
-import org.hamcrest.core.IsSame;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
-import java.math.BigDecimal;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 import static io.crate.testing.DataTypeTesting.getDataGenerator;
 import static io.crate.testing.DataTypeTesting.randomType;
@@ -57,6 +33,29 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
+
+import java.math.BigDecimal;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.hamcrest.core.IsSame;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
+import io.crate.exceptions.ConversionException;
+import io.crate.expression.scalar.ScalarTestCase;
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.format.Style;
+import io.crate.geo.GeoJSONUtils;
+import io.crate.metadata.functions.Signature;
+import io.crate.types.ArrayType;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
+import io.crate.types.RegclassType;
 
 // cast is just a wrapper around  DataType.value(val) which is why here are just a few tests
 public class CastFunctionTest extends ScalarTestCase {
@@ -311,5 +310,18 @@ public class CastFunctionTest extends ScalarTestCase {
     @Test
     public void test_can_cast_bigint_to_regclass() {
         assertEvaluate("10::bigint::regclass", RegclassType.INSTANCE.explicitCast(10L));
+    }
+
+    @Test
+    public void test_explicit_cast_to_regclass_is_compiled_to_session_schema_aware_regclass() {
+        assertCompile("cast(name as regclass)",
+            s -> ((ExplicitCastFunction) s).returnType,
+            s -> is(new RegclassType("doc")));
+    }
+    @Test
+    public void test_implicit_cast_to_regclass_is_compiled_to_session_schema_aware_regclass() {
+        assertCompile("_cast(name, 'regclass')",
+            s -> ((ImplicitCastFunction) s).targetType,
+            s -> is(new RegclassType("doc")));
     }
 }

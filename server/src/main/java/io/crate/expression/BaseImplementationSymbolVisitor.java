@@ -60,7 +60,7 @@ public class BaseImplementationSymbolVisitor<C> extends SymbolVisitor<C, Input<?
 
         if (functionImplementation instanceof Scalar<?, ?>) {
             List<Symbol> arguments = function.arguments();
-            Scalar<?, ?> scalarImpl = ((Scalar) functionImplementation).compile(arguments, txnCtx.sessionSettings().userName(), nodeCtx.userLookup());
+            Scalar<?, ?> scalarImpl = ((Scalar) functionImplementation).compile(arguments, txnCtx.sessionSettings(), nodeCtx.userLookup());
             Input[] argumentInputs = new Input[arguments.size()];
             int i = 0;
             for (Symbol argument : function.arguments()) {

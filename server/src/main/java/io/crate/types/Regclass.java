@@ -21,14 +21,16 @@
 
 package io.crate.types;
 
+import static io.crate.expression.scalar.string.TrimFunctions.trim;
+
 import java.io.IOException;
 
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 
+import io.crate.metadata.IndexParts;
 import io.crate.metadata.RelationInfo;
-import io.crate.metadata.RelationName;
 import io.crate.metadata.pgcatalog.OidHash;
 
 /**
@@ -57,9 +59,11 @@ public final class Regclass implements Comparable<Regclass>, Writeable {
         );
     }
 
-    public static Regclass fromRelationName(String name) {
+    public static Regclass fromRelationName(String name, String currentSchema) {
+        name = trim(name, '"');
+        var indexParts = new IndexParts(name, currentSchema);
         return new Regclass(
-            OidHash.relationOid(OidHash.Type.TABLE, new RelationName(null, name)),
+            OidHash.relationOid(OidHash.Type.TABLE, indexParts.toRelationName()),
             name
         );
     }

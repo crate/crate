@@ -43,6 +43,7 @@ import io.crate.expression.operator.EqOperator;
 import io.crate.expression.operator.OrOperator;
 import io.crate.expression.predicate.NotPredicate;
 import io.crate.expression.reference.ReferenceResolver;
+import io.crate.expression.scalar.cast.ExplicitCastFunction;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
@@ -57,6 +58,8 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.SimpleReference;
 import io.crate.types.DataTypes;
+import io.crate.types.Regclass;
+import io.crate.user.User;
 
 public class EvaluatingNormalizerTest extends ESTestCase {
 
@@ -162,5 +165,22 @@ public class EvaluatingNormalizerTest extends ESTestCase {
         Function op_or = prepareFunctionTree();
         Symbol query = visitor.normalize(op_or, coordinatorTxnCtx);
         assertThat(query, instanceOf(Function.class));
+    }
+
+    @Test
+    public void test_function_is_compiled_before_normalized() {
+        var expected = Regclass.fromRelationName("t1", "my_schema");
+
+        Function cast = new Function(
+            ExplicitCastFunction.SIGNATURE,
+            List.of(Literal.of("t1"), Literal.of("regclass")),
+            DataTypes.REGCLASS
+        );
+
+        var cordTnxCtc = new CoordinatorTxnCtx(new SessionContext(User.CRATE_USER, "my_schema"));
+        var visitor = new EvaluatingNormalizer(nodeCtx, RowGranularity.CLUSTER, referenceResolver, null);
+        Symbol symbol = visitor.normalize(cast, cordTnxCtc);
+
+        assertThat(symbol, isLiteral(expected));
     }
 }

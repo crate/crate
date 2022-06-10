@@ -21,6 +21,12 @@
 
 package io.crate.expression.scalar.cast;
 
+import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
+import static io.crate.types.TypeSignature.parseTypeSignature;
+
+import java.util.List;
+
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Input;
 import io.crate.exceptions.ConversionException;
 import io.crate.expression.scalar.ScalarFunctionModule;
@@ -30,36 +36,48 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.settings.SessionSettings;
 import io.crate.types.DataType;
-
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-import static io.crate.types.TypeSignature.parseTypeSignature;
+import io.crate.types.RegclassType;
+import io.crate.user.UserLookup;
 
 public class ExplicitCastFunction extends Scalar<Object, Object> {
 
     public static final String NAME = "cast";
+    public static final Signature SIGNATURE = Signature
+        .scalar(
+            NAME,
+            parseTypeSignature("E"),
+            parseTypeSignature("V"),
+            parseTypeSignature("V"))
+        .withTypeVariableConstraints(typeVariable("E"), typeVariable("V"));
+
 
     public static void register(ScalarFunctionModule module) {
-        module.register(
-            Signature
-                .scalar(
-                    NAME,
-                    parseTypeSignature("E"),
-                    parseTypeSignature("V"),
-                    parseTypeSignature("V"))
-                .withTypeVariableConstraints(typeVariable("E"), typeVariable("V")),
-            ExplicitCastFunction::new
-        );
+        module.register(SIGNATURE, ExplicitCastFunction::new);
     }
 
-    private final DataType<?> returnType;
+    @VisibleForTesting
+    final DataType<?> returnType;
     private final Signature signature;
     private final Signature boundSignature;
 
     private ExplicitCastFunction(Signature signature, Signature boundSignature) {
+        this(signature, boundSignature, boundSignature.getReturnType().createType());
+    }
+
+    private ExplicitCastFunction(Signature signature, Signature boundSignature, DataType<?> returnType) {
         this.signature = signature;
         this.boundSignature = boundSignature;
-        this.returnType = boundSignature.getReturnType().createType();
+        this.returnType = returnType;
+    }
+
+    @Override
+    public Scalar<Object, Object> compile(List<Symbol> arguments, SessionSettings sessionSettings, UserLookup userLookup) {
+        if (returnType instanceof RegclassType) {
+            return new ExplicitCastFunction(signature, boundSignature, new RegclassType(sessionSettings.currentSchema()));
+        }
+        return this;
     }
 
     @Override

@@ -21,6 +21,10 @@
 
 package io.crate.expression.scalar.string;
 
+import java.util.HashSet;
+import java.util.List;
+import java.util.function.BiFunction;
+
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.symbol.Symbol;
@@ -28,13 +32,10 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.settings.SessionSettings;
 import io.crate.sql.tree.TrimMode;
 import io.crate.types.DataTypes;
 import io.crate.user.UserLookup;
-
-import java.util.HashSet;
-import java.util.List;
-import java.util.function.BiFunction;
 
 
 public final class TrimFunctions {
@@ -131,6 +132,21 @@ public final class TrimFunctions {
         );
     }
 
+    public static String trim(String target, char charToTrim) {
+        int start = 0;
+        int len = target.length();
+
+        while (start < len && target.charAt(start) == charToTrim) {
+            start++;
+        }
+
+        while (start < len && target.charAt(len - 1) == charToTrim) {
+            len--;
+        }
+
+        return target.substring(start, len);
+    }
+
     private static class TrimFunction extends Scalar<String, String> {
 
         private final Signature signature;
@@ -152,7 +168,9 @@ public final class TrimFunctions {
         }
 
         @Override
-        public Scalar<String, String> compile(List<Symbol> arguments, String currentUser, UserLookup userLookup) {
+        public Scalar<String, String> compile(List<Symbol> arguments,
+                                              SessionSettings sessionSettings,
+                                              UserLookup userLookup) {
             assert arguments.size() == 3 : "number of args must be 3";
 
             Symbol modeSymbol = arguments.get(2);
@@ -222,19 +240,7 @@ public final class TrimFunctions {
             if (target == null) {
                 return null;
             }
-
-            int start = 0;
-            int len = target.length();
-
-            while (start < len && target.charAt(start) == charToTrim) {
-                start++;
-            }
-
-            while (start < len && target.charAt(len - 1) == charToTrim) {
-                len--;
-            }
-
-            return target.substring(start, len);
+            return trim(target, charToTrim);
         }
     }
 

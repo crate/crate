@@ -21,6 +21,14 @@
 
 package io.crate.expression.scalar.cast;
 
+import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
+import static io.crate.types.TypeSignature.parseTypeSignature;
+
+import java.util.List;
+
+import javax.annotation.Nullable;
+
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Input;
 import io.crate.exceptions.ConversionException;
 import io.crate.expression.scalar.ScalarFunctionModule;
@@ -30,16 +38,11 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.settings.SessionSettings;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.RegclassType;
 import io.crate.user.UserLookup;
-
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-import static io.crate.types.TypeSignature.parseTypeSignature;
-
-import java.util.List;
-
-import javax.annotation.Nullable;
 
 public class ImplicitCastFunction extends Scalar<Object, Object> {
 
@@ -59,8 +62,9 @@ public class ImplicitCastFunction extends Scalar<Object, Object> {
 
     private final Signature signature;
     private final Signature boundSignature;
+    @VisibleForTesting
     @Nullable
-    private final DataType<?> targetType;
+    final DataType<?> targetType;
 
     private ImplicitCastFunction(Signature signature, Signature boundSignature) {
         this(signature, boundSignature, null);
@@ -73,13 +77,16 @@ public class ImplicitCastFunction extends Scalar<Object, Object> {
     }
 
     @Override
-    public Scalar<Object, Object> compile(List<Symbol> args, String currentUser, UserLookup userLookup) {
+    public Scalar<Object, Object> compile(List<Symbol> args, SessionSettings sessionSettings, UserLookup userLookup) {
         assert args.size() == 2 : "number of arguments must be 2";
         Symbol input = args.get(1);
         if (input instanceof Input) {
             String targetTypeValue = (String) ((Input<?>) input).value();
             var targetTypeSignature = parseTypeSignature(targetTypeValue);
             var targetType = targetTypeSignature.createType();
+            if (targetType instanceof RegclassType) {
+                targetType = new RegclassType(sessionSettings.currentSchema());
+            }
             return new ImplicitCastFunction(
                 signature,
                 boundSignature,

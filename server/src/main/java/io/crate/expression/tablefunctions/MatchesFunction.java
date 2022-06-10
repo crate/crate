@@ -21,6 +21,18 @@
 
 package io.crate.expression.tablefunctions;
 
+import static io.crate.expression.RegexpFlags.isGlobal;
+import static io.crate.expression.RegexpFlags.parseFlags;
+
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import javax.annotation.Nullable;
+
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Input;
 import io.crate.data.Row;
@@ -33,21 +45,11 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.settings.SessionSettings;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.types.DataTypes;
 import io.crate.types.RowType;
 import io.crate.user.UserLookup;
-
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import static io.crate.expression.RegexpFlags.parseFlags;
-import static io.crate.expression.RegexpFlags.isGlobal;
 
 public final class MatchesFunction extends TableFunctionImplementation<List<Object>> {
 
@@ -132,7 +134,9 @@ public final class MatchesFunction extends TableFunctionImplementation<List<Obje
     }
 
     @Override
-    public Scalar<Iterable<Row>, List<Object>> compile(List<Symbol> arguments, String currentUser, UserLookup userLookup) {
+    public Scalar<Iterable<Row>, List<Object>> compile(List<Symbol> arguments,
+                                                       SessionSettings sessionSettings,
+                                                       UserLookup userLookup) {
         assert arguments.size() > 1 : "number of arguments must be > 1";
         String pattern = null;
         if (arguments.get(1).symbolType() == SymbolType.LITERAL) {

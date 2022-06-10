@@ -24,7 +24,6 @@ package io.crate.expression.operator;
 import java.util.List;
 import java.util.regex.Pattern;
 
-import io.crate.user.UserLookup;
 import org.apache.lucene.search.Query;
 
 import io.crate.data.Input;
@@ -37,6 +36,8 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.settings.SessionSettings;
+import io.crate.user.UserLookup;
 
 public class LikeOperator extends Operator<String> {
 
@@ -66,7 +67,9 @@ public class LikeOperator extends Operator<String> {
     }
 
     @Override
-    public Scalar<Boolean, String> compile(List<Symbol> arguments, String userName, UserLookup userLookup) {
+    public Scalar<Boolean, String> compile(List<Symbol> arguments,
+                                           SessionSettings sessionSettings,
+                                           UserLookup userLookup) {
         Symbol pattern = arguments.get(1);
         if (pattern instanceof Input) {
             Object value = ((Input<?>) pattern).value();
@@ -75,7 +78,7 @@ public class LikeOperator extends Operator<String> {
             }
             return new CompiledLike(signature, boundSignature, (String) value, caseSensitivity);
         }
-        return super.compile(arguments, userName, userLookup);
+        return super.compile(arguments, sessionSettings, userLookup);
     }
 
     @Override

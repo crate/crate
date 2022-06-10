@@ -21,6 +21,16 @@
 
 package io.crate.expression.scalar.formatting;
 
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.TimeZone;
+
+import javax.annotation.Nullable;
+
+import org.elasticsearch.common.TriFunction;
+import org.joda.time.Period;
+
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.symbol.Symbol;
@@ -28,17 +38,10 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.settings.SessionSettings;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.user.UserLookup;
-import org.elasticsearch.common.TriFunction;
-import org.joda.time.Period;
-
-import javax.annotation.Nullable;
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.TimeZone;
 
 
 public class ToCharFunction extends Scalar<String, Object> {
@@ -150,7 +153,7 @@ public class ToCharFunction extends Scalar<String, Object> {
     }
 
     @Override
-    public Scalar<String, Object> compile(List<Symbol> arguments, String currentUser, UserLookup userLookup) {
+    public Scalar<String, Object> compile(List<Symbol> arguments, SessionSettings sessionSettings, UserLookup userLookup) {
         assert arguments.size() == 2 : "Invalid number of arguments";
 
         if (!arguments.get(1).symbolType().isValueSymbol()) {

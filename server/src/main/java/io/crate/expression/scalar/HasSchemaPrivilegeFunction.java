@@ -21,6 +21,17 @@
 
 package io.crate.expression.scalar;
 
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+
+import javax.annotation.Nullable;
+
+import org.elasticsearch.common.TriFunction;
+
 import io.crate.data.Input;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
@@ -28,19 +39,11 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.PgCatalogTableDefinitions;
+import io.crate.metadata.settings.SessionSettings;
 import io.crate.types.DataTypes;
 import io.crate.user.Privilege;
 import io.crate.user.User;
 import io.crate.user.UserLookup;
-import org.elasticsearch.common.TriFunction;
-
-import javax.annotation.Nullable;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.function.BiFunction;
-import java.util.function.Function;
 
 public class HasSchemaPrivilegeFunction extends Scalar<Boolean, Object> {
 
@@ -220,13 +223,13 @@ public class HasSchemaPrivilegeFunction extends Scalar<Boolean, Object> {
     }
 
     @Override
-    public Scalar<Boolean, Object> compile(List<Symbol> arguments, String currentUser, UserLookup userLookup) {
+    public Scalar<Boolean, Object> compile(List<Symbol> arguments, SessionSettings sessionSettings, UserLookup userLookup) {
         // When possible, user is looked up only once.
         // Privilege string normalization/mapping into CrateDB Privilege.Type is also done once if possible
         Object userValue = null;
         Symbol privileges = null;
         if (arguments.size() == 2) {
-            userValue = currentUser;
+            userValue = sessionSettings.userName();
             privileges = arguments.get(1);
         }
         if (arguments.size() == 3) {

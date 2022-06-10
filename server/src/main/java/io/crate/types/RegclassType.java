@@ -27,14 +27,21 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import io.crate.Streamer;
+import io.crate.metadata.SearchPath;
 
 /**
  * Type that encapsulates the name and oid of a relation.
  **/
 public final class RegclassType extends DataType<Regclass> implements Streamer<Regclass> {
 
-    public static final RegclassType INSTANCE = new RegclassType();
+    public static final RegclassType INSTANCE = new RegclassType(SearchPath.pathWithPGCatalogAndDoc().currentSchema());
     public static final int ID = 23;
+
+    private final String currentSchema;
+
+    public RegclassType(String currentSchema) {
+        this.currentSchema = currentSchema;
+    }
 
     @Override
     public int compare(Regclass o1, Regclass o2) {
@@ -98,7 +105,7 @@ public final class RegclassType extends DataType<Regclass> implements Streamer<R
             return new Regclass(num.intValue(), value.toString());
         }
         if (value instanceof String) {
-            return Regclass.fromRelationName(value.toString());
+            return Regclass.fromRelationName(value.toString(), currentSchema);
         }
         throw new ClassCastException("Can't cast '" + value + "' to " + getName());
     }
