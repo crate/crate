@@ -99,3 +99,7 @@ Fixes
 
 - Fixed an issue that caused clients using PostrgreSQL wire protocol's simple
   query to hang, when an error occurred during planning.
+
+- Fixed casts of ``TEXT`` to ``REGCLASS`` data types which were resulting in
+  wrong ``REGCLASS`` values as the  ``current_schema`` was not taken into
+  account.

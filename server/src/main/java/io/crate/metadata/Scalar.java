@@ -46,7 +46,7 @@ import io.crate.lucene.FunctionToQuery;
  *
  *     Functions also MUST NOT have any internal state that influences the result of future calls.
  *     Functions are used as singletons.
- *     An exception is if {@link #compile(List)} returns a NEW instance.
+ *     An exception is if {@link #compile(List, String, UserLookup)} returns a NEW instance.
  * </p>
  *
  * To implement scalar functions, you may want to use one of the following abstractions:
