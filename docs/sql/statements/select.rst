@@ -29,7 +29,7 @@ Synopsis
       [ UNION [ ALL | DISTINCT ] query_specification ]
       [ WINDOW window_name AS ( window_definition ) [, ...] ]
       [ ORDER BY expression [ ASC | DESC ] [ NULLS { FIRST | LAST } ] [, ...] ]
-      [ LIMIT [num_results | ALL] ]
+      [ LIMIT [num_results | ALL] | [ FETCH [FIRST | NEXT] [ROW | ROWS] ONLY ]
       [ OFFSET start [ROW | ROWS] ]
 
 where ``relation`` is::
@@ -466,6 +466,36 @@ rows::
 
    If ``number_of_results`` is null, then no limit is applied, essentially the
    query is returning all rows, as if not ``LIMIT`` clause is present.
+
+.. _sql-select-fetch:
+
+``FETCH``
+.........
+
+The optional ``FETCH`` clause allows to limit the number of returned result
+rows, and is an alternative to the :ref:`LIMIT <sql-select-limit>` clause::
+
+    FETCH FIRST number_of_results ROWS ONLY
+
+:number_of_results:
+  Specifies the maximum number of result rows to return. Must be a non-negative
+  long or ``null``.
+
+.. NOTE::
+
+   It is possible for repeated executions of the same ``FETCH`` query to return
+   different subsets of the rows of a table, if there is not an ``ORDER BY`` to
+   enforce selection of a deterministic subset.
+
+.. NOTE::
+
+   If ``number_of_results`` is null, then no limit is applied, essentially the
+   query is returning all rows, as if not ``FETCH`` clause is present.
+
+.. NOTE::
+
+   ``LIMIT`` and ``FETCH`` clauses cannot be used together, since they define
+   the same functionality, only one of the two must be present.
 
 .. _sql-select-offset:
 

@@ -74,6 +74,9 @@ None
 Changes
 =======
 
+- Added support for ``FETCH [FIRST | NEXT] <noRows> [ROW | ROWS] ONLY`` clause
+  as and alternative to the ``LIMIT`` clause.
+
 - Allowed ``LIMIT`` and ``OFFSET`` clauses to be declared in any order, i.e.:
   ``SELECT * FROM t LIMIT 10 OFFSET 5`` or
   ``SELECT * FROM t OFFSET 5 LIMIT 10``.
