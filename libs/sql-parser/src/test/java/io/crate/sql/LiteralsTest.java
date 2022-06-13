@@ -26,9 +26,9 @@ import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.IntegerLiteral;
 import org.junit.Test;
 
+import static io.crate.sql.testing.Asserts.assertThrowsMatches;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class LiteralsTest {
 
@@ -230,16 +230,18 @@ public class LiteralsTest {
 
     @Test
     public void testThatInvalidLengthEscapedUnicode16SequenceThrowsException() throws Exception {
-        assertThrows(IllegalArgumentException.class,
-                     () -> Literals.replaceEscapedChars("\\u006"),
-                     Literals.ESCAPED_UNICODE_ERROR);
+        assertThrowsMatches(
+            () -> Literals.replaceEscapedChars("\\u006"),
+            IllegalArgumentException.class,
+            Literals.ESCAPED_UNICODE_ERROR);
     }
 
     @Test
     public void testThatInvalidHexEscapedUnicode16SequenceThrowsException() throws Exception {
-        assertThrows(IllegalArgumentException.class,
-                     () -> Literals.replaceEscapedChars("\\u006G"),
-                     Literals.ESCAPED_UNICODE_ERROR);
+        assertThrowsMatches(
+            () -> Literals.replaceEscapedChars("\\u006G"),
+            IllegalArgumentException.class,
+            Literals.ESCAPED_UNICODE_ERROR);
     }
 
     @Test
@@ -270,16 +272,18 @@ public class LiteralsTest {
 
     @Test
     public void testThatInvalidLengthEscapedUnicode32SequenceThrowsException() throws Exception {
-        assertThrows(IllegalArgumentException.class,
-                     () -> Literals.replaceEscapedChars("\\U0061"),
-                     Literals.ESCAPED_UNICODE_ERROR);
+        assertThrowsMatches(
+            () -> Literals.replaceEscapedChars("\\U0061"),
+            IllegalArgumentException.class,
+            Literals.ESCAPED_UNICODE_ERROR);
     }
 
     @Test
     public void testThatInvalidHexEscapedUnicode32SequenceThrowsException() throws Exception {
-        assertThrows(IllegalArgumentException.class,
-                     () -> Literals.replaceEscapedChars("\\U0000006G"),
-                     Literals.ESCAPED_UNICODE_ERROR);
+        assertThrowsMatches(
+            () -> Literals.replaceEscapedChars("\\U0000006G"),
+            IllegalArgumentException.class,
+            Literals.ESCAPED_UNICODE_ERROR);
     }
 
     @Test

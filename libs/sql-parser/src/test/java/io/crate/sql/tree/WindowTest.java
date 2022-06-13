@@ -26,11 +26,11 @@ import org.junit.Test;
 import java.util.List;
 import java.util.Optional;
 
+import static io.crate.sql.testing.Asserts.assertThrowsMatches;
 import static io.crate.sql.tree.FrameBound.Type.CURRENT_ROW;
 import static io.crate.sql.tree.WindowFrame.Mode.RANGE;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class WindowTest {
 
@@ -76,9 +76,10 @@ public class WindowTest {
         var current = new Window("w", List.of(), orderBy, Optional.empty());
         var provided = new Window(null, List.of(), List.of(), Optional.of(frame));
 
-        assertThrows(IllegalArgumentException.class,
-                     () -> current.merge(provided),
-                     "Cannot copy window w because it has a frame clause");
+        assertThrowsMatches(
+            () -> current.merge(provided),
+            IllegalArgumentException.class,
+            "Cannot copy window w because it has a frame clause");
     }
 
     @Test
@@ -86,17 +87,19 @@ public class WindowTest {
         Window current = new Window("w", List.of(), orderBy, Optional.empty());
         Window provided = new Window(null, List.of(), orderBy, Optional.empty());
 
-        assertThrows(IllegalArgumentException.class,
-                     () -> current.merge(provided),
-                     "Cannot override ORDER BY clause of window w");
+        assertThrowsMatches(
+            () -> current.merge(provided),
+            IllegalArgumentException.class,
+            "Cannot override ORDER BY clause of window w");
     }
 
     @Test
     public void test_merge_current_window_cannot_specify_partition_by() {
         var current = new Window("w", partitionBy, List.of(), Optional.empty());
 
-        assertThrows(IllegalArgumentException.class,
-                     () -> current.merge(emptyWindow),
-                     "Cannot override PARTITION BY clause of window w");
+        assertThrowsMatches(
+            () -> current.merge(emptyWindow),
+            IllegalArgumentException.class,
+            "Cannot override PARTITION BY clause of window w");
     }
 }
