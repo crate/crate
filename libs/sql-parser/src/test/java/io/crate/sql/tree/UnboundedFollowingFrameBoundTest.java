@@ -32,7 +32,6 @@ import static io.crate.sql.tree.FrameBound.Type.UNBOUNDED_FOLLOWING;
 import static io.crate.sql.tree.WindowFrame.Mode.RANGE;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class UnboundedFollowingFrameBoundTest {
 
