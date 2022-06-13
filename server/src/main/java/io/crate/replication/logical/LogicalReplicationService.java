@@ -35,6 +35,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -60,6 +61,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.RemoteClusters;
 
 import io.crate.action.FutureActionListener;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.exceptions.SubscriptionRestoreException;
 import io.crate.metadata.PartitionName;
@@ -81,6 +83,7 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
     private final ThreadPool threadPool;
     private final RemoteClusters remoteClusters;
     private final Client client;
+    private final AtomicInteger activeOperations = new AtomicInteger(0);
     private RepositoriesService repositoriesService;
     private RestoreService restoreService;
 
@@ -322,6 +325,10 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
 
         FutureActionListener<RestoreService.RestoreCompletionResponse, RestoreService.RestoreCompletionResponse> restoreFuture =
             FutureActionListener.newInstance();
+        activeOperations.incrementAndGet();
+        restoreFuture.whenComplete((res, err) -> {
+            activeOperations.decrementAndGet();
+        });
         try {
             threadPool.executor(ThreadPool.Names.SNAPSHOT).execute(
                 () -> {
@@ -425,5 +432,10 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
         client.execute(UpdateSubscriptionAction.INSTANCE, request)
             .whenComplete(future);
         return future;
+    }
+
+    @VisibleForTesting
+    public boolean isActive() {
+        return metadataTracker.isActive() || activeOperations.get() > 0;
     }
 }

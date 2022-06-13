@@ -613,4 +613,9 @@ public final class MetadataTracker implements Closeable {
     public void close() {
         stop();
     }
+
+    @VisibleForTesting
+    public boolean isActive() {
+        return isActive;
+    }
 }

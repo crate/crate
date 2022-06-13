@@ -58,11 +58,14 @@ import org.elasticsearch.test.NodeConfigurationSource;
 import org.elasticsearch.test.transport.MockTransportService;
 import org.elasticsearch.transport.Netty4Plugin;
 import org.elasticsearch.transport.TransportService;
+import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 
 import io.crate.protocols.postgres.PostgresNetty;
+import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.LogicalReplicationSettings;
+import io.crate.replication.logical.MetadataTracker;
 import io.crate.replication.logical.metadata.SubscriptionsMetadata;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;
@@ -157,7 +160,7 @@ public abstract class LogicalReplicationITestCase extends ESTestCase {
         }
     }
 
-    private void dropSubscriptions() {
+    private void dropSubscriptions() throws Exception {
         var state = subscriberCluster.client().admin().cluster().prepareState().execute().actionGet().getState();
         SubscriptionsMetadata subscriptionsMetadata = state.metadata().custom(SubscriptionsMetadata.TYPE);
         if (subscriptionsMetadata == null) {
@@ -166,6 +169,12 @@ public abstract class LogicalReplicationITestCase extends ESTestCase {
         for (var subscriptionName : subscriptionsMetadata.subscription().keySet()) {
             subscriberSqlExecutor.exec("DROP SUBSCRIPTION " + subscriptionName);
         }
+        assertBusy(() -> {
+            for (var logicalReplicationService : subscriberCluster.getInstances(LogicalReplicationService.class)) {
+                assertThat(logicalReplicationService.subscriptions().keySet(), Matchers.empty());
+                assertThat(logicalReplicationService.isActive(), is(false));
+            }
+        });
     }
 
     public String defaultTableSettings() {
