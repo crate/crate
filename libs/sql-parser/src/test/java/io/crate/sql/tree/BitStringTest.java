@@ -36,10 +36,8 @@ import com.pholser.junit.quickcheck.random.SourceOfRandomness;
 import com.pholser.junit.quickcheck.runner.JUnitQuickcheck;
 
 import org.junit.Test;
-import org.junit.jupiter.api.Assertions;
 import org.junit.runner.RunWith;
 
-import io.crate.sql.testing.Asserts;
 
 @RunWith(JUnitQuickcheck.class)
 public class BitStringTest {
