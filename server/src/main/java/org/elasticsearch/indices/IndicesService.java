@@ -355,11 +355,7 @@ public class IndicesService extends AbstractLifecycleComponent
 
             @Override
             public void onStoreClosed(ShardId shardId) {
-                try {
-                    indicesRefCount.decRef();
-                } finally {
-                    indicesQueryCache.onClose(shardId);
-                }
+                indicesRefCount.decRef();
             }
         };
         finalListeners.add(onStoreClose);
