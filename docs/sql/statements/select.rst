@@ -29,8 +29,8 @@ Synopsis
       [ UNION [ ALL | DISTINCT ] query_specification ]
       [ WINDOW window_name AS ( window_definition ) [, ...] ]
       [ ORDER BY expression [ ASC | DESC ] [ NULLS { FIRST | LAST } ] [, ...] ]
-      [ LIMIT num_results ]
-      [ OFFSET start ]
+      [ LIMIT [num_results | ALL] ]
+      [ OFFSET start [ROW | ROWS] ]
 
 where ``relation`` is::
 
@@ -448,7 +448,8 @@ rows::
     LIMIT number_of_results
 
 :number_of_results:
-  Specifies the maximum number of result rows to return.
+  Specifies the maximum number of result rows to return. Must be a non-negative
+  long or ``null``.
 
 .. NOTE::
 
@@ -456,6 +457,15 @@ rows::
    different subsets of the rows of a table, if there is not an ``ORDER BY`` to
    enforce selection of a deterministic subset.
 
+.. NOTE::
+
+   If ``LIMIT ALL`` is used, then no limit is applied, essentially the query is
+   returning all rows, as if not ``LIMIT`` clause is present.
+
+.. NOTE::
+
+   If ``number_of_results`` is null, then no limit is applied, essentially the
+   query is returning all rows, as if not ``LIMIT`` clause is present.
 
 .. _sql-select-offset:
 
@@ -464,7 +474,19 @@ rows::
 
 The optional ``OFFSET`` clause allows to skip result rows at the beginning::
 
-    OFFSET start
+    OFFSET start [ROW | ROWS]
 
 :start:
-  Specifies the number of rows to skip before starting to return rows.
+  Specifies the number of rows to skip before starting to return rows. Must be a
+  non-negative long or null.
+
+.. NOTE::
+
+   The ``ROW`` or ``ROWS`` is optional and can be omitted, without affecting the
+   behaviour of ``OFFSET`` functionality.
+
+.. NOTE::
+
+   If ``start`` is null, then no offset is applied, essentially the
+   query is returning rows from the 1st one, as if not ``OFFSET`` clause is
+   present.

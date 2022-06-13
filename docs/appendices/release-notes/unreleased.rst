@@ -74,6 +74,9 @@ None
 Changes
 =======
 
+- Added support for ``LIMIT NULL``, ``LIMIT ALL``, ``OFFSET NULL``,
+  ``OFFSET 10 ROW`` and ``OFFSET 10 ROWS``.
+
 - Added support for using ``NULL`` literals in a ``UNION`` without requiring an
   explicit cast.
 
@@ -112,6 +115,10 @@ Fixes
 .. If you add an entry here, the fix needs to be backported to the latest
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
+
+- Fixed an issue that caused NPE to be thrown, instead of a user-friendly error
+  message when ``NULL`` is passed as shardId for the
+  ``ALTER TABLE XXX REROUTE XXX`` statements (MOVE, ALLOCATE, PROMOTE, CANCEL).
 
 - Fixed an issue that caused queries operating on expressions with no defined
   type to fail. Examples are queries with ``GROUP BY`` on an ignored object

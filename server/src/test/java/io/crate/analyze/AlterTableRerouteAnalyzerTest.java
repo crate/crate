@@ -42,6 +42,8 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
 
+import static io.crate.testing.Asserts.assertThrowsMatches;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 
 public class AlterTableRerouteAnalyzerTest extends CrateDummyClusterServiceUnitTest {
@@ -109,6 +111,13 @@ public class AlterTableRerouteAnalyzerTest extends CrateDummyClusterServiceUnitT
     }
 
     @Test
+    public void testRerouteMoveShardWithNullShardId() {
+        assertThrowsMatches(() -> analyze("ALTER TABLE users REROUTE MOVE SHARD null FROM 'n2' TO 'n1'"),
+                            IllegalArgumentException.class,
+                            "Shard Id cannot be [null]");
+    }
+
+    @Test
     public void testRerouteMoveShardPartitionedTable() {
         MoveAllocationCommand command = analyze(
             "ALTER TABLE parted PARTITION (date = 1395874800000) REROUTE MOVE SHARD 0 FROM 'n1' TO 'n2'");
@@ -144,6 +153,13 @@ public class AlterTableRerouteAnalyzerTest extends CrateDummyClusterServiceUnitT
     }
 
     @Test
+    public void testRerouteAllocateReplicaShardWithNullShardId() {
+        assertThrowsMatches(() -> analyze("ALTER TABLE users REROUTE ALLOCATE REPLICA SHARD null ON 'n1'"),
+                            IllegalArgumentException.class,
+                            "Shard Id cannot be [null]");
+    }
+
+    @Test
     public void testRerouteCancelShardWithLiterals() {
         CancelAllocationCommand command = analyze(
             "ALTER TABLE users REROUTE CANCEL SHARD 0 ON 'n2'");
@@ -161,6 +177,13 @@ public class AlterTableRerouteAnalyzerTest extends CrateDummyClusterServiceUnitT
         assertThat(command.shardId(), is(0));
         assertThat(command.node(), is("n2"));
         assertThat(command.allowPrimary(), is(false));
+    }
+
+    @Test
+    public void testRerouteCancelShardWithNullShardId() {
+        assertThrowsMatches(() -> analyze("ALTER TABLE users REROUTE CANCEL SHARD null ON 'n2'"),
+                            IllegalArgumentException.class,
+                            "Shard Id cannot be [null]");
     }
 
     @Test
@@ -198,6 +221,12 @@ public class AlterTableRerouteAnalyzerTest extends CrateDummyClusterServiceUnitT
         assertThat(command.shardId(), is(2));
         assertThat(command.node(), is("n1"));
         assertThat(command.acceptDataLoss(), is(true));
+    }
+
+    public void test_promote_replica_shard_with_null_shardId() {
+        assertThrowsMatches(() -> analyze("ALTER TABLE users REROUTE PROMOTE REPLICA SHARD null ON 'n1'"),
+            IllegalArgumentException.class,
+            "Shard Id cannot be [null]");
     }
 
     @Test

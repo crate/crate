@@ -63,7 +63,7 @@ public class InternalSettingsPreparerTest {
         // Value kept from crate.yml
         assertThat(finalSettings.get("path.logs"), Matchers.anyOf(
             is("/some/other/path"),
-            is("D:\\some\\other\\path")
+            endsWith(":\\some\\other\\path")
         ));
     }
 

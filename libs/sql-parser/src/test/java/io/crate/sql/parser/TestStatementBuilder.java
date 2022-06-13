@@ -22,6 +22,7 @@
 package io.crate.sql.parser;
 
 import static io.crate.sql.parser.TreeAssertions.assertFormattedSql;
+import static io.crate.sql.testing.Asserts.assertThrowsMatches;
 import static java.lang.String.format;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
@@ -31,7 +32,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -236,16 +236,18 @@ public class TestStatementBuilder {
 
     @Test
     public void test_duplicates_in_window_definitions() {
-        assertThrows(IllegalArgumentException.class,
-                     () -> printStatement("SELECT x FROM t WINDOW w AS (), w as ()"),
-                     "Window w is already defined");
+        assertThrowsMatches(
+            () -> printStatement("SELECT x FROM t WINDOW w AS (), w as ()"),
+            IllegalArgumentException.class,
+            "Window w is already defined");
     }
 
     @Test
     public void test_circular_references_in_window_definitions() {
-        assertThrows(IllegalArgumentException.class,
-                     () -> printStatement("SELECT x FROM t WINDOW w AS (ww), ww as (w), www as ()"),
-                     "Window ww does not exist");
+        assertThrowsMatches(
+            () -> printStatement("SELECT x FROM t WINDOW w AS (ww), ww as (w), www as ()"),
+            IllegalArgumentException.class,
+            "Window ww does not exist");
     }
 
     @Test
@@ -264,9 +266,10 @@ public class TestStatementBuilder {
 
     @Test
     public void testNullNotAllowedAsArgToExtractField() {
-        assertThrows(ParsingException.class,
-                     () -> printStatement("select extract(null from x)"),
-                     "no viable alternative at input 'select extract(null'");
+    assertThrowsMatches(
+        () -> printStatement("select extract(null from x)"),
+        ParsingException.class,
+        "line 1:16: no viable alternative at input 'select extract(null'");
     }
 
     @Test
@@ -301,9 +304,10 @@ public class TestStatementBuilder {
 
     @Test
     public void test_decommission_node_id_is_missing() {
-        assertThrows(ParsingException.class,
-                     () -> printStatement("ALTER CLUSTER DECOMMISSION'"),
-                     "mismatched input");
+        assertThrowsMatches(
+            () -> printStatement("ALTER CLUSTER DECOMMISSION'"),
+            ParsingException.class,
+            "line 1:27: mismatched input ''' expecting {'(', '[', '[]', '{', '$', '?', ");
     }
 
     @Test
@@ -479,9 +483,10 @@ public class TestStatementBuilder {
 
     @Test
     public void testDeallocateWithoutParamThrowsParsingException() {
-        assertThrows(ParsingException.class,
-                     () -> printStatement("deallocate"),
-                     "line 1:11: mismatched input '<EOF>'");
+        assertThrowsMatches(
+            () -> printStatement("deallocate"),
+            ParsingException.class,
+            "line 1:11: mismatched input '<EOF>'");
     }
 
     @Test
@@ -525,9 +530,10 @@ public class TestStatementBuilder {
 
     @Test
     public void testSetSessionInvalidSetting() {
-        assertThrows(ParsingException.class,
-                     () -> printStatement("set session 'some_setting' TO 1, ON"),
-                     "no viable alternative");
+        assertThrowsMatches(
+            () -> printStatement("set session 'some_setting' TO 1, ON"),
+            ParsingException.class,
+            "line 1:13: no viable alternative at input 'set session 'some_setting''");
     }
 
     @Test
@@ -545,30 +551,34 @@ public class TestStatementBuilder {
 
     @Test
     public void testSetLicenseInputWithoutQuotesThrowsParsingException() {
-        assertThrows(ParsingException.class,
-                     () -> printStatement("set license LICENSE_KEY"),
-                     "no viable alternative at input");
+        assertThrowsMatches(
+            () -> printStatement("set license LICENSE_KEY"),
+            ParsingException.class,
+            "line 1:13: no viable alternative at input 'set license LICENSE_KEY'");
     }
 
     @Test
     public void testSetLicenseWithoutParamThrowsParsingException() {
-        assertThrows(ParsingException.class,
-                     () -> printStatement("set license"),
-                     "no viable alternative at input 'set license'");
+        assertThrowsMatches(
+            () -> printStatement("set license"),
+            ParsingException.class,
+            "line 1:12: no viable alternative at input 'set license'");
     }
 
     @Test
     public void testSetLicenseLikeAnExpressionThrowsParsingException() {
-        assertThrows(ParsingException.class,
-                     () -> printStatement("set license key='LICENSE_KEY'"),
-                     "no viable alternative at input");
+        assertThrowsMatches(
+            () -> printStatement("set license key='LICENSE_KEY'"),
+            ParsingException.class,
+            "line 1:13: no viable alternative at input 'set license key'");
     }
 
     @Test
     public void testSetLicenseMultipleInputThrowsParsingException() {
-        assertThrows(ParsingException.class,
-                     () -> printStatement("set license 'LICENSE_KEY' 'LICENSE_KEY2'"),
-                     "line 1:27: extraneous input ''LICENSE_KEY2'' expecting {<EOF>, ';'}");
+        assertThrowsMatches(
+            () -> printStatement("set license 'LICENSE_KEY' 'LICENSE_KEY2'"),
+            ParsingException.class,
+            "line 1:27: extraneous input ''LICENSE_KEY2'' expecting {<EOF>, ';'}");
     }
 
     @Test
@@ -678,9 +688,10 @@ public class TestStatementBuilder {
 
     @Test
     public void testCreateTableColumnTypeOrGeneratedExpressionAreDefined() {
-        assertThrows(IllegalArgumentException.class,
-                     () -> printStatement("create table test (col1)"),
-                     "Column [col1]: data type needs to be provided or column should be defined as a generated expression");
+        assertThrowsMatches(
+            () -> printStatement("create table test (col1)"),
+            IllegalArgumentException.class,
+            "Column [col1]: data type needs to be provided or column should be defined as a generated expression");
     }
 
     @Test
@@ -691,17 +702,19 @@ public class TestStatementBuilder {
 
     @Test
     public void testCreateTableBothDefaultAndGeneratedExpressionsNotAllowed() {
-        assertThrows(IllegalArgumentException.class,
-                     () -> printStatement("create table test (col1 int default random() as 1+1)"),
-                     "Column [col1]: the default and generated expressions are mutually exclusive");
+        assertThrowsMatches(
+            () -> printStatement("create table test (col1 int default random() as 1+1)"),
+            IllegalArgumentException.class,
+            "Column [col1]: the default and generated expressions are mutually exclusive");
     }
 
     @Test
     public void testCreateTableOptionsMultipleTimesNotAllowed() {
-        assertThrows(ParsingException.class,
-                     () -> printStatement(
-                         "create table test (col1 int, col2 timestamp with time zone) partitioned by (col1) partitioned by (col2)"),
-                     "line 1:83: mismatched input 'partitioned' expecting {<EOF>, ';'}");
+        assertThrowsMatches(
+            () -> printStatement(
+                "create table test (col1 int, col2 timestamp with time zone) partitioned by (col1) partitioned by (col2)"),
+            ParsingException.class,
+            "line 1:83: mismatched input 'partitioned' expecting {<EOF>, ';'}");
     }
 
     @Test
@@ -906,12 +919,13 @@ public class TestStatementBuilder {
 
     @Test
     public void testCreateFunctionStmtBuilderWithIncorrectFunctionName() {
-        assertThrows(IllegalArgumentException.class,
-                     () -> printStatement("create function foo.bar.a()" +
-                                         " returns object" +
-                                         " language sql as 'select 1'"),
-                     "[foo.bar.a] does not conform the " +
-                     "[[schema_name .] function_name] format");
+        assertThrowsMatches(
+            () -> printStatement("create function foo.bar.a() " +
+                             "returns object " +
+                             "language sql as 'select 1'"),
+            IllegalArgumentException.class,
+            "The function name is not correct! name [foo.bar.a] does not conform the [[schema_name .] " +
+                "function_name] format.");
     }
 
     @Test
@@ -929,7 +943,13 @@ public class TestStatementBuilder {
                     " from t1, t2 where t1.a='a' or t2.b='aa') as t)" +
             " as tt order by iiy");
         printStatement("select extract(day from x) from y");
+        printStatement("select * from foo order by 1, 2 limit all offset ?");
+        printStatement("select * from foo order by 1, 2 limit null offset ?");
         printStatement("select * from foo order by 1, 2 limit 1 offset ?");
+        printStatement("select * from foo order by 1, 2 limit 1 offset ? row");
+        printStatement("select * from foo order by 1, 2 limit 1 offset null row");
+        printStatement("select * from foo order by 1, 2 limit all offset ? rows");
+        printStatement("select * from foo order by 1, 2 limit all offset null rows");
         printStatement("select * from foo a (x, y, z)");
         printStatement("select *, 123, * from foo");
         printStatement("select show from foo");
@@ -959,7 +979,15 @@ public class TestStatementBuilder {
         printStatement("select \"TOTALPRICE\" \"my price\" from \"orders\"");
 
         printStatement("select * from foo limit 100 offset 20");
+        printStatement("select * from foo limit null offset 20");
+        printStatement("select * from foo limit all offset 20 row");
+        printStatement("select * from foo limit 100 offset 20 rows");
         printStatement("select * from foo offset 20");
+        printStatement("select * from foo offset null");
+        printStatement("select * from foo offset 20 row");
+        printStatement("select * from foo offset null row");
+        printStatement("select * from foo offset 20 rows");
+        printStatement("select * from foo offset null rows");
 
         printStatement("select * from t where 'value' LIKE ANY (col)");
         printStatement("select * from t where 'value' NOT LIKE ANY (col)");
@@ -988,9 +1016,10 @@ public class TestStatementBuilder {
 
     @Test
     public void testThatEscapedStringLiteralContainingDoubleBackSlashAndSingleQuoteThrowsException() {
-        assertThrows(IllegalArgumentException.class,
-                     () -> printStatement("select e'aa\\\\\'bb' as col1"),
-                     "Invalid Escaped String Literal");
+        assertThrowsMatches(
+            () -> printStatement("select e'aa\\\\\'bb' as col1"),
+            IllegalArgumentException.class,
+            "Invalid Escaped String Literal");
     }
 
     @Test
@@ -1084,16 +1113,18 @@ public class TestStatementBuilder {
 
     @Test
     public void testArrayConstructorSubSelectBuilderNoParenthesisThrowsParsingException() {
-        assertThrows(ParsingException.class,
-                     () -> printStatement("select array from f2"),
-                     "no viable alternative at input 'select array from'");
+    assertThrowsMatches(
+        () -> printStatement("select array from f2"),
+        ParsingException.class,
+        "line 1:14: no viable alternative at input 'select array from'");
     }
 
    @Test
     public void testArrayConstructorSubSelectBuilderNoSubQueryThrowsParsingException() {
-       assertThrows(ParsingException.class,
-                    () -> printStatement("select array() as array1 from f2"),
-                    "no viable alternative at input 'select array()'");
+       assertThrowsMatches(
+            () -> printStatement("select array() as array1 from f2"),
+            ParsingException.class,
+            "line 1:14: no viable alternative at input 'select array()'");
     }
 
     @Test
@@ -1160,11 +1191,17 @@ public class TestStatementBuilder {
         // insert from query
         printStatement("insert into foo (id, name) select id, name from bar order by id");
         printStatement("insert into foo (id, name) select * from bar limit 3 offset 10");
+        printStatement("insert into foo (id, name) select * from bar limit null offset 10");
+        printStatement("insert into foo (id, name) select * from bar limit all offset 10 row");
+        printStatement("insert into foo (id, name) select * from bar limit 3 offset 10 rows");
         printStatement("insert into foo (wealth, name) select sum(money), name from bar group by name");
         printStatement("insert into foo select sum(money), name from bar group by name");
 
         printStatement("insert into foo (id, name) (select id, name from bar order by id)");
-        printStatement("insert into foo (id, name) (select * from bar limit 3 offset 10)");
+        printStatement("insert into foo (id, name) (select * from bar limit all offset 10)");
+        printStatement("insert into foo (id, name) (select * from bar limit 3 offset 10 row)");
+        printStatement("insert into foo (id, name) (select * from bar limit 3 offset 10 rows)");
+        printStatement("insert into foo (id, name) (select * from bar limit 3 offset null rows)");
         printStatement("insert into foo (wealth, name) (select sum(money), name from bar group by name)");
         printStatement("insert into foo (select sum(money), name from bar group by name)");
     }
@@ -1181,6 +1218,8 @@ public class TestStatementBuilder {
     public void testParameterExpressionLimitOffset() {
         // ORMs like SQLAlchemy generate these kind of queries.
         printStatement("select * from foo limit ? offset ?");
+        printStatement("select * from foo limit ? offset ? row");
+        printStatement("select * from foo limit ? offset ? rows");
     }
 
     @Test
@@ -1336,9 +1375,10 @@ public class TestStatementBuilder {
         matchPredicate = (MatchPredicate) SqlParser.createExpression("match (a['1']['2']['4'], 'abc')");
         assertThat(matchPredicate.idents().get(0).columnIdent().toString(), is("\"a\"['1']['2']['4']"));
 
-        assertThrows(ParsingException.class,
-                     () -> SqlParser.createExpression("match ([1]['1']['2'], 'abc')"),
-                     "mismatched input '<EOF>' expecting 'SET'");
+        assertThrowsMatches(
+            () -> SqlParser.createExpression("match ([1]['1']['2'], 'abc')"),
+            ParsingException.class,
+            "line 1:8: mismatched input '[' expecting {'('");
     }
 
     @Test
@@ -1591,17 +1631,19 @@ public class TestStatementBuilder {
 
     @Test
     public void testAlterTableAddColumnTypeOrGeneratedExpressionAreDefined() {
-        assertThrows(IllegalArgumentException.class,
-                     () -> printStatement("alter table t add column col2"),
-                     "Column [\"col2\"]: data type needs to be provided or column should be defined as a generated expression");
+        assertThrowsMatches(
+            () -> printStatement("alter table t add column col2"),
+            IllegalArgumentException.class,
+            "Column [\"col2\"]: data type needs to be provided or column should be defined as a generated expression");
     }
 
 
     @Test
     public void testAddColumnWithDefaultExpressionIsNotSupported() {
-        assertThrows(ParsingException.class,
-                     () -> printStatement("mismatched input 'default'"),
-                     "mismatched input 'default'");
+        assertThrowsMatches(
+            () -> printStatement("mismatched input 'default'"),
+            ParsingException.class,
+            "line 1:1: mismatched input 'mismatched' expecting {'");
     }
 
 
@@ -1638,9 +1680,10 @@ public class TestStatementBuilder {
 
     @Test
     public void testAlterUserWithMissingProperties() {
-        assertThrows(ParsingException.class,
-                     () -> printStatement("alter user crate"),
-                     "mismatched input '<EOF>' expecting 'SET'");
+        assertThrowsMatches(
+            () -> printStatement("alter user crate"),
+            ParsingException.class,
+            "line 1:17: mismatched input '<EOF>' expecting 'SET'");
     }
 
     @Test

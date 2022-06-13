@@ -27,6 +27,7 @@ import org.junit.Test;
 import java.util.Comparator;
 import java.util.List;
 
+import static io.crate.sql.testing.Asserts.assertThrowsMatches;
 import static io.crate.sql.tree.FrameBound.Type.UNBOUNDED_FOLLOWING;
 import static io.crate.sql.tree.WindowFrame.Mode.RANGE;
 import static org.hamcrest.core.Is.is;
@@ -63,9 +64,10 @@ public class UnboundedFollowingFrameBoundTest {
 
     @Test
     public void testUnboundeFollowingCannotBeTheStartOfTheFrame() {
-        assertThrows(IllegalStateException.class,
-                     () ->  UNBOUNDED_FOLLOWING.getStart(RANGE, 0, 3, 1, null, null, intComparator, partition),
-                     "UNBOUNDED FOLLOWING cannot be the start of a frame");
+        assertThrowsMatches(
+            () ->  UNBOUNDED_FOLLOWING.getStart(RANGE, 0, 3, 1, null, null, intComparator, partition),
+            IllegalStateException.class,
+            "UNBOUNDED FOLLOWING cannot be the start of a frame");
     }
 
 }

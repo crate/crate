@@ -344,10 +344,29 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
+    public void testLimitSupportInAnalyzer() throws Exception {
+        var executor = SQLExecutor.builder(clusterService).build();
+        QueriedSelectRelation relation = executor.analyze("select * from sys.nodes limit 10");
+        assertThat(relation.limit(), is(Literal.of(10L)));
+        relation = executor.analyze("select * from sys.nodes limit all offset 3");
+        assertThat(relation.limit(), nullValue());
+        assertThat(relation.offset(), is(Literal.of(3L)));
+        relation = executor.analyze("select * from sys.nodes limit null offset 3");
+        assertThat(relation.limit(), isLiteral(null));
+        assertThat(relation.offset(), is(Literal.of(3L)));
+    }
+
+    @Test
     public void testOffsetSupportInAnalyzer() throws Exception {
         var executor = SQLExecutor.builder(clusterService).build();
         QueriedSelectRelation relation = executor.analyze("select * from sys.nodes limit 1 offset 3");
         assertThat(relation.offset(), is(Literal.of(3L)));
+        relation = executor.analyze("select * from sys.nodes limit 1 offset 3 row");
+        assertThat(relation.offset(), is(Literal.of(3L)));
+        relation = executor.analyze("select * from sys.nodes limit 1 offset 3 rows");
+        assertThat(relation.offset(), is(Literal.of(3L)));
+        relation = executor.analyze("select * from sys.nodes limit 1 offset null");
+        assertThat(relation.offset(), isLiteral(null));
     }
 
     @Test
