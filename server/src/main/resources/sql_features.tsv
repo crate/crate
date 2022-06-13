@@ -326,11 +326,11 @@ F850	Top-level <order by clause> in <query expression>			YES
 F851	<order by clause> in subqueries			YES		
 F852	Top-level <order by clause> in views			NO		
 F855	Nested <order by clause> in <query expression>			YES		
-F856	Nested <fetch first clause> in <query expression>			NO		
-F857	Top-level <fetch first clause> in <query expression>			NO		
-F858	<fetch first clause> in subqueries			NO		
-F859	Top-level <fetch first clause> in views			NO		
-F860	<fetch first row count> in <fetch first clause>			NO		
+F856	Nested <fetch first clause> in <query expression>			YES		
+F857	Top-level <fetch first clause> in <query expression>			YES		
+F858	<fetch first clause> in subqueries			YES		
+F859	Top-level <fetch first clause> in views			YES		
+F860	<fetch first row count> in <fetch first clause>			YES		
 F861	Top-level <result offset clause> in <query expression>			NO		
 F862	<result offset clause> in subqueries			NO		
 F863	Nested <result offset clause> in <query expression>			NO		

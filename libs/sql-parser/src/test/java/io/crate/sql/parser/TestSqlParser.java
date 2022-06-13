@@ -303,11 +303,39 @@ public class TestSqlParser {
     }
 
     @Test
+    public void testParseErrorLimitAndFetch() {
+        assertThrowsMatches(
+            () -> SqlParser.createStatement("select fuu from dual limit 10 fetch first 5 rows only"),
+            ParsingException.class,
+            "line 1:31: mismatched input 'fetch' expecting {<EOF>, ';'}");
+        assertThrowsMatches(
+            () -> SqlParser.createStatement("select fuu from dual fetch next 10 row only limit 5"),
+            ParsingException.class,
+            "line 1:45: mismatched input 'limit' expecting {<EOF>, ';'}");
+    }
+
+    @Test
+    public void testParseErrorMultipleLimits() {
+        assertThrowsMatches(
+            () -> SqlParser.createStatement("select fuu from dual limit 1 limit 2 limit 3"),
+            ParsingException.class,
+            "line 1:30: mismatched input 'limit' expecting {<EOF>, ';'}");
+        assertThrowsMatches(
+            () -> SqlParser.createStatement("select fuu from dual fetch first 1 rows only fetch first 2 rows only"),
+            ParsingException.class,
+            "line 1:46: mismatched input 'fetch' expecting {<EOF>, ';'}");
+    }
+
+    @Test
     public void testParseErrorReverseOrderByLimit() {
         assertThrowsMatches(
-            () -> SqlParser.createStatement("select fuu from dual limit 10 order by fuu"),
+             () -> SqlParser.createStatement("select fuu from dual limit 10 order by fuu"),
+             ParsingException.class,
+             "line 1:31: mismatched input 'order' expecting {<EOF>, ';'}");
+        assertThrowsMatches(
+            () -> SqlParser.createStatement("select fuu from dual fetch first 10 rows only order by fuu"),
             ParsingException.class,
-            "line 1:31: mismatched input 'order' expecting {<EOF>, ';'}");
+            "line 1:47: mismatched input 'order' expecting {<EOF>, ';'}");
     }
 
     @Test
@@ -316,6 +344,14 @@ public class TestSqlParser {
             () -> SqlParser.createStatement("select fuu from dual limit 10 offset 20 order by fuu"),
             ParsingException.class,
             "line 1:41: mismatched input 'order' expecting {<EOF>, ';'}");
+        assertThrowsMatches(
+             () -> SqlParser.createStatement("select fuu from dual fetch first 10 row only offset 20 order by fuu"),
+             ParsingException.class,
+             "line 1:56: mismatched input 'order' expecting {<EOF>, ';'}");
+        assertThrowsMatches(
+             () -> SqlParser.createStatement("select fuu from dual offset ? fetch next 10 row only order by fuu"),
+             ParsingException.class,
+             "line 1:54: mismatched input 'order' expecting {<EOF>, ';'}");
     }
 
     @Test
@@ -325,6 +361,15 @@ public class TestSqlParser {
             ParsingException.class,
             "line 1:32: mismatched input 'order' expecting {<EOF>, ';'}");
     }
+
+    @Test
+    public void testParseErrorMultipleOffsets() {
+        assertThrowsMatches(
+            () -> SqlParser.createStatement("select fuu from dual offset 1 offset 2 offset 3"),
+            ParsingException.class,
+            "line 1:31: mismatched input 'offset' expecting {<EOF>, ';'}");
+    }
+
 
     @Test
     public void testParsingExceptionPositionInfo() {
