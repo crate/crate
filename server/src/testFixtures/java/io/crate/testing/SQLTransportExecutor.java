@@ -46,6 +46,7 @@ import java.util.Properties;
 import java.util.Random;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -188,6 +189,12 @@ public class SQLTransportExecutor {
                 sessionList.forEach((setting) -> exec(setting, session));
                 return FutureUtils.get(execute(stmt, args, session), timeout.millis(), TimeUnit.MILLISECONDS);
             }
+        } catch (ElasticsearchTimeoutException ex) {
+            Throwable cause = ex.getCause();
+            if (cause == null) {
+                cause = ex;
+            }
+            throw new ElasticsearchTimeoutException("Timeout while running `" + stmt + "`", cause);
         } catch (RuntimeException e) {
             var cause = e.getCause();
             // ActionListener.onFailure takes `Exception` as argument instead of `Throwable`.
