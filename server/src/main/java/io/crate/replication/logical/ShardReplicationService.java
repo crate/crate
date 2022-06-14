@@ -121,7 +121,7 @@ public class ShardReplicationService implements Closeable, IndexEventListener {
     }
 
     @Override
-    public void afterIndexShardDeleted(ShardId shardId, Settings indexSettings) {
+    public void beforeIndexShardDeleted(ShardId shardId, Settings indexSettings) {
         closeTracker(shardId);
     }
 
