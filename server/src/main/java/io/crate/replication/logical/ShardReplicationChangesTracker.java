@@ -348,7 +348,8 @@ public class ShardReplicationChangesTracker implements Closeable {
                         },
                         e -> {
                             var t = SQLExceptions.unwrap(e);
-                            if (!closed && SQLExceptions.maybeTemporary(t)) {
+                            boolean isClosed = closed; // one volatile read
+                            if (!isClosed && SQLExceptions.maybeTemporary(t)) {
                                 LOGGER.info(
                                     "[{}] Temporary error during renewal of retention leases for subscription '{}'. Retrying: {}:{}",
                                     shardId,
@@ -361,8 +362,10 @@ public class ShardReplicationChangesTracker implements Closeable {
                                     ThreadPool.Names.LOGICAL_REPLICATION,
                                     () -> renewLeasesThenReschedule(toSeqNoReceived)
                                 );
+                            } else if (isClosed) {
+                                LOGGER.debug("Exception renewing retention lease. Stopping tracking (closed=true)");
                             } else {
-                                LOGGER.warn("Exception renewing retention lease. Stopping tracking (closed=" + closed + ")", e);
+                                LOGGER.warn("Exception renewing retention lease. Stopping tracking (closed=false)");
                             }
                         }
                     )
