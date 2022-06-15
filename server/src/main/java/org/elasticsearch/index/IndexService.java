@@ -19,9 +19,30 @@
 
 package org.elasticsearch.index;
 
-import io.crate.common.annotations.VisibleForTesting;
-import io.crate.common.io.IOUtils;
-import io.crate.common.unit.TimeValue;
+import static io.crate.common.collections.MapBuilder.newMapBuilder;
+import static java.util.Collections.emptyMap;
+import static java.util.Collections.unmodifiableMap;
+
+import java.io.Closeable;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
+import java.util.function.Function;
+
+import javax.annotation.Nullable;
+
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.store.AlreadyClosedException;
 import org.apache.lucene.store.Directory;
@@ -41,7 +62,6 @@ import org.elasticsearch.env.ShardLockObtainFailedException;
 import org.elasticsearch.gateway.MetadataStateFormat;
 import org.elasticsearch.gateway.WriteStateException;
 import org.elasticsearch.index.analysis.AnalysisRegistry;
-import org.elasticsearch.index.analysis.IndexAnalyzers;
 import org.elasticsearch.index.cache.IndexCache;
 import org.elasticsearch.index.cache.query.QueryCache;
 import org.elasticsearch.index.engine.EngineFactory;
@@ -63,28 +83,8 @@ import org.elasticsearch.indices.mapper.MapperRegistry;
 import org.elasticsearch.plugins.IndexStorePlugin;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import javax.annotation.Nullable;
-import java.io.Closeable;
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Consumer;
-import java.util.function.Function;
-
-import static io.crate.common.collections.MapBuilder.newMapBuilder;
-import static java.util.Collections.emptyMap;
-import static java.util.Collections.unmodifiableMap;
+import io.crate.common.io.IOUtils;
+import io.crate.common.unit.TimeValue;
 
 public class IndexService extends AbstractIndexComponent implements IndicesClusterStateService.AllocatedIndex<IndexShard> {
 
@@ -170,10 +170,6 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
         META_DATA_VERIFICATION
     }
 
-    public int numberOfShards() {
-        return shards.size();
-    }
-
     public IndexEventListener getIndexEventListener() {
         return this.eventListener;
     }
@@ -215,16 +211,8 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
         return indexCache;
     }
 
-    public IndexAnalyzers getIndexAnalyzers() {
-        return this.mapperService.getIndexAnalyzers();
-    }
-
     public MapperService mapperService() {
         return mapperService;
-    }
-
-    public NamedXContentRegistry xContentRegistry() {
-        return xContentRegistry;
     }
 
     public synchronized void close(final String reason, boolean delete) throws IOException {
@@ -488,20 +476,6 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
         return new QueryShardContext(indexSettings, mapperService());
     }
 
-    /**
-     * The {@link ThreadPool} to use for this index.
-     */
-    public ThreadPool getThreadPool() {
-        return threadPool;
-    }
-
-    /**
-     * The {@link BigArrays} to use for this index.
-     */
-    public BigArrays getBigArrays() {
-        return bigArrays;
-    }
-
     @Override
     public boolean updateMapping(final IndexMetadata currentIndexMetadata, final IndexMetadata newIndexMetadata) throws IOException {
         if (mapperService == null) {
@@ -630,15 +604,6 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
         void deleteShardStore(String reason, ShardLock lock, IndexSettings indexSettings) throws IOException;
 
         void addPendingDelete(ShardId shardId, IndexSettings indexSettings);
-    }
-
-    public final Collection<Function<IndexSettings, Optional<EngineFactory>>> engineFactoryProviders() {
-        return engineFactoryProviders;
-    }
-
-    @VisibleForTesting
-    final IndexStorePlugin.DirectoryFactory getDirectoryFactory() {
-        return directoryFactory;
     }
 
     private void maybeFSyncTranslogs() {
