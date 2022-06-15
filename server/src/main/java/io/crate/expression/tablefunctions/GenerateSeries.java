@@ -23,6 +23,7 @@ package io.crate.expression.tablefunctions;
 
 import io.crate.data.Input;
 import io.crate.data.Row;
+import io.crate.legacy.LegacySettings;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
@@ -58,6 +59,9 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
     public static final FunctionName NAME = new FunctionName(PgCatalogSchemaInfo.NAME, "generate_series");
 
     public static void register(TableFunctionModule module) {
+        final List<String> fieldNames =
+            LegacySettings.LEGACY_TABLE_FUNCTION_COLUMN_NAMING.get(module.settings()) ? List.of() : List.of(NAME.name());
+
         // without step
         module.register(
             Signature.table(
@@ -73,7 +77,8 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
                 (x, y) -> x - y,
                 Long::sum,
                 (x, y) -> x / y,
-                Long::compare)
+                Long::compare,
+                new RowType(List.of(boundSignature.getArgumentDataTypes().get(0)), fieldNames))
         );
         module.register(
             Signature.table(
@@ -89,7 +94,8 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
                 (x, y) -> x - y,
                 Integer::sum,
                 (x, y) -> x / y,
-                Integer::compare)
+                Integer::compare,
+                new RowType(List.of(boundSignature.getArgumentDataTypes().get(0)), fieldNames))
         );
 
         // with step
@@ -108,7 +114,8 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
                 (x, y) -> x - y,
                 Long::sum,
                 (x, y) -> x / y,
-                Long::compare)
+                Long::compare,
+                new RowType(List.of(boundSignature.getArgumentDataTypes().get(0)), fieldNames))
         );
         module.register(
             Signature.table(
@@ -125,7 +132,8 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
                 (x, y) -> x - y,
                 Integer::sum,
                 (x, y) -> x / y,
-                Integer::compare)
+                Integer::compare,
+                new RowType(List.of(boundSignature.getArgumentDataTypes().get(0)), fieldNames))
         );
 
         // generate_series(ts, ts, interval)
@@ -138,7 +146,10 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
                     DataTypes.INTERVAL.getTypeSignature(),
                     supportedType.getTypeSignature()
                 ),
-                GenerateSeriesIntervals::new
+                (signature, boundSignature) -> new GenerateSeriesIntervals(
+                    signature,
+                    boundSignature,
+                    new RowType(List.of(boundSignature.getArgumentDataTypes().get(0)), fieldNames))
             );
             module.register(
                 Signature.table(
@@ -172,7 +183,8 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
                            BinaryOperator<T> minus,
                            BinaryOperator<T> plus,
                            BinaryOperator<T> divide,
-                           Comparator<T> comparator) {
+                           Comparator<T> comparator,
+                           RowType returnType) {
         this.signature = signature;
         this.boundSignature = boundSignature;
         this.defaultStep = defaultStep;
@@ -180,7 +192,7 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
         this.plus = plus;
         this.divide = divide;
         this.comparator = comparator;
-        this.returnType = new RowType(List.of(boundSignature.getArgumentDataTypes().get(0)), List.of(NAME.name()));
+        this.returnType = returnType;
     }
 
     @Override
@@ -234,10 +246,10 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
         private final Signature signature;
         private final Signature boundSignature;
 
-        public GenerateSeriesIntervals(Signature signature, Signature boundSignature) {
+        public GenerateSeriesIntervals(Signature signature, Signature boundSignature, RowType returnType) {
             this.signature = signature;
             this.boundSignature = boundSignature;
-            returnType = new RowType(List.of(boundSignature.getArgumentDataTypes().get(0)), List.of(NAME.name()));
+            this.returnType = returnType;
         }
 
         @Override

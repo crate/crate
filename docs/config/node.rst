@@ -746,6 +746,33 @@ Queries
     ``ANY`` operators on arrays of that length can lead to heavy memory,
     consumption which could cause nodes to crash with OutOfMemory exceptions.
 
+Legacy
+=======
+
+.. _legacy.table_function_column_naming:
+
+**legacy.table_function_column_naming**
+  | *Default:* ``false``
+  | *Runtime:* ``no``
+
+  Since CrateDB 5.0.0, if the table function is not aliased and is returning a
+  single base data typed column, the table function name is used as the column
+  name. This setting can be set in order to use the naming convention prior to
+  5.0.0.
+
+  The following table functions are affected by this setting:
+  - :ref:`unnest <unnest>`
+  - :ref:`regexp_matches <table-functions-regexp-matches>`
+  - :ref:`generate_series <table-functions-generate-series>`
+  When the setting is set and a single column is expected to be returned,
+  the returned column will be named ``col1``, ``groups``, or ``col1``
+  respectively.
+
+  .. NOTE::
+
+    Beware that if not all nodes in the cluster are consistently set or unset,
+    the behaviour will depend on the node handling the query.
+
 .. _conf-node-lang-js:
 
 JavaScript language

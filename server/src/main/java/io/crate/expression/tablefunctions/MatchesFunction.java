@@ -28,6 +28,7 @@ import io.crate.data.RowN;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
+import io.crate.legacy.LegacySettings;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
@@ -51,10 +52,14 @@ import static io.crate.expression.RegexpFlags.isGlobal;
 public final class MatchesFunction extends TableFunctionImplementation<List<Object>> {
 
     public static final String NAME = "regexp_matches";
-    private static final RowType ROW_TYPE = new RowType(
-        List.of(DataTypes.STRING_ARRAY), List.of(NAME));
+    private static final RowType ROW_TYPE = new RowType(List.of(DataTypes.STRING_ARRAY), List.of(NAME));
+    private static final RowType LEGACY_ROW_TYPE = new RowType(List.of(DataTypes.STRING_ARRAY), List.of("groups"));
+
 
     public static void register(TableFunctionModule module) {
+        final RowType returnType =
+            LegacySettings.LEGACY_TABLE_FUNCTION_COLUMN_NAMING.get(module.settings()) ? LEGACY_ROW_TYPE : ROW_TYPE;
+
         module.register(
             Signature.table(
                 NAME,
@@ -62,7 +67,11 @@ public final class MatchesFunction extends TableFunctionImplementation<List<Obje
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING_ARRAY.getTypeSignature()
             ),
-            MatchesFunction::new
+            (signature, boundSignature) -> new MatchesFunction(
+                signature,
+                boundSignature,
+                returnType
+            )
         );
         module.register(
             Signature.table(
@@ -72,7 +81,11 @@ public final class MatchesFunction extends TableFunctionImplementation<List<Obje
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING_ARRAY.getTypeSignature()
             ),
-            MatchesFunction::new
+            (signature, boundSignature) -> new MatchesFunction(
+                signature,
+                boundSignature,
+                returnType
+            )
         );
     }
 
@@ -80,15 +93,17 @@ public final class MatchesFunction extends TableFunctionImplementation<List<Obje
     private final Pattern pattern;
     private final Signature signature;
     private final Signature boundSignature;
+    private final RowType returnType;
 
-    private MatchesFunction(Signature signature, Signature boundSignature) {
-        this(signature, boundSignature, null);
+    private MatchesFunction(Signature signature, Signature boundSignature, RowType returnType) {
+        this(signature, boundSignature, null, returnType);
     }
 
-    private MatchesFunction(Signature signature, Signature boundSignature, @Nullable Pattern pattern) {
+    private MatchesFunction(Signature signature, Signature boundSignature, @Nullable Pattern pattern, RowType returnType) {
         this.signature = signature;
         this.boundSignature = boundSignature;
         this.pattern = pattern;
+        this.returnType = returnType;
     }
 
     @Override
@@ -103,7 +118,7 @@ public final class MatchesFunction extends TableFunctionImplementation<List<Obje
 
     @Override
     public RowType returnType() {
-        return ROW_TYPE;
+        return returnType;
     }
 
     @Override
@@ -135,7 +150,7 @@ public final class MatchesFunction extends TableFunctionImplementation<List<Obje
         }
         if (pattern != null) {
             return new MatchesFunction(
-                signature, boundSignature, Pattern.compile(pattern, parseFlags(flags)));
+                signature, boundSignature, Pattern.compile(pattern, parseFlags(flags)), returnType);
         }
         return this;
     }

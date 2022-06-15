@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,34 +19,14 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.expression.tablefunctions;
+package io.crate.legacy;
 
-import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.settings.Setting;
 
-import io.crate.expression.AbstractFunctionModule;
-import io.crate.metadata.tablefunctions.TableFunctionImplementation;
+public class LegacySettings {
 
-public class TableFunctionModule extends AbstractFunctionModule<TableFunctionImplementation> {
+    private static final String TABLE_FUNCTION_COLUMN_NAMING = "legacy.table_function_column_naming";
 
-    private final Settings settings;
-
-    public TableFunctionModule(Settings settings) {
-        this.settings = settings;
-    }
-
-    @Override
-    public void configureFunctions() {
-        UnnestFunction.register(this);
-        EmptyRowTableFunction.register(this);
-        GenerateSeries.register(this);
-        ValuesFunction.register(this);
-        PgGetKeywordsFunction.register(this);
-        PgExpandArray.register(this);
-        GenerateSubscripts.register(this);
-        MatchesFunction.register(this);
-    }
-
-    public Settings settings() {
-        return settings;
-    }
+    public static final Setting<Boolean> LEGACY_TABLE_FUNCTION_COLUMN_NAMING = Setting.boolSetting(
+        TABLE_FUNCTION_COLUMN_NAMING, false, Setting.Property.NodeScope);
 }
