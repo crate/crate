@@ -223,8 +223,7 @@ public class ReadOnlyEngineTests extends EngineTestCase {
             try (ReadOnlyEngine readOnlyEngine = new ReadOnlyEngine(
                 config, null, new TranslogStats(0, 0, 0, 0), true, Function.identity())
             ) {
-                Class<? extends Throwable> expectedException = LuceneTestCase.TEST_ASSERTS_ENABLED ? AssertionError.class :
-                    UnsupportedOperationException.class;
+                Class<? extends Throwable> expectedException = UnsupportedOperationException.class;
                 expectThrows(expectedException, () -> readOnlyEngine.index(null));
                 expectThrows(expectedException, () -> readOnlyEngine.delete(null));
                 expectThrows(expectedException, () -> readOnlyEngine.noOp(null));
