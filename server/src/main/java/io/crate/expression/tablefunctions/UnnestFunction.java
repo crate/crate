@@ -25,6 +25,7 @@ import io.crate.common.collections.Iterators;
 import io.crate.common.collections.Lists2;
 import io.crate.data.Input;
 import io.crate.data.Row;
+import io.crate.legacy.LegacySettings;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -60,7 +61,9 @@ public class UnnestFunction {
             (signature, boundSignature) -> new UnnestTableFunctionImplementation(
                 signature,
                 boundSignature,
-                new RowType(List.of(boundSignature.getReturnType().createType()), List.of(NAME)))
+                LegacySettings.LEGACY_TABLE_FUNCTION_COLUMN_NAMING.get(module.settings()) ?
+                    new RowType(List.of(boundSignature.getReturnType().createType())) :
+                    new RowType(List.of(boundSignature.getReturnType().createType()), List.of(NAME)))
         );
         module.register(
             Signature

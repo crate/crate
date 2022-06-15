@@ -105,6 +105,7 @@ import io.crate.cluster.gracefulstop.DecommissioningService;
 import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
 import io.crate.execution.jobs.NodeLimits;
+import io.crate.legacy.LegacySettings;
 import io.crate.memory.MemoryManagerFactory;
 import io.crate.metadata.settings.AnalyzerSettings;
 import io.crate.protocols.postgres.PostgresNetty;
@@ -474,6 +475,7 @@ public final class ClusterSettings extends AbstractScopedSettings {
         LogicalReplicationSettings.REPLICATION_CHANGE_BATCH_SIZE,
         LogicalReplicationSettings.REPLICATION_READ_POLL_DURATION,
         LogicalReplicationSettings.REPLICATION_RECOVERY_CHUNK_SIZE,
-        LogicalReplicationSettings.REPLICATION_RECOVERY_MAX_CONCURRENT_FILE_CHUNKS
+        LogicalReplicationSettings.REPLICATION_RECOVERY_MAX_CONCURRENT_FILE_CHUNKS,
+        LegacySettings.LEGACY_TABLE_FUNCTION_COLUMN_NAMING
     );
 }

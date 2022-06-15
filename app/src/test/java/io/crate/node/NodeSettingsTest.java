@@ -51,6 +51,7 @@ import java.util.concurrent.TimeUnit;
 import static org.elasticsearch.env.Environment.PATH_DATA_SETTING;
 import static org.elasticsearch.env.Environment.PATH_HOME_SETTING;
 import static org.elasticsearch.env.Environment.PATH_LOGS_SETTING;
+import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 
@@ -89,6 +90,7 @@ public class NodeSettingsTest extends ESTestCase {
         settings.put(PATH_HOME_SETTING.getKey(), configPath.toString());
         // Avoid connecting to other test nodes
         settings.put("discovery.type", "single-node");
+        settings.put("legacy.table_function_column_naming", "true");
 
         Environment environment = InternalSettingsPreparer.prepareEnvironment(Settings.EMPTY, settings, configPath, () -> "node-test");
         node = new CrateNode(environment);
@@ -128,5 +130,27 @@ public class NodeSettingsTest extends ESTestCase {
             Matchers.endsWith("data")
         ));
         assertTrue(node.settings().get(PATH_LOGS_SETTING.getKey()).endsWith("logs"));
+    }
+
+    @Test
+    public void test_legacy_table_function_column_naming() throws Exception {
+        try (Session session = sqlOperations.newSystemSession()) {
+            SQLResponse response = SQLTransportExecutor.execute(
+                "select * from unnest([1])", null, session)
+                .get(SQLTransportExecutor.REQUEST_TIMEOUT.millis(), TimeUnit.MILLISECONDS);
+            assertThat(response.cols(), arrayContaining("col1"));
+
+            response = SQLTransportExecutor.execute(
+                "select * from generate_series(1,4)", null, session)
+                .get(SQLTransportExecutor.REQUEST_TIMEOUT.millis(), TimeUnit.MILLISECONDS);
+            assertThat(response.cols(), arrayContaining("col1"));
+
+            response = SQLTransportExecutor.execute(
+                "select * from regexp_matches('alcatraz', 'traz')",
+                null,
+                session)
+                .get(SQLTransportExecutor.REQUEST_TIMEOUT.millis(), TimeUnit.MILLISECONDS);
+            assertThat(response.cols(), arrayContaining("groups"));
+        }
     }
 }

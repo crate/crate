@@ -418,7 +418,7 @@ public class Node implements Closeable {
             modules.add(new SessionSettingModule());
             modules.add(new AggregationImplModule());
             modules.add(new ScalarFunctionModule());
-            modules.add(new TableFunctionModule());
+            modules.add(new TableFunctionModule(settings));
             modules.add(new WindowFunctionModule());
 
             final MonitorService monitorService = new MonitorService(settings,

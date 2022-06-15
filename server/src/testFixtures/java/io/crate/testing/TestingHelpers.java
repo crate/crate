@@ -56,6 +56,7 @@ import io.crate.user.User;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.ModulesBuilder;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
@@ -195,7 +196,7 @@ public class TestingHelpers {
             .add(new AggregationImplModule())
             .add(new ScalarFunctionModule())
             .add(new WindowFunctionModule())
-            .add(new TableFunctionModule())
+            .add(new TableFunctionModule(Settings.EMPTY))
             .add(new PredicateModule());
         if (additionalModules != null) {
             for (AbstractModule module : additionalModules) {

@@ -138,6 +138,13 @@ Changes
 - Updated Admin UI to 1.22.1, including an optimization to the web fonts.
   Admin UI now stops making requests to external resources completely.
 
+- Defined a node setting, :ref:`legacy.table_function_column_naming
+  <legacy.table_function_column_naming>`. This setting can be set to revert the
+  breaking change that caused the output column names of ``unnest``,
+  ``regexp_matches``, and ``generate_series`` to be the respective table
+  function names.
+
+
 Fixes
 =====
 
