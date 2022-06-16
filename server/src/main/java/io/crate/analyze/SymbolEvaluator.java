@@ -73,7 +73,7 @@ public final class SymbolEvaluator extends BaseImplementationSymbolVisitor<Row> 
         return () -> {
             Object value = params.get(parameterSymbol.index());
             try {
-                return parameterSymbol.valueType().implicitCast(value);
+                return parameterSymbol.valueType().implicitCast(value, txnCtx.sessionSettings());
             } catch (ClassCastException | IllegalArgumentException e) {
                 throw new ConversionException(value, parameterSymbol.valueType());
             }

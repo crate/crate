@@ -45,8 +45,6 @@ import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
 
-import com.carrotsearch.hppc.IntArrayList;
-
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.CreatePartitionsAction;
 import org.elasticsearch.action.admin.indices.create.CreatePartitionsRequest;
@@ -62,6 +60,8 @@ import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.io.stream.NotSerializableExceptionWrapper;
 import org.elasticsearch.index.IndexNotFoundException;
+
+import com.carrotsearch.hppc.IntArrayList;
 
 import io.crate.action.FutureActionListener;
 import io.crate.analyze.OrderBy;
@@ -102,6 +102,7 @@ import io.crate.expression.InputRow;
 import io.crate.expression.symbol.Assignments;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
@@ -201,6 +202,8 @@ public class InsertFromValues implements LogicalPlan {
             clusterByInput = null;
         }
 
+        var sessionSettings = plannerContext.transactionContext().sessionSettings();
+
         String[] onConflictColumns;
         Symbol[] onConflictAssignments;
         if (writerProjection.onDuplicateKeyAssignments() == null) {
@@ -211,7 +214,7 @@ public class InsertFromValues implements LogicalPlan {
                 writerProjection.onDuplicateKeyAssignments(),
                 dependencies.nodeContext()
             );
-            onConflictAssignments = assignments.bindSources(tableInfo, params, subQueryResults);
+            onConflictAssignments = assignments.bindSources(tableInfo, params, subQueryResults, sessionSettings);
             onConflictColumns = assignments.targetNames();
         }
         var indexNameResolver = IndexNameResolver.create(
@@ -242,7 +245,7 @@ public class InsertFromValues implements LogicalPlan {
         List<Symbol> returnValues = this.writerProjection.returnValues();
 
         ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
-            plannerContext.transactionContext().sessionSettings(),
+            sessionSettings,
             BULK_REQUEST_TIMEOUT_SETTING.get(dependencies.settings()),
             writerProjection.isIgnoreDuplicateKeys()
                 ? ShardUpsertRequest.DuplicateKeyAction.IGNORE
@@ -356,9 +359,10 @@ public class InsertFromValues implements LogicalPlan {
             writerProjection.tableIdent(),
             writerProjection.partitionIdent(),
             partitionedByInputs);
+        var sessionSettings = plannerContext.transactionContext().sessionSettings();
 
         ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
-            plannerContext.transactionContext().sessionSettings(),
+            sessionSettings,
             BULK_REQUEST_TIMEOUT_SETTING.get(dependencies.settings()),
             writerProjection.isIgnoreDuplicateKeys()
                 ? ShardUpsertRequest.DuplicateKeyAction.IGNORE
@@ -379,7 +383,7 @@ public class InsertFromValues implements LogicalPlan {
 
             final Symbol[] assignmentSources;
             if (assignments != null) {
-                assignmentSources = assignments.bindSources(tableInfo, param, subQueryResults);
+                assignmentSources = assignments.bindSources(tableInfo, param, subQueryResults, sessionSettings);
             } else {
                 assignmentSources = null;
             }
@@ -560,7 +564,7 @@ public class InsertFromValues implements LogicalPlan {
             DataType<?> targetType = reference.valueType();
             Object value = row.get(i);
             try {
-                cells[i] = targetType.implicitCast(value);
+                cells[i] = targetType.implicitCast(value, CoordinatorTxnCtx.systemTransactionContext().sessionSettings());
             } catch (IllegalArgumentException | ClassCastException e) {
                 throw new ColumnValidationException(
                     reference.column().name(),

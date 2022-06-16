@@ -87,8 +87,9 @@ public class Count implements LogicalPlan {
             null,
             tableRelation
         );
-        var binder = new SubQueryAndParamBinder(params, subQueryResults)
-            .andThen(x -> normalizer.normalize(x, plannerContext.transactionContext()));
+        var txnCtx = plannerContext.transactionContext();
+        var binder = new SubQueryAndParamBinder(params, subQueryResults, txnCtx.sessionSettings())
+            .andThen(x -> normalizer.normalize(x, txnCtx));
 
         // bind all parameters and possible subQuery values and re-analyze the query
         // (could result in a NO_MATCH, routing could've changed, etc).

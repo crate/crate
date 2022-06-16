@@ -22,6 +22,8 @@
 package io.crate.types;
 
 import io.crate.Streamer;
+import io.crate.metadata.settings.SessionSettings;
+
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
@@ -67,7 +69,7 @@ public class GeoPointType extends DataType<Point> implements Streamer<Point>, Fi
     }
 
     @Override
-    public Point implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
+    public Point implicitCast(Object value, SessionSettings sessionSettings) throws IllegalArgumentException, ClassCastException {
         if (value == null) {
             return null;
         } else if (value instanceof Point) {

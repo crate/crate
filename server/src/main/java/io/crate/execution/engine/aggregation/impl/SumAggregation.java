@@ -51,6 +51,7 @@ import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.settings.SessionSettings;
 import io.crate.types.ByteType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -139,6 +140,7 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
     @Override
     public T iterate(RamAccounting ramAccounting,
                      MemoryManager memoryManager,
+                     SessionSettings sessionSettings,
                      T state,
                      Input[] args) throws CircuitBreakingException {
         return reduce(ramAccounting, state, returnType.sanitizeValue(args[0].value()));
@@ -181,7 +183,10 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
     }
 
     @Override
-    public T removeFromAggregatedState(RamAccounting ramAccounting, T previousAggState, Input[] stateToRemove) {
+    public T removeFromAggregatedState(RamAccounting ramAccounting,
+                                       SessionSettings sessionSettings,
+                                       T previousAggState,
+                                       Input[] stateToRemove) {
         return subtraction.apply(previousAggState, returnType.sanitizeValue(stateToRemove[0].value()));
     }
 
@@ -259,14 +264,14 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
         }
 
         @Override
-        public void apply(RamAccounting ramAccounting, int doc, MutableLong state) throws IOException {
+        public void apply(RamAccounting ramAccounting, SessionSettings sessionSettings, int doc, MutableLong state) throws IOException {
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
                 state.setValue(Math.addExact(state.value(), values.nextValue()));
             }
         }
 
         @Override
-        public Long partialResult(RamAccounting ramAccounting, MutableLong state) {
+        public Long partialResult(RamAccounting ramAccounting, SessionSettings sessionSettings, MutableLong state) {
             return state.hasValue() ? state.value() : null;
         }
     }
@@ -293,7 +298,7 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
         }
 
         @Override
-        public void apply(RamAccounting ramAccounting, int doc, MutableDouble state) throws IOException {
+        public void apply(RamAccounting ramAccounting, SessionSettings sessionSettings, int doc, MutableDouble state) throws IOException {
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
                 var value = kahanSummation.sum(
                     state.value(),
@@ -304,7 +309,7 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
         }
 
         @Override
-        public Object partialResult(RamAccounting ramAccounting, MutableDouble state) {
+        public Object partialResult(RamAccounting ramAccounting, SessionSettings sessionSettings, MutableDouble state) {
             return state.hasValue() ? state.value() : null;
         }
     }
@@ -331,7 +336,7 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
         }
 
         @Override
-        public void apply(RamAccounting ramAccounting, int doc, MutableFloat state) throws IOException {
+        public void apply(RamAccounting ramAccounting, SessionSettings sessionSettings, int doc, MutableFloat state) throws IOException {
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
                 var value = kahanSummation.sum(
                     state.value(),
@@ -342,7 +347,7 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
         }
 
         @Override
-        public Object partialResult(RamAccounting ramAccounting, MutableFloat state) {
+        public Object partialResult(RamAccounting ramAccounting, SessionSettings sessionSettings, MutableFloat state) {
             return state.hasValue() ? state.value() : null;
         }
     }

@@ -21,28 +21,32 @@
 
 package io.crate.types;
 
-import io.crate.Streamer;
-import org.elasticsearch.test.ESTestCase;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.junit.Test;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.core.Is.is;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.core.Is.is;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
+
+import io.crate.Streamer;
+import io.crate.metadata.CoordinatorTxnCtx;
 
 public class ArrayTypeTest extends ESTestCase {
 
     @Test
     public void test_pg_string_array_literal_can_be_converted_to_values() {
         ArrayType<String> strArray = new ArrayType<>(DataTypes.STRING);
-        List<String> values = strArray.implicitCast("{a,abc,A,ABC,null,\"null\",NULL,\"NULL\"}");
+        List<String> values = strArray.implicitCast("{a,abc,A,ABC,null,\"null\",NULL,\"NULL\"}",
+            CoordinatorTxnCtx.systemTransactionContext().sessionSettings()
+        );
         assertThat(
             values,
             contains("a", "abc", "A", "ABC", null, "null", null, "NULL")

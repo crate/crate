@@ -127,6 +127,7 @@ import io.crate.metadata.SearchPath;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.settings.SessionSettings;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.sql.tree.BitString;
 import io.crate.sql.tree.ColumnPolicy;
@@ -140,6 +141,7 @@ import io.crate.types.StringType;
 public abstract class AggregationTestCase extends ESTestCase {
 
     protected static final RamAccounting RAM_ACCOUNTING = RamAccounting.NO_ACCOUNTING;
+    protected static final SessionSettings SESSION_SETTINGS = CoordinatorTxnCtx.systemTransactionContext().sessionSettings();
 
     protected NodeContext nodeCtx;
     protected MemoryManager memoryManager;
@@ -270,7 +272,7 @@ public abstract class AggregationTestCase extends ESTestCase {
                 states.add(function.newState(RAM_ACCOUNTING, Version.CURRENT, minNodeVersion, memoryManager));
             }
             int idx = states.size() - 1;
-            states.set(idx, function.iterate(RAM_ACCOUNTING, memoryManager, states.get(idx), inputs));
+            states.set(idx, function.iterate(RAM_ACCOUNTING, memoryManager, SESSION_SETTINGS, states.get(idx), inputs));
         }
         Object state = states.get(0);
         for (int i = 1; i < states.size(); i++) {

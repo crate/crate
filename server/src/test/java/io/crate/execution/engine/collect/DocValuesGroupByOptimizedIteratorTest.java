@@ -55,6 +55,7 @@ import io.crate.expression.reference.doc.lucene.BytesRefColumnReference;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LongColumnReference;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
@@ -64,12 +65,15 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.settings.SessionSettings;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
 
 public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTest {
+
+    private static final SessionSettings SESSION_SETTINGS = CoordinatorTxnCtx.systemTransactionContext().sessionSettings();
 
     private Functions functions;
     private IndexSearcher indexSearcher;
@@ -143,6 +147,7 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
             keyExpressions,
             RamAccounting.NO_ACCOUNTING,
             null,
+            SESSION_SETTINGS,
             null,
             new MatchAllDocsQuery(),
             new CollectorContext()
@@ -216,6 +221,7 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
             keyExpressions,
             RamAccounting.NO_ACCOUNTING,
             null,
+            SESSION_SETTINGS,
             null,
             new MatchAllDocsQuery(),
             new CollectorContext()
@@ -294,6 +300,7 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
             }),
             null,
             null,
+            SESSION_SETTINGS,
             null,
             (states, key) -> {
             },

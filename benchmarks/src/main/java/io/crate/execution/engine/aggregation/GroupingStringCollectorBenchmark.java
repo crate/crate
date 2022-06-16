@@ -21,6 +21,26 @@
 
 package io.crate.execution.engine.aggregation;
 
+import static io.crate.data.SentinelRow.SENTINEL;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+import java.util.concurrent.TimeUnit;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.common.inject.ModulesBuilder;
+import org.openjdk.jmh.annotations.Benchmark;
+import org.openjdk.jmh.annotations.BenchmarkMode;
+import org.openjdk.jmh.annotations.Mode;
+import org.openjdk.jmh.annotations.OutputTimeUnit;
+import org.openjdk.jmh.annotations.Scope;
+import org.openjdk.jmh.annotations.Setup;
+import org.openjdk.jmh.annotations.State;
+import org.openjdk.jmh.infra.Blackhole;
+
 import io.crate.breaker.RamAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.BatchIterators;
@@ -35,28 +55,11 @@ import io.crate.execution.engine.collect.InputCollectExpression;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.Literal;
 import io.crate.memory.OnHeapMemoryManager;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.settings.SessionSettings;
 import io.crate.types.DataTypes;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.inject.ModulesBuilder;
-import org.openjdk.jmh.annotations.Benchmark;
-import org.openjdk.jmh.annotations.BenchmarkMode;
-import org.openjdk.jmh.annotations.Mode;
-import org.openjdk.jmh.annotations.OutputTimeUnit;
-import org.openjdk.jmh.annotations.Scope;
-import org.openjdk.jmh.annotations.Setup;
-import org.openjdk.jmh.annotations.State;
-import org.openjdk.jmh.infra.Blackhole;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Locale;
-import java.util.concurrent.TimeUnit;
-
-import static io.crate.data.SentinelRow.SENTINEL;
 
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
@@ -67,6 +70,7 @@ public class GroupingStringCollectorBenchmark {
     private BatchIterator<Row> rowsIterator;
     private List<Row> rows;
     private OnHeapMemoryManager memoryManager;
+    private SessionSettings sessionSettings = CoordinatorTxnCtx.systemTransactionContext().sessionSettings();
 
     @Setup
     public void createGroupingCollector() {
@@ -108,6 +112,7 @@ public class GroupingStringCollectorBenchmark {
             new Input[] { Literal.BOOLEAN_TRUE },
             RamAccounting.NO_ACCOUNTING,
             memoryManager,
+            sessionSettings,
             Version.CURRENT,
             keyInputs.get(0),
             DataTypes.STRING,

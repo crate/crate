@@ -46,6 +46,8 @@ import org.elasticsearch.common.xcontent.json.JsonXContent;
 
 import io.crate.Streamer;
 import io.crate.common.collections.Lists2;
+import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.settings.SessionSettings;
 import io.crate.protocols.postgres.parser.PgArrayParser;
 import io.crate.protocols.postgres.parser.PgArrayParsingException;
 import io.crate.sql.tree.CollectionColumnType;
@@ -132,18 +134,18 @@ public class ArrayType<T> extends DataType<List<T>> {
     }
 
     @Override
-    public List<T> implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
-        return convert(value, innerType, innerType::implicitCast);
+    public List<T> implicitCast(Object value, SessionSettings sessionSettings) throws IllegalArgumentException, ClassCastException {
+        return convert(value, innerType, val -> innerType.implicitCast(val, sessionSettings), sessionSettings);
     }
 
     @Override
-    public List<T> explicitCast(Object value) throws IllegalArgumentException, ClassCastException {
-        return convert(value, innerType, innerType::explicitCast);
+    public List<T> explicitCast(Object value, SessionSettings sessionSettings) throws IllegalArgumentException, ClassCastException {
+        return convert(value, innerType, val -> innerType.explicitCast(val, sessionSettings), sessionSettings);
     }
 
     @Override
     public List<T> sanitizeValue(Object value) {
-        return convert(value, innerType, innerType::sanitizeValue);
+        return convert(value, innerType, innerType::sanitizeValue, CoordinatorTxnCtx.systemTransactionContext().sessionSettings());
     }
 
     public List<String> fromAnyArray(Object[] values) throws IllegalArgumentException {
@@ -198,7 +200,10 @@ public class ArrayType<T> extends DataType<List<T>> {
 
     @Nullable
     @SuppressWarnings("unchecked")
-    private static <T> List<T> convert(@Nullable Object value, DataType<T> innerType, Function<Object, T> convertInner) {
+    private static <T> List<T> convert(@Nullable Object value,
+                                       DataType<T> innerType,
+                                       Function<Object, T> convertInner,
+                                       SessionSettings sessionSettings) {
         if (value == null) {
             return null;
         }
@@ -214,7 +219,7 @@ public class ArrayType<T> extends DataType<List<T>> {
                 byte[] utf8Bytes = string.getBytes(StandardCharsets.UTF_8);
                 if (innerType instanceof JsonType) {
                     try {
-                        return (List<T>) parseJsonList(utf8Bytes);
+                        return (List<T>) parseJsonList(utf8Bytes, sessionSettings);
                     } catch (IOException ioEx) {
                         throw new UncheckedIOException(ioEx);
                     }
@@ -227,13 +232,13 @@ public class ArrayType<T> extends DataType<List<T>> {
         }
     }
 
-    private static List<String> parseJsonList(byte[] utf8Bytes) throws IOException {
+    private static List<String> parseJsonList(byte[] utf8Bytes, SessionSettings sessionSettings) throws IOException {
         XContentParser parser = JsonXContent.JSON_XCONTENT.createParser(
             NamedXContentRegistry.EMPTY,
             DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
             utf8Bytes
         );
-        return Lists2.map(parser.list(), StringType.INSTANCE::explicitCast);
+        return Lists2.map(parser.list(), value -> StringType.INSTANCE.explicitCast(value, sessionSettings));
     }
 
     private static <T> ArrayList<T> convertObjectArray(Object[] values, Function<Object, T> convertInner) {

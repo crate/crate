@@ -29,14 +29,14 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
-import com.fasterxml.jackson.core.JsonParseException;
-
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.common.xcontent.support.ParameterizedXContentParser;
 import org.elasticsearch.index.mapper.StrictDynamicMappingException;
+
+import com.fasterxml.jackson.core.JsonParseException;
 
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.common.annotations.VisibleForTesting;
@@ -142,7 +142,7 @@ public class ValidatedRawInsertSource implements InsertSourceGen, ParameterizedX
             refLookUpCache.put(field, ref);
         }
         try {
-            return ref.valueType().implicitCast(value);
+            return ref.valueType().implicitCast(value, txnCtx.sessionSettings());
         } catch (Exception e) {
             throw new ConversionException(value, ref.valueType());
         }

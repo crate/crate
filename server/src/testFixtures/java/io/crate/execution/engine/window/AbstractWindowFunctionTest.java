@@ -21,10 +21,27 @@
 
 package io.crate.execution.engine.window;
 
+import static io.crate.data.SentinelRow.SENTINEL;
+import static io.crate.execution.engine.sort.Comparators.createComparator;
+import static org.hamcrest.Matchers.instanceOf;
+
+import java.lang.reflect.Array;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.common.inject.AbstractModule;
+import org.hamcrest.Matcher;
+import org.junit.Before;
+
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
-import io.crate.user.User;
 import io.crate.breaker.RamAccounting;
 import io.crate.common.collections.Lists2;
 import io.crate.data.BatchIterator;
@@ -51,23 +68,7 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.SqlExpressions;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.inject.AbstractModule;
-import org.hamcrest.Matcher;
-import org.junit.Before;
-
-import java.lang.reflect.Array;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-
-import static io.crate.data.SentinelRow.SENTINEL;
-import static io.crate.execution.engine.sort.Comparators.createComparator;
-import static org.hamcrest.Matchers.instanceOf;
+import io.crate.user.User;
 
 public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServiceUnitTest {
 
@@ -143,6 +144,7 @@ public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServic
                 Version.CURRENT,
                 RamAccounting.NO_ACCOUNTING,
                 memoryManager,
+                txnCtx.sessionSettings(),
                 Version.CURRENT
             );
         } else {

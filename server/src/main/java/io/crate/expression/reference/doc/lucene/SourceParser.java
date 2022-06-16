@@ -41,6 +41,7 @@ import org.elasticsearch.common.xcontent.XContentParser.Token;
 import org.elasticsearch.common.xcontent.XContentType;
 
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.sql.tree.BitString;
 import io.crate.types.ArrayType;
@@ -113,7 +114,7 @@ public final class SourceParser {
                                      @Nullable DataType<?> type,
                                      @Nullable Map<String, Object> requiredColumns) throws IOException {
         if (type instanceof GeoPointType) {
-            return type.implicitCast(parser.list());
+            return type.implicitCast(parser.list(), CoordinatorTxnCtx.systemTransactionContext().sessionSettings());
         } else {
             ArrayList<Object> values = new ArrayList<>();
             Token token = parser.nextToken();
@@ -131,7 +132,9 @@ public final class SourceParser {
                                                    @Nullable DataType<?> type,
                                                    @Nullable Map<String, Object> requiredColumns) throws IOException {
         if (requiredColumns == null || requiredColumns.isEmpty()) {
-            return type == null ? parser.map() : (Map) type.implicitCast(parser.map());
+            return type == null
+                ? parser.map()
+                : (Map) type.implicitCast(parser.map(), CoordinatorTxnCtx.systemTransactionContext().sessionSettings());
         } else {
             HashMap<String, Object> values = new HashMap<>();
             XContentParser.Token token = parser.nextToken(); // move past START_OBJECT;

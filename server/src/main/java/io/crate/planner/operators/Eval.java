@@ -135,7 +135,11 @@ public final class Eval extends ForwardingLogicalPlan {
                                             SubQueryResults subQueryResults) {
         PositionalOrderBy orderBy = executionPlan.resultDescription().orderBy();
         PositionalOrderBy newOrderBy = null;
-        SubQueryAndParamBinder binder = new SubQueryAndParamBinder(params, subQueryResults);
+        SubQueryAndParamBinder binder = new SubQueryAndParamBinder(
+            params,
+            subQueryResults,
+            plannerContext.transactionContext().sessionSettings()
+        );
         List<Symbol> boundOutputs = Lists2.map(outputs, binder);
         if (orderBy != null) {
             newOrderBy = orderBy.tryMapToNewOutputs(source.outputs(), boundOutputs);

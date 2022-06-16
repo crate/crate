@@ -71,6 +71,7 @@ import org.postgresql.util.PSQLState;
 import io.crate.action.sql.SQLOperations;
 import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.execution.engine.collect.stats.JobsLogs;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.testing.DataTypeTesting;
 import io.crate.testing.UseJdbc;
@@ -449,7 +450,8 @@ public class PostgresITest extends SQLIntegrationTestCase {
                         Map.of(
                             "coordinates", new double[][]{{0, 0}, {1, 1}},
                             "type", "LineString"
-                        )
+                        ),
+                        CoordinatorTxnCtx.systemTransactionContext().sessionSettings()
                     )
                 }));
             preparedStatement.executeUpdate();

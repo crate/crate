@@ -28,6 +28,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import io.crate.Streamer;
+import io.crate.metadata.settings.SessionSettings;
 
 public class ByteType extends DataType<Byte> implements Streamer<Byte>, FixedWidthType {
 
@@ -61,7 +62,7 @@ public class ByteType extends DataType<Byte> implements Streamer<Byte>, FixedWid
     }
 
     @Override
-    public Byte implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
+    public Byte implicitCast(Object value, SessionSettings sessionSettings) throws IllegalArgumentException, ClassCastException {
         if (value == null) {
             return null;
         } else if (value instanceof Byte) {

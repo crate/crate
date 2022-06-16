@@ -22,6 +22,7 @@
 package io.crate.types;
 
 import io.crate.Streamer;
+import io.crate.metadata.settings.SessionSettings;
 
 import org.apache.lucene.document.InetAddressPoint;
 import org.apache.lucene.search.Query;
@@ -89,7 +90,7 @@ public class IpType extends DataType<String> implements Streamer<String> {
     }
 
     @Override
-    public String implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
+    public String implicitCast(Object value, SessionSettings sessionSettings) throws IllegalArgumentException, ClassCastException {
         if (value == null) {
             return null;
         } else if (value instanceof String) {

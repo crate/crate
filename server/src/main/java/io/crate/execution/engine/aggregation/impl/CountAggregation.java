@@ -50,6 +50,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.settings.SessionSettings;
 import io.crate.types.BitStringType;
 import io.crate.types.ByteType;
 import io.crate.types.DataType;
@@ -109,6 +110,7 @@ public class CountAggregation extends AggregationFunction<MutableLong, Long> {
     @Override
     public MutableLong iterate(RamAccounting ramAccounting,
                                MemoryManager memoryManager,
+                               SessionSettings sessionSettings,
                                MutableLong state,
                                Input... args) {
         if (!hasArgs || args[0].value() != null) {
@@ -234,6 +236,7 @@ public class CountAggregation extends AggregationFunction<MutableLong, Long> {
 
     @Override
     public MutableLong removeFromAggregatedState(RamAccounting ramAccounting,
+                                                 SessionSettings sessionSettings,
                                                  MutableLong previousAggState,
                                                  Input[] stateToRemove) {
         if (!hasArgs || stateToRemove[0].value() != null) {

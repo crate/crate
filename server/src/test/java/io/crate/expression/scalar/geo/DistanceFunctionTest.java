@@ -21,18 +21,23 @@
 
 package io.crate.expression.scalar.geo;
 
-import io.crate.exceptions.ConversionException;
-import io.crate.expression.scalar.ScalarTestCase;
-import io.crate.expression.symbol.Literal;
-import io.crate.types.DataTypes;
+import static io.crate.testing.SymbolMatchers.isLiteral;
+import static org.hamcrest.Matchers.nullValue;
+
 import org.junit.Test;
 import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
 import org.locationtech.spatial4j.shape.impl.PointImpl;
 
-import static io.crate.testing.SymbolMatchers.isLiteral;
-import static org.hamcrest.Matchers.nullValue;
+import io.crate.exceptions.ConversionException;
+import io.crate.expression.scalar.ScalarTestCase;
+import io.crate.expression.symbol.Literal;
+import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.settings.SessionSettings;
+import io.crate.types.DataTypes;
 
 public class DistanceFunctionTest extends ScalarTestCase {
+
+    private final SessionSettings sessionSettings = CoordinatorTxnCtx.systemTransactionContext().sessionSettings();
 
     @Test
     public void testResolveWithTooManyArguments() throws Exception {
@@ -58,7 +63,7 @@ public class DistanceFunctionTest extends ScalarTestCase {
             Literal.of(DataTypes.GEO_POINT, new PointImpl(10.04, 28.02, JtsSpatialContext.GEO)),
             Literal.of(
                 DataTypes.GEO_POINT,
-                DataTypes.GEO_POINT.implicitCast("POINT(10.30 29.3)")
+                DataTypes.GEO_POINT.implicitCast("POINT(10.30 29.3)", sessionSettings)
             )
         );
     }
@@ -89,7 +94,7 @@ public class DistanceFunctionTest extends ScalarTestCase {
             Literal.of(DataTypes.GEO_POINT, null),
             Literal.of(
                 DataTypes.GEO_POINT,
-                DataTypes.GEO_POINT.implicitCast("POINT (10 20)")
+                DataTypes.GEO_POINT.implicitCast("POINT (10 20)", sessionSettings)
             )
         );
         assertEvaluate(
@@ -97,7 +102,7 @@ public class DistanceFunctionTest extends ScalarTestCase {
             null,
             Literal.of(
                 DataTypes.GEO_POINT,
-                DataTypes.GEO_POINT.implicitCast("POINT (10 20)")
+                DataTypes.GEO_POINT.implicitCast("POINT (10 20)", sessionSettings)
             ),
             Literal.of(DataTypes.GEO_POINT, null)
         );

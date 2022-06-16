@@ -21,11 +21,13 @@
 
 package io.crate.types;
 
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
+
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
+import io.crate.metadata.CoordinatorTxnCtx;
 
 public class IpTypeTest extends ESTestCase {
 
@@ -46,6 +48,6 @@ public class IpTypeTest extends ESTestCase {
     public void test_cast_negative_bigint_value_to_ip_throws_exception() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Failed to convert long value: -9223372036854775808 to ipv4 address");
-        IpType.INSTANCE.implicitCast(Long.MIN_VALUE);
+        IpType.INSTANCE.implicitCast(Long.MIN_VALUE, CoordinatorTxnCtx.systemTransactionContext().sessionSettings());
     }
 }

@@ -45,6 +45,7 @@ import io.crate.memory.MemoryManager;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.settings.SessionSettings;
 import io.crate.types.ByteType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -154,6 +155,7 @@ public class VarianceAggregation extends AggregationFunction<Variance, Double> {
     @Override
     public Variance iterate(RamAccounting ramAccounting,
                             MemoryManager memoryManager,
+                            SessionSettings sessionSettings,
                             Variance state,
                             Input... args) throws CircuitBreakingException {
         if (state != null) {
@@ -184,6 +186,7 @@ public class VarianceAggregation extends AggregationFunction<Variance, Double> {
 
     @Override
     public Variance removeFromAggregatedState(RamAccounting ramAccounting,
+                                              SessionSettings sessionSettings,
                                               Variance previousAggState,
                                               Input[] stateToRemove) {
         if (previousAggState != null) {

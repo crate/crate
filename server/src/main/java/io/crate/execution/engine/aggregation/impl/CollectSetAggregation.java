@@ -21,6 +21,17 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Nullable;
+
+import org.apache.lucene.util.RamUsageEstimator;
+import org.elasticsearch.Version;
+import org.elasticsearch.common.breaker.CircuitBreakingException;
+
 import io.crate.breaker.RamAccounting;
 import io.crate.breaker.SizeEstimator;
 import io.crate.breaker.SizeEstimatorFactory;
@@ -28,19 +39,11 @@ import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.settings.SessionSettings;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.UncheckedObjectType;
-import org.apache.lucene.util.RamUsageEstimator;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.breaker.CircuitBreakingException;
-
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 public class CollectSetAggregation extends AggregationFunction<Map<Object, Object>, List<Object>> {
 
@@ -98,6 +101,7 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
     @Override
     public Map<Object, Object> iterate(RamAccounting ramAccounting,
                                        MemoryManager memoryManager,
+                                       SessionSettings sessionSettings,
                                        Map<Object, Object> state,
                                        Input... args) throws CircuitBreakingException {
         Object value = args[0].value();
@@ -194,7 +198,9 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
 
         @Override
         public Map<Object, Long> iterate(RamAccounting ramAccounting,
-                                         MemoryManager memoryManager, Map<Object, Long> state,
+                                         MemoryManager memoryManager,
+                                         SessionSettings sessionSettings,
+                                         Map<Object, Long> state,
                                          Input... args) throws CircuitBreakingException {
             Object value = args[0].value();
             if (value == null) {
@@ -230,6 +236,7 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
 
         @Override
         public Map<Object, Long> removeFromAggregatedState(RamAccounting ramAccounting,
+                                                           SessionSettings sessionSettings,
                                                            Map<Object, Long> previousAggState,
                                                            Input[] stateToRemove) {
             Object value = stateToRemove[0].value();

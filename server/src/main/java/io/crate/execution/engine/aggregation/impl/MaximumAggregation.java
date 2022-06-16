@@ -47,6 +47,7 @@ import io.crate.memory.MemoryManager;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.settings.SessionSettings;
 import io.crate.types.ByteType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -102,7 +103,7 @@ public abstract class MaximumAggregation extends AggregationFunction<Comparable,
         }
 
         @Override
-        public void apply(RamAccounting ramAccounting, int doc, MutableLong state) throws IOException {
+        public void apply(RamAccounting ramAccounting, SessionSettings sessionSettings, int doc, MutableLong state) throws IOException {
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
                 long value = values.nextValue();
                 if (value >= state.value()) {
@@ -112,7 +113,7 @@ public abstract class MaximumAggregation extends AggregationFunction<Comparable,
         }
 
         @Override
-        public Object partialResult(RamAccounting ramAccounting, MutableLong state) {
+        public Object partialResult(RamAccounting ramAccounting, SessionSettings sessionSettings, MutableLong state) {
             if (state.hasValue()) {
                 return partialType.sanitizeValue(state.value());
             } else {
@@ -143,7 +144,7 @@ public abstract class MaximumAggregation extends AggregationFunction<Comparable,
         }
 
         @Override
-        public void apply(RamAccounting ramAccounting, int doc, MutableDouble state) throws IOException {
+        public void apply(RamAccounting ramAccounting, SessionSettings sessionSettings, int doc, MutableDouble state) throws IOException {
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
                 double value = NumericUtils.sortableLongToDouble(values.nextValue());
                 if (value >= state.value()) {
@@ -153,7 +154,7 @@ public abstract class MaximumAggregation extends AggregationFunction<Comparable,
         }
 
         @Override
-        public Object partialResult(RamAccounting ramAccounting, MutableDouble state) {
+        public Object partialResult(RamAccounting ramAccounting, SessionSettings sessionSettings, MutableDouble state) {
             if (state.hasValue()) {
                 return state.value();
             } else {
@@ -184,7 +185,7 @@ public abstract class MaximumAggregation extends AggregationFunction<Comparable,
         }
 
         @Override
-        public void apply(RamAccounting ramAccounting, int doc, MutableFloat state) throws IOException {
+        public void apply(RamAccounting ramAccounting, SessionSettings sessionSettings, int doc, MutableFloat state) throws IOException {
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
                 float value = NumericUtils.sortableIntToFloat((int) values.nextValue());
                 if (value >= state.value()) {
@@ -194,7 +195,7 @@ public abstract class MaximumAggregation extends AggregationFunction<Comparable,
         }
 
         @Override
-        public Object partialResult(RamAccounting ramAccounting, MutableFloat state) {
+        public Object partialResult(RamAccounting ramAccounting, SessionSettings sessionSettings, MutableFloat state) {
             if (state.hasValue()) {
                 return state.value();
             } else {
@@ -329,6 +330,7 @@ public abstract class MaximumAggregation extends AggregationFunction<Comparable,
     @Override
     public Comparable iterate(RamAccounting ramAccounting,
                               MemoryManager memoryManager,
+                              SessionSettings sessionSettings,
                               Comparable state,
                               Input... args) throws CircuitBreakingException {
         Object value = args[0].value();

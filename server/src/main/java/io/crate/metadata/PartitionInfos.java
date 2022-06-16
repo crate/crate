@@ -28,14 +28,14 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.StreamSupport;
 
-import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
+
+import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
 import io.crate.analyze.NumberOfReplicas;
 import io.crate.metadata.doc.DocIndexMetadata;
@@ -100,6 +100,7 @@ public class PartitionInfos implements Iterable<PartitionInfo> {
             return Map.of();
         }
 
+        var sessionSettings = CoordinatorTxnCtx.systemTransactionContext().sessionSettings();
         List<List<String>> partitionedByColumns = (List<List<String>>) partitionedBy;
         assert partitionedByColumns.size() == partitionName.values().size()
             : "partitionedByColumns size must match partitionName values size";
@@ -111,7 +112,7 @@ public class PartitionInfos implements Iterable<PartitionInfo> {
             String sqlFqn = ColumnIdent.fromPath(dottedColumnName).sqlFqn();
             String typeName = columnAndType.get(1);
             DataType<?> type = DocIndexMetadata.getColumnDataType(Map.of("type", typeName));
-            Object value = type.implicitCast(partitionName.values().get(i));
+            Object value = type.implicitCast(partitionName.values().get(i), sessionSettings);
             valuesByColumn.put(sqlFqn, value);
         }
         return valuesByColumn;

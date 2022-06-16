@@ -21,6 +21,19 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
+import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
+import org.elasticsearch.Version;
+import org.junit.Before;
+import org.junit.Test;
+
 import io.crate.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.expression.symbol.Literal;
@@ -28,18 +41,6 @@ import io.crate.metadata.functions.Signature;
 import io.crate.operation.aggregation.AggregationTestCase;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.Version;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-
-import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
 
 public class PercentileAggregationTest extends AggregationTestCase {
 
@@ -197,7 +198,7 @@ public class PercentileAggregationTest extends AggregationTestCase {
 
     public void testIterate() throws Exception {
         PercentileAggregation pa = singleArgPercentile;
-        TDigestState state = pa.iterate(null, memoryManager, TDigestState.createEmptyState(), Literal.of(1), Literal.of(0.5));
+        TDigestState state = pa.iterate(null, memoryManager, SESSION_SETTINGS, TDigestState.createEmptyState(), Literal.of(1), Literal.of(0.5));
         assertThat(state, is(notNullValue()));
         assertThat(state.fractions()[0], is(0.5));
     }
@@ -241,8 +242,8 @@ public class PercentileAggregationTest extends AggregationTestCase {
         RamAccounting ramAccounting = RamAccounting.NO_ACCOUNTING;
         Object state = impl.newState(ramAccounting, Version.CURRENT, Version.CURRENT, memoryManager);
         Literal<List<Double>> fractions = Literal.of(Collections.singletonList(0.95D), DataTypes.DOUBLE_ARRAY);
-        impl.iterate(ramAccounting, memoryManager, state, Literal.of(10L), fractions);
-        impl.iterate(ramAccounting, memoryManager, state, Literal.of(20L), fractions);
+        impl.iterate(ramAccounting, memoryManager, SESSION_SETTINGS, state, Literal.of(10L), fractions);
+        impl.iterate(ramAccounting, memoryManager, SESSION_SETTINGS, state, Literal.of(20L), fractions);
         Object result = impl.terminatePartial(ramAccounting, state);
 
         assertThat("result must be an array", result, instanceOf(List.class));

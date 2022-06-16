@@ -37,6 +37,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import io.crate.Streamer;
+import io.crate.metadata.settings.SessionSettings;
 import io.crate.sql.tree.BitString;
 import io.crate.sql.tree.ColumnDefinition;
 import io.crate.sql.tree.ColumnPolicy;
@@ -133,7 +134,7 @@ public final class BitStringType extends DataType<BitString> implements Streamer
     }
 
     @Override
-    public BitString explicitCast(Object value) throws IllegalArgumentException, ClassCastException {
+    public BitString explicitCast(Object value, SessionSettings sessionSettings) throws IllegalArgumentException, ClassCastException {
         // explicit cast is allowed to trim or extend the bitstring
         if (value instanceof String str) {
             return BitString.ofRawBits(str, length);
@@ -147,7 +148,7 @@ public final class BitStringType extends DataType<BitString> implements Streamer
     }
 
     @Override
-    public BitString implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
+    public BitString implicitCast(Object value, SessionSettings sessionSettings) throws IllegalArgumentException, ClassCastException {
         // implicit cast must not change the length of the value to have proper insert semantics
         // (wrong length = error)
         if (value instanceof String str) {

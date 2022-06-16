@@ -77,7 +77,11 @@ public class HashAggregate extends ForwardingLogicalPlan {
             plannerContext, planHints, projectionBuilder, LogicalPlanner.NO_LIMIT, 0, null, null, params, subQueryResults);
 
         AggregationOutputValidator.validateOutputs(aggregates);
-        var paramBinder = new SubQueryAndParamBinder(params, subQueryResults);
+        var paramBinder = new SubQueryAndParamBinder(
+            params,
+            subQueryResults,
+            plannerContext.transactionContext().sessionSettings()
+        );
 
         var sourceOutputs = source.outputs();
         if (executionPlan.resultDescription().hasRemainingLimitOrOffset()) {

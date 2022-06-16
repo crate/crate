@@ -21,6 +21,23 @@
 
 package io.crate.planner.node.management;
 
+import static io.crate.data.SentinelRow.SENTINEL;
+
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiConsumer;
+
+import javax.annotation.Nullable;
+
 import io.crate.action.sql.BaseResultReceiver;
 import io.crate.action.sql.RowConsumerToResultReceiver;
 import io.crate.analyze.BoundCopyFrom;
@@ -55,22 +72,6 @@ import io.crate.profile.ProfilingContext;
 import io.crate.profile.Timer;
 import io.crate.types.DataTypes;
 
-import javax.annotation.Nullable;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.BiConsumer;
-
-import static io.crate.data.SentinelRow.SENTINEL;
-
 public class ExplainPlan implements Plan {
 
     public enum Phase {
@@ -103,6 +104,7 @@ public class ExplainPlan implements Plan {
                               RowConsumer consumer,
                               Row params,
                               SubQueryResults subQueryResults) {
+        var txnCtx = plannerContext.transactionContext();
         if (context != null) {
             assert subPlan instanceof LogicalPlan : "subPlan must be a LogicalPlan";
             LogicalPlan plan = (LogicalPlan) subPlan;
@@ -125,7 +127,7 @@ public class ExplainPlan implements Plan {
 
                 LogicalPlanner.executeNodeOpTree(
                     dependencies,
-                    plannerContext.transactionContext(),
+                    txnCtx,
                     jobId,
                     noopRowConsumer,
                     true,
@@ -144,7 +146,7 @@ public class ExplainPlan implements Plan {
             } else if (subPlan instanceof CopyFromPlan) {
                 BoundCopyFrom boundCopyFrom = CopyFromPlan.bind(
                     ((CopyFromPlan) subPlan).copyFrom(),
-                    plannerContext.transactionContext(),
+                    txnCtx,
                     plannerContext.nodeContext(),
                     params,
                     subQueryResults);
@@ -155,7 +157,7 @@ public class ExplainPlan implements Plan {
                     plannerContext,
                     params,
                     subQueryResults);
-                String planAsJson = DataTypes.STRING.implicitCast(PlanPrinter.objectMap(executionPlan));
+                String planAsJson = DataTypes.STRING.implicitCast(PlanPrinter.objectMap(executionPlan), txnCtx.sessionSettings());
                 consumer.accept(InMemoryBatchIterator.of(new Row1(planAsJson), SENTINEL), null);
             } else {
                 consumer.accept(InMemoryBatchIterator.of(

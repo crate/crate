@@ -21,31 +21,36 @@
 
 package io.crate.types;
 
-import org.elasticsearch.test.ESTestCase;
-import org.junit.Test;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.startsWith;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.util.Map;
 
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.startsWith;
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
+
+import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.settings.SessionSettings;
 
 public class DoubleTypeTest extends ESTestCase {
 
+    private static final SessionSettings SESSION_SETTINGS = CoordinatorTxnCtx.systemTransactionContext().sessionSettings();
+
     @Test
     public void test_cast_text_to_double() {
-        assertThat(DoubleType.INSTANCE.implicitCast("123"), is(123d));
+        assertThat(DoubleType.INSTANCE.implicitCast("123", SESSION_SETTINGS), is(123d));
     }
 
     @Test
     public void test_cast_long_to_double() {
-        assertThat(DoubleType.INSTANCE.implicitCast(123L), is(123d));
+        assertThat(DoubleType.INSTANCE.implicitCast(123L, SESSION_SETTINGS), is(123d));
     }
 
     @Test
     public void test_cast_numeric_to_double() {
-        assertThat(DoubleType.INSTANCE.implicitCast(BigDecimal.valueOf(123.1)), is(123.1d));
+        assertThat(DoubleType.INSTANCE.implicitCast(BigDecimal.valueOf(123.1), SESSION_SETTINGS), is(123.1d));
     }
 
     @Test
@@ -53,7 +58,8 @@ public class DoubleTypeTest extends ESTestCase {
         assertThat(
             DoubleType.INSTANCE.implicitCast(
                 new BigDecimal("123.1", MathContext.DECIMAL32)
-                    .setScale(2, MathContext.DECIMAL32.getRoundingMode())
+                    .setScale(2, MathContext.DECIMAL32.getRoundingMode()),
+                SESSION_SETTINGS
             ), is(123.1d)
         );
     }
@@ -67,20 +73,20 @@ public class DoubleTypeTest extends ESTestCase {
     public void text_cast_object_to_double_throws_exception() {
         expectedException.expect(ClassCastException.class);
         expectedException.expectMessage("Can't cast '{}' to double precision");
-        DoubleType.INSTANCE.implicitCast(Map.of());
+        DoubleType.INSTANCE.implicitCast(Map.of(), SESSION_SETTINGS);
     }
 
     @Test
     public void text_cast_boolean_to_double_throws_exception() {
         expectedException.expect(ClassCastException.class);
         expectedException.expectMessage("Can't cast 'true' to double precision");
-        DoubleType.INSTANCE.implicitCast(true);
+        DoubleType.INSTANCE.implicitCast(true, SESSION_SETTINGS);
     }
 
     @Test
     public void test_cast_out_of_range_numeric_to_double_throws_exception() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage(startsWith("double precision value out of range: "));
-        DoubleType.INSTANCE.implicitCast(new BigDecimal(Double.MAX_VALUE).add(BigDecimal.TEN));
+        DoubleType.INSTANCE.implicitCast(new BigDecimal(Double.MAX_VALUE).add(BigDecimal.TEN), SESSION_SETTINGS);
     }
 }

@@ -28,6 +28,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import io.crate.Streamer;
 import io.crate.metadata.SearchPath;
+import io.crate.metadata.settings.SessionSettings;
 
 /**
  * Type that encapsulates the name and oid of a relation.
@@ -87,7 +88,7 @@ public final class RegclassType extends DataType<Regclass> implements Streamer<R
     }
 
     @Override
-    public Regclass implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
+    public Regclass implicitCast(Object value, SessionSettings sessionSettings) throws IllegalArgumentException, ClassCastException {
         if (value == null) {
             return null;
         }
@@ -105,7 +106,7 @@ public final class RegclassType extends DataType<Regclass> implements Streamer<R
             return new Regclass(num.intValue(), value.toString());
         }
         if (value instanceof String) {
-            return Regclass.fromRelationName(value.toString(), currentSchema);
+            return Regclass.fromRelationName(value.toString(), sessionSettings.currentSchema());
         }
         throw new ClassCastException("Can't cast '" + value + "' to " + getName());
     }

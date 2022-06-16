@@ -44,6 +44,7 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.settings.SessionSettings;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
@@ -157,8 +158,8 @@ public final class UpdateById implements Plan {
         }
 
         @Override
-        public void bind(Row parameters, SubQueryResults subQueryResults) {
-            assignmentSources = assignments.bindSources(table, parameters, subQueryResults);
+        public void bind(Row parameters, SubQueryResults subQueryResults, SessionSettings sessionSettings) {
+            assignmentSources = assignments.bindSources(table, parameters, subQueryResults, sessionSettings);
         }
 
         @Override

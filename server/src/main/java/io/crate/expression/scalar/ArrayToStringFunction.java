@@ -21,6 +21,13 @@
 
 package io.crate.expression.scalar;
 
+import static io.crate.expression.scalar.array.ArrayArgumentValidators.ensureInnerTypeIsNotUndefined;
+import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
+import static io.crate.types.TypeSignature.parseTypeSignature;
+
+import java.util.List;
+import java.util.StringJoiner;
+
 import io.crate.data.Input;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.NodeContext;
@@ -29,13 +36,6 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.types.DataTypes;
-
-import java.util.List;
-import java.util.StringJoiner;
-
-import static io.crate.expression.scalar.array.ArrayArgumentValidators.ensureInnerTypeIsNotUndefined;
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-import static io.crate.types.TypeSignature.parseTypeSignature;
 
 class ArrayToStringFunction extends Scalar<String, Object> {
 
@@ -103,7 +103,7 @@ class ArrayToStringFunction extends Scalar<String, Object> {
         StringJoiner joiner = new StringJoiner(separator);
         for (Object value : values) {
             if (value != null) {
-                joiner.add(DataTypes.STRING.implicitCast(value));
+                joiner.add(DataTypes.STRING.implicitCast(value, txnCtx.sessionSettings()));
             } else if (nullString != null) {
                 joiner.add(nullString);
             }

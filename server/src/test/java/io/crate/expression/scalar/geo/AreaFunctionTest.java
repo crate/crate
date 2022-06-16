@@ -21,28 +21,33 @@
 
 package io.crate.expression.scalar.geo;
 
-import io.crate.expression.scalar.ScalarTestCase;
-import io.crate.expression.symbol.Literal;
-import io.crate.geo.GeoJSONUtils;
-import io.crate.types.DataTypes;
-import org.junit.Test;
-import org.locationtech.spatial4j.shape.Shape;
+import static io.crate.expression.scalar.geo.AreaFunction.getArea;
+import static io.crate.testing.SymbolMatchers.isLiteral;
 
 import java.util.Map;
 
-import static io.crate.expression.scalar.geo.AreaFunction.getArea;
-import static io.crate.testing.SymbolMatchers.isLiteral;
+import org.junit.Test;
+import org.locationtech.spatial4j.shape.Shape;
+
+import io.crate.expression.scalar.ScalarTestCase;
+import io.crate.expression.symbol.Literal;
+import io.crate.geo.GeoJSONUtils;
+import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.settings.SessionSettings;
+import io.crate.types.DataTypes;
 
 /**
  * Tests for {@link AreaFunction}.
  */
 public class AreaFunctionTest extends ScalarTestCase {
 
+    private final SessionSettings sessionSettings = CoordinatorTxnCtx.systemTransactionContext().sessionSettings();
+
     @Test
     public void testEvaluateWithRectangularGeoShapeLiteral() throws Exception {
         assertEvaluate("area(geoShape)", 20.996801695711337,
                        Literal.of(DataTypes.GEO_SHAPE,
-                                  DataTypes.GEO_SHAPE.implicitCast("POLYGON ((-2 -1, -2 2, 5 2, 5 -1, -2 -1))")));
+                                  DataTypes.GEO_SHAPE.implicitCast("POLYGON ((-2 -1, -2 2, 5 2, 5 -1, -2 -1))", sessionSettings)));
     }
 
     @Test
@@ -59,7 +64,7 @@ public class AreaFunctionTest extends ScalarTestCase {
     public void testEvaluateRoundWithRectangularGeoShapeLiteral() throws Exception {
         assertEvaluate("round(area(geoShape))", 21L,
                        Literal.of(DataTypes.GEO_SHAPE,
-                                  DataTypes.GEO_SHAPE.implicitCast("POLYGON ((-2 -1, -2 2, 5 2, 5 -1, -2 -1))")));
+                                  DataTypes.GEO_SHAPE.implicitCast("POLYGON ((-2 -1, -2 2, 5 2, 5 -1, -2 -1))", sessionSettings)));
     }
 
     @Test

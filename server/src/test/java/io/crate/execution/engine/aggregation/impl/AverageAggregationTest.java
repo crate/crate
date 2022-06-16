@@ -21,10 +21,20 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
+import static org.hamcrest.CoreMatchers.is;
+
+import java.math.BigDecimal;
+import java.util.List;
+
+import org.elasticsearch.Version;
+import org.hamcrest.Matchers;
+import org.junit.Test;
+
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.aggregation.impl.average.AverageAggregation;
 import io.crate.execution.engine.aggregation.impl.average.numeric.NumericAverageState;
 import io.crate.expression.symbol.Literal;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.functions.Signature;
@@ -32,14 +42,6 @@ import io.crate.operation.aggregation.AggregationTestCase;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.NumericType;
-import org.elasticsearch.Version;
-import org.hamcrest.Matchers;
-import org.junit.Test;
-
-import java.math.BigDecimal;
-import java.util.List;
-
-import static org.hamcrest.CoreMatchers.is;
 
 public class AverageAggregationTest extends AggregationTestCase {
 
@@ -180,7 +182,7 @@ public class AverageAggregationTest extends AggregationTestCase {
     @Test
     public void test_avg_numeric_with_precision_and_scale_on_double_non_doc_values() {
         var type = NumericType.of(16, 2);
-        var expected = type.implicitCast(12.4357);
+        var expected = type.implicitCast(12.4357, CoordinatorTxnCtx.systemTransactionContext().sessionSettings());
         assertThat(expected.toString(), Matchers.is("12.44"));
 
         //noinspection rawtypes

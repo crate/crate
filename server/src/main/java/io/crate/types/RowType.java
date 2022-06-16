@@ -24,6 +24,8 @@ package io.crate.types;
 import io.crate.Streamer;
 import io.crate.data.Row;
 import io.crate.data.RowN;
+import io.crate.metadata.settings.SessionSettings;
+
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -144,7 +146,7 @@ public final class RowType extends DataType<Row> implements Streamer<Row> {
     }
 
     @Override
-    public Row implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
+    public Row implicitCast(Object value, SessionSettings sessionSettings) throws IllegalArgumentException, ClassCastException {
         return (Row) value;
     }
 

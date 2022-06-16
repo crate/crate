@@ -150,8 +150,12 @@ public class WindowAgg extends ForwardingLogicalPlan {
                                SubQueryResults subQueryResults) {
         InputColumns.SourceSymbols sourceSymbols = new InputColumns.SourceSymbols(source.outputs());
 
-        SubQueryAndParamBinder binder = new SubQueryAndParamBinder(params, subQueryResults);
-        Function<Symbol, Symbol> toInputCols = binder.andThen(s -> InputColumns.create(s, sourceSymbols));
+        var paramBinder = new SubQueryAndParamBinder(
+            params,
+            subQueryResults,
+            plannerContext.transactionContext().sessionSettings()
+        );
+        Function<Symbol, Symbol> toInputCols = paramBinder.andThen(s -> InputColumns.create(s, sourceSymbols));
 
         List<WindowFunction> boundWindowFunctions = (List<WindowFunction>)(List) Lists2.map(windowFunctions, toInputCols);
         List<Projection> projections = new ArrayList<>();

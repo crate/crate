@@ -1,12 +1,6 @@
 package io.crate.expression.scalar;
 
-import io.crate.execution.engine.aggregation.impl.util.KahanSummationForDouble;
-import io.crate.expression.symbol.Literal;
-import io.crate.testing.TestingHelpers;
-import io.crate.types.ArrayType;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
-import org.junit.Test;
+import static io.crate.testing.Asserts.assertThrowsMatches;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -14,9 +8,20 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 
-import static io.crate.testing.Asserts.assertThrowsMatches;
+import org.junit.Test;
+
+import io.crate.execution.engine.aggregation.impl.util.KahanSummationForDouble;
+import io.crate.expression.symbol.Literal;
+import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.settings.SessionSettings;
+import io.crate.testing.TestingHelpers;
+import io.crate.types.ArrayType;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
 public class ArraySumFunctionTest extends ScalarTestCase {
+
+    private final SessionSettings sessionSettings = CoordinatorTxnCtx.systemTransactionContext().sessionSettings();
 
     @Test
     public void test_array_returns_sum_of_elements() {
@@ -56,10 +61,10 @@ public class ArraySumFunctionTest extends ScalarTestCase {
                     } else if(o1 instanceof Double || o1 instanceof Float) {
                         return kahanSummationForDouble.sum(((Number) o1).doubleValue(), ((Number) o2).doubleValue());
                     } else {
-                        return DataTypes.LONG.implicitCast(o1) + DataTypes.LONG.implicitCast(o2);
+                        return DataTypes.LONG.implicitCast(o1, sessionSettings) + DataTypes.LONG.implicitCast(o2, sessionSettings);
                     }
                 });
-            var expected= inputDependantOutputType.implicitCast(optional.orElse(null));
+            var expected= inputDependantOutputType.implicitCast(optional.orElse(null), sessionSettings);
 
 
             String expression = String.format(Locale.ENGLISH,"array_sum(?::%s[])", type.getName());

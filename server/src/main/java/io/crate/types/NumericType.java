@@ -23,6 +23,8 @@ package io.crate.types;
 
 import io.crate.Streamer;
 import io.crate.common.annotations.VisibleForTesting;
+import io.crate.metadata.settings.SessionSettings;
+
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -99,7 +101,7 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
     }
 
     @Override
-    public BigDecimal implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
+    public BigDecimal implicitCast(Object value, SessionSettings sessionSettings) throws IllegalArgumentException, ClassCastException {
         if (value == null) {
             return null;
         }

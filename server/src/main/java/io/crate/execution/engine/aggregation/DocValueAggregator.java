@@ -25,22 +25,24 @@ import java.io.IOException;
 
 import javax.annotation.Nullable;
 
-import io.crate.breaker.RamAccounting;
-import io.crate.memory.MemoryManager;
 import org.apache.lucene.index.LeafReader;
 import org.elasticsearch.Version;
 
+import io.crate.breaker.RamAccounting;
+import io.crate.memory.MemoryManager;
+import io.crate.metadata.settings.SessionSettings;
+
 public interface DocValueAggregator<T> {
 
-    public T initialState(RamAccounting ramAccounting, MemoryManager memoryManager, Version minNodeVersion);
+    T initialState(RamAccounting ramAccounting, MemoryManager memoryManager, Version minNodeVersion);
 
-    public void loadDocValues(LeafReader reader) throws IOException;
+    void loadDocValues(LeafReader reader) throws IOException;
 
-    public void apply(RamAccounting ramAccounting, int doc, T state) throws IOException;
+    void apply(RamAccounting ramAccounting, SessionSettings sessionSettings, int doc, T state) throws IOException;
 
     // Aggregations are executed on shard level,
     // that means there is always a final reduce step necessary
     // → never return final value, but always partial result
     @Nullable
-    public Object partialResult(RamAccounting ramAccounting, T state);
+    Object partialResult(RamAccounting ramAccounting, SessionSettings sessionSettings, T state);
 }

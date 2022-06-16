@@ -132,7 +132,11 @@ public class HashJoin implements LogicalPlan {
             rightExecutionPlan = tmp;
         }
 
-        SubQueryAndParamBinder paramBinder = new SubQueryAndParamBinder(params, subQueryResults);
+        SubQueryAndParamBinder paramBinder = new SubQueryAndParamBinder(
+            params,
+            subQueryResults,
+            plannerContext.transactionContext().sessionSettings()
+        );
         var hashSymbols = HashJoinConditionSymbolsExtractor.extract(joinCondition);
         // First extract the symbols that belong to rhs
         var rhsHashSymbols = new ArrayList<Symbol>();

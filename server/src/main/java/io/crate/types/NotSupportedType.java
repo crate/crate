@@ -22,6 +22,7 @@
 package io.crate.types;
 
 import io.crate.Streamer;
+import io.crate.metadata.settings.SessionSettings;
 
 public class NotSupportedType extends DataType<Void> {
 
@@ -57,7 +58,7 @@ public class NotSupportedType extends DataType<Void> {
     }
 
     @Override
-    public Void implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
+    public Void implicitCast(Object value, SessionSettings sessionSettings) throws IllegalArgumentException, ClassCastException {
         return null;
     }
 

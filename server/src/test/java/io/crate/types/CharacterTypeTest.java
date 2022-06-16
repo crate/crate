@@ -26,7 +26,12 @@ import static org.hamcrest.Matchers.is;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
+import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.settings.SessionSettings;
+
 public class CharacterTypeTest extends ESTestCase {
+
+    private static final SessionSettings SESSION_SETTINGS = CoordinatorTxnCtx.systemTransactionContext().sessionSettings();
 
     @Test
     public void test_value_for_insert_adds_blank_padding() {
@@ -35,7 +40,7 @@ public class CharacterTypeTest extends ESTestCase {
 
     @Test
     public void test_implicit_cast_adds_blank_padding() {
-        assertThat(CharacterType.of(5).implicitCast("a"), is("a    "));
+        assertThat(CharacterType.of(5).implicitCast("a", SESSION_SETTINGS), is("a    "));
     }
 
     @Test
@@ -45,9 +50,9 @@ public class CharacterTypeTest extends ESTestCase {
 
     @Test
     public void test_explicit_cast_truncates_overflow_chars() {
-        assertThat(CharacterType.of(1).explicitCast("foo"), is("f"));
-        assertThat(CharacterType.of(1).explicitCast(true), is("t"));
-        assertThat(CharacterType.of(1).explicitCast(12), is("1"));
-        assertThat(CharacterType.of(1).explicitCast(-12), is("-"));
+        assertThat(CharacterType.of(1).explicitCast("foo", SESSION_SETTINGS), is("f"));
+        assertThat(CharacterType.of(1).explicitCast(true, SESSION_SETTINGS), is("t"));
+        assertThat(CharacterType.of(1).explicitCast(12, SESSION_SETTINGS), is("1"));
+        assertThat(CharacterType.of(1).explicitCast(-12, SESSION_SETTINGS), is("-"));
     }
 }

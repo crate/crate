@@ -41,7 +41,6 @@ import io.crate.metadata.functions.Signature;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.RegclassType;
 import io.crate.user.UserLookup;
 
 public class ImplicitCastFunction extends Scalar<Object, Object> {
@@ -100,15 +99,15 @@ public class ImplicitCastFunction extends Scalar<Object, Object> {
         if (targetType == null) {
             var targetTypeSignature = parseTypeSignature((String) args[1].value());
             var targetType = targetTypeSignature.createType();
-            return castToTargetType(targetType, arg);
+            return castToTargetType(targetType, arg, txnCtx.sessionSettings());
         } else {
-            return castToTargetType(targetType, arg);
+            return castToTargetType(targetType, arg, txnCtx.sessionSettings());
         }
     }
 
-    private static Object castToTargetType(DataType<?> targetType, Object arg) {
+    private static Object castToTargetType(DataType<?> targetType, Object arg, SessionSettings sessionSettings) {
         try {
-            return targetType.implicitCast(arg);
+            return targetType.implicitCast(arg, sessionSettings);
         } catch (ConversionException e) {
             throw e;
         } catch (ClassCastException | IllegalArgumentException e) {
@@ -142,7 +141,7 @@ public class ImplicitCastFunction extends Scalar<Object, Object> {
         if (argument instanceof Input) {
             Object value = ((Input<?>) argument).value();
             try {
-                return Literal.ofUnchecked(targetType, targetType.implicitCast(value));
+                return Literal.ofUnchecked(targetType, targetType.implicitCast(value, txnCtx.sessionSettings()));
             } catch (ConversionException e) {
                 throw e;
             } catch (ClassCastException | IllegalArgumentException e) {

@@ -34,6 +34,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 
 import io.crate.Streamer;
+import io.crate.metadata.settings.SessionSettings;
 import io.crate.sql.tree.ColumnDefinition;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.ColumnType;
@@ -105,12 +106,13 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
      * Should be used only in the cast functions, but there are exceptions.
      *
      * @param value The value to cast to the target {@link DataType}.
+     * @param sessionSettings
      * @return The value casted the target {@link DataType}.
      * @throws ClassCastException       if the conversion between data types is not supported.
      * @throws IllegalArgumentException if the conversion is supported but the converted value
      *                                  violates pre-conditions of the target type.
      */
-    public T implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
+    public T implicitCast(Object value, SessionSettings sessionSettings) throws IllegalArgumentException, ClassCastException {
         throw new UnsupportedOperationException("The cast operation for type `" + getName() + "` is not supported.");
     }
 
@@ -120,10 +122,11 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
      * a data type subclass.
      *
      * @param value The value to cast to the target {@link DataType}.
+     * @param sessionSettings
      * @return The value casted the target {@link DataType}.
      */
-    public T explicitCast(Object value) throws IllegalArgumentException, ClassCastException {
-        return implicitCast(value);
+    public T explicitCast(Object value, SessionSettings sessionSettings) throws IllegalArgumentException, ClassCastException {
+        return implicitCast(value, sessionSettings);
     }
 
     /**
@@ -146,7 +149,7 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
      *
      * @param value The value to sanitize to the target {@link DataType}.
      * @return The value of {@link DataType}.
-     * @see DataType#implicitCast(Object)
+     * @see DataType#implicitCast(Object, SessionSettings)
      */
     public abstract T sanitizeValue(Object value);
 

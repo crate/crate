@@ -22,6 +22,8 @@
 package io.crate.types;
 
 import io.crate.Streamer;
+import io.crate.metadata.settings.SessionSettings;
+
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -87,7 +89,7 @@ public final class TimeTZType extends DataType<TimeTZ> implements FixedWidthType
     }
 
     @Override
-    public TimeTZ implicitCast(Object value) {
+    public TimeTZ implicitCast(Object value, SessionSettings sessionSettings) {
         if (value == null) {
             return null;
         } else if (value instanceof TimeTZ) {

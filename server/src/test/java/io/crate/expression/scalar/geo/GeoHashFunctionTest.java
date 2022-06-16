@@ -21,19 +21,22 @@
 
 package io.crate.expression.scalar.geo;
 
-import io.crate.expression.symbol.Literal;
-import io.crate.expression.scalar.ScalarTestCase;
-import io.crate.types.DataTypes;
+import static io.crate.testing.SymbolMatchers.isLiteral;
+
 import org.junit.Test;
 
-import static io.crate.testing.SymbolMatchers.isLiteral;
+import io.crate.expression.scalar.ScalarTestCase;
+import io.crate.expression.symbol.Literal;
+import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.types.DataTypes;
 
 public class GeoHashFunctionTest extends ScalarTestCase {
 
     @Test
     public void testEvaluateWithGeoPointLiterals() throws Exception {
         assertEvaluate("geohash(geopoint)", "u0qvtty6jk7x",
-            Literal.of(DataTypes.GEO_POINT, DataTypes.GEO_POINT.implicitCast("POINT(9.7427 47.4050)")));
+            Literal.of(DataTypes.GEO_POINT,
+                DataTypes.GEO_POINT.implicitCast("POINT(9.7427 47.4050)", CoordinatorTxnCtx.systemTransactionContext().sessionSettings())));
     }
 
     @Test

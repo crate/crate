@@ -25,6 +25,8 @@ import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
 
+import io.crate.metadata.CoordinatorTxnCtx;
+
 @State(value = Scope.Benchmark)
 public class StringTypeTest {
 
@@ -32,6 +34,6 @@ public class StringTypeTest {
 
     @Benchmark
     public String booleanConversion() throws Exception {
-        return StringType.INSTANCE.implicitCast(value);
+        return StringType.INSTANCE.implicitCast(value, CoordinatorTxnCtx.systemTransactionContext().sessionSettings());
     }
 }

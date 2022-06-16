@@ -24,8 +24,6 @@ package io.crate.expression.scalar.cast;
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 import static io.crate.types.TypeSignature.parseTypeSignature;
 
-import java.util.List;
-
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Input;
 import io.crate.exceptions.ConversionException;
@@ -36,10 +34,7 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
-import io.crate.metadata.settings.SessionSettings;
 import io.crate.types.DataType;
-import io.crate.types.RegclassType;
-import io.crate.user.UserLookup;
 
 public class ExplicitCastFunction extends Scalar<Object, Object> {
 
@@ -75,7 +70,7 @@ public class ExplicitCastFunction extends Scalar<Object, Object> {
     @Override
     public Object evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object>[] args) {
         try {
-            return returnType.explicitCast(args[0].value());
+            return returnType.explicitCast(args[0].value(), txnCtx.sessionSettings());
         } catch (ConversionException e) {
             throw e;
         } catch (ClassCastException | IllegalArgumentException e) {
@@ -105,7 +100,7 @@ public class ExplicitCastFunction extends Scalar<Object, Object> {
         if (argument instanceof Input) {
             Object value = ((Input<?>) argument).value();
             try {
-                return Literal.ofUnchecked(returnType, returnType.explicitCast(value));
+                return Literal.ofUnchecked(returnType, returnType.explicitCast(value, txnCtx.sessionSettings()));
             } catch (ConversionException e) {
                 throw e;
             } catch (ClassCastException | IllegalArgumentException e) {

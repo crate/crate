@@ -48,6 +48,8 @@ import io.crate.Streamer;
 import io.crate.common.collections.Lists2;
 import io.crate.common.collections.MapComparator;
 import io.crate.exceptions.ConversionException;
+import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.settings.SessionSettings;
 import io.crate.sql.tree.ColumnDefinition;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.ColumnType;
@@ -136,13 +138,13 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
     }
 
     @Override
-    public Map<String, Object> implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
-        return convert(value, DataType::implicitCast);
+    public Map<String, Object> implicitCast(Object value, SessionSettings sessionSettings) throws IllegalArgumentException, ClassCastException {
+        return convert(value, (dataType, val) -> dataType.implicitCast(val, sessionSettings));
     }
 
     @Override
-    public Map<String, Object> explicitCast(Object value) throws IllegalArgumentException, ClassCastException {
-        return convert(value, DataType::explicitCast);
+    public Map<String, Object> explicitCast(Object value, SessionSettings sessionSettings) throws IllegalArgumentException, ClassCastException {
+        return convert(value, (dataType, val) -> dataType.explicitCast(val, sessionSettings));
     }
 
     @Override
@@ -270,7 +272,12 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
                 String key = entry.getKey();
                 out.writeString(key);
                 DataType innerType = innerTypes.getOrDefault(key, UndefinedType.INSTANCE);
-                innerType.streamer().writeValueTo(out, innerType.implicitCast(entry.getValue()));
+                innerType.streamer().writeValueTo(
+                    out,
+                    innerType.implicitCast(
+                        entry.getValue(), CoordinatorTxnCtx.systemTransactionContext().sessionSettings()
+                    )
+                );
             }
         }
     }

@@ -35,6 +35,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.http.HttpTestServer;
+import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.settings.SessionSettings;
 import io.crate.monitor.ExtendedNetworkInfo;
 import io.crate.monitor.ExtendedNodeInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -45,6 +47,8 @@ public class PingTaskTest extends CrateDummyClusterServiceUnitTest {
     private ExtendedNodeInfo extendedNodeInfo;
 
     private HttpTestServer testServer;
+
+    private final SessionSettings sessionSettings = CoordinatorTxnCtx.systemTransactionContext().sessionSettings();
 
     private PingTask createPingTask(String pingUrl) {
         return new PingTask(clusterService, extendedNodeInfo, pingUrl);
@@ -85,7 +89,7 @@ public class PingTaskTest extends CrateDummyClusterServiceUnitTest {
         assertThat(testServer.responses.size(), is(2));
         for (int i = 0; i < testServer.responses.size(); i++) {
             String json = testServer.responses.get(i);
-            Map<String, Object> map = DataTypes.UNTYPED_OBJECT.implicitCast(json);
+            Map<String, Object> map = DataTypes.UNTYPED_OBJECT.implicitCast(json, sessionSettings);
 
             assertThat(map, hasKey("kernel"));
             assertThat(map.get("kernel"), is(notNullValue()));
@@ -95,7 +99,7 @@ public class PingTaskTest extends CrateDummyClusterServiceUnitTest {
             assertThat(map.get("master"), is(notNullValue()));
             assertThat(map, hasKey("ping_count"));
             assertThat(map.get("ping_count"), is(notNullValue()));
-            Map<String, Object> pingCountMap = DataTypes.UNTYPED_OBJECT.implicitCast(map.get("ping_count"));
+            Map<String, Object> pingCountMap = DataTypes.UNTYPED_OBJECT.implicitCast(map.get("ping_count"), sessionSettings);
 
             assertThat(pingCountMap.get("success"), is(i));
             assertThat(pingCountMap.get("failure"), is(0));
@@ -122,7 +126,7 @@ public class PingTaskTest extends CrateDummyClusterServiceUnitTest {
 
         for (int i = 0; i < testServer.responses.size(); i++) {
             String json = testServer.responses.get(i);
-            Map<String, Object> map = DataTypes.UNTYPED_OBJECT.implicitCast(json);
+            Map<String, Object> map = DataTypes.UNTYPED_OBJECT.implicitCast(json, sessionSettings);
 
             assertThat(map, hasKey("kernel"));
             assertThat(map.get("kernel"), is(notNullValue()));
@@ -132,7 +136,7 @@ public class PingTaskTest extends CrateDummyClusterServiceUnitTest {
             assertThat(map.get("master"), is(notNullValue()));
             assertThat(map, hasKey("ping_count"));
             assertThat(map.get("ping_count"), is(notNullValue()));
-            Map<String, Object> pingCountMap = DataTypes.UNTYPED_OBJECT.implicitCast(map.get("ping_count"));
+            Map<String, Object> pingCountMap = DataTypes.UNTYPED_OBJECT.implicitCast(map.get("ping_count"), sessionSettings);
 
             assertThat(pingCountMap.get("success"), is(0));
             assertThat(pingCountMap.get("failure"), is(i));

@@ -46,6 +46,7 @@ import io.crate.memory.MemoryManager;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.settings.SessionSettings;
 import io.crate.types.ByteType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -103,9 +104,10 @@ public class NumericSumAggregation extends AggregationFunction<BigDecimal, BigDe
     @Override
     public BigDecimal iterate(RamAccounting ramAccounting,
                               MemoryManager memoryManager,
+                              SessionSettings sessionSettings,
                               BigDecimal state,
                               Input[] args) throws CircuitBreakingException {
-        BigDecimal value = returnType.implicitCast(args[0].value());
+        BigDecimal value = returnType.implicitCast(args[0].value(), sessionSettings);
         if (value != null) {
             if (state != null) {
                 var newState = state.add(value);
@@ -161,9 +163,10 @@ public class NumericSumAggregation extends AggregationFunction<BigDecimal, BigDe
 
     @Override
     public BigDecimal removeFromAggregatedState(RamAccounting ramAccounting,
+                                                SessionSettings sessionSettings,
                                                 BigDecimal previousAggState,
                                                 Input[] stateToRemove) {
-        BigDecimal value = returnType.implicitCast(stateToRemove[0].value());
+        BigDecimal value = returnType.implicitCast(stateToRemove[0].value(), sessionSettings);
         if (value != null) {
             if (previousAggState != null) {
                 return previousAggState.subtract(value);
@@ -214,6 +217,7 @@ public class NumericSumAggregation extends AggregationFunction<BigDecimal, BigDe
 
         @Override
         public void apply(RamAccounting ramAccounting,
+                          SessionSettings sessionSettings,
                           int doc,
                           OverflowAwareMutableLong state) throws IOException {
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
@@ -225,9 +229,10 @@ public class NumericSumAggregation extends AggregationFunction<BigDecimal, BigDe
 
         @Override
         public BigDecimal partialResult(RamAccounting ramAccounting,
+                                        SessionSettings sessionSettings,
                                         OverflowAwareMutableLong state) {
             if (state.hasValue()) {
-                return returnType.implicitCast(state.value());
+                return returnType.implicitCast(state.value(), sessionSettings);
             } else {
                 return null;
             }
@@ -258,13 +263,14 @@ public class NumericSumAggregation extends AggregationFunction<BigDecimal, BigDe
 
         @Override
         public void apply(RamAccounting ramAccounting,
+                          SessionSettings sessionSettings,
                           int doc,
                           BigDecimalValueWrapper state) throws IOException {
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
                 var prevState = state.value();
 
                 var fieldValue = returnType.implicitCast(
-                    NumericUtils.sortableLongToDouble(values.nextValue()));
+                    NumericUtils.sortableLongToDouble(values.nextValue()), sessionSettings);
                 state.setValue(state.value().add(fieldValue));
 
                 ramAccounting.addBytes(NumericType.sizeDiff(state.value(), prevState));
@@ -272,9 +278,9 @@ public class NumericSumAggregation extends AggregationFunction<BigDecimal, BigDe
         }
 
         @Override
-        public Object partialResult(RamAccounting ramAccounting, BigDecimalValueWrapper state) {
+        public Object partialResult(RamAccounting ramAccounting, SessionSettings sessionSettings, BigDecimalValueWrapper state) {
             if (state.hasValue()) {
-                return returnType.implicitCast(state.value());
+                return returnType.implicitCast(state.value(), sessionSettings);
             } else {
                 return null;
             }
@@ -305,13 +311,14 @@ public class NumericSumAggregation extends AggregationFunction<BigDecimal, BigDe
 
         @Override
         public void apply(RamAccounting ramAccounting,
+                          SessionSettings sessionSettings,
                           int doc,
                           BigDecimalValueWrapper state) throws IOException {
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
                 var prevState = state.value();
 
                 var fieldValue = returnType.implicitCast(
-                    NumericUtils.sortableIntToFloat((int) values.nextValue()));
+                    NumericUtils.sortableIntToFloat((int) values.nextValue()), sessionSettings);
                 state.setValue(state.value().add(fieldValue));
 
                 ramAccounting.addBytes(NumericType.sizeDiff(state.value(), prevState));
@@ -319,9 +326,11 @@ public class NumericSumAggregation extends AggregationFunction<BigDecimal, BigDe
         }
 
         @Override
-        public Object partialResult(RamAccounting ramAccounting, BigDecimalValueWrapper state) {
+        public Object partialResult(RamAccounting ramAccounting,
+                                    SessionSettings sessionSettings,
+                                    BigDecimalValueWrapper state) {
             if (state.hasValue()) {
-                return returnType.implicitCast(state.value());
+                return returnType.implicitCast(state.value(), sessionSettings);
             } else {
                 return null;
             }

@@ -21,19 +21,24 @@
 
 package io.crate.expression.scalar.geo;
 
-import io.crate.expression.scalar.ScalarTestCase;
-import io.crate.expression.symbol.Literal;
-import io.crate.types.DataTypes;
-import org.junit.Test;
+import static io.crate.testing.SymbolMatchers.isFunction;
+import static io.crate.testing.SymbolMatchers.isLiteral;
 
 import java.util.Map;
 
-import static io.crate.testing.SymbolMatchers.isFunction;
-import static io.crate.testing.SymbolMatchers.isLiteral;
+import org.junit.Test;
+
+import io.crate.expression.scalar.ScalarTestCase;
+import io.crate.expression.symbol.Literal;
+import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.settings.SessionSettings;
+import io.crate.types.DataTypes;
 
 public class WithinFunctionTest extends ScalarTestCase {
 
     private static final String FNAME = WithinFunction.NAME;
+    private static final SessionSettings SESSION_SETTINGS = CoordinatorTxnCtx.systemTransactionContext().sessionSettings();
+
 
     @Test
     public void testEvaluateWithNullArgs() throws Exception {
@@ -43,7 +48,7 @@ public class WithinFunctionTest extends ScalarTestCase {
             Literal.of(DataTypes.GEO_POINT, null),
             Literal.of(
                 DataTypes.GEO_POINT,
-                DataTypes.GEO_POINT.implicitCast("POINT (10 10)")
+                DataTypes.GEO_POINT.implicitCast("POINT (10 10)", SESSION_SETTINGS)
             )
         );
         assertEvaluate(
@@ -51,7 +56,7 @@ public class WithinFunctionTest extends ScalarTestCase {
             null,
             Literal.of(
                 DataTypes.GEO_POINT,
-                DataTypes.GEO_POINT.implicitCast("POINT (10 10)")
+                DataTypes.GEO_POINT.implicitCast("POINT (10 10)", SESSION_SETTINGS)
             ),
             Literal.of(DataTypes.GEO_SHAPE, null)
         );
@@ -64,11 +69,11 @@ public class WithinFunctionTest extends ScalarTestCase {
             true,
             Literal.of(
                 DataTypes.GEO_SHAPE,
-                DataTypes.GEO_SHAPE.implicitCast("POINT (10 10)")
+                DataTypes.GEO_SHAPE.implicitCast("POINT (10 10)", SESSION_SETTINGS)
             ),
             Literal.of(
                 DataTypes.GEO_SHAPE,
-                DataTypes.GEO_SHAPE.implicitCast("POLYGON ((5 5, 20 5, 30 30, 5 30, 5 5))")
+                DataTypes.GEO_SHAPE.implicitCast("POLYGON ((5 5, 20 5, 30 30, 5 30, 5 5))", SESSION_SETTINGS)
             )
         );
     }
@@ -80,11 +85,11 @@ public class WithinFunctionTest extends ScalarTestCase {
             true,
             Literal.of(
                 DataTypes.GEO_SHAPE,
-                DataTypes.GEO_SHAPE.implicitCast("LINESTRING (8 15, 13 24)")
+                DataTypes.GEO_SHAPE.implicitCast("LINESTRING (8 15, 13 24)", SESSION_SETTINGS)
             ),
             Literal.of(
                 DataTypes.GEO_SHAPE,
-                DataTypes.GEO_SHAPE.implicitCast("POLYGON ((5 5, 20 5, 30 30, 5 30, 5 5))")
+                DataTypes.GEO_SHAPE.implicitCast("POLYGON ((5 5, 20 5, 30 30, 5 30, 5 5))", SESSION_SETTINGS)
             )
         );
     }
@@ -96,11 +101,11 @@ public class WithinFunctionTest extends ScalarTestCase {
             false,
             Literal.of(
                 DataTypes.GEO_SHAPE,
-                DataTypes.GEO_SHAPE.implicitCast("LINESTRING (8 15, 40 74)")
+                DataTypes.GEO_SHAPE.implicitCast("LINESTRING (8 15, 40 74)", SESSION_SETTINGS)
             ),
             Literal.of(
                 DataTypes.GEO_SHAPE,
-                DataTypes.GEO_SHAPE.implicitCast("POLYGON ((5 5, 20 5, 30 30, 5 30, 5 5))")
+                DataTypes.GEO_SHAPE.implicitCast("POLYGON ((5 5, 20 5, 30 30, 5 30, 5 5))", SESSION_SETTINGS)
             )
         );
     }
@@ -111,7 +116,7 @@ public class WithinFunctionTest extends ScalarTestCase {
             Literal.of(Map.of("type", "Point", "coordinates", new double[]{10.0, 10.0})),
             Literal.of(
                 DataTypes.GEO_SHAPE,
-                DataTypes.GEO_SHAPE.implicitCast("POLYGON ((5 5, 20 5, 30 30, 5 30, 5 5))")
+                DataTypes.GEO_SHAPE.implicitCast("POLYGON ((5 5, 20 5, 30 30, 5 30, 5 5))", SESSION_SETTINGS)
             )
         );
     }

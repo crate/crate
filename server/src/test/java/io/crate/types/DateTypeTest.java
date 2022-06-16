@@ -21,45 +21,50 @@
 
 package io.crate.types;
 
-import org.junit.Test;
-
 import static io.crate.testing.Asserts.assertThrowsMatches;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 
+import org.junit.Test;
+
+import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.settings.SessionSettings;
+
 public class DateTypeTest {
+
+    private static final SessionSettings SESSION_SETTINGS = CoordinatorTxnCtx.systemTransactionContext().sessionSettings();
 
     @Test
     public void testCastFromInvalidString() {
-        assertThrowsMatches(() -> DateType.INSTANCE.implicitCast("not-a-number"),
+        assertThrowsMatches(() -> DateType.INSTANCE.implicitCast("not-a-number", SESSION_SETTINGS),
             ClassCastException.class,
             "Can't cast 'not-a-number' to date");
     }
 
     @Test
     public void testCastString() {
-        assertThat(DateType.INSTANCE.implicitCast("123"), is(123L));
+        assertThat(DateType.INSTANCE.implicitCast("123", SESSION_SETTINGS), is(123L));
     }
 
     @Test
     public void testCastDateString() {
-        assertThat(DateType.INSTANCE.implicitCast("2020-02-09"), is(1581206400000L));
+        assertThat(DateType.INSTANCE.implicitCast("2020-02-09", SESSION_SETTINGS), is(1581206400000L));
     }
 
     @Test
     public void testCastFloatValue() {
-        assertThat(DateType.INSTANCE.implicitCast(123.123f), is(123123L));
+        assertThat(DateType.INSTANCE.implicitCast(123.123f, SESSION_SETTINGS), is(123123L));
     }
 
     @Test
     public void testCastNumericNonFloatValue() {
-        assertThat(DateType.INSTANCE.implicitCast(123), is(123L));
+        assertThat(DateType.INSTANCE.implicitCast(123, SESSION_SETTINGS), is(123L));
     }
 
     @Test
     public void testCastNull() {
-        assertThat(DateType.INSTANCE.implicitCast(null), is(nullValue()));
+        assertThat(DateType.INSTANCE.implicitCast(null, SESSION_SETTINGS), is(nullValue()));
     }
 
 

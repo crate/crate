@@ -159,7 +159,7 @@ public class DistanceFunction extends Scalar<Double, Point> {
             // must be something like cmp(distance(..), non-literal) - fallback to genericFunction
             return null;
         }
-        Double distance = DataTypes.DOUBLE.implicitCast(parentRhs.value());
+        Double distance = DataTypes.DOUBLE.implicitCast(parentRhs.value(), context.txnCtx().sessionSettings());
         String parentName = parent.name();
         Point pointValue = (Point) pointLiteral.value();
         String fieldName = pointRef.column().fqn();

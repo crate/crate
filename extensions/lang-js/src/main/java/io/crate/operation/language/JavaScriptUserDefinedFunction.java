@@ -36,6 +36,7 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.settings.SessionSettings;
 import io.crate.types.DataType;
 import io.crate.types.TypeSignature;
 import io.crate.user.UserLookup;
@@ -77,7 +78,9 @@ public class JavaScriptUserDefinedFunction extends Scalar<Object, Object> {
             );
             return PolyglotValuesConverter.toCrateObject(
                 function.execute(polyglotValueArgs),
-                signature.getReturnType().createType());
+                signature.getReturnType().createType(),
+                txnCtx.sessionSettings()
+            );
         } catch (PolyglotException | IOException e) {
             throw new io.crate.exceptions.ScriptException(
                 e.getLocalizedMessage(),
@@ -115,7 +118,9 @@ public class JavaScriptUserDefinedFunction extends Scalar<Object, Object> {
             try {
                 return toCrateObject(
                     function.execute(polyglotValueArgs),
-                    signature.getReturnType().createType());
+                    signature.getReturnType().createType(),
+                    txnCtx.sessionSettings()
+                );
             } catch (PolyglotException e) {
                 throw new io.crate.exceptions.ScriptException(
                     e.getLocalizedMessage(),
@@ -137,11 +142,11 @@ public class JavaScriptUserDefinedFunction extends Scalar<Object, Object> {
     }
 
 
-    private static Object toCrateObject(Value value, DataType<?> type) {
+    private static Object toCrateObject(Value value, DataType<?> type, SessionSettings sessionSettings) {
         if ("undefined".equalsIgnoreCase(value.getClass().getSimpleName())) {
             return null;
         } else {
-            return PolyglotValuesConverter.toCrateObject(value, type);
+            return PolyglotValuesConverter.toCrateObject(value, type, sessionSettings);
         }
     }
 }

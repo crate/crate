@@ -21,20 +21,25 @@
 
 package io.crate.types;
 
-import org.elasticsearch.test.ESTestCase;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
+
+import java.util.List;
+
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
 import org.locationtech.spatial4j.shape.Point;
 import org.locationtech.spatial4j.shape.impl.PointImpl;
 
-import java.util.List;
-
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
+import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.settings.SessionSettings;
 
 public class GeoPointTypeTest extends ESTestCase {
+
+    private static final SessionSettings SESSION_SETTINGS = CoordinatorTxnCtx.systemTransactionContext().sessionSettings();
 
     @Test
     public void testStreaming() throws Throwable {
@@ -58,7 +63,7 @@ public class GeoPointTypeTest extends ESTestCase {
 
     @Test
     public void testWktToGeoPointValue() throws Exception {
-        Point value = DataTypes.GEO_POINT.implicitCast("POINT(1 2)");
+        Point value = DataTypes.GEO_POINT.implicitCast("POINT(1 2)", SESSION_SETTINGS);
         assertThat(value.getX(), is(1.0d));
         assertThat(value.getY(), is(2.0d));
     }
@@ -68,26 +73,26 @@ public class GeoPointTypeTest extends ESTestCase {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Cannot convert \"POINT(54.321 -123.456)\" to geo_point." +
             " Bad Y value -123.456 is not in boundary Rect(minX=-180.0,maxX=180.0,minY=-90.0,maxY=90.0)");
-        DataTypes.GEO_POINT.implicitCast("POINT(54.321 -123.456)");
+        DataTypes.GEO_POINT.implicitCast("POINT(54.321 -123.456)", SESSION_SETTINGS);
     }
 
     @Test
     public void testValueConversionFromList() throws Exception {
-        Point value = DataTypes.GEO_POINT.implicitCast(List.of(10.0, 20.2));
+        Point value = DataTypes.GEO_POINT.implicitCast(List.of(10.0, 20.2), SESSION_SETTINGS);
         assertThat(value.getX(), is(10.0d));
         assertThat(value.getY(), is(20.2d));
     }
 
     @Test
     public void testConversionFromObjectArrayOfIntegers() throws Exception {
-        Point value = DataTypes.GEO_POINT.implicitCast(new Object[]{1, 2});
+        Point value = DataTypes.GEO_POINT.implicitCast(new Object[]{1, 2}, SESSION_SETTINGS);
         assertThat(value.getX(), is(1.0));
         assertThat(value.getY(), is(2.0));
     }
 
     @Test
     public void testConversionFromIntegerArray() throws Exception {
-        Point value = DataTypes.GEO_POINT.implicitCast(new Integer[]{1, 2});
+        Point value = DataTypes.GEO_POINT.implicitCast(new Integer[]{1, 2}, SESSION_SETTINGS);
         assertThat(value.getX(), is(1.0));
         assertThat(value.getY(), is(2.0));
     }
@@ -97,7 +102,7 @@ public class GeoPointTypeTest extends ESTestCase {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage(
             "Failed to validate geo point [lon=54.321000, lat=-123.456000], not a valid location.");
-        DataTypes.GEO_POINT.implicitCast(new Double[]{54.321, -123.456});
+        DataTypes.GEO_POINT.implicitCast(new Double[]{54.321, -123.456}, SESSION_SETTINGS);
     }
 
     @Test
@@ -105,6 +110,6 @@ public class GeoPointTypeTest extends ESTestCase {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage(
             "Failed to validate geo point [lon=-187.654000, lat=123.456000], not a valid location.");
-        DataTypes.GEO_POINT.implicitCast(new Double[]{-187.654, 123.456});
+        DataTypes.GEO_POINT.implicitCast(new Double[]{-187.654, 123.456}, SESSION_SETTINGS);
     }
 }

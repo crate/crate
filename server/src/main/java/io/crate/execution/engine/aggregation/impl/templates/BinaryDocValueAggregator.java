@@ -24,6 +24,8 @@ package io.crate.execution.engine.aggregation.impl.templates;
 import io.crate.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.DocValueAggregator;
 import io.crate.memory.MemoryManager;
+import io.crate.metadata.settings.SessionSettings;
+
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReader;
 import org.elasticsearch.Version;
@@ -62,7 +64,7 @@ public class BinaryDocValueAggregator<T> implements DocValueAggregator<T> {
     }
 
     @Override
-    public void apply(RamAccounting ramAccounting, int doc, T state) throws IOException {
+    public void apply(RamAccounting ramAccounting, SessionSettings sessionSettings, int doc, T state) throws IOException {
         if (values.advanceExact(doc) && values.docValueCount() == 1) {
             docValuesConsumer.accept(values, state);
         }
@@ -70,7 +72,7 @@ public class BinaryDocValueAggregator<T> implements DocValueAggregator<T> {
 
     @Nullable
     @Override
-    public Object partialResult(RamAccounting ramAccounting, T state) {
+    public Object partialResult(RamAccounting ramAccounting, SessionSettings sessionSettings, T state) {
         return state;
     }
 }

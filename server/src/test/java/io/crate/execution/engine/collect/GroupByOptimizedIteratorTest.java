@@ -21,20 +21,19 @@
 
 package io.crate.execution.engine.collect;
 
-import io.crate.breaker.RamAccounting;
-import io.crate.data.BatchIterator;
-import io.crate.data.Row;
-import io.crate.execution.engine.aggregation.AggregationContext;
-import io.crate.execution.engine.aggregation.impl.CountAggregation;
-import io.crate.execution.engine.fetch.ReaderContext;
-import io.crate.expression.InputRow;
-import io.crate.expression.reference.doc.lucene.CollectorContext;
-import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
-import io.crate.expression.symbol.AggregateMode;
-import io.crate.memory.OnHeapMemoryManager;
-import io.crate.metadata.NodeContext;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.BatchIteratorTester;
+import static io.crate.testing.TestingHelpers.createNodeContext;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
+
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
@@ -53,18 +52,21 @@ import org.elasticsearch.index.mapper.KeywordFieldMapper;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Consumer;
-
-import static io.crate.testing.TestingHelpers.createNodeContext;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
+import io.crate.breaker.RamAccounting;
+import io.crate.data.BatchIterator;
+import io.crate.data.Row;
+import io.crate.execution.engine.aggregation.AggregationContext;
+import io.crate.execution.engine.aggregation.impl.CountAggregation;
+import io.crate.execution.engine.fetch.ReaderContext;
+import io.crate.expression.InputRow;
+import io.crate.expression.reference.doc.lucene.CollectorContext;
+import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
+import io.crate.expression.symbol.AggregateMode;
+import io.crate.memory.OnHeapMemoryManager;
+import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.NodeContext;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.BatchIteratorTester;
 
 public class GroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTest {
 
@@ -120,6 +122,7 @@ public class GroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTe
             Collections.singletonList(inExpr),
             RamAccounting.NO_ACCOUNTING,
             new OnHeapMemoryManager(usedBytes -> {}),
+            CoordinatorTxnCtx.systemTransactionContext().sessionSettings(),
             Version.CURRENT,
             new InputRow(Collections.singletonList(inExpr)),
             new MatchAllDocsQuery(),

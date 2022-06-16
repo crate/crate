@@ -32,28 +32,32 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.pgcatalog.OidHash;
 import io.crate.testing.Asserts;
+import io.crate.metadata.settings.SessionSettings;
 
 public class RegprocTypeTest extends ESTestCase {
+
+    private static final SessionSettings SESSION_SETTINGS = CoordinatorTxnCtx.systemTransactionContext().sessionSettings();
 
     @Test
     public void test_implicit_cast_regproc_to_integer() {
         Regproc proc = Regproc.of("func");
         assertThat(
-            DataTypes.INTEGER.implicitCast(proc),
+            DataTypes.INTEGER.implicitCast(proc, SESSION_SETTINGS),
             is(OidHash.functionOid(proc.asDummySignature())));
     }
 
     @Test
     public void test_implicit_cast_integer_to_regproc() {
-        assertThat(REGPROC.implicitCast(1), is(Regproc.of(1, "1")));
+        assertThat(REGPROC.implicitCast(1, SESSION_SETTINGS), is(Regproc.of(1, "1")));
     }
 
     @Test
     public void test_implicit_cast_text_to_regproc() {
         assertThat(
-            REGPROC.implicitCast("func"),
+            REGPROC.implicitCast("func", SESSION_SETTINGS),
             is(Regproc.of("func")));
     }
 
@@ -61,7 +65,7 @@ public class RegprocTypeTest extends ESTestCase {
     public void test_implicit_cast_regproc_to_not_allowed_type_throws_class_cast_exception() {
         expectedException.expect(ClassCastException.class);
         expectedException.expectMessage("Can't cast '1.1' to regproc");
-        REGPROC.implicitCast(1.1);
+        REGPROC.implicitCast(1.1, SESSION_SETTINGS);
     }
 
     @Test
@@ -107,7 +111,7 @@ public class RegprocTypeTest extends ESTestCase {
     @Test
     public void test_cannot_cast_long_outside_int_range_to_regproc() {
         Asserts.assertThrowsMatches(
-            () -> RegprocType.INSTANCE.implicitCast(Integer.MAX_VALUE + 2038L),
+            () -> RegprocType.INSTANCE.implicitCast(Integer.MAX_VALUE + 2038L, SESSION_SETTINGS),
             IllegalArgumentException.class,
             "2147485685 is outside of `int` range and cannot be cast to the regproc type"
         );

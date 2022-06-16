@@ -21,6 +21,20 @@
 
 package io.crate.planner.operators;
 
+import static io.crate.planner.operators.Limit.limitAndOffset;
+import static io.crate.planner.operators.LogicalPlanner.NO_LIMIT;
+
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import javax.annotation.Nullable;
+
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
@@ -49,19 +63,6 @@ import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.join.Join;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.statistics.TableStats;
-
-import javax.annotation.Nullable;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import static io.crate.planner.operators.Limit.limitAndOffset;
-import static io.crate.planner.operators.LogicalPlanner.NO_LIMIT;
 
 public class NestedLoopJoin implements LogicalPlan {
 
@@ -216,7 +217,11 @@ public class NestedLoopJoin implements LogicalPlan {
             configureExecution(left, right, plannerContext, isDistributed);
 
         List<Symbol> joinOutputs = Lists2.concat(leftLogicalPlan.outputs(), rightLogicalPlan.outputs());
-        SubQueryAndParamBinder paramBinder = new SubQueryAndParamBinder(params, subQueryResults);
+        var paramBinder = new SubQueryAndParamBinder(
+            params,
+            subQueryResults,
+            plannerContext.transactionContext().sessionSettings()
+        );
 
         Symbol joinInput = null;
         if (joinCondition != null) {

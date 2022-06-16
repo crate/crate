@@ -26,14 +26,19 @@ import static org.hamcrest.Matchers.is;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
+import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.SearchPath;
+import io.crate.metadata.settings.SessionSettings;
 import io.crate.testing.Asserts;
 
 public class RegclassTypeTest extends ESTestCase {
 
+    private static final SessionSettings SESSION_SETTINGS = CoordinatorTxnCtx.systemTransactionContext().sessionSettings();
+
     @Test
     public void test_cannot_cast_long_outside_int_range_to_regclass() {
         Asserts.assertThrowsMatches(
-            () -> RegclassType.INSTANCE.implicitCast(Integer.MAX_VALUE + 42L),
+            () -> RegclassType.INSTANCE.implicitCast(Integer.MAX_VALUE + 42L, SESSION_SETTINGS),
             IllegalArgumentException.class,
             "2147483689 is outside of `int` range and cannot be cast to the regclass type"
         );
@@ -41,16 +46,16 @@ public class RegclassTypeTest extends ESTestCase {
 
     @Test
     public void test_cast_from_string_uses_current_schema() {
-        var regclassType = new RegclassType("my_schema");
-        var regclass = regclassType.explicitCast("my_table");
+        var sessionSettings = new SessionSettings("crate", SearchPath.createSearchPathFrom("my_schema"));
+        var regclass = RegclassType.INSTANCE.explicitCast("my_table", sessionSettings);
 
         assertThat(regclass.toString(), is("2034491507"));
     }
 
     @Test
     public void test_cast_from_string_trims_double_quotes() {
-        var regclassDouble = RegclassType.INSTANCE.explicitCast("\"my_table\"");
-        var regclass = RegclassType.INSTANCE.explicitCast("my_table");
+        var regclassDouble = RegclassType.INSTANCE.explicitCast("\"my_table\"", SESSION_SETTINGS);
+        var regclass = RegclassType.INSTANCE.explicitCast("my_table", SESSION_SETTINGS);
 
         assertThat(regclassDouble, is(regclass));
     }

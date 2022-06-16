@@ -25,6 +25,7 @@ import java.nio.charset.StandardCharsets;
 
 import javax.annotation.Nonnull;
 
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.types.DataTypes;
 import io.netty.buffer.ByteBuf;
 
@@ -75,7 +76,7 @@ class CharacterType extends PGType<String> {
 
     @Override
     protected byte[] encodeAsUTF8Text(@Nonnull String value) {
-        return DataTypes.CHARACTER.implicitCast(value).getBytes(StandardCharsets.UTF_8);
+        return DataTypes.CHARACTER.implicitCast(value, CoordinatorTxnCtx.systemTransactionContext().sessionSettings()).getBytes(StandardCharsets.UTF_8);
     }
 
     @Override

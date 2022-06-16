@@ -23,6 +23,7 @@ package io.crate.expression.reference.file;
 
 import io.crate.execution.engine.collect.files.LineCollectorExpression;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.types.DataType;
 
 public class ColumnExtractingLineExpression extends LineCollectorExpression<Object> {
@@ -38,7 +39,7 @@ public class ColumnExtractingLineExpression extends LineCollectorExpression<Obje
 
     @Override
     public Object value() {
-        return type.implicitCast(context.get(columnIdent));
+        return type.implicitCast(context.get(columnIdent), CoordinatorTxnCtx.systemTransactionContext().sessionSettings());
     }
 
     @Override

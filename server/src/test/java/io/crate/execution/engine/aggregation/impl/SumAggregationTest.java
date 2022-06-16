@@ -21,23 +21,24 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
+import static org.hamcrest.Matchers.is;
+
+import java.math.BigDecimal;
+import java.util.List;
+
+import org.elasticsearch.Version;
+import org.junit.Test;
+
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.expression.symbol.Literal;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.functions.Signature;
 import io.crate.operation.aggregation.AggregationTestCase;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-
 import io.crate.types.NumericType;
-import org.elasticsearch.Version;
-import org.junit.Test;
-
-import java.math.BigDecimal;
-import java.util.List;
-
-import static org.hamcrest.Matchers.is;
 
 public class SumAggregationTest extends AggregationTestCase {
 
@@ -231,7 +232,7 @@ public class SumAggregationTest extends AggregationTestCase {
     @Test
     public void test_sum_numeric_with_precision_and_scale_on_double_non_doc_values_field() {
         var type = NumericType.of(16, 2);
-        var expected = type.implicitCast(12.4357);
+        var expected = type.implicitCast(12.4357, CoordinatorTxnCtx.systemTransactionContext().sessionSettings());
         assertThat(expected.toString(), is("12.44"));
 
         //noinspection rawtypes

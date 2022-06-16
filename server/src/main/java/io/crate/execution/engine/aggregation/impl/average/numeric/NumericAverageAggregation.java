@@ -51,6 +51,7 @@ import io.crate.memory.MemoryManager;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.settings.SessionSettings;
 import io.crate.types.ByteType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -111,11 +112,12 @@ public class NumericAverageAggregation extends AggregationFunction<NumericAverag
 
     @Override
     public NumericAverageState iterate(RamAccounting ramAccounting,
-                              MemoryManager memoryManager,
-                              NumericAverageState state,
-                              Input[] args) throws CircuitBreakingException {
+                                       MemoryManager memoryManager,
+                                       SessionSettings sessionSettings,
+                                       NumericAverageState state,
+                                       Input[] args) throws CircuitBreakingException {
         if (state != null) {
-            BigDecimal value = returnType.implicitCast(args[0].value());
+            BigDecimal value = returnType.implicitCast(args[0].value(), sessionSettings);
             if (value != null) {
                 BigDecimal newValue = state.sum.value().add(value);
                 ramAccounting.addBytes(NumericType.sizeDiff(newValue, state.sum.value()));
@@ -128,8 +130,8 @@ public class NumericAverageAggregation extends AggregationFunction<NumericAverag
 
     @Override
     public NumericAverageState reduce(RamAccounting ramAccounting,
-                               NumericAverageState state1,
-                               NumericAverageState state2) {
+                                      NumericAverageState state1,
+                                      NumericAverageState state2) {
         if (state1 == null) {
             return state2;
         }
@@ -171,10 +173,11 @@ public class NumericAverageAggregation extends AggregationFunction<NumericAverag
 
     @Override
     public NumericAverageState removeFromAggregatedState(RamAccounting ramAccounting,
+                                                         SessionSettings sessionSettings,
                                                          NumericAverageState previousAggState,
                                                          Input[] stateToRemove) {
         if (previousAggState != null) {
-            BigDecimal value = returnType.implicitCast(stateToRemove[0].value());
+            BigDecimal value = returnType.implicitCast(stateToRemove[0].value(), sessionSettings);
             if (value != null) {
                 BigDecimal newValue = previousAggState.sum.value().subtract(value);
                 ramAccounting.addBytes(NumericType.sizeDiff(newValue, previousAggState.sum.value()));
@@ -228,6 +231,7 @@ public class NumericAverageAggregation extends AggregationFunction<NumericAverag
 
         @Override
         public void apply(RamAccounting ramAccounting,
+                          SessionSettings sessionSettings,
                           int doc,
                           NumericAverageState state) throws IOException {
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
@@ -239,7 +243,7 @@ public class NumericAverageAggregation extends AggregationFunction<NumericAverag
         }
 
         @Override
-        public Object partialResult(RamAccounting ramAccounting, NumericAverageState state) {
+        public Object partialResult(RamAccounting ramAccounting, SessionSettings sessionSettings, NumericAverageState state) {
             return state;
         }
     }
@@ -268,11 +272,15 @@ public class NumericAverageAggregation extends AggregationFunction<NumericAverag
 
         @Override
         public void apply(RamAccounting ramAccounting,
+                          SessionSettings sessionSettings,
                           int doc,
                           NumericAverageState state) throws IOException {
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
                 if (state != null) {
-                    BigDecimal value = returnType.implicitCast(NumericUtils.sortableLongToDouble(values.nextValue()));
+                    BigDecimal value = returnType.implicitCast(
+                        NumericUtils.sortableLongToDouble(values.nextValue()),
+                        sessionSettings
+                    );
                     BigDecimal newValue = state.sum.value().add(value);
                     ramAccounting.addBytes(NumericType.sizeDiff(newValue, state.sum.value()));
                     ((BigDecimalValueWrapper) state.sum).setValue(newValue);
@@ -283,7 +291,9 @@ public class NumericAverageAggregation extends AggregationFunction<NumericAverag
         }
 
         @Override
-        public Object partialResult(RamAccounting ramAccounting, NumericAverageState state) {
+        public Object partialResult(RamAccounting ramAccounting,
+                                    SessionSettings sessionSettings,
+                                    NumericAverageState state) {
             return state;
         }
     }
@@ -312,11 +322,15 @@ public class NumericAverageAggregation extends AggregationFunction<NumericAverag
 
         @Override
         public void apply(RamAccounting ramAccounting,
+                          SessionSettings sessionSettings,
                           int doc,
                           NumericAverageState state) throws IOException {
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
                 if (state != null) {
-                    BigDecimal value = returnType.implicitCast(NumericUtils.sortableIntToFloat((int) values.nextValue()));
+                    BigDecimal value = returnType.implicitCast(
+                        NumericUtils.sortableIntToFloat((int) values.nextValue()),
+                        sessionSettings
+                    );
                     BigDecimal newValue = state.sum.value().add(value);
                     ramAccounting.addBytes(NumericType.sizeDiff(newValue, state.sum.value()));
                     ((BigDecimalValueWrapper) state.sum).setValue(newValue);
@@ -326,7 +340,9 @@ public class NumericAverageAggregation extends AggregationFunction<NumericAverag
         }
 
         @Override
-        public Object partialResult(RamAccounting ramAccounting, NumericAverageState state) {
+        public Object partialResult(RamAccounting ramAccounting,
+                                    SessionSettings sessionSettings,
+                                    NumericAverageState state) {
             return state;
         }
     }

@@ -218,7 +218,7 @@ public final class SystemTable<T> implements TableInfo {
             expressions.put(column, () -> new MapLookupByPathExpression<>(
                 getProperty,
                 List.of(),
-                leafType::implicitCast)
+                value -> leafType.implicitCast(value, CoordinatorTxnCtx.systemTransactionContext().sessionSettings()))
             );
         }
     }

@@ -40,6 +40,7 @@ import io.crate.expression.reference.ReferenceResolver;
 import io.crate.expression.reference.StaticTableReferenceResolver;
 import io.crate.expression.reference.sys.shard.ShardRowContext;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.MapBackedRefResolver;
 import io.crate.metadata.PartitionName;
@@ -79,7 +80,11 @@ public class ShardReferenceResolver implements ReferenceResolver<NestableInput<?
             for (Reference partitionedInfo : info.partitionedByColumns()) {
                 builder.put(
                     partitionedInfo.column(),
-                    constant(partitionedInfo.valueType().implicitCast(partitionValue.get(i)))
+                    constant(partitionedInfo.valueType().implicitCast(
+                        partitionValue.get(i),
+                        // TODO: Use dynamic session settings (only required if value types really use it)
+                        CoordinatorTxnCtx.systemTransactionContext().sessionSettings()
+                    ))
                 );
                 i++;
             }

@@ -69,6 +69,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.settings.SessionSettings;
 import io.crate.types.DataTypes;
 
 public class DocValuesAggregates {
@@ -119,6 +120,7 @@ public class DocValuesAggregates {
                     return CompletableFuture.completedFuture(getRow(
                         collectTask.getRamAccounting(),
                         collectTask.memoryManager(),
+                        collectTask.txnCtx().sessionSettings(),
                         collectTask.minNodeVersion(),
                         killed,
                         searcher.item(),
@@ -218,6 +220,7 @@ public class DocValuesAggregates {
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static Iterable<Row> getRow(RamAccounting ramAccounting,
                                         MemoryManager memoryManager,
+                                        SessionSettings sessionSettings,
                                         Version minNodeVersion,
                                         AtomicReference<Throwable> killed,
                                         IndexSearcher searcher,
@@ -248,12 +251,12 @@ public class DocValuesAggregates {
                     Exceptions.rethrowUnchecked(killCause);
                 }
                 for (int i = 0; i < aggregators.size(); i++) {
-                    aggregators.get(i).apply(ramAccounting, doc, cells[i]);
+                    aggregators.get(i).apply(ramAccounting, sessionSettings, doc, cells[i]);
                 }
             }
         }
         for (int i = 0; i < aggregators.size(); i++) {
-            cells[i] = aggregators.get(i).partialResult(ramAccounting, cells[i]);
+            cells[i] = aggregators.get(i).partialResult(ramAccounting, sessionSettings, cells[i]);
         }
         return List.of(new RowN(cells));
     }

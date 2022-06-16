@@ -49,6 +49,7 @@ import io.crate.execution.engine.collect.InputCollectExpression;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.Literal;
 import io.crate.memory.OnHeapMemoryManager;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
@@ -84,6 +85,7 @@ public class AggregateCollectorBenchmark {
             Collections.singletonList(inExpr0),
             RamAccounting.NO_ACCOUNTING,
             memoryManager,
+            CoordinatorTxnCtx.systemTransactionContext().sessionSettings(),
             Version.CURRENT,
             AggregateMode.ITER_FINAL,
             new AggregationFunction[] { sumAggregation },

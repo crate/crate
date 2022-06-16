@@ -21,12 +21,6 @@
 
 package io.crate.execution.engine.collect.files;
 
-import io.crate.common.StringUtils;
-import io.crate.common.Suppliers;
-import io.crate.types.DataTypes;
-import org.locationtech.spatial4j.shape.Point;
-
-import javax.annotation.Nullable;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -37,6 +31,15 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
+
+import javax.annotation.Nullable;
+
+import org.locationtech.spatial4j.shape.Point;
+
+import io.crate.common.StringUtils;
+import io.crate.common.Suppliers;
+import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.types.DataTypes;
 
 public class SummitsIterable implements Iterable<SummitsContext> {
 
@@ -86,7 +89,9 @@ public class SummitsIterable implements Iterable<SummitsContext> {
 
     @Nullable
     private static Point safeParseCoordinates(String value) {
-        return value.isEmpty() ? null : DataTypes.GEO_POINT.implicitCast(value);
+        return value.isEmpty()
+            ? null
+            : DataTypes.GEO_POINT.implicitCast(value, CoordinatorTxnCtx.systemTransactionContext().sessionSettings());
     }
 
     @Override

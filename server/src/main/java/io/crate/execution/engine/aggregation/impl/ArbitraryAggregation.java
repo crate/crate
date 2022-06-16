@@ -46,6 +46,7 @@ import io.crate.memory.MemoryManager;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.settings.SessionSettings;
 import io.crate.types.ByteType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -111,6 +112,7 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
     @Override
     public Object iterate(RamAccounting ramAccounting,
                           MemoryManager memoryManager,
+                          SessionSettings sessionSettings,
                           Object state,
                           Input... args) {
         return reduce(ramAccounting, state, args[0].value());
@@ -191,7 +193,7 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
         }
 
         @Override
-        public void apply(RamAccounting ramAccounting, int doc, MutableObject state) throws IOException {
+        public void apply(RamAccounting ramAccounting, SessionSettings sessionSettings, int doc, MutableObject state) throws IOException {
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
                 if (!state.hasValue()) {
                     var value = dataType.sanitizeValue(values.nextValue());
@@ -213,7 +215,7 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
         }
 
         @Override
-        public void apply(RamAccounting ramAccounting, int doc, MutableObject state) throws IOException {
+        public void apply(RamAccounting ramAccounting, SessionSettings sessionSettings, int doc, MutableObject state) throws IOException {
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
                 if (!state.hasValue()) {
                     var value = NumericUtils.sortableIntToFloat((int) values.nextValue());
@@ -235,7 +237,7 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
         }
 
         @Override
-        public void apply(RamAccounting ramAccounting, int doc, MutableObject state) throws IOException {
+        public void apply(RamAccounting ramAccounting, SessionSettings sessionSettings, int doc, MutableObject state) throws IOException {
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
                 if (!state.hasValue()) {
                     var value = NumericUtils.sortableLongToDouble(values.nextValue());
@@ -268,7 +270,7 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
 
         @Nullable
         @Override
-        public Object partialResult(RamAccounting ramAccounting, MutableObject state) {
+        public Object partialResult(RamAccounting ramAccounting, SessionSettings sessionSettings, MutableObject state) {
             if (state.hasValue()) {
                 return state.value();
             } else {
@@ -304,7 +306,7 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
         }
 
         @Override
-        public void apply(RamAccounting ramAccounting, int doc, MutableObject state) throws IOException {
+        public void apply(RamAccounting ramAccounting, SessionSettings sessionSettings, int doc, MutableObject state) throws IOException {
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
                 if (!state.hasValue()) {
                     var value = dataType.sanitizeValue(values.nextValue().utf8ToString());
@@ -316,7 +318,7 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
 
         @Nullable
         @Override
-        public Object partialResult(RamAccounting ramAccounting, MutableObject state) {
+        public Object partialResult(RamAccounting ramAccounting, SessionSettings sessionSettings, MutableObject state) {
             if (state.hasValue()) {
                 return state.value();
             } else {

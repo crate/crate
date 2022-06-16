@@ -21,6 +21,14 @@
 
 package io.crate.execution.engine.window;
 
+import static io.crate.execution.engine.window.WindowFrameState.isLowerBoundIncreasing;
+
+import java.util.List;
+
+import javax.annotation.Nullable;
+
+import org.elasticsearch.Version;
+
 import io.crate.breaker.RamAccounting;
 import io.crate.data.ArrayRow;
 import io.crate.data.Input;
@@ -34,12 +42,7 @@ import io.crate.memory.MemoryManager;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
-import org.elasticsearch.Version;
-
-import javax.annotation.Nullable;
-import java.util.List;
-
-import static io.crate.execution.engine.window.WindowFrameState.isLowerBoundIncreasing;
+import io.crate.metadata.settings.SessionSettings;
 
 public class AggregateToWindowFunctionAdapter implements WindowFunction {
 
@@ -48,6 +51,7 @@ public class AggregateToWindowFunctionAdapter implements WindowFunction {
     private final RamAccounting ramAccounting;
     private final Version indexVersionCreated;
     private final MemoryManager memoryManager;
+    private final SessionSettings sessionSettings;
     private final Version minNodeVersion;
     private Object accumulatedState;
 
@@ -60,12 +64,14 @@ public class AggregateToWindowFunctionAdapter implements WindowFunction {
                                      Version indexVersionCreated,
                                      RamAccounting ramAccounting,
                                      MemoryManager memoryManager,
+                                     SessionSettings sessionSettings,
                                      Version minNodeVersion) {
         this.aggregationFunction = aggregationFunction.optimizeForExecutionAsWindowFunction();
         this.filter = filter;
         this.ramAccounting = ramAccounting;
         this.indexVersionCreated = indexVersionCreated;
         this.memoryManager = memoryManager;
+        this.sessionSettings = sessionSettings;
         this.minNodeVersion = minNodeVersion;
         this.accumulatedState = this.aggregationFunction.newState(
             this.ramAccounting,
@@ -133,8 +139,10 @@ public class AggregateToWindowFunctionAdapter implements WindowFunction {
                 //noinspection unchecked
                 accumulatedState = aggregationFunction.removeFromAggregatedState(
                     ramAccounting,
+                    sessionSettings,
                     accumulatedState,
-                    args);
+                    args
+                );
             }
         }
     }
@@ -185,6 +193,7 @@ public class AggregateToWindowFunctionAdapter implements WindowFunction {
                 accumulatedState = aggregationFunction.iterate(
                     ramAccounting,
                     memoryManager,
+                    sessionSettings,
                     accumulatedState,
                     inputs
                 );

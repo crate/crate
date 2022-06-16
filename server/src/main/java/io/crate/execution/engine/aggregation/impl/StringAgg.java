@@ -21,6 +21,16 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.common.breaker.CircuitBreakingException;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Writeable;
+
 import io.crate.Streamer;
 import io.crate.breaker.RamAccounting;
 import io.crate.breaker.StringSizeEstimator;
@@ -28,17 +38,9 @@ import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.settings.SessionSettings;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.breaker.CircuitBreakingException;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Writeable;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * string_agg :: text -> text -> text
@@ -154,6 +156,7 @@ public final class StringAgg extends AggregationFunction<StringAgg.StringAggStat
     @Override
     public StringAggState iterate(RamAccounting ramAccounting,
                                   MemoryManager memoryManager,
+                                  SessionSettings sessionSettings,
                                   StringAggState state,
                                   Input... args) throws CircuitBreakingException {
         String expression = (String) args[0].value();
@@ -181,6 +184,7 @@ public final class StringAgg extends AggregationFunction<StringAgg.StringAggStat
 
     @Override
     public StringAggState removeFromAggregatedState(RamAccounting ramAccounting,
+                                                    SessionSettings sessionSettings,
                                                     StringAggState previousAggState,
                                                     Input[] stateToRemove) {
         String expression = (String) stateToRemove[0].value();

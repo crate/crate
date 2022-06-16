@@ -21,13 +21,15 @@
 
 package io.crate.types;
 
-import org.junit.Test;
-
-import java.util.Map;
-
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import java.util.Map;
+
+import org.junit.Test;
+
+import io.crate.metadata.CoordinatorTxnCtx;
 
 public class TimestampTypesTest {
 
@@ -160,8 +162,10 @@ public class TimestampTypesTest {
 
     @Test
     public void test_cast_object_to_timestamptz_throws_exception() {
-        assertThrows(ClassCastException.class,
-                     () -> TimestampType.INSTANCE_WITH_TZ.implicitCast(Map.of()),
-                     "Can't cast '{}' to timestamp with time zone");
+        assertThrows(
+            ClassCastException.class,
+            () -> TimestampType.INSTANCE_WITH_TZ.implicitCast(Map.of(), CoordinatorTxnCtx.systemTransactionContext().sessionSettings()),
+            "Can't cast '{}' to timestamp with time zone"
+        );
     }
 }

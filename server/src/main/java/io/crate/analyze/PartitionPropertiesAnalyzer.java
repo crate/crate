@@ -30,6 +30,7 @@ import java.util.Map;
 import javax.annotation.Nullable;
 
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
@@ -57,7 +58,7 @@ public class PartitionPropertiesAnalyzer {
 
         int idx = 0;
         for (Object o : properties.values()) {
-            values[idx++] = DataTypes.STRING.implicitCast(o);
+            values[idx++] = DataTypes.STRING.implicitCast(o, CoordinatorTxnCtx.systemTransactionContext().sessionSettings());
         }
         return new PartitionName(relationName, List.of(values));
     }
@@ -75,6 +76,8 @@ public class PartitionPropertiesAnalyzer {
                 partitionProperties.size()
             ));
         }
+
+        var systemSessionSettings = CoordinatorTxnCtx.systemTransactionContext().sessionSettings();
         Map<ColumnIdent, Object> properties = assignmentsToMap(partitionProperties);
         String[] values = new String[properties.size()];
 
@@ -84,8 +87,8 @@ public class PartitionPropertiesAnalyzer {
             int idx = tableInfo.partitionedBy().indexOf(entry.getKey());
             try {
                 Reference reference = tableInfo.partitionedByColumns().get(idx);
-                Object converted = reference.valueType().implicitCast(value);
-                values[idx] = DataTypes.STRING.implicitCast(converted);
+                Object converted = reference.valueType().implicitCast(value, systemSessionSettings);
+                values[idx] = DataTypes.STRING.implicitCast(converted, systemSessionSettings);
             } catch (IndexOutOfBoundsException ex) {
                 throw new IllegalArgumentException(
                     String.format(Locale.ENGLISH, "\"%s\" is no known partition column", entry.getKey().sqlFqn()));

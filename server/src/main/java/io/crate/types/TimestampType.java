@@ -22,6 +22,8 @@
 package io.crate.types;
 
 import io.crate.Streamer;
+import io.crate.metadata.settings.SessionSettings;
+
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -94,7 +96,7 @@ public final class TimestampType extends DataType<Long>
     }
 
     @Override
-    public Long implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
+    public Long implicitCast(Object value, SessionSettings sessionSettings) throws IllegalArgumentException, ClassCastException {
         if (value == null) {
             return null;
         } else if (value instanceof Long) {

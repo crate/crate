@@ -21,30 +21,35 @@
 
 package io.crate.types;
 
-import org.elasticsearch.test.ESTestCase;
-import org.junit.Test;
+import static org.hamcrest.Matchers.is;
 
 import java.math.BigDecimal;
 import java.util.Map;
 
-import static org.hamcrest.Matchers.is;
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
+
+import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.settings.SessionSettings;
 
 
 public class ShortTypeTest extends ESTestCase {
 
+    private static final SessionSettings SESSION_SETTINGS = CoordinatorTxnCtx.systemTransactionContext().sessionSettings();
+
     @Test
     public void test_cast_text_to_smallint() {
-        assertThat(ShortType.INSTANCE.implicitCast("123"), is((short) 123));
+        assertThat(ShortType.INSTANCE.implicitCast("123", SESSION_SETTINGS), is((short) 123));
     }
 
     @Test
     public void test_cast_bigint_to_smallint() {
-        assertThat(ShortType.INSTANCE.implicitCast(123L), is((short) 123));
+        assertThat(ShortType.INSTANCE.implicitCast(123L, SESSION_SETTINGS), is((short) 123));
     }
 
     @Test
     public void test_cast_numeric_to_integer() {
-        assertThat(ShortType.INSTANCE.implicitCast(BigDecimal.valueOf(123)), is((short) 123));
+        assertThat(ShortType.INSTANCE.implicitCast(BigDecimal.valueOf(123), SESSION_SETTINGS), is((short) 123));
     }
 
     @Test
@@ -56,34 +61,34 @@ public class ShortTypeTest extends ESTestCase {
     public void test_cast_boolean_to_smallint_throws_exception() {
         expectedException.expect(ClassCastException.class);
         expectedException.expectMessage("Can't cast 'true' to smallint");
-        ShortType.INSTANCE.implicitCast(true);
+        ShortType.INSTANCE.implicitCast(true, SESSION_SETTINGS);
     }
 
     @Test
     public void test_cast_object_to_smallint_throws_exception() {
         expectedException.expect(ClassCastException.class);
         expectedException.expectMessage("Can't cast '{}' to smallint");
-        ShortType.INSTANCE.implicitCast(Map.of());
+        ShortType.INSTANCE.implicitCast(Map.of(), SESSION_SETTINGS);
     }
 
     @Test
     public void test_cast_int_to_short_out_of_positive_range_throws_exception() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("short value out of range: 2147483647");
-        ShortType.INSTANCE.implicitCast(Integer.MAX_VALUE);
+        ShortType.INSTANCE.implicitCast(Integer.MAX_VALUE, SESSION_SETTINGS);
     }
 
     @Test
     public void test_cast_out_of_range_numeric_to_integer_throws_exception() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("short value out of range: 2147483647");
-        ShortType.INSTANCE.implicitCast(BigDecimal.valueOf(Integer.MAX_VALUE));
+        ShortType.INSTANCE.implicitCast(BigDecimal.valueOf(Integer.MAX_VALUE), SESSION_SETTINGS);
     }
 
     @Test
     public void test_cast_int_to_short_out_of_negative_range_throws_exception() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("short value out of range: -2147483648");
-        ShortType.INSTANCE.implicitCast(Integer.MIN_VALUE);
+        ShortType.INSTANCE.implicitCast(Integer.MIN_VALUE, SESSION_SETTINGS);
     }
 }

@@ -59,10 +59,12 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.ParameterSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.settings.SessionSettings;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.operators.SubQueryResults;
@@ -77,6 +79,7 @@ import io.crate.types.ObjectType;
 
 public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
+    private static final SessionSettings SESSION_SETTINGS = CoordinatorTxnCtx.systemTransactionContext().sessionSettings();
     private SQLExecutor e;
 
     @Before
@@ -223,7 +226,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
         Assignments assignments = Assignments.convert(update.assignmentByTargetCol(), e.nodeCtx);
         Symbol[] sources = assignments.bindSources(
-            ((DocTableInfo) update.table().tableInfo()), Row.EMPTY, SubQueryResults.EMPTY);
+            ((DocTableInfo) update.table().tableInfo()), Row.EMPTY, SubQueryResults.EMPTY, SESSION_SETTINGS);
         assertThat(sources[0], isLiteral(9L));
     }
 
@@ -287,7 +290,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         Assignments assignments = Assignments.convert(update.assignmentByTargetCol(), e.nodeCtx);
         expectedException.expect(ConversionException.class);
         expectedException.expectMessage("Cannot cast value `[{}]` to type `text`");
-        assignments.bindSources(((DocTableInfo) update.table().tableInfo()), new RowN(params), SubQueryResults.EMPTY);
+        assignments.bindSources(((DocTableInfo) update.table().tableInfo()), new RowN(params), SubQueryResults.EMPTY, SESSION_SETTINGS);
     }
 
     @Test
@@ -296,7 +299,12 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         AnalyzedUpdateStatement update = analyze("update users set friends=? where other_id=0");
 
         Assignments assignments = Assignments.convert(update.assignmentByTargetCol(), e.nodeCtx);
-        Symbol[] sources = assignments.bindSources(((DocTableInfo) update.table().tableInfo()), new RowN(params), SubQueryResults.EMPTY);
+        Symbol[] sources = assignments.bindSources(
+            ((DocTableInfo) update.table().tableInfo()),
+            new RowN(params),
+            SubQueryResults.EMPTY,
+            SESSION_SETTINGS
+        );
 
 
         assertThat(sources[0].valueType().id(), is(ArrayType.ID));
@@ -408,7 +416,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         AnalyzedUpdateStatement update = analyze("update users set new=? where id=1");
         Assignments assignments = Assignments.convert(update.assignmentByTargetCol(), e.nodeCtx);
         Symbol[] sources = assignments.bindSources(
-            ((DocTableInfo) update.table().tableInfo()), new RowN(params), SubQueryResults.EMPTY);
+            ((DocTableInfo) update.table().tableInfo()), new RowN(params), SubQueryResults.EMPTY, SESSION_SETTINGS);
 
         DataType dataType = sources[0].valueType();
         assertThat(dataType, is(new ArrayType(new ArrayType(DoubleType.INSTANCE))));
@@ -426,7 +434,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         expectedException.expect(ConversionException.class);
         expectedException.expectMessage("Cannot cast value `[[a, b]]` to type `text_array`");
         Assignments assignments = Assignments.convert(update.assignmentByTargetCol(), e.nodeCtx);
-        assignments.bindSources(((DocTableInfo) update.table().tableInfo()), new RowN(params), SubQueryResults.EMPTY);
+        assignments.bindSources(((DocTableInfo) update.table().tableInfo()), new RowN(params), SubQueryResults.EMPTY, SESSION_SETTINGS);
     }
 
     @Test

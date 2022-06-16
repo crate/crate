@@ -86,8 +86,9 @@ public class Insert implements LogicalPlan {
             sourcePlan.addProjection(applyCasts);
         }
 
+        var sessionSettings = plannerContext.transactionContext().sessionSettings();
         var boundIndexWriterProjection = writeToTable
-            .bind(x -> SubQueryAndParamBinder.convert(x, params, subQueryResults));
+            .bind(x -> SubQueryAndParamBinder.convert(x, params, subQueryResults, sessionSettings));
 
         if (sourcePlan.resultDescription().hasRemainingLimitOrOffset()) {
             ExecutionPlan localMerge = Merge.ensureOnHandler(sourcePlan, plannerContext);

@@ -30,6 +30,7 @@ import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.ValueExtractors;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
@@ -48,6 +49,8 @@ public final class DocRefResolver implements ReferenceResolver<CollectExpression
 
     @Override
     public CollectExpression<Doc, ?> getImplementation(Reference ref) {
+        // TODO: Use dynamic session settings
+        var sessionSettings = CoordinatorTxnCtx.systemTransactionContext().sessionSettings();
         ColumnIdent columnIdent = ref.column();
         String fqn = columnIdent.fqn();
         switch (fqn) {
@@ -79,7 +82,7 @@ public final class DocRefResolver implements ReferenceResolver<CollectExpression
                         final int idx = i;
                         return forFunction(
                             getResp -> ref.valueType().implicitCast(
-                                PartitionName.fromIndexOrTemplate(getResp.getIndex()).values().get(idx))
+                                PartitionName.fromIndexOrTemplate(getResp.getIndex()).values().get(idx), sessionSettings)
                         );
                     } else if (pColumn.isChildOf(columnIdent)) {
                         final int idx = i;
@@ -91,7 +94,7 @@ public final class DocRefResolver implements ReferenceResolver<CollectExpression
                             var partitionValue = partitionName.values().get(idx);
                             var source = response.getSource();
                             Maps.mergeInto(source, pColumn.name(), pColumn.path(), partitionValue);
-                            return ref.valueType().implicitCast(ValueExtractors.fromMap(source, columnIdent));
+                            return ref.valueType().implicitCast(ValueExtractors.fromMap(source, columnIdent), sessionSettings);
                         });
                     }
                 }
@@ -100,7 +103,7 @@ public final class DocRefResolver implements ReferenceResolver<CollectExpression
                     if (response == null) {
                         return null;
                     }
-                    return ref.valueType().implicitCast(ValueExtractors.fromMap(response.getSource(), ref.column()));
+                    return ref.valueType().implicitCast(ValueExtractors.fromMap(response.getSource(), ref.column()), sessionSettings);
                 });
         }
     }

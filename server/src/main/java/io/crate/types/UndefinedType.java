@@ -22,6 +22,8 @@
 package io.crate.types;
 
 import io.crate.Streamer;
+import io.crate.metadata.settings.SessionSettings;
+
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -57,7 +59,7 @@ public class UndefinedType extends DataType<Object> implements Streamer<Object> 
     }
 
     @Override
-    public Object implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
+    public Object implicitCast(Object value, SessionSettings sessionSettings) throws IllegalArgumentException, ClassCastException {
         return value;
     }
 
