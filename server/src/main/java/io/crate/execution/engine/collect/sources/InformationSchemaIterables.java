@@ -90,6 +90,7 @@ public class InformationSchemaIterables implements ClusterStateListener {
 
     private final Schemas schemas;
     private final Iterable<RelationInfo> relations;
+    private final Iterable<TableInfo> tables;
     private final Iterable<ViewInfo> views;
     private final PartitionInfos partitionInfos;
     private final Iterable<ColumnContext> columns;
@@ -116,6 +117,7 @@ public class InformationSchemaIterables implements ClusterStateListener {
         this.nodeCtx = nodeCtx;
         this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
         views = () -> viewsStream(schemas).iterator();
+        tables = () -> tablesStream(schemas).iterator();
         relations = () -> concat(tablesStream(schemas), viewsStream(schemas)).iterator();
         primaryKeys = () -> sequentialStream(relations)
             .filter(this::isPrimaryKey)
@@ -270,6 +272,10 @@ public class InformationSchemaIterables implements ClusterStateListener {
 
     public Iterable<RelationInfo> relations() {
         return relations;
+    }
+
+    public Iterable<TableInfo> tables() {
+        return tables;
     }
 
     public Iterable<PgIndexTable.Entry> pgIndices() {

@@ -175,8 +175,10 @@ following tables:
  - `pg_range`_
  - `pg_roles`_
  - `pg_settings <pgsql_pg_settings_>`__
+ - `pg_tables`_
  - `pg_tablespace`_
  - `pg_type`_
+ - `pg_views`_
 
 
 .. _postgres-pg_type:
@@ -540,35 +542,37 @@ CrateDB and we love to hear feedback.
 
 
 .. _GitHub: https://github.com/crate/crate
-.. _pg_am: https://www.postgresql.org/docs/10/catalog-pg-am.html
-.. _pg_description: https://www.postgresql.org/docs/10/catalog-pg-description.html
-.. _pg_enum: https://www.postgresql.org/docs/10/catalog-pg-enum.html
-.. _pg_range: https://www.postgresql.org/docs/10/catalog-pg-range.html
-.. _pg_roles: https://www.postgresql.org/docs/10/view-pg-roles.html
-.. _pg_tablespace: https://www.postgresql.org/docs/13/catalog-pg-tablespace.html
+.. _pg_am: https://www.postgresql.org/docs/14/catalog-pg-am.html
+.. _pg_description: https://www.postgresql.org/docs/14/catalog-pg-description.html
+.. _pg_enum: https://www.postgresql.org/docs/14/catalog-pg-enum.html
+.. _pg_range: https://www.postgresql.org/docs/14/catalog-pg-range.html
+.. _pg_roles: https://www.postgresql.org/docs/14/view-pg-roles.html
+.. _pg_tables: https://www.postgresql.org/docs/14/view-pg-tables.html
+.. _pg_tablespace: https://www.postgresql.org/docs/14/catalog-pg-tablespace.html
+.. _pg_views: https://www.postgresql.org/docs/14/view-pg-views.html
 .. _pgjdbc: https://github.com/pgjdbc/pgjdbc
-.. _pgsql_pg_attrdef: https://www.postgresql.org/docs/10/static/catalog-pg-attrdef.html
-.. _pgsql_pg_attribute: https://www.postgresql.org/docs/10/static/catalog-pg-attribute.html
-.. _pgsql_pg_class: https://www.postgresql.org/docs/10/static/catalog-pg-class.html
-.. _pgsql_pg_constraint: https://www.postgresql.org/docs/10/static/catalog-pg-constraint.html
-.. _pgsql_pg_database: https://www.postgresql.org/docs/10/static/catalog-pg-database.html
-.. _pgsql_pg_index: https://www.postgresql.org/docs/10/static/catalog-pg-index.html
-.. _pgsql_pg_indexes: https://www.postgresql.org/docs/current/view-pg-indexes.html
-.. _pgsql_pg_locks: https://www.postgresql.org/docs/current/view-pg-locks.html
-.. _pgsql_pg_namespace: https://www.postgresql.org/docs/10/static/catalog-pg-namespace.html
-.. _pgsql_pg_proc: https://www.postgresql.org/docs/10/static/catalog-pg-proc.html
-.. _pgsql_pg_publication: https://www.postgresql.org/docs/current/catalog-pg-publication.html
-.. _pgsql_pg_publication_tables: https://www.postgresql.org/docs/current/view-pg-publication-tables.html
-.. _pgsql_pg_subscription: https://www.postgresql.org/docs/current/catalog-pg-subscription.html
-.. _pgsql_pg_subscription_rel: https://www.postgresql.org/docs/current/catalog-pg-subscription-rel.html
-.. _pgsql_pg_settings: https://www.postgresql.org/docs/10/view-pg-settings.html
-.. _pgsql_pg_type: https://www.postgresql.org/docs/10/static/catalog-pg-type.html
-.. _PostgreSQL Arrays: https://www.postgresql.org/docs/current/static/arrays.html
-.. _PostgreSQL extended query: https://www.postgresql.org/docs/current/static/protocol-flow.html#PROTOCOL-FLOW-EXT-QUERY
-.. _PostgreSQL Fulltext Search: https://www.postgresql.org/docs/current/static/functions-textsearch.html
+.. _pgsql_pg_attrdef: https://www.postgresql.org/docs/14/static/catalog-pg-attrdef.html
+.. _pgsql_pg_attribute: https://www.postgresql.org/docs/14/static/catalog-pg-attribute.html
+.. _pgsql_pg_class: https://www.postgresql.org/docs/14/static/catalog-pg-class.html
+.. _pgsql_pg_constraint: https://www.postgresql.org/docs/14/static/catalog-pg-constraint.html
+.. _pgsql_pg_database: https://www.postgresql.org/docs/14/static/catalog-pg-database.html
+.. _pgsql_pg_index: https://www.postgresql.org/docs/14/static/catalog-pg-index.html
+.. _pgsql_pg_indexes: https://www.postgresql.org/docs/14/view-pg-indexes.html
+.. _pgsql_pg_locks: https://www.postgresql.org/docs/14/view-pg-locks.html
+.. _pgsql_pg_namespace: https://www.postgresql.org/docs/14/static/catalog-pg-namespace.html
+.. _pgsql_pg_proc: https://www.postgresql.org/docs/14/static/catalog-pg-proc.html
+.. _pgsql_pg_publication: https://www.postgresql.org/docs/14/catalog-pg-publication.html
+.. _pgsql_pg_publication_tables: https://www.postgresql.org/docs/14/view-pg-publication-tables.html
+.. _pgsql_pg_subscription: https://www.postgresql.org/docs/14/catalog-pg-subscription.html
+.. _pgsql_pg_subscription_rel: https://www.postgresql.org/docs/14/catalog-pg-subscription-rel.html
+.. _pgsql_pg_settings: https://www.postgresql.org/docs/14/view-pg-settings.html
+.. _pgsql_pg_type: https://www.postgresql.org/docs/14/static/catalog-pg-type.html
+.. _PostgreSQL Arrays: https://www.postgresql.org/docs/14/static/arrays.html
+.. _PostgreSQL extended query: https://www.postgresql.org/docs/14/static/protocol-flow.html#PROTOCOL-FLOW-EXT-QUERY
+.. _PostgreSQL Fulltext Search: https://www.postgresql.org/docs/14/static/functions-textsearch.html
 .. _PostgreSQL JDBC connection failover: https://jdbc.postgresql.org/documentation/head/connect.html#connection-failover
 .. _PostgreSQL JDBC Query docs: https://jdbc.postgresql.org/documentation/head/query.html
-.. _PostgreSQL simple query: https://www.postgresql.org/docs/current/static/protocol-flow.html#id-1.10.5.7.4
-.. _PostgreSQL value expressions: https://www.postgresql.org/docs/current/static/sql-expressions.html
-.. _PostgreSQL wire protocol v3: https://www.postgresql.org/docs/current/static/protocol.html
-.. _PostgreSQL cancelling requests: https://www.postgresql.org/docs/current/protocol-flow.html#id-1.10.5.7.9
+.. _PostgreSQL simple query: https://www.postgresql.org/docs/14/static/protocol-flow.html#id-1.10.5.7.4
+.. _PostgreSQL value expressions: https://www.postgresql.org/docs/14/static/sql-expressions.html
+.. _PostgreSQL wire protocol v3: https://www.postgresql.org/docs/14/static/protocol.html
+.. _PostgreSQL cancelling requests: https://www.postgresql.org/docs/14/protocol-flow.html#id-1.10.5.7.9

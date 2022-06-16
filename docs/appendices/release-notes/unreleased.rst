@@ -119,6 +119,9 @@ Changes
 - Added ``SUBSTRING`` to non-reserved SQL keywords in order to support the
   generic function call syntax for improved PostgreSQL compatibility.
   Example: ``SUBSTRING('crate', 1, 3)``
+  
+- Added ``pg_catalog.pg_tables`` and ``pg_catalog.pg_views`` tables for improved 
+  PostgreSQL compatibility.
 
 Fixes
 =====
