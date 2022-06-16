@@ -166,21 +166,4 @@ public class EvaluatingNormalizerTest extends ESTestCase {
         Symbol query = visitor.normalize(op_or, coordinatorTxnCtx);
         assertThat(query, instanceOf(Function.class));
     }
-
-    @Test
-    public void test_function_is_compiled_before_normalized() {
-        var expected = Regclass.fromRelationName("t1", "my_schema");
-
-        Function cast = new Function(
-            ExplicitCastFunction.SIGNATURE,
-            List.of(Literal.of("t1"), Literal.of("regclass")),
-            DataTypes.REGCLASS
-        );
-
-        var cordTnxCtc = new CoordinatorTxnCtx(new SessionContext(User.CRATE_USER, "my_schema"));
-        var visitor = new EvaluatingNormalizer(nodeCtx, RowGranularity.CLUSTER, referenceResolver, null);
-        Symbol symbol = visitor.normalize(cast, cordTnxCtc);
-
-        assertThat(symbol, isLiteral(expected));
-    }
 }

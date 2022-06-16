@@ -31,7 +31,6 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.lucene.FunctionToQuery;
-import io.crate.metadata.settings.SessionSettings;
 import io.crate.user.UserLookup;
 
 /**
@@ -48,7 +47,7 @@ import io.crate.user.UserLookup;
  *
  *     Functions also MUST NOT have any internal state that influences the result of future calls.
  *     Functions are used as singletons.
- *     An exception is if {@link #compile(List, SessionSettings, UserLookup)} returns a NEW instance.
+ *     An exception is if {@link #compile(List, String, UserLookup)} returns a NEW instance.
  * </p>
  *
  * To implement scalar functions, you may want to use one of the following abstractions:
@@ -84,7 +83,7 @@ public abstract class Scalar<ReturnType, InputType> implements FunctionImplement
      *                  {@link #evaluate(TransactionContext, NodeContext, Input[])} will have the same
      *                  value as those literals. (Within the scope of a single operation)
      */
-    public Scalar<ReturnType, InputType> compile(List<Symbol> arguments, SessionSettings sessionSettings, UserLookup userLookup) {
+    public Scalar<ReturnType, InputType> compile(List<Symbol> arguments, String currentUser, UserLookup userLookup) {
         return this;
     }
 

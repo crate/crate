@@ -45,7 +45,6 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
-import io.crate.metadata.settings.SessionSettings;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.types.DataTypes;
 import io.crate.types.RowType;
@@ -135,7 +134,7 @@ public final class MatchesFunction extends TableFunctionImplementation<List<Obje
 
     @Override
     public Scalar<Iterable<Row>, List<Object>> compile(List<Symbol> arguments,
-                                                       SessionSettings sessionSettings,
+                                                       String currentUser,
                                                        UserLookup userLookup) {
         assert arguments.size() > 1 : "number of arguments must be > 1";
         String pattern = null;

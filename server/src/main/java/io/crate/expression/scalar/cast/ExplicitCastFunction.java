@@ -73,14 +73,6 @@ public class ExplicitCastFunction extends Scalar<Object, Object> {
     }
 
     @Override
-    public Scalar<Object, Object> compile(List<Symbol> arguments, SessionSettings sessionSettings, UserLookup userLookup) {
-        if (returnType instanceof RegclassType) {
-            return new ExplicitCastFunction(signature, boundSignature, new RegclassType(sessionSettings.currentSchema()));
-        }
-        return this;
-    }
-
-    @Override
     public Object evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object>[] args) {
         try {
             return returnType.explicitCast(args[0].value());

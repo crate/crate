@@ -36,7 +36,6 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
-import io.crate.metadata.settings.SessionSettings;
 import io.crate.user.UserLookup;
 
 public class LikeOperator extends Operator<String> {
@@ -68,7 +67,7 @@ public class LikeOperator extends Operator<String> {
 
     @Override
     public Scalar<Boolean, String> compile(List<Symbol> arguments,
-                                           SessionSettings sessionSettings,
+                                           String currentUser,
                                            UserLookup userLookup) {
         Symbol pattern = arguments.get(1);
         if (pattern instanceof Input) {
@@ -78,7 +77,7 @@ public class LikeOperator extends Operator<String> {
             }
             return new CompiledLike(signature, boundSignature, (String) value, caseSensitivity);
         }
-        return super.compile(arguments, sessionSettings, userLookup);
+        return super.compile(arguments, currentUser, userLookup);
     }
 
     @Override

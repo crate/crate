@@ -40,7 +40,6 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
-import io.crate.metadata.settings.SessionSettings;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.user.UserLookup;
@@ -118,7 +117,7 @@ public class DateTruncFunction extends Scalar<Long, Object> {
     }
 
     @Override
-    public Scalar<Long, Object> compile(List<Symbol> arguments, SessionSettings sessionSettings, UserLookup userLookup) {
+    public Scalar<Long, Object> compile(List<Symbol> arguments, String currentUser, UserLookup userLookup) {
         assert arguments.size() > 1 && arguments.size() < 4 : "Invalid number of arguments";
 
         if (!arguments.get(0).symbolType().isValueSymbol()) {

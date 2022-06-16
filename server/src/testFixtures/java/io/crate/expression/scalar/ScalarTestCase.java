@@ -157,7 +157,7 @@ public abstract class ScalarTestCase extends CrateDummyClusterServiceUnitTest {
             Object expectedValue = ((Input) normalized).value();
             assertThat(((Scalar) impl).evaluate(txnCtx, null, inputs), is(expectedValue));
             assertThat(((Scalar) impl)
-                .compile(function.arguments(), DUMMY_SESSION_INFO, () -> List.of(User.CRATE_USER))
+                .compile(function.arguments(), "user", () -> List.of(User.CRATE_USER))
                 .evaluate(txnCtx, sqlExpressions.nodeCtx, inputs), is(expectedValue));
         }
     }
@@ -214,7 +214,7 @@ public abstract class ScalarTestCase extends CrateDummyClusterServiceUnitTest {
             Input<?> input = ctx.add(arg);
             arguments[i] = new AssertMax1ValueCallInput(input);
         }
-        Object actualValue = scalar.compile(function.arguments(), DUMMY_SESSION_INFO, () -> List.of(User.CRATE_USER))
+        Object actualValue = scalar.compile(function.arguments(), "dummy", () -> List.of(User.CRATE_USER))
             .evaluate(txnCtx, sqlExpressions.nodeCtx, (Input[]) arguments);
         assertThat((T) actualValue, expectedValue);
 
@@ -276,7 +276,7 @@ public abstract class ScalarTestCase extends CrateDummyClusterServiceUnitTest {
         Scalar scalar = (Scalar) sqlExpressions.nodeCtx.functions().getQualified(function, txnCtx.sessionSettings().searchPath());
         assertThat("Function implementation not found using full qualified lookup", scalar, Matchers.notNullValue());
 
-        Scalar compiled = scalar.compile(function.arguments(), DUMMY_SESSION_INFO, userLookup);
+        Scalar compiled = scalar.compile(function.arguments(), "dummy", userLookup);
         assertThat(transform.apply(compiled), matcher.apply(scalar));
     }
 

@@ -32,7 +32,6 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
-import io.crate.metadata.settings.SessionSettings;
 import io.crate.types.DataTypes;
 import io.crate.user.UserLookup;
 
@@ -67,7 +66,7 @@ public class TranslateFunction extends Scalar<String, String> {
     }
 
     @Override
-    public Scalar<String, String> compile(List<Symbol> args, SessionSettings sessionSettings, UserLookup userLookup) {
+    public Scalar<String, String> compile(List<Symbol> args, String currentUser, UserLookup userLookup) {
         assert args.size() == 3 : "translate takes exactly three arguments";
 
         Symbol from = args.get(1);

@@ -38,7 +38,6 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
-import io.crate.metadata.settings.SessionSettings;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.user.UserLookup;
@@ -153,7 +152,7 @@ public class ToCharFunction extends Scalar<String, Object> {
     }
 
     @Override
-    public Scalar<String, Object> compile(List<Symbol> arguments, SessionSettings sessionSettings, UserLookup userLookup) {
+    public Scalar<String, Object> compile(List<Symbol> arguments, String currentUser, UserLookup userLookup) {
         assert arguments.size() == 2 : "Invalid number of arguments";
 
         if (!arguments.get(1).symbolType().isValueSymbol()) {

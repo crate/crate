@@ -39,7 +39,6 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.PgCatalogTableDefinitions;
-import io.crate.metadata.settings.SessionSettings;
 import io.crate.types.DataTypes;
 import io.crate.user.Privilege;
 import io.crate.user.User;
@@ -223,13 +222,13 @@ public class HasSchemaPrivilegeFunction extends Scalar<Boolean, Object> {
     }
 
     @Override
-    public Scalar<Boolean, Object> compile(List<Symbol> arguments, SessionSettings sessionSettings, UserLookup userLookup) {
+    public Scalar<Boolean, Object> compile(List<Symbol> arguments, String currentUser, UserLookup userLookup) {
         // When possible, user is looked up only once.
         // Privilege string normalization/mapping into CrateDB Privilege.Type is also done once if possible
         Object userValue = null;
         Symbol privileges = null;
         if (arguments.size() == 2) {
-            userValue = sessionSettings.userName();
+            userValue = currentUser;
             privileges = arguments.get(1);
         }
         if (arguments.size() == 3) {

@@ -31,7 +31,6 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
-import io.crate.metadata.settings.SessionSettings;
 import io.crate.types.DataTypes;
 import io.crate.user.UserLookup;
 
@@ -80,7 +79,7 @@ public class DateBinFunction extends Scalar<Long, Object> {
     }
 
     @Override
-    public Scalar<Long, Object> compile(List<Symbol> arguments, SessionSettings sessionSettings, UserLookup userLookup) {
+    public Scalar<Long, Object> compile(List<Symbol> arguments, String currentUser, UserLookup userLookup) {
         assert arguments.size() == 3 : "Invalid number of arguments";
 
         if (arguments.get(0) instanceof Input<?> input) {

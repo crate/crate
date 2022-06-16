@@ -77,16 +77,13 @@ public class ImplicitCastFunction extends Scalar<Object, Object> {
     }
 
     @Override
-    public Scalar<Object, Object> compile(List<Symbol> args, SessionSettings sessionSettings, UserLookup userLookup) {
+    public Scalar<Object, Object> compile(List<Symbol> args, String currentUser, UserLookup userLookup) {
         assert args.size() == 2 : "number of arguments must be 2";
         Symbol input = args.get(1);
         if (input instanceof Input) {
             String targetTypeValue = (String) ((Input<?>) input).value();
             var targetTypeSignature = parseTypeSignature(targetTypeValue);
             var targetType = targetTypeSignature.createType();
-            if (targetType instanceof RegclassType) {
-                targetType = new RegclassType(sessionSettings.currentSchema());
-            }
             return new ImplicitCastFunction(
                 signature,
                 boundSignature,

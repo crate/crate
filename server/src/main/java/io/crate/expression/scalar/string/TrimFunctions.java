@@ -32,7 +32,6 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
-import io.crate.metadata.settings.SessionSettings;
 import io.crate.sql.tree.TrimMode;
 import io.crate.types.DataTypes;
 import io.crate.user.UserLookup;
@@ -169,7 +168,7 @@ public final class TrimFunctions {
 
         @Override
         public Scalar<String, String> compile(List<Symbol> arguments,
-                                              SessionSettings sessionSettings,
+                                              String currentUser,
                                               UserLookup userLookup) {
             assert arguments.size() == 3 : "number of args must be 3";
 
