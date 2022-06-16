@@ -197,6 +197,19 @@ public class PgCatalogTableDefinitions {
             (user, p) -> p.owner().equals(user.name()),
             PgSubscriptionRelTable.create().expressions()
         ));
+
+        tableDefinitions.put(PgTablesTable.IDENT, new StaticTableDefinition<>(
+            informationSchemaIterables::tables,
+            (user, t) -> user.hasAnyPrivilege(Privilege.Clazz.TABLE, t.ident().fqn()),
+            PgTablesTable.create().expressions()
+        ));
+
+        tableDefinitions.put(PgViewsTable.IDENT, new StaticTableDefinition<>(
+            informationSchemaIterables::views,
+            (user, t) -> user.hasAnyPrivilege(Privilege.Clazz.VIEW, t.ident().fqn()),
+            PgViewsTable.create().expressions()
+        ));
+
     }
 
     public StaticTableDefinition<?> get(RelationName relationName) {
