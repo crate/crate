@@ -134,7 +134,7 @@ query
 queryNoWith
     : queryTerm
       (ORDER BY sortItem (',' sortItem)*)?
-      (limitClause? offsetClause? | offsetClause? limitClause?)?
+      (limitClause? offsetClause? | offsetClause? limitClause?)
     ;
 
 limitClause
