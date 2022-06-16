@@ -311,7 +311,8 @@ explicitFunction
     | SESSION_USER                                                                   #sessionUser
     | LEFT '(' strOrColName=expr ',' len=expr ')'                                    #left
     | RIGHT '(' strOrColName=expr ',' len=expr ')'                                   #right
-    | SUBSTRING '(' expr FROM expr (FOR expr)? ')'                                   #substring
+    | SUBSTRING '(' expr ( (FROM expr (FOR expr)?)
+                         | (','  expr (',' expr)?) ) ')'                             #substring
     | TRIM '(' ((trimMode=(LEADING | TRAILING | BOTH))?
                 (charsToTrim=expr)? FROM)? target=expr ')'                           #trim
     | EXTRACT '(' stringLiteralOrIdentifier FROM expr ')'                            #extract

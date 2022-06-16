@@ -116,6 +116,9 @@ Changes
 
 - Updated Admin UI to 1.22.0, including an update with the new logo and colors.
 
+- Added ``SUBSTRING(s,i[,j])`` as alternative to ``SUBSTRING(s FROM i [FOR j])``
+  for improved compatibility with PostgreSQL.
+
 Fixes
 =====
 
