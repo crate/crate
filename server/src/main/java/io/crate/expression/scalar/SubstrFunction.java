@@ -21,6 +21,10 @@
 
 package io.crate.expression.scalar;
 
+import java.util.List;
+
+import javax.annotation.Nonnull;
+
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Input;
 import io.crate.metadata.NodeContext;
@@ -29,32 +33,33 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
-import javax.annotation.Nonnull;
-
 public class SubstrFunction extends Scalar<String, Object> {
 
     public static final String NAME = "substr";
+    public static final String ALIAS = "substring";
 
     public static void register(ScalarFunctionModule module) {
-        module.register(
-            Signature.scalar(
-                NAME,
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.INTEGER.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature()
-            ),
-            SubstrFunction::new
-        );
-        module.register(
-            Signature.scalar(
-                NAME,
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.INTEGER.getTypeSignature(),
-                DataTypes.INTEGER.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature()
-            ),
-            SubstrFunction::new
-        );
+        for (var name : List.of(NAME, ALIAS)) {
+            module.register(
+                Signature.scalar(
+                    name,
+                    DataTypes.STRING.getTypeSignature(),
+                    DataTypes.INTEGER.getTypeSignature(),
+                    DataTypes.STRING.getTypeSignature()
+                ),
+                SubstrFunction::new
+            );
+            module.register(
+                Signature.scalar(
+                    name,
+                    DataTypes.STRING.getTypeSignature(),
+                    DataTypes.INTEGER.getTypeSignature(),
+                    DataTypes.INTEGER.getTypeSignature(),
+                    DataTypes.STRING.getTypeSignature()
+                ),
+                SubstrFunction::new
+            );
+        }
     }
 
     private final Signature signature;

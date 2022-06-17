@@ -1751,7 +1751,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     @Override
     public Node visitSubstring(SqlBaseParser.SubstringContext context) {
-        return new FunctionCall(QualifiedName.of("substr"), visitCollection(context.expr(), Expression.class));
+        return new FunctionCall(QualifiedName.of("substring"), visitCollection(context.expr(), Expression.class));
     }
 
     @Override

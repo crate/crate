@@ -116,6 +116,10 @@ Changes
 
 - Updated Admin UI to 1.22.0, including an update with the new logo and colors.
 
+- Added ``SUBSTRING`` to non-reserved SQL keywords in order to support the
+  generic function call syntax for improved PostgreSQL compatibility.
+  Example: ``SUBSTRING('crate', 1, 3)``
+
 Fixes
 =====
 

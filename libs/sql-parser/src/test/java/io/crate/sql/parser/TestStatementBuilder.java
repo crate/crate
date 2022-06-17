@@ -1036,6 +1036,14 @@ public class TestStatementBuilder {
     }
 
     @Test
+    public void test_substring_can_be_used_as_concrete_and_generic_function() {
+        printStatement("SELECT substring('foo' FROM 1)");
+        printStatement("SELECT substring('foo' FROM 1 FOR 3)");
+        printStatement("SELECT substring('foo', 1)");
+        printStatement("SELECT substring('foo', 1, 3)");
+    }
+
+    @Test
     public void testSystemInformationFunctionsStmtBuilder() {
         printStatement("select current_schema");
         printStatement("select current_schema()");
