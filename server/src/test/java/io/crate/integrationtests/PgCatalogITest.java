@@ -96,6 +96,24 @@ public class PgCatalogITest extends SQLIntegrationTestCase {
     }
 
     @Test
+    public void testPgTablesTable() {
+        execute("select * from pg_tables WHERE tablename = 't1'");
+        assertThat(printedTable(response.rows()), is("false| false| false| false| doc| t1| NULL| NULL\n"));
+
+        execute("select count(*) from pg_tables WHERE tablename = 'v1'");
+        assertThat(printedTable(response.rows()), is("0\n"));
+    }
+
+    @Test
+    public void testPgViewsTable() {
+        execute("select * from pg_views WHERE viewname = 'v1'");
+        assertThat(printedTable(response.rows()), is("SELECT \"id\"\nFROM \"doc\".\"t1\"\n| doc| v1| crate\n"));
+
+        execute("select count(*) from pg_views WHERE viewname = 't1'");
+        assertThat(printedTable(response.rows()), is("0\n"));
+    }
+
+    @Test
     public void testPgDescriptionTableIsEmpty() {
         execute("select * from pg_description");
         assertThat(printedTable(response.rows()), is(""));

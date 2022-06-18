@@ -21,13 +21,14 @@
 
 package io.crate.expression.scalar;
 
+import static io.crate.testing.SymbolMatchers.isLiteral;
+import static org.hamcrest.core.Is.is;
+
+import org.junit.Test;
+
 import io.crate.exceptions.ConversionException;
 import io.crate.expression.symbol.Literal;
 import io.crate.types.DataTypes;
-import org.junit.Test;
-
-import static io.crate.testing.SymbolMatchers.isLiteral;
-import static org.hamcrest.core.Is.is;
 
 public class SubstrFunctionTest extends ScalarTestCase {
 
@@ -87,6 +88,16 @@ public class SubstrFunctionTest extends ScalarTestCase {
         expectedException.expect(ConversionException.class);
         expectedException.expectMessage("Cannot cast `'b'` of type `text` to type `integer`");
         assertNormalize("substr('foo', 'b')", null);
+    }
+
+    @Test
+    public void test_substring_is_alias_for_substr() {
+        assertNormalize("substring('crate', 1, 3)", isLiteral("cra"));
+    }
+
+    @Test
+    public void test_non_generic_substring_syntax_is_alias_for_substr() {
+        assertNormalize("substring('crate' FROM 3)", isLiteral("ate"));
     }
 }
 

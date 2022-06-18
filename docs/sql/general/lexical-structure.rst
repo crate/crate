@@ -201,7 +201,6 @@ quoted if used as identifiers::
     | set               |
     | some              |
     | stratify          |
-    | substring         |
     | table             |
     | then              |
     | transient         |
@@ -216,7 +215,7 @@ quoted if used as identifiers::
     | where             |
     | with              |
     +-------------------+
-    SELECT 95 rows in set (... sec)
+    SELECT 94 rows in set (... sec)
 
 Tokens such as ``my_table``, ``id``, ``name``, or ``data`` in the example below
 are *identifiers*, which identify names of tables, columns, and other database
