@@ -123,6 +123,9 @@ Changes
 - Added ``pg_catalog.pg_tables`` and ``pg_catalog.pg_views`` tables for improved 
   PostgreSQL compatibility.
 
+- Added identity columns information to ``information_schema.columns`` table for
+  improved PostgreSQL compatibility. CrateDB does not support identity columns.
+
 Fixes
 =====
 
