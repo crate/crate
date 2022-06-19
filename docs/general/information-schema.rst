@@ -352,22 +352,29 @@ infinite recursion of your mind, beware!)::
     | domain_name              | text       |               19 |
     | domain_schema            | text       |               20 |
     | generation_expression    | text       |               21 |
-    | interval_precision       | integer    |               22 |
-    | interval_type            | text       |               23 |
-    | is_generated             | text       |               24 |
-    | is_nullable              | boolean    |               25 |
-    | numeric_precision        | integer    |               26 |
-    | numeric_precision_radix  | integer    |               27 |
-    | numeric_scale            | integer    |               28 |
-    | ordinal_position         | integer    |               29 |
-    | table_catalog            | text       |               30 |
-    | table_name               | text       |               31 |
-    | table_schema             | text       |               32 |
-    | udt_catalog              | text       |               33 |
-    | udt_name                 | text       |               34 |
-    | udt_schema               | text       |               35 |
+    | identity_cycle           | boolean    |               22 |
+    | identity_generation      | text       |               23 |
+    | identity_increment       | text       |               24 |
+    | identity_maximum         | text       |               25 |
+    | identity_minimum         | text       |               26 |
+    | identity_start           | text       |               27 |
+    | interval_precision       | integer    |               28 |
+    | interval_type            | text       |               29 |
+    | is_generated             | text       |               30 |
+    | is_identity              | boolean    |               31 |
+    | is_nullable              | boolean    |               32 |
+    | numeric_precision        | integer    |               33 |
+    | numeric_precision_radix  | integer    |               34 |
+    | numeric_scale            | integer    |               35 |
+    | ordinal_position         | integer    |               36 |
+    | table_catalog            | text       |               37 |
+    | table_name               | text       |               38 |
+    | table_schema             | text       |               39 |
+    | udt_catalog              | text       |               40 |
+    | udt_name                 | text       |               41 |
+    | udt_schema               | text       |               42 |
     +--------------------------+------------+------------------+
-    SELECT 35 rows in set (... sec)
+    SELECT 42 rows in set (... sec)
 
 
 .. rubric:: Schema
@@ -461,6 +468,20 @@ infinite recursion of your mind, beware!)::
 +-------------------------------+-----------------------------------------------+---------------+
 | ``is_generated``              | Returns ``ALWAYS`` or ``NEVER`` wether the    | ``TEXT``      |
 |                               | column is generated or not.                   |               |
++-------------------------------+-----------------------------------------------+---------------+
+| ``is_identity``               | Not implemented (always returns ``false``)    | ``BOOLEAN``   |
++-------------------------------+-----------------------------------------------+---------------+
+| ``identity_cycle``            | Not implemented (always returns ``NULL``)     | ``BOOLEAN``   |
++-------------------------------+-----------------------------------------------+---------------+
+| ``identity_generation``       | Not implemented (always returns ``NULL``)     | ``TEXT``      |
++-------------------------------+-----------------------------------------------+---------------+
+| ``identity_increment``        | Not implemented (always returns ``NULL``)     | ``TEXT``      |
++-------------------------------+-----------------------------------------------+---------------+
+| ``identity_maximum``          | Not implemented (always returns ``NULL``)     | ``TEXT``      |
++-------------------------------+-----------------------------------------------+---------------+
+| ``identity_minimum``          | Not implemented (always returns ``NULL``)     | ``TEXT``      |
++-------------------------------+-----------------------------------------------+---------------+
+| ``identity_start``            | Not implemented (always returns ``NULL``)     | ``TEXT``      |
 +-------------------------------+-----------------------------------------------+---------------+
 
 .. _information_schema_table_constraints:
