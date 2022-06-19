@@ -3506,6 +3506,28 @@ Example::
     +------+
     SELECT 1 row in set (... sec)
 
+.. _scalar-pg_get_serial_sequence:
+
+``pg_get_serial_sequence()``
+----------------------------
+
+The function ``pg_get_serial_sequence`` is implemented to improve compatibility
+with clients that use the PostgreSQL wire protocol. The function always returns
+``null``. Existence of tables or columns is not validated.
+
+Synopsis::
+
+   pg_get_serial_sequence(table_name text, column_name text)
+
+Example::
+
+    cr> select pg_get_serial_sequence('t1', 'c1') AS col;
+    +------+
+    |  col |
+    +------+
+    | NULL |
+    +------+
+    SELECT 1 row in set (... sec)
 
 .. _scalar-pg_encoding_to_char:
 

@@ -125,6 +125,10 @@ Changes
 
 - Added identity columns information to ``information_schema.columns`` table for
   improved PostgreSQL compatibility. CrateDB does not support identity columns.
+  
+- Added the :ref:`pg_get_serial_sequence <scalar-pg_get_serial_sequence>` scalar 
+  function for improved compatibility with PostgreSQL. CrateDB does not support 
+  sequences.
 
 Fixes
 =====
