@@ -22,11 +22,14 @@
 package io.crate.analyze.relations;
 
 import io.crate.analyze.OrderBy;
+import io.crate.analyze.QueriedSelectRelation;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.QualifiedNameReference;
 import io.crate.sql.tree.SortItem;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
 import io.crate.testing.SymbolMatchers;
 import org.junit.Test;
 
@@ -34,12 +37,12 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import static io.crate.testing.TestingHelpers.isSQL;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsNull.notNullValue;
 import static org.hamcrest.core.IsNull.nullValue;
-import static org.junit.Assert.assertThat;
 
-public class OrderByAnalyzerTest {
+public class OrderByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void analyzeEmptySortItemsReturnsNull() {
@@ -78,4 +81,11 @@ public class OrderByAnalyzerTest {
         assertThat(nullsFirst[1], is(false));
     }
 
+    @Test
+    public void test_order_by_null_ordinal_with_explicit_cast() {
+        var e = SQLExecutor.builder(clusterService)
+            .build();
+        QueriedSelectRelation relation = e.analyze("select * from unnest([1, 2]) order by null::integer");
+        assertThat(relation.orderBy(), isSQL("NULL"));
+    }
 }
