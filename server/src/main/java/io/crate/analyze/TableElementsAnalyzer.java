@@ -224,6 +224,7 @@ public class TableElementsAnalyzer {
                     context.logWarnings
                 );
                 columnDefinition.accept(this, childContext);
+                context.currentColumnPosition = childContext.currentColumnPosition;
                 context.analyzedColumnDefinition.addChild(childContext.analyzedColumnDefinition);
             }
 
