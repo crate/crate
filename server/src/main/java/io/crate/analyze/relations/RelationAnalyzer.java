@@ -542,6 +542,11 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     }
 
     private static Symbol getByPosition(List<Symbol> outputSymbols, Literal<?> ordinal, String clause) {
+        if (ordinal.valueType().equals(DataTypes.UNDEFINED)) {
+            throw new IllegalArgumentException(String.format(
+                Locale.ENGLISH,
+                "Cannot use %s in %s clause", ordinal, clause));
+        }
         Integer ord;
         try {
             ord = DataTypes.INTEGER.sanitizeValue(ordinal.value());
@@ -551,9 +556,8 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                 "Cannot use %s in %s clause", ordinal, clause));
         }
         if (ord == null) {
-            throw new IllegalArgumentException(String.format(
-                Locale.ENGLISH,
-                "Cannot use %s in %s clause", ordinal, clause));
+            // It's NULL ordinal explicitly casted to some type, we allow it in GROUP BY or ORDER BY clauses to align with PG.
+            return ordinal;
         }
         return ordinalOutputReference(outputSymbols, ord, clause);
     }
