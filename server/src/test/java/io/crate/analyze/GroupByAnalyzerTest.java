@@ -344,6 +344,12 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void test_group_by_null_ordinal_with_explicit_cast_works() {
+        QueriedSelectRelation relation = analyze("select max(id) from users u group by NULL::int");
+        assertThat(relation.groupBy(), isSQL("NULL"));
+    }
+
+    @Test
     public void testGroupByHaving() throws Exception {
         QueriedSelectRelation relation = analyze("select sum(floats) from users group by name having name like 'Slartibart%'");
         assertThat(relation.having(), isFunction(LikeOperators.OP_LIKE));
