@@ -71,3 +71,7 @@ Fixes
 - Fixed an issue that caused queries operating on expressions with no defined
   type to fail. Examples are queries with ``GROUP BY`` on an ignored object
   column or ``UNION`` on ``NULL`` literals.
+
+- Fixed an issue that caused ``GROUP BY`` and ``ORDER BY`` statements with
+  ``NULL`` ordinal casted to a specific type, throw an error. Example:
+  ``SELECT NULL, count(*) from unnest([1, 2]) GROUP BY NULL::integer``.
