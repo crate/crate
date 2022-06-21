@@ -18,13 +18,11 @@
  */
 package org.elasticsearch.env;
 
-import io.crate.common.collections.Tuple;
-import org.elasticsearch.Version;
-import org.elasticsearch.gateway.MetadataStateFormat;
-import org.elasticsearch.test.ESTestCase;
-import org.elasticsearch.test.EqualsHashCodeTestUtils;
-import org.elasticsearch.test.VersionUtils;
-import org.junit.Test;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.endsWith;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.startsWith;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -32,11 +30,14 @@ import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.endsWith;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.startsWith;
+import org.elasticsearch.Version;
+import org.elasticsearch.gateway.MetadataStateFormat;
+import org.elasticsearch.test.ESTestCase;
+import org.elasticsearch.test.EqualsHashCodeTestUtils;
+import org.elasticsearch.test.VersionUtils;
+import org.junit.Test;
+
+import io.crate.common.collections.Tuple;
 
 public class NodeMetadataTests extends ESTestCase {
     private Version randomVersion() {
@@ -117,7 +118,7 @@ public class NodeMetadataTests extends ESTestCase {
     }
 
     public static Version tooNewVersion() {
-        return Version.fromId(between(Version.CURRENT.internalId + 1, 99999999));
+        return Version.fromId(between(Version.CURRENT.internalId + 10000, 99999999));
     }
 
     public static Version tooOldVersion() {
