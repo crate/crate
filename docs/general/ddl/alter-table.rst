@@ -32,6 +32,10 @@ In order to set a parameter to its default value use ``reset``::
     cr> alter table my_table reset (number_of_replicas);
     ALTER OK, -1 rows affected (... sec)
 
+.. NOTE::
+    Changing compression using the ``codec`` parameter only takes effect for
+    newly written segments. To enforce a rewrite of already existing segments,
+    run :ref:`sql-optimize` with the parameter ``max_num_segments = 1``.
 
 .. _alter-shard-number:
 
