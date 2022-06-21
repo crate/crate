@@ -133,6 +133,9 @@ Changes
 - Added primary key and check constraint column positions into ``conkey`` field
   of the ``pg_constraint`` table for improved compatibility with PostgreSQL.
 
+- Updated Admin UI to 1.22.1, including an optimization to the web fonts.
+  Admin UI now stops making requests to external resources completely.
+
 Fixes
 =====
 
