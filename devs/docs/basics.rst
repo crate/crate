@@ -152,7 +152,7 @@ Checkstyle
 If you use IntelliJ, there is a Checkstyle plugin available which lets you check
 Checkstyle compliance from within the IDE.
 
-The Checkstyle plugin enforces rules defined in `<PROJECT_ROOT>/gradle/checkstyle/rules.xml`.
+The Checkstyle plugin enforces rules defined in `<PROJECT_ROOT>/gradle/checkstyle/checkstyle.xml`.
 It checks for things such as unused imports, inconsistent formatting, and potential
 bugs.
 
