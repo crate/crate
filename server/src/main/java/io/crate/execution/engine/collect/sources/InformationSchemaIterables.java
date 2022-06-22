@@ -96,6 +96,7 @@ public class InformationSchemaIterables implements ClusterStateListener {
     private final Iterable<ColumnContext> columns;
     private final Iterable<RelationInfo> primaryKeys;
     private final Iterable<ConstraintInfo> constraints;
+    private final Iterable<ConstraintInfo> pgConstraints;
     private final Iterable<Void> referentialConstraints;
     private final Iterable<PgIndexTable.Entry> pgIndices;
     private final Iterable<PgClassTable.Entry> pgClasses;
@@ -148,6 +149,11 @@ public class InformationSchemaIterables implements ClusterStateListener {
         constraints = () -> Stream.of(sequentialStream(primaryKeyConstraints),
                                       sequentialStream(notnullConstraints),
                                       sequentialStream(checkConstraints))
+            .flatMap(Function.identity())
+            .iterator();
+
+        pgConstraints = () -> Stream.of(sequentialStream(primaryKeyConstraints),
+            sequentialStream(checkConstraints))
             .flatMap(Function.identity())
             .iterator();
 
@@ -296,6 +302,10 @@ public class InformationSchemaIterables implements ClusterStateListener {
 
     public Iterable<ConstraintInfo> constraints() {
         return constraints;
+    }
+
+    public Iterable<ConstraintInfo> pgConstraints() {
+        return pgConstraints;
     }
 
     public Iterable<RoutineInfo> routines() {

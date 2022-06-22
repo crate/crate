@@ -151,3 +151,6 @@ Fixes
 - Fixed an issue that caused ``GROUP BY`` and ``ORDER BY`` statements with
   ``NULL`` ordinal casted to a specific type, throw an error. Example:
   ``SELECT NULL, count(*) from unnest([1, 2]) GROUP BY NULL::integer``.
+
+- Fixed an issue that not null constraints used to be shown in the
+  ``pg_constraint`` table which contradicts with the PostgreSQL.
