@@ -21,6 +21,8 @@
 
 package io.crate.integrationtests;
 
+import io.crate.metadata.RelationName;
+import io.crate.metadata.pgcatalog.OidHash;
 import io.crate.testing.UseHashJoins;
 import io.crate.testing.UseRandomizedSchema;
 
@@ -92,7 +94,7 @@ public class PgCatalogITest extends SQLIntegrationTestCase {
     public void testPgConstraintTable() {
         execute("select cn.* from pg_constraint cn, pg_class c where cn.conrelid = c.oid and c.relname = 't1'");
         assertThat(printedTable(response.rows()), is(
-            "NULL| false| false| NULL| a| NULL| NULL| s| 0| a| 0| 0| true| NULL| t1_pk| -2048275947| true| NULL| NULL| 728874843| NULL| p| 0| true| -874078436\n"));
+            "NULL| false| false| NULL| a| NULL| NULL| s| 0| a| 0| 0| true| [1]| t1_pk| -2048275947| true| NULL| NULL| 728874843| NULL| p| 0| true| -874078436\n"));
     }
 
     @Test
@@ -286,5 +288,25 @@ public class PgCatalogITest extends SQLIntegrationTestCase {
         assertThat(printedTable(response.rows()), is(
             ""
         ));
+    }
+
+    @Test
+    public void test_pg_constrains_conkey_array_populated() throws Exception {
+        execute("CREATE TABLE doc.tbl (" +
+            "not_null int not null," +
+            "int_col int," +
+            "long_col bigint," +
+            "checked int CONSTRAINT positive CHECK(checked>0)," +
+            "PRIMARY KEY (int_col, long_col)," +
+            "CONSTRAINT many_cols_and_functions CHECK(not_null * long_col > int_col))"
+        );
+        int reloid = OidHash.relationOid(OidHash.Type.TABLE, new RelationName("doc", "tbl"));
+        response = execute("select i.conkey, i.conname, i.contype from pg_catalog.pg_constraint i where i.conrelid  = " + reloid + " order by i.conname");
+        assertThat(printedTable(response.rows()), is(
+            "[2, 1, 3]| many_cols_and_functions| c\n" +
+            "[4]| positive| c\n" +
+            "[2, 3]| tbl_pk| p\n"
+        ));
+
     }
 }

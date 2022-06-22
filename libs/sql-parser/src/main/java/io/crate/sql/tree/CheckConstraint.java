@@ -22,6 +22,7 @@
 package io.crate.sql.tree;
 
 import javax.annotation.Nullable;
+import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -34,12 +35,18 @@ public class CheckConstraint<T> extends TableElement<T> {
     private final String columnName;
     private final T expression;
     private final String expressionStr;
+    private final List<Short> positions;
 
     public CheckConstraint(@Nullable String name, @Nullable String columnName, T expression, String expressionStr) {
+        this(name, columnName, expression, expressionStr, List.of());
+    }
+
+    public CheckConstraint(@Nullable String name, @Nullable String columnName, T expression, String expressionStr, List<Short> positions) {
         this.name = name;
         this.columnName = columnName;
         this.expression = expression;
         this.expressionStr = expressionStr;
+        this.positions = positions;
     }
 
     @Nullable
@@ -58,6 +65,10 @@ public class CheckConstraint<T> extends TableElement<T> {
 
     public String expressionStr() {
         return expressionStr;
+    }
+
+    public List<Short> positions() {
+        return positions;
     }
 
     @Override

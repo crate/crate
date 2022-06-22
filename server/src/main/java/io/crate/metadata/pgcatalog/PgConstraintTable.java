@@ -61,7 +61,7 @@ public class PgConstraintTable {
            .add("conislocal", BOOLEAN, c -> true)
            .add("coninhcount", INTEGER, c -> 0)
            .add("connoinherit", BOOLEAN, c -> true)
-           .add("conkey", SHORT_ARRAY, c -> null)
+           .add("conkey", SHORT_ARRAY, c -> c.conkey())
            .add("confkey", SHORT_ARRAY, c -> null)
            .add("conpfeqop", INTEGER_ARRAY, c -> null)
            .add("conppeqop", INTEGER_ARRAY, c -> null)

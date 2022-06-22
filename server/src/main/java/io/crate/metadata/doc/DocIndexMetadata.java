@@ -40,6 +40,7 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import io.crate.expression.symbol.DefaultTraversalSymbolVisitor;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
@@ -649,7 +650,9 @@ public class DocIndexMetadata {
                     String expressionStr = entry.getValue();
                     Expression expr = SqlParser.createExpression(expressionStr);
                     Symbol analyzedExpr = exprAnalyzer.convert(expr, analysisCtx);
-                    checkConstraintsBuilder.add(new CheckConstraint<>(name, null, analyzedExpr, expressionStr));
+                    ArrayList<Short> positions = new ArrayList<>();
+                    analyzedExpr.accept(RefCollector.REF_COLLECTOR_INSTANCE, positions);
+                    checkConstraintsBuilder.add(new CheckConstraint<>(name, null, analyzedExpr, expressionStr, positions));
                 }
             }
         }
@@ -722,6 +725,17 @@ public class DocIndexMetadata {
 
     public Settings tableParameters() {
         return tableParameters;
+    }
+
+    private static class RefCollector extends DefaultTraversalSymbolVisitor<List<Short>, Void> {
+
+        private static final RefCollector REF_COLLECTOR_INSTANCE = new RefCollector();
+
+        @Override
+        public Void visitReference(Reference reference, List<Short> context) {
+            context.add((Short.valueOf((short) reference.position())));
+            return null;
+        }
     }
 
     private Map<ColumnIdent, String> getAnalyzers(ColumnIdent columnIdent, Map<String, Object> propertiesMap) {
