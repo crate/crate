@@ -617,14 +617,6 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
         assertThat(newUserResult, is(
             """
                 columns_pk
-                information_schema_columns_column_name_not_null
-                information_schema_columns_data_type_not_null
-                information_schema_columns_is_generated_not_null
-                information_schema_columns_is_nullable_not_null
-                information_schema_columns_ordinal_position_not_null
-                information_schema_columns_table_catalog_not_null
-                information_schema_columns_table_name_not_null
-                information_schema_columns_table_schema_not_null
                 key_column_usage_pk
                 referential_constraints_pk
                 schemata_pk

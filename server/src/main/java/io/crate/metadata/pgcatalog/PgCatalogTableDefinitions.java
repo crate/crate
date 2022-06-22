@@ -109,7 +109,7 @@ public class PgCatalogTableDefinitions {
             PgIndexTable.create().expressions(),
             false));
         tableDefinitions.put(PgConstraintTable.IDENT, new StaticTableDefinition<>(
-            informationSchemaIterables::constraints,
+            informationSchemaIterables::pgConstraints,
             (user, t) -> user.hasAnyPrivilege(Privilege.Clazz.TABLE, t.relationName().fqn())
                          || isPgCatalogOrInformationSchema(t.relationName().schema()),
             PgConstraintTable.create().expressions()
