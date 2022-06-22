@@ -45,8 +45,6 @@ value for the remainder of your terminal session.
 
 Filter tests::
 
-    $ ./gradlew test -Dtest.single='YourTestClass'
-
     $ ./gradlew test --tests '*ClassName.testMethodName'
 
 Extra options::
