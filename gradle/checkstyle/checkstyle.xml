@@ -41,7 +41,7 @@
     <property name="fileExtensions" value="java, properties, xml"/>
 
     <module name="RegexpHeader">
-        <property name="headerFile" value="${checkstyleDir}/${licenseHeaderFile}"/>
+        <property name="headerFile" value="${checkstyleDir}/header.txt"/>
     </module>
 
     <!-- Checks for whitespace                               -->
@@ -51,7 +51,7 @@
     </module>
 
     <module name="SuppressionFilter">
-        <property name="file" value="${checkstyleDir}/suppressions.xml" />
+        <property name="file" value="${checkstyleDir}/suppressions.xml"/>
     </module>
     <module name="SuppressWarningsFilter"/>
 
