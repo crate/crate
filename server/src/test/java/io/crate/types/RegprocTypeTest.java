@@ -68,7 +68,7 @@ public class RegprocTypeTest extends ESTestCase {
     public void test_convertible_only_to_text_and_integer_types() {
         assertThat(
             DataTypes.ALLOWED_CONVERSIONS.get(RegprocType.ID),
-            is(Set.of(StringType.ID, IntegerType.ID))
+            is(Set.of(StringType.ID, IntegerType.ID, CharacterType.ID))
         );
     }
 

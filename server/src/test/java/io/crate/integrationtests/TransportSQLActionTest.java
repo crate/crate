@@ -21,43 +21,6 @@
 
 package io.crate.integrationtests;
 
-import com.carrotsearch.randomizedtesting.RandomizedContext;
-import com.carrotsearch.randomizedtesting.generators.RandomPicks;
-import io.crate.common.collections.Lists2;
-import io.crate.exceptions.SQLExceptions;
-import io.crate.testing.DataTypeTesting;
-import io.crate.testing.TestingHelpers;
-import io.crate.testing.UseJdbc;
-import io.crate.testing.UseRandomizedSchema;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
-import org.elasticsearch.common.xcontent.DeprecationHandler;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
-import org.elasticsearch.index.IndexNotFoundException;
-import org.elasticsearch.test.ESIntegTestCase;
-import org.hamcrest.Matchers;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
-import org.locationtech.spatial4j.shape.Point;
-
-import java.io.File;
-import java.nio.file.Paths;
-import java.sql.DriverManager;
-import java.sql.ResultSet;
-import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Random;
-import java.util.UUID;
-import java.util.stream.Collectors;
-
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_TABLE;
@@ -76,6 +39,45 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
+
+import java.io.File;
+import java.nio.file.Paths;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Random;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+import org.elasticsearch.common.xcontent.DeprecationHandler;
+import org.elasticsearch.common.xcontent.NamedXContentRegistry;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
+import org.elasticsearch.index.IndexNotFoundException;
+import org.elasticsearch.test.ESIntegTestCase;
+import org.hamcrest.Matchers;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+import org.locationtech.spatial4j.shape.Point;
+
+import com.carrotsearch.randomizedtesting.RandomizedContext;
+import com.carrotsearch.randomizedtesting.generators.RandomPicks;
+
+import io.crate.common.collections.Lists2;
+import io.crate.exceptions.SQLExceptions;
+import io.crate.testing.DataTypeTesting;
+import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseJdbc;
+import io.crate.testing.UseRandomizedSchema;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
 @ESIntegTestCase.ClusterScope(minNumDataNodes = 2)
 public class TransportSQLActionTest extends SQLIntegrationTestCase {
@@ -1991,6 +1993,54 @@ public class TransportSQLActionTest extends SQLIntegrationTestCase {
         execute("select xs from tbl");
         assertThat(TestingHelpers.printedTable(response.rows()), is(
             "[B'010', B'110']\n"
+        ));
+    }
+
+    @Test
+    @UseJdbc(0)
+    @UseRandomizedSchema(random = false)
+    public void test_character_can_be_inserted_and_queried() throws Exception {
+        execute("create table tbl (c character(4))");
+        execute("insert into tbl (c) values ('four'), ('two')");
+        assertThat(response.rowCount(), is(2L));
+        execute("refresh table tbl");
+
+        execute("SELECT _doc['c'], c, _raw, c::char(1) FROM tbl WHERE c = 'two'");
+        assertThat(TestingHelpers.printedTable(response.rows()), is(
+                "two | two | {\"c\":\"two \"}| t\n"
+        ));
+        // use LIMIT 1 to hit a different execution path that should load `c` differently
+        execute("SELECT _doc['c'], c, _raw, c::char(1) FROM tbl WHERE c = 'four' LIMIT 1");
+        assertThat(TestingHelpers.printedTable(response.rows()), is(
+            "four| four| {\"c\":\"four\"}| f\n"
+        ));
+
+        var properties = new Properties();
+        properties.put("user", "crate");
+        properties.put("password", "");
+        ArrayList<String> results = new ArrayList<>();
+        try (var conn = DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties)) {
+            Statement stmt = conn.createStatement();
+            ResultSet result = stmt.executeQuery("select c from doc.tbl order by c");
+            while (result.next()) {
+                String string = result.getString(1);
+                results.add(string);
+            }
+        }
+        assertThat(results, Matchers.contains(
+            "four",
+            "two "
+        ));
+    }
+
+    @Test
+    public void test_can_insert_and_select_character_arrays() throws Exception {
+        execute("create table tbl (c array(char(4)))");
+        execute("insert into tbl (c) values (['four', 'two'])");
+        execute("refresh table tbl");
+        execute("select c from tbl");
+        assertThat(TestingHelpers.printedTable(response.rows()), is(
+            "[four, two ]\n"
         ));
     }
 

@@ -284,6 +284,8 @@ IDs of all currently available data types:
      - :ref:`REGCLASS <type-regclass>`
    * - 24
      - :ref:`DATE <type-date>`
+   * - 27
+     - :ref:`CHARACTER <data-type-character>`
    * - 100
      - :ref:`ARRAY <type-array>`
 

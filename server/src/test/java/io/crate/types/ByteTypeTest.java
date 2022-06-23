@@ -52,14 +52,14 @@ public class ByteTypeTest extends ESTestCase {
     }
 
     @Test
-    public void test_cast_boolean_to_char_throws_exception() {
+    public void test_cast_boolean_to_byte_throws_exception() {
         expectedException.expect(ClassCastException.class);
         expectedException.expectMessage("Can't cast 'true' to byte");
         ByteType.INSTANCE.implicitCast(true);
     }
 
     @Test
-    public void test_cast_object_to_char_throws_exception() {
+    public void test_cast_object_to_byte_throws_exception() {
         expectedException.expect(ClassCastException.class);
         expectedException.expectMessage("Can't cast '{}' to byte");
         ByteType.INSTANCE.implicitCast(Map.of());

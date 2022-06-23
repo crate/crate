@@ -73,7 +73,7 @@ Breaking Changes
 
 - The single byte ``byte`` data type was falsely exposed as the ``char``
   data type. It will now be correctly exposed as the special single byte
-  `"char"`.
+  ``"char"``.
 
 Deprecations
 ============
@@ -166,6 +166,11 @@ Changes
 
 - Added an empty ``pg_catalog.pg_shdescription`` table for improved PostgreSQL
   compatibility.
+
+- Added full support, incl. storage and indexing, for the fixed-length,
+  blank padded :ref:`data-type-character` data type. Previously, the single
+  byte ``byte`` was exposed as ``char`` which has been fixed, see
+  `Breaking Changes`_.
 
 Fixes
 =====

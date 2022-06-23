@@ -22,10 +22,11 @@
 package io.crate.protocols.postgres.types;
 
 
-import io.netty.buffer.ByteBuf;
+import java.nio.charset.StandardCharsets;
 
 import javax.annotation.Nonnull;
-import java.nio.charset.StandardCharsets;
+
+import io.netty.buffer.ByteBuf;
 
 class CharType extends PGType<Byte> {
 

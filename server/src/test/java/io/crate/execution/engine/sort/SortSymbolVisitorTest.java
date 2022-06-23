@@ -21,12 +21,20 @@
 
 package io.crate.execution.engine.sort;
 
-import io.crate.expression.reference.doc.lucene.NullSentinelValues;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
+import static io.crate.testing.TestingHelpers.createReference;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.instanceOf;
 
+import org.apache.lucene.search.SortedSetSortField;
 import org.elasticsearch.index.fielddata.NullValueOrder;
 import org.junit.Test;
+
+import io.crate.expression.reference.doc.lucene.NullSentinelValues;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Reference;
+import io.crate.types.CharacterType;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
 public class SortSymbolVisitorTest {
 
@@ -35,5 +43,12 @@ public class SortSymbolVisitorTest {
         for (DataType<?> primitiveType : DataTypes.PRIMITIVE_TYPES) {
             NullSentinelValues.nullSentinel(primitiveType, NullValueOrder.FIRST, false);
         }
+    }
+
+    @Test
+    public void test_character_type_reference_can_be_mapped_to_sort_field() {
+        var ref = createReference("c", ColumnIdent.fromPath("c"), CharacterType.INSTANCE);
+        var sortField = SortSymbolVisitor.mappedSortField(ref, false, NullValueOrder.FIRST);
+        assertThat(sortField, instanceOf(SortedSetSortField.class));
     }
 }

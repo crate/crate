@@ -31,22 +31,23 @@ import java.util.Map;
 import java.util.Random;
 import java.util.function.Supplier;
 
-import com.carrotsearch.randomizedtesting.RandomizedContext;
-import com.carrotsearch.randomizedtesting.RandomizedTest;
-import com.carrotsearch.randomizedtesting.generators.BiasedNumbers;
-import com.carrotsearch.randomizedtesting.generators.RandomNumbers;
-import com.carrotsearch.randomizedtesting.generators.RandomPicks;
-
 import org.elasticsearch.common.network.InetAddresses;
 import org.elasticsearch.common.network.NetworkAddress;
 import org.joda.time.Period;
 import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
 import org.locationtech.spatial4j.shape.impl.PointImpl;
 
+import com.carrotsearch.randomizedtesting.RandomizedContext;
+import com.carrotsearch.randomizedtesting.RandomizedTest;
+import com.carrotsearch.randomizedtesting.generators.BiasedNumbers;
+import com.carrotsearch.randomizedtesting.generators.RandomNumbers;
+import com.carrotsearch.randomizedtesting.generators.RandomPicks;
+
 import io.crate.sql.tree.BitString;
 import io.crate.types.BitStringType;
 import io.crate.types.BooleanType;
 import io.crate.types.ByteType;
+import io.crate.types.CharacterType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.DateType;
@@ -94,6 +95,9 @@ public class DataTypeTesting {
 
             case StringType.ID:
                 return () -> (T) RandomizedTest.randomAsciiLettersOfLength(random.nextInt(10));
+
+            case CharacterType.ID:
+                return () -> (T) RandomizedTest.randomAsciiLettersOfLength(((CharacterType) type).lengthLimit());
 
             case IpType.ID:
                 return () -> {
