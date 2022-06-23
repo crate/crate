@@ -259,16 +259,6 @@ public class OpenCloseTableIntegrationTest extends SQLIntegrationTestCase {
     }
 
     @Test
-    public void testClosePreventsAlter() throws Exception {
-        assertThrowsMatches(() -> execute("alter table t add column x string"),
-                     isSQLError(is(String.format("The relation \"%s\" doesn't support or allow ALTER operations, " +
-                                                 "as it is currently closed.", getFqn("t"))),
-                         INTERNAL_ERROR,
-                         BAD_REQUEST,
-                         4007));
-    }
-
-    @Test
     public void testClosePreventsRefresh() throws Exception {
         assertThrowsMatches(() -> execute("refresh table t"),
                      isSQLError(is(String.format("The relation \"%s\" doesn't support or allow REFRESH operations, as " +
