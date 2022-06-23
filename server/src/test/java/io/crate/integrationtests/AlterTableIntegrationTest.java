@@ -25,31 +25,20 @@ import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.startsWith;
 
 import org.junit.Test;
 
-
 public class AlterTableIntegrationTest extends SQLIntegrationTestCase {
 
     @Test
-    public void test_alter_soft_delete_setting_for_partitioned_tables() {
-        execute("create table test(i int) partitioned by (i)");
-        assertThat(response.rowCount(), is(1L));
-        execute("alter table test set (\"soft_deletes.enabled\" = false)");
-
+    public void test_create_soft_delete_setting_for_partitioned_tables() {
         assertThrowsMatches(
-            () -> execute("insert into test values(1)"),
+            () -> execute("create table test(i int) partitioned by (i) WITH(\"soft_deletes.enabled\" = false) "),
             isSQLError(startsWith("Creating tables with soft-deletes disabled is no longer supported."),
                        INTERNAL_ERROR,
                        BAD_REQUEST,
                        4000)
         );
-
-        execute("alter table test set (\"soft_deletes.enabled\" = true)");
-        execute("insert into test values(1)");
-        assertThat(response.rowCount(), is(1L));
     }
-
 }
