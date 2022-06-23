@@ -75,6 +75,7 @@ import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.ANALYZER;
 import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.TestingHelpers.mapToSortedString;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_ROUTING_EXCLUDE_GROUP_SETTING;
+import static org.elasticsearch.index.engine.EngineConfig.INDEX_CODEC_SETTING;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasItems;
@@ -1373,6 +1374,20 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         BoundAlterTable analysis =
             analyze("alter table users set (\"routing.allocation.exclude.foo\"='bar')");
         assertThat(analysis.tableParameter().settings().get(INDEX_ROUTING_EXCLUDE_GROUP_SETTING.getKey() + "foo"), is("bar"));
+    }
+
+    @Test
+    public void test_alter_table_dynamic_setting_on_closed_table() throws IOException {
+        e = SQLExecutor.builder(clusterService).addTable("create table doc.test(i int)").closeTable("test").build();
+        BoundAlterTable analysis = analyze(e, "alter table test set (\"routing.allocation.exclude.foo\"='bar')");
+        assertThat(analysis.tableParameter().settings().get(INDEX_ROUTING_EXCLUDE_GROUP_SETTING.getKey() + "foo"), is("bar"));
+    }
+
+    @Test
+    public void test_alter_table_non_dynamic_setting_on_closed_table() throws IOException {
+        e = SQLExecutor.builder(clusterService).addTable("create table doc.test(i int)").closeTable("test").build();
+        BoundAlterTable analysis = analyze(e, "ALTER TABLE test SET (codec = 'best_compression')");
+        assertThat(analysis.tableParameter().settings().get(INDEX_CODEC_SETTING.getKey()), is("best_compression"));
     }
 
     @Test

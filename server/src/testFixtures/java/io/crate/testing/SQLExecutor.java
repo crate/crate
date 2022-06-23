@@ -104,6 +104,7 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.cluster.repositories.delete.TransportDeleteRepositoryAction;
 import org.elasticsearch.action.admin.cluster.repositories.put.TransportPutRepositoryAction;
+import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterState;
@@ -114,6 +115,7 @@ import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.routing.RoutingTable;
@@ -129,7 +131,6 @@ import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.settings.IndexScopedSettings;
-import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
@@ -175,6 +176,7 @@ import static io.crate.testing.TestingHelpers.createNodeContext;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_CLOSED_BLOCK;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_CREATION_DATE;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_INDEX_UUID;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_VERSION_CREATED;
@@ -568,6 +570,28 @@ public class SQLExecutor {
                 .build();
 
             ClusterServiceUtils.setState(clusterService, allocationService.reroute(state, "assign shards"));
+            return this;
+        }
+
+        public Builder closeTable(String tableName) throws IOException {
+            String indexName = RelationName.of(QualifiedName.of(tableName), Schemas.DOC_SCHEMA_NAME).indexNameOrAlias();
+            ClusterState prevState = clusterService.state();
+            var metadata = prevState.metadata();
+            String[] concreteIndices = IndexNameExpressionResolver
+                .concreteIndexNames(metadata, IndicesOptions.lenientExpandOpen(), indexName);
+
+            Metadata.Builder mdBuilder = Metadata.builder(clusterService.state().metadata());
+            ClusterBlocks.Builder blocksBuilder = ClusterBlocks.builder()
+                .blocks(clusterService.state().blocks());
+
+            for (String index: concreteIndices) {
+                mdBuilder.put(IndexMetadata.builder(metadata.index(index)).state(IndexMetadata.State.CLOSE));
+                blocksBuilder.addIndexBlock(index, INDEX_CLOSED_BLOCK);
+            }
+
+            ClusterState updatedState = ClusterState.builder(prevState).metadata(mdBuilder).blocks(blocksBuilder).build();
+
+            ClusterServiceUtils.setState(clusterService, allocationService.reroute(updatedState, "assign shards"));
             return this;
         }
 
