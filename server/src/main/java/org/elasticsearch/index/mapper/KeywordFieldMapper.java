@@ -78,6 +78,7 @@ public final class KeywordFieldMapper extends FieldMapper {
         protected String nullValue = Defaults.NULL_VALUE;
         protected int ignoreAbove = Defaults.IGNORE_ABOVE;
         private Integer lengthLimit;
+        private boolean blankPadding = false;
 
         public Builder(String name) {
             super(name, Defaults.FIELD_TYPE);
@@ -97,6 +98,11 @@ public final class KeywordFieldMapper extends FieldMapper {
                 throw new IllegalArgumentException("[legnth_limit] must be positive, got " + lengthLimit);
             }
             this.lengthLimit = lengthLimit;
+            return this;
+        }
+
+        public Builder blankPadding(boolean blankPadding) {
+            this.blankPadding = blankPadding;
             return this;
         }
 
@@ -134,6 +140,7 @@ public final class KeywordFieldMapper extends FieldMapper {
                 ignoreAbove,
                 nullValue,
                 lengthLimit,
+                blankPadding,
                 context.indexSettings(),
                 copyTo
             );
@@ -154,6 +161,9 @@ public final class KeywordFieldMapper extends FieldMapper {
                     iterator.remove();
                 } else if (propName.equals("length_limit")) {
                     builder.lengthLimit(XContentMapValues.nodeIntegerValue(propNode, -1));
+                    iterator.remove();
+                } else if (propName.equals("blank_padding")) {
+                    builder.blankPadding(XContentMapValues.nodeBooleanValue(propNode));
                     iterator.remove();
                 }
             }
@@ -191,24 +201,27 @@ public final class KeywordFieldMapper extends FieldMapper {
     }
 
     private int ignoreAbove;
-    private Integer lengthLimit;
-    private String nullValue;
+    private final Integer lengthLimit;
+    private final String nullValue;
+    private final boolean blankPadding;
 
 
-    protected KeywordFieldMapper(String simpleName,
-                                 Integer position,
-                                 @Nullable String defaultExpression,
-                                 FieldType fieldType,
-                                 MappedFieldType mappedFieldType,
-                                 int ignoreAbove,
-                                 String nullValue,
-                                 Integer lengthLimit,
-                                 Settings indexSettings,
-                                 CopyTo copyTo) {
+    private KeywordFieldMapper(String simpleName,
+                               Integer position,
+                               @Nullable String defaultExpression,
+                               FieldType fieldType,
+                               MappedFieldType mappedFieldType,
+                               int ignoreAbove,
+                               String nullValue,
+                               Integer lengthLimit,
+                               boolean blankPadding,
+                               Settings indexSettings,
+                               CopyTo copyTo) {
         super(simpleName, position, defaultExpression, fieldType, mappedFieldType, indexSettings, copyTo);
         assert fieldType.indexOptions().compareTo(IndexOptions.DOCS_AND_FREQS) <= 0;
         this.ignoreAbove = ignoreAbove;
         this.lengthLimit = lengthLimit;
+        this.blankPadding = blankPadding;
         this.nullValue = nullValue;
     }
 
@@ -272,6 +285,11 @@ public final class KeywordFieldMapper extends FieldMapper {
                 "mapper [" + name() + "] has different length_limit settings, current ["
                 + this.lengthLimit + "], merged [" + k.lengthLimit + "]");
         }
+        if (this.blankPadding != k.blankPadding) {
+            throw new IllegalArgumentException(
+                "mapper [" + name() + "] has different blank_padding settings, current ["
+                + this.blankPadding + "], merged [" + k.blankPadding + "]");
+        }
         this.ignoreAbove = k.ignoreAbove;
         this.fieldType().setSearchAnalyzer(k.fieldType().searchAnalyzer());
     }
@@ -287,6 +305,10 @@ public final class KeywordFieldMapper extends FieldMapper {
 
         if (includeDefaults || lengthLimit != null) {
             builder.field("length_limit", lengthLimit);
+        }
+
+        if (includeDefaults || blankPadding) {
+            builder.field("blank_padding", blankPadding);
         }
     }
 }

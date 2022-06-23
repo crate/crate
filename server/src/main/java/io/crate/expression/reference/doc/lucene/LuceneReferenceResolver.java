@@ -48,6 +48,7 @@ import io.crate.types.ArrayType;
 import io.crate.types.BitStringType;
 import io.crate.types.BooleanType;
 import io.crate.types.ByteType;
+import io.crate.types.CharacterType;
 import io.crate.types.DoubleType;
 import io.crate.types.FloatType;
 import io.crate.types.GeoPointType;
@@ -174,6 +175,7 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
             case IpType.ID:
                 return new IpColumnReference(fqn);
             case StringType.ID:
+            case CharacterType.ID:
                 return new BytesRefColumnReference(fqn);
             case DoubleType.ID:
                 return new DoubleColumnReference(fqn);

@@ -21,8 +21,16 @@
 
 package io.crate.protocols.postgres.types;
 
+import java.util.HashSet;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+
+import javax.annotation.Nullable;
+
 import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.IntObjectMap;
+
 import io.crate.common.collections.Lists2;
 import io.crate.common.collections.MapBuilder;
 import io.crate.types.ArrayType;
@@ -33,17 +41,12 @@ import io.crate.types.ObjectType;
 import io.crate.types.RowType;
 import io.crate.types.StringType;
 
-import javax.annotation.Nullable;
-import java.util.HashSet;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-
 public class PGTypes {
 
     private static final Map<DataType<?>, PGType> CRATE_TO_PG_TYPES = MapBuilder.<DataType<?>, PGType>newLinkedHashMapBuilder()
         .put(DataTypes.BYTE, CharType.INSTANCE)
         .put(DataTypes.STRING, VarCharType.INSTANCE)
+        .put(DataTypes.CHARACTER, CharacterType.INSTANCE)
         .put(DataTypes.BOOLEAN, BooleanType.INSTANCE)
         .put(DataTypes.UNTYPED_OBJECT, JsonType.INSTANCE)
         .put(RowType.EMPTY, RecordType.EMPTY_RECORD)
@@ -79,6 +82,7 @@ public class PGTypes {
         .put(new ArrayType<>(DataTypes.DATE), PGArray.DATE_ARRAY)
         .put(new ArrayType<>(DataTypes.TIMETZ), PGArray.TIMETZ_ARRAY)
         .put(new ArrayType<>(DataTypes.STRING), PGArray.VARCHAR_ARRAY)
+        .put(new ArrayType<>(DataTypes.CHARACTER), PGArray.CHARACTER_ARRAY)
         .put(new ArrayType<>(DataTypes.IP), PGArray.VARCHAR_ARRAY)
         .put(new ArrayType<>(DataTypes.UNTYPED_OBJECT), PGArray.JSON_ARRAY)
         .put(new ArrayType<>(DataTypes.GEO_POINT), PGArray.POINT_ARRAY)
@@ -169,6 +173,9 @@ public class PGTypes {
 
             case StringType.ID:
                 return VarCharType.INSTANCE;
+
+            case io.crate.types.CharacterType.ID:
+                return CharacterType.INSTANCE;
 
             case io.crate.types.NumericType.ID:
                 return NumericType.INSTANCE;

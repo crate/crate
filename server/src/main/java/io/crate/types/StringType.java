@@ -154,7 +154,7 @@ public class StringType extends DataType<String> implements Streamer<String> {
         } else {
             return new TypeSignature(
                 getName(),
-                List.of(TypeSignature.of(lengthLimit)));
+                List.of(TypeSignature.of(lengthLimit())));
         }
     }
 
@@ -174,6 +174,10 @@ public class StringType extends DataType<String> implements Streamer<String> {
 
     @Override
     public String implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
+        return cast(value);
+    }
+
+    protected String cast(Object value) throws IllegalArgumentException, ClassCastException {
         if (value == null) {
             return null;
         } else if (value instanceof String) {
@@ -187,14 +191,18 @@ public class StringType extends DataType<String> implements Streamer<String> {
                 //noinspection unchecked
                 return Strings.toString(XContentFactory.jsonBuilder().map((Map<String, ?>) value));
             } catch (IOException e) {
-                throw new IllegalArgumentException("Cannot cast `" + value + "` to type TEXT", e);
+                throw new IllegalArgumentException("Cannot cast `" + value + "` to type " + getName().toUpperCase(Locale.ENGLISH), e);
             }
         } else if (value instanceof Collection) {
             throw new IllegalArgumentException(
-                String.format(Locale.ENGLISH, "Cannot cast %s to type TEXT", value));
+                String.format(Locale.ENGLISH, "Cannot cast %s to type %s", value, getName().toUpperCase(Locale.ENGLISH)));
         } else if (value.getClass().isArray()) {
             throw new IllegalArgumentException(
-                String.format(Locale.ENGLISH, "Cannot cast %s to type TEXT", Arrays.toString((Object[]) value)));
+                String.format(Locale.ENGLISH, "Cannot cast %s to type %s",
+                    Arrays.toString((Object[]) value),
+                    getName().toUpperCase(Locale.ENGLISH)
+                )
+            );
         } else if (value instanceof TimeValue) {
             return ((TimeValue) value).getStringRep();
         } else if (value instanceof Regproc) {
@@ -213,11 +221,11 @@ public class StringType extends DataType<String> implements Streamer<String> {
         if (value == null) {
             return null;
         }
-        var string = implicitCast(value);
-        if (unbound() || string.length() <= lengthLimit) {
+        var string = cast(value);
+        if (unbound() || string.length() <= lengthLimit()) {
             return string;
         } else {
-            return string.substring(0, lengthLimit);
+            return string.substring(0, lengthLimit());
         }
     }
 
@@ -306,12 +314,12 @@ public class StringType extends DataType<String> implements Streamer<String> {
             return false;
         }
         StringType that = (StringType) o;
-        return lengthLimit == that.lengthLimit;
+        return lengthLimit() == that.lengthLimit();
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), lengthLimit);
+        return Objects.hash(super.hashCode(), lengthLimit());
     }
 
     @Override

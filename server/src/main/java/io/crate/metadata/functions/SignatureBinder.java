@@ -21,16 +21,12 @@
 
 package io.crate.metadata.functions;
 
-import io.crate.common.collections.Lists2;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
-import io.crate.types.ParameterTypeSignature;
-import io.crate.types.TypeSignature;
-import io.crate.types.UndefinedType;
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.logging.Loggers;
+import static io.crate.metadata.functions.TypeVariableConstraint.typeVariableOfAnyType;
+import static io.crate.types.TypeCompatibility.getCommonType;
+import static java.lang.String.format;
+import static java.util.function.Function.identity;
+import static java.util.stream.Collectors.toMap;
 
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -39,11 +35,17 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariableOfAnyType;
-import static io.crate.types.TypeCompatibility.getCommonType;
-import static java.lang.String.format;
-import static java.util.function.Function.identity;
-import static java.util.stream.Collectors.toMap;
+import javax.annotation.Nullable;
+
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.common.logging.Loggers;
+
+import io.crate.common.collections.Lists2;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
+import io.crate.types.ParameterTypeSignature;
+import io.crate.types.TypeSignature;
+import io.crate.types.UndefinedType;
 
 
 /**
@@ -75,7 +77,8 @@ public class SignatureBinder {
      **/
     private static final Set<String> ALLOW_BASENAME_MATCH = Set.of(
         DataTypes.NUMERIC.getName(),
-        DataTypes.STRING.getName()
+        DataTypes.STRING.getName(),
+        DataTypes.CHARACTER.getName()
     );
 
     public SignatureBinder(Signature declaredSignature, CoercionType coercionType) {

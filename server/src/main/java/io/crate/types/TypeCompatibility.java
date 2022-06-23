@@ -21,10 +21,11 @@
 
 package io.crate.types;
 
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+
+import javax.annotation.Nullable;
 
 public final class TypeCompatibility {
 
@@ -100,7 +101,8 @@ public final class TypeCompatibility {
             }
             return null;
         } else {
-            if (fromType.id() == StringType.ID && toType.id() == StringType.ID) {
+            if ((fromType.id() == StringType.ID && toType.id() == StringType.ID)
+                || (fromType.id() == CharacterType.ID && toType.id() == CharacterType.ID)) {
                 if (((StringType) fromType).lengthLimit() > ((StringType) toType).lengthLimit()) {
                     return fromType;
                 } else {
