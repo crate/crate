@@ -87,3 +87,5 @@ Fixes
   attempting to insert values into a partitioned table, using less columns than
   the ones defined in the table's ``PARTITIONED BY`` clause.
 
+- Fixed an issue that caused failure of ``ALTER TABLE`` statements when updating
+  dynamic or non-dynamic table settings on closed tables.
