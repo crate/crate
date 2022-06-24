@@ -21,10 +21,17 @@
 
 package io.crate.metadata.upgrade;
 
+import static io.crate.metadata.doc.DocIndexMetadata.SORT_BY_POSITION_THEN_NAME;
+
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.UnaryOperator;
+import java.util.stream.Collectors;
+
+import javax.annotation.Nonnull;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -33,6 +40,8 @@ import org.elasticsearch.cluster.metadata.MappingMetadata;
 
 import io.crate.Constants;
 import io.crate.common.annotations.VisibleForTesting;
+import io.crate.common.collections.Maps;
+import io.crate.metadata.doc.DocIndexMetadata;
 
 public class MetadataIndexUpgrader implements UnaryOperator<IndexMetadata> {
 
@@ -44,6 +53,20 @@ public class MetadataIndexUpgrader implements UnaryOperator<IndexMetadata> {
 
     @Override
     public IndexMetadata apply(IndexMetadata indexMetadata) {
+        var mappingMap = DocIndexMetadata.getMappingMap(indexMetadata);
+        Map<String, Object> properties = Maps.get(mappingMap, "properties");
+        if (properties != null) {
+            reorderPositionsIfNecessary(properties);
+            try {
+                indexMetadata = IndexMetadata.builder(indexMetadata)
+                    .putMapping(new MappingMetadata(Constants.DEFAULT_MAPPING_TYPE,
+                                                    Map.of(Constants.DEFAULT_MAPPING_TYPE, mappingMap)))
+                    .build();
+            } catch (IOException e) {
+                logger.error(
+                    "Failed to upgrade column positions for index '" + indexMetadata.getIndex().getName() + "'", e);
+            }
+        }
         return createUpdatedIndexMetadata(indexMetadata);
     }
 
@@ -89,5 +112,77 @@ public class MetadataIndexUpgrader implements UnaryOperator<IndexMetadata> {
             logger.error("Failed to upgrade mapping for index '" + indexName + "'", e);
             return mappingMetadata;
         }
+    }
+
+    private void reorderPositionsIfNecessary(Map<String, Object> properties) {
+        if (shouldReorder(properties)) {
+            reorderPositions(properties, 1);
+        }
+    }
+
+    private boolean shouldReorder(Map<String, Object> properties) {
+        return isDeep(properties, 0, 2) && containsDuplicatePositions(properties, new HashSet<>());
+    }
+
+    private boolean containsDuplicatePositions(Map<String, Object> properties, Set<Integer> positions) {
+
+        boolean foundDuplicates = false;
+        for (var e : properties.values()) {
+            if (foundDuplicates) {
+                return true;
+            }
+            Map<String, Object> m = (Map<String, Object>) e;
+            Integer position = (Integer) m.get("position");
+            if (position != null) {
+                if (positions.contains(position)) {
+                    return true;
+                } else {
+                    positions.add(position);
+                }
+            }
+            if (m.containsKey("properties")) {
+                foundDuplicates |= containsDuplicatePositions(Maps.get(m, "properties"), positions);
+            }
+        }
+        return foundDuplicates;
+    }
+
+    private boolean isDeep(Map<String, Object> properties, int currentDepth, int targetDepth) {
+        if (++currentDepth >= targetDepth) {
+            return true;
+        }
+        boolean isDeep = false;
+        for (var e : properties.values()) {
+            if (isDeep) {
+                return true;
+            }
+            Map<String, Object> m = (Map<String, Object>) e;
+            if (m.containsKey("properties")) {
+                isDeep |= isDeep(Maps.get(m, "properties"), currentDepth, targetDepth);
+            }
+        }
+        return isDeep;
+    }
+
+    private Integer reorderPositions(Map<String, Object> properties, @Nonnull Integer numFieldsCounter) {
+
+        var sortedProperties = properties.entrySet().stream().sorted(SORT_BY_POSITION_THEN_NAME)
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e1, LinkedHashMap::new));
+
+        for (var e : sortedProperties.values()) {
+            Map<String, Object> m = (Map<String, Object>) e;
+            Integer position = (Integer) m.get("position");
+            if (position == null) {
+                continue;
+            }
+            if (!position.equals(numFieldsCounter)) {
+                m.replace("position", numFieldsCounter);
+            }
+            numFieldsCounter++;
+            if (m.containsKey("properties")) {
+                numFieldsCounter = reorderPositions(Maps.get(m, "properties"), numFieldsCounter);
+            }
+        }
+        return numFieldsCounter;
     }
 }

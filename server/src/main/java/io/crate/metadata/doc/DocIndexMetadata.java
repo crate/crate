@@ -95,7 +95,7 @@ public class DocIndexMetadata {
     private final Map<String, Object> mappingMap;
     private final Map<ColumnIdent, IndexReference.Builder> indicesBuilder = new HashMap<>();
 
-    private static final Comparator<Map.Entry<String, Object>> SORT_BY_POSITION_THEN_NAME = Comparator
+    public static final Comparator<Map.Entry<String, Object>> SORT_BY_POSITION_THEN_NAME = Comparator
         .comparing((Map.Entry<String, Object> e) -> {
             Map<String, Object> columnProperties = furtherColumnProperties((Map<String, Object>) e.getValue());
             return Objects.requireNonNullElse((Integer) columnProperties.get("position"), 0);
@@ -173,7 +173,7 @@ public class DocIndexMetadata {
             null);
     }
 
-    private static Map<String, Object> getMappingMap(IndexMetadata metadata) {
+    public static Map<String, Object> getMappingMap(IndexMetadata metadata) {
         MappingMetadata mappingMetadata = metadata.mapping();
         if (mappingMetadata == null) {
             return Map.of();
