@@ -21,6 +21,9 @@
 
 package io.crate.expression.operator;
 
+import java.util.Iterator;
+import java.util.List;
+
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Query;
@@ -153,5 +156,20 @@ public class OrOperator extends Operator<Boolean> {
             query.add(symbol.accept(context.visitor(), context), BooleanClause.Occur.SHOULD);
         }
         return query.build();
+    }
+
+    public static Symbol join(Iterable<? extends Symbol> symbols) {
+        return join(symbols.iterator());
+    }
+
+    public static Symbol join(Iterator<? extends Symbol> symbols) {
+        if (!symbols.hasNext()) {
+            return Literal.BOOLEAN_TRUE;
+        }
+        Symbol first = symbols.next();
+        while (symbols.hasNext()) {
+            first = new Function(SIGNATURE, List.of(first, symbols.next()), Operator.RETURN_TYPE);
+        }
+        return first;
     }
 }

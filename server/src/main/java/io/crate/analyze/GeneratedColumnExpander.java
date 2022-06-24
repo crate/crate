@@ -30,13 +30,13 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
-import io.crate.expression.operator.AndOperator;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.operator.GtOperator;
 import io.crate.expression.operator.GteOperator;
 import io.crate.expression.operator.LtOperator;
 import io.crate.expression.operator.LteOperator;
 import io.crate.expression.operator.Operators;
+import io.crate.expression.operator.OrOperator;
 import io.crate.expression.scalar.DateTruncFunction;
 import io.crate.expression.scalar.arithmetic.CeilFunction;
 import io.crate.expression.scalar.arithmetic.FloorFunction;
@@ -152,7 +152,7 @@ public final class GeneratedColumnExpander {
             ArrayList<GeneratedReference> genColInfos = context.referencedRefsToGeneratedColumn
                 .computeIfAbsent(reference, (k) -> new ArrayList<>());
             List<Function> comparisonsToAdd = new ArrayList<>(genColInfos.size());
-            comparisonsToAdd.add(function);
+            //comparisonsToAdd.add(function);
             for (GeneratedReference genColInfo : genColInfos) {
                 Function comparison = createAdditionalComparison(
                     function,
@@ -164,7 +164,10 @@ public final class GeneratedColumnExpander {
                     comparisonsToAdd.add(comparison);
                 }
             }
-            return AndOperator.join(comparisonsToAdd);
+            if (comparisonsToAdd.isEmpty()) {
+                comparisonsToAdd.add(function);
+            }
+            return OrOperator.join(comparisonsToAdd);
         }
 
         @Nullable

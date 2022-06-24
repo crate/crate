@@ -21,13 +21,13 @@
 
 package io.crate.integrationtests;
 
-import io.crate.execution.dsl.projection.AbstractIndexWriterProjection;
-import io.crate.testing.UseJdbc;
+import static org.hamcrest.core.Is.is;
 
-import io.crate.common.unit.TimeValue;
 import org.junit.Test;
 
-import static org.hamcrest.core.Is.is;
+import io.crate.common.unit.TimeValue;
+import io.crate.execution.dsl.projection.AbstractIndexWriterProjection;
+import io.crate.testing.UseJdbc;
 
 public class DeleteIntegrationTest extends SQLIntegrationTestCase {
 
@@ -290,6 +290,58 @@ public class DeleteIntegrationTest extends SQLIntegrationTestCase {
             "FROM information_schema.table_partitions " +
             "WHERE table_name = 't'"
         );
+        assertThat(response.rows()[0][0], is(1L));
+    }
+
+//    @Test
+//    public void test2() {
+//        execute("CREATE TABLE t (x int, xv generated always as x + 1) PARTITIONED by (xv) CLUSTERED INTO 1 SHARDS");
+//        execute("INSERT INTO t (x) VALUES (1), (2), (3)");
+//        refresh();
+//        execute(
+//            "SELECT count(1) " +
+//            "FROM information_schema.table_partitions " +
+//            "WHERE table_name = 't'"
+//        );
+//        assertThat(response.rows()[0][0], is(3L));
+//
+//        execute("DELETE FROM t where x > 0");
+//        // execute("select * from sys.shards where table_name='t'");
+//        execute(
+//            "SELECT count(1) " +
+//            "FROM information_schema.table_partitions " +
+//            "WHERE table_name = 't'"
+//        );
+//        assertThat(response.rows()[0][0], is(3L));
+//        execute("SELECT count(*) FROM t");
+//        assertThat(response.rows()[0][0], is(3L));
+//    }
+
+    @Test
+    public void test2() {
+        execute("create table test (\n" +
+                "        ts timestamp,\n" +
+                "        ts_day generated always as date_trunc('day', ts),\n" +
+                "    value int) partitioned by(ts_day) CLUSTERED INTO 1 SHARDS");
+        execute(
+            "insert into test(ts, value) values ('2022-02-21T00:00',1),('2022-02-22T00:00',2),('2022-02-23T00:00',3)");
+        refresh();
+        execute(
+            "SELECT count(1) " +
+            "FROM information_schema.table_partitions " +
+            "WHERE table_name = 'test'"
+        );
+        assertThat(response.rows()[0][0], is(3L));
+
+        execute("DELETE FROM test WHERE ts <='2022-02-22T12:00'");
+        // execute("select * from sys.shards where table_name='t'");
+        execute(
+            "SELECT count(1) " +
+            "FROM information_schema.table_partitions " +
+            "WHERE table_name = 'test'"
+        );
+        assertThat(response.rows()[0][0], is(1L));
+        execute("SELECT count(*) FROM test");
         assertThat(response.rows()[0][0], is(1L));
     }
 }
