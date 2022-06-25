@@ -46,6 +46,16 @@ public class PgGetExpr extends Scalar<String, Object> {
             ),
             PgGetExpr::new
         );
+        module.register(
+            Signature.scalar(
+                FQN,
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.INTEGER.getTypeSignature(),
+                DataTypes.BOOLEAN.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature()
+            ),
+            PgGetExpr::new
+        );
     }
 
     private final Signature signature;

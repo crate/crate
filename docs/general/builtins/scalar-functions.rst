@@ -3494,7 +3494,7 @@ clients that use the PostgreSQL wire protocol. The function always returns
 
 Synopsis::
 
-   pg_get_expr(expr text, relation_oid int)
+   pg_get_expr(expr text, relation_oid int [, pretty boolean])
 
 Example::
 

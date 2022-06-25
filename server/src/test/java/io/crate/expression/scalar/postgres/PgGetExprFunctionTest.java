@@ -29,12 +29,17 @@ import static io.crate.testing.SymbolMatchers.isLiteral;
 public class PgGetExprFunctionTest extends ScalarTestCase {
 
     @Test
-    public void testPgGetExpr() throws Exception {
+    public void test_pg_get_expr() throws Exception {
         assertEvaluate("pg_get_expr('whatever', 1)", null);
     }
 
     @Test
-    public void testPgGetExprWithFQNFunctionName() throws Exception {
+    public void test_pg_get_expr_pretty() throws Exception {
+        assertEvaluate("pg_get_expr('whatever', 1, false)", null);
+    }
+
+    @Test
+    public void test_pg_get_expr_with_fqn_function_name() throws Exception {
         assertNormalize("pg_catalog.pg_get_expr('whatever', 1)", isLiteral(null));
     }
 }
