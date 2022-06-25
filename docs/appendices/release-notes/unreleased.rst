@@ -144,6 +144,9 @@ Changes
   ``regexp_matches``, and ``generate_series`` to be the respective table
   function names.
 
+- Added support for an optional boolean argument ``pretty`` at the 
+  :ref:`pg_get_expr <scalar-pg_get_expr>` scalar function for improved
+  PostgreSQL compatibility.
 
 Fixes
 =====
