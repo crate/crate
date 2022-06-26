@@ -64,6 +64,12 @@ public class PgCatalogITest extends SQLIntegrationTestCase {
     }
 
     @Test
+    public void test_pg_class_table_with_pg_get_expr() {
+        execute("select pg_get_expr(relpartbound,0) from pg_catalog.pg_class limit 1");
+        assertThat(printedTable(response.rows()), is("NULL\n"));
+    }
+
+    @Test
     public void testPgNamespaceTable() {
         execute("select * from pg_catalog.pg_namespace order by nspname");
         assertThat(printedTable(response.rows()), is(
@@ -88,6 +94,12 @@ public class PgCatalogITest extends SQLIntegrationTestCase {
     public void testPgIndexTable() {
         execute("select count(*) from pg_catalog.pg_index");
         assertThat(printedTable(response.rows()), is("23\n"));
+    }
+
+    @Test
+    public void test_pg_index_table_with_pg_get_expr() {
+        execute("select pg_get_expr(indexprs,0), pg_get_expr(indpred,0) from pg_catalog.pg_index limit 1");
+        assertThat(printedTable(response.rows()), is("NULL| NULL\n"));
     }
 
     @Test
