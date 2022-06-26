@@ -27,6 +27,8 @@ import org.elasticsearch.index.mapper.array.DynamicArrayFieldMapperBuilderFactor
 
 import java.io.IOException;
 
+import static org.elasticsearch.index.mapper.DocumentParser.getPositionForDynamicField;
+
 /**
  * Used when a document is parsed and a unknown field that contains an array value is encountered
  *
@@ -41,6 +43,7 @@ public class BuilderFactory implements DynamicArrayFieldMapperBuilderFactory {
             if (innerBuilder == null) {
                 return null;
             }
+            innerBuilder.position(getPositionForDynamicField(context));
             Mapper innerMapper = innerBuilder.build(builderContext);
             if (innerMapper instanceof ObjectMapper objectMapper) {
                 return new ObjectArrayMapper(name, objectMapper, context.indexSettings().getSettings());

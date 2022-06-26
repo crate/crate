@@ -87,4 +87,14 @@ public abstract class MetadataFieldMapper extends FieldMapper {
     @Override
     protected void mergeOptions(FieldMapper other, List<String> conflicts) {
     }
+
+    @Override
+    public Integer position() {
+        throw new IllegalStateException("Metadata field does not have associated column position");
+    }
+
+    @Override
+    public int maxPosition() {
+        throw new IllegalStateException("Metadata field does not have associated column position");
+    }
 }
