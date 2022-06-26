@@ -497,6 +497,7 @@ public class GatewayIndexStateIT extends SQLIntegrationTestCase {
                 "    \"default\": {\n" +
                 "      \"properties\": {\n" +
                 "        \"field1\": {\n" +
+                "          \"position\": \"1\",\n" +
                 "          \"type\": \"text\",\n" +
                 "          \"analyzer\": \"test\"\n" +
                 "        }\n" +

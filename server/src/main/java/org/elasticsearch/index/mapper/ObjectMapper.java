@@ -61,7 +61,6 @@ public class ObjectMapper extends Mapper implements Cloneable {
         protected Dynamic dynamic = Defaults.DYNAMIC;
 
         protected final List<Mapper.Builder> mappersBuilders = new ArrayList<>();
-        private Integer position;
 
         @SuppressWarnings("unchecked")
         public Builder(String name) {
@@ -384,5 +383,15 @@ public class ObjectMapper extends Mapper implements Cloneable {
             builder.endObject();
         }
         builder.endObject();
+    }
+
+    //TODO: calculating maxPosition every time is ineffient.
+    @Override
+    public int maxPosition() {
+        int nextAvailablePosition = position == null ? 0 : position;
+        for (Mapper childMapper : this) {
+            nextAvailablePosition = Math.max(childMapper.maxPosition(), nextAvailablePosition);
+        }
+        return nextAvailablePosition;
     }
 }

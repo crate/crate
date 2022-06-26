@@ -434,6 +434,7 @@ public class DocIndexMetadata {
 
             boolean nullable = !notNullColumns.contains(newIdent) && !primaryKey.contains(newIdent);
             columnProperties = furtherColumnProperties(columnProperties);
+            assert columnProperties.containsKey("position") : "Column position is missing: " + newIdent.fqn();
             int position = columnPosition((int) columnProperties.getOrDefault("position", 0));
             String defaultExpression = (String) columnProperties.getOrDefault("default_expr", null);
             IndexType columnIndexType = getColumnIndexType(columnProperties);
@@ -610,7 +611,12 @@ public class DocIndexMetadata {
         columnPosition++;
 
         if (storedPosition != columnPosition) {
-            return columnPosition;
+            if (versionCreated != null && versionCreated.before(Version.V_4_0_0)) {
+                return columnPosition;
+            } else {
+                // should I check for onAfter(V_5_0_0)?
+                return storedPosition;
+            }
         }
         return storedPosition;
     }

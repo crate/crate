@@ -59,6 +59,8 @@ public abstract class Mapper implements ToXContentFragment, Iterable<Mapper> {
 
         public String name;
 
+        protected Integer position;
+
         protected T builder;
 
         protected Builder(String name) {
@@ -71,6 +73,8 @@ public abstract class Mapper implements ToXContentFragment, Iterable<Mapper> {
 
         /** Returns a newly built mapper. */
         public abstract Mapper build(BuilderContext context);
+
+        public abstract T position(int position);
     }
 
     public interface TypeParser {
@@ -147,4 +151,9 @@ public abstract class Mapper implements ToXContentFragment, Iterable<Mapper> {
     /** Return the merge of {@code mergeWith} into this.
      *  Both {@code this} and {@code mergeWith} will be left unmodified. */
     public abstract Mapper merge(Mapper mergeWith);
+
+    /**
+     * Returns the largest column position assigned from itself and its children(if any).
+     */
+    public abstract int maxPosition();
 }

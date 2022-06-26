@@ -137,4 +137,9 @@ public class ObjectArrayMapper extends ObjectMapper {
     public Iterator<Mapper> iterator() {
         return innerMapper.iterator();
     }
+
+    @Override
+    public int maxPosition() {
+        return innerMapper.maxPosition();
+    }
 }

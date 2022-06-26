@@ -78,7 +78,7 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
     /**
      * create index with type and mapping and validate DocumentMapper serialization
      */
-    private DocumentMapper mapper(String indexName, String mapping) throws IOException {
+    private static DocumentMapper mapper(String indexName, String mapping) throws IOException {
         IndicesModule indicesModule = new IndicesModule(List.of());
         MapperService mapperService = MapperTestUtils.newMapperService(
             NamedXContentRegistry.EMPTY,
@@ -273,6 +273,7 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
                                 .startObject("properties")
                                     .startObject("s")
                                         .field("type", "keyword")
+                                        .field("position", 1)
                                     .endObject()
                                 .endObject()
                             .endObject()
@@ -289,6 +290,7 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
             .startObject()
             .field("s", "a")
             .field("new", true)
+            .field("new2", 123)
             .endObject()
             .endArray()
             .endObject());
@@ -311,10 +313,9 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
                "\"inner\":{" +
                "\"dynamic\":\"true\"," +
                "\"properties\":{" +
-               "\"new\":{\"type\":\"boolean\"}," +
-               "\"s\":{" +
-               "\"type\":\"keyword\"" +
-               "}" +
+               "\"new\":{\"type\":\"boolean\",\"position\":2}," +
+               "\"new2\":{\"type\":\"long\",\"position\":3}," +
+               "\"s\":{\"type\":\"keyword\",\"position\":1}" +
                "}" +
                "}" +
                "}" +
@@ -446,6 +447,7 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
                     .field("type", ArrayMapper.CONTENT_TYPE)
                     .startObject(ArrayMapper.INNER_TYPE)
                         .field("type", "text")
+                        .field("position", 1)
                         .field("index", "true")
                         .field("copy_to", "string_array_ft")
                     .endObject()

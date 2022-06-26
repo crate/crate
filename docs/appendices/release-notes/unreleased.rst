@@ -94,6 +94,11 @@ Breaking Changes
   data type. It will now be correctly exposed as the special single byte
   ``"char"``.
 
+- Fixed internal column positions. Therefore,
+  ``information_schema.columns.ordinal_position`` and
+  ``pg_catalog.pg_attribute.attnum`` could be reassigned to different values
+  for affected tables.
+
 Deprecations
 ============
 
