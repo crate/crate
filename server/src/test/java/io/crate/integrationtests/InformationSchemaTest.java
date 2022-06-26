@@ -66,63 +66,63 @@ public class InformationSchemaTest extends SQLIntegrationTestCase {
         execute("select * from information_schema.tables order by table_schema, table_name");
         assertEquals(56L, response.rowCount());
 
-        assertThat(printedTable(response.rows()), is(
-            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| information_schema| character_sets| information_schema| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| information_schema| columns| information_schema| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| information_schema| key_column_usage| information_schema| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| information_schema| referential_constraints| information_schema| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| information_schema| routines| information_schema| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| information_schema| schemata| information_schema| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| information_schema| sql_features| information_schema| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| information_schema| table_constraints| information_schema| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| information_schema| table_partitions| information_schema| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| information_schema| tables| information_schema| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| information_schema| views| information_schema| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| pg_catalog| pg_am| pg_catalog| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| pg_catalog| pg_attrdef| pg_catalog| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| pg_catalog| pg_attribute| pg_catalog| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| pg_catalog| pg_class| pg_catalog| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| pg_catalog| pg_constraint| pg_catalog| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| pg_catalog| pg_database| pg_catalog| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| pg_catalog| pg_description| pg_catalog| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| pg_catalog| pg_enum| pg_catalog| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| pg_catalog| pg_index| pg_catalog| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| pg_catalog| pg_indexes| pg_catalog| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| pg_catalog| pg_locks| pg_catalog| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| pg_catalog| pg_namespace| pg_catalog| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| pg_catalog| pg_proc| pg_catalog| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| pg_catalog| pg_publication| pg_catalog| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| pg_catalog| pg_publication_tables| pg_catalog| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| pg_catalog| pg_range| pg_catalog| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| pg_catalog| pg_roles| pg_catalog| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| pg_catalog| pg_settings| pg_catalog| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| pg_catalog| pg_shdescription| pg_catalog| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| pg_catalog| pg_stats| pg_catalog| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| pg_catalog| pg_subscription| pg_catalog| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| pg_catalog| pg_subscription_rel| pg_catalog| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| pg_catalog| pg_tables| pg_catalog| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| pg_catalog| pg_tablespace| pg_catalog| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| pg_catalog| pg_type| pg_catalog| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| pg_catalog| pg_views| pg_catalog| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| sys| allocations| sys| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| sys| checks| sys| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| sys| cluster| sys| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| sys| health| sys| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| sys| jobs| sys| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| sys| jobs_log| sys| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| sys| jobs_metrics| sys| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| sys| node_checks| sys| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| sys| nodes| sys| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| sys| operations| sys| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| sys| operations_log| sys| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| sys| privileges| sys| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| sys| repositories| sys| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| sys| segments| sys| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| sys| shards| sys| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| sys| snapshot_restore| sys| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| sys| snapshots| sys| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| sys| summits| sys| BASE TABLE| NULL\n" +
-            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| sys| users| sys| BASE TABLE| NULL\n"
+        assertThat(printedTable(response.rows()).split("\n"), Matchers.arrayContaining(
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| character_sets| information_schema| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| columns| information_schema| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| key_column_usage| information_schema| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| referential_constraints| information_schema| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| routines| information_schema| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| schemata| information_schema| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| sql_features| information_schema| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| table_constraints| information_schema| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| table_partitions| information_schema| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| tables| information_schema| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| views| information_schema| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| pg_am| pg_catalog| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| pg_attrdef| pg_catalog| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| pg_attribute| pg_catalog| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| pg_class| pg_catalog| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| pg_constraint| pg_catalog| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| pg_database| pg_catalog| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| pg_description| pg_catalog| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| pg_enum| pg_catalog| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| pg_index| pg_catalog| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| pg_indexes| pg_catalog| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| pg_locks| pg_catalog| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| pg_namespace| pg_catalog| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| pg_proc| pg_catalog| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| pg_publication| pg_catalog| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| pg_publication_tables| pg_catalog| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| pg_range| pg_catalog| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| pg_roles| pg_catalog| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| pg_settings| pg_catalog| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| pg_shdescription| pg_catalog| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| pg_stats| pg_catalog| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| pg_subscription| pg_catalog| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| pg_subscription_rel| pg_catalog| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| pg_tables| pg_catalog| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| pg_tablespace| pg_catalog| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| pg_type| pg_catalog| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| pg_views| pg_catalog| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| allocations| sys| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| checks| sys| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| cluster| sys| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| health| sys| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| jobs| sys| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| jobs_log| sys| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| jobs_metrics| sys| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| node_checks| sys| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| nodes| sys| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| operations| sys| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| operations_log| sys| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| privileges| sys| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| repositories| sys| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| segments| sys| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| shards| sys| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| snapshot_restore| sys| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| snapshots| sys| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| summits| sys| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| users| sys| BASE TABLE| NULL"
             )
         );
     }
@@ -227,7 +227,7 @@ public class InformationSchemaTest extends SQLIntegrationTestCase {
         TestingHelpers.assertCrateVersion(response.rows()[0][15], Version.CURRENT, null);
         assertThat(response.rows()[0][13], is(defaultSchema));
         assertThat(response.rows()[0][12], is("foo"));
-        assertThat(response.rows()[0][11], is(defaultSchema));
+        assertThat(response.rows()[0][11], is("crate"));
         assertThat(response.rows()[0][14], is("BASE TABLE"));
         assertThat(response.rows()[0][8], is(IndexMappings.DEFAULT_ROUTING_HASH_FUNCTION_PRETTY_NAME));
         assertThat(response.rows()[0][5], is(3));
@@ -238,7 +238,7 @@ public class InformationSchemaTest extends SQLIntegrationTestCase {
         TestingHelpers.assertCrateVersion(response.rows()[0][15], Version.CURRENT, null);
         assertThat(response.rows()[1][13], is(defaultSchema));
         assertThat(response.rows()[1][12], is("test"));
-        assertThat(response.rows()[1][11], is(defaultSchema));
+        assertThat(response.rows()[1][11], is("crate"));
         assertThat(response.rows()[1][14], is("BASE TABLE"));
         assertThat(response.rows()[1][8], is(IndexMappings.DEFAULT_ROUTING_HASH_FUNCTION_PRETTY_NAME));
         assertThat(response.rows()[1][5], is(5));
@@ -289,7 +289,7 @@ public class InformationSchemaTest extends SQLIntegrationTestCase {
         TestingHelpers.assertCrateVersion(response.rows()[0][15], Version.CURRENT, null); // version
         assertThat(response.rows()[0][13], is(defaultSchema)); // table_schema
         assertThat(response.rows()[0][12], is("test"));  // table_name
-        assertThat(response.rows()[0][11], is(defaultSchema)); // table_catalog
+        assertThat(response.rows()[0][11], is("crate")); // table_catalog
         assertThat(response.rows()[0][14], is("BASE TABLE")); // table_type
         assertThat(response.rows()[0][8], is(IndexMappings.DEFAULT_ROUTING_HASH_FUNCTION_PRETTY_NAME)); // routing_hash_function
         assertThat(response.rows()[0][5], is(5)); // number_of_shards
@@ -369,7 +369,7 @@ public class InformationSchemaTest extends SQLIntegrationTestCase {
         TestingHelpers.assertCrateVersion(response.rows()[0][15], Version.CURRENT, null);
         assertThat(response.rows()[0][13], is(sqlExecutor.getCurrentSchema()));
         assertThat(response.rows()[0][12], is("test"));
-        assertThat(response.rows()[0][11], is(sqlExecutor.getCurrentSchema()));
+        assertThat(response.rows()[0][11], is("crate"));
         assertThat(response.rows()[0][14], is("BASE TABLE"));
         assertThat(response.rows()[0][8], is(IndexMappings.DEFAULT_ROUTING_HASH_FUNCTION_PRETTY_NAME));
         assertThat(response.rows()[0][5], is(5));
@@ -731,7 +731,7 @@ public class InformationSchemaTest extends SQLIntegrationTestCase {
         assertEquals(32, response.rows()[0][cols.get("numeric_precision")]);
         assertEquals(2, response.rows()[0][cols.get("numeric_precision_radix")]);
         assertEquals(3, response.rows()[0][cols.get("ordinal_position")]);
-        assertEquals(defaultSchema, response.rows()[0][cols.get("table_catalog")]);
+        assertEquals("crate", response.rows()[0][cols.get("table_catalog")]);
         assertEquals("test", response.rows()[0][cols.get("table_name")]);
 
         assertEquals(false, response.rows()[0][cols.get("is_identity")]);
@@ -1311,9 +1311,9 @@ public class InformationSchemaTest extends SQLIntegrationTestCase {
 
         final String defaultSchema = sqlExecutor.getCurrentSchema();
         Matcher<Object[][]> resultMatcher = arrayContaining(
-            new Object[]{"id2", defaultSchema, "table2_pk", defaultSchema, 1, defaultSchema, "table2", defaultSchema},
-            new Object[]{"id3", defaultSchema, "table3_pk", defaultSchema, 1, defaultSchema, "table3", defaultSchema},
-            new Object[]{"name", defaultSchema, "table3_pk", defaultSchema, 2, defaultSchema, "table3", defaultSchema}
+            new Object[]{"id2", "crate", "table2_pk", defaultSchema, 1, "crate", "table2", defaultSchema},
+            new Object[]{"id3", "crate", "table3_pk", defaultSchema, 1, "crate", "table3", defaultSchema},
+            new Object[]{"name", "crate", "table3_pk", defaultSchema, 2, "crate", "table3", defaultSchema}
         );
         assertThat(response.rows(), resultMatcher);
 
