@@ -3506,6 +3506,29 @@ Example::
     +------+
     SELECT 1 row in set (... sec)
 
+.. _scalar-pg_get_partkeydef:
+
+``pg_get_partkeydef()``
+-----------------------
+
+The function ``pg_get_partkeydef`` is implemented to improve compatibility with
+clients that use the PostgreSQL wire protocol. Partitioning in CrateDB is
+different from PostgreSQL, therefore this function always returns ``null``.
+
+Synopsis::
+
+   pg_get_partkeydef(relation_oid int)
+
+Example::
+
+    cr> select pg_get_partkeydef(1) AS col;
+    +------+
+    |  col |
+    +------+
+    | NULL |
+    +------+
+    SELECT 1 row in set (... sec)
+
 .. _scalar-pg_get_serial_sequence:
 
 ``pg_get_serial_sequence()``
