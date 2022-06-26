@@ -67,6 +67,10 @@ Breaking Changes
   aliased and is returning a base data type, the table function name is used
   as the column name.
 
+- Fields of type ``pg_node_tree`` in PostgreSQL in the ``pg_class`` and
+  ``pg_index`` tables now return ``TEXT`` instead of ``ARRAY(OBJECT)`` for
+  improved compatibility with PostgreSQL.
+
 Deprecations
 ============
 
