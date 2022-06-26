@@ -148,6 +148,11 @@ Changes
   :ref:`pg_get_expr <scalar-pg_get_expr>` scalar function for improved
   PostgreSQL compatibility.
 
+- Added the :ref:`pg_get_partkeydef <scalar-pg_get_partkeydef>` scalar 
+  function for improved compatibility with PostgreSQL. Partitioning in CrateDB
+  is different from PostgreSQL, therefore this function always returns ``NULL``.
+
+
 Fixes
 =====
 

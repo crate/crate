@@ -83,6 +83,7 @@ import io.crate.expression.scalar.systeminformation.ObjDescriptionFunction;
 import io.crate.expression.scalar.systeminformation.PgFunctionIsVisibleFunction;
 import io.crate.expression.scalar.systeminformation.PgGetExpr;
 import io.crate.expression.scalar.systeminformation.PgGetFunctionResultFunction;
+import io.crate.expression.scalar.systeminformation.PgGetPartkeydefFunction;
 import io.crate.expression.scalar.systeminformation.PgGetSerialSequenceFunction;
 import io.crate.expression.scalar.systeminformation.PgTypeofFunction;
 import io.crate.expression.scalar.systeminformation.VersionFunction;
@@ -201,6 +202,7 @@ public class ScalarFunctionModule extends AbstractFunctionModule<FunctionImpleme
         CurrentSchemaFunction.register(this);
         CurrentSchemasFunction.register(this);
         PgGetExpr.register(this);
+        PgGetPartkeydefFunction.register(this);
         CurrentSettingFunction.register(this, getProvider(SessionSettingRegistry.class));
 
         PgBackendPidFunction.register(this);
