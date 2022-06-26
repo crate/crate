@@ -385,7 +385,7 @@ final class DocumentParser {
 
         Mapper objectMapper = getMapper(mapper, currentFieldName, paths);
         if (objectMapper != null) {
-            context.path().add(currentFieldName);
+            context.path().add(currentFieldName, objectMapper);
             parseObjectOrField(context, objectMapper);
             context.path().remove();
         } else {
@@ -401,7 +401,7 @@ final class DocumentParser {
                 Mapper.BuilderContext builderContext = new Mapper.BuilderContext(context.indexSettings().getSettings(), context.path());
                 objectMapper = builder.build(builderContext);
                 context.addDynamicMapper(objectMapper);
-                context.path().add(currentFieldName);
+                context.path().add(currentFieldName, objectMapper);
                 parseObjectOrField(context, objectMapper);
                 context.path().remove();
             } else {
@@ -455,7 +455,7 @@ final class DocumentParser {
                     );
                     if (mapper != null) {
                         context.addDynamicMapper(mapper);
-                        context.path().add(arrayFieldName);
+                        context.path().add(arrayFieldName, mapper);
                         parseObjectOrField(context, mapper);
                         context.path().remove();
                     }
@@ -566,7 +566,7 @@ final class DocumentParser {
         }
         final Mapper.BuilderContext builderContext = new Mapper.BuilderContext(context.indexSettings().getSettings(), context.path());
         final Mapper.Builder<?> builder = createBuilderFromDynamicValue(context, token, currentFieldName);
-        if (parentMapper.equals(context.root())) {
+        if (parentMapper.equals(context.path().theLastObjectMapper())) {
             int position = getPositionForDynamicField(context, parentMapper);
             if (builder instanceof FieldMapper.Builder<?> fieldMapperBuilder) {
                 fieldMapperBuilder.position(position);
@@ -578,10 +578,11 @@ final class DocumentParser {
         parseObjectOrField(context, mapper);
     }
 
-    private static int getPositionForDynamicField(ParseContext context, Mapper parentMapper) {
+    private static int getPositionForDynamicField(ParseContext context, ObjectMapper parentMapper) {
+        final int parentMappersPosition = parentMapper.position();
         return StreamSupport.stream(parentMapper.spliterator(), false)
                     .map(m -> m instanceof FieldMapper ? ((FieldMapper) m).position() : ((ObjectMapper) m).position())
-                    .mapToInt(x -> x == null ? 0 : x)
+                    .mapToInt(x -> x == null ? parentMappersPosition : x)
                     .max().orElse(0) + 1 + context.getDynamicMappers().size();
     }
 
@@ -675,7 +676,7 @@ final class DocumentParser {
                         throw new IllegalArgumentException("Unexpected dynamic value: " + dynamic);
                 }
             }
-            context.path().add(paths[i]);
+            context.path().add(paths[i], mapper);
             pathsAdded++;
             parent = mapper;
         }

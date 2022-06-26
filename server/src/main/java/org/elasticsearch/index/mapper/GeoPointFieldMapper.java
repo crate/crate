@@ -154,7 +154,7 @@ public class GeoPointFieldMapper extends FieldMapper implements ArrayValueMapper
 
     @Override
     public void parse(ParseContext context) throws IOException {
-        context.path().add(simpleName());
+        context.path().add(simpleName(), this);
 
         GeoPoint sparse = new GeoPoint();
         XContentParser.Token token = context.parser().currentToken();

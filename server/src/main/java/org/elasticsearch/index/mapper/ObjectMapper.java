@@ -81,7 +81,7 @@ public class ObjectMapper extends Mapper implements Cloneable {
 
         @Override
         public ObjectMapper build(BuilderContext context) {
-            context.path().add(name);
+            context.path().add(name, null);
 
             Map<String, Mapper> mappers = new HashMap<>();
             for (Mapper.Builder builder : mappersBuilders) {

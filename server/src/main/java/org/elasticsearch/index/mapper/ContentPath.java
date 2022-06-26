@@ -19,6 +19,8 @@
 
 package org.elasticsearch.index.mapper;
 
+import javax.annotation.Nullable;
+
 public final class ContentPath {
 
     private static final char DELIMITER = '.';
@@ -30,6 +32,7 @@ public final class ContentPath {
     private int index = 0;
 
     private String[] path = new String[10];
+    private Mapper[] mappers = new ObjectMapper[10];
 
     public ContentPath() {
         this(0);
@@ -45,16 +48,21 @@ public final class ContentPath {
         this.index = 0;
     }
 
-    public void add(String name) {
+    public void add(String name, @Nullable Mapper mapper) {
+        mappers[index] = mapper;
         path[index++] = name;
         if (index == path.length) { // expand if needed
             String[] newPath = new String[path.length + 10];
+            Mapper[] newMappers = new ObjectMapper[mappers.length + 10];
             System.arraycopy(path, 0, newPath, 0, path.length);
+            System.arraycopy(mappers, 0, newMappers, 0, mappers.length);
             path = newPath;
+            mappers = newMappers;
         }
     }
 
     public void remove() {
+        mappers[index] = null;
         path[index--] = null;
     }
 
@@ -65,5 +73,10 @@ public final class ContentPath {
         }
         sb.append(name);
         return sb.toString();
+    }
+
+    @Nullable
+    public Mapper theLastObjectMapper() {
+        return index > 0 ? mappers[index - 1] : null;
     }
 }
