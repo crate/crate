@@ -61,12 +61,12 @@ public class CountTask extends AbstractTask {
     }
 
     @Override
-    public synchronized void innerStart() {
+    public synchronized CompletableFuture<Void> innerStart() {
         try {
             countFuture = countOperation.count(txnCtx, indexShardMap, countPhase.where());
         } catch (Throwable t) {
             consumer.accept(null, t);
-            return;
+            return null;
         }
         countFuture.whenComplete((rowCount, failure) -> {
             Throwable killed = killReason;  // 1 volatile read
@@ -79,6 +79,7 @@ public class CountTask extends AbstractTask {
                 kill(failure);
             }
         });
+        return null;
     }
 
     @Override

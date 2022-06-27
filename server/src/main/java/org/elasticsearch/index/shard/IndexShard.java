@@ -38,6 +38,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -3235,6 +3236,15 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
                 });
             }
         }
+    }
+
+    /**
+     * Wait for an idle shard to refresh. Completes immediately if the shard wasn't idle or if there are no pending refresh locations.
+     */
+    public CompletableFuture<Boolean> awaitShardSearchActive() {
+        CompletableFuture<Boolean> result = new CompletableFuture<>();
+        awaitShardSearchActive(b -> result.complete(b));
+        return result;
     }
 
     /**

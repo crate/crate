@@ -72,13 +72,14 @@ public class DistResultRXTask implements Task, DownstreamRXTask {
     }
 
     @Override
-    public void start() {
+    public CompletableFuture<Void> start() {
         // E.g. If the upstreamPhase is a collectPhase for a partitioned table without any partitions
         // there won't be any executionNodes for that collectPhase
         // -> no upstreams -> just finish
         if (numBuckets == 0) {
             pageBucketReceiver.consumeRows();
         }
+        return null;
     }
 
     @Override

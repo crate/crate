@@ -156,7 +156,7 @@ public class CollectTask implements Task {
     }
 
     @Override
-    public void start() {
+    public CompletableFuture<Void> start() {
         if (started.compareAndSet(false, true)) {
             try {
                 var futureIt = collectOperation.createIterator(
@@ -176,6 +176,7 @@ public class CollectTask implements Task {
                 batchIterator.completeExceptionally(t);
             }
         }
+        return null;
     }
 
     @Override
