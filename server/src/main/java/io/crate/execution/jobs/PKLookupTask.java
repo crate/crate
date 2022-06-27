@@ -21,6 +21,16 @@
 
 package io.crate.execution.jobs;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
+
+import org.elasticsearch.index.shard.ShardId;
+
 import io.crate.breaker.BlockBasedRamAccounting;
 import io.crate.breaker.RamAccounting;
 import io.crate.data.BatchIterator;
@@ -38,14 +48,6 @@ import io.crate.memory.MemoryManager;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.PKAndVersion;
-import org.elasticsearch.index.shard.ShardId;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.function.Function;
 
 public final class PKLookupTask extends AbstractTask {
 
@@ -101,7 +103,7 @@ public final class PKLookupTask extends AbstractTask {
     }
 
     @Override
-    protected void innerStart() {
+    protected CompletableFuture<Void> innerStart() {
         BatchIterator<Row> rowBatchIterator = pkLookupOperation.lookup(
             jobId,
             txnCtx,
@@ -115,6 +117,7 @@ public final class PKLookupTask extends AbstractTask {
         );
         consumer.accept(rowBatchIterator, null);
         close();
+        return null;
     }
 
     private Row resultToRow(Doc getResult) {

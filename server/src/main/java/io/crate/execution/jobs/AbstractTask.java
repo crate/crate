@@ -51,18 +51,20 @@ public abstract class AbstractTask implements Task {
         };
     }
 
-    protected void innerStart() {
+    protected CompletableFuture<Void> innerStart() {
+        return null;
     }
 
     @Override
-    public final void start() {
+    public final CompletableFuture<Void> start() {
         if (!firstClose.get()) {
             try {
-                innerStart();
+                return innerStart();
             } catch (Throwable t) {
                 kill(t);
             }
         }
+        return null;
     }
 
     protected void innerClose() {

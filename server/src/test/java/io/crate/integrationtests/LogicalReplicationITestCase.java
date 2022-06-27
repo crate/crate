@@ -65,7 +65,6 @@ import org.junit.Before;
 import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.LogicalReplicationSettings;
-import io.crate.replication.logical.MetadataTracker;
 import io.crate.replication.logical.metadata.SubscriptionsMetadata;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;

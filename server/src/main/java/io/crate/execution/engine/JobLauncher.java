@@ -246,33 +246,43 @@ public class JobLauncher {
             CompletableFutures.allAsList(directResponseFutures)
                 .whenComplete(BucketForwarder.asConsumer(pageBucketReceivers, bucketIdx, initializationTracker));
             bucketIdx++;
-            try {
-                // initializationTracker for localNodeOperations is triggered via SetBucketCallback
 
-                localTask.start();
-            } catch (Throwable t) {
-                accountFailureForRemoteOperations(operationByServer, initializationTracker, handlerPhaseAndReceiver, t);
-                return;
-            }
+            final int currentBucket = bucketIdx;
+            // initializationTracker for localNodeOperations is triggered via SetBucketCallback
+            localTask.start().whenComplete((result, err) -> {
+                if (err == null) {
+                    sendJobRequests(
+                        txnCtx,
+                        localNodeId,
+                        operationByServer,
+                        pageBucketReceivers,
+                        handlerPhaseAndReceiver,
+                        currentBucket,
+                        initializationTracker
+                    );
+                } else {
+                    accountFailureForRemoteOperations(operationByServer, initializationTracker, handlerPhaseAndReceiver, err);
+                }
+            });
         } else {
-            try {
-                localTask.start();
-                initializationTracker.jobInitialized();
-            } catch (Throwable t) {
-                initializationTracker.jobInitializationFailed(t);
-                accountFailureForRemoteOperations(operationByServer, initializationTracker, handlerPhaseAndReceiver, t);
-                return;
-            }
+            localTask.start().whenComplete((result, err) -> {
+                if (err == null) {
+                    initializationTracker.jobInitialized();
+                    sendJobRequests(
+                        txnCtx,
+                        localNodeId,
+                        operationByServer,
+                        pageBucketReceivers,
+                        handlerPhaseAndReceiver,
+                        0,
+                        initializationTracker
+                    );
+                } else {
+                    initializationTracker.jobInitializationFailed(err);
+                    accountFailureForRemoteOperations(operationByServer, initializationTracker, handlerPhaseAndReceiver, err);
+                }
+            });
         }
-        sendJobRequests(
-            txnCtx,
-            localNodeId,
-            operationByServer,
-            pageBucketReceivers,
-            handlerPhaseAndReceiver,
-            bucketIdx,
-            initializationTracker
-        );
     }
 
     private SharedShardContexts maybeInstrumentProfiler(RootTask.Builder builder) {

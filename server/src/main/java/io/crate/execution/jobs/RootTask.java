@@ -176,23 +176,38 @@ public class RootTask implements CompletionListenable<Void> {
         return participatedNodes;
     }
 
-    public void start() throws Throwable {
+    @Nullable
+    public CompletableFuture<Void> start() {
         if (closed.get()) {
-            return; // got killed before start was called
+            return CompletableFuture.completedFuture(null); // got killed before start was called
         }
-        for (Task task : orderedTasks) {
+        return start(0);
+    }
+
+    private CompletableFuture<Void> start(int taskIndex) {
+        for (int i = taskIndex; i < orderedTasks.size(); i++) {
+            var task = orderedTasks.get(i);
             int phaseId = task.id();
             if (profiler != null) {
                 String subContextName = ProfilingContext.generateProfilingKey(phaseId, task.name());
                 if (taskTimersByPhaseId.put(phaseId, profiler.createAndStartTimer(subContextName)) != null) {
-                    throw new IllegalArgumentException("Timer for " + phaseId + " already added");
+                    return CompletableFuture.failedFuture(new IllegalArgumentException("Timer for " + phaseId + " already added"));
                 }
             }
-            task.start();
+            try {
+                CompletableFuture<Void> started = task.start();
+                if (started != null) {
+                    return started.thenCompose(ignored -> start(taskIndex + 1));
+                }
+            } catch (Throwable t) {
+                return CompletableFuture.failedFuture(t);
+            }
         }
-        if (failure != null) {
-            throw failure;
+        var localFailure = failure; // 1 volatile read
+        if (localFailure != null) {
+            return CompletableFuture.failedFuture(localFailure);
         }
+        return CompletableFuture.completedFuture(null);
     }
 
     @Nullable

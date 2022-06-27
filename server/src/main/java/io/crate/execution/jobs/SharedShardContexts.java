@@ -21,17 +21,26 @@
 
 package io.crate.execution.jobs;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.UnaryOperator;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.engine.Engine;
+import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesService;
+
+import com.carrotsearch.hppc.IntIndexedContainer;
+
+import io.crate.metadata.IndexParts;
 
 @NotThreadSafe
 public class SharedShardContexts {
@@ -44,6 +53,38 @@ public class SharedShardContexts {
     public SharedShardContexts(IndicesService indicesService, UnaryOperator<Engine.Searcher> wrapSearcher) {
         this.indicesService = indicesService;
         this.wrapSearcher = wrapSearcher;
+    }
+
+    public CompletableFuture<Void> maybeRefreshReaders(Metadata metadata,
+                                                       Map<String, IntIndexedContainer> shardsByIndex,
+                                                       Map<String, Integer> bases) {
+        ArrayList<CompletableFuture<Boolean>> refreshActions = new ArrayList<>();
+        for (var entry : shardsByIndex.entrySet()) {
+            String indexName = entry.getKey();
+            Integer base = bases.get(indexName);
+            if (base == null) {
+                continue;
+            }
+            IndexMetadata indexMetadata = metadata.index(indexName);
+            if (indexMetadata == null) {
+                if (IndexParts.isPartitioned(indexName)) {
+                    continue;
+                }
+                refreshActions.add(CompletableFuture.failedFuture(new IndexNotFoundException(indexName)));
+                continue;
+            }
+            IndexService indexService = indicesService.indexService(indexMetadata.getIndex());
+            if (indexService == null && !IndexParts.isPartitioned(indexName)) {
+                refreshActions.add(CompletableFuture.failedFuture(new IndexNotFoundException(indexName)));
+                continue;
+            }
+            for (var shardCursor : entry.getValue()) {
+                int shardId = shardCursor.value;
+                IndexShard shard = indexService.getShard(shardId);
+                refreshActions.add(shard.awaitShardSearchActive());
+            }
+        }
+        return CompletableFuture.allOf(refreshActions.toArray(CompletableFuture[]::new));
     }
 
     public SharedShardContext createContext(ShardId shardId, int readerId) throws IndexNotFoundException {

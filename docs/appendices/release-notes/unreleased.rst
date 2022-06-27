@@ -164,6 +164,10 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Fixed an issue that prevented rows inserted after the last refresh from
+  showing up in the result if a shard had been idle for more than 30 seconds.
+  This affected tables without an explicit ``refresh_interval`` setting.
+
 - Fixed an issue that caused NPE to be thrown, instead of a user-friendly error
   message when ``NULL`` is passed as shardId for the
   ``ALTER TABLE XXX REROUTE XXX`` statements (MOVE, ALLOCATE, PROMOTE, CANCEL).
