@@ -215,70 +215,89 @@ public class FetchTask implements Task {
 
 
     @Override
-    public void start() {
+    public CompletableFuture<Void> start() {
         synchronized (jobId) {
             if (killed != null) {
                 result.completeExceptionally(killed);
-                return;
-            }
-            HashMap<String, RelationName> index2TableIdent = new HashMap<>();
-            for (Map.Entry<RelationName, Collection<String>> entry : phase.tableIndices().entrySet()) {
-                for (String indexName : entry.getValue()) {
-                    index2TableIdent.put(indexName, entry.getKey());
-                }
-            }
-            Set<RelationName> tablesWithFetchRefs = new HashSet<>();
-            for (Reference reference : phase.fetchRefs()) {
-                tablesWithFetchRefs.add(reference.ident().tableIdent());
+                return null;
             }
 
-            String source = "fetch-task: " + jobId.toString() + '-' + phase.phaseId() + '-' + phase.name();
+            ArrayList<CompletableFuture<Void>> refreshActions = new ArrayList<>();
             for (Routing routing : routingIterable) {
                 Map<String, Map<String, IntIndexedContainer>> locations = routing.locations();
                 Map<String, IntIndexedContainer> indexShards = locations.get(localNodeId);
-                for (Map.Entry<String, IntIndexedContainer> indexShardsEntry : indexShards.entrySet()) {
-                    String indexName = indexShardsEntry.getKey();
-                    Integer base = phase.bases().get(indexName);
-                    if (base == null) {
+                refreshActions.add(sharedShardContexts.maybeRefreshReaders(metadata, indexShards, phase.bases()));
+            }
+            return CompletableFuture.allOf(refreshActions.toArray(CompletableFuture[]::new))
+                .thenApply(ignored -> {
+                    synchronized (jobId) {
+                        if (killed == null) {
+                            setupSearchers();
+                        }
+                    }
+                    return null;
+                });
+        }
+    }
+
+    private void setupSearchers() {
+        HashMap<String, RelationName> index2TableIdent = new HashMap<>();
+        for (Map.Entry<RelationName, Collection<String>> entry : phase.tableIndices().entrySet()) {
+            for (String indexName : entry.getValue()) {
+                index2TableIdent.put(indexName, entry.getKey());
+            }
+        }
+        Set<RelationName> tablesWithFetchRefs = new HashSet<>();
+        for (Reference reference : phase.fetchRefs()) {
+            tablesWithFetchRefs.add(reference.ident().tableIdent());
+        }
+        String source = "fetch-task: " + jobId.toString() + '-' + phase.phaseId() + '-' + phase.name();
+        for (Routing routing : routingIterable) {
+            Map<String, Map<String, IntIndexedContainer>> locations = routing.locations();
+            Map<String, IntIndexedContainer> indexShards = locations.get(localNodeId);
+
+            for (Map.Entry<String, IntIndexedContainer> indexShardsEntry : indexShards.entrySet()) {
+                String indexName = indexShardsEntry.getKey();
+                Integer base = phase.bases().get(indexName);
+                if (base == null) {
+                    continue;
+                }
+                IndexMetadata indexMetadata = metadata.index(indexName);
+                if (indexMetadata == null) {
+                    if (IndexParts.isPartitioned(indexName)) {
                         continue;
                     }
-                    IndexMetadata indexMetadata = metadata.index(indexName);
-                    if (indexMetadata == null) {
-                        if (IndexParts.isPartitioned(indexName)) {
-                            continue;
-                        }
-                        throw new IndexNotFoundException(indexName);
-                    }
-                    Index index = indexMetadata.getIndex();
-                    RelationName ident = index2TableIdent.get(indexName);
-                    assert ident != null : "no relationName found for index " + indexName;
-                    tableIdents.put(base, ident);
-                    toFetch.put(ident, new ArrayList<>());
-                    for (IntCursor shard : indexShardsEntry.getValue()) {
-                        ShardId shardId = new ShardId(index, shard.value);
-                        int readerId = base + shardId.id();
-                        SharedShardContext shardContext = shardContexts.get(readerId);
-                        if (shardContext == null) {
-                            try {
-                                shardContext = sharedShardContexts.createContext(shardId, readerId);
-                                shardContexts.put(readerId, shardContext);
-                                if (tablesWithFetchRefs.contains(ident)) {
-                                    searchers.put(readerId, shardContext.acquireSearcher(source));
-                                }
-                            } catch (IllegalIndexShardStateException | IndexNotFoundException e) {
-                                if (!IndexParts.isPartitioned(indexName)) {
-                                    throw e;
-                                }
+                    throw new IndexNotFoundException(indexName);
+                }
+                Index index = indexMetadata.getIndex();
+                RelationName ident = index2TableIdent.get(indexName);
+                assert ident != null : "no relationName found for index " + indexName;
+                tableIdents.put(base, ident);
+                toFetch.put(ident, new ArrayList<>());
+                for (IntCursor shard : indexShardsEntry.getValue()) {
+                    ShardId shardId = new ShardId(index, shard.value);
+                    int readerId = base + shardId.id();
+                    SharedShardContext shardContext = shardContexts.get(readerId);
+                    if (shardContext == null) {
+                        try {
+                            shardContext = sharedShardContexts.createContext(shardId, readerId);
+                            shardContexts.put(readerId, shardContext);
+                            if (tablesWithFetchRefs.contains(ident)) {
+                                searchers.put(readerId, shardContext.acquireSearcher(source));
+                            }
+                        } catch (IllegalIndexShardStateException | IndexNotFoundException e) {
+                            if (!IndexParts.isPartitioned(indexName)) {
+                                throw e;
                             }
                         }
                     }
                 }
             }
-            for (Reference reference : phase.fetchRefs()) {
-                Collection<Reference> references = toFetch.get(reference.ident().tableIdent());
-                if (references != null) {
-                    references.add(reference);
-                }
+        }
+        for (Reference reference : phase.fetchRefs()) {
+            Collection<Reference> references = toFetch.get(reference.ident().tableIdent());
+            if (references != null) {
+                references.add(reference);
             }
         }
         if (searchers.isEmpty() || phase.fetchRefs().isEmpty()) {

@@ -21,7 +21,37 @@
 
 package io.crate.execution.engine.fetch;
 
+import static io.crate.testing.TestingHelpers.createReference;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_REPLICAS;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_SHARDS;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_VERSION_CREATED;
+import static org.hamcrest.CoreMatchers.is;
+import static org.mockito.Mockito.RETURNS_MOCKS;
+import static org.mockito.Mockito.mock;
+
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.UnaryOperator;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.indices.IndicesService;
+import org.hamcrest.Matchers;
+import org.junit.Test;
+
 import com.carrotsearch.hppc.IntArrayList;
+import com.carrotsearch.hppc.IntIndexedContainer;
+
 import io.crate.execution.dsl.phases.FetchPhase;
 import io.crate.execution.jobs.SharedShardContexts;
 import io.crate.metadata.ColumnIdent;
@@ -31,29 +61,6 @@ import io.crate.metadata.Schemas;
 import io.crate.planner.fetch.IndexBaseBuilder;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.DataTypes;
-import org.elasticsearch.Version;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.indices.IndicesService;
-import org.hamcrest.Matchers;
-import org.junit.Test;
-
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
-import java.util.UUID;
-import java.util.function.UnaryOperator;
-
-import static io.crate.testing.TestingHelpers.createReference;
-import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_REPLICAS;
-import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_SHARDS;
-import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_VERSION_CREATED;
-import static org.mockito.Mockito.RETURNS_MOCKS;
-import static org.mockito.Mockito.mock;
 
 public class FetchTaskTest extends CrateDummyClusterServiceUnitTest {
 
@@ -95,6 +102,15 @@ public class FetchTaskTest extends CrateDummyClusterServiceUnitTest {
                     .put(SETTING_VERSION_CREATED, Version.CURRENT))
                 .build(), true)
             .build();
+        IndicesService indicesService = mock(IndicesService.class, RETURNS_MOCKS);
+        AtomicBoolean calledRefreshReaders = new AtomicBoolean(false);
+        SharedShardContexts sharedShardContexts = new SharedShardContexts(indicesService, UnaryOperator.identity()) {
+            @Override
+            public CompletableFuture<Void> maybeRefreshReaders(Metadata metadata, Map<String, IntIndexedContainer> shardsByIndex, Map<String, Integer> bases) {
+                calledRefreshReaders.set(true);
+                return CompletableFuture.completedFuture(null);
+            }
+        };
         final FetchTask context = new FetchTask(
             UUID.randomUUID(),
             new FetchPhase(
@@ -104,12 +120,13 @@ public class FetchTaskTest extends CrateDummyClusterServiceUnitTest {
                 tableIndices,
                 List.of(createReference("i1", new ColumnIdent("x"), DataTypes.STRING))),
             "dummy",
-            new SharedShardContexts(mock(IndicesService.class, RETURNS_MOCKS), UnaryOperator.identity()),
+            sharedShardContexts,
             metadata,
             relationName -> null,
             List.of(routing));
 
-        context.start();
+        context.start().get(5, TimeUnit.SECONDS);
+        assertThat(calledRefreshReaders.get(), is(true));
 
         assertThat(context.searcher(1), Matchers.notNullValue());
         assertThat(context.searcher(2), Matchers.notNullValue());
