@@ -64,7 +64,7 @@ public final class InsertFromSubQueryPlanner {
         }
 
         List<Reference> targetColsExclPartitionCols = new ArrayList<>(
-            statement.columns().size() - statement.tableInfo().partitionedBy().size());
+            Math.max(1, statement.columns().size() - statement.tableInfo().partitionedBy().size()));
         for (Reference column : statement.columns()) {
             if (statement.tableInfo().partitionedBy().contains(column.column())) {
                 continue;
