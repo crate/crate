@@ -21,6 +21,8 @@
 
 package io.crate.integrationtests;
 
+import static io.crate.metadata.upgrade.MetadataIndexUpgrader.reorderPositions;
+import static io.crate.metadata.upgrade.MetadataIndexUpgrader.shouldReorder;
 import static io.crate.protocols.postgres.PostgresNetty.PSQL_PORT_SETTING;
 import static org.elasticsearch.http.HttpTransportSettings.SETTING_HTTP_COMPRESSION;
 import static org.hamcrest.Matchers.equalTo;
@@ -94,6 +96,7 @@ import io.crate.action.sql.SessionContext;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Maps;
 import io.crate.common.unit.TimeValue;
 import io.crate.data.Paging;
 import io.crate.data.Row;
@@ -118,6 +121,7 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.SearchPath;
+import io.crate.metadata.doc.DocIndexMetadata;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.DependencyCarrier;
@@ -374,6 +378,39 @@ public abstract class SQLIntegrationTestCase extends ESIntegTestCase {
             numInstances,
             is(internalCluster().numNodes())
         );
+    }
+
+    // See, https://github.com/crate/crate/pull/12633 for details
+    @After
+    public void metadataIndexUpgrader_reorderPositions_method_against_all_tables() {
+        ClusterStateRequest request = new ClusterStateRequest()
+            .routingTable(false)
+            .nodes(false)
+            .metadata(true);
+        ClusterStateResponse response = client().admin().cluster().state(request)
+            .actionGet();
+
+        for (var e : response.getState().metadata().indices().values()) {
+            IndexMetadata indexMetadata = e.value;
+
+            var originalMappingMap = DocIndexMetadata.getMappingMap(indexMetadata);
+            Map<String, Object> originalProperties = Maps.get(originalMappingMap, "properties");
+
+            var mappingMap = DocIndexMetadata.getMappingMap(indexMetadata);
+            Map<String, Object> properties = Maps.get(mappingMap, "properties");
+
+            if (properties != null) {
+                // try applying the fix without testing shouldReorder(..) to analyze the effect of reorderPositions(..) on any tables.
+                reorderPositions(properties);
+                try {
+                    assertThat(mappingMap, is(originalMappingMap));
+                } catch (AssertionError ignored) {
+                    assertFalse("fix applied once, should not be able to re-apply", shouldReorder(properties));
+                }
+                assertFalse(shouldReorder(originalProperties));
+                // -> check if reorderPositions broke anything, at least null positions are for arrays only and the rest have unique positions assigned
+            }
+        }
     }
 
     public void waitUntilShardOperationsFinished() throws Exception {

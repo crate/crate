@@ -34,10 +34,10 @@ import io.crate.sql.tree.ColumnType;
 import io.crate.sql.tree.ObjectColumnType;
 import io.crate.sql.tree.TableElement;
 
-class TableElementsAnalyzerTest {
+public class TableElementsAnalyzerTest {
 
     @Test
-    void test_analyze_method_assigned_proper_current_column_positions_to_nested_objects() {
+    public void test_analyze_method_assigned_proper_current_column_positions_to_nested_objects() {
         TableElement e1 = new ColumnDefinition(
             "nested",
             null,

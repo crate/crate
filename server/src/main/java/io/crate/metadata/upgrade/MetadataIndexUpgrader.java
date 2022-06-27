@@ -22,6 +22,7 @@
 package io.crate.metadata.upgrade;
 
 import static io.crate.metadata.doc.DocIndexMetadata.SORT_BY_POSITION_THEN_NAME;
+import static io.crate.metadata.doc.DocIndexMetadata.furtherColumnProperties;
 
 import java.io.IOException;
 import java.util.HashSet;
@@ -35,6 +36,7 @@ import javax.annotation.Nonnull;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
 
@@ -53,21 +55,8 @@ public class MetadataIndexUpgrader implements UnaryOperator<IndexMetadata> {
 
     @Override
     public IndexMetadata apply(IndexMetadata indexMetadata) {
-        var mappingMap = DocIndexMetadata.getMappingMap(indexMetadata);
-        Map<String, Object> properties = Maps.get(mappingMap, "properties");
-        if (properties != null) {
-            reorderPositionsIfNecessary(properties);
-            try {
-                indexMetadata = IndexMetadata.builder(indexMetadata)
-                    .putMapping(new MappingMetadata(Constants.DEFAULT_MAPPING_TYPE,
-                                                    Map.of(Constants.DEFAULT_MAPPING_TYPE, mappingMap)))
-                    .build();
-            } catch (IOException e) {
-                logger.error(
-                    "Failed to upgrade column positions for index '" + indexMetadata.getIndex().getName() + "'", e);
-            }
-        }
-        return createUpdatedIndexMetadata(indexMetadata);
+        var newIndexMetadata = fixSubColumnPositions(indexMetadata);
+        return createUpdatedIndexMetadata(newIndexMetadata);
     }
 
     /**
@@ -114,25 +103,44 @@ public class MetadataIndexUpgrader implements UnaryOperator<IndexMetadata> {
         }
     }
 
-    private void reorderPositionsIfNecessary(Map<String, Object> properties) {
-        if (shouldReorder(properties)) {
-            reorderPositions(properties, 1);
+    // See https://github.com/crate/crate/issues/12630 for details
+    private IndexMetadata fixSubColumnPositions(IndexMetadata indexMetadata) {
+        if (indexMetadata.getCreationVersion().onOrAfter(Version.V_5_0_0)) {
+            return indexMetadata;
         }
+        var mappingMap = DocIndexMetadata.getMappingMap(indexMetadata);
+        Map<String, Object> properties = Maps.get(mappingMap, "properties");
+        if (properties != null) {
+            if (shouldReorder(properties)) {
+                reorderPositions(properties);
+                try {
+                    return IndexMetadata.builder(indexMetadata)
+                        .putMapping(new MappingMetadata(Constants.DEFAULT_MAPPING_TYPE,
+                                                        Map.of(Constants.DEFAULT_MAPPING_TYPE, mappingMap))).build();
+                } catch (IOException e) {
+                    logger.error(
+                        "Failed to upgrade column positions for index '" + indexMetadata.getIndex().getName() + "'", e);
+                }
+            }
+        }
+        return indexMetadata;
     }
 
-    private boolean shouldReorder(Map<String, Object> properties) {
-        return isDeep(properties, 0, 2) && containsDuplicatePositions(properties, new HashSet<>());
+    public static boolean shouldReorder(Map<String, Object> properties) {
+        return depthOfNestedSubColumnsExceedsThreshold(properties, 0, 2) &&
+               containsDuplicatePositions(properties, new HashSet<>());
     }
 
-    private boolean containsDuplicatePositions(Map<String, Object> properties, Set<Integer> positions) {
+    private static boolean containsDuplicatePositions(Map<String, Object> properties, Set<Integer> positions) {
 
         boolean foundDuplicates = false;
         for (var e : properties.values()) {
             if (foundDuplicates) {
                 return true;
             }
-            Map<String, Object> m = (Map<String, Object>) e;
-            Integer position = (Integer) m.get("position");
+            Map<String, Object> columnProperties = (Map<String, Object>) e;
+            columnProperties = furtherColumnProperties(columnProperties);
+            Integer position = (Integer) columnProperties.get("position");
             if (position != null) {
                 if (positions.contains(position)) {
                     return true;
@@ -140,47 +148,60 @@ public class MetadataIndexUpgrader implements UnaryOperator<IndexMetadata> {
                     positions.add(position);
                 }
             }
-            if (m.containsKey("properties")) {
-                foundDuplicates |= containsDuplicatePositions(Maps.get(m, "properties"), positions);
+            Map<String, Object> subColumnProperties = Maps.get(columnProperties, "properties");
+            if (subColumnProperties != null) {
+                foundDuplicates |= containsDuplicatePositions(subColumnProperties, positions);
             }
         }
         return foundDuplicates;
     }
 
-    private boolean isDeep(Map<String, Object> properties, int currentDepth, int targetDepth) {
-        if (++currentDepth >= targetDepth) {
+    private static boolean depthOfNestedSubColumnsExceedsThreshold(Map<String, Object> properties, int currentDepth, int threashold) {
+        if (++currentDepth >= threashold) {
             return true;
         }
-        boolean isDeep = false;
+        boolean exceededThreshold = false;
         for (var e : properties.values()) {
-            if (isDeep) {
+            if (exceededThreshold) {
                 return true;
             }
-            Map<String, Object> m = (Map<String, Object>) e;
-            if (m.containsKey("properties")) {
-                isDeep |= isDeep(Maps.get(m, "properties"), currentDepth, targetDepth);
+            Map<String, Object> columnProperties = (Map<String, Object>) e;
+            columnProperties = furtherColumnProperties(columnProperties);
+            Map<String, Object> subColumnProperties = Maps.get(columnProperties, "properties");
+            if (subColumnProperties != null) {
+                exceededThreshold |= depthOfNestedSubColumnsExceedsThreshold(subColumnProperties, currentDepth, threashold);
             }
         }
-        return isDeep;
+        return exceededThreshold;
     }
 
-    private Integer reorderPositions(Map<String, Object> properties, @Nonnull Integer numFieldsCounter) {
+    public static void reorderPositions(Map<String, Object> properties) {
+        reorderPositions(properties, 1);
+    }
+
+    private static Integer reorderPositions(Map<String, Object> properties, @Nonnull Integer numFieldsCounter) {
 
         var sortedProperties = properties.entrySet().stream().sorted(SORT_BY_POSITION_THEN_NAME)
             .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e1, LinkedHashMap::new));
 
         for (var e : sortedProperties.values()) {
-            Map<String, Object> m = (Map<String, Object>) e;
-            Integer position = (Integer) m.get("position");
+            Map<String, Object> columnProperties = (Map<String, Object>) e;
+            columnProperties = furtherColumnProperties(columnProperties);
+            Integer position = (Integer) columnProperties.get("position");
             if (position == null) {
-                continue;
+                Map<String, Object> inner = Maps.get(columnProperties, "inner");
+                if (inner != null) {
+                    position = (Integer) inner.get("position");
+                }
+                assert position != null;
             }
             if (!position.equals(numFieldsCounter)) {
-                m.replace("position", numFieldsCounter);
+                columnProperties.replace("position", numFieldsCounter);
             }
             numFieldsCounter++;
-            if (m.containsKey("properties")) {
-                numFieldsCounter = reorderPositions(Maps.get(m, "properties"), numFieldsCounter);
+            Map<String, Object> subColumnProperties = Maps.get(columnProperties, "properties");
+            if (subColumnProperties != null) {
+                numFieldsCounter = reorderPositions(subColumnProperties, numFieldsCounter);
             }
         }
         return numFieldsCounter;

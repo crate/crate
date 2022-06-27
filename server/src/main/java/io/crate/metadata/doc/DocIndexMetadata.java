@@ -485,7 +485,7 @@ public class DocIndexMetadata {
      * get the real column properties from a possible array mapping,
      * keeping most of this stuff inside "inner"
      */
-    private static Map<String, Object> furtherColumnProperties(Map<String, Object> columnProperties) {
+    public static Map<String, Object> furtherColumnProperties(Map<String, Object> columnProperties) {
         if (columnProperties.get("inner") != null) {
             return (Map<String, Object>) columnProperties.get("inner");
         } else {
