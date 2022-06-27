@@ -21,12 +21,24 @@
 
 package io.crate.execution.jobs;
 
+import java.util.concurrent.CompletableFuture;
+
+import javax.annotation.Nullable;
+
 import io.crate.concurrent.CompletionListenable;
 import io.crate.data.Killable;
 
 public interface Task extends CompletionListenable<Void>, Killable {
 
-    void start();
+    /**
+     * Start a task.
+     * @return future that is completed once the start action completed its preparation phase.
+     *         This does *NOT* indicate that the task finished. Use {@link #completionFuture()} for that.
+     *         If null the start method is synchronous and users can assume the task is initiated once
+     *         the method returns.
+     */
+    @Nullable
+    CompletableFuture<Void> start();
 
     String name();
 

@@ -26,6 +26,7 @@ import static org.hamcrest.Matchers.greaterThan;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.annotation.Nonnull;
@@ -112,8 +113,9 @@ public class AbstractTaskTest extends ESTestCase {
         }
 
         @Override
-        protected void innerStart() {
+        protected CompletableFuture<Void> innerStart() {
             numStart.incrementAndGet();
+            return null;
         }
 
         public List<Integer> stats() {

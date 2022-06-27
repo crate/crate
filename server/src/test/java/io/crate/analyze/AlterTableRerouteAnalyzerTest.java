@@ -43,7 +43,6 @@ import java.util.Map;
 import java.util.Set;
 
 import static io.crate.testing.Asserts.assertThrowsMatches;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 
 public class AlterTableRerouteAnalyzerTest extends CrateDummyClusterServiceUnitTest {
