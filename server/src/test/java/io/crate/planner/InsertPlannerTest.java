@@ -21,6 +21,23 @@
 
 package io.crate.planner;
 
+import static io.crate.testing.SymbolMatchers.isFunction;
+import static io.crate.testing.SymbolMatchers.isInputColumn;
+import static io.crate.testing.SymbolMatchers.isReference;
+import static java.util.Collections.singletonList;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.collection.IsIterableContainingInOrder.contains;
+import static org.hamcrest.core.Is.is;
+
+import java.io.IOException;
+import java.util.List;
+
+import org.elasticsearch.common.Randomness;
+import org.hamcrest.Matchers;
+import org.junit.Before;
+import org.junit.Test;
+
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.phases.PKLookupPhase;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
@@ -39,11 +56,11 @@ import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.SimpleReference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.SimpleReference;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.dql.join.Join;
@@ -53,22 +70,6 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.SymbolMatchers;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.Randomness;
-import org.hamcrest.Matchers;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.io.IOException;
-import java.util.List;
-
-import static io.crate.testing.SymbolMatchers.isFunction;
-import static io.crate.testing.SymbolMatchers.isInputColumn;
-import static io.crate.testing.SymbolMatchers.isReference;
-import static java.util.Collections.singletonList;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.collection.IsIterableContainingInOrder.contains;
-import static org.hamcrest.core.Is.is;
 
 public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -96,6 +97,7 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
                 "   date timestamp with time zone" +
                 ") clustered into 4 shards")
             .addTable("create table source (id int primary key, name string)")
+            .addPartitionedTable("CREATE TABLE double_parted(x int, y int) PARTITIONED BY (x, y)")
             .build();
     }
 
@@ -483,5 +485,11 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(collect.collectPhase().toCollect(), contains(
             SymbolMatchers.isReference("id")
         ));
+    }
+
+    @Test
+    public void test_insert_into_partitioned_table_with_less_columns_than_the_partition_by_ones() {
+        Plan plan = e.logicalPlan("insert into double_parted (x) VALUES (1)");
+        assertThat(plan, instanceOf(InsertFromValues.class));
     }
 }
