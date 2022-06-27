@@ -78,3 +78,8 @@ Fixes
 
 - Fixed an issue that not-null constraints used to be shown in the
   ``pg_constraint`` table which contradicts with PostgreSQL.
+
+- Fixed an issue that caused ``IllegalArgumentException`` to be thrown when
+  attempting to insert values into a partitioned table, using less columns than
+  the ones defined in the table's ``PARTITIONED BY`` clause.
+
