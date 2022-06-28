@@ -22,19 +22,29 @@
 package io.crate.analyze;
 
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
+import java.io.IOException;
 import java.util.List;
 
-import org.junit.jupiter.api.Test;
+import org.junit.Before;
+import org.junit.Test;
 
 import io.crate.metadata.RelationName;
 import io.crate.sql.tree.ColumnDefinition;
 import io.crate.sql.tree.ColumnType;
 import io.crate.sql.tree.ObjectColumnType;
 import io.crate.sql.tree.TableElement;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
 
-public class TableElementsAnalyzerTest {
+public class TableElementsAnalyzerTest extends CrateDummyClusterServiceUnitTest {
+
+    private SQLExecutor e;
+
+    @Before
+    public void prepare() throws IOException {
+        e = SQLExecutor.builder(clusterService).build();
+    }
 
     @Test
     public void test_analyze_method_assigned_proper_current_column_positions_to_nested_objects() {
@@ -83,5 +93,24 @@ public class TableElementsAnalyzerTest {
 
         var notNested = (AnalyzedColumnDefinition) analyzed.columns().get(1);
         assertThat(notNested.position, is(4));
+    }
+
+    @Test
+    public void test_analyze_can_calculate_position_values_when_index_columns_involved() throws IOException {
+        e = SQLExecutor.builder(clusterService)
+            .addTable("""
+                          CREATE TABLE tbl (
+                            author TEXT NOT NULL,
+                            INDEX author_ft USING FULLTEXT (author) WITH (analyzer = 'standard')
+                          );
+                          """)
+            .build();
+        var analyzedRelation = (AnalyzedAlterTableAddColumn) e.analyze("ALTER TABLE tbl ADD COLUMN dummy text NOT NULL");
+        /*
+         * author       - position 1
+         * author_ft    - position 2
+         * dummy        - position 3
+         */
+        assertThat(analyzedRelation.analyzedTableElements().columns().get(0).position, is(3));
     }
 }

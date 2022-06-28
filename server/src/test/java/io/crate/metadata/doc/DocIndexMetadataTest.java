@@ -1557,4 +1557,17 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
         assertThat(column, is(not(nullValue())));
         assertThat(column.valueType(), is(StringType.of(10)));
     }
+
+    @Test
+    public void test_named_index_column_is_given_position_value() throws IOException {
+        DocIndexMetadata md = getDocIndexMetadataFromStatement(
+            """
+                CREATE TABLE tbl (
+                    author TEXT NOT NULL,
+                    INDEX author_ft USING FULLTEXT (author) WITH (analyzer = 'standard')
+                );
+                """);
+        assertThat(md.indices().size(), is(1));
+        assertThat(md.indices().values().iterator().next().position(), is(2));
+    }
 }
