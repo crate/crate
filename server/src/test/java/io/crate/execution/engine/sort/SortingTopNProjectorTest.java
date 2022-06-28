@@ -24,7 +24,9 @@ package io.crate.execution.engine.sort;
 import io.crate.breaker.ConcurrentRamAccounting;
 import io.crate.breaker.RowAccounting;
 import io.crate.breaker.RowCellsAccountingWithEstimators;
+import io.crate.data.BatchIterator;
 import io.crate.data.Bucket;
+import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Input;
 import io.crate.data.Projector;
 import io.crate.data.Row;
@@ -157,11 +159,11 @@ public class SortingTopNProjectorTest extends ESTestCase {
     }
 
     @Test
-    public void testInvalidZeroLimit() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid LIMIT: value must be > 0; got: 0");
-
-        getProjector(2, 0, 0);
+    public void test_zero_limit() throws Exception {
+        Projector projector = getProjector(2, 0, 0);
+        BatchIterator<Row> it = projector.apply(TestingBatchIterators.range(1, 6));
+        assertThat(it.moveNext(), is(false));
+        assertThat(it.allLoaded(), is(true));
     }
 
     @Test
