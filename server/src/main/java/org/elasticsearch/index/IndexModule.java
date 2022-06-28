@@ -88,7 +88,7 @@ public final class IndexModule {
     private static final FsDirectoryFactory DEFAULT_DIRECTORY_FACTORY = new FsDirectoryFactory();
 
     public static final Setting<String> INDEX_STORE_TYPE_SETTING =
-            new Setting<>("index.store.type", "fs", Function.identity(), DataTypes.STRING, Property.IndexScope, Property.NodeScope);
+            new Setting<>("index.store.type", "fs", Function.identity(), DataTypes.STRING, Property.IndexScope, Property.NodeScope, Property.Final);
 
     /** On which extensions to load data into the file-system cache upon opening of files.
      *  This only works with the mmap directory, and even in that case is still

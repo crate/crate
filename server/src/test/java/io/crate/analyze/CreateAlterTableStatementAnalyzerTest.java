@@ -72,10 +72,14 @@ import java.util.Map;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.ANALYZER;
+import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThrowsMatches;
+import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.mapToSortedString;
+import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_ROUTING_EXCLUDE_GROUP_SETTING;
 import static org.elasticsearch.index.engine.EngineConfig.INDEX_CODEC_SETTING;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasItems;
@@ -1378,6 +1382,22 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         e = SQLExecutor.builder(clusterService).addTable("create table doc.test(i int)").closeTable("test").build();
         BoundAlterTable analysis = analyze(e, "ALTER TABLE test SET (codec = 'best_compression')");
         assertThat(analysis.tableParameter().settings().get(INDEX_CODEC_SETTING.getKey()), is("best_compression"));
+    }
+
+    @Test
+    public void test_alter_table_update_final_setting_on_open_table() throws IOException {
+        e = SQLExecutor.builder(clusterService).addTable("create table doc.test(i int)").build();
+        assertThrowsMatches(() ->  analyze(e, "alter table test SET (\"store.type\" = 'simplefs')"),
+            isSQLError(containsString("Invalid property \"store.type\" passed to [ALTER | CREATE] TABLE statement"), INTERNAL_ERROR, INTERNAL_SERVER_ERROR,5000)
+        );
+    }
+
+    @Test
+    public void test_alter_table_update_final_setting_on_closed_table() throws IOException {
+        e = SQLExecutor.builder(clusterService).addTable("create table doc.test(i int)").closeTable("test").build();
+        assertThrowsMatches(() ->  analyze(e, "alter table test SET (number_of_routing_shards = 5)"),
+            isSQLError(containsString("Invalid property \"number_of_routing_shards\" passed to [ALTER | CREATE] TABLE statement"), INTERNAL_ERROR, INTERNAL_SERVER_ERROR,5000)
+        );
     }
 
     @Test
