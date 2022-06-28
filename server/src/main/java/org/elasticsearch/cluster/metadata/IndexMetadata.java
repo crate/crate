@@ -170,7 +170,7 @@ public class IndexMetadata implements Diffable<IndexMetadata>, ToXContentFragmen
                     return settings.iterator();
                 }
             },
-            Property.IndexScope);
+            Property.IndexScope, Property.Final);
 
     public static final String SETTING_AUTO_EXPAND_REPLICAS = "index.auto_expand_replicas";
     public static final Setting<AutoExpandReplicas> INDEX_AUTO_EXPAND_REPLICAS_SETTING = AutoExpandReplicas.SETTING;
