@@ -647,7 +647,7 @@ in this implementation:
 Returns the sum of a set of numeric input values that are not ``NULL``.
 Depending on the argument type a suitable return type is chosen. For ``real``
 and ``double precison`` argument types the return type is equal to the argument
-type. For ``char``, ``smallint``, ``integer`` and ``bigint`` the return type
+type. For ``byte``, ``smallint``, ``integer`` and ``bigint`` the return type
 changes to ``bigint``. If the range of ``bigint`` values (-2^64 to 2^64-1) gets
 exceeded an ``ArithmeticException`` will be raised.
 
@@ -677,7 +677,7 @@ exceeded an ``ArithmeticException`` will be raised.
 ::
 
     cr> select sum(name), kind from locations group by kind order by sum(name) desc;
-    SQLParseException[Cannot cast value `North West Ripple` to type `char`]
+    SQLParseException[Cannot cast value `North West Ripple` to type `byte`]
 
 If the ``sum`` aggregation on a numeric data type with the fixed length can
 potentially exceed its range it is possible to handle the overflow by casting

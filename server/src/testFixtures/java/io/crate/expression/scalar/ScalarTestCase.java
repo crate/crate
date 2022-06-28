@@ -86,7 +86,7 @@ public abstract class ScalarTestCase extends CrateDummyClusterServiceUnitTest {
             "  age int," +
             "  a int," +
             "  ip ip," +
-            "  c char," +
+            "  c byte," +
             "  x bigint," +
             "  shape geo_shape," +
             "  timestamp_tz timestamp with time zone," +

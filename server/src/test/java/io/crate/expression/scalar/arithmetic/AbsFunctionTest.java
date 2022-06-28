@@ -21,12 +21,13 @@
 
 package io.crate.expression.scalar.arithmetic;
 
-import io.crate.exceptions.ConversionException;
-import io.crate.expression.scalar.ScalarTestCase;
-import org.junit.Test;
-
 import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
+
+import org.junit.Test;
+
+import io.crate.exceptions.ConversionException;
+import io.crate.expression.scalar.ScalarTestCase;
 
 
 public class AbsFunctionTest extends ScalarTestCase {
@@ -43,7 +44,7 @@ public class AbsFunctionTest extends ScalarTestCase {
     @Test
     public void testWrongType() throws Exception {
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast `'foo'` of type `text` to type `char`");
+        expectedException.expectMessage("Cannot cast `'foo'` of type `text` to type `byte`");
         assertEvaluate("abs('foo')", null);
     }
 

@@ -70,7 +70,7 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
             "  bar bigint," +
             "  \"CraZy\" ip," +
             "  \"1a\" int," +
-            "  \"select\" char," +
+            "  \"select\" byte," +
             "  idx int," +
             "  s_arr array(text)" +
             ")";

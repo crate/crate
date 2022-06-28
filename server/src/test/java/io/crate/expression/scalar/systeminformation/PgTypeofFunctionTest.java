@@ -21,14 +21,15 @@
 
 package io.crate.expression.scalar.systeminformation;
 
+import java.util.List;
+import java.util.Map;
+
+import org.junit.Test;
+
 import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.expression.symbol.Literal;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
-import org.junit.Test;
-
-import java.util.List;
-import java.util.Map;
 
 public class PgTypeofFunctionTest extends ScalarTestCase {
 
@@ -51,7 +52,7 @@ public class PgTypeofFunctionTest extends ScalarTestCase {
         assertEvaluate("pg_typeof(true)", DataTypes.BOOLEAN.getName());
         assertEvaluate("pg_typeof(is_awesome)", DataTypes.BOOLEAN.getName(), Literal.of(true));
 
-        assertEvaluate("pg_typeof(58::char)", DataTypes.BYTE.getName());
+        assertEvaluate("pg_typeof(58::\"char\")", DataTypes.BYTE.getName());
         assertEvaluate("pg_typeof(c)", DataTypes.BYTE.getName(), Literal.of(DataTypes.BYTE, (byte) 58));
 
         assertEvaluate("pg_typeof(10::smallint)", DataTypes.SHORT.getName());

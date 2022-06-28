@@ -21,12 +21,13 @@
 
 package io.crate.types;
 
-import io.crate.Streamer;
+import java.io.IOException;
+import java.math.BigDecimal;
+
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
-import java.io.IOException;
-import java.math.BigDecimal;
+import io.crate.Streamer;
 
 public class ByteType extends DataType<Byte> implements Streamer<Byte>, FixedWidthType {
 
@@ -51,7 +52,7 @@ public class ByteType extends DataType<Byte> implements Streamer<Byte>, FixedWid
 
     @Override
     public String getName() {
-        return "char";
+        return "byte";
     }
 
     @Override
