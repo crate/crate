@@ -21,14 +21,14 @@
 
 package io.crate.analyze;
 
+import org.hamcrest.Matchers;
+import org.junit.Test;
+
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.sql.SqlFormatter;
 import io.crate.sql.tree.CreateTable;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-
-import org.hamcrest.Matchers;
-import org.junit.Test;
 
 public class MetadataToASTNodeResolverTest extends CrateDummyClusterServiceUnitTest {
 
@@ -73,7 +73,7 @@ public class MetadataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
         CreateTable node = MetadataToASTNodeResolver.resolveCreateTable(tableInfo);
         assertEquals("CREATE TABLE IF NOT EXISTS \"doc\".\"test\" (\n" +
                      "   \"bools\" BOOLEAN,\n" +
-                     "   \"bytes\" CHAR,\n" +
+                     "   \"bytes\" BYTE,\n" +
                      "   \"strings\" TEXT,\n" +
                      "   \"shorts\" SMALLINT,\n" +
                      "   \"floats\" REAL,\n" +

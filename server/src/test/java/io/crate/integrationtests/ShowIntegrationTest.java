@@ -21,12 +21,6 @@
 
 package io.crate.integrationtests;
 
-import io.crate.testing.UseHashJoins;
-import io.crate.testing.UseRandomizedSchema;
-import org.junit.Test;
-
-import java.util.Locale;
-
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
@@ -34,6 +28,13 @@ import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.StringStartsWith.startsWith;
+
+import java.util.Locale;
+
+import org.junit.Test;
+
+import io.crate.testing.UseHashJoins;
+import io.crate.testing.UseRandomizedSchema;
 
 @UseRandomizedSchema(random = false)
 public class ShowIntegrationTest extends SQLIntegrationTestCase {
@@ -57,7 +58,7 @@ public class ShowIntegrationTest extends SQLIntegrationTestCase {
     public void testShowCrateTableSimple() {
         String expected = "CREATE TABLE IF NOT EXISTS \"doc\".\"test\" (\n" +
                           "   \"col_bool\" BOOLEAN,\n" +
-                          "   \"col_byte\" CHAR,\n" +
+                          "   \"col_byte\" BYTE,\n" +
                           "   \"col_short\" SMALLINT,\n" +
                           "   \"col_int\" INTEGER,\n" +
                           "   \"col_long\" BIGINT,\n" +

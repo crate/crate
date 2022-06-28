@@ -21,11 +21,11 @@
 
 package io.crate.analyze;
 
+import static java.util.Collections.singletonList;
+
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
-
-import static java.util.Collections.singletonList;
 
 public final class TableDefinitions {
 
@@ -86,7 +86,7 @@ public final class TableDefinitions {
         "create table doc.nested_pk (" +
         "  id bigint," +
         "  o object as (" +
-        "    b char" +
+        "    b byte" +
         "  )," +
         "  primary key (id, o['b'])" +
         ")" +

@@ -67,7 +67,7 @@ public class SymbolToColumnDefinitionConverterTest extends CrateDummyClusterServ
             "   col_smallint smallint," +
             "   col_double_precision double precision," +
             "   col_real real," +
-            "   col_char char," +
+            "   col_char \"char\"," +
             "   col_text text," +
             "   col_varchar varchar," +
             "   col_varchar_len_6 varchar(6)," +
@@ -273,7 +273,7 @@ public class SymbolToColumnDefinitionConverterTest extends CrateDummyClusterServ
             "   array_text text[]," +
             "   array_ip ip[]," +
             "   array_double_precision double precision[]," +
-            "   array_char char[]," +
+            "   array_char \"char\"[]," +
             "   array_varchar_len_6 varchar(6)[]," +
             "   array_timestap_with_time_zone timestamp with time zone[]," +
             "   array_timestap_without_time_zone timestamp without time zone[]," +

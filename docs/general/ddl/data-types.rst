@@ -659,7 +659,7 @@ CrateDB supports the following numeric types:
         ...     column_3 SMALLINT,
         ...     column_4 DOUBLE PRECISION,
         ...     column_5 REAL,
-        ...     column_6 CHAR
+        ...     column_6 "CHAR"
         ... );
         CREATE OK, 1 row affected (... sec)
 
@@ -3282,7 +3282,7 @@ See the table below for a full list of aliases:
 +-----------------------+---------------------------------+
 | ``REGPROC``           | ``TEXT``                        |
 +-----------------------+---------------------------------+
-| ``BYTE``              | ``CHAR``                        |
+| ``"CHAR"``            | ``BYTE``                        |
 +-----------------------+---------------------------------+
 | ``FLOAT``             | ``REAL``                        |
 +-----------------------+---------------------------------+
@@ -3312,8 +3312,8 @@ Internal-use types
 
 .. _type-char:
 
-``CHAR``
-''''''''
+``"CHAR"``
+''''''''''
 A one-byte character used internally for enumeration items in the
 :ref:`PostgreSQL system catalogs <postgres-pg_catalog>`.
 

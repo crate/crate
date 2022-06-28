@@ -21,11 +21,12 @@
 
 package io.crate.expression.scalar.arithmetic;
 
-import io.crate.exceptions.ConversionException;
-import io.crate.expression.scalar.ScalarTestCase;
+import static io.crate.testing.SymbolMatchers.isFunction;
+
 import org.junit.Test;
 
-import static io.crate.testing.SymbolMatchers.isFunction;
+import io.crate.exceptions.ConversionException;
+import io.crate.expression.scalar.ScalarTestCase;
 
 
 public class SquareRootFunctionTest extends ScalarTestCase {
@@ -48,7 +49,7 @@ public class SquareRootFunctionTest extends ScalarTestCase {
     @Test
     public void testInvalidType() {
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast `'foo'` of type `text` to type `char`");
+        expectedException.expectMessage("Cannot cast `'foo'` of type `text` to type `byte`");
         assertEvaluate("sqrt('foo')", null);
     }
 

@@ -206,7 +206,7 @@ public class SQLTypeMappingTest extends SQLIntegrationTestCase {
         assertThrowsMatches(
             () -> execute("delete from t1 where byte_field=129"),
             isSQLError(
-                containsString("Cannot cast `129` of type `integer` to type `char`"),
+                containsString("Cannot cast `129` of type `integer` to type `byte`"),
                 INTERNAL_ERROR,
                 BAD_REQUEST,
                 4000
@@ -221,7 +221,7 @@ public class SQLTypeMappingTest extends SQLIntegrationTestCase {
         assertThrowsMatches(
             () -> execute("update t1 set byte_field=0 where byte_field in (129)"),
             isSQLError(
-                containsString("Cannot cast `[129]` of type `integer_array` to type `char_array`"),
+                containsString("Cannot cast `[129]` of type `integer_array` to type `byte_array`"),
                 INTERNAL_ERROR,
                 BAD_REQUEST,
                 4000

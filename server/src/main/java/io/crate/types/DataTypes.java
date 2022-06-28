@@ -396,7 +396,7 @@ public final class DataTypes {
         entry("int8", LONG),
         entry("name", STRING),
         entry("long", LONG),
-        entry("byte", BYTE),
+        entry("\"char\"", BYTE),
         entry("short", SHORT),
         entry("float", FLOAT),
         entry("float4", FLOAT),
