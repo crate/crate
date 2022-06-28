@@ -369,7 +369,8 @@ This number specifies the hashing space that is used internally to distribute
 documents across shards.
 
 This is an optional setting that enables users to later on increase the number
-of shards using :ref:`sql-alter-table`.
+of shards using :ref:`sql-alter-table`. It's not possible to update this
+setting after table creation.
 
 
 .. _sql-create-table-refresh-interval:
@@ -624,7 +625,8 @@ the expense of slower column value lookups.
 --------------
 
 The store type setting allows you to control how data is stored and accessed on
-disk. The following storage types are supported:
+disk. It's not possible to update this setting after table creation. The
+following storage types are supported:
 
 :fs:
   Default file system implementation. It will pick the best implementation

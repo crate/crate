@@ -105,7 +105,7 @@ public class MetadataUpdateSettingsService {
             if (isWildcard || setting.isDynamic()) {
                 settingsForOpenIndices.copy(key, normalizedSettings);
             } else {
-                skippedSettings.add(key);
+                skippedSettings.add(key.replace("index.", ""));
             }
         }
         final Settings closedSettings = settingsForClosedIndices.build();

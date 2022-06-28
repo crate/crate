@@ -153,7 +153,7 @@ Changes
   :ref:`pg_get_expr <scalar-pg_get_expr>` scalar function for improved
   PostgreSQL compatibility.
 
-- Added the :ref:`pg_get_partkeydef <scalar-pg_get_partkeydef>` scalar 
+- Added the :ref:`pg_get_partkeydef <scalar-pg_get_partkeydef>` scalar
   function for improved compatibility with PostgreSQL. Partitioning in CrateDB
   is different from PostgreSQL, therefore this function always returns ``NULL``.
 
@@ -184,9 +184,12 @@ Fixes
   ``NULL`` ordinal casted to a specific type, throw an error. Example:
   ``SELECT NULL, count(*) from unnest([1, 2]) GROUP BY NULL::integer``.
 
-- Fixed an issue that not null constraints used to be shown in the
-  ``pg_constraint`` table which contradicts with the PostgreSQL.
+- Fixed an issue that not-null constraints used to be shown in the
+  ``pg_constraint`` table which contradicts with PostgreSQL.
 
 - Fixed an issue that caused ``IllegalArgumentException`` to be thrown when
   attempting to insert values into a partitioned table, using less columns than
   the ones defined in the table's ``PARTITIONED BY`` clause.
+
+- Fixed an issue that caused failure of ``ALTER TABLE`` statements when updating
+  dynamic or non-dynamic table settings on closed tables.
