@@ -210,6 +210,12 @@ public class PgCatalogTableDefinitions {
             PgViewsTable.create().expressions()
         ));
 
+        tableDefinitions.put(PgShdescriptionTable.IDENT, new StaticTableDefinition<>(
+            () -> completedFuture(emptyList()),
+            PgShdescriptionTable.create().expressions(),
+            false)
+        );
+
     }
 
     public StaticTableDefinition<?> get(RelationName relationName) {

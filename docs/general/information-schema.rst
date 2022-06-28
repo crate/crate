@@ -99,6 +99,7 @@ number of replicas.
     | pg_catalog         | pg_range                | BASE TABLE |             NULL | NULL               |
     | pg_catalog         | pg_roles                | BASE TABLE |             NULL | NULL               |
     | pg_catalog         | pg_settings             | BASE TABLE |             NULL | NULL               |
+    | pg_catalog         | pg_shdescription        | BASE TABLE |             NULL | NULL               |
     | pg_catalog         | pg_stats                | BASE TABLE |             NULL | NULL               |
     | pg_catalog         | pg_subscription         | BASE TABLE |             NULL | NULL               |
     | pg_catalog         | pg_subscription_rel     | BASE TABLE |             NULL | NULL               |
@@ -126,7 +127,7 @@ number of replicas.
     | sys                | summits                 | BASE TABLE |             NULL | NULL               |
     | sys                | users                   | BASE TABLE |             NULL | NULL               |
     +--------------------+-------------------------+------------+------------------+--------------------+
-    SELECT 59 rows in set (... sec)
+    SELECT 60 rows in set (... sec)
 
 
 The table also contains additional information such as the specified

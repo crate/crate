@@ -170,11 +170,13 @@ following tables:
  - `pg_proc <pgsql_pg_proc_>`__
  - `pg_publication <pgsql_pg_publication_>`__
  - `pg_publication_tables <pgsql_pg_publication_tables_>`__
- - `pg_subscription <pgsql_pg_subscription_>`__
- - `pg_subscription_rel <pgsql_pg_subscription_rel_>`__
  - `pg_range`_
  - `pg_roles`_
  - `pg_settings <pgsql_pg_settings_>`__
+ - `pg_shdescription`_
+ - `pg_stats`_
+ - `pg_subscription <pgsql_pg_subscription_>`__
+ - `pg_subscription_rel <pgsql_pg_subscription_rel_>`__
  - `pg_tables`_
  - `pg_tablespace`_
  - `pg_type`_
@@ -550,6 +552,8 @@ CrateDB and we love to hear feedback.
 .. _pg_tables: https://www.postgresql.org/docs/14/view-pg-tables.html
 .. _pg_tablespace: https://www.postgresql.org/docs/14/catalog-pg-tablespace.html
 .. _pg_views: https://www.postgresql.org/docs/14/view-pg-views.html
+.. _pg_shdescription: https://www.postgresql.org/docs/14/catalog-pg-shdescription.html
+.. _pg_stats: https://www.postgresql.org/docs/14/view-pg-stats.html
 .. _pgjdbc: https://github.com/pgjdbc/pgjdbc
 .. _pgsql_pg_attrdef: https://www.postgresql.org/docs/14/static/catalog-pg-attrdef.html
 .. _pgsql_pg_attribute: https://www.postgresql.org/docs/14/static/catalog-pg-attribute.html

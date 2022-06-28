@@ -135,6 +135,13 @@ public class PgCatalogITest extends SQLIntegrationTestCase {
     }
 
     @Test
+    public void testPgShdescriptionTableIsEmpty() {
+        execute("select * from pg_shdescription");
+        assertThat(printedTable(response.rows()), is(""));
+        assertThat(response.cols(), arrayContaining("classoid", "description", "objoid"));
+    }
+
+    @Test
     @UseRandomizedSchema(random = false)
     @UseHashJoins(0)
     public void testPgSettingsTable() {

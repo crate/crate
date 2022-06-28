@@ -76,6 +76,7 @@ public class PgCatalogSchemaInfo implements SchemaInfo {
             Map.entry(PgLocksTable.IDENT.name(), PgLocksTable.create()),
             Map.entry(PgPublicationTable.IDENT.name(), PgPublicationTable.create()),
             Map.entry(PgPublicationTablesTable.IDENT.name(), PgPublicationTablesTable.create()),
+            Map.entry(PgShdescriptionTable.IDENT.name(), PgShdescriptionTable.create()),
             Map.entry(PgSubscriptionTable.IDENT.name(), PgSubscriptionTable.create()),
             Map.entry(PgSubscriptionRelTable.IDENT.name(), PgSubscriptionRelTable.create()),
             Map.entry(PgTablesTable.IDENT.name(), PgTablesTable.create()),
