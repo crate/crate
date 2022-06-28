@@ -74,8 +74,10 @@ public class SharedShardContexts {
                 continue;
             }
             IndexService indexService = indicesService.indexService(indexMetadata.getIndex());
-            if (indexService == null && !IndexParts.isPartitioned(indexName)) {
-                refreshActions.add(CompletableFuture.failedFuture(new IndexNotFoundException(indexName)));
+            if (indexService == null) {
+                if (!IndexParts.isPartitioned(indexName)) {
+                    refreshActions.add(CompletableFuture.failedFuture(new IndexNotFoundException(indexName)));
+                }
                 continue;
             }
             for (var shardCursor : entry.getValue()) {
