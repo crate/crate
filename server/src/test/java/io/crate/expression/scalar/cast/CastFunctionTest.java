@@ -32,6 +32,8 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
+import io.crate.types.RegclassType;
+import io.crate.types.RegclassType;
 
 import org.hamcrest.core.IsSame;
 import org.junit.AfterClass;
@@ -304,5 +306,10 @@ public class CastFunctionTest extends ScalarTestCase {
     @Test
     public void test_implicit_cast_is_compiled() throws Exception {
         assertCompile("_cast(a, 'double precision')", (s) -> not(IsSame.sameInstance(s)) );
+    }
+
+    @Test
+    public void test_can_cast_bigint_to_regclass() {
+        assertEvaluate("10::bigint::regclass", RegclassType.INSTANCE.explicitCast(10L));
     }
 }

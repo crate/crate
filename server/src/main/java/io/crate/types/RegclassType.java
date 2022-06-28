@@ -87,8 +87,15 @@ public final class RegclassType extends DataType<Regclass> implements Streamer<R
         if (value instanceof Regclass) {
             return (Regclass) value;
         }
-        if (value instanceof Integer) {
-            return new Regclass((int) value, value.toString());
+        if (value instanceof Integer num) {
+            return new Regclass(num.intValue(), value.toString());
+        }
+        if (value instanceof Long num) {
+            if (num > Integer.MAX_VALUE || num < Integer.MIN_VALUE) {
+                throw new IllegalArgumentException(
+                    value + " is outside of `int` range and cannot be cast to the regclass type");
+            }
+            return new Regclass(num.intValue(), value.toString());
         }
         if (value instanceof String) {
             return Regclass.fromRelationName(value.toString());

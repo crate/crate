@@ -199,8 +199,14 @@ public final class DataTypes {
             Stream.of(RegprocType.ID, RegclassType.ID)
         ).collect(Collectors.toUnmodifiableSet())),
         entry(REGPROC.id(), Set.of(STRING.id(), INTEGER.id())),
-        entry(REGCLASS.id(), Set.of(STRING.id(), INTEGER.id())),
-        entry(LONG.id(), NUMBER_CONVERSIONS),
+        entry(REGCLASS.id(), Set.of(STRING.id(), INTEGER.id(), LONG.id())),
+        entry(
+            LONG.id(),
+            Stream.concat(
+                NUMBER_CONVERSIONS.stream(),
+                Stream.of(RegprocType.ID, RegclassType.ID)
+            ).collect(Collectors.toUnmodifiableSet())
+        ),
         entry(NUMERIC.id(), NUMBER_CONVERSIONS),
         entry(FLOAT.id(), NUMBER_CONVERSIONS),
         entry(DOUBLE.id(), NUMBER_CONVERSIONS),
