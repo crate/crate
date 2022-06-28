@@ -89,3 +89,6 @@ Fixes
 
 - Fixed an issue that caused failure of ``ALTER TABLE`` statements when updating
   dynamic or non-dynamic table settings on closed tables.
+
+- Fixed an issue that caused clients using PostrgreSQL wire protocol's simple
+  query to hang, when an error occurred during planning.

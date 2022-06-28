@@ -793,6 +793,7 @@ public class PostgresWireProtocol {
             }
             return session.sync();
         } catch (Throwable t) {
+            channel.discardDelayedWrites();
             Messages.sendErrorResponse(channel, accessControl, t);
             result.completeExceptionally(t);
             return result;
