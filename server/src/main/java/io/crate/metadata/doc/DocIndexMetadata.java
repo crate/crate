@@ -473,6 +473,7 @@ public class DocIndexMetadata {
                 if (indicesMap.containsKey(newIdent.fqn())) {
                     IndexReference.Builder builder = getOrCreateIndexBuilder(newIdent);
                     builder.indexType(columnIndexType)
+                        .position(position)
                         .analyzer((String) columnProperties.get("analyzer"));
                 } else {
                     add(position, newIdent, columnDataType, defaultExpression, ColumnPolicy.DYNAMIC, columnIndexType, nullable, hasDocValues);

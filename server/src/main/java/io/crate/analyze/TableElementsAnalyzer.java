@@ -31,6 +31,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.AddColumnDefinition;
 import io.crate.sql.tree.CheckColumnConstraint;
@@ -58,16 +59,16 @@ public class TableElementsAnalyzer {
 
     public static <T> AnalyzedTableElements<T> analyze(List<TableElement<T>> tableElements,
                                                        RelationName relationName,
-                                                       @Nullable TableInfo tableInfo) {
+                                                       @Nullable DocTableInfo tableInfo) {
         return analyze(tableElements, relationName, tableInfo, true);
     }
 
     public static <T> AnalyzedTableElements<T> analyze(List<TableElement<T>> tableElements,
                                                        RelationName relationName,
-                                                       @Nullable TableInfo tableInfo,
+                                                       @Nullable DocTableInfo tableInfo,
                                                        boolean logWarnings) {
         AnalyzedTableElements<T> analyzedTableElements = new AnalyzedTableElements<>();
-        int positionOffset = tableInfo == null ? 0 : tableInfo.columns().size();
+        int positionOffset = tableInfo == null ? 0 : tableInfo.columns().size() + tableInfo.indexColumns().size();
         InnerTableElementsAnalyzer<T> analyzer = new InnerTableElementsAnalyzer<>();
         for (int i = 0; i < tableElements.size(); i++) {
             TableElement<T> tableElement = tableElements.get(i);
