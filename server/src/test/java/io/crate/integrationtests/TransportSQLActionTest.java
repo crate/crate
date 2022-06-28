@@ -2047,4 +2047,12 @@ public class TransportSQLActionTest extends SQLIntegrationTestCase {
         assertThat(printedTable(response.rows()), Matchers.is("\"\"\n"));
     }
 
+    @Test
+    public void test_select_with_order_by_can_have_limit_zero() {
+        execute("select 1 order by 1 limit 0");
+        assertThat(response.rowCount(), is(0L));
+
+        execute("select 1 order by 1 limit 0 offset 10");
+        assertThat(response.rowCount(), is(0L));
+    }
 }
