@@ -178,8 +178,8 @@ expression <sql-literal-value>`.
 
 Can be used to open or close the table.
 
-Closing a table means that all operations, except ``ALTER TABLE ... OPEN``,
-will fail. Operations that fail will not return an error, but they will have no
+Closing a table means that all operations, except ``ALTER TABLE ...``, will
+fail. Operations that fail will not return an error, but they will have no
 effect. Operations on tables containing closed partitions won't fail, but those
 operations will exclude all closed partitions.
 
