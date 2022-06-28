@@ -89,7 +89,7 @@ public class TableSettingsTest extends SQLIntegrationTestCase {
     @Test
     public void testSetNonDynamicTableSetting() {
         assertThrowsMatches(() -> execute("alter table settings_table set (codec = 'best_compression')"),
-                     isSQLError(containsString("Can't update non dynamic settings [[index.codec]] for open indices"),
+                     isSQLError(containsString("Can't update non dynamic settings [[codec]] for open indices"),
                                 INTERNAL_ERROR,
                                 BAD_REQUEST,
                                 4000));
