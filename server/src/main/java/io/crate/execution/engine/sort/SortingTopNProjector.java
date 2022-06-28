@@ -21,22 +21,25 @@
 
 package io.crate.execution.engine.sort;
 
-import io.crate.breaker.RowAccounting;
-import io.crate.data.BatchIterator;
-import io.crate.data.Bucket;
-import io.crate.data.CollectingBatchIterator;
-import io.crate.data.Input;
-import io.crate.data.Projector;
-import io.crate.data.Row;
-import io.crate.execution.engine.collect.CollectExpression;
-
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.stream.Collector;
 
+import io.crate.breaker.RowAccounting;
+import io.crate.data.BatchIterator;
+import io.crate.data.Bucket;
+import io.crate.data.CollectingBatchIterator;
+import io.crate.data.InMemoryBatchIterator;
+import io.crate.data.Input;
+import io.crate.data.Projector;
+import io.crate.data.Row;
+import io.crate.data.SentinelRow;
+import io.crate.execution.engine.collect.CollectExpression;
+
 public class SortingTopNProjector implements Projector {
 
     private final Collector<Row, ?, Bucket> collector;
+    private final boolean hasNoResult;
 
     /**
      * @param rowAccounting               sorting is a pipeline breaker so account for the used memory
@@ -57,15 +60,20 @@ public class SortingTopNProjector implements Projector {
                                 int limit,
                                 int offset,
                                 int unboundedCollectorThreshold) {
-        /**
-         * We'll use an unbounded queue with the initial capacity of {@link unboundedCollectorThreshold}
-         * if the maximum number of rows we have to accommodate in the queue in order to maintain correctness is
-         * greater than this threshold.
-         *
-         * Otherwise, we'll use a bounded queue as we want to avoid the case where we pre-allocate a large queue that
-         * will never be filled.
-         */
-        if ((limit + offset) > unboundedCollectorThreshold) {
+        this.hasNoResult = limit + offset == 0;
+        if (offset < 0) {
+            throw new IllegalArgumentException("Invalid OFFSET: value must be >= 0; got: " + offset);
+        } else if (hasNoResult) {
+            collector = null;
+        } else if ((limit + offset) > unboundedCollectorThreshold) {
+            /**
+            * We'll use an unbounded queue with the initial capacity of {@link unboundedCollectorThreshold}
+            * if the maximum number of rows we have to accommodate in the queue in order to maintain correctness is
+            * greater than this threshold.
+            *
+            * Otherwise, we'll use a bounded queue as we want to avoid the case where we pre-allocate a large queue that
+            * will never be filled.
+            */
             collector = new UnboundedSortingTopNCollector(
                 rowAccounting,
                 inputs,
@@ -91,6 +99,10 @@ public class SortingTopNProjector implements Projector {
 
     @Override
     public BatchIterator<Row> apply(BatchIterator<Row> batchIterator) {
+        if (hasNoResult) {
+            batchIterator.close();
+            return InMemoryBatchIterator.empty(SentinelRow.SENTINEL);
+        }
         return CollectingBatchIterator.newInstance(batchIterator, collector);
     }
 
