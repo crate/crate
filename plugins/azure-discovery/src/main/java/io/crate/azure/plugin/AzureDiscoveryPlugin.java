@@ -30,6 +30,7 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
+import org.elasticsearch.common.logging.DeprecationLogger;
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
@@ -65,6 +66,7 @@ public class AzureDiscoveryPlugin extends Plugin implements DiscoveryPlugin {
     private AzureComputeServiceImpl azureComputeService;
 
     protected final Logger logger = LogManager.getLogger(AzureDiscoveryPlugin.class);
+    private final DeprecationLogger deprecationLogger = new DeprecationLogger(logger);
 
     public AzureDiscoveryPlugin(Settings settings) {
         this.settings = settings;
@@ -117,6 +119,8 @@ public class AzureDiscoveryPlugin extends Plugin implements DiscoveryPlugin {
             AzureConfiguration.AZURE,
             () -> {
                 if (AzureConfiguration.isDiscoveryReady(settings, logger)) {
+                    deprecationLogger.deprecated(
+                        "The azure discovery functionality is deprecated and will be removed in the future.");
                     return new AzureSeedHostsProvider(settings,
                                                       azureComputeService(),
                                                       transportService,

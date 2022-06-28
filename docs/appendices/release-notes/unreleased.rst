@@ -74,7 +74,8 @@ Breaking Changes
 Deprecations
 ============
 
-None
+- Deprecated the azure discovery functionality. It only works for classic VM and
+  Microsoft deprecated classic VM support on Azure.
 
 
 Changes
