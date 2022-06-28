@@ -610,10 +610,22 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testHandleMultipleSimpleQueries() {
-        submitQueriesThroughSimpleQueryMode("select 'first'; select 'second';", null);
+    public void testHandleSimpleQueryFailing() {
+        CompletableFuture<?> completableFuture = new CompletableFuture<>();
+        submitQueriesThroughSimpleQueryMode("SELECT 'fail'",
+                                            new RuntimeException("fail"),
+                                            completableFuture);
+        // the completableFuture is not completed but the channel is flushed
+        readErrorResponse(channel);
         readReadyForQueryMessage(channel);
-        assertThat(channel.outboundMessages().size() , is(0));
+        assertThat(channel.outboundMessages().size(), is(0));
+    }
+
+    @Test
+    public void testHandleMultipleSimpleQueries() {
+        submitQueriesThroughSimpleQueryMode("select 'first'; select 'second';");
+        readReadyForQueryMessage(channel);
+        assertThat(channel.outboundMessages().size(), is(0));
     }
 
     @Test
@@ -683,7 +695,8 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         assertThat(capturedKillJobRequest.innerRequest().toKill(), is(List.of(targetJobID)));
 
         assertThat(channel.isOpen(), is(false));
-        Asserts.assertThrowsMatches( // implicitly verifies that cancelling did not affect the internal map hence the original session
+        Asserts.assertThrowsMatches(
+            // implicitly verifies that cancelling did not affect the internal map hence the original session
             () -> pgSessions.add(keyData, targetSession),
             AssertionError.class,
             "The given KeyData already has an associated active Session"
@@ -693,9 +706,21 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         verify(targetSession, times(0)).close();
     }
 
-    private void submitQueriesThroughSimpleQueryMode(String statements, @Nullable Throwable failure) {
+    private void submitQueriesThroughSimpleQueryMode(String statements) {
+        submitQueriesThroughSimpleQueryMode(statements, null, null);
+    }
+
+    private void submitQueriesThroughSimpleQueryMode(String statements, Throwable failure) {
+        submitQueriesThroughSimpleQueryMode(statements, failure, null);
+    }
+
+    private void submitQueriesThroughSimpleQueryMode(String statements,
+                                                     @Nullable Throwable failure,
+                                                     @Nullable CompletableFuture future) {
         SQLOperations sqlOperations = Mockito.mock(SQLOperations.class);
         Session session = mock(Session.class);
+        when(session.execute(any(String.class), any(int.class), any(RowCountReceiver.class))).
+            thenReturn(future);
         SessionContext sessionContext = new SessionContext(User.CRATE_USER);
         when(session.sessionContext()).thenReturn(sessionContext);
         when(sqlOperations.createSession(any(String.class), any(User.class))).thenReturn(session);
@@ -716,10 +741,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
 
         if (failure != null) {
-            when(session.sync()).thenAnswer(invocationOnMock -> {
-                Messages.sendErrorResponse(channel, AccessControl.DISABLED, failure);
-                return CompletableFuture.failedFuture(failure);
-            });
+            when(session.sync()).thenThrow(failure);
         } else {
             when(session.sync()).thenReturn(CompletableFuture.completedFuture(null));
         }
@@ -789,7 +811,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         int secretKey = response.readInt();
         response.release();
         return new KeyData(pid, secretKey);
-    };
+    }
 
     private static void readReadyForQueryMessage(EmbeddedChannel channel) {
         ByteBuf response = channel.readOutbound();
