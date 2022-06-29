@@ -49,6 +49,7 @@ public class PGArray extends PGType<List<Object>> {
     static final PGArray TIMESTAMP_ARRAY = new PGArray(1115, TimestampType.INSTANCE);
     static final PGArray TIMETZ_ARRAY = new PGArray(1270, TimeTZType.INSTANCE);
     static final PGArray DATE_ARRAY = new PGArray(1182, DateType.INSTANCE);
+    static final PGArray CHARACTER_ARRAY = new PGArray(1014, CharacterType.INSTANCE);
     static final PGArray VARCHAR_ARRAY = new PGArray(1015, VarCharType.INSTANCE);
     static final PGArray TEXT_ARRAY = new PGArray(1009, VarCharType.TextType.INSTANCE);
     static final PGArray JSON_ARRAY = new PGArray(199, JsonType.INSTANCE);

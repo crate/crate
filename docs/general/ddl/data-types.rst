@@ -49,6 +49,9 @@ CrateDB supports the following data types. Scroll down for more details.
     * - ``VARCHAR(n)`` and ``TEXT``
       - A string of Unicode characters
       - ``'foobar'``
+    * - ``CHARACTER(n)`` and ``CHAR(n)``
+      - A fixed-length, blank padded string of Unicode characters
+      - ``'foobar'``
     * - ``SMALLINT``, ``INTEGER`` and ``BIGINT``
       - A signed integer value
       - ``12345`` or ``-12345``
@@ -155,6 +158,10 @@ are likely to be larger due to additional metadata.
       - variable
       - Minimum length: 1. Maximum length: 2^31-1 (upper :ref:`integer <type-integer>` range). [#f1]_
       - Strings of variable length. All Unicode characters are allowed.
+    * - ``CHARACTER(n)``, ``CHAR(n)``
+      - variable
+      - Minimum length: 1. Maximum length: 2^31-1 (upper :ref:`integer <type-integer>` range). [#f1]_
+      - Strings of fixed length, blank padded. All Unicode characters are allowed.
     * - ``SMALLINT``
       - 2 bytes
       - -32,768 to 32,767
@@ -502,6 +509,147 @@ see also :ref:`type aliases <data-types-postgres-aliases>`.
     cr> DROP TABLE users;
     DROP OK, 1 row affected (... sec)
 
+.. _data-type-character:
+
+``CHARACTER(n)``
+''''''''''''''''
+
+The ``CHARACTER(n)`` (or ``CHAR(n)``) type represents fixed-length, blank padded
+strings. All Unicode characters are allowed.
+
+The optional length specification ``n`` is a positive :ref:`integer
+<type-numeric>` that defines the maximum length, in characters, of the
+values that have to be stored or cast. The minimum length is ``1``. The maximum
+length is defined by the upper :ref:`integer <type-integer>` range.
+If the type is used without the length parameter, a length of ``1`` is used.
+
+An attempt to store a string literal that exceeds the specified length
+of the character data type results in an error.
+
+::
+
+    cr> CREATE TABLE users (
+    ...     id CHARACTER,
+    ...     name CHAR(3)
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+::
+
+    cr> INSERT INTO users (
+    ...     id,
+    ...     name
+    ... ) VALUES (
+    ...     '1',
+    ...     'Alice Smith'
+    ... );
+    SQLParseException['Alice Smith' is too long for the character type of length: 3]
+
+If the excess characters are all spaces, the string literal will be truncated
+to the specified length.
+
+::
+
+    cr> INSERT INTO users (
+    ...     id,
+    ...     name
+    ... ) VALUES (
+    ...     '1',
+    ...     'Bob     '
+    ... );
+    INSERT OK, 1 row affected (... sec)
+
+.. HIDE:
+
+    cr> REFRESH TABLE users;
+    REFRESH OK, 1 row affected (... sec)
+
+::
+
+    cr> SELECT
+    ...    id,
+    ...    name,
+    ...    char_length(name) AS name_length
+    ... FROM users;
+    +----+------+-------------+
+    | id | name | name_length |
+    +----+------+-------------+
+    | 1  | Bob  |           3 |
+    +----+------+-------------+
+    SELECT 1 row in set (... sec)
+
+
+::
+
+    cr> INSERT INTO users (
+    ...     id,
+    ...     name
+    ... ) VALUES (
+    ...     '1',
+    ...     'Bob     '
+    ... );
+    INSERT OK, 1 row affected (... sec)
+
+.. HIDE:
+
+    cr> REFRESH TABLE users;
+    REFRESH OK, 1 row affected (... sec)
+
+    cr> DELETE FROM users WHERE id = '1';
+    DELETE OK, 2 rows affected (... sec)
+
+If a value is inserted with a length lower than the defined one, the value will
+be right padded with whitespaces.
+
+::
+
+    cr> INSERT INTO users (
+    ...     id,
+    ...     name
+    ... ) VALUES (
+    ...     '1',
+    ...     'Bo'
+    ... );
+    INSERT OK, 1 row affected (... sec)
+
+.. HIDE:
+
+    cr> REFRESH TABLE users;
+    REFRESH OK, 1 row affected (... sec)
+
+::
+
+    cr> SELECT
+    ...    id,
+    ...    name,
+    ...    char_length(name) AS name_length
+    ... FROM users;
+    +----+------+-------------+
+    | id | name | name_length |
+    +----+------+-------------+
+    | 1  | Bo   |           3 |
+    +----+------+-------------+
+    SELECT 1 row in set (... sec)
+
+If a value is explicitly cast to ``CHARACTER(n)``, then an over-length value
+will be truncated to ``n`` characters without raising an error.
+
+::
+
+    cr> SELECT 'Alice Smith'::CHARACTER(5) AS name;
+    +-------+
+    | name  |
+    +-------+
+    | Alice |
+    +-------+
+    SELECT 1 row in set (... sec)
+
+
+.. HIDE:
+
+    cr> DROP TABLE users;
+    DROP OK, 1 row affected (... sec)
+
 
 .. _type-text:
 
@@ -659,7 +807,7 @@ CrateDB supports the following numeric types:
         ...     column_3 SMALLINT,
         ...     column_4 DOUBLE PRECISION,
         ...     column_5 REAL,
-        ...     column_6 CHAR
+        ...     column_6 "CHAR"
         ... );
         CREATE OK, 1 row affected (... sec)
 
@@ -3282,7 +3430,7 @@ See the table below for a full list of aliases:
 +-----------------------+---------------------------------+
 | ``REGPROC``           | ``TEXT``                        |
 +-----------------------+---------------------------------+
-| ``BYTE``              | ``CHAR``                        |
+| ``"CHAR"``            | ``BYTE``                        |
 +-----------------------+---------------------------------+
 | ``FLOAT``             | ``REAL``                        |
 +-----------------------+---------------------------------+
@@ -3312,8 +3460,8 @@ Internal-use types
 
 .. _type-char:
 
-``CHAR``
-''''''''
+``"CHAR"``
+''''''''''
 A one-byte character used internally for enumeration items in the
 :ref:`PostgreSQL system catalogs <postgres-pg_catalog>`.
 

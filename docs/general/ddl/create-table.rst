@@ -120,7 +120,7 @@ Every table that is created without an explicit schema name, will be created in
 the ``doc`` schema::
 
     cr> create table my_doc_table (
-    ...   a_column char,
+    ...   a_column int,
     ...   another_one geo_point
     ... );
     CREATE OK, 1 row affected (... sec)

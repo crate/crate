@@ -71,6 +71,10 @@ Breaking Changes
   ``pg_index`` tables now return ``TEXT`` instead of ``ARRAY(OBJECT)`` for
   improved compatibility with PostgreSQL.
 
+- The single byte ``byte`` data type was falsely exposed as the ``char``
+  data type. It will now be correctly exposed as the special single byte
+  ``"char"``.
+
 Deprecations
 ============
 
@@ -132,15 +136,15 @@ Changes
 - Added ``SUBSTRING`` to non-reserved SQL keywords in order to support the
   generic function call syntax for improved PostgreSQL compatibility.
   Example: ``SUBSTRING('crate', 1, 3)``
-  
-- Added ``pg_catalog.pg_tables`` and ``pg_catalog.pg_views`` tables for improved 
+
+- Added ``pg_catalog.pg_tables`` and ``pg_catalog.pg_views`` tables for improved
   PostgreSQL compatibility.
 
 - Added identity columns information to ``information_schema.columns`` table for
   improved PostgreSQL compatibility. CrateDB does not support identity columns.
-  
-- Added the :ref:`pg_get_serial_sequence <scalar-pg_get_serial_sequence>` scalar 
-  function for improved compatibility with PostgreSQL. CrateDB does not support 
+
+- Added the :ref:`pg_get_serial_sequence <scalar-pg_get_serial_sequence>` scalar
+  function for improved compatibility with PostgreSQL. CrateDB does not support
   sequences.
 
 - Added primary key and check constraint column positions into ``conkey`` field
@@ -155,7 +159,7 @@ Changes
   ``regexp_matches``, and ``generate_series`` to be the respective table
   function names.
 
-- Added support for an optional boolean argument ``pretty`` at the 
+- Added support for an optional boolean argument ``pretty`` at the
   :ref:`pg_get_expr <scalar-pg_get_expr>` scalar function for improved
   PostgreSQL compatibility.
 
@@ -165,6 +169,11 @@ Changes
 
 - Added an empty ``pg_catalog.pg_shdescription`` table for improved PostgreSQL
   compatibility.
+
+- Added full support, incl. storage and indexing, for the fixed-length,
+  blank padded :ref:`data-type-character` data type. Previously, the single
+  byte ``byte`` was exposed as ``char`` which has been fixed, see
+  `Breaking Changes`_.
 
 Fixes
 =====

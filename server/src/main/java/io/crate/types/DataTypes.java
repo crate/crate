@@ -68,6 +68,7 @@ public final class DataTypes {
     public static final BooleanType BOOLEAN = BooleanType.INSTANCE;
 
     public static final StringType STRING = StringType.INSTANCE;
+    public static final CharacterType CHARACTER = CharacterType.INSTANCE;
     public static final IpType IP = IpType.INSTANCE;
 
     public static final DoubleType DOUBLE = DoubleType.INSTANCE;
@@ -105,16 +106,10 @@ public final class DataTypes {
     public static final RegprocType REGPROC = RegprocType.INSTANCE;
     public static final RegclassType REGCLASS = RegclassType.INSTANCE;
 
-    public static Set<String> PRIMITIVE_TYPE_NAMES_WITH_SPACES = Set.of(
-        TIMESTAMPZ.getName(),
-        TIMESTAMP.getName(),
-        TIMETZ.getName(),
-        DOUBLE.getName()
-    );
-
     public static final List<DataType<?>> PRIMITIVE_TYPES = List.of(
         BYTE,
         BOOLEAN,
+        CHARACTER,
         STRING,
         IP,
         DOUBLE,
@@ -157,6 +152,7 @@ public final class DataTypes {
             entry(NotSupportedType.ID, in -> NOT_SUPPORTED),
             entry(ByteType.ID, in -> BYTE),
             entry(BooleanType.ID, in -> BOOLEAN),
+            entry(CharacterType.ID, CharacterType::new),
             entry(StringType.ID, StringType::new),
             entry(IpType.ID, in -> IP),
             entry(DoubleType.ID, in -> DOUBLE),
@@ -185,7 +181,7 @@ public final class DataTypes {
     );
 
     private static final Set<Integer> NUMBER_CONVERSIONS = Stream.concat(
-        Stream.of(BOOLEAN, STRING, TIMESTAMPZ, TIMESTAMP, DATE, IP, NUMERIC),
+        Stream.of(BOOLEAN, STRING, TIMESTAMPZ, TIMESTAMP, DATE, IP, NUMERIC, CHARACTER),
         NUMERIC_PRIMITIVE_TYPES.stream()
     ).map(DataType::id).collect(toSet());
 
@@ -198,8 +194,8 @@ public final class DataTypes {
             NUMBER_CONVERSIONS.stream(),
             Stream.of(RegprocType.ID, RegclassType.ID)
         ).collect(Collectors.toUnmodifiableSet())),
-        entry(REGPROC.id(), Set.of(STRING.id(), INTEGER.id())),
-        entry(REGCLASS.id(), Set.of(STRING.id(), INTEGER.id(), LONG.id())),
+        entry(REGPROC.id(), Set.of(STRING.id(), INTEGER.id(), CHARACTER.id())),
+        entry(REGCLASS.id(), Set.of(STRING.id(), INTEGER.id(), LONG.id(), CHARACTER.id())),
         entry(
             LONG.id(),
             Stream.concat(
@@ -210,7 +206,7 @@ public final class DataTypes {
         entry(NUMERIC.id(), NUMBER_CONVERSIONS),
         entry(FLOAT.id(), NUMBER_CONVERSIONS),
         entry(DOUBLE.id(), NUMBER_CONVERSIONS),
-        entry(BOOLEAN.id(), Set.of(STRING.id())),
+        entry(BOOLEAN.id(), Set.of(STRING.id(), CHARACTER.id())),
         entry(STRING.id(), Stream.concat(
             Stream.of(
                 GEO_SHAPE.id(),
@@ -220,14 +216,29 @@ public final class DataTypes {
                 RegclassType.ID,
                 TimeTZType.ID,
                 BitStringType.ID,
-                JsonType.ID
+                JsonType.ID,
+                CharacterType.ID
             ),
             NUMBER_CONVERSIONS.stream()
         ).collect(toSet())),
-        entry(IP.id(), Set.of(STRING.id())),
-        entry(TIMESTAMPZ.id(), Set.of(DOUBLE.id(), LONG.id(), STRING.id(), TIMESTAMP.id())),
-        entry(TIMESTAMP.id(), Set.of(DOUBLE.id(), LONG.id(), STRING.id(), TIMESTAMPZ.id())),
-        entry(DATE.id(), Set.of(DOUBLE.id(), LONG.id(), STRING.id(), TIMESTAMPZ.id())),
+        entry(CHARACTER.id(), Stream.concat(
+            Stream.of(
+                GEO_SHAPE.id(),
+                GEO_POINT.id(),
+                ObjectType.ID,
+                RegprocType.ID,
+                RegclassType.ID,
+                TimeTZType.ID,
+                BitStringType.ID,
+                JsonType.ID,
+                StringType.ID
+            ),
+            NUMBER_CONVERSIONS.stream()
+        ).collect(toSet())),
+        entry(IP.id(), Set.of(STRING.id(), CHARACTER.id())),
+        entry(TIMESTAMPZ.id(), Set.of(DOUBLE.id(), LONG.id(), STRING.id(), TIMESTAMP.id(), CHARACTER.id())),
+        entry(TIMESTAMP.id(), Set.of(DOUBLE.id(), LONG.id(), STRING.id(), TIMESTAMPZ.id(), CHARACTER.id())),
+        entry(DATE.id(), Set.of(DOUBLE.id(), LONG.id(), STRING.id(), TIMESTAMPZ.id(), CHARACTER.id())),
         entry(UNDEFINED.id(), Set.of()), // actually convertible to every type, see NullType
         entry(GEO_POINT.id(), Set.of()),
         entry(GEO_SHAPE.id(), Set.of(ObjectType.ID)),
@@ -373,6 +384,7 @@ public final class DataTypes {
         entry(BYTE.getName(), BYTE),
         entry(BOOLEAN.getName(), BOOLEAN),
         entry(STRING.getName(), STRING),
+        entry(CHARACTER.getName(), CHARACTER),
         entry(IP.getName(), IP),
         entry(DOUBLE.getName(), DOUBLE),
         entry(FLOAT.getName(), FLOAT),
@@ -396,7 +408,7 @@ public final class DataTypes {
         entry("int8", LONG),
         entry("name", STRING),
         entry("long", LONG),
-        entry("byte", BYTE),
+        entry("\"char\"", BYTE),
         entry("short", SHORT),
         entry("float", FLOAT),
         entry("float4", FLOAT),
@@ -405,6 +417,7 @@ public final class DataTypes {
         entry("string", STRING),
         entry("varchar", STRING),
         entry("character varying", STRING),
+        entry("char", CHARACTER),
         entry("timetz", TIMETZ),
         entry("timestamptz", TIMESTAMPZ),
         entry("timestamp", TIMESTAMP),
@@ -435,6 +448,7 @@ public final class DataTypes {
         if (!parameters.isEmpty()) {
             return switch (dataType.id()) {
                 case StringType.ID -> StringType.of(parameters);
+                case CharacterType.ID -> CharacterType.of(parameters);
                 case NumericType.ID -> NumericType.of(parameters);
                 default -> throw new IllegalArgumentException(
                     "The '" + typeName + "' type doesn't support type parameters.");
@@ -473,6 +487,7 @@ public final class DataTypes {
         entry(TIMESTAMPZ.id(), "date"),
         entry(TIMESTAMP.id(), "date"),
         entry(STRING.id(), "text"),
+        entry(CHARACTER.id(), "keyword"),
         entry(BYTE.id(), "byte"),
         entry(BOOLEAN.id(), "boolean"),
         entry(IP.id(), "ip"),
@@ -583,15 +598,6 @@ public final class DataTypes {
             }
         }
         return true;
-    }
-
-    /**
-     * Returns the first data type that is not {@link UndefinedType}, or {@code UNDEFINED} if none found.
-     */
-    public static DataType<?> tryFindNotNullType(List<DataType<?>> dataTypes) {
-        return dataTypes.stream()
-            .filter(t -> t != UNDEFINED)
-            .findFirst().orElse(UNDEFINED);
     }
 
     public static DataType<?> fromId(Integer id) {

@@ -280,10 +280,18 @@ IDs of all currently available data types:
      - :ref:`TIME <type-time>`
    * - 21
      - :ref:`OIDVECTOR <type-oidvector>`
+   * - 22
+     - :ref:`NUMERIC <data-types-numeric>`
    * - 23
      - :ref:`REGCLASS <type-regclass>`
    * - 24
      - :ref:`DATE <type-date>`
+   * - 25
+     - :ref:`BIT <data-types-bit-strings>`
+   * - 26
+     - :ref:`JSON <data-type-json>`
+   * - 27
+     - :ref:`CHARACTER <data-type-character>`
    * - 100
      - :ref:`ARRAY <type-array>`
 

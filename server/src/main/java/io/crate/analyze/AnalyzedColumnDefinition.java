@@ -21,6 +21,21 @@
 
 package io.crate.analyze;
 
+import static org.elasticsearch.index.mapper.TypeParsers.DOC_VALUES;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Consumer;
+import java.util.function.Function;
+
+import javax.annotation.Nullable;
+
+import org.elasticsearch.common.settings.Settings;
+
 import io.crate.analyze.ddl.GeoSettingsApplier;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists2;
@@ -31,25 +46,13 @@ import io.crate.metadata.table.ColumnPolicies;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.types.BitStringType;
+import io.crate.types.CharacterType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.GeoShapeType;
 import io.crate.types.ObjectType;
 import io.crate.types.StringType;
 import io.crate.types.TimestampType;
-import org.elasticsearch.common.settings.Settings;
-
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Consumer;
-import java.util.function.Function;
-
-import static org.elasticsearch.index.mapper.TypeParsers.DOC_VALUES;
 
 public class AnalyzedColumnDefinition<T> {
 
@@ -483,6 +486,11 @@ public class AnalyzedColumnDefinition<T> {
                 if (!stringType.unbound()) {
                     mapping.put("length_limit", stringType.lengthLimit());
                 }
+                break;
+            case CharacterType.ID:
+                var type = (CharacterType) definition.dataType;
+                mapping.put("length_limit", type.lengthLimit());
+                mapping.put("blank_padding", true);
                 break;
 
             case BitStringType.ID:

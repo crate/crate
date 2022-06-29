@@ -21,8 +21,13 @@
 
 package io.crate.breaker;
 
+import static org.apache.lucene.util.RamUsageEstimator.UNKNOWN_DEFAULT_RAM_BYTES_USED;
+
+import java.util.Locale;
+
 import io.crate.common.collections.Lists2;
 import io.crate.types.ArrayType;
+import io.crate.types.CharacterType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.FixedWidthType;
@@ -37,10 +42,6 @@ import io.crate.types.RegprocType;
 import io.crate.types.RowType;
 import io.crate.types.StringType;
 import io.crate.types.UndefinedType;
-
-import java.util.Locale;
-
-import static org.apache.lucene.util.RamUsageEstimator.UNKNOWN_DEFAULT_RAM_BYTES_USED;
 
 public class SizeEstimatorFactory {
 
@@ -57,6 +58,7 @@ public class SizeEstimatorFactory {
                 return (SizeEstimator<T>) new SamplingSizeEstimator<>(SAMPLE_EVERY_NTH, MapSizeEstimator.INSTANCE);
 
             case StringType.ID:
+            case CharacterType.ID:
             case IpType.ID:
             case JsonType.ID:
                 return (SizeEstimator<T>) StringSizeEstimator.INSTANCE;

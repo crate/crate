@@ -35,6 +35,7 @@ import org.elasticsearch.index.fielddata.NullValueOrder;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.search.MultiValueMode;
 
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Input;
 import io.crate.execution.engine.collect.DocInputFactory;
 import io.crate.expression.InputFactory;
@@ -55,6 +56,7 @@ import io.crate.metadata.doc.DocSysColumns;
 import io.crate.types.BitStringType;
 import io.crate.types.BooleanType;
 import io.crate.types.ByteType;
+import io.crate.types.CharacterType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.DoubleType;
@@ -157,21 +159,20 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
         } else {
             return mappedSortField(
                 ref,
-                fieldType,
                 context.reverseFlag,
                 NullValueOrder.fromFlag(context.nullFirst)
             );
         }
     }
 
-    private static SortField mappedSortField(Reference symbol,
-                                             MappedFieldType fieldType,
-                                             boolean reverse,
-                                             NullValueOrder nullValueOrder) {
+    @VisibleForTesting
+    static SortField mappedSortField(Reference symbol,
+                                     boolean reverse,
+                                     NullValueOrder nullValueOrder) {
         String fieldName = symbol.column().fqn();
         MultiValueMode sortMode = reverse ? MultiValueMode.MAX : MultiValueMode.MIN;
         switch (symbol.valueType().id()) {
-            case StringType.ID -> {
+            case StringType.ID, CharacterType.ID -> {
                 SortField sortField = new SortedSetSortField(
                     fieldName,
                     reverse,

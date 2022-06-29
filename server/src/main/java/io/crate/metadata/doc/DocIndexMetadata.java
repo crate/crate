@@ -81,6 +81,7 @@ import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.Expression;
 import io.crate.types.ArrayType;
 import io.crate.types.BitStringType;
+import io.crate.types.CharacterType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
@@ -329,6 +330,10 @@ public class DocIndexMetadata {
                     }
                 case KeywordFieldMapper.CONTENT_TYPE:
                     Integer lengthLimit = (Integer) columnProperties.get("length_limit");
+                    var blankPadding = columnProperties.get("blank_padding");
+                    if (blankPadding != null && (Boolean) blankPadding) {
+                        return new CharacterType(lengthLimit);
+                    }
                     return lengthLimit != null
                         ? StringType.of(lengthLimit)
                         : DataTypes.STRING;

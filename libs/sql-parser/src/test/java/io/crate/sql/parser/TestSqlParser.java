@@ -505,6 +505,13 @@ public class TestSqlParser {
             "type 'string' cast notation only supports primitive types. Use '::' or cast() operator instead.");
     }
 
+    @Test
+    public void test_special_char_data_type() {
+        Cast cast = (Cast) SqlParser.createExpression("1::\"char\"");
+        assertThat(cast.getType().getClass(), is(ColumnType.class));
+        assertThat(cast.getType().name(), is("\"char\""));
+    }
+
     private static void assertStatement(String query, Statement expected) {
         assertParsed(query, expected, SqlParser.createStatement(query));
     }

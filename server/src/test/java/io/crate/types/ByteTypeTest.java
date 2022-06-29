@@ -21,13 +21,13 @@
 
 package io.crate.types;
 
-import org.elasticsearch.test.ESTestCase;
-import org.junit.Test;
+import static org.hamcrest.Matchers.is;
 
 import java.math.BigDecimal;
 import java.util.Map;
 
-import static org.hamcrest.Matchers.is;
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
 
 public class ByteTypeTest extends ESTestCase {
 
@@ -52,16 +52,16 @@ public class ByteTypeTest extends ESTestCase {
     }
 
     @Test
-    public void test_cast_boolean_to_char_throws_exception() {
+    public void test_cast_boolean_to_byte_throws_exception() {
         expectedException.expect(ClassCastException.class);
-        expectedException.expectMessage("Can't cast 'true' to char");
+        expectedException.expectMessage("Can't cast 'true' to byte");
         ByteType.INSTANCE.implicitCast(true);
     }
 
     @Test
-    public void test_cast_object_to_char_throws_exception() {
+    public void test_cast_object_to_byte_throws_exception() {
         expectedException.expect(ClassCastException.class);
-        expectedException.expectMessage("Can't cast '{}' to char");
+        expectedException.expectMessage("Can't cast '{}' to byte");
         ByteType.INSTANCE.implicitCast(Map.of());
     }
 

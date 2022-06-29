@@ -177,7 +177,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testNumericOutOfRangeFromFunction() {
         expectedException.expect(ColumnValidationException.class);
-        expectedException.expectMessage("Validation failed for bytes: Cannot cast expression `1234` of type `integer` to `char`");
+        expectedException.expectMessage("Validation failed for bytes: Cannot cast expression `1234` of type `integer` to `byte`");
         analyze("update users set bytes=abs(-1234)");
     }
 
