@@ -99,7 +99,7 @@ Changes
 
 - Updated the bundled JDK to 18.0.1+10
 
-- Moved the :ref:`scalar-quote_ident` function to `pg_catalog` for improved
+- Moved the :ref:`scalar-quote_ident` function to ``pg_catalog`` for improved
   compatibility with PostgreSQL.
 
 - Added the :ref:`concat_ws <scalar-concat-ws>` scalar function which allows
@@ -126,13 +126,13 @@ Changes
 - Added ``SUBSTRING`` to non-reserved SQL keywords in order to support the
   generic function call syntax for improved PostgreSQL compatibility.
   Example: ``SUBSTRING('crate', 1, 3)``
-  
+
 - Added ``pg_catalog.pg_tables`` and ``pg_catalog.pg_views`` tables for improved 
   PostgreSQL compatibility.
 
 - Added identity columns information to ``information_schema.columns`` table for
   improved PostgreSQL compatibility. CrateDB does not support identity columns.
-  
+
 - Added the :ref:`pg_get_serial_sequence <scalar-pg_get_serial_sequence>` scalar 
   function for improved compatibility with PostgreSQL. CrateDB does not support 
   sequences.
