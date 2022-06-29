@@ -106,13 +106,6 @@ public final class DataTypes {
     public static final RegprocType REGPROC = RegprocType.INSTANCE;
     public static final RegclassType REGCLASS = RegclassType.INSTANCE;
 
-    public static Set<String> PRIMITIVE_TYPE_NAMES_WITH_SPACES = Set.of(
-        TIMESTAMPZ.getName(),
-        TIMESTAMP.getName(),
-        TIMETZ.getName(),
-        DOUBLE.getName()
-    );
-
     public static final List<DataType<?>> PRIMITIVE_TYPES = List.of(
         BYTE,
         BOOLEAN,
@@ -605,15 +598,6 @@ public final class DataTypes {
             }
         }
         return true;
-    }
-
-    /**
-     * Returns the first data type that is not {@link UndefinedType}, or {@code UNDEFINED} if none found.
-     */
-    public static DataType<?> tryFindNotNullType(List<DataType<?>> dataTypes) {
-        return dataTypes.stream()
-            .filter(t -> t != UNDEFINED)
-            .findFirst().orElse(UNDEFINED);
     }
 
     public static DataType<?> fromId(Integer id) {
