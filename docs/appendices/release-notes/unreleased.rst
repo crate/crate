@@ -85,6 +85,10 @@ Deprecations
 Changes
 =======
 
+- Added support for using subscript expressions on top of aliases within the
+  ``ORDER BY`` clause. An example: ``SELECT percentile(x, [0.90, 0.95]) AS
+  percentiles FROM tbl ORDER BY percentiles[1]``.
+
 - Added support for array element access on top of a subscript on an object
   array. An example: ``object_array['subelement'][1]``
 
