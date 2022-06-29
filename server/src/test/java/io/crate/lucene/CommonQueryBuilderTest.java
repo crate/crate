@@ -21,28 +21,21 @@
 
 package io.crate.lucene;
 
-import io.crate.analyze.WhereClause;
-import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.TableRelation;
-import io.crate.expression.operator.EqOperator;
-import io.crate.expression.symbol.AliasSymbol;
-import io.crate.expression.symbol.Function;
-import io.crate.expression.symbol.Literal;
-import io.crate.metadata.functions.Signature;
-import io.crate.user.User;
-import io.crate.lucene.match.CrateRegexQuery;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.doc.DocSchemaInfo;
-import io.crate.metadata.doc.DocTableInfo;
-import io.crate.testing.SQLExecutor;
-import io.crate.testing.SqlExpressions;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
+import static io.crate.testing.TestingHelpers.createReference;
+import static io.crate.types.TypeSignature.parseTypeSignature;
+import static org.hamcrest.Matchers.anyOf;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.startsWith;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.ConstantScoreQuery;
-import org.apache.lucene.search.DocValuesFieldExistsQuery;
+import org.apache.lucene.search.FieldExistsQuery;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.PointInSetQuery;
@@ -56,13 +49,23 @@ import org.apache.lucene.spatial.prefix.IntersectsPrefixTreeQuery;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-
-import static io.crate.testing.TestingHelpers.createReference;
-import static io.crate.types.TypeSignature.parseTypeSignature;
-import static org.hamcrest.Matchers.*;
+import io.crate.analyze.WhereClause;
+import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.TableRelation;
+import io.crate.expression.operator.EqOperator;
+import io.crate.expression.symbol.AliasSymbol;
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.Literal;
+import io.crate.lucene.match.CrateRegexQuery;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.doc.DocSchemaInfo;
+import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.functions.Signature;
+import io.crate.testing.SQLExecutor;
+import io.crate.testing.SqlExpressions;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
+import io.crate.user.User;
 
 public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
 
@@ -108,7 +111,7 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
         Query query = convert("name = name");
         assertThat(query, instanceOf(ConstantScoreQuery.class));
         ConstantScoreQuery scoreQuery = (ConstantScoreQuery) query;
-        assertThat(scoreQuery.getQuery(), instanceOf(DocValuesFieldExistsQuery.class));
+        assertThat(scoreQuery.getQuery(), instanceOf(FieldExistsQuery.class));
         // 2vl
         query = convert("ignore3vl(name = name)");
         assertThat(query, instanceOf(MatchAllDocsQuery.class));
