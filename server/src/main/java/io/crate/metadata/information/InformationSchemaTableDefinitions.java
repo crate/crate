@@ -73,7 +73,7 @@ public class InformationSchemaTableDefinitions {
             InformationColumnsTableInfo.create().expressions()
         ));
         tableDefinitions.put(InformationTableConstraintsTableInfo.IDENT, new StaticTableDefinition<>(
-            informationSchemaIterables::constraints,
+            informationSchemaIterables::pgConstraints,
             (user, t) -> user.hasAnyPrivilege(Privilege.Clazz.TABLE, t.relationName().fqn()),
             InformationTableConstraintsTableInfo.create().expressions()
         ));

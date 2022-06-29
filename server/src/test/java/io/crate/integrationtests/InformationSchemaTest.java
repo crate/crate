@@ -391,14 +391,6 @@ public class InformationSchemaTest extends SQLIntegrationTestCase {
         assertThat(printedTable(response.rows()),
             is(
                 "columns_pk| PRIMARY KEY| columns| information_schema\n" +
-                "information_schema_columns_column_name_not_null| CHECK| columns| information_schema\n" +
-                "information_schema_columns_data_type_not_null| CHECK| columns| information_schema\n" +
-                "information_schema_columns_is_generated_not_null| CHECK| columns| information_schema\n" +
-                "information_schema_columns_is_nullable_not_null| CHECK| columns| information_schema\n" +
-                "information_schema_columns_ordinal_position_not_null| CHECK| columns| information_schema\n" +
-                "information_schema_columns_table_catalog_not_null| CHECK| columns| information_schema\n" +
-                "information_schema_columns_table_name_not_null| CHECK| columns| information_schema\n" +
-                "information_schema_columns_table_schema_not_null| CHECK| columns| information_schema\n" +
                 "key_column_usage_pk| PRIMARY KEY| key_column_usage| information_schema\n" +
                 "referential_constraints_pk| PRIMARY KEY| referential_constraints| information_schema\n" +
                 "schemata_pk| PRIMARY KEY| schemata| information_schema\n" +
@@ -434,19 +426,16 @@ public class InformationSchemaTest extends SQLIntegrationTestCase {
         execute("SELECT constraint_type, constraint_name, table_name FROM information_schema.table_constraints " +
                 "WHERE table_schema = ?",
             new Object[]{sqlExecutor.getCurrentSchema()});
-        assertEquals(4L, response.rowCount());
+        assertEquals(3L, response.rowCount());
         assertThat(response.rows()[0][0], is("PRIMARY KEY"));
         assertThat(response.rows()[0][1], is("test_pk"));
         assertThat(response.rows()[0][2], is("test"));
         assertThat(response.rows()[1][0], is("CHECK"));
-        assertThat(response.rows()[1][1], is(sqlExecutor.getCurrentSchema() + "_test_col3_not_null"));
+        assertThat(response.rows()[1][1], is("unnecessary_check"));
         assertThat(response.rows()[1][2], is("test"));
         assertThat(response.rows()[2][0], is("CHECK"));
-        assertThat(response.rows()[2][1], is("unnecessary_check"));
+        assertThat(response.rows()[2][1], is("chk_1"));
         assertThat(response.rows()[2][2], is("test"));
-        assertThat(response.rows()[3][0], is("CHECK"));
-        assertThat(response.rows()[3][1], is("chk_1"));
-        assertThat(response.rows()[3][2], is("test"));
     }
 
     @Test
@@ -467,11 +456,8 @@ public class InformationSchemaTest extends SQLIntegrationTestCase {
                 "ORDER BY table_name ASC",
             new Object[]{sqlExecutor.getCurrentSchema()});
 
-        assertEquals(3L, response.rowCount());
-        assertThat(response.rows()[1][0], is("test2"));
-        assertThat(response.rows()[1][1], is("test2_pk"));
-        assertThat(response.rows()[2][0], is("test2"));
-        assertThat(response.rows()[2][1], is(sqlExecutor.getCurrentSchema() + "_test2_Col2a_not_null"));
+        assertEquals(2L, response.rowCount());
+        assertThat(printedTable(response.rows()), is("test| test_pk\ntest2| test2_pk\n"));
     }
 
 
