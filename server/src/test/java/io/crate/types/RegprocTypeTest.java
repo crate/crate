@@ -33,6 +33,7 @@ import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import io.crate.metadata.pgcatalog.OidHash;
+import io.crate.testing.Asserts;
 
 public class RegprocTypeTest extends ESTestCase {
 
@@ -101,5 +102,14 @@ public class RegprocTypeTest extends ESTestCase {
 
         var in = out.bytes().streamInput();
         assertThat(DataTypes.fromStream(in), is(REGPROC));
+    }
+
+    @Test
+    public void test_cannot_cast_long_outside_int_range_to_regproc() {
+        Asserts.assertThrowsMatches(
+            () -> RegprocType.INSTANCE.implicitCast(Integer.MAX_VALUE + 2038L),
+            IllegalArgumentException.class,
+            "2147485685 is outside of `int` range and cannot be cast to the regproc type"
+        );
     }
 }

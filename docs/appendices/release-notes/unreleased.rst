@@ -81,6 +81,9 @@ Deprecations
 Changes
 =======
 
+- Added support for casts from ``bigint`` to ``regclass`` for improved
+  compatibility with PostgreSQL clients.
+
 - Added support for ``FETCH [FIRST | NEXT] <noRows> [ROW | ROWS] ONLY`` clause
   as and alternative to the ``LIMIT`` clause.
 
