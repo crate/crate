@@ -62,17 +62,6 @@ public final class KeywordFieldMapper extends FieldMapper {
         public static final int IGNORE_ABOVE = Integer.MAX_VALUE;
     }
 
-    public static class KeywordField extends Field {
-
-        public KeywordField(String field, BytesRef term, FieldType ft) {
-            super(field, term, ft);
-        }
-
-        public KeywordField(String field, BytesRef term) {
-            super(field, term, Defaults.FIELD_TYPE);
-        }
-    }
-
     public static class Builder extends FieldMapper.Builder<Builder> {
 
         protected String nullValue = Defaults.NULL_VALUE;
@@ -223,13 +212,6 @@ public final class KeywordFieldMapper extends FieldMapper {
         this.lengthLimit = lengthLimit;
         this.blankPadding = blankPadding;
         this.nullValue = nullValue;
-    }
-
-    /** Values that have more chars than the return value of this method will
-     *  be skipped at parsing time. */
-    // pkg-private for testing
-    int ignoreAbove() {
-        return ignoreAbove;
     }
 
     @Override
