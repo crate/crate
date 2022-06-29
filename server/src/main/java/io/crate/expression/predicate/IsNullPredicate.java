@@ -34,8 +34,7 @@ import org.apache.lucene.index.Term;
 import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.ConstantScoreQuery;
-import org.apache.lucene.search.DocValuesFieldExistsQuery;
-import org.apache.lucene.search.NormsFieldExistsQuery;
+import org.apache.lucene.search.FieldExistsQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
 import org.elasticsearch.common.lucene.search.Queries;
@@ -129,18 +128,18 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
     @Nullable
     public static Query refExistsQuery(Reference ref, Context context) {
         String field = ref.column().fqn();
-        StorageSupport storageSupport = ref.valueType().storageSupport();
+        StorageSupport<?> storageSupport = ref.valueType().storageSupport();
         if (storageSupport == null && ref instanceof DynamicReference) {
             return Queries.newMatchNoDocsQuery("DynamicReference/type without storageSupport does not exist");
         } else if (ref.hasDocValues()) {
-            return new ConstantScoreQuery(new DocValuesFieldExistsQuery(field));
+            return new ConstantScoreQuery(new FieldExistsQuery(field));
         } else if (ref.columnPolicy() == ColumnPolicy.IGNORED) {
             // Not indexed, need to use source lookup
             return null;
         } else if (storageSupport != null && storageSupport.hasFieldNamesIndex()) {
             FieldType fieldType = context.queryShardContext().getMapperService().getLuceneFieldType(field);
             if (fieldType != null && !fieldType.omitNorms()) {
-                return new NormsFieldExistsQuery(field);
+                return new FieldExistsQuery(field);
             }
             if (ArrayType.unnest(ref.valueType()) instanceof ObjectType objType) {
                 BooleanQuery.Builder booleanQuery = new BooleanQuery.Builder();
