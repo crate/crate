@@ -77,8 +77,11 @@ public class ReproduceInfoPrinter extends RunListener {
         // append Gradle test runner test filter string
         b.append(" --tests \"");
         b.append(failure.getDescription().getClassName());
-        b.append(".");
-        b.append(failure.getDescription().getMethodName());
+        String methodName = failure.getDescription().getMethodName();
+        if (methodName != null) {
+            b.append(".");
+            b.append(methodName);
+        }
         b.append("\"");
         GradleMessageBuilder gradleMessageBuilder = new GradleMessageBuilder(b);
         gradleMessageBuilder.appendAllOpts(failure.getDescription());
