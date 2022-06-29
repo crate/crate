@@ -48,6 +48,11 @@ public class SubscriptFunctionTest extends ScalarTestCase {
     }
 
     @Test
+    public void test_subscript_can_access_item_from_array_based_on_object() {
+        assertEvaluate("[{x=10}, {x=2}]['x'][1]", 10);
+    }
+
+    @Test
     public void test_subscript_can_be_used_on_subqueries_returning_objects() {
         assertNormalize(
             "(select {x=10})['x']",

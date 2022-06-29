@@ -129,7 +129,6 @@ public final class SubscriptValidator {
 
         @Override
         protected Void visitStringLiteral(StringLiteral node, SubscriptContext context) {
-            validateNestedArrayAccess(context);
             context.add(node.getValue());
             return null;
         }

@@ -85,6 +85,9 @@ Deprecations
 Changes
 =======
 
+- Added support for array element access on top of a subscript on an object
+  array. An example: ``object_array['subelement'][1]``
+
 - Added support for casts from ``bigint`` to ``regclass`` for improved
   compatibility with PostgreSQL clients.
 
