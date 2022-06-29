@@ -479,7 +479,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             "Eval[name AS usr]\n" +
                 "  └ Limit[10::bigint;0]\n" +
                 "    └ NestedLoopJoin[CROSS]\n" +
-                "      ├ OrderBy[name AS usr ASC]\n" +
+                "      ├ OrderBy[name ASC]\n" +
                 "      │  └ Collect[doc.users | [name] | true]\n" +
                 "      └ Collect[doc.t1 | [] | true]"));
     }

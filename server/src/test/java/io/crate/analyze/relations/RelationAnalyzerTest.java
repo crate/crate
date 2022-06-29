@@ -21,18 +21,25 @@
 
 package io.crate.analyze.relations;
 
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.core.Is.is;
+
+import java.io.IOException;
+import java.util.List;
+
+import org.hamcrest.Matchers;
+import org.junit.Before;
+import org.junit.Test;
+
+import io.crate.analyze.QueriedSelectRelation;
 import io.crate.exceptions.RelationValidationException;
+import io.crate.expression.scalar.SubscriptFunction;
+import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.expression.tablefunctions.ValuesFunction;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.io.IOException;
-
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.core.Is.is;
+import io.crate.testing.SymbolMatchers;
 
 public class RelationAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -48,6 +55,31 @@ public class RelationAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         expectedException.expect(RelationValidationException.class);
         expectedException.expectMessage("missing FROM-clause entry for relation '[doc.t3]'");
         executor.analyze("select * from t1 join t2 on t1.a = t3.c join t3 on t2.b = t3.c");
+    }
+
+    @Test
+    public void test_can_use_array_subscript_in_order_by_referencing_alias() {
+        QueriedSelectRelation relation = executor.analyze(
+            "select percentile(x, [0.90, 0.95]) as percentiles from t1 order by percentiles[1]");
+        List<Symbol> orderBySymbols = relation.orderBy().orderBySymbols();
+        assertThat(orderBySymbols, Matchers.contains(
+            SymbolMatchers.isFunction(
+                SubscriptFunction.NAME,
+                SymbolMatchers.isFunction("percentile"),
+                SymbolMatchers.isLiteral(1)
+            )
+        ));
+
+        relation = executor.analyze(
+            "select percentile(x, [0.90, 0.95]) as percentiles from t1 order by percentiles[1] + 10");
+        orderBySymbols = relation.orderBy().orderBySymbols();
+        assertThat(orderBySymbols, Matchers.contains(
+            SymbolMatchers.isFunction(
+                "add",
+                SymbolMatchers.isFunction("subscript", SymbolMatchers.isFunction("percentile"), SymbolMatchers.isLiteral(1)),
+                SymbolMatchers.isLiteral(10.0)
+            )
+        ));
     }
 
     @Test

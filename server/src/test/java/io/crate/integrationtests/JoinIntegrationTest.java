@@ -1244,7 +1244,7 @@ public class JoinIntegrationTest extends SQLIntegrationTestCase {
         execute("EXPLAIN " + stmt);
         assertThat(printedTable(response.rows()), is(
             "Eval[id, table_name, schema_name, partition_ident, state, id AS node_id, name AS node_name]\n" +
-            "  └ OrderBy[id AS node_id ASC id ASC]\n" +
+            "  └ OrderBy[id ASC id ASC]\n" +
             "    └ HashJoin[(node['id'] = id)]\n" +
             "      ├ Collect[sys.shards | [id, table_name, schema_name, partition_ident, state, node['id']] | true]\n" +
             "      └ Rename[id, name] AS nodes\n" +
