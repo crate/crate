@@ -626,4 +626,11 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
         Query query = convert("content is null");
         assertThat(query.toString(), is("+*:* -NormsFieldExistsQuery [field=content]"));
     }
+
+    @Test
+    public void test_is_null_without_index_and_docvalues() {
+        Query query = convert("text_no_index is null");
+        assertThat(query.toString(), is("(text_no_index IS NULL)"));
+        assertThat(query, instanceOf(GenericFunctionQuery.class));
+    }
 }
