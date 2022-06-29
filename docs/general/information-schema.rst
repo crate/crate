@@ -516,9 +516,8 @@ type, name and which table they are defined in.
     +--------------------+------------+-...------------------+-------------+
     | information_schema | tables     | tables_pk            | PRIMARY KEY |
     | doc                | quotes     | quotes_pk            | PRIMARY KEY |
-    | doc                | tbl        | doc_tbl_col_not_null | CHECK       |
     +--------------------+------------+-...------------------+-------------+
-    SELECT 3 rows in set (... sec)
+    SELECT 2 rows in set (... sec)
 
 
 ``key_column_usage``

@@ -300,10 +300,6 @@ public class InformationSchemaIterables implements ClusterStateListener {
         return columns;
     }
 
-    public Iterable<ConstraintInfo> constraints() {
-        return constraints;
-    }
-
     public Iterable<ConstraintInfo> pgConstraints() {
         return pgConstraints;
     }
