@@ -22,10 +22,11 @@
 package io.crate.common;
 
 
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+
+import javax.annotation.Nullable;
 
 public final class StringUtils {
 
@@ -96,12 +97,7 @@ public final class StringUtils {
         if (s.length() >= minimumLength) {
             return s;
         } else {
-            StringBuilder sb = new StringBuilder(minimumLength);
-            sb.append(s);
-            for (int i = s.length(); i < minimumLength; i++) {
-                sb.append(c);
-            }
-            return sb.toString();
+            return s + String.valueOf(c).repeat(minimumLength - s.length());
         }
     }
 }
