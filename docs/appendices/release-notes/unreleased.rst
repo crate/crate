@@ -157,6 +157,8 @@ Changes
   function for improved compatibility with PostgreSQL. Partitioning in CrateDB
   is different from PostgreSQL, therefore this function always returns ``NULL``.
 
+- Added an empty ``pg_catalog.pg_shdescription`` table for improved PostgreSQL
+  compatibility.
 
 Fixes
 =====
