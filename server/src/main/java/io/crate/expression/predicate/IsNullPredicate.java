@@ -29,6 +29,7 @@ import java.util.List;
 import javax.annotation.Nullable;
 
 import org.apache.lucene.document.FieldType;
+import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.BooleanQuery;
@@ -137,8 +138,8 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
             // Not indexed, need to use source lookup
             return null;
         } else if (storageSupport != null && storageSupport.hasFieldNamesIndex()) {
-            FieldType luceneFieldType = context.queryShardContext().getMapperService().getLuceneFieldType(field);
-            if (luceneFieldType != null && !luceneFieldType.omitNorms()) {
+            FieldType fieldType = context.queryShardContext().getMapperService().getLuceneFieldType(field);
+            if (fieldType != null && !fieldType.omitNorms()) {
                 return new NormsFieldExistsQuery(field);
             }
             if (ArrayType.unnest(ref.valueType()) instanceof ObjectType objType) {
@@ -154,7 +155,11 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
                 }
                 return new ConstantScoreQuery(booleanQuery.build());
             }
-            return new ConstantScoreQuery(new TermQuery(new Term(FieldNamesFieldMapper.NAME, field)));
+            if (fieldType == null || fieldType.indexOptions() == IndexOptions.NONE && !fieldType.stored()) {
+                return null;
+            } else {
+                return new ConstantScoreQuery(new TermQuery(new Term(FieldNamesFieldMapper.NAME, field)));
+            }
         } else {
             return null;
         }
