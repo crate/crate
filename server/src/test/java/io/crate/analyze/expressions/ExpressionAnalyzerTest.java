@@ -77,6 +77,7 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.Asserts;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.SqlExpressions;
+import io.crate.testing.SymbolMatchers;
 import io.crate.testing.T3;
 import io.crate.types.DataTypes;
 
@@ -102,10 +103,34 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table tarr (xs array(integer))")
             .addTable("create table nested_obj (" +
                       "o object as (a object as (b object as (c int)))," +
+                      "o_arr array(object as (x int, o_arr_nested array(object as (y int))))," +
                       "\"myObj\" object as (x object as (\"AbC\" int))" +
                       ")")
             .build();
         expressions = new SqlExpressions(Collections.emptyMap());
+    }
+
+    @Test
+    public void test_can_access_array_element_from_subscript_on_object_array() {
+        var symbol = executor.asSymbol("o_arr['x'][1]");
+        assertThat(symbol, SymbolMatchers.isFunction(
+            "subscript",
+            SymbolMatchers.isReference("o_arr['x']"),
+            SymbolMatchers.isLiteral(1)
+        ));
+
+        symbol = executor.asSymbol("o_arr['o_arr_nested']['y'][1]");
+        assertThat(symbol, SymbolMatchers.isFunction(
+            "subscript",
+            SymbolMatchers.isReference("o_arr['o_arr_nested']['y']"),
+            SymbolMatchers.isLiteral(1)
+        ));
+
+        Asserts.assertThrowsMatches(
+            () -> executor.asSymbol("o_arr['o_arr_nested']['y'][1][1]"),
+            UnsupportedOperationException.class,
+            "Nested array access is not supported"
+        );
     }
 
     @Test
