@@ -2593,6 +2593,32 @@ An alias for :ref:`scalar-array_upper`.
     SELECT 1 row in set (... sec)
 
 
+.. NOTE::
+
+    For compatibility with PostgreSQL, :ref:`array_length <scalar-array_length>`
+    will return ``NULL`` on both empty arrays and ``NULL`` values.
+
+::
+
+    cr> select array_length([]::int[], 1) AS len;
+    +------+
+    | len  |
+    +------+
+    | NULL |
+    +------+
+    SELECT 1 row in set (... sec)
+
+::
+
+    cr> select array_length(null::int[], 1) AS len;
+    +------+
+    | len  |
+    +------+
+    | NULL |
+    +------+
+    SELECT 1 row in set (... sec)
+
+
 .. _scalar-array_lower:
 
 ``array_lower(anyarray, dimension)``

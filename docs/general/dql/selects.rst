@@ -740,6 +740,34 @@ an upper-bound::
     Both the ``from`` and ``to`` index values are inclusive.
     Using an index greater than the array size results in an empty array.
 
+For selecting records having values with empty or unassigned arrays, like::
+
+    cr> insert into locations (id, name, position, kind, landmarks) values
+    ... (99, 'Voidspace', 0, 'Milliways', []);
+    INSERT OK, 1 row affected (... sec)
+
+.. Hidden: refresh locations
+
+    cr> refresh table locations;
+    REFRESH OK, 1 row affected (... sec)
+
+a suitable expression to match both conditions, is::
+
+    cr> select count(*) from locations where
+    ... array_length(landmarks, 1) is null;
+    +----------+
+    | count(*) |
+    +----------+
+    |       14 |
+    +----------+
+    SELECT 1 row in set (... sec)
+
+.. Hidden: drop record again
+
+    cr> delete from locations where id=99;
+    DELETE OK, 1 row affected  (... sec)
+
+
 .. _sql_dql_objects:
 
 Objects
