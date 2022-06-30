@@ -21,7 +21,7 @@
 
 package io.crate.types;
 
-import static io.crate.expression.scalar.string.TrimFunctions.trim;
+import static io.crate.common.StringUtils.trim;
 
 import java.io.IOException;
 

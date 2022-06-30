@@ -37,7 +37,6 @@ import org.junit.Test;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.pgcatalog.OidHash;
 import io.crate.testing.UseHashJoins;
-import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedSchema;
 
 public class PgCatalogITest extends SQLIntegrationTestCase {
@@ -334,7 +333,7 @@ public class PgCatalogITest extends SQLIntegrationTestCase {
     public void test_pg_class_oid_equals_cast_of_string_to_regclass() {
         execute("CREATE TABLE persons (x INT)");
         execute("SELECT " +
-            " '\"persons\"'::regclass oid_from_relname, " +
+            " '\"persons\"'::regclass::integer oid_from_relname, " +
             " oid " +
             " FROM pg_class WHERE relname ='persons'");
         assertThat(printedTable(response.rows()), is("1726373441| 1726373441\n"));
