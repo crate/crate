@@ -27,8 +27,13 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import io.crate.Streamer;
+import io.crate.exceptions.InvalidRelationName;
 import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.settings.SessionSettings;
+import io.crate.sql.parser.ParsingException;
+import io.crate.sql.parser.SqlParser;
+import io.crate.sql.tree.QualifiedNameReference;
 
 /**
  * Type that encapsulates the name and oid of a relation.
@@ -108,8 +113,14 @@ public final class RegclassType extends DataType<Regclass> implements Streamer<R
             }
             return new Regclass(num.intValue(), value.toString());
         }
-        if (value instanceof String) {
-            return Regclass.fromRelationName(value.toString(), currentSchema);
+        if (value instanceof String s) {
+            try {
+                var qualifiedNameReference = (QualifiedNameReference) SqlParser.createExpression(s);
+                var relationName = RelationName.of(qualifiedNameReference.getName(), currentSchema);
+                return Regclass.fromRelationName(relationName);
+            } catch (ParsingException e) {
+                throw new InvalidRelationName(s, e);
+            }
         }
         throw new ClassCastException("Can't cast '" + value + "' to " + getName());
     }
