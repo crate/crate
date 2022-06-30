@@ -21,23 +21,8 @@
 
 package io.crate.operation.aggregation;
 
-import static io.crate.testing.TestingHelpers.createNodeContext;
-import static org.hamcrest.Matchers.is;
-
-import java.util.List;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
-import javax.annotation.Nullable;
-
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.junit.Before;
-import org.junit.Test;
-
 import com.carrotsearch.randomizedtesting.RandomizedContext;
 import com.carrotsearch.randomizedtesting.generators.RandomPicks;
-
 import io.crate.Streamer;
 import io.crate.execution.engine.aggregation.impl.HyperLogLogPlusPlus;
 import io.crate.expression.symbol.Literal;
@@ -48,6 +33,18 @@ import io.crate.module.ExtraFunctionsModule;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.junit.Before;
+import org.junit.Test;
+
+import javax.annotation.Nullable;
+import java.util.List;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+import static io.crate.testing.TestingHelpers.createNodeContext;
+import static org.hamcrest.Matchers.is;
 
 public class HyperLogLogDistinctAggregationTest extends AggregationTestCase {
 
@@ -181,31 +178,31 @@ public class HyperLogLogDistinctAggregationTest extends AggregationTestCase {
     @Test
     public void testMurmur3HashCalculationsForAllTypes() throws Exception {
         // double types
-        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.DOUBLE, true).hash(1.3d, SESSION_SETTINGS),
+        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.DOUBLE, true).hash(1.3d),
             is(3706823019612663850L));
-        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.FLOAT, true).hash(1.3f, SESSION_SETTINGS),
+        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.FLOAT, true).hash(1.3f),
             is(1386670595997310747L));
 
         // long types
-        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.LONG, true).hash(1L, SESSION_SETTINGS),
+        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.LONG, true).hash(1L),
             is(-2508561340476696217L));
-        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.INTEGER, true).hash(1, SESSION_SETTINGS),
+        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.INTEGER, true).hash(1),
             is(-2508561340476696217L));
-        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.SHORT, true).hash(Short.valueOf("1"), SESSION_SETTINGS),
+        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.SHORT, true).hash(Short.valueOf("1")),
             is(-2508561340476696217L));
-        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.BYTE, true).hash(Byte.valueOf("1"), SESSION_SETTINGS),
+        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.BYTE, true).hash(Byte.valueOf("1")),
             is(-2508561340476696217L));
-        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.TIMESTAMPZ, true).hash(1512569562000L, SESSION_SETTINGS),
+        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.TIMESTAMPZ, true).hash(1512569562000L),
             is(-3066297687939346384L));
 
         // bytes types
-        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.STRING, true).hash("foo", SESSION_SETTINGS),
+        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.STRING, true).hash("foo"),
             is(1208210750032620489L));
-        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.BOOLEAN, true).hash(true, SESSION_SETTINGS),
+        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.BOOLEAN, true).hash(true),
             is(4312328700069294139L));
 
         // ip type
-        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.IP, true).hash("127.0.0.1", SESSION_SETTINGS),
+        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.IP, true).hash("127.0.0.1"),
             is(6044143379282500354L));
     }
 
@@ -219,8 +216,8 @@ public class HyperLogLogDistinctAggregationTest extends AggregationTestCase {
         StreamInput in = out.bytes().streamInput();
         HyperLogLogDistinctAggregation.HllState hllState2 = (HyperLogLogDistinctAggregation.HllState) streamer.readValueFrom(in);
         // test that murmur3hash and HLL++ is correctly initialized with streamed dataType and version
-        hllState1.add("127.0.0.1", SESSION_SETTINGS);
-        hllState2.add("127.0.0.1", SESSION_SETTINGS);
+        hllState1.add("127.0.0.1");
+        hllState2.add("127.0.0.1");
         assertThat(hllState2.value(), is(hllState1.value()));
     }
 }

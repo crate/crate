@@ -21,13 +21,6 @@
 
 package io.crate.execution.engine.aggregation;
 
-import static io.crate.expression.symbol.Symbols.typeView;
-
-import java.util.List;
-import java.util.stream.Collector;
-
-import org.elasticsearch.Version;
-
 import io.crate.breaker.RamAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.CollectingBatchIterator;
@@ -38,9 +31,14 @@ import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.Symbol;
 import io.crate.memory.MemoryManager;
-import io.crate.metadata.settings.SessionSettings;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
+import org.elasticsearch.Version;
+
+import java.util.List;
+import java.util.stream.Collector;
+
+import static io.crate.expression.symbol.Symbols.typeView;
 
 public class GroupingProjector implements Projector {
 
@@ -54,7 +52,6 @@ public class GroupingProjector implements Projector {
                              AggregationContext[] aggregations,
                              RamAccounting ramAccounting,
                              MemoryManager memoryManager,
-                             SessionSettings sessionSettings,
                              Version minNodeVersion,
                              Version indexVersionCreated) {
         assert keys.size() == keyInputs.size() : "number of key types must match with number of key inputs";
@@ -79,7 +76,6 @@ public class GroupingProjector implements Projector {
                 filters,
                 ramAccounting,
                 memoryManager,
-                sessionSettings,
                 minNodeVersion,
                 keyInputs.get(0),
                 key.valueType(),
@@ -95,7 +91,6 @@ public class GroupingProjector implements Projector {
                 filters,
                 ramAccounting,
                 memoryManager,
-                sessionSettings,
                 minNodeVersion,
                 keyInputs,
                 typeView(keys),

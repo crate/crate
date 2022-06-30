@@ -21,8 +21,6 @@
 
 package io.crate.planner.operators;
 
-import java.util.Locale;
-
 import io.crate.data.Row;
 import io.crate.exceptions.ConversionException;
 import io.crate.expression.symbol.FunctionCopyVisitor;
@@ -30,40 +28,36 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.ParameterSymbol;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.settings.SessionSettings;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+
+import java.util.Locale;
 
 public class SubQueryAndParamBinder extends FunctionCopyVisitor<Void>
     implements java.util.function.Function<Symbol, Symbol> {
 
     private final Row params;
     private final SubQueryResults subQueryResults;
-    private final SessionSettings sessionSettings;
 
     /**
      * Returns a bound symbol with ParameterSymbols or SelectSymbols replaced as literals using the provided arguments.
      *
      * If multiple calls with the same params and subQueryResults are made it's better to instantiate the class
-     * once using {@link #SubQueryAndParamBinder(Row, SubQueryResults, SessionSettings)}
+     * once using {@link #SubQueryAndParamBinder(Row, SubQueryResults)}
      */
-    public static Symbol convert(Symbol symbol,
-                                 Row params,
-                                 SubQueryResults subQueryResults,
-                                 SessionSettings sessionSettings) {
-        SubQueryAndParamBinder binder = new SubQueryAndParamBinder(params, subQueryResults, sessionSettings);
+    public static Symbol convert(Symbol symbol, Row params, SubQueryResults subQueryResults) {
+        SubQueryAndParamBinder binder = new SubQueryAndParamBinder(params, subQueryResults);
         return binder.apply(symbol);
     }
 
-    public SubQueryAndParamBinder(Row params, SubQueryResults subQueryResults, SessionSettings sessionSettings) {
+    public SubQueryAndParamBinder(Row params, SubQueryResults subQueryResults) {
         this.params = params;
         this.subQueryResults = subQueryResults;
-        this.sessionSettings = sessionSettings;
     }
 
     @Override
     public Symbol visitParameterSymbol(ParameterSymbol parameterSymbol, Void context) {
-        return convert(parameterSymbol, params, sessionSettings);
+        return convert(parameterSymbol, params);
     }
 
     @Override
@@ -77,7 +71,7 @@ public class SubQueryAndParamBinder extends FunctionCopyVisitor<Void>
         return symbol.accept(this, null);
     }
 
-    private static Symbol convert(ParameterSymbol parameterSymbol, Row params, SessionSettings sessionSettings) {
+    private static Symbol convert(ParameterSymbol parameterSymbol, Row params) {
         DataType<?> type = parameterSymbol.valueType();
         Object value;
         try {
@@ -94,7 +88,7 @@ public class SubQueryAndParamBinder extends FunctionCopyVisitor<Void>
             type = DataTypes.guessType(value);
         }
         try {
-            return Literal.ofUnchecked(type, type.implicitCast(value, sessionSettings));
+            return Literal.ofUnchecked(type, type.implicitCast(value));
         } catch (ClassCastException | IllegalArgumentException e) {
             throw new ConversionException(value, type);
         }

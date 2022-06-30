@@ -29,26 +29,21 @@ import java.util.Map;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
-import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.settings.SessionSettings;
-
 public class ByteTypeTest extends ESTestCase {
-
-    private static final SessionSettings SESSION_SETTINGS = CoordinatorTxnCtx.systemTransactionContext().sessionSettings();
 
     @Test
     public void test_cast_text_to_byte() {
-        assertThat(ByteType.INSTANCE.implicitCast("123", SESSION_SETTINGS), is((byte) 123));
+        assertThat(ByteType.INSTANCE.implicitCast("123"), is((byte) 123));
     }
 
     @Test
     public void test_cast_long_to_byte() {
-        assertThat(ByteType.INSTANCE.implicitCast(123L, SESSION_SETTINGS), is((byte) 123));
+        assertThat(ByteType.INSTANCE.implicitCast(123L), is((byte) 123));
     }
 
     @Test
     public void test_cast_numeric_to_byte() {
-        assertThat(ByteType.INSTANCE.implicitCast(BigDecimal.valueOf(123), SESSION_SETTINGS), is((byte) 123));
+        assertThat(ByteType.INSTANCE.implicitCast(BigDecimal.valueOf(123)), is((byte) 123));
     }
 
     @Test
@@ -60,34 +55,34 @@ public class ByteTypeTest extends ESTestCase {
     public void test_cast_boolean_to_byte_throws_exception() {
         expectedException.expect(ClassCastException.class);
         expectedException.expectMessage("Can't cast 'true' to byte");
-        ByteType.INSTANCE.implicitCast(true, SESSION_SETTINGS);
+        ByteType.INSTANCE.implicitCast(true);
     }
 
     @Test
     public void test_cast_object_to_byte_throws_exception() {
         expectedException.expect(ClassCastException.class);
         expectedException.expectMessage("Can't cast '{}' to byte");
-        ByteType.INSTANCE.implicitCast(Map.of(), SESSION_SETTINGS);
+        ByteType.INSTANCE.implicitCast(Map.of());
     }
 
     @Test
     public void test_cast_integer_to_byte_out_of_negative_range_throws_exception() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("byte value out of range: -129");
-        ByteType.INSTANCE.implicitCast(-129, SESSION_SETTINGS);
+        ByteType.INSTANCE.implicitCast(-129);
     }
 
     @Test
     public void test_cast_integer_to_byte_out_of_positive_range_throws_exception() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("byte value out of range: 129");
-        ByteType.INSTANCE.implicitCast(129, SESSION_SETTINGS);
+        ByteType.INSTANCE.implicitCast(129);
     }
 
     @Test
     public void test_cast_out_of_range_numeric_to_byte_throws_exception() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("byte value out of range: 129");
-        ByteType.INSTANCE.implicitCast(BigDecimal.valueOf(129), SESSION_SETTINGS);
+        ByteType.INSTANCE.implicitCast(BigDecimal.valueOf(129));
     }
 }

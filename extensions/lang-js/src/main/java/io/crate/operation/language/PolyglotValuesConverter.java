@@ -21,22 +21,20 @@
 
 package io.crate.operation.language;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
-import org.graalvm.polyglot.TypeLiteral;
-import org.graalvm.polyglot.Value;
-import org.graalvm.polyglot.proxy.ProxyObject;
-
 import io.crate.data.Input;
-import io.crate.metadata.settings.SessionSettings;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.GeoPointType;
 import io.crate.types.GeoShapeType;
 import io.crate.types.ObjectType;
+import org.graalvm.polyglot.TypeLiteral;
+import org.graalvm.polyglot.Value;
+import org.graalvm.polyglot.proxy.ProxyObject;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 class PolyglotValuesConverter {
 
@@ -45,7 +43,7 @@ class PolyglotValuesConverter {
     private static final TypeLiteral<Map> MAP_TYPE_LITERAL = new TypeLiteral<>() {
     };
 
-    static Object toCrateObject(Value value, DataType<?> type, SessionSettings sessionSettings) {
+    static Object toCrateObject(Value value, DataType<?> type) {
         if (value == null) {
             return null;
         }
@@ -53,27 +51,23 @@ class PolyglotValuesConverter {
             case ArrayType.ID:
                 ArrayList<Object> items = new ArrayList<>((int) value.getArraySize());
                 for (int idx = 0; idx < value.getArraySize(); idx++) {
-                    var item = toCrateObject(
-                        value.getArrayElement(idx),
-                        ((ArrayType<?>) type).innerType(),
-                        sessionSettings
-                    );
+                    var item = toCrateObject(value.getArrayElement(idx), ((ArrayType<?>) type).innerType());
                     items.add(idx, item);
                 }
-                return type.implicitCast(items, sessionSettings);
+                return type.implicitCast(items);
             case ObjectType.ID:
-                return type.implicitCast(value.as(MAP_TYPE_LITERAL), sessionSettings);
+                return type.implicitCast(value.as(MAP_TYPE_LITERAL));
             case GeoPointType.ID:
                 if (value.hasArrayElements()) {
-                    return type.implicitCast(toCrateObject(value, DataTypes.DOUBLE_ARRAY, sessionSettings), sessionSettings);
+                    return type.implicitCast(toCrateObject(value, DataTypes.DOUBLE_ARRAY));
                 } else {
-                    return type.implicitCast(value.asString(), sessionSettings);
+                    return type.implicitCast(value.asString());
                 }
             case GeoShapeType.ID:
                 if (value.isString()) {
-                    return type.implicitCast(value.asString(), sessionSettings);
+                    return type.implicitCast(value.asString());
                 } else {
-                    return type.implicitCast(value.as(MAP_TYPE_LITERAL), sessionSettings);
+                    return type.implicitCast(value.as(MAP_TYPE_LITERAL));
                 }
             default:
                 final Object polyglotValue;
@@ -86,7 +80,7 @@ class PolyglotValuesConverter {
                 } else {
                     polyglotValue = value.asString();
                 }
-                return type.implicitCast(polyglotValue, sessionSettings);
+                return type.implicitCast(polyglotValue);
         }
     }
 

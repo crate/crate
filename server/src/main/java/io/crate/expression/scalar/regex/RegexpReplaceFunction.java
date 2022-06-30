@@ -21,15 +21,6 @@
 
 package io.crate.expression.scalar.regex;
 
-import static io.crate.expression.RegexpFlags.isGlobal;
-import static io.crate.expression.RegexpFlags.parseFlags;
-
-import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import javax.annotation.Nullable;
-
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.symbol.Function;
@@ -40,6 +31,14 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 import io.crate.user.UserLookup;
+
+import javax.annotation.Nullable;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import static io.crate.expression.RegexpFlags.parseFlags;
+import static io.crate.expression.RegexpFlags.isGlobal;
 
 public final class RegexpReplaceFunction extends Scalar<String, String> {
 

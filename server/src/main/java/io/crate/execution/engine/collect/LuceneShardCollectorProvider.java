@@ -26,6 +26,10 @@ import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
+import io.crate.data.InMemoryBatchIterator;
+import io.crate.data.SentinelRow;
+import io.crate.execution.engine.export.FileOutputFactory;
+import io.crate.metadata.NodeContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.client.ElasticsearchClient;
@@ -40,15 +44,12 @@ import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import io.crate.data.BatchIterator;
-import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
-import io.crate.data.SentinelRow;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.engine.collect.collectors.LuceneBatchIterator;
 import io.crate.execution.engine.collect.collectors.LuceneOrderedDocCollector;
 import io.crate.execution.engine.collect.collectors.OptimizeQueryForSearchAfter;
 import io.crate.execution.engine.collect.collectors.OrderedDocCollector;
-import io.crate.execution.engine.export.FileOutputFactory;
 import io.crate.execution.engine.sort.LuceneSortGenerator;
 import io.crate.execution.jobs.NodeLimits;
 import io.crate.execution.jobs.SharedShardContext;
@@ -60,7 +61,6 @@ import io.crate.expression.reference.sys.shard.ShardRowContext;
 import io.crate.expression.symbol.Symbols;
 import io.crate.lucene.FieldTypeLookup;
 import io.crate.lucene.LuceneQueryBuilder;
-import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocSysColumns;

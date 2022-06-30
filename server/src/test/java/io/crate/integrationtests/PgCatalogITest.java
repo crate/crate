@@ -37,6 +37,7 @@ import org.junit.Test;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.pgcatalog.OidHash;
 import io.crate.testing.UseHashJoins;
+import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedSchema;
 
 public class PgCatalogITest extends SQLIntegrationTestCase {

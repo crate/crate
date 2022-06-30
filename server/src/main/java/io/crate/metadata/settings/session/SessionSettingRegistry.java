@@ -27,12 +27,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 
+
+import io.crate.common.collections.MapBuilder;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
 import io.crate.action.sql.SessionContext;
-import io.crate.common.collections.MapBuilder;
-import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.SearchPath;
 import io.crate.protocols.postgres.PostgresWireProtocol;
 import io.crate.types.DataTypes;
@@ -69,7 +69,7 @@ public class SessionSettingRegistry {
                              throw new IllegalArgumentException(HASH_JOIN_KEY + " should have only one argument.");
                          }
                      },
-                     objects -> DataTypes.BOOLEAN.implicitCast(objects[0], CoordinatorTxnCtx.systemTransactionContext().sessionSettings()),
+                     objects -> DataTypes.BOOLEAN.implicitCast(objects[0]),
                      SessionContext::setHashJoinEnabled,
                      s -> Boolean.toString(s.hashJoinsEnabled()),
                      () -> String.valueOf(true),
@@ -123,7 +123,7 @@ public class SessionSettingRegistry {
                              throw new IllegalArgumentException(ERROR_ON_UNKNOWN_OBJECT_KEY + " should have only one argument.");
                          }
                      },
-                     objects -> DataTypes.BOOLEAN.implicitCast(objects[0], CoordinatorTxnCtx.systemTransactionContext().sessionSettings()),
+                     objects -> DataTypes.BOOLEAN.implicitCast(objects[0]),
                      SessionContext::setErrorOnUnknownObjectKey,
                      s -> Boolean.toString(s.errorOnUnknownObjectKey()),
                      () -> String.valueOf(true),
@@ -145,7 +145,7 @@ public class SessionSettingRegistry {
     private static String[] objectsToStringArray(Object[] objects) {
         String[] strings = new String[objects.length];
         for (int i = 0; i < objects.length; i++) {
-            strings[i] = DataTypes.STRING.implicitCast(objects[i], CoordinatorTxnCtx.systemTransactionContext().sessionSettings());
+            strings[i] = DataTypes.STRING.implicitCast(objects[i]);
         }
         return strings;
     }

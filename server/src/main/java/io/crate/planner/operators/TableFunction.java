@@ -21,14 +21,6 @@
 
 package io.crate.planner.operators;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import javax.annotation.Nullable;
-
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.analyze.WhereClause;
@@ -49,6 +41,13 @@ import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.node.dql.Collect;
 import io.crate.statistics.TableStats;
+
+import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 
 public final class TableFunction implements LogicalPlan {
@@ -89,9 +88,8 @@ public final class TableFunction implements LogicalPlan {
             null,
             relation
         );
-        var txnCtx = plannerContext.transactionContext();
-        var binder = new SubQueryAndParamBinder(params, subQueryResults, txnCtx.sessionSettings())
-            .andThen(x -> normalizer.normalize(x, txnCtx));
+        var binder = new SubQueryAndParamBinder(params, subQueryResults)
+            .andThen(x -> normalizer.normalize(x, plannerContext.transactionContext()));
         for (Symbol arg : args) {
             // It's not possible to use columns as argument to a table function, so it's safe to evaluate at this point.
             functionArguments.add(

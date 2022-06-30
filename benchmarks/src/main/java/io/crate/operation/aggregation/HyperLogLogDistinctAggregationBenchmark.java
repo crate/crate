@@ -21,15 +21,22 @@
 
 package io.crate.operation.aggregation;
 
-import java.nio.charset.StandardCharsets;
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-import java.util.function.BiConsumer;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-
+import io.crate.breaker.RamAccounting;
+import io.crate.data.Input;
+import io.crate.data.Row;
+import io.crate.data.Row1;
+import io.crate.execution.engine.aggregation.AggregateCollector;
+import io.crate.execution.engine.aggregation.AggregationFunction;
+import io.crate.execution.engine.aggregation.impl.HyperLogLogPlusPlus;
+import io.crate.execution.engine.collect.InputCollectExpression;
+import io.crate.expression.symbol.AggregateMode;
+import io.crate.expression.symbol.Literal;
+import io.crate.memory.OffHeapMemoryManager;
+import io.crate.memory.OnHeapMemoryManager;
+import io.crate.metadata.Functions;
+import io.crate.metadata.functions.Signature;
+import io.crate.module.ExtraFunctionsModule;
+import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.hash.MurmurHash3;
 import org.elasticsearch.common.inject.ModulesBuilder;
@@ -44,23 +51,14 @@ import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.annotations.Warmup;
 
-import io.crate.breaker.RamAccounting;
-import io.crate.data.Input;
-import io.crate.data.Row;
-import io.crate.data.Row1;
-import io.crate.execution.engine.aggregation.AggregateCollector;
-import io.crate.execution.engine.aggregation.AggregationFunction;
-import io.crate.execution.engine.aggregation.impl.HyperLogLogPlusPlus;
-import io.crate.execution.engine.collect.InputCollectExpression;
-import io.crate.expression.symbol.AggregateMode;
-import io.crate.expression.symbol.Literal;
-import io.crate.memory.OffHeapMemoryManager;
-import io.crate.memory.OnHeapMemoryManager;
-import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.Functions;
-import io.crate.metadata.functions.Signature;
-import io.crate.module.ExtraFunctionsModule;
-import io.crate.types.DataTypes;
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.function.BiConsumer;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
@@ -97,12 +95,10 @@ public class HyperLogLogDistinctAggregationBenchmark {
         onHeapMemoryManager = new OnHeapMemoryManager(bytes -> {});
         offHeapMemoryManager = new OffHeapMemoryManager();
         hyperLogLogPlusPlus = new HyperLogLogPlusPlus(HyperLogLogPlusPlus.DEFAULT_PRECISION, onHeapMemoryManager::allocate);
-        var sessionSettings = CoordinatorTxnCtx.systemTransactionContext().sessionSettings();
         onHeapCollector = new AggregateCollector(
             Collections.singletonList(inExpr0),
             RamAccounting.NO_ACCOUNTING,
             onHeapMemoryManager,
-            sessionSettings,
             Version.CURRENT,
             AggregateMode.ITER_FINAL,
             new AggregationFunction[] { hllAggregation },
@@ -114,7 +110,6 @@ public class HyperLogLogDistinctAggregationBenchmark {
             Collections.singletonList(inExpr0),
             RamAccounting.NO_ACCOUNTING,
             offHeapMemoryManager,
-            sessionSettings,
             Version.CURRENT,
             AggregateMode.ITER_FINAL,
             new AggregationFunction[] { hllAggregation },

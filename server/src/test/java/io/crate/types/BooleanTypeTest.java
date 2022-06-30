@@ -21,32 +21,27 @@
 
 package io.crate.types;
 
-import static org.hamcrest.Matchers.is;
-
-import java.util.Map;
-
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
-import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.settings.SessionSettings;
+import java.util.Map;
+
+import static org.hamcrest.Matchers.is;
 
 
 public class BooleanTypeTest extends ESTestCase {
 
-    private static final SessionSettings SESSION_SETTINGS = CoordinatorTxnCtx.systemTransactionContext().sessionSettings();
-
     @Test
     public void test_cast_text_to_boolean() {
-        assertThat(BooleanType.INSTANCE.implicitCast("t", SESSION_SETTINGS), is(true));
-        assertThat(BooleanType.INSTANCE.implicitCast("false", SESSION_SETTINGS), is(false));
-        assertThat(BooleanType.INSTANCE.implicitCast("FALSE", SESSION_SETTINGS), is(false));
-        assertThat(BooleanType.INSTANCE.implicitCast("f", SESSION_SETTINGS), is(false));
-        assertThat(BooleanType.INSTANCE.implicitCast("F", SESSION_SETTINGS), is(false));
-        assertThat(BooleanType.INSTANCE.implicitCast("true", SESSION_SETTINGS), is(true));
-        assertThat(BooleanType.INSTANCE.implicitCast("TRUE", SESSION_SETTINGS), is(true));
-        assertThat(BooleanType.INSTANCE.implicitCast("t", SESSION_SETTINGS), is(true));
-        assertThat(BooleanType.INSTANCE.implicitCast("T", SESSION_SETTINGS), is(true));
+        assertThat(BooleanType.INSTANCE.implicitCast("t"), is(true));
+        assertThat(BooleanType.INSTANCE.implicitCast("false"), is(false));
+        assertThat(BooleanType.INSTANCE.implicitCast("FALSE"), is(false));
+        assertThat(BooleanType.INSTANCE.implicitCast("f"), is(false));
+        assertThat(BooleanType.INSTANCE.implicitCast("F"), is(false));
+        assertThat(BooleanType.INSTANCE.implicitCast("true"), is(true));
+        assertThat(BooleanType.INSTANCE.implicitCast("TRUE"), is(true));
+        assertThat(BooleanType.INSTANCE.implicitCast("t"), is(true));
+        assertThat(BooleanType.INSTANCE.implicitCast("T"), is(true));
     }
 
     @Test
@@ -63,13 +58,13 @@ public class BooleanTypeTest extends ESTestCase {
     public void test_cast_unsupported_text_to_boolean_throws_exception() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Can't convert \"hello\" to boolean");
-        BooleanType.INSTANCE.implicitCast("hello", SESSION_SETTINGS);
+        BooleanType.INSTANCE.implicitCast("hello");
     }
 
     @Test
     public void test_cast_map_to_boolean_throws_exception() {
         expectedException.expect(ClassCastException.class);
         expectedException.expectMessage("Can't cast '{}' to boolean");
-        BooleanType.INSTANCE.implicitCast(Map.of(), SESSION_SETTINGS);
+        BooleanType.INSTANCE.implicitCast(Map.of());
     }
 }

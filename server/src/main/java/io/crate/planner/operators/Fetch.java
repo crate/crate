@@ -133,11 +133,7 @@ public final class Fetch extends ForwardingLogicalPlan {
             plannerContext
         );
         ReaderAllocations readerAllocations = plannerContext.buildReaderAllocations();
-        Function<Symbol, Symbol> paramBinder = new SubQueryAndParamBinder(
-            params,
-            subQueryResults,
-            plannerContext.transactionContext().sessionSettings()
-        );
+        Function<Symbol, Symbol> paramBinder = new SubQueryAndParamBinder(params, subQueryResults);
         FetchPhase fetchPhase = new FetchPhase(
             plannerContext.nextExecutionPhaseId(),
             readerAllocations.nodeReaders().keySet(),

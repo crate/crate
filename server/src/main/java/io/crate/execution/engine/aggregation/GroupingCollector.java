@@ -21,21 +21,6 @@
 
 package io.crate.execution.engine.aggregation;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.BiConsumer;
-import java.util.function.BinaryOperator;
-import java.util.function.Function;
-import java.util.function.Supplier;
-import java.util.stream.Collector;
-
-import org.elasticsearch.Version;
-
 import io.crate.breaker.MultiSizeEstimator;
 import io.crate.breaker.RamAccounting;
 import io.crate.breaker.SizeEstimatorFactory;
@@ -46,8 +31,21 @@ import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.expression.InputCondition;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.memory.MemoryManager;
-import io.crate.metadata.settings.SessionSettings;
 import io.crate.types.DataType;
+import org.elasticsearch.Version;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.Iterator;
+import java.util.function.BiConsumer;
+import java.util.function.BinaryOperator;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.stream.Collector;
 
 /**
  * Collector implementation which uses {@link AggregateMode}s and {@code keyInputs}
@@ -64,7 +62,6 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
     private final Input<Boolean>[] filters;
     private final RamAccounting ramAccounting;
     private final MemoryManager memoryManager;
-    private final SessionSettings sessionSettings;
     private final BiConsumer<K, Object[]> applyKeyToCells;
     private final int numKeyColumns;
     private final BiConsumer<Map<K, Object[]>, K> accountForNewEntry;
@@ -81,7 +78,6 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
                                                Input<Boolean>[] filters,
                                                RamAccounting ramAccounting,
                                                MemoryManager memoryManager,
-                                               SessionSettings sessionSettings,
                                                Version minNodeVersion,
                                                Input<?> keyInput,
                                                DataType keyType,
@@ -94,7 +90,6 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
             filters,
             ramAccounting,
             memoryManager,
-            sessionSettings,
             minNodeVersion,
             (key, cells) -> cells[0] = key,
             1,
@@ -116,7 +111,6 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
                                                     Input<Boolean>[] filters,
                                                     RamAccounting ramAccountingContext,
                                                     MemoryManager memoryManager,
-                                                    SessionSettings sessionSettings,
                                                     Version minNodeVersion,
                                                     List<Input<?>> keyInputs,
                                                     List<? extends DataType> keyTypes,
@@ -129,7 +123,6 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
             filters,
             ramAccountingContext,
             memoryManager,
-            sessionSettings,
             minNodeVersion,
             GroupingCollector::applyKeysToCells,
             keyInputs.size(),
@@ -165,7 +158,6 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
                               Input<Boolean>[] filters,
                               RamAccounting ramAccounting,
                               MemoryManager memoryManager,
-                              SessionSettings sessionSettings,
                               Version minNodeVersion,
                               BiConsumer<K, Object[]> applyKeyToCells,
                               int numKeyColumns,
@@ -180,7 +172,6 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
         this.filters = filters;
         this.ramAccounting = ramAccounting;
         this.memoryManager = memoryManager;
-        this.sessionSettings = sessionSettings;
         this.applyKeyToCells = applyKeyToCells;
         this.numKeyColumns = numKeyColumns;
         this.accountForNewEntry = accountForNewEntry;
@@ -254,7 +245,7 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
             for (int i = 0; i < aggregations.length; i++) {
                 if (InputCondition.matches(filters[i])) {
                     //noinspection unchecked
-                    states[i] = aggregations[i].iterate(ramAccounting, memoryManager, sessionSettings, states[i], inputs[i]);
+                    states[i] = aggregations[i].iterate(ramAccounting, memoryManager, states[i], inputs[i]);
                 }
             }
         }
@@ -269,7 +260,7 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
             var newState = aggregation.newState(ramAccounting, indexVersionCreated, minNodeVersion, memoryManager);
             if (InputCondition.matches(filters[i])) {
                 //noinspection unchecked
-                states[i] = aggregation.iterate(ramAccounting, memoryManager, sessionSettings, newState, inputs[i]);
+                states[i] = aggregation.iterate(ramAccounting, memoryManager, newState, inputs[i]);
             } else {
                 states[i] = newState;
             }

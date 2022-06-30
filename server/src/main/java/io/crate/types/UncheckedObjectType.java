@@ -23,8 +23,6 @@ package io.crate.types;
 
 import io.crate.Streamer;
 import io.crate.common.collections.MapComparator;
-import io.crate.metadata.settings.SessionSettings;
-
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -72,7 +70,7 @@ public class UncheckedObjectType extends DataType<Map<Object, Object>> implement
     }
 
     @Override
-    public Map<Object, Object> implicitCast(Object value, SessionSettings sessionSettings) throws IllegalArgumentException, ClassCastException {
+    public Map<Object, Object> implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
         //noinspection unchecked
         return (Map<Object, Object>) value;
     }

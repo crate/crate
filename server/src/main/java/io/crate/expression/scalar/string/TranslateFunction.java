@@ -21,10 +21,6 @@
 
 package io.crate.expression.scalar.string;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.symbol.Symbol;
@@ -34,6 +30,10 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 import io.crate.user.UserLookup;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class TranslateFunction extends Scalar<String, String> {
 

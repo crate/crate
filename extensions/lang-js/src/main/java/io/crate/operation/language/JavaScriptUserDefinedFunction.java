@@ -21,14 +21,6 @@
 
 package io.crate.operation.language;
 
-import static io.crate.operation.language.JavaScriptLanguage.resolvePolyglotFunctionValue;
-
-import java.io.IOException;
-import java.util.List;
-
-import org.graalvm.polyglot.PolyglotException;
-import org.graalvm.polyglot.Value;
-
 import io.crate.common.collections.Lists2;
 import io.crate.data.Input;
 import io.crate.expression.symbol.Symbol;
@@ -36,10 +28,16 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
-import io.crate.metadata.settings.SessionSettings;
 import io.crate.types.DataType;
 import io.crate.types.TypeSignature;
 import io.crate.user.UserLookup;
+import org.graalvm.polyglot.PolyglotException;
+import org.graalvm.polyglot.Value;
+
+import java.io.IOException;
+import java.util.List;
+
+import static io.crate.operation.language.JavaScriptLanguage.resolvePolyglotFunctionValue;
 
 public class JavaScriptUserDefinedFunction extends Scalar<Object, Object> {
 
@@ -78,9 +76,7 @@ public class JavaScriptUserDefinedFunction extends Scalar<Object, Object> {
             );
             return PolyglotValuesConverter.toCrateObject(
                 function.execute(polyglotValueArgs),
-                signature.getReturnType().createType(),
-                txnCtx.sessionSettings()
-            );
+                signature.getReturnType().createType());
         } catch (PolyglotException | IOException e) {
             throw new io.crate.exceptions.ScriptException(
                 e.getLocalizedMessage(),
@@ -118,9 +114,7 @@ public class JavaScriptUserDefinedFunction extends Scalar<Object, Object> {
             try {
                 return toCrateObject(
                     function.execute(polyglotValueArgs),
-                    signature.getReturnType().createType(),
-                    txnCtx.sessionSettings()
-                );
+                    signature.getReturnType().createType());
             } catch (PolyglotException e) {
                 throw new io.crate.exceptions.ScriptException(
                     e.getLocalizedMessage(),
@@ -142,11 +136,11 @@ public class JavaScriptUserDefinedFunction extends Scalar<Object, Object> {
     }
 
 
-    private static Object toCrateObject(Value value, DataType<?> type, SessionSettings sessionSettings) {
+    private static Object toCrateObject(Value value, DataType<?> type) {
         if ("undefined".equalsIgnoreCase(value.getClass().getSimpleName())) {
             return null;
         } else {
-            return PolyglotValuesConverter.toCrateObject(value, type, sessionSettings);
+            return PolyglotValuesConverter.toCrateObject(value, type);
         }
     }
 }

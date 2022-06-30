@@ -227,12 +227,7 @@ public final class UpdatePlanner {
             outputSymbols,
             returnValues == null ? null : returnValues.toArray(new Symbol[0])
         );
-        WhereClause where = new WhereClause(SubQueryAndParamBinder.convert(
-            query,
-            params,
-            subQueryResults,
-            plannerContext.transactionContext().sessionSettings()
-        ));
+        WhereClause where = new WhereClause(SubQueryAndParamBinder.convert(query, params, subQueryResults));
 
         if (returnValues == null) {
             return createCollectAndMerge(plannerContext,
@@ -265,9 +260,8 @@ public final class UpdatePlanner {
         DocTableInfo tableInfo = table.tableInfo();
         Reference idReference = requireNonNull(tableInfo.getReference(DocSysColumns.ID),
                                                "Table must have a _id column");
-        var txnCtx = plannerCtx.transactionContext();
         Assignments assignments = Assignments.convert(assignmentByTargetCol, plannerCtx.nodeContext());
-        Symbol[] assignmentSources = assignments.bindSources(tableInfo, params, subQueryResults, txnCtx.sessionSettings());
+        Symbol[] assignmentSources = assignments.bindSources(tableInfo, params, subQueryResults);
         Symbol[] outputSymbols;
         if (returnValues == null) {
             //When there are no return values, set the output to a long representing the count of updated rows
@@ -287,7 +281,7 @@ public final class UpdatePlanner {
             null);
 
         WhereClause where = detailedQuery.toBoundWhereClause(
-            tableInfo, params, subQueryResults, txnCtx, plannerCtx.nodeContext());
+            tableInfo, params, subQueryResults, plannerCtx.transactionContext(), plannerCtx.nodeContext());
         if (where.hasVersions()) {
             throw VersioningValidationException.versionInvalidUsage();
         } else if (where.hasSeqNoAndPrimaryTerm()) {

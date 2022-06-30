@@ -21,34 +21,29 @@
 
 package io.crate.types;
 
-import static org.hamcrest.Matchers.is;
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
 
 import java.math.BigDecimal;
 import java.util.Map;
 
-import org.elasticsearch.test.ESTestCase;
-import org.junit.Test;
-
-import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.settings.SessionSettings;
+import static org.hamcrest.Matchers.is;
 
 public class IntegerTypeTest extends ESTestCase {
 
-    private static final SessionSettings SESSION_SETTINGS = CoordinatorTxnCtx.systemTransactionContext().sessionSettings();
-
     @Test
     public void test_cast_text_to_integer() {
-        assertThat(IntegerType.INSTANCE.implicitCast("123", SESSION_SETTINGS), is(123));
+        assertThat(IntegerType.INSTANCE.implicitCast("123"), is(123));
     }
 
     @Test
     public void test_cast_bigint_to_integer() {
-        assertThat(IntegerType.INSTANCE.implicitCast(123L, SESSION_SETTINGS), is(123));
+        assertThat(IntegerType.INSTANCE.implicitCast(123L), is(123));
     }
 
     @Test
     public void test_cast_numeric_to_integer() {
-        assertThat(IntegerType.INSTANCE.implicitCast(BigDecimal.valueOf(123), SESSION_SETTINGS), is(123));
+        assertThat(IntegerType.INSTANCE.implicitCast(BigDecimal.valueOf(123)), is(123));
     }
 
     @Test
@@ -60,41 +55,41 @@ public class IntegerTypeTest extends ESTestCase {
     public void test_cast_boolean_to_integer_throws_exception() {
         expectedException.expect(ClassCastException.class);
         expectedException.expectMessage("Can't cast 'true' to integer");
-        IntegerType.INSTANCE.implicitCast(true, SESSION_SETTINGS);
+        IntegerType.INSTANCE.implicitCast(true);
     }
 
     @Test
     public void test_cast_object_to_integer_throws_exception() {
         expectedException.expect(ClassCastException.class);
         expectedException.expectMessage("Can't cast '{}' to integer");
-        IntegerType.INSTANCE.implicitCast(Map.of(), SESSION_SETTINGS);
+        IntegerType.INSTANCE.implicitCast(Map.of());
     }
 
     @Test
     public void test_cast_bigint_to_integer_out_of_negative_range_throws_exception() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("integer value out of range: -9223372036854775808");
-        IntegerType.INSTANCE.implicitCast(Long.MIN_VALUE, SESSION_SETTINGS);
+        IntegerType.INSTANCE.implicitCast(Long.MIN_VALUE);
     }
 
     @Test
     public void test_cast_bigint_to_integer_out_of_positive_range_throws_exception() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("integer value out of range: 9223372036854775807");
-        IntegerType.INSTANCE.implicitCast(Long.MAX_VALUE, SESSION_SETTINGS);
+        IntegerType.INSTANCE.implicitCast(Long.MAX_VALUE);
     }
 
     @Test
     public void test_cast_out_of_range_numeric_to_integer_throws_exception() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("integer value out of range: 9223372036854775807");
-        IntegerType.INSTANCE.implicitCast(BigDecimal.valueOf(Long.MAX_VALUE), SESSION_SETTINGS);
+        IntegerType.INSTANCE.implicitCast(BigDecimal.valueOf(Long.MAX_VALUE));
     }
 
     @Test
     public void test_cast_numeric_with_fraction_to_integer_looses_fraction() {
         assertThat(
-            IntegerType.INSTANCE.implicitCast(BigDecimal.valueOf(12.12), SESSION_SETTINGS),
+            IntegerType.INSTANCE.implicitCast(BigDecimal.valueOf(12.12)),
             is(12)
         );
     }

@@ -148,7 +148,7 @@ public final class BitStringType extends DataType<BitString> implements Streamer
     }
 
     @Override
-    public BitString implicitCast(Object value, SessionSettings sessionSettings) throws IllegalArgumentException, ClassCastException {
+    public BitString implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
         // implicit cast must not change the length of the value to have proper insert semantics
         // (wrong length = error)
         if (value instanceof String str) {

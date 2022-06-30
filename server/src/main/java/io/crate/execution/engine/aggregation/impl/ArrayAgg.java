@@ -21,15 +21,6 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-import static io.crate.types.TypeSignature.parseTypeSignature;
-
-import java.util.ArrayList;
-import java.util.List;
-
-import org.elasticsearch.Version;
-import org.elasticsearch.common.breaker.CircuitBreakingException;
-
 import io.crate.breaker.RamAccounting;
 import io.crate.breaker.SizeEstimator;
 import io.crate.breaker.SizeEstimatorFactory;
@@ -37,8 +28,15 @@ import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.functions.Signature;
-import io.crate.metadata.settings.SessionSettings;
 import io.crate.types.DataType;
+import org.elasticsearch.Version;
+import org.elasticsearch.common.breaker.CircuitBreakingException;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
+import static io.crate.types.TypeSignature.parseTypeSignature;
 
 public final class ArrayAgg extends AggregationFunction<List<Object>, List<Object>> {
 
@@ -86,7 +84,6 @@ public final class ArrayAgg extends AggregationFunction<List<Object>, List<Objec
     @Override
     public List<Object> iterate(RamAccounting ramAccounting,
                                 MemoryManager memoryManager,
-                                SessionSettings sessionSettings,
                                 List<Object> state,
                                 Input... args) throws CircuitBreakingException {
         var value = args[0].value();

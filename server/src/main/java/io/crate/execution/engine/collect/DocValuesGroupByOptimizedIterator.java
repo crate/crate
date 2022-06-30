@@ -82,7 +82,6 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.settings.SessionSettings;
 
 final class DocValuesGroupByOptimizedIterator {
 
@@ -163,7 +162,6 @@ final class DocValuesGroupByOptimizedIterator {
                 keyExpressions,
                 collectTask.getRamAccounting(),
                 collectTask.memoryManager(),
-                collectTask.txnCtx().sessionSettings(),
                 collectTask.minNodeVersion(),
                 queryContext.query(),
                 new CollectorContext(sharedShardContext.readerId())
@@ -176,7 +174,6 @@ final class DocValuesGroupByOptimizedIterator {
                 keyExpressions,
                 collectTask.getRamAccounting(),
                 collectTask.memoryManager(),
-                collectTask.txnCtx().sessionSettings(),
                 collectTask.minNodeVersion(),
                 queryContext.query(),
                 new CollectorContext(sharedShardContext.readerId())
@@ -193,7 +190,6 @@ final class DocValuesGroupByOptimizedIterator {
                                                List<? extends LuceneCollectorExpression<?>> keyExpressions,
                                                RamAccounting ramAccounting,
                                                MemoryManager memoryManager,
-                                               SessionSettings sessionSettings,
                                                Version minNodeVersion,
                                                Query query,
                                                CollectorContext collectorContext) {
@@ -203,7 +199,6 @@ final class DocValuesGroupByOptimizedIterator {
                 keyExpressions,
                 ramAccounting,
                 memoryManager,
-                sessionSettings,
                 minNodeVersion,
                 GroupByMaps.accountForNewEntry(
                     ramAccounting,
@@ -224,7 +219,6 @@ final class DocValuesGroupByOptimizedIterator {
                                                   List<? extends LuceneCollectorExpression<?>> keyExpressions,
                                                   RamAccounting ramAccounting,
                                                   MemoryManager memoryManager,
-                                                  SessionSettings sessionSettings,
                                                   Version minNodeVersion,
                                                   Query query,
                                                   CollectorContext collectorContext) {
@@ -234,7 +228,6 @@ final class DocValuesGroupByOptimizedIterator {
                 keyExpressions,
                 ramAccounting,
                 memoryManager,
-                sessionSettings,
                 minNodeVersion,
                 GroupByMaps.accountForNewEntry(
                     ramAccounting,
@@ -266,7 +259,6 @@ final class DocValuesGroupByOptimizedIterator {
                                                   List<? extends LuceneCollectorExpression<?>> keyExpressions,
                                                   RamAccounting ramAccounting,
                                                   MemoryManager memoryManager,
-                                                  SessionSettings sessionSettings,
                                                   Version minNodeVersion,
                                                   BiConsumer<Map<K, Object[]>, K> accountForNewKeyEntry,
                                                   Function<List<? extends LuceneCollectorExpression<?>>, K> keyExtractor,
@@ -293,7 +285,6 @@ final class DocValuesGroupByOptimizedIterator {
                                     keyExtractor,
                                     ramAccounting,
                                     memoryManager,
-                                    sessionSettings,
                                     minNodeVersion,
                                     query,
                                     killed
@@ -301,8 +292,7 @@ final class DocValuesGroupByOptimizedIterator {
                                 keyExpressions.size(),
                                 applyKeyToCells,
                                 aggregators,
-                                ramAccounting,
-                                sessionSettings
+                                ramAccounting
                             )
                         );
                     } catch (Throwable t) {
@@ -317,8 +307,7 @@ final class DocValuesGroupByOptimizedIterator {
                                                  int numberOfKeys,
                                                  BiConsumer<K, Object[]> applyKeyToCells,
                                                  List<DocValueAggregator> aggregators,
-                                                 RamAccounting ramAccounting,
-                                                 SessionSettings sessionSettings) {
+                                                 RamAccounting ramAccounting) {
             return () -> {
                 Object[] cells = new Object[numberOfKeys + aggregators.size()];
                 RowN row = new RowN(cells);
@@ -330,7 +319,7 @@ final class DocValuesGroupByOptimizedIterator {
                     int c = numberOfKeys;
                     for (int i = 0; i < states.length; i++) {
                         //noinspection unchecked
-                        cells[c] = aggregators.get(i).partialResult(ramAccounting, sessionSettings, states[i]);
+                        cells[c] = aggregators.get(i).partialResult(ramAccounting, states[i]);
                         c++;
                     }
                     return row;
@@ -347,7 +336,6 @@ final class DocValuesGroupByOptimizedIterator {
             Function<List<? extends LuceneCollectorExpression<?>>, K> keyExtractor,
             RamAccounting ramAccounting,
             MemoryManager memoryManager,
-            SessionSettings sessionSettings,
             Version minNodeVersion,
             Query query,
             AtomicReference<Throwable> killed
@@ -393,14 +381,14 @@ final class DocValuesGroupByOptimizedIterator {
                             var aggregator = aggregators.get(i);
                             states[i] = aggregator.initialState(ramAccounting, memoryManager, minNodeVersion);
                             //noinspection unchecked
-                            aggregator.apply(ramAccounting, sessionSettings, doc, states[i]);
+                            aggregator.apply(ramAccounting, doc, states[i]);
                         }
                         accountForNewKeyEntry.accept(statesByKey, key);
                         statesByKey.put(key, states);
                     } else {
                         for (int i = 0; i < aggregators.size(); i++) {
                             //noinspection unchecked
-                            aggregators.get(i).apply(ramAccounting, sessionSettings, doc, states[i]);
+                            aggregators.get(i).apply(ramAccounting, doc, states[i]);
                         }
                     }
                 }

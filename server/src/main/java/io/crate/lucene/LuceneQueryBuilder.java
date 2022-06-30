@@ -174,10 +174,6 @@ public class LuceneQueryBuilder {
             return this.query;
         }
 
-        public TransactionContext txnCtx() {
-            return txnCtx;
-        }
-
         @Nullable
         public Float minScore() {
             Object score = filteredFieldValues.get("_score");

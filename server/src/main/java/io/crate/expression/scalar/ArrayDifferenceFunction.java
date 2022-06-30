@@ -21,19 +21,6 @@
 
 package io.crate.expression.scalar;
 
-import static io.crate.expression.scalar.array.ArrayArgumentValidators.ensureBothInnerTypesAreNotUndefined;
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-import static io.crate.types.TypeSignature.parseTypeSignature;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-
-import javax.annotation.Nullable;
-
 import io.crate.data.Input;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
@@ -43,6 +30,18 @@ import io.crate.metadata.functions.Signature;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.user.UserLookup;
+
+import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+
+import static io.crate.expression.scalar.array.ArrayArgumentValidators.ensureBothInnerTypesAreNotUndefined;
+import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
+import static io.crate.types.TypeSignature.parseTypeSignature;
 
 class ArrayDifferenceFunction extends Scalar<List<Object>, List<Object>> {
 
@@ -89,9 +88,7 @@ class ArrayDifferenceFunction extends Scalar<List<Object>, List<Object>> {
     }
 
     @Override
-    public Scalar<List<Object>, List<Object>> compile(List<Symbol> arguments,
-                                                      String currentUser,
-                                                      UserLookup userLookup) {
+    public Scalar<List<Object>, List<Object>> compile(List<Symbol> arguments, String currentUser, UserLookup userLookup) {
         Symbol symbol = arguments.get(1);
 
         if (!symbol.symbolType().isValueSymbol()) {

@@ -52,7 +52,6 @@ import io.crate.expression.symbol.format.Style;
 import io.crate.geo.GeoJSONUtils;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.functions.Signature;
-import io.crate.metadata.settings.SessionSettings;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -63,8 +62,6 @@ import io.crate.types.RegclassType;
 public class CastFunctionTest extends ScalarTestCase {
 
     private static String timezone;
-
-    private final SessionSettings sessionSettings = CoordinatorTxnCtx.systemTransactionContext().sessionSettings();
 
     @BeforeClass
     public static void beforeTestClass() {
@@ -189,7 +186,7 @@ public class CastFunctionTest extends ScalarTestCase {
             978307261000L,
             Literal.of(
                 DataTypes.TIMESTAMPZ,
-                DataTypes.TIMESTAMPZ.implicitCast("2001-01-01T01:01:01+01", sessionSettings)
+                DataTypes.TIMESTAMPZ.implicitCast("2001-01-01T01:01:01+01")
             )
         );
         assertEvaluate(
@@ -197,7 +194,7 @@ public class CastFunctionTest extends ScalarTestCase {
             978310861000L,
             Literal.of(
                 DataTypes.TIMESTAMP,
-                DataTypes.TIMESTAMP.implicitCast("2001-01-01T01:01:01Z", sessionSettings)
+                DataTypes.TIMESTAMP.implicitCast("2001-01-01T01:01:01Z")
             )
         );
     }
@@ -215,8 +212,8 @@ public class CastFunctionTest extends ScalarTestCase {
         assertEvaluate(
             "['POINT(2 3)','POINT(1 3)']::array(geo_point)",
             List.of(
-                GEO_POINT.implicitCast("POINT(2 3)", sessionSettings),
-                GEO_POINT.implicitCast("POINT(1 3)", sessionSettings)
+                GEO_POINT.implicitCast("POINT(2 3)"),
+                GEO_POINT.implicitCast("POINT(1 3)")
             )
         );
     }
@@ -313,6 +310,7 @@ public class CastFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_can_cast_bigint_to_regclass() {
-        assertEvaluate("10::bigint::regclass", RegclassType.INSTANCE.explicitCast(10L, sessionSettings));
+        assertEvaluate("10::bigint::regclass",
+            RegclassType.INSTANCE.explicitCast(10L, CoordinatorTxnCtx.systemTransactionContext().sessionSettings()));
     }
 }

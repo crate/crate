@@ -21,28 +21,7 @@
 
 package io.crate.execution.dml;
 
-import static io.crate.data.SentinelRow.SENTINEL;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
-import java.util.function.Function;
-
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.lucene.uid.Versions;
-import org.elasticsearch.index.IndexNotFoundException;
-import org.elasticsearch.index.engine.DocumentMissingException;
-import org.elasticsearch.index.engine.VersionConflictEngineException;
-import org.elasticsearch.index.seqno.SequenceNumbers;
-import org.elasticsearch.index.shard.ShardId;
-
 import com.carrotsearch.hppc.IntArrayList;
-
 import io.crate.analyze.where.DocKeys;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
@@ -58,8 +37,26 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.settings.SessionSettings;
 import io.crate.planner.operators.SubQueryResults;
+import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.lucene.uid.Versions;
+import org.elasticsearch.index.IndexNotFoundException;
+import org.elasticsearch.index.engine.DocumentMissingException;
+import org.elasticsearch.index.engine.VersionConflictEngineException;
+import org.elasticsearch.index.seqno.SequenceNumbers;
+import org.elasticsearch.index.shard.ShardId;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+
+import static io.crate.data.SentinelRow.SENTINEL;
 
 /**
  * Utility class to group requests by shardId and execute them.
@@ -83,7 +80,7 @@ public class ShardRequestExecutor<Req> {
          * (optional): bind the parameters.
          *             this is called once per params in the bulkParameters
          */
-        void bind(Row parameters, SubQueryResults subQueryResults, SessionSettings sessionSettings);
+        void bind(Row parameters, SubQueryResults subQueryResults);
 
         /**
          * Creates and adds a new item to the request; This is called once per docKey per params.
@@ -120,7 +117,7 @@ public class ShardRequestExecutor<Req> {
                          SubQueryResults subQueryResults,
                          BiFunction<RowConsumer, Integer, ActionListener<ShardResponse>> f) {
         HashMap<ShardId, Req> requestsByShard = new HashMap<>();
-        grouper.bind(parameters, subQueryResults, txnCtx.sessionSettings());
+        grouper.bind(parameters, subQueryResults);
         addRequests(0, parameters, requestsByShard, subQueryResults);
         ActionListener<ShardResponse> listener = f.apply(consumer, requestsByShard.size());
         for (Req request : requestsByShard.values()) {
@@ -135,7 +132,7 @@ public class ShardRequestExecutor<Req> {
         for (int resultIdx = 0; resultIdx < bulkParams.size(); resultIdx++) {
             int prevLocation = location;
             Row params = bulkParams.get(resultIdx);
-            grouper.bind(params, subQueryResults, txnCtx.sessionSettings());
+            grouper.bind(params, subQueryResults);
             location = addRequests(location, params, requests, subQueryResults);
             for (int i = prevLocation; i < location; i++) {
                 bulkIndices.add(resultIdx);

@@ -21,17 +21,16 @@
 
 package io.crate.expression;
 
-import static io.crate.common.collections.Maps.getByPath;
+import io.crate.data.Row;
+import io.crate.metadata.ColumnIdent;
+import io.crate.types.DataType;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
-import io.crate.data.Row;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.types.DataType;
+import static io.crate.common.collections.Maps.getByPath;
 
 
 public final class ValueExtractors {
@@ -61,9 +60,7 @@ public final class ValueExtractors {
     }
 
     public static Function<Map<String, Object>, Object> fromMap(ColumnIdent column, DataType<?> type) {
-        // TODO: Use dynamic session settings
-        var sessionSettings = CoordinatorTxnCtx.systemTransactionContext().sessionSettings();
-        return map -> type.implicitCast(fromMap(map, column), sessionSettings);
+        return map -> type.implicitCast(fromMap(map, column));
     }
 
     public static Function<Row, Object> fromRow(int idx, List<String> subscript) {

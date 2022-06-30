@@ -52,6 +52,8 @@ import java.util.stream.StreamSupport;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import com.carrotsearch.randomizedtesting.RandomizedContext;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchTimeoutException;
@@ -74,8 +76,6 @@ import org.locationtech.spatial4j.shape.impl.PointImpl;
 import org.postgresql.geometric.PGpoint;
 import org.postgresql.util.PGobject;
 
-import com.carrotsearch.randomizedtesting.RandomizedContext;
-
 import io.crate.action.FutureActionListener;
 import io.crate.action.sql.BaseResultReceiver;
 import io.crate.action.sql.ResultReceiver;
@@ -89,7 +89,6 @@ import io.crate.exceptions.Exceptions;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
-import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.protocols.postgres.types.PGArray;
@@ -351,7 +350,7 @@ public class SQLTransportExecutor {
             return arg;
         }
         if (arg instanceof Map) {
-            return DataTypes.STRING.implicitCast(arg, CoordinatorTxnCtx.systemTransactionContext().sessionSettings());
+            return DataTypes.STRING.implicitCast(arg);
         }
         if (arg.getClass().isArray()) {
             arg = Arrays.asList((Object[]) arg);

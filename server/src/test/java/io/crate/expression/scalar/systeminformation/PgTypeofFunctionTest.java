@@ -28,14 +28,10 @@ import org.junit.Test;
 
 import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.expression.symbol.Literal;
-import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.settings.SessionSettings;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 
 public class PgTypeofFunctionTest extends ScalarTestCase {
-
-    private final SessionSettings sessionSettings = CoordinatorTxnCtx.systemTransactionContext().sessionSettings();
 
     @Test
     public void test_sample_case_with_qualified_function_name() {
@@ -89,7 +85,7 @@ public class PgTypeofFunctionTest extends ScalarTestCase {
             "timestamp without time zone",
             Literal.of(
                 DataTypes.TIMESTAMP,
-                DataTypes.TIMESTAMP.implicitCast("1978-02-28T14:30+05:30", sessionSettings)
+                DataTypes.TIMESTAMP.implicitCast("1978-02-28T14:30+05:30")
             )
         );
         assertEvaluate(
@@ -97,7 +93,7 @@ public class PgTypeofFunctionTest extends ScalarTestCase {
             "timestamp with time zone",
             Literal.of(
                 DataTypes.TIMESTAMPZ,
-                DataTypes.TIMESTAMPZ.implicitCast("1978-02-28T14:30+05:30", sessionSettings)
+                DataTypes.TIMESTAMPZ.implicitCast("1978-02-28T14:30+05:30")
             )
         );
     }

@@ -146,12 +146,7 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
         if (executionPlan.resultDescription().hasRemainingLimitOrOffset()) {
             executionPlan = Merge.ensureOnHandler(executionPlan, plannerContext);
         }
-        var sessionSettings = plannerContext.transactionContext().sessionSettings();
-        SubQueryAndParamBinder paramBinder = new SubQueryAndParamBinder(
-            params,
-            subQueryResults,
-            sessionSettings
-        );
+        SubQueryAndParamBinder paramBinder = new SubQueryAndParamBinder(params, subQueryResults);
 
         List<Symbol> sourceOutputs = source.outputs();
         if (shardsContainAllGroupKeyValues()) {
@@ -162,7 +157,7 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
                 paramBinder,
                 AggregateMode.ITER_FINAL,
                 source.preferShardProjections() ? RowGranularity.SHARD : RowGranularity.CLUSTER,
-                sessionSettings.searchPath()
+                plannerContext.transactionContext().sessionContext().searchPath()
             );
             executionPlan.addProjection(groupProjection, TopN.NO_LIMIT, 0, null);
             return executionPlan;
@@ -178,7 +173,7 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
                         paramBinder,
                         AggregateMode.ITER_PARTIAL,
                         RowGranularity.SHARD,
-                        sessionSettings.searchPath()
+                        plannerContext.transactionContext().sessionContext().searchPath()
                     )
                 );
                 executionPlan.addProjection(
@@ -189,7 +184,7 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
                         paramBinder,
                         AggregateMode.PARTIAL_FINAL,
                         RowGranularity.NODE,
-                        sessionSettings.searchPath()
+                        plannerContext.transactionContext().sessionContext().searchPath()
                     ),
                     TopN.NO_LIMIT,
                     0,
@@ -205,7 +200,7 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
                         paramBinder,
                         AggregateMode.ITER_FINAL,
                         RowGranularity.NODE,
-                        sessionSettings.searchPath()
+                        plannerContext.transactionContext().sessionContext().searchPath()
                     ),
                     TopN.NO_LIMIT,
                     0,
@@ -222,7 +217,7 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
             paramBinder,
             AggregateMode.ITER_PARTIAL,
             source.preferShardProjections() ? RowGranularity.SHARD : RowGranularity.NODE,
-            sessionSettings.searchPath()
+            plannerContext.transactionContext().sessionContext().searchPath()
         );
         executionPlan.addProjection(toPartial);
         executionPlan.setDistributionInfo(DistributionInfo.DEFAULT_MODULO);
@@ -234,7 +229,7 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
             paramBinder,
             AggregateMode.PARTIAL_FINAL,
             RowGranularity.CLUSTER,
-            sessionSettings.searchPath()
+            plannerContext.transactionContext().sessionContext().searchPath()
         );
         return createMerge(
             plannerContext,

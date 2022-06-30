@@ -21,16 +21,6 @@
 
 package io.crate.planner.operators;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import javax.annotation.Nullable;
-
 import io.crate.analyze.OrderBy;
 import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
@@ -44,6 +34,16 @@ import io.crate.metadata.FunctionType;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
 import io.crate.statistics.TableStats;
+
+import javax.annotation.Nullable;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class ProjectSet extends ForwardingLogicalPlan {
 
@@ -128,11 +128,7 @@ public class ProjectSet extends ForwardingLogicalPlan {
 
         // When a query with placeholders looks like 'SELECT UNNEST(?)' then source is a table function over EMPTY_ROW_TABLE_RELATION
         // and parameter binding done inside TableFunction has no effect as EMPTY_ROW_TABLE_RELATION has zero arguments.
-        SubQueryAndParamBinder paramBinder = new SubQueryAndParamBinder(
-            params,
-            subQueryResults,
-            plannerContext.transactionContext().sessionSettings()
-        );
+        SubQueryAndParamBinder paramBinder = new SubQueryAndParamBinder(params, subQueryResults);
 
         InputColumns.SourceSymbols sourceSymbols = new InputColumns.SourceSymbols(source.outputs());
         List<Symbol> tableFunctionsWithInputs = InputColumns.create(Lists2.map(this.tableFunctions, paramBinder), sourceSymbols);

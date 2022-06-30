@@ -21,23 +21,18 @@
 
 package io.crate.expression.scalar;
 
-import static io.crate.testing.SymbolMatchers.isLiteral;
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
+import io.crate.types.DataTypes;
+import org.junit.Test;
 
 import java.util.Locale;
 import java.util.Map;
 
-import org.junit.Test;
-
-import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.settings.SessionSettings;
-import io.crate.types.DataTypes;
+import static io.crate.testing.SymbolMatchers.isLiteral;
 
 
 public class DateFormatFunctionTest extends ScalarTestCase {
-
-    private final SessionSettings sessionSettings = CoordinatorTxnCtx.systemTransactionContext().sessionSettings();
 
     @Test
     public void testNormalizeDefault() throws Exception {
@@ -66,7 +61,7 @@ public class DateFormatFunctionTest extends ScalarTestCase {
             "date_format(timestamp_tz)", "2015-06-10T07:03:00.004000Z",
             Literal.of(
                 DataTypes.TIMESTAMPZ,
-                DataTypes.TIMESTAMPZ.implicitCast("2015-06-10T09:03:00.004+02", sessionSettings)
+                DataTypes.TIMESTAMPZ.implicitCast("2015-06-10T09:03:00.004+02")
             )
         );
     }
@@ -78,7 +73,7 @@ public class DateFormatFunctionTest extends ScalarTestCase {
                          "00 00 00:00:00 00 00 52 53 Friday 5 2054 2054 2055 55",
             Literal.of("%a %b %c %D %d %e %f %H %h %I %i %j %k %l %M %m %p %r " +
                        "%S %s %T %U %u %V %v %W %w %X %x %Y %y"),
-            Literal.of(DataTypes.TIMESTAMPZ, DataTypes.TIMESTAMPZ.implicitCast("2055-01-01", sessionSettings)
+            Literal.of(DataTypes.TIMESTAMPZ, DataTypes.TIMESTAMPZ.implicitCast("2055-01-01")
             )
         );
     }
@@ -93,7 +88,7 @@ public class DateFormatFunctionTest extends ScalarTestCase {
             Literal.of("EST"),
             Literal.of(
                 DataTypes.TIMESTAMPZ,
-                DataTypes.TIMESTAMPZ.implicitCast("1871-01-01T09:00:00.000+01", sessionSettings)
+                DataTypes.TIMESTAMPZ.implicitCast("1871-01-01T09:00:00.000+01")
             )
         );
     }
@@ -121,7 +116,7 @@ public class DateFormatFunctionTest extends ScalarTestCase {
             Literal.of("Europe/Berlin"),
             Literal.of(
                 DataTypes.TIMESTAMP,
-                DataTypes.TIMESTAMP.implicitCast("2015-06-10T07:03:00+10", sessionSettings)
+                DataTypes.TIMESTAMP.implicitCast("2015-06-10T07:03:00+10")
             )
         );
         assertEvaluate(
@@ -130,7 +125,7 @@ public class DateFormatFunctionTest extends ScalarTestCase {
             Literal.of("%Y-%m-%d %H:%i:%S %Z"),
             Literal.of(
                 DataTypes.TIMESTAMP,
-                DataTypes.TIMESTAMP.implicitCast("2015-06-10T07:03:00+10", sessionSettings)
+                DataTypes.TIMESTAMP.implicitCast("2015-06-10T07:03:00+10")
             )
         );
     }
@@ -222,7 +217,7 @@ public class DateFormatFunctionTest extends ScalarTestCase {
         assertEvaluate("date_format(time_format, timestamp_tz)",
             "2000®01\uD834\uDD1E01 € 00:00:00",
             Literal.of("%Y®%m\uD834\uDD1E%d € %H:%i:%S"),
-            Literal.of(DataTypes.TIMESTAMPZ, DataTypes.TIMESTAMPZ.implicitCast("2000-01-01", sessionSettings)));
+            Literal.of(DataTypes.TIMESTAMPZ, DataTypes.TIMESTAMPZ.implicitCast("2000-01-01")));
     }
 
     @Test
@@ -230,7 +225,7 @@ public class DateFormatFunctionTest extends ScalarTestCase {
         assertEvaluate("date_format(time_format, timestamp_tz)",
             "t%Z",
             Literal.of("%t%%%Z"),
-            Literal.of(DataTypes.TIMESTAMPZ, DataTypes.TIMESTAMPZ.implicitCast("2000-01-01", sessionSettings)));
+            Literal.of(DataTypes.TIMESTAMPZ, DataTypes.TIMESTAMPZ.implicitCast("2000-01-01")));
     }
 
     @Test

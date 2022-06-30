@@ -167,9 +167,7 @@ public final class TrimFunctions {
         }
 
         @Override
-        public Scalar<String, String> compile(List<Symbol> arguments,
-                                              String currentUser,
-                                              UserLookup userLookup) {
+        public Scalar<String, String> compile(List<Symbol> arguments, String currentUser, UserLookup userLookup) {
             assert arguments.size() == 3 : "number of args must be 3";
 
             Symbol modeSymbol = arguments.get(2);

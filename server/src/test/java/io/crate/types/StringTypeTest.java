@@ -40,20 +40,20 @@ public class StringTypeTest extends ESTestCase {
 
     @Test
     public void test_implicit_cast_boolean_to_text() {
-        assertThat(DataTypes.STRING.implicitCast(true, SESSION_SETTINGS), is("t"));
-        assertThat(DataTypes.STRING.implicitCast(false, SESSION_SETTINGS), is("f"));
+        assertThat(DataTypes.STRING.implicitCast(true), is("t"));
+        assertThat(DataTypes.STRING.implicitCast(false), is("f"));
     }
 
     @Test
     public void test_implicit_cast_regproc_to_text() {
         assertThat(
-            DataTypes.STRING.implicitCast(Regproc.of("func"), SESSION_SETTINGS),
+            DataTypes.STRING.implicitCast(Regproc.of("func")),
             is("func"));
     }
 
     @Test
     public void test_implicit_cast_long_to_text() {
-        assertThat(DataTypes.STRING.implicitCast(123L, SESSION_SETTINGS), is("123"));
+        assertThat(DataTypes.STRING.implicitCast(123L), is("123"));
     }
 
     @Test
@@ -88,13 +88,13 @@ public class StringTypeTest extends ESTestCase {
 
     @Test
     public void test_implicit_cast_text_without_length() {
-        assertThat(StringType.INSTANCE.implicitCast("abc", SESSION_SETTINGS), is("abc"));
+        assertThat(StringType.INSTANCE.implicitCast("abc"), is("abc"));
     }
 
     @Test
     public void test_implicit_cast_text_with_length_ignores_length_limit() {
-        assertThat(StringType.of(1).implicitCast("abcde", SESSION_SETTINGS), is("abcde"));
-        assertThat(StringType.of(2).implicitCast("a    ", SESSION_SETTINGS), is("a    "));
+        assertThat(StringType.of(1).implicitCast("abcde"), is("abcde"));
+        assertThat(StringType.of(2).implicitCast("a    "), is("a    "));
     }
 
     @Test

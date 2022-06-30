@@ -48,7 +48,6 @@ import io.crate.memory.MemoryManager;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.Signature;
-import io.crate.metadata.settings.SessionSettings;
 import io.crate.types.ByteType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -232,7 +231,6 @@ public class GeometricMeanAggregation extends AggregationFunction<GeometricMeanA
     @Override
     public GeometricMeanState iterate(RamAccounting ramAccounting,
                                       MemoryManager memoryManager,
-                                      SessionSettings sessionSettings,
                                       GeometricMeanState state,
                                       Input... args) throws CircuitBreakingException {
         if (state != null) {
@@ -268,7 +266,6 @@ public class GeometricMeanAggregation extends AggregationFunction<GeometricMeanA
 
     @Override
     public GeometricMeanState removeFromAggregatedState(RamAccounting ramAccounting,
-                                                        SessionSettings sessionSettings,
                                                         GeometricMeanState previousAggState,
                                                         Input[] stateToRemove) {
         if (previousAggState != null) {

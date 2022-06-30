@@ -21,23 +21,19 @@
 
 package io.crate.expression.scalar;
 
-import org.junit.Test;
-
 import io.crate.expression.symbol.Literal;
-import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.settings.SessionSettings;
 import io.crate.types.DataTypes;
+import org.junit.Test;
 
 public class ExtractFunctionsTest extends ScalarTestCase {
 
     private static final String D_2014_02_15___21_33_23 = "2014-02-15T21:33:23";
-    private static final SessionSettings SESSION_SETTINGS = CoordinatorTxnCtx.systemTransactionContext().sessionSettings();
 
     private void assertEvaluate(String functionExpression, Object expected) {
         assertEvaluate(functionExpression, expected,
             Literal.of(
                 DataTypes.TIMESTAMPZ,
-                DataTypes.TIMESTAMPZ.implicitCast(D_2014_02_15___21_33_23, SESSION_SETTINGS)
+                DataTypes.TIMESTAMPZ.implicitCast(D_2014_02_15___21_33_23)
             )
         );
     }
@@ -63,7 +59,7 @@ public class ExtractFunctionsTest extends ScalarTestCase {
             25,
             Literal.of(
                 DataTypes.TIMESTAMP,
-                DataTypes.TIMESTAMP.implicitCast("2014-03-25", SESSION_SETTINGS)
+                DataTypes.TIMESTAMP.implicitCast("2014-03-25")
             )
         );
     }

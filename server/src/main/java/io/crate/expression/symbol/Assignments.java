@@ -34,7 +34,6 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.settings.SessionSettings;
 import io.crate.planner.operators.SubQueryAndParamBinder;
 import io.crate.planner.operators.SubQueryResults;
 
@@ -92,12 +91,9 @@ public final class Assignments {
         return sources;
     }
 
-    public Symbol[] bindSources(DocTableInfo tableInfo,
-                                Row params,
-                                SubQueryResults subQueryResults,
-                                SessionSettings sessionSettings) {
+    public Symbol[] bindSources(DocTableInfo tableInfo, Row params, SubQueryResults subQueryResults) {
         Symbol[] boundSources = new Symbol[targetColumns.length];
-        SubQueryAndParamBinder binder = new SubQueryAndParamBinder(params, subQueryResults, sessionSettings);
+        SubQueryAndParamBinder binder = new SubQueryAndParamBinder(params, subQueryResults);
         for (int i = 0; i < boundSources.length; i++) {
             Symbol source = ValueNormalizer.normalizeInputForReference(
                 binder.apply(sources[i]),

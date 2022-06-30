@@ -31,7 +31,6 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 
-import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SystemTable;
 import io.crate.metadata.SystemTable.Builder;
@@ -124,10 +123,7 @@ public class SysClusterTableInfo {
             settingsBuilder.add(
                 leaf.name,
                 valueType,
-                x -> valueType.implicitCast(
-                    setting.get(crateSettings.settings()),
-                    CoordinatorTxnCtx.systemTransactionContext().sessionSettings()
-                )
+                x -> valueType.implicitCast(setting.get(crateSettings.settings()))
             );
         } else {
             var node = (Node<Setting<?>>) element;

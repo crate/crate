@@ -34,7 +34,6 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import io.crate.Streamer;
-import io.crate.metadata.settings.SessionSettings;
 
 public class BooleanType extends DataType<Boolean> implements Streamer<Boolean>, FixedWidthType {
 
@@ -101,7 +100,7 @@ public class BooleanType extends DataType<Boolean> implements Streamer<Boolean>,
     }
 
     @Override
-    public Boolean implicitCast(Object value, SessionSettings sessionSettings) throws IllegalArgumentException, ClassCastException {
+    public Boolean implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
         if (value == null) {
             return null;
         } else if (value instanceof Boolean) {

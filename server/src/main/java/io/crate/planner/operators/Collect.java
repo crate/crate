@@ -159,9 +159,8 @@ public class Collect implements LogicalPlan {
             null,
             relation
         );
-        var txnCtx = plannerContext.transactionContext();
-        var binder = new SubQueryAndParamBinder(params, subQueryResults, txnCtx.sessionSettings())
-            .andThen(x -> normalizer.normalize(x, txnCtx));
+        var binder = new SubQueryAndParamBinder(params, subQueryResults)
+            .andThen(x -> normalizer.normalize(x, plannerContext.transactionContext()));
         RoutedCollectPhase collectPhase = createPhase(plannerContext, hints, binder, params, subQueryResults);
         PositionalOrderBy positionalOrderBy = getPositionalOrderBy(order, outputs);
         if (positionalOrderBy != null) {

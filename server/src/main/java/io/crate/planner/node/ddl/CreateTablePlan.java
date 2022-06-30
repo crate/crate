@@ -21,17 +21,6 @@
 
 package io.crate.planner.node.ddl;
 
-import static io.crate.data.SentinelRow.SENTINEL;
-
-import java.util.Locale;
-import java.util.Optional;
-import java.util.function.Function;
-
-import javax.annotation.Nullable;
-
-import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.common.settings.Settings;
-
 import io.crate.analyze.AnalyzedColumnDefinition;
 import io.crate.analyze.AnalyzedCreateTable;
 import io.crate.analyze.AnalyzedTableElements;
@@ -64,6 +53,15 @@ import io.crate.sql.tree.ClusteredBy;
 import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.PartitionedBy;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.common.settings.Settings;
+
+import javax.annotation.Nullable;
+import java.util.Locale;
+import java.util.Optional;
+import java.util.function.Function;
+
+import static io.crate.data.SentinelRow.SENTINEL;
 
 public class CreateTablePlan implements Plan {
 
@@ -151,8 +149,8 @@ public class CreateTablePlan implements Plan {
             true
         );
 
-        AnalyzedTableElements<Symbol> tableElementsWithExpressions = createTable.analyzedTableElementsWithExpressions()
-                .map(x -> SubQueryAndParamBinder.convert(x, params, subQueryResults, txnCtx.sessionSettings()));
+        AnalyzedTableElements<Symbol> tableElementsWithExpressions =
+            createTable.analyzedTableElementsWithExpressions().map(x -> SubQueryAndParamBinder.convert(x, params, subQueryResults));
 
         // validate table elements
         AnalyzedTableElements.finalizeAndValidate(

@@ -73,10 +73,8 @@ import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
 import io.crate.memory.OnHeapMemoryManager;
-import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
 import io.crate.metadata.functions.Signature;
-import io.crate.metadata.settings.SessionSettings;
 import io.crate.types.DataTypes;
 import io.netty.util.collection.LongObjectHashMap;
 
@@ -110,8 +108,7 @@ public class GroupingLongCollectorBenchmark {
             DataTypes.INTEGER
         );
         var memoryManager = new OnHeapMemoryManager(bytes -> {});
-        var sessionSettings = CoordinatorTxnCtx.systemTransactionContext().sessionSettings();
-        groupBySumCollector = createGroupBySumCollector(sumAgg, memoryManager, sessionSettings);
+        groupBySumCollector = createGroupBySumCollector(sumAgg, memoryManager);
 
         int size = 20_000_000;
         rows = new ArrayList<>(size);
@@ -130,9 +127,7 @@ public class GroupingLongCollectorBenchmark {
         searcher = new IndexSearcher(DirectoryReader.open(iw));
     }
 
-    private static GroupingCollector createGroupBySumCollector(AggregationFunction sumAgg,
-                                                               MemoryManager memoryManager,
-                                                               SessionSettings sessionSettings) {
+    private static GroupingCollector createGroupBySumCollector(AggregationFunction sumAgg, MemoryManager memoryManager) {
         InputCollectExpression keyInput = new InputCollectExpression(0);
         List<Input<?>> keyInputs = Arrays.<Input<?>>asList(keyInput);
         CollectExpression[] collectExpressions = new CollectExpression[]{keyInput};
@@ -145,7 +140,6 @@ public class GroupingLongCollectorBenchmark {
             new Input[] { Literal.BOOLEAN_TRUE },
             RamAccounting.NO_ACCOUNTING,
             memoryManager,
-            sessionSettings,
             Version.CURRENT,
             keyInputs.get(0),
             DataTypes.LONG,

@@ -21,14 +21,6 @@
 
 package io.crate.expression.scalar.cast;
 
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-import static io.crate.types.TypeSignature.parseTypeSignature;
-
-import java.util.List;
-
-import javax.annotation.Nullable;
-
-import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Input;
 import io.crate.exceptions.ConversionException;
 import io.crate.expression.scalar.ScalarFunctionModule;
@@ -38,10 +30,16 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
-import io.crate.metadata.settings.SessionSettings;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.user.UserLookup;
+
+import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
+import static io.crate.types.TypeSignature.parseTypeSignature;
+
+import java.util.List;
+
+import javax.annotation.Nullable;
 
 public class ImplicitCastFunction extends Scalar<Object, Object> {
 
@@ -61,9 +59,8 @@ public class ImplicitCastFunction extends Scalar<Object, Object> {
 
     private final Signature signature;
     private final Signature boundSignature;
-    @VisibleForTesting
     @Nullable
-    final DataType<?> targetType;
+    private final DataType<?> targetType;
 
     private ImplicitCastFunction(Signature signature, Signature boundSignature) {
         this(signature, boundSignature, null);
@@ -99,15 +96,15 @@ public class ImplicitCastFunction extends Scalar<Object, Object> {
         if (targetType == null) {
             var targetTypeSignature = parseTypeSignature((String) args[1].value());
             var targetType = targetTypeSignature.createType();
-            return castToTargetType(targetType, arg, txnCtx.sessionSettings());
+            return castToTargetType(targetType, arg);
         } else {
-            return castToTargetType(targetType, arg, txnCtx.sessionSettings());
+            return castToTargetType(targetType, arg);
         }
     }
 
-    private static Object castToTargetType(DataType<?> targetType, Object arg, SessionSettings sessionSettings) {
+    private static Object castToTargetType(DataType<?> targetType, Object arg) {
         try {
-            return targetType.implicitCast(arg, sessionSettings);
+            return targetType.implicitCast(arg);
         } catch (ConversionException e) {
             throw e;
         } catch (ClassCastException | IllegalArgumentException e) {
@@ -141,7 +138,7 @@ public class ImplicitCastFunction extends Scalar<Object, Object> {
         if (argument instanceof Input) {
             Object value = ((Input<?>) argument).value();
             try {
-                return Literal.ofUnchecked(targetType, targetType.implicitCast(value, txnCtx.sessionSettings()));
+                return Literal.ofUnchecked(targetType, targetType.implicitCast(value));
             } catch (ConversionException e) {
                 throw e;
             } catch (ClassCastException | IllegalArgumentException e) {

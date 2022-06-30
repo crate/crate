@@ -21,31 +21,26 @@
 
 package io.crate.types;
 
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.nullValue;
-
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-
+import io.crate.geo.GeoJSONUtils;
+import io.crate.geo.GeoJSONUtilsTest;
+import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
-import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 import org.locationtech.spatial4j.shape.Shape;
 
-import io.crate.geo.GeoJSONUtils;
-import io.crate.geo.GeoJSONUtilsTest;
-import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.settings.SessionSettings;
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 
 public class GeoShapeTypeTest extends ESTestCase {
-
-    private static final SessionSettings SESSION_SETTINGS = CoordinatorTxnCtx.systemTransactionContext().sessionSettings();
 
     private static final List<String> WKT = List.of(
         "multipolygon empty",
@@ -121,7 +116,7 @@ public class GeoShapeTypeTest extends ESTestCase {
     @Test
     public void testStreamer() throws Exception {
         for (Map<String, Object> geoJSON : GEO_JSON) {
-            Map<String, Object> value = type.implicitCast(geoJSON, SESSION_SETTINGS);
+            Map<String, Object> value = type.implicitCast(geoJSON);
 
             BytesStreamOutput out = new BytesStreamOutput();
             type.streamer().writeValueTo(out, value);
@@ -136,8 +131,8 @@ public class GeoShapeTypeTest extends ESTestCase {
 
     @Test
     public void testCompareValueTo() throws Exception {
-        Map<String, Object> val1 = type.implicitCast("POLYGON ( (0 0, 20 0, 20 20, 0 20, 0 0 ))", SESSION_SETTINGS);
-        Map<String, Object> val2 = type.implicitCast("POINT (10 10)", SESSION_SETTINGS);
+        Map<String, Object> val1 = type.implicitCast("POLYGON ( (0 0, 20 0, 20 20, 0 20, 0 0 ))");
+        Map<String, Object> val2 = type.implicitCast("POINT (10 10)");
 
         assertThat(type.compare(val1, val2), is(1));
         assertThat(type.compare(val2, val1), is(-1));
@@ -148,14 +143,14 @@ public class GeoShapeTypeTest extends ESTestCase {
     public void testInvalidStringValueCausesIllegalArgumentException() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Cannot convert WKT \"foobar\" to shape");
-        type.implicitCast("foobar", SESSION_SETTINGS);
+        type.implicitCast("foobar");
     }
 
     @Test
     public void testInvalidTypeCausesIllegalArgumentException() throws Exception {
         expectedException.expect(ClassCastException.class);
         expectedException.expectMessage("Can't cast '200' to geo_shape");
-        type.implicitCast(200, SESSION_SETTINGS);
+        type.implicitCast(200);
     }
 
     @Test
@@ -168,13 +163,13 @@ public class GeoShapeTypeTest extends ESTestCase {
                 new double[]{170.0d, 99.0d},
                 new double[]{180.5d, -180.5d}
             }
-        ), SESSION_SETTINGS);
+        ));
     }
 
     @Test
     public void testConvertFromValidWKT() throws Exception {
         for (String wkt : WKT) {
-            Map<String, Object> geoShape = type.implicitCast(wkt, SESSION_SETTINGS);
+            Map<String, Object> geoShape = type.implicitCast(wkt);
             assertThat(geoShape, is(notNullValue()));
         }
     }
@@ -182,14 +177,14 @@ public class GeoShapeTypeTest extends ESTestCase {
     @Test
     public void testConvertFromValidGeoJSON() throws Exception {
         for (Map<String, Object> geoJSON : GEO_JSON) {
-            Map<String, Object> geoShape = type.implicitCast(geoJSON, SESSION_SETTINGS);
+            Map<String, Object> geoShape = type.implicitCast(geoJSON);
             assertThat(geoShape, is(notNullValue()));
         }
     }
 
     @Test
     public void test_cast_with_null_value() {
-        assertThat(type.implicitCast(null, SESSION_SETTINGS), is(nullValue()));
+        assertThat(type.implicitCast(null), is(nullValue()));
     }
 
     @Test

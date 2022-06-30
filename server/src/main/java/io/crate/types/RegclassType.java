@@ -27,7 +27,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import io.crate.Streamer;
-import io.crate.metadata.SearchPath;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.settings.SessionSettings;
 
 /**
@@ -35,14 +35,8 @@ import io.crate.metadata.settings.SessionSettings;
  **/
 public final class RegclassType extends DataType<Regclass> implements Streamer<Regclass> {
 
-    public static final RegclassType INSTANCE = new RegclassType(SearchPath.pathWithPGCatalogAndDoc().currentSchema());
+    public static final RegclassType INSTANCE = new RegclassType();
     public static final int ID = 23;
-
-    private final String currentSchema;
-
-    public RegclassType(String currentSchema) {
-        this.currentSchema = currentSchema;
-    }
 
     @Override
     public int compare(Regclass o1, Regclass o2) {
@@ -88,7 +82,16 @@ public final class RegclassType extends DataType<Regclass> implements Streamer<R
     }
 
     @Override
-    public Regclass implicitCast(Object value, SessionSettings sessionSettings) throws IllegalArgumentException, ClassCastException {
+    public Regclass explicitCast(Object value, SessionSettings sessionSettings) throws IllegalArgumentException, ClassCastException {
+        return cast(value, sessionSettings.currentSchema());
+    }
+
+    @Override
+    public Regclass implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
+        return cast(value, CoordinatorTxnCtx.systemTransactionContext().sessionSettings().currentSchema());
+    }
+
+    private Regclass cast(Object value, String currentSchema) {
         if (value == null) {
             return null;
         }
@@ -106,7 +109,7 @@ public final class RegclassType extends DataType<Regclass> implements Streamer<R
             return new Regclass(num.intValue(), value.toString());
         }
         if (value instanceof String) {
-            return Regclass.fromRelationName(value.toString(), sessionSettings.currentSchema());
+            return Regclass.fromRelationName(value.toString(), currentSchema);
         }
         throw new ClassCastException("Can't cast '" + value + "' to " + getName());
     }

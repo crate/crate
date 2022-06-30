@@ -21,14 +21,6 @@
 
 package io.crate.planner.node.ddl;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.function.Function;
-
-import org.elasticsearch.action.admin.indices.delete.DeleteIndexAction;
-import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
-import org.elasticsearch.action.support.IndicesOptions;
-
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists2;
@@ -47,6 +39,13 @@ import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.types.DataTypes;
+import org.elasticsearch.action.admin.indices.delete.DeleteIndexAction;
+import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
+import org.elasticsearch.action.support.IndicesOptions;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Function;
 
 public class DeletePartitions implements Plan {
 
@@ -85,10 +84,7 @@ public class DeletePartitions implements Plan {
     ArrayList<String> getIndices(TransactionContext txnCtx, NodeContext nodeCtx, Row parameters, SubQueryResults subQueryResults) {
         ArrayList<String> indexNames = new ArrayList<>();
         Function<Symbol, String> symbolToString =
-            s -> DataTypes.STRING.implicitCast(
-                SymbolEvaluator.evaluate(txnCtx, nodeCtx, s, parameters, subQueryResults),
-                txnCtx.sessionSettings()
-            );
+            s -> DataTypes.STRING.implicitCast(SymbolEvaluator.evaluate(txnCtx, nodeCtx, s, parameters, subQueryResults));
         for (List<Symbol> partitionValues : partitions) {
             List<String> values = Lists2.map(partitionValues, symbolToString);
             String indexName = IndexParts.toIndexName(relationName, PartitionName.encodeIdent(values));

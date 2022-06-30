@@ -40,7 +40,6 @@ import io.crate.expression.reference.ReferenceResolver;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.lucene.FieldTypeLookup;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
@@ -122,10 +121,8 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
             default: {
                 int partitionPos = partitionColumns.indexOf(ref);
                 if (partitionPos >= 0) {
-                    // TODO: Use dynamic session settings
-                    var sessionSettings = CoordinatorTxnCtx.systemTransactionContext().sessionSettings();
                     return new LiteralValueExpression(
-                        ref.valueType().implicitCast(PartitionName.fromIndexOrTemplate(indexName).values().get(partitionPos), sessionSettings)
+                        ref.valueType().implicitCast(PartitionName.fromIndexOrTemplate(indexName).values().get(partitionPos))
                     );
                 }
                 return maybeInjectPartitionValue(

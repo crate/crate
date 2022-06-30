@@ -24,25 +24,22 @@ package io.crate.expression.reference.partitioned;
 import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
-import io.crate.metadata.settings.SessionSettings;
 
 public class PartitionExpression implements NestableCollectExpression<PartitionName, Object> {
 
     private final Reference ref;
     private final int valuesIndex;
-    private final SessionSettings sessionSettings;
     private Object value;
 
-    public PartitionExpression(Reference ref, int valuesIndex, SessionSettings sessionSettings) {
+    public PartitionExpression(Reference ref, int valuesIndex) {
         this.ref = ref;
         this.valuesIndex = valuesIndex;
-        this.sessionSettings = sessionSettings;
     }
 
     @Override
     public void setNextRow(PartitionName row) {
         assert row != null : "row shouldn't be null for PartitionExpression";
-        value = ref.valueType().implicitCast(row.values().get(valuesIndex), sessionSettings);
+        value = ref.valueType().implicitCast(row.values().get(valuesIndex));
     }
 
     @Override

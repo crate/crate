@@ -123,7 +123,7 @@ public class CharacterType extends StringType {
     }
 
     @Override
-    public String implicitCast(Object value, SessionSettings sessionSettings) throws IllegalArgumentException, ClassCastException {
+    public String implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
         var s = cast(value);
         if (s != null) {
             return padEnd(s, lengthLimit, ' ');

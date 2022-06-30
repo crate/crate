@@ -106,13 +106,12 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
      * Should be used only in the cast functions, but there are exceptions.
      *
      * @param value The value to cast to the target {@link DataType}.
-     * @param sessionSettings
      * @return The value casted the target {@link DataType}.
      * @throws ClassCastException       if the conversion between data types is not supported.
      * @throws IllegalArgumentException if the conversion is supported but the converted value
      *                                  violates pre-conditions of the target type.
      */
-    public T implicitCast(Object value, SessionSettings sessionSettings) throws IllegalArgumentException, ClassCastException {
+    public T implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
         throw new UnsupportedOperationException("The cast operation for type `" + getName() + "` is not supported.");
     }
 
@@ -126,7 +125,7 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
      * @return The value casted the target {@link DataType}.
      */
     public T explicitCast(Object value, SessionSettings sessionSettings) throws IllegalArgumentException, ClassCastException {
-        return implicitCast(value, sessionSettings);
+        return implicitCast(value);
     }
 
     /**
@@ -149,7 +148,7 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
      *
      * @param value The value to sanitize to the target {@link DataType}.
      * @return The value of {@link DataType}.
-     * @see DataType#implicitCast(Object, SessionSettings)
+     * @see DataType#implicitCast(Object)
      */
     public abstract T sanitizeValue(Object value);
 

@@ -21,10 +21,6 @@
 
 package io.crate.expression.scalar;
 
-import java.util.List;
-
-import org.joda.time.Period;
-
 import io.crate.data.Input;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
@@ -33,6 +29,9 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 import io.crate.user.UserLookup;
+import org.joda.time.Period;
+
+import java.util.List;
 
 public class DateBinFunction extends Scalar<Long, Object> {
 

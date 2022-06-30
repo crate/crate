@@ -49,7 +49,6 @@ import io.crate.metadata.PartitionReferenceResolver;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.settings.SessionSettings;
 
 public class WhereClauseAnalyzer {
 
@@ -80,12 +79,11 @@ public class WhereClauseAnalyzer {
         return new WhereClause(partitionResult.query, partitionResult.partitions, where.clusteredBy());
     }
 
-    private static PartitionReferenceResolver preparePartitionResolver(List<Reference> partitionColumns,
-                                                                       SessionSettings sessionSettings) {
+    private static PartitionReferenceResolver preparePartitionResolver(List<Reference> partitionColumns) {
         List<PartitionExpression> partitionExpressions = new ArrayList<>(partitionColumns.size());
         int idx = 0;
         for (var partitionedByColumn : partitionColumns) {
-            partitionExpressions.add(new PartitionExpression(partitionedByColumn, idx, sessionSettings));
+            partitionExpressions.add(new PartitionExpression(partitionedByColumn, idx));
             idx++;
         }
         return new PartitionReferenceResolver(partitionExpressions);
@@ -109,9 +107,7 @@ public class WhereClauseAnalyzer {
         assert !tableInfo.partitions().isEmpty() : "table must have at least one partition";
 
         PartitionReferenceResolver partitionReferenceResolver = preparePartitionResolver(
-            tableInfo.partitionedByColumns(),
-            coordinatorTxnCtx.sessionSettings()
-        );
+            tableInfo.partitionedByColumns());
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
             nodeCtx, RowGranularity.PARTITION, partitionReferenceResolver, null);
 

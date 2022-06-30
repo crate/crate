@@ -24,7 +24,6 @@ package io.crate.types;
 import java.util.List;
 
 import io.crate.Streamer;
-import io.crate.metadata.settings.SessionSettings;
 
 public class OidVectorType extends DataType<List<Integer>> {
 
@@ -57,7 +56,7 @@ public class OidVectorType extends DataType<List<Integer>> {
     }
 
     @Override
-    public List<Integer> implicitCast(Object value, SessionSettings sessionSettings) throws IllegalArgumentException, ClassCastException {
+    public List<Integer> implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
         return (List<Integer>) value;
     }
 

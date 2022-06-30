@@ -21,27 +21,22 @@
 
 package io.crate.expression.symbol;
 
-import static io.crate.testing.SymbolMatchers.isFunction;
-import static org.hamcrest.Matchers.is;
-
-import java.util.List;
-
-import org.elasticsearch.test.ESTestCase;
-import org.joda.time.Period;
-import org.junit.Test;
-import org.locationtech.spatial4j.shape.Point;
-
 import io.crate.expression.scalar.cast.ImplicitCastFunction;
-import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.settings.SessionSettings;
+import org.elasticsearch.test.ESTestCase;
 import io.crate.types.ArrayType;
 import io.crate.types.BooleanType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import org.joda.time.Period;
+import org.junit.Test;
+import org.locationtech.spatial4j.shape.Point;
+
+import java.util.List;
+
+import static io.crate.testing.SymbolMatchers.isFunction;
+import static org.hamcrest.Matchers.is;
 
 public class LiteralTest extends ESTestCase {
-
-    private static final SessionSettings SESSION_SETTINGS = CoordinatorTxnCtx.systemTransactionContext().sessionSettings();
 
     @Test
     public void testNestedArrayLiteral() throws Exception {
@@ -56,7 +51,7 @@ public class LiteralTest extends ESTestCase {
             } else if (type.id() == DataTypes.INTERVAL.id()) {
                 value = type.sanitizeValue(new Period().withSeconds(100));
             } else {
-                value = type.implicitCast("0", SESSION_SETTINGS);
+                value = type.implicitCast("0");
             }
             var nestedValue = List.of(List.of(value));
             Literal<?> nestedLiteral = Literal.ofUnchecked(nestedType, nestedValue);
@@ -69,11 +64,11 @@ public class LiteralTest extends ESTestCase {
     public void testHashCodeIsEqualOnArrayValues() throws Exception {
         Literal<Point> l1 = new Literal<>(
             DataTypes.GEO_POINT,
-            DataTypes.GEO_POINT.implicitCast(new Double[]{10.0, 20.2}, SESSION_SETTINGS)
+            DataTypes.GEO_POINT.implicitCast(new Double[]{10.0, 20.2})
         );
         Literal<Point> l2 = new Literal<>(
             DataTypes.GEO_POINT,
-            DataTypes.GEO_POINT.implicitCast(new Double[]{10.0, 20.2}, SESSION_SETTINGS)
+            DataTypes.GEO_POINT.implicitCast(new Double[]{10.0, 20.2})
         );
         assertThat(l1.hashCode(), is(l2.hashCode()));
     }

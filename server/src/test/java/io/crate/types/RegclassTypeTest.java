@@ -38,7 +38,7 @@ public class RegclassTypeTest extends ESTestCase {
     @Test
     public void test_cannot_cast_long_outside_int_range_to_regclass() {
         Asserts.assertThrowsMatches(
-            () -> RegclassType.INSTANCE.implicitCast(Integer.MAX_VALUE + 42L, SESSION_SETTINGS),
+            () -> RegclassType.INSTANCE.implicitCast(Integer.MAX_VALUE + 42L),
             IllegalArgumentException.class,
             "2147483689 is outside of `int` range and cannot be cast to the regclass type"
         );

@@ -21,19 +21,14 @@
 
 package io.crate.expression.scalar.geo;
 
-import static io.crate.testing.SymbolMatchers.isLiteral;
-
-import org.junit.Test;
-
 import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.expression.symbol.Literal;
-import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.settings.SessionSettings;
 import io.crate.types.DataTypes;
+import org.junit.Test;
+
+import static io.crate.testing.SymbolMatchers.isLiteral;
 
 public class CoordinateFunctionTest extends ScalarTestCase {
-
-    private static final SessionSettings SESSION_SETTINGS = CoordinatorTxnCtx.systemTransactionContext().sessionSettings();
 
     @Test
     public void testEvaluateWithGeoPointLiterals() throws Exception {
@@ -42,7 +37,7 @@ public class CoordinateFunctionTest extends ScalarTestCase {
             9.7427,
             Literal.of(
                 DataTypes.GEO_POINT,
-                DataTypes.GEO_POINT.implicitCast("POINT(9.7427 47.4050)", SESSION_SETTINGS)
+                DataTypes.GEO_POINT.implicitCast("POINT(9.7427 47.4050)")
             )
         );
         assertEvaluate(
@@ -50,7 +45,7 @@ public class CoordinateFunctionTest extends ScalarTestCase {
             47.4050,
             Literal.of(
                 DataTypes.GEO_POINT,
-                DataTypes.GEO_POINT.implicitCast("POINT(9.7427 47.4050)", SESSION_SETTINGS)
+                DataTypes.GEO_POINT.implicitCast("POINT(9.7427 47.4050)")
             )
         );
     }

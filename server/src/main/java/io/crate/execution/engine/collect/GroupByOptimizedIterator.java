@@ -89,7 +89,6 @@ import io.crate.metadata.DocReferences;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.settings.SessionSettings;
 import io.crate.types.DataTypes;
 
 final class GroupByOptimizedIterator {
@@ -187,7 +186,6 @@ final class GroupByOptimizedIterator {
             aggExpressions,
             ramAccounting,
             collectTask.memoryManager(),
-            collectTask.txnCtx().sessionSettings(),
             collectTask.minNodeVersion(),
             inputRow,
             queryContext.query(),
@@ -203,7 +201,6 @@ final class GroupByOptimizedIterator {
                                           List<CollectExpression<Row, ?>> aggExpressions,
                                           RamAccounting ramAccounting,
                                           MemoryManager memoryManager,
-                                          SessionSettings sessionSettings,
                                           Version minNodeVersion,
                                           InputRow inputRow,
                                           Query query,
@@ -230,7 +227,6 @@ final class GroupByOptimizedIterator {
                                 aggExpressions,
                                 ramAccounting,
                                 memoryManager,
-                                sessionSettings,
                                 minNodeVersion,
                                 inputRow,
                                 query,
@@ -282,7 +278,6 @@ final class GroupByOptimizedIterator {
                                                                        List<CollectExpression<Row, ?>> aggExpressions,
                                                                        RamAccounting ramAccounting,
                                                                        MemoryManager memoryManager,
-                                                                       SessionSettings sessionSettings,
                                                                        Version minNodeVersion,
                                                                        InputRow inputRow,
                                                                        Query query,
@@ -321,27 +316,18 @@ final class GroupByOptimizedIterator {
                         long ord = values.nextOrd();
                         Object[] states = statesByOrd.get(ord);
                         if (states == null) {
-                            statesByOrd.set(
-                                ord,
-                                initStates(aggregations, ramAccounting, memoryManager, sessionSettings, minNodeVersion)
-                            );
+                            statesByOrd.set(ord, initStates(aggregations, ramAccounting, memoryManager, minNodeVersion));
                         } else {
-                            aggregateValues(aggregations, ramAccounting, memoryManager, sessionSettings, states);
+                            aggregateValues(aggregations, ramAccounting, memoryManager, states);
                         }
                         if (values.nextOrd() != SortedSetDocValues.NO_MORE_ORDS) {
                             throw new GroupByOnArrayUnsupportedException(keyColumnName);
                         }
                     } else {
                         if (nullStates == null) {
-                            nullStates = initStates(
-                                aggregations,
-                                ramAccounting,
-                                memoryManager,
-                                sessionSettings,
-                                minNodeVersion
-                            );
+                            nullStates = initStates(aggregations, ramAccounting, memoryManager, minNodeVersion);
                         } else {
-                            aggregateValues(aggregations, ramAccounting, memoryManager, sessionSettings, nullStates);
+                            aggregateValues(aggregations, ramAccounting, memoryManager, nullStates);
                         }
                     }
                 }
@@ -403,7 +389,6 @@ final class GroupByOptimizedIterator {
     private static void aggregateValues(List<AggregationContext> aggregations,
                                         RamAccounting ramAccounting,
                                         MemoryManager memoryManager,
-                                        SessionSettings sessionSettings,
                                         Object[] states) {
         for (int i = 0; i < aggregations.size(); i++) {
             AggregationContext aggregation = aggregations.get(i);
@@ -413,10 +398,8 @@ final class GroupByOptimizedIterator {
                 states[i] = aggregation.function().iterate(
                     ramAccounting,
                     memoryManager,
-                    sessionSettings,
                     states[i],
-                    aggregation.inputs()
-                );
+                    aggregation.inputs());
             }
         }
     }
@@ -424,7 +407,6 @@ final class GroupByOptimizedIterator {
     private static Object[] initStates(List<AggregationContext> aggregations,
                                        RamAccounting ramAccounting,
                                        MemoryManager memoryManager,
-                                       SessionSettings sessionSettings,
                                        Version minNodeVersion) {
         Object[] states = new Object[aggregations.size()];
         for (int i = 0; i < aggregations.size(); i++) {
@@ -437,10 +419,8 @@ final class GroupByOptimizedIterator {
                 states[i] = function.iterate(
                     ramAccounting,
                     memoryManager,
-                    sessionSettings,
                     newState,
-                    aggregation.inputs()
-                );
+                    aggregation.inputs());
             } else {
                 states[i] = newState;
             }

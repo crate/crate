@@ -21,16 +21,15 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
-import static org.hamcrest.Matchers.is;
-
-import java.util.List;
-
+import io.crate.expression.symbol.Literal;
+import io.crate.operation.aggregation.AggregationTestCase;
 import org.elasticsearch.Version;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
-import io.crate.expression.symbol.Literal;
-import io.crate.operation.aggregation.AggregationTestCase;
+import java.util.List;
+
+import static org.hamcrest.Matchers.is;
 
 public class StringAggTest extends AggregationTestCase {
 
@@ -75,12 +74,12 @@ public class StringAggTest extends AggregationTestCase {
     public void testMergeOf2States() throws Exception {
         var stringAgg = new StringAgg(StringAgg.SIGNATURE, StringAgg.SIGNATURE);
         var state1 = stringAgg.newState(RAM_ACCOUNTING, Version.CURRENT, Version.CURRENT, memoryManager);
-        stringAgg.iterate(RAM_ACCOUNTING, memoryManager, SESSION_SETTINGS, state1, Literal.of("a"), Literal.of(","));
-        stringAgg.iterate(RAM_ACCOUNTING, memoryManager, SESSION_SETTINGS, state1, Literal.of("b"), Literal.of(";"));
+        stringAgg.iterate(RAM_ACCOUNTING, memoryManager, state1, Literal.of("a"), Literal.of(","));
+        stringAgg.iterate(RAM_ACCOUNTING, memoryManager, state1, Literal.of("b"), Literal.of(";"));
 
         var state2 = stringAgg.newState(RAM_ACCOUNTING, Version.CURRENT, Version.CURRENT, memoryManager);
-        stringAgg.iterate(RAM_ACCOUNTING, memoryManager, SESSION_SETTINGS, state2, Literal.of("c"), Literal.of(","));
-        stringAgg.iterate(RAM_ACCOUNTING, memoryManager, SESSION_SETTINGS, state2, Literal.of("d"), Literal.of(";"));
+        stringAgg.iterate(RAM_ACCOUNTING, memoryManager, state2, Literal.of("c"), Literal.of(","));
+        stringAgg.iterate(RAM_ACCOUNTING, memoryManager, state2, Literal.of("d"), Literal.of(";"));
 
         var mergedState = stringAgg.reduce(RAM_ACCOUNTING, state1, state2);
         var result = stringAgg.terminatePartial(RAM_ACCOUNTING, mergedState);

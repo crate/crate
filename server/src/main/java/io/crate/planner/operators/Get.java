@@ -104,17 +104,17 @@ public class Get implements LogicalPlan {
                                SubQueryResults subQueryResults) {
         HashMap<String, Map<ShardId, List<PKAndVersion>>> idsByShardByNode = new HashMap<>();
         DocTableInfo docTableInfo = tableRelation.tableInfo();
-        var txnCtx = plannerContext.transactionContext();
         for (DocKeys.DocKey docKey : docKeys) {
-            String id = docKey.getId(txnCtx, plannerContext.nodeContext(), params, subQueryResults);
+            String id = docKey.getId(plannerContext.transactionContext(), plannerContext.nodeContext(), params, subQueryResults);
             if (id == null) {
                 continue;
             }
             List<String> partitionValues = docKey.getPartitionValues(
-                txnCtx, plannerContext.nodeContext(), params, subQueryResults);
+                plannerContext.transactionContext(), plannerContext.nodeContext(), params, subQueryResults);
             String indexName = indexName(docTableInfo, partitionValues);
 
-            String routing = docKey.getRouting(txnCtx, plannerContext.nodeContext(), params, subQueryResults);
+            String routing = docKey.getRouting(
+                plannerContext.transactionContext(), plannerContext.nodeContext(), params, subQueryResults);
             ShardRouting shardRouting;
             try {
                 shardRouting = plannerContext.resolveShard(indexName, id, routing);
@@ -144,11 +144,11 @@ public class Get implements LogicalPlan {
                 idsByShard.put(shardRouting.shardId(), pkAndVersions);
             }
             long version = docKey
-                .version(txnCtx, plannerContext.nodeContext(), params, subQueryResults)
+                .version(plannerContext.transactionContext(), plannerContext.nodeContext(), params, subQueryResults)
                 .orElse(Versions.MATCH_ANY);
-            long sequenceNumber = docKey.sequenceNo(txnCtx, plannerContext.nodeContext(), params, subQueryResults)
+            long sequenceNumber = docKey.sequenceNo(plannerContext.transactionContext(), plannerContext.nodeContext(), params, subQueryResults)
                 .orElse(SequenceNumbers.UNASSIGNED_SEQ_NO);
-            long primaryTerm = docKey.primaryTerm(txnCtx, plannerContext.nodeContext(), params, subQueryResults)
+            long primaryTerm = docKey.primaryTerm(plannerContext.transactionContext(), plannerContext.nodeContext(), params, subQueryResults)
                 .orElse(SequenceNumbers.UNASSIGNED_PRIMARY_TERM);
             pkAndVersions.add(new PKAndVersion(id, version, sequenceNumber, primaryTerm));
         }
@@ -160,7 +160,7 @@ public class Get implements LogicalPlan {
         docKeyColumns.add(DocSysColumns.SEQ_NO);
         docKeyColumns.add(DocSysColumns.PRIMARY_TERM);
 
-        var binder = new SubQueryAndParamBinder(params, subQueryResults, txnCtx.sessionSettings());
+        var binder = new SubQueryAndParamBinder(params, subQueryResults);
         List<Symbol> boundOutputs = Lists2.map(outputs, binder);
         var boundQuery = binder.apply(query);
 

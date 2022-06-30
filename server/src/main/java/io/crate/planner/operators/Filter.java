@@ -21,13 +21,6 @@
 
 package io.crate.planner.operators;
 
-import java.util.Collection;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
-
-import javax.annotation.Nullable;
-
 import io.crate.analyze.OrderBy;
 import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
@@ -41,6 +34,12 @@ import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
 import io.crate.statistics.TableStats;
 import io.crate.types.DataTypes;
+
+import javax.annotation.Nullable;
+import java.util.Collection;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
 
 public final class Filter extends ForwardingLogicalPlan {
 
@@ -83,12 +82,7 @@ public final class Filter extends ForwardingLogicalPlan {
                                SubQueryResults subQueryResults) {
         ExecutionPlan executionPlan = source.build(
             plannerContext, planHints, projectionBuilder, limit, offset, order, pageSizeHint, params, subQueryResults);
-        Symbol boundQuery = SubQueryAndParamBinder.convert(
-            query,
-            params,
-            subQueryResults,
-            plannerContext.transactionContext().sessionSettings()
-        );
+        Symbol boundQuery = SubQueryAndParamBinder.convert(query, params, subQueryResults);
         FilterProjection filterProjection = ProjectionBuilder.filterProjection(source.outputs(), boundQuery);
         if (executionPlan.resultDescription().executesOnShard()) {
             filterProjection.requiredGranularity(RowGranularity.SHARD);

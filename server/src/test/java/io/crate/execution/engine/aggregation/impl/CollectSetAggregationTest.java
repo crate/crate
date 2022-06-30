@@ -21,16 +21,6 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-
-import java.util.List;
-
-import org.elasticsearch.Version;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.hamcrest.Matchers;
-import org.junit.Test;
-
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.expression.symbol.Literal;
@@ -41,6 +31,15 @@ import io.crate.operation.aggregation.AggregationTestCase;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import org.elasticsearch.Version;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.hamcrest.Matchers;
+import org.junit.Test;
+
+import java.util.List;
+
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 
 public class CollectSetAggregationTest extends AggregationTestCase {
 
@@ -91,11 +90,11 @@ public class CollectSetAggregationTest extends AggregationTestCase {
         AggregationFunction aggregationFunction = impl.optimizeForExecutionAsWindowFunction();
 
         Object state = aggregationFunction.newState(RAM_ACCOUNTING, Version.CURRENT, Version.CURRENT, memoryManager);
-        state = aggregationFunction.iterate(RAM_ACCOUNTING, memoryManager, SESSION_SETTINGS, state, Literal.of(10));
-        state = aggregationFunction.iterate(RAM_ACCOUNTING, memoryManager, SESSION_SETTINGS, state, Literal.of(10));
+        state = aggregationFunction.iterate(RAM_ACCOUNTING, memoryManager, state, Literal.of(10));
+        state = aggregationFunction.iterate(RAM_ACCOUNTING, memoryManager, state, Literal.of(10));
 
-        aggregationFunction.removeFromAggregatedState(RAM_ACCOUNTING, SESSION_SETTINGS, state, new Input[] { Literal.of(10) });
-        aggregationFunction.removeFromAggregatedState(RAM_ACCOUNTING, SESSION_SETTINGS, state, new Input[] { Literal.of(10) });
+        aggregationFunction.removeFromAggregatedState(RAM_ACCOUNTING, state, new Input[] { Literal.of(10) });
+        aggregationFunction.removeFromAggregatedState(RAM_ACCOUNTING, state, new Input[] { Literal.of(10) });
 
         Object values = aggregationFunction.terminatePartial(RAM_ACCOUNTING, state);
         assertThat((List<Object>) values, Matchers.empty());

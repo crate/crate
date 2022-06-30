@@ -23,8 +23,6 @@ package io.crate.types;
 
 import io.crate.Streamer;
 import io.crate.geo.GeoJSONUtils;
-import io.crate.metadata.settings.SessionSettings;
-
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.lucene.BytesRefs;
@@ -67,7 +65,7 @@ public class GeoShapeType extends DataType<Map<String, Object>> implements Strea
     }
 
     @Override
-    public Map<String, Object> implicitCast(Object value, SessionSettings sessionSettings) throws IllegalArgumentException, ClassCastException {
+    public Map<String, Object> implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
         if (value == null) {
             return null;
         } else if (value instanceof String) {

@@ -21,22 +21,17 @@
 
 package io.crate.expression.scalar.timestamp;
 
+import io.crate.expression.scalar.ScalarTestCase;
+import io.crate.expression.symbol.Literal;
+import io.crate.metadata.SystemClock;
+import io.crate.types.DataTypes;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.expression.scalar.ScalarTestCase;
-import io.crate.expression.symbol.Literal;
-import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.SystemClock;
-import io.crate.metadata.settings.SessionSettings;
-import io.crate.types.DataTypes;
-
 public class TimezoneFunctionTest extends ScalarTestCase {
 
     private static final long NOW_MILLIS = 1422294644581L;
-
-    private final SessionSettings sessionSettings = CoordinatorTxnCtx.systemTransactionContext().sessionSettings();
 
     @Before
     public void prepare() {
@@ -134,7 +129,7 @@ public class TimezoneFunctionTest extends ScalarTestCase {
             257508000000L,
             Literal.of(
                 DataTypes.TIMESTAMPZ,
-                DataTypes.TIMESTAMPZ.implicitCast("1978-02-28T14:30+05:30", sessionSettings)
+                DataTypes.TIMESTAMPZ.implicitCast("1978-02-28T14:30+05:30")
             )
         );
         assertEvaluate(
@@ -142,7 +137,7 @@ public class TimezoneFunctionTest extends ScalarTestCase {
             257520600000L,
             Literal.of(
                 DataTypes.TIMESTAMP,
-                DataTypes.TIMESTAMP.implicitCast("1978-02-28T14:30+05:30", sessionSettings)
+                DataTypes.TIMESTAMP.implicitCast("1978-02-28T14:30+05:30")
             )
         );
         assertEvaluate("timezone('Europe/Madrid', x)", 257484600000L, Literal.of(257488200000L));

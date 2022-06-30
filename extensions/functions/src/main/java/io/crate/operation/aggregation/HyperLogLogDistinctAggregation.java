@@ -29,6 +29,8 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
+import com.carrotsearch.hppc.BitMixer;
+
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.util.BytesRef;
@@ -43,8 +45,6 @@ import org.elasticsearch.index.fielddata.FieldData;
 import org.elasticsearch.index.fielddata.SortedBinaryDocValues;
 import org.elasticsearch.search.DocValueFormat;
 
-import com.carrotsearch.hppc.BitMixer;
-
 import io.crate.Streamer;
 import io.crate.breaker.RamAccounting;
 import io.crate.common.annotations.VisibleForTesting;
@@ -58,7 +58,6 @@ import io.crate.memory.MemoryManager;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.Signature;
-import io.crate.metadata.settings.SessionSettings;
 import io.crate.module.ExtraFunctionsModule;
 import io.crate.types.BooleanType;
 import io.crate.types.ByteType;
@@ -128,7 +127,6 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
     @Override
     public HllState iterate(RamAccounting ramAccounting,
                             MemoryManager memoryManager,
-                            SessionSettings sessionSettings,
                             HllState state,
                             Input... args) throws CircuitBreakingException {
         if (state.isInitialized() == false) {
@@ -140,7 +138,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
         }
         Object value = args[0].value();
         if (value != null) {
-            state.add(value, sessionSettings);
+            state.add(value);
         }
         return state;
     }
@@ -234,7 +232,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
                 var precision = optionalParams.size() == 1 ? (Integer) optionalParams.get(0).value() : HyperLogLogPlusPlus.DEFAULT_PRECISION;
                 return new HllAggregator(reference.column().fqn(), dataType, precision) {
                     @Override
-                    public void apply(RamAccounting ramAccounting, SessionSettings sessionSettings, int doc, HllState state) throws IOException {
+                    public void apply(RamAccounting ramAccounting, int doc, HllState state) throws IOException {
                         if (super.values.advanceExact(doc) && super.values.docValueCount() == 1) {
                             BytesRef ref = super.values.nextValue();
                             var hash = state.isAllOn4_1() ?
@@ -249,7 +247,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
                 var ipPrecision = optionalParams.size() == 1 ? (Integer) optionalParams.get(0).value() : HyperLogLogPlusPlus.DEFAULT_PRECISION;
                 return new HllAggregator(reference.column().fqn(), dataType, ipPrecision) {
                     @Override
-                    public void apply(RamAccounting ramAccounting, SessionSettings sessionSettings, int doc, HllState state) throws IOException {
+                    public void apply(RamAccounting ramAccounting, int doc, HllState state) throws IOException {
                         if (super.values.advanceExact(doc) && super.values.docValueCount() == 1) {
                             BytesRef ref = super.values.nextValue();
                             byte[] bytes = ((String) DocValueFormat.IP.format(ref)).getBytes(StandardCharsets.UTF_8);
@@ -292,10 +290,10 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
         }
 
         @Override
-        public abstract void apply(RamAccounting ramAccounting, SessionSettings sessionSettings, int doc, HllState state) throws IOException;
+        public abstract void apply(RamAccounting ramAccounting, int doc, HllState state) throws IOException;
 
         @Override
-        public Object partialResult(RamAccounting ramAccounting, SessionSettings sessionSettings, HllState state) {
+        public Object partialResult(RamAccounting ramAccounting, HllState state) {
             return state;
         }
     }
@@ -361,8 +359,8 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
             return hyperLogLogPlusPlus != null;
         }
 
-        void add(Object value, SessionSettings sessionSettings) {
-            hyperLogLogPlusPlus.collect(murmur3Hash.hash(value, sessionSettings));
+        void add(Object value) {
+            hyperLogLogPlusPlus.collect(murmur3Hash.hash(value));
         }
 
         void addHash(long hash) {
@@ -500,14 +498,14 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
             }
         }
 
-        abstract long hash(Object val, SessionSettings sessionSettings);
+        abstract long hash(Object val);
 
         private static class Long extends Murmur3Hash {
 
             private static final Long INSTANCE = new Long();
 
             @Override
-            long hash(Object val, SessionSettings sessionSettings) {
+            long hash(Object val) {
                 return BitMixer.mix64(DataTypes.LONG.sanitizeValue(val));
             }
         }
@@ -517,7 +515,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
             private static final Double INSTANCE = new Double();
 
             @Override
-            long hash(Object val, SessionSettings sessionSettings) {
+            long hash(Object val) {
                 return BitMixer.mix64(
                     doubleToLongBits(DataTypes.DOUBLE.sanitizeValue(val)));
             }
@@ -528,8 +526,8 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
             static final Bytes64 INSTANCE = new Bytes64();
 
             @Override
-            long hash(Object val, SessionSettings sessionSettings) {
-                byte[] bytes = DataTypes.STRING.implicitCast(val, sessionSettings).getBytes(StandardCharsets.UTF_8);
+            long hash(Object val) {
+                byte[] bytes = DataTypes.STRING.implicitCast(val).getBytes(StandardCharsets.UTF_8);
                 return MurmurHash3.hash64(bytes,0, bytes.length);
             }
         }
@@ -539,8 +537,8 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
             private final MurmurHash3.Hash128 hash = new MurmurHash3.Hash128();
 
             @Override
-            long hash(Object val, SessionSettings sessionSettings) {
-                byte[] bytes = DataTypes.STRING.implicitCast(val, sessionSettings).getBytes(StandardCharsets.UTF_8);
+            long hash(Object val) {
+                byte[] bytes = DataTypes.STRING.implicitCast(val).getBytes(StandardCharsets.UTF_8);
                 MurmurHash3.hash128(bytes, 0, bytes.length, 0, hash);
                 return hash.h1;
             }

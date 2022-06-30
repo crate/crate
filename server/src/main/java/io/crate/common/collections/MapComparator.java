@@ -21,13 +21,12 @@
 
 package io.crate.common.collections;
 
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
+
 import java.util.Comparator;
 import java.util.Map;
 import java.util.Objects;
-
-import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
 
 public class MapComparator implements Comparator<Map> {
 
@@ -65,7 +64,7 @@ public class MapComparator implements Comparator<Map> {
                     DataType leftType = DataTypes.guessType(thisValue);
                     int cmp = leftType.compare(
                         thisValue,
-                        leftType.implicitCast(otherValue, CoordinatorTxnCtx.systemTransactionContext().sessionSettings())
+                        leftType.implicitCast(otherValue)
                     );
                     if (cmp == 0) {
                         continue;

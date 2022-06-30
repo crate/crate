@@ -21,16 +21,7 @@
 
 package io.crate.lucene.match;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-
-import javax.annotation.Nullable;
-
+import io.crate.types.BooleanType;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.FuzzyQuery;
 import org.apache.lucene.util.BytesRef;
@@ -41,8 +32,14 @@ import org.elasticsearch.index.query.MultiMatchQueryType;
 import org.elasticsearch.index.query.support.QueryParsers;
 import org.elasticsearch.index.search.MatchQuery;
 
-import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.types.BooleanType;
+import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 
 public class OptionParser {
 
@@ -115,7 +112,7 @@ public class OptionParser {
         if (transpositions == null) {
             return false;
         }
-        return BooleanType.INSTANCE.implicitCast(transpositions, CoordinatorTxnCtx.systemTransactionContext().sessionSettings());
+        return BooleanType.INSTANCE.implicitCast(transpositions);
     }
 
     @Nullable

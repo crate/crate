@@ -22,7 +22,6 @@
 package io.crate.types;
 
 import io.crate.Streamer;
-import io.crate.metadata.settings.SessionSettings;
 
 import org.apache.lucene.document.FloatPoint;
 import org.apache.lucene.document.SortedNumericDocValuesField;
@@ -102,7 +101,7 @@ public class FloatType extends DataType<Float> implements Streamer<Float>, Fixed
     }
 
     @Override
-    public Float implicitCast(Object value, SessionSettings sessionSettings) throws IllegalArgumentException, ClassCastException {
+    public Float implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
         if (value == null) {
             return null;
         } else if (value instanceof Float) {

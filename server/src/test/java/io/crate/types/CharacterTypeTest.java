@@ -40,7 +40,7 @@ public class CharacterTypeTest extends ESTestCase {
 
     @Test
     public void test_implicit_cast_adds_blank_padding() {
-        assertThat(CharacterType.of(5).implicitCast("a", SESSION_SETTINGS), is("a    "));
+        assertThat(CharacterType.of(5).implicitCast("a"), is("a    "));
     }
 
     @Test

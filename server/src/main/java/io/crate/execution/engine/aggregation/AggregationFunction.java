@@ -35,7 +35,6 @@ import io.crate.memory.MemoryManager;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.settings.SessionSettings;
 import io.crate.types.DataType;
 
 /**
@@ -63,7 +62,6 @@ public abstract class AggregationFunction<TPartial, TFinal> implements FunctionI
      * the "aggregate" function.
      *
      * @param ramAccounting used to account for additional memory usage if the state grows in size
-     * @param sessionSettings      the settings of the current active session
      * @param state                the previous aggregation state
      * @param args                 arguments / input values matching the types of FunctionInfo.argumentTypes.
      *                             These are usually used to increment/modify the previous state
@@ -72,7 +70,6 @@ public abstract class AggregationFunction<TPartial, TFinal> implements FunctionI
      */
     public abstract TPartial iterate(RamAccounting ramAccounting,
                                      MemoryManager memoryManager,
-                                     SessionSettings sessionSettings,
                                      TPartial state,
                                      Input... args)
         throws CircuitBreakingException;
@@ -107,14 +104,13 @@ public abstract class AggregationFunction<TPartial, TFinal> implements FunctionI
      * Indicates if this aggregation permits the removal of state from the previous aggregate state as defined in
      * http://www.vldb.org/pvldb/vol8/p1058-leis.pdf
      * If a function is removable cumulative it will allow clients to remove previously aggregate values from the partial
-     * state using {@link #removeFromAggregatedState(RamAccounting, SessionSettings, Object, Input[])}
+     * state using {@link #removeFromAggregatedState(RamAccounting, Object, Input[])}
      */
     public boolean isRemovableCumulative() {
         return false;
     }
 
     public TPartial removeFromAggregatedState(RamAccounting ramAccounting,
-                                              SessionSettings sessionSettings,
                                               TPartial previousAggState,
                                               Input[] stateToRemove) {
         throw new UnsupportedOperationException("Cannot remove state from the aggregated state as the function is " +

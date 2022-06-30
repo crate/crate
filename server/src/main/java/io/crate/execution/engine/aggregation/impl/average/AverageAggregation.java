@@ -48,7 +48,6 @@ import io.crate.memory.MemoryManager;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.Signature;
-import io.crate.metadata.settings.SessionSettings;
 import io.crate.types.ByteType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -226,7 +225,6 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
     @Override
     public AverageState iterate(RamAccounting ramAccounting,
                                 MemoryManager memoryManager,
-                                SessionSettings sessionSettings,
                                 AverageState state,
                                 Input... args) {
         if (state != null) {
@@ -245,7 +243,6 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
 
     @Override
     public AverageState removeFromAggregatedState(RamAccounting ramAccounting,
-                                                  SessionSettings sessionSettings,
                                                   AverageState previousAggState,
                                                   Input[] stateToRemove) {
         if (previousAggState != null) {

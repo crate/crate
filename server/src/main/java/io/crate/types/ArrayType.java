@@ -134,8 +134,8 @@ public class ArrayType<T> extends DataType<List<T>> {
     }
 
     @Override
-    public List<T> implicitCast(Object value, SessionSettings sessionSettings) throws IllegalArgumentException, ClassCastException {
-        return convert(value, innerType, val -> innerType.implicitCast(val, sessionSettings), sessionSettings);
+    public List<T> implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
+        return convert(value, innerType, innerType::implicitCast, CoordinatorTxnCtx.systemTransactionContext().sessionSettings());
     }
 
     @Override

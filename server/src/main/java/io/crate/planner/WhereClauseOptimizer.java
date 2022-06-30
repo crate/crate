@@ -21,14 +21,6 @@
 
 package io.crate.planner;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-
 import io.crate.analyze.GeneratedColumnExpander;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.where.DocKeys;
@@ -48,6 +40,14 @@ import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.operators.SubQueryAndParamBinder;
 import io.crate.planner.operators.SubQueryResults;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
 
 /**
  * Used to analyze a query for primaryKey/partition "direct access" possibilities.
@@ -112,10 +112,7 @@ public final class WhereClauseOptimizer {
                 throw new IllegalStateException(getClass().getSimpleName()
                                                 + " must not be converted to a WhereClause if docKeys are present");
             }
-            SubQueryAndParamBinder binder = new SubQueryAndParamBinder(
-                params,
-                subQueryResults, txnCtx.sessionSettings()
-            );
+            SubQueryAndParamBinder binder = new SubQueryAndParamBinder(params, subQueryResults);
             Symbol boundQuery = binder.apply(query);
             HashSet<Symbol> clusteredBy = new HashSet<>(clusteredByValues.size());
             for (Symbol clusteredByValue : clusteredByValues) {

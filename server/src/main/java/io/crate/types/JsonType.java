@@ -80,7 +80,7 @@ public final class JsonType extends DataType<String> implements Streamer<String>
     }
 
     @Override
-    public String implicitCast(Object value, SessionSettings sessionSettings) throws IllegalArgumentException, ClassCastException {
+    public String implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
         return (String) value;
     }
 

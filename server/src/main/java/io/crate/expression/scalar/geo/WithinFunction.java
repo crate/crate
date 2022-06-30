@@ -198,7 +198,7 @@ public class WithinFunction extends Scalar<Boolean, Object> {
             // Can only optimize on point columns, not on shapes
             return null;
         }
-        Map<String, Object> geoJSON = DataTypes.GEO_SHAPE.implicitCast(literal.value(), context.txnCtx().sessionSettings());
+        Map<String, Object> geoJSON = DataTypes.GEO_SHAPE.implicitCast(literal.value());
         Geometry geometry;
         Shape shape = GeoJSONUtils.map2Shape(geoJSON);
         if (shape instanceof ShapeCollection<?> collection) {
