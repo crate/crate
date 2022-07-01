@@ -3005,6 +3005,26 @@ Returns: ``array(text)``
     +-------------+
     SELECT 1 row in set (... sec)
 
+For empty objects, the ``object_keys`` function returns an empty list::
+
+    cr> select object_keys({}) AS object_keys;
+    +-------------+
+    | object_keys |
+    +-------------+
+    | []          |
+    +-------------+
+    SELECT 1 row in set (... sec)
+
+For ``NULL`` values, the ``object_keys`` function also returns ``NULL``::
+
+    cr> select object_keys(null) AS object_keys;
+    +-------------+
+    | object_keys |
+    +-------------+
+    | NULL        |
+    +-------------+
+    SELECT 1 row in set (... sec)
+
 
 .. _scalar-conditional-fn-exp:
 

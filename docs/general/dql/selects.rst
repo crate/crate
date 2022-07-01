@@ -825,6 +825,33 @@ Object property can also be addressed in the :ref:`where clause
     +------------+----------------------------------------------------------------------+
     SELECT 1 row in set (... sec)
 
+For selecting records having values with empty or unassigned objects, like::
+
+    cr> insert into locations (id, name, position, kind, inhabitants) values
+    ... (99, 'Voidspace', 0, 'Milliways', {});
+    INSERT OK, 1 row affected (... sec)
+
+.. Hidden: refresh locations
+
+    cr> refresh table locations;
+    REFRESH OK, 1 row affected (... sec)
+
+a suitable expression to match both conditions, is::
+
+    cr> select count(*) from locations where
+    ... inhabitants is null or inhabitants = {};
+    +----------+
+    | count(*) |
+    +----------+
+    |       12 |
+    +----------+
+    SELECT 1 row in set (... sec)
+
+.. Hidden: drop record again
+
+    cr> delete from locations where id=99;
+    DELETE OK, 1 row affected  (... sec)
+
 
 .. _sql_dql_nested:
 
