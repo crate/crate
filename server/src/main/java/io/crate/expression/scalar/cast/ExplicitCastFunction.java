@@ -24,7 +24,6 @@ package io.crate.expression.scalar.cast;
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 import static io.crate.types.TypeSignature.parseTypeSignature;
 
-import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Input;
 import io.crate.exceptions.ConversionException;
 import io.crate.expression.scalar.ScalarFunctionModule;
@@ -39,32 +38,28 @@ import io.crate.types.DataType;
 public class ExplicitCastFunction extends Scalar<Object, Object> {
 
     public static final String NAME = "cast";
-    public static final Signature SIGNATURE = Signature
-        .scalar(
-            NAME,
-            parseTypeSignature("E"),
-            parseTypeSignature("V"),
-            parseTypeSignature("V"))
-        .withTypeVariableConstraints(typeVariable("E"), typeVariable("V"));
-
 
     public static void register(ScalarFunctionModule module) {
-        module.register(SIGNATURE, ExplicitCastFunction::new);
+        module.register(
+            Signature
+                .scalar(
+                    NAME,
+                    parseTypeSignature("E"),
+                    parseTypeSignature("V"),
+                    parseTypeSignature("V"))
+                .withTypeVariableConstraints(typeVariable("E"), typeVariable("V")),
+            ExplicitCastFunction::new
+        );
     }
 
-    @VisibleForTesting
-    final DataType<?> returnType;
+    private final DataType<?> returnType;
     private final Signature signature;
     private final Signature boundSignature;
 
     private ExplicitCastFunction(Signature signature, Signature boundSignature) {
-        this(signature, boundSignature, boundSignature.getReturnType().createType());
-    }
-
-    private ExplicitCastFunction(Signature signature, Signature boundSignature, DataType<?> returnType) {
         this.signature = signature;
         this.boundSignature = boundSignature;
-        this.returnType = returnType;
+        this.returnType = boundSignature.getReturnType().createType();
     }
 
     @Override
