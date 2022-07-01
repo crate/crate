@@ -766,6 +766,23 @@ a suitable expression to match for both ``NULL`` values and empty arrays, is::
     cr> delete from locations where id=99;
     DELETE OK, 1 row affected  (... sec)
 
+For determining the number of items in an array, you can use the
+:ref:`array_length <scalar-array_length>` scalar function::
+
+    cr> select count(*) from locations where
+    ... array_length(landmarks, 1) = 2;
+    +----------+
+    | count(*) |
+    +----------+
+    |        1 |
+    +----------+
+    SELECT 1 row in set (... sec)
+
+.. NOTE::
+
+    :ref:`array_length <scalar-array_length>` will return ``NULL`` on empty
+    arrays.
+
 
 .. _sql_dql_objects:
 
