@@ -61,6 +61,7 @@ import io.crate.metadata.functions.Signature;
 import io.crate.module.ExtraFunctionsModule;
 import io.crate.types.BooleanType;
 import io.crate.types.ByteType;
+import io.crate.types.CharacterType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.DoubleType;
@@ -229,6 +230,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
                     }
                 );
             case StringType.ID:
+            case CharacterType.ID:
                 var precision = optionalParams.size() == 1 ? (Integer) optionalParams.get(0).value() : HyperLogLogPlusPlus.DEFAULT_PRECISION;
                 return new HllAggregator(reference.column().fqn(), dataType, precision) {
                     @Override
@@ -488,6 +490,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
                 case StringType.ID:
                 case BooleanType.ID:
                 case IpType.ID:
+                case CharacterType.ID:
                     if (allOn4_1) {
                         return Bytes64.INSTANCE;
                     } else {
