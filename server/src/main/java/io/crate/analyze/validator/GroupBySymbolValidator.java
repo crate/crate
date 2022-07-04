@@ -21,14 +21,14 @@
 
 package io.crate.analyze.validator;
 
+import java.util.Locale;
+
 import io.crate.expression.symbol.AliasSymbol;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.MatchPredicate;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.expression.symbol.WindowFunction;
-
-import java.util.Locale;
 
 public class GroupBySymbolValidator {
 
@@ -42,7 +42,7 @@ public class GroupBySymbolValidator {
 
         @Override
         public Void visitFunction(Function function, Boolean insideScalar) {
-            switch (function.type()) {
+            switch (function.signature().getKind()) {
                 case SCALAR:
                     for (Symbol argument : function.arguments()) {
                         argument.accept(this, true);
@@ -57,7 +57,7 @@ public class GroupBySymbolValidator {
                     break;
                 default:
                     throw new UnsupportedOperationException(
-                        String.format(Locale.ENGLISH, "FunctionInfo.Type %s not handled", function.type()));
+                        String.format(Locale.ENGLISH, "FunctionInfo.Type %s not handled", function.signature().getKind()));
             }
             return null;
         }

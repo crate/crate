@@ -239,7 +239,7 @@ public class ExpressionAnalyzer {
         var symbol = expression.accept(innerAnalyzer, expressionAnalysisContext);
         var normalizer = EvaluatingNormalizer.functionOnlyNormalizer(
             nodeCtx,
-            f -> expressionAnalysisContext.isEagerNormalizationAllowed() && f.isDeterministic()
+            f -> expressionAnalysisContext.isEagerNormalizationAllowed() && f.signature().isDeterministic()
         );
         return normalizer.normalize(symbol, coordinatorTxnCtx);
     }

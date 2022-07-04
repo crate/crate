@@ -181,7 +181,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
 
         var normalizer = EvaluatingNormalizer.functionOnlyNormalizer(
             nodeCtx,
-            f -> expressionAnalysisContext.isEagerNormalizationAllowed() && f.isDeterministic()
+            f -> expressionAnalysisContext.isEagerNormalizationAllowed() && f.signature().isDeterministic()
         );
 
         return new QueriedSelectRelation(
@@ -366,7 +366,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
 
         var normalizer = EvaluatingNormalizer.functionOnlyNormalizer(
             nodeCtx,
-            f -> expressionAnalysisContext.isEagerNormalizationAllowed() && f.isDeterministic()
+            f -> expressionAnalysisContext.isEagerNormalizationAllowed() && f.signature().isDeterministic()
         );
 
         QueriedSelectRelation relation = new QueriedSelectRelation(
@@ -695,10 +695,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                     "Symbol '%s' is not supported in FROM clause", node.name()));
         }
         Function function = (Function) symbol;
-        FunctionImplementation functionImplementation = nodeCtx.functions().getQualified(
-            function,
-            statementContext.sessionContext().searchPath()
-        );
+        FunctionImplementation functionImplementation = nodeCtx.functions().getQualified(function);
         assert functionImplementation != null : "Function implementation not found using full qualified lookup";
         TableFunctionImplementation<?> tableFunction = TableFunctionFactory.from(functionImplementation);
         TableFunctionRelation tableRelation = new TableFunctionRelation(tableFunction, function);
@@ -783,7 +780,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
 
         var normalizer = EvaluatingNormalizer.functionOnlyNormalizer(
             nodeCtx,
-            f -> f.isDeterministic()
+            f -> f.signature().isDeterministic()
         );
 
         ArrayList<Symbol> arrays = new ArrayList<>(columns.size());

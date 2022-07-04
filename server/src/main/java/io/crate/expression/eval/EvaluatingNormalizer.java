@@ -51,10 +51,10 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.WindowFunction;
 import io.crate.metadata.FunctionImplementation;
-import io.crate.metadata.RowGranularity;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.TransactionContext;
 import io.crate.types.DataTypes;
 
 
@@ -174,17 +174,15 @@ public class EvaluatingNormalizer {
                         if (out.getVersion().onOrAfter(Version.V_4_2_4)) {
                             super.writeTo(out);
                         } else {
-                            io.crate.expression.predicate.MatchPredicate.INFO.writeTo(out);
+                            io.crate.expression.predicate.MatchPredicate.TEXT_MATCH.writeAsFunctionInfo(out);
                             if (out.getVersion().onOrAfter(Version.V_4_1_0)) {
                                 Symbols.nullableToStream(filter, out);
                             }
                             Symbols.toStream(arguments, out);
                             if (out.getVersion().onOrAfter(Version.V_4_2_0)) {
-                                out.writeBoolean(signature != null);
-                                if (signature != null) {
-                                    signature.writeTo(out);
-                                    DataTypes.toStream(returnType, out);
-                                }
+                                out.writeBoolean(true);
+                                signature.writeTo(out);
+                                DataTypes.toStream(returnType, out);
                             }
                         }
                     }
@@ -233,10 +231,7 @@ public class EvaluatingNormalizer {
                 return function;
             }
             function = processAndMaybeCopy(function, context);
-            FunctionImplementation implementation = nodeCtx.functions().getQualified(
-                function,
-                context.sessionSettings().searchPath()
-            );
+            FunctionImplementation implementation = nodeCtx.functions().getQualified(function);
             assert implementation != null : "Function implementation not found using full qualified lookup: " + function;
             return implementation.normalizeSymbol(function, context, nodeCtx);
         }

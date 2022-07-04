@@ -21,6 +21,16 @@
 
 package io.crate.planner.operators;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import javax.annotation.Nullable;
+
 import io.crate.analyze.OrderBy;
 import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
@@ -34,16 +44,6 @@ import io.crate.metadata.FunctionType;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
 import io.crate.statistics.TableStats;
-
-import javax.annotation.Nullable;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 public class ProjectSet extends ForwardingLogicalPlan {
 
@@ -77,7 +77,7 @@ public class ProjectSet extends ForwardingLogicalPlan {
         while (true) {
             List<Function> childTableFunctions = tableFunctions.stream()
                 .flatMap(func -> func.arguments().stream())
-                .filter(arg -> arg instanceof Function && ((Function) arg).type() == FunctionType.TABLE)
+                .filter(arg -> arg instanceof Function && ((Function) arg).signature().getKind() == FunctionType.TABLE)
                 .map(x -> (Function) x)
                 .collect(Collectors.toList());
 
@@ -90,7 +90,7 @@ public class ProjectSet extends ForwardingLogicalPlan {
         LogicalPlan result = source;
         for (int i = nestedFunctions.size() - 1; i >= 0; i--) {
             List<Symbol> standalone = result.outputs().stream()
-                .filter(x -> !(x instanceof Function && ((Function) x).type() == FunctionType.TABLE))
+                .filter(x -> !(x instanceof Function && ((Function) x).signature().getKind() == FunctionType.TABLE))
                 .collect(Collectors.toList());
             result = new ProjectSet(result, nestedFunctions.get(i), standalone);
         }

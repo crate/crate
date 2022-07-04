@@ -21,6 +21,12 @@
 
 package io.crate.execution.dsl.projection.builder;
 
+import static io.crate.planner.operators.LogicalPlanner.extractColumns;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashSet;
+
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.expression.symbol.Aggregation;
@@ -29,12 +35,6 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.WindowFunction;
 import io.crate.metadata.FunctionType;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.LinkedHashSet;
-
-import static io.crate.planner.operators.LogicalPlanner.extractColumns;
 
 public final class SplitPointsBuilder extends DefaultTraversalSymbolVisitor<SplitPointsBuilder.Context, Void> {
 
@@ -139,7 +139,7 @@ public final class SplitPointsBuilder extends DefaultTraversalSymbolVisitor<Spli
 
     @Override
     public Void visitFunction(Function function, Context context) {
-        FunctionType type = function.type();
+        FunctionType type = function.signature().getKind();
         switch (type) {
             case SCALAR:
                 super.visitFunction(function, context);

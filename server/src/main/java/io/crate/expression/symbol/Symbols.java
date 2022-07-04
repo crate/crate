@@ -58,7 +58,7 @@ public class Symbols {
     public static final Predicate<Symbol> IS_GENERATED_COLUMN = input -> input instanceof GeneratedReference;
 
     public static boolean isAggregate(Symbol s) {
-        return s instanceof Function && ((Function) s).type() == FunctionType.AGGREGATE;
+        return s instanceof Function && ((Function) s).signature().getKind() == FunctionType.AGGREGATE;
     }
 
     public static List<DataType<?>> typeView(List<? extends Symbol> symbols) {
