@@ -634,4 +634,10 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
         assertThat(query.toString(), is("(text_no_index IS NULL)"));
         assertThat(query, instanceOf(GenericFunctionQuery.class));
     }
+
+    @Test
+    public void test_arr_eq_empty_array_literal_is_optimized() {
+        Query query = convert("y_array = []");
+        assertThat(query.toString(), is("+NumTermsPerDoc: y_array +(y_array = [])"));
+    }
 }

@@ -54,6 +54,7 @@ import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.mapper.Uid;
 
 import io.crate.data.Input;
+import io.crate.expression.scalar.NumTermsPerDocQuery;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
@@ -148,7 +149,13 @@ public final class EqOperator extends Operator<Object> {
         }
         return switch (dataType.id()) {
             case ObjectType.ID -> refEqObject(function, fqn, (ObjectType) dataType, (Map<String, Object>) value, context);
-            case ArrayType.ID -> termsAndGenericFilter(function, fqn, ArrayType.unnest(dataType), (Collection) value, context);
+            case ArrayType.ID -> termsAndGenericFilter(
+                function,
+                ref,
+                ArrayType.unnest(dataType),
+                (Collection) value,
+                context
+            );
             default -> fromPrimitive(dataType, fqn, value);
         };
     }
@@ -187,23 +194,37 @@ public final class EqOperator extends Operator<Object> {
         return new ConstantScoreQuery(builder.build());
     }
 
-    private static Query termsAndGenericFilter(Function function, String column, DataType<?> innerType, Collection<?> values, LuceneQueryBuilder.Context context) {
+    private static Query termsAndGenericFilter(Function function, Reference arrayRef, DataType<?> innerType, Collection<?> values, LuceneQueryBuilder.Context context) {
+        String column = arrayRef.column().fqn();
         MappedFieldType fieldType = context.getFieldTypeOrNull(column);
         if (fieldType == null) {
             // field doesn't exist, can't match
             return Queries.newMatchNoDocsQuery("column does not exist in this index");
         }
-        // wrap boolTermsFilter and genericFunction filter in an additional BooleanFilter to control the ordering of the filters
-        // termsFilter is applied first
-        // afterwards the more expensive genericFunctionFilter
+
         BooleanQuery.Builder filterClauses = new BooleanQuery.Builder();
-        Query termsQuery = termsQuery(column, innerType, values);
         Query genericFunctionFilter = genericFunctionFilter(function, context);
-        if (termsQuery == null) {
-            return genericFunctionFilter;
+        if (values.isEmpty()) {
+            // `arrayRef = []` - termsQuery would be null
+
+            filterClauses.add(
+                NumTermsPerDocQuery.forArray(arrayRef, numDocs -> numDocs == 0),
+                BooleanClause.Occur.MUST
+            );
+            // Still need the genericFunctionFilter to avoid a match where the array contains NULL values.
+            // NULL values are not in the index.
+            filterClauses.add(genericFunctionFilter, BooleanClause.Occur.MUST);
+        } else {
+            // wrap boolTermsFilter and genericFunction filter in an additional BooleanFilter to control the ordering of the filters
+            // termsFilter is applied first
+            // afterwards the more expensive genericFunctionFilter
+            Query termsQuery = termsQuery(column, innerType, values);
+            if (termsQuery == null) {
+                return genericFunctionFilter;
+            }
+            filterClauses.add(termsQuery, BooleanClause.Occur.MUST);
+            filterClauses.add(genericFunctionFilter, BooleanClause.Occur.MUST);
         }
-        filterClauses.add(termsQuery, BooleanClause.Occur.MUST);
-        filterClauses.add(genericFunctionFilter, BooleanClause.Occur.MUST);
         return filterClauses.build();
     }
 

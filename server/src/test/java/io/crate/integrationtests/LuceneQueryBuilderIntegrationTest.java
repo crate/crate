@@ -362,10 +362,11 @@ public class LuceneQueryBuilderIntegrationTest extends SQLIntegrationTestCase {
     @Test
     public void testArrayElementComparisons() {
         execute("create table t1 (a array(long)) clustered into 1 shards with (number_of_replicas = 0)");
-        execute("insert into t1(a) values ([1, 2, 3])");
-        execute("insert into t1(a) values ([3, 4, 5, 1])");
-        execute("insert into t1(a) values ([6, 7, 8])");
+        execute("insert into t1 (a) values ([1, 2, 3]), ([3, 4, 5, 1]), ([6, 7,8]), ([])");
         execute("refresh table t1");
+
+        execute("select * from t1 where a = []");
+        assertThat(printedTable(response.rows()), is("[]\n"));
 
         execute("select * from t1 where a[1] = 1");
         assertThat(printedTable(response.rows()), is("[1, 2, 3]\n"));
