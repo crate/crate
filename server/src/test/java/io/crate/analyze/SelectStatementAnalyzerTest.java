@@ -77,6 +77,7 @@ import io.crate.types.TimeTZ;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
+import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.IsInstanceOf;
 import org.junit.Test;
@@ -309,7 +310,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
         assertThat(relation.orderBy(), notNullValue());
         assertThat(relation.orderBy().orderBySymbols().size(), is(1));
-        assertThat(relation.orderBy().orderBySymbols().get(0), is(relation.outputs().get(0)));
+        assertThat(relation.orderBy().orderBySymbols().get(0), isReference("name"));
     }
 
     @Test
@@ -1726,25 +1727,18 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .build();
         QueriedSelectRelation relation = executor.analyze("select regexp_matches(name, '.*')[1] as t_alias from users order by t_alias");
+        Matcher<Symbol> isRegexpMatches = isFunction(
+            SubscriptFunction.NAME,
+            isFunction("regexp_matches", isReference("name"), isLiteral(".*")),
+            isLiteral(1)
+        );
         assertThat(
             relation.outputs(),
             contains(
-                isAlias(
-                    "t_alias",
-                    isFunction(
-                        SubscriptFunction.NAME,
-                        isFunction("regexp_matches", isReference("name"), isLiteral(".*")),
-                        isLiteral(1)
-                    )
-                )
+                isAlias("t_alias", isRegexpMatches)
             )
         );
-        assertThat(
-            relation.orderBy().orderBySymbols(),
-            contains(
-                isAlias("t_alias", isFunction(SubscriptFunction.NAME))
-            )
-        );
+        assertThat(relation.orderBy().orderBySymbols(), contains(isRegexpMatches));
     }
 
     @Test
@@ -1913,7 +1907,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         // name exists in the table but isn't selected so not ambiguous
         QueriedSelectRelation relation = executor.analyze("select other_id as name from users order by name");
         assertThat(relation.outputs(), contains(isAlias("name", isReference("other_id"))));
-        assertThat(relation.orderBy().orderBySymbols(), contains(isAlias("name", isReference("other_id"))));
+        assertThat(relation.orderBy().orderBySymbols(), contains(isReference("other_id")));
     }
 
     @Test

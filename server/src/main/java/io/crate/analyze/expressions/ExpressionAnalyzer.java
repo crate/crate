@@ -41,9 +41,6 @@ import java.util.Optional;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import io.crate.common.collections.Lists2;
-import io.crate.expression.scalar.ArraySliceFunction;
-import io.crate.sql.tree.ArraySliceExpression;
 import org.joda.time.Period;
 
 import io.crate.analyze.DataTypeAnalyzer;
@@ -58,7 +55,10 @@ import io.crate.analyze.WindowFrameDefinition;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.FieldProvider;
 import io.crate.analyze.relations.OrderyByAnalyzer;
+import io.crate.analyze.relations.SelectListFieldProvider;
+import io.crate.analyze.relations.select.SelectAnalysis;
 import io.crate.analyze.validator.SemanticSortValidator;
+import io.crate.common.collections.Lists2;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ConversionException;
 import io.crate.execution.engine.aggregation.impl.CollectSetAggregation;
@@ -73,6 +73,7 @@ import io.crate.expression.operator.RegexpMatchCaseInsensitiveOperator;
 import io.crate.expression.operator.RegexpMatchOperator;
 import io.crate.expression.operator.any.AnyOperator;
 import io.crate.expression.predicate.NotPredicate;
+import io.crate.expression.scalar.ArraySliceFunction;
 import io.crate.expression.scalar.CurrentDateFunction;
 import io.crate.expression.scalar.ExtractFunctions;
 import io.crate.expression.scalar.SubscriptFunction;
@@ -107,6 +108,7 @@ import io.crate.sql.tree.ArrayComparison;
 import io.crate.sql.tree.ArrayComparisonExpression;
 import io.crate.sql.tree.ArrayLikePredicate;
 import io.crate.sql.tree.ArrayLiteral;
+import io.crate.sql.tree.ArraySliceExpression;
 import io.crate.sql.tree.ArraySubQueryExpression;
 import io.crate.sql.tree.AstVisitor;
 import io.crate.sql.tree.BetweenPredicate;
@@ -205,6 +207,22 @@ public class ExpressionAnalyzer {
         this.subQueryAnalyzer = subQueryAnalyzer;
         this.innerAnalyzer = new InnerExpressionAnalyzer();
         this.operation = operation;
+    }
+
+    /**
+     * Derive a new ExpressionAnalyzer that tries to resolve expressions by
+     * looking at the select-list before falling back to regular column resolving logic.
+     */
+    public ExpressionAnalyzer referenceSelect(SelectAnalysis selectAnalysis) {
+        var selectListFieldProvider = new SelectListFieldProvider(selectAnalysis, fieldProvider);
+        return new ExpressionAnalyzer(
+            coordinatorTxnCtx,
+            nodeCtx,
+            paramTypeHints,
+            selectListFieldProvider,
+            subQueryAnalyzer,
+            operation
+        );
     }
 
     /**
@@ -1103,7 +1121,7 @@ public class ExpressionAnalyzer {
             schema, functionName, arguments, filter, ignoreNulls, context, windowDefinition, coordinatorTxnCtx, nodeCtx);
     }
 
-    private Symbol allocateFunction(String functionName,
+    public Symbol allocateFunction(String functionName,
                                     List<Symbol> arguments,
                                     ExpressionAnalysisContext context) {
         return allocateFunction(functionName, arguments, null, context, coordinatorTxnCtx, nodeCtx);
@@ -1111,7 +1129,7 @@ public class ExpressionAnalyzer {
 
     public static Symbol allocateFunction(String functionName,
                                           List<Symbol> arguments,
-                                          Symbol filter,
+                                          @Nullable Symbol filter,
                                           ExpressionAnalysisContext context,
                                           CoordinatorTxnCtx coordinatorTxnCtx,
                                           NodeContext nodeCtx) {

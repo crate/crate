@@ -22,14 +22,12 @@
 package io.crate.analyze.relations;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
 import java.util.Objects;
+import java.util.Optional;
 
 import javax.annotation.Nullable;
 
@@ -51,7 +49,6 @@ import io.crate.analyze.where.WhereClauseValidator;
 import io.crate.common.collections.Iterables;
 import io.crate.common.collections.Lists2;
 import io.crate.common.collections.Tuple;
-import io.crate.exceptions.AmbiguousColumnAliasException;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.RelationValidationException;
@@ -84,11 +81,13 @@ import io.crate.sql.tree.DefaultTraversalVisitor;
 import io.crate.sql.tree.Except;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.FunctionCall;
+import io.crate.sql.tree.IntegerLiteral;
 import io.crate.sql.tree.Intersect;
 import io.crate.sql.tree.Join;
 import io.crate.sql.tree.JoinCriteria;
 import io.crate.sql.tree.JoinOn;
 import io.crate.sql.tree.JoinUsing;
+import io.crate.sql.tree.LongLiteral;
 import io.crate.sql.tree.Node;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.QualifiedNameReference;
@@ -429,9 +428,11 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                                           ExpressionAnalysisContext expressionAnalysisContext,
                                           boolean hasAggregatesOrGrouping,
                                           boolean isDistinct) {
+
+        var selectListExpressionAnalyzer = expressionAnalyzer.referenceSelect(selectAnalysis);
         return OrderyByAnalyzer.analyzeSortItems(orderBy, sortKey -> {
             Symbol symbol = symbolFromSelectOutputReferenceOrExpression(
-                sortKey, selectAnalysis, "ORDER BY", expressionAnalyzer, expressionAnalysisContext);
+                sortKey, selectAnalysis, "ORDER BY", selectListExpressionAnalyzer, expressionAnalysisContext);
 
             SemanticSortValidator.validate(symbol);
             if (hasAggregatesOrGrouping) {
@@ -483,6 +484,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
      *     select name as n  ... order by n
      *     select name  ... order by 1
      *     select name ... order by other_column
+     *     select [1, 2] as arr ... order by arr[1]
      * </pre>
      */
     private static Symbol symbolFromSelectOutputReferenceOrExpression(Expression expression,
@@ -490,16 +492,22 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                                                                       String clause,
                                                                       ExpressionAnalyzer expressionAnalyzer,
                                                                       ExpressionAnalysisContext expressionAnalysisContext) {
-        if (expression instanceof QualifiedNameReference) {
-            Symbol symbol = tryGetFromSelectList((QualifiedNameReference) expression, selectAnalysis);
-            if (symbol != null) {
-                return symbol;
+        int ord = -1;
+        if (expression instanceof IntegerLiteral intLiteral) {
+            ord = intLiteral.getValue();
+        } else if (expression instanceof LongLiteral longLiteral) {
+            try {
+                ord = DataTypes.INTEGER.sanitizeValue(longLiteral.getValue());
+            } catch (ClassCastException | IllegalArgumentException e) {
+                throw new IllegalArgumentException(String.format(
+                    Locale.ENGLISH,
+                    "Cannot use %s in %s clause", longLiteral, clause));
             }
         }
-        Symbol symbol = expressionAnalyzer.convert(expression, expressionAnalysisContext);
-        if (symbol instanceof Literal) {
-            symbol = getByPosition(selectAnalysis.outputSymbols(), (Literal<?>) symbol, clause);
+        if (ord > -1) {
+            return ordinalOutputReference(selectAnalysis.outputSymbols(), ord, clause);
         }
+        Symbol symbol = expressionAnalyzer.convert(expression, expressionAnalysisContext);
         return symbol;
     }
 
@@ -507,7 +515,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     private static Symbol tryGetFromSelectList(QualifiedNameReference expression, SelectAnalysis selectAnalysis) {
         List<String> parts = expression.getName().getParts();
         if (parts.size() == 1) {
-            return getOneOrAmbiguous(selectAnalysis.outputMultiMap(), Iterables.getOnlyElement(parts));
+            return SelectListFieldProvider.getOneOrAmbiguous(selectAnalysis.outputMultiMap(), Iterables.getOnlyElement(parts));
         }
         return null;
     }
@@ -577,18 +585,6 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         }
     }
 
-
-    @Nullable
-    private static Symbol getOneOrAmbiguous(Map<String, Set<Symbol>> selectList, String key) throws AmbiguousColumnAliasException {
-        Collection<Symbol> symbols = selectList.get(key);
-        if (symbols == null) {
-            return null;
-        }
-        if (symbols.size() > 1) {
-            throw new AmbiguousColumnAliasException(key, symbols);
-        }
-        return symbols.iterator().next();
-    }
 
     @Override
     protected AnalyzedRelation visitAliasedRelation(AliasedRelation node, StatementAnalysisContext context) {
