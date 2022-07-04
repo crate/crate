@@ -53,6 +53,7 @@ import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.integrationtests.SQLIntegrationTestCase;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.types.DataTypes;
 
 @ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.TEST, numDataNodes = 0)
@@ -329,7 +330,7 @@ public class ReplicaShardAllocatorIT extends SQLIntegrationTestCase {
             assertThat(rentetionLease.size(), is(activeRetentionLeaseIds.size()));
             for (var activeRetentionLease : rentetionLease) {
                 assertThat(
-                    DataTypes.LONG.explicitCast(activeRetentionLease.get("retaining_seq_no")),
+                    DataTypes.LONG.explicitCast(activeRetentionLease.get("retaining_seq_no"), CoordinatorTxnCtx.systemTransactionContext().sessionSettings()),
                     is(globalCheckPoint + 1L)
                 );
             }
