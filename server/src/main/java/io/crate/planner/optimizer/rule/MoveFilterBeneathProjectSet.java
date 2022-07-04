@@ -21,6 +21,14 @@
 
 package io.crate.planner.optimizer.rule;
 
+import static io.crate.planner.operators.LogicalPlanner.extractColumns;
+import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
+import static io.crate.planner.optimizer.matcher.Patterns.source;
+import static io.crate.planner.optimizer.rule.Util.transpose;
+
+import java.util.ArrayList;
+import java.util.List;
+
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
@@ -28,7 +36,6 @@ import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
-import io.crate.statistics.TableStats;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.ProjectSet;
@@ -36,14 +43,7 @@ import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.matcher.Capture;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
-
-import java.util.ArrayList;
-import java.util.List;
-
-import static io.crate.planner.operators.LogicalPlanner.extractColumns;
-import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
-import static io.crate.planner.optimizer.matcher.Patterns.source;
-import static io.crate.planner.optimizer.rule.Util.transpose;
+import io.crate.statistics.TableStats;
 
 public final class MoveFilterBeneathProjectSet implements Rule<Filter> {
 
@@ -93,6 +93,6 @@ public final class MoveFilterBeneathProjectSet implements Rule<Filter> {
     }
 
     private static boolean isTableFunction(Symbol s) {
-        return s instanceof Function && ((Function) s).type() == FunctionType.TABLE;
+        return s instanceof Function && ((Function) s).signature().getKind() == FunctionType.TABLE;
     }
 }

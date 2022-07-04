@@ -218,7 +218,7 @@ public class HashAggregate extends ForwardingLogicalPlan {
         @Override
         public Void visitFunction(Function symbol, OutputValidatorContext context) {
             context.insideAggregation =
-                context.insideAggregation || symbol.type().equals(FunctionType.AGGREGATE);
+                context.insideAggregation || symbol.signature().getKind().equals(FunctionType.AGGREGATE);
             for (Symbol argument : symbol.arguments()) {
                 argument.accept(this, context);
             }

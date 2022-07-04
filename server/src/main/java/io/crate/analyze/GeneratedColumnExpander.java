@@ -179,7 +179,7 @@ public final class GeneratedColumnExpander {
 
                 String operatorName = function.name();
                 if (!operatorName.equals(EqOperator.NAME)) {
-                    if (!generatedFunction.hasFeature(Scalar.Feature.COMPARISON_REPLACEMENT)) {
+                    if (!generatedFunction.signature().hasFeature(Scalar.Feature.COMPARISON_REPLACEMENT)) {
                         return null;
                     }
                     // rewrite operator

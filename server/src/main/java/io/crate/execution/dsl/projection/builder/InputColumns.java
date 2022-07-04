@@ -104,7 +104,7 @@ public final class InputColumns extends DefaultTraversalSymbolVisitor<InputColum
             if (!symbolType.isValueSymbol()) {
                 DataType<?> valueType = input.valueType();
                 if ((symbolType == SymbolType.FUNCTION || symbolType == SymbolType.WINDOW_FUNCTION)
-                    && !((Function) input).isDeterministic()) {
+                    && !((Function) input).signature().isDeterministic()) {
                     nonDeterministicFunctions.put(input, new InputColumn(i, valueType));
                 } else {
                     this.inputs.put(input, new InputColumn(i, valueType));
@@ -176,7 +176,7 @@ public final class InputColumns extends DefaultTraversalSymbolVisitor<InputColum
 
     @Nullable
     private static Symbol getFunctionReplacementOrNull(Function symbol, SourceSymbols sourceSymbols) {
-        if (symbol.isDeterministic()) {
+        if (symbol.signature().isDeterministic()) {
             return sourceSymbols.inputs.get(symbol);
         } else {
             return sourceSymbols.nonDeterministicFunctions.get(symbol);

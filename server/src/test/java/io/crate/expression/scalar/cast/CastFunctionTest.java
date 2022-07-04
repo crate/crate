@@ -267,7 +267,7 @@ public class CastFunctionTest extends ScalarTestCase {
             returnType
         );
 
-        assertThat(functionImpl.info().returnType(), is(returnType));
+        assertThat(functionImpl.boundSignature().getReturnType(), is(returnType.getTypeSignature()));
     }
 
     @Test

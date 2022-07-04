@@ -21,6 +21,41 @@
 
 package io.crate.analyze;
 
+import static io.crate.testing.Asserts.assertThrowsMatches;
+import static io.crate.testing.RelationMatchers.isDocTable;
+import static io.crate.testing.SymbolMatchers.isAlias;
+import static io.crate.testing.SymbolMatchers.isField;
+import static io.crate.testing.SymbolMatchers.isFunction;
+import static io.crate.testing.SymbolMatchers.isLiteral;
+import static io.crate.testing.SymbolMatchers.isReference;
+import static io.crate.testing.SymbolMatchers.isVoidReference;
+import static io.crate.testing.TestingHelpers.isSQL;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.anyOf;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasEntry;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
+
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.hamcrest.Matcher;
+import org.hamcrest.Matchers;
+import org.hamcrest.core.IsInstanceOf;
+import org.junit.Test;
+
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.TableFunctionRelation;
@@ -74,40 +109,6 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.TimeTZ;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.hamcrest.Matcher;
-import org.hamcrest.Matchers;
-import org.hamcrest.core.IsInstanceOf;
-import org.junit.Test;
-
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-
-import static io.crate.testing.Asserts.assertThrowsMatches;
-import static io.crate.testing.RelationMatchers.isDocTable;
-import static io.crate.testing.SymbolMatchers.isAlias;
-import static io.crate.testing.SymbolMatchers.isField;
-import static io.crate.testing.SymbolMatchers.isFunction;
-import static io.crate.testing.SymbolMatchers.isLiteral;
-import static io.crate.testing.SymbolMatchers.isReference;
-import static io.crate.testing.SymbolMatchers.isVoidReference;
-import static io.crate.testing.TestingHelpers.isSQL;
-import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.anyOf;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasEntry;
-import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.nullValue;
 
 @SuppressWarnings("ConstantConditions")
 public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTest {
@@ -2623,7 +2624,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertThat(normalized, isFunction("match"));
         Function match = (Function) normalized;
         assertThat(match.arguments().get(1).valueType(), is(DataTypes.GEO_SHAPE));
-        assertThat(match.info().ident().argumentTypes().get(1), is(DataTypes.GEO_SHAPE));
+        assertThat(match.signature().getArgumentDataTypes().get(1), is(DataTypes.GEO_SHAPE));
 
         BytesStreamOutput out = new BytesStreamOutput();
         out.setVersion(Version.V_4_1_8);
@@ -2632,7 +2633,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         StreamInput in = out.bytes().streamInput();
         in.setVersion(Version.V_4_1_8);
         Function serializedTo41 = new Function(in);
-        assertThat(serializedTo41.info().ident().argumentTypes().get(1), is(DataTypes.STRING));
+        assertThat(serializedTo41.signature().getArgumentDataTypes().get(1), is(DataTypes.STRING));
     }
 
     @Test

@@ -56,7 +56,7 @@ public final class GroupAndAggregateSemantics {
     public static void validate(List<Symbol> outputSymbols,
                                 List<Symbol> groupBy) throws IllegalArgumentException {
         boolean containsAggregations = SymbolVisitors.any(
-            x -> x instanceof Function && ((Function) x).type() == FunctionType.AGGREGATE,
+            x -> x instanceof Function && ((Function) x).signature().getKind() == FunctionType.AGGREGATE,
             outputSymbols
         );
         if (!containsAggregations && groupBy.isEmpty()) {
@@ -123,7 +123,7 @@ public final class GroupAndAggregateSemantics {
 
         @Override
         public Symbol visitFunction(Function function, List<Symbol> groupBy) {
-            switch (function.type()) {
+            switch (function.signature().getKind()) {
                 case SCALAR: {
                     /* valid:
                      *  SELECT 4 * x FROM tbl GROUP BY x
@@ -159,7 +159,7 @@ public final class GroupAndAggregateSemantics {
                     return null;
 
                 default:
-                    throw new IllegalStateException("Unexpected function type: " + function.type());
+                    throw new IllegalStateException("Unexpected function type: " + function.signature().getKind());
             }
         }
 
