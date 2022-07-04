@@ -2562,16 +2562,25 @@ Returns: ``integer``
     +------+
     SELECT 1 row in set (... sec)
 
+An empty array has no dimension and returns ``NULL`` instead of ``0``.
+
+::
+
+    cr> select array_upper(ARRAY[]::int[], 1) AS size;
+    +------+
+    | size |
+    +------+
+    | NULL |
+    +------+
+    SELECT 1 row in set (... sec)
+
 
 .. _scalar-array_length:
 
 ``array_length(anyarray, dimension)``
 -------------------------------------
 
-The ``array_length`` function returns the number of elements in the requested
-array dimension.
-
-Returns: ``integer``
+An alias for :ref:`scalar-array_upper`.
 
 ::
 
