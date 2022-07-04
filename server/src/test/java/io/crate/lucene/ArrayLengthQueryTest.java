@@ -276,7 +276,7 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
             if (type.storageSupport() == null) {
                 continue;
             }
-            Supplier dataGenerator = DataTypeTesting.getDataGenerator(type);
+            Supplier<?> dataGenerator = DataTypeTesting.getDataGenerator(type);
             Object val1 = dataGenerator.get();
             Object val2 = dataGenerator.get();
             Object[] arr = {val1, val2};
@@ -294,9 +294,8 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
                 Version.CURRENT,
                 "create table \"t_"+ type.getName() + "\" (xs array(\"" + type.getName() + "\"))"
             ).indexValues("xs", values).build()) {
-                System.out.println(type);
-                List<Object> result = tester.runQuery("xs", "array_length(xs, 1) >= 2");
-                assertThat(result.size(), is(1));
+                List<Object> result = tester.runQuery("xs", "array_length(xs, 1) > 1");
+                assertThat("array_length(xs, 1) > 1 must match for " + type, result.size(), is(1));
                 ArrayType arrayType = new ArrayType<>(type);
                 // Object compareValueTo does type-guessing which might result in
                 // double/float conversions which are not fully accurate, so we skip that here
