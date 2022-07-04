@@ -21,6 +21,21 @@
 
 package io.crate.metadata.pgcatalog;
 
+import static io.crate.metadata.FunctionType.AGGREGATE;
+import static io.crate.metadata.FunctionType.WINDOW;
+import static io.crate.metadata.pgcatalog.PgProcTable.Entry.pgTypeIdFrom;
+import static io.crate.types.DataTypes.BOOLEAN;
+import static io.crate.types.DataTypes.FLOAT;
+import static io.crate.types.DataTypes.INTEGER_ARRAY;
+import static io.crate.types.DataTypes.OID;
+import static io.crate.types.DataTypes.REGPROC;
+import static io.crate.types.DataTypes.SHORT;
+import static io.crate.types.DataTypes.STRING;
+import static io.crate.types.DataTypes.STRING_ARRAY;
+
+import java.util.ArrayList;
+import java.util.Set;
+
 import io.crate.common.collections.Lists2;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.RelationName;
@@ -34,21 +49,6 @@ import io.crate.types.DataTypes;
 import io.crate.types.RowType;
 import io.crate.types.TypeSignature;
 
-import java.util.ArrayList;
-import java.util.Set;
-
-import static io.crate.metadata.FunctionType.AGGREGATE;
-import static io.crate.metadata.FunctionType.WINDOW;
-import static io.crate.metadata.pgcatalog.PgProcTable.Entry.pgTypeIdFrom;
-import static io.crate.types.DataTypes.BOOLEAN;
-import static io.crate.types.DataTypes.FLOAT;
-import static io.crate.types.DataTypes.INTEGER;
-import static io.crate.types.DataTypes.INTEGER_ARRAY;
-import static io.crate.types.DataTypes.REGPROC;
-import static io.crate.types.DataTypes.SHORT;
-import static io.crate.types.DataTypes.STRING;
-import static io.crate.types.DataTypes.STRING_ARRAY;
-
 public class PgProcTable {
 
     public static final RelationName IDENT = new RelationName(
@@ -57,14 +57,14 @@ public class PgProcTable {
 
     public static SystemTable<Entry> create() {
         return SystemTable.<Entry>builder(IDENT)
-            .add("oid", INTEGER, x -> OidHash.functionOid(x.signature))
+            .add("oid", OID, x -> OidHash.functionOid(x.signature))
             .add("proname", STRING, x -> x.signature.getName().name())
-            .add("pronamespace", INTEGER, x -> OidHash.schemaOid(x.functionName.schema()))
-            .add("proowner", INTEGER, x -> null)
-            .add("prolang", INTEGER, x -> null)
+            .add("pronamespace", OID, x -> OidHash.schemaOid(x.functionName.schema()))
+            .add("proowner", OID, x -> null)
+            .add("prolang", OID, x -> null)
             .add("procost", FLOAT, x -> null)
             .add("prorows", FLOAT, x -> !x.returnSetType ? 0f : 1000f)
-            .add("provariadic", INTEGER, x -> {
+            .add("provariadic", OID, x -> {
                 if (x.signature.getBindingInfo().isVariableArity()) {
                     var args = x.signature.getArgumentTypes();
                     return pgTypeIdFrom(args.get(args.size() - 1));
@@ -83,7 +83,7 @@ public class PgProcTable {
             .add("proparallel", STRING, x -> null)
             .add("pronargs", SHORT, x -> (short) x.signature.getArgumentTypes().size())
             .add("pronargdefaults", SHORT, x -> null)
-            .add("prorettype", INTEGER, x -> x.returnTypeId)
+            .add("prorettype", OID, x -> x.returnTypeId)
             .add("proargtypes", DataTypes.OIDVECTOR, x ->
                 Lists2.map(x.signature.getArgumentTypes(), Entry::pgTypeIdFrom))
             .add("proallargtypes", INTEGER_ARRAY, x -> null)

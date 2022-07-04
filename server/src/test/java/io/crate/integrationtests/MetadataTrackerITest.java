@@ -21,21 +21,22 @@
 
 package io.crate.integrationtests;
 
-import io.crate.exceptions.OperationOnInaccessibleRelationException;
-import io.crate.replication.logical.LogicalReplicationService;
-import io.crate.replication.logical.MetadataTracker;
-import io.crate.testing.UseRandomizedSchema;
-import org.junit.Test;
+import static io.crate.testing.TestingHelpers.printedTable;
+import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.is;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import static io.crate.testing.TestingHelpers.printedTable;
-import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.is;
+import org.junit.Test;
+
+import io.crate.exceptions.OperationOnInaccessibleRelationException;
+import io.crate.replication.logical.LogicalReplicationService;
+import io.crate.replication.logical.MetadataTracker;
+import io.crate.testing.UseRandomizedSchema;
 
 @UseRandomizedSchema(random = false)
 public class MetadataTrackerITest extends LogicalReplicationITestCase {
@@ -334,7 +335,7 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
         assertBusy(
             () -> {
                 var res = executeOnPublisher(
-                    "SELECT s.subname, sr.srrelid::text, sr.srsubstate, sr.srsubstate_reason" +
+                    "SELECT s.subname, sr.srrelid::regclass, sr.srsubstate, sr.srsubstate_reason" +
                         " FROM pg_subscription s" +
                         " LEFT JOIN pg_subscription_rel sr ON s.oid = sr.srsubid" +
                         " ORDER BY s.subname");

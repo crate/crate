@@ -21,6 +21,14 @@
 
 package io.crate.metadata.pgcatalog;
 
+import static io.crate.types.DataTypes.BOOLEAN;
+import static io.crate.types.DataTypes.INTEGER;
+import static io.crate.types.DataTypes.OID;
+import static io.crate.types.DataTypes.SHORT;
+import static io.crate.types.DataTypes.STRING;
+import static io.crate.types.DataTypes.STRING_ARRAY;
+import static io.crate.types.DataTypes.isArray;
+
 import io.crate.expression.reference.information.ColumnContext;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SystemTable;
@@ -29,23 +37,15 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 import io.crate.types.Regclass;
 
-import static io.crate.types.DataTypes.BOOLEAN;
-import static io.crate.types.DataTypes.INTEGER;
-import static io.crate.types.DataTypes.SHORT;
-import static io.crate.types.DataTypes.STRING;
-import static io.crate.types.DataTypes.REGCLASS;
-import static io.crate.types.DataTypes.STRING_ARRAY;
-import static io.crate.types.DataTypes.isArray;
-
 public class PgAttributeTable {
 
     public static final RelationName IDENT = new RelationName(PgCatalogSchemaInfo.NAME, "pg_attribute");
 
     public static SystemTable<ColumnContext> create() {
         return SystemTable.<ColumnContext>builder(IDENT)
-            .add("attrelid", REGCLASS, c -> Regclass.relationOid(c.relation()))
+            .add("attrelid", OID, c -> Regclass.relationOid(c.relation()).oid())
             .add("attname", STRING, c -> c.ref().column().sqlFqn())
-            .add("atttypid", INTEGER, c -> PGTypes.get(c.ref().valueType()).oid())
+            .add("atttypid", OID, c -> PGTypes.get(c.ref().valueType()).oid())
             .add("attstattarget", INTEGER, c -> 0)
             .add("attlen", SHORT, c -> PGTypes.get(c.ref().valueType()).typeLen())
             .add("attnum", INTEGER, c -> c.ref().position())
@@ -61,7 +61,7 @@ public class PgAttributeTable {
             .add("attisdropped", BOOLEAN, c -> false) // don't support dropping columns
             .add("attislocal", BOOLEAN, c -> true)
             .add("attinhcount", INTEGER, c -> 0)
-            .add("attcollation", INTEGER, c -> 0)
+            .add("attcollation", OID, c -> 0)
             .add("attacl", new ArrayType<>(DataTypes.UNTYPED_OBJECT), c -> null)
             .add("attoptions", STRING_ARRAY, c -> null)
             .add("attfdwoptions", STRING_ARRAY, c -> null)

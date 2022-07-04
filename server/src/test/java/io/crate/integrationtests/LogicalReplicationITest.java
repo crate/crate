@@ -267,8 +267,8 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
             " ORDER BY s.subname, r.relname"
         );
         assertThat(printedTable(systemTableResponse.rows()),
-            is("530917412| 0| sub1| crate| true| true| false| NULL| NULL| [pub1]| 530917412| 728874843| t1\n" +
-                     "530917412| 0| sub1| crate| true| true| false| NULL| NULL| [pub1]| 530917412| 1737494392| t2\n"));
+            is("530917412| 0| sub1| -450373579| true| true| false| NULL| NULL| [pub1]| 530917412| 728874843| t1\n" +
+                     "530917412| 0| sub1| -450373579| true| true| false| NULL| NULL| [pub1]| 530917412| 1737494392| t2\n"));
     }
 
     @Test

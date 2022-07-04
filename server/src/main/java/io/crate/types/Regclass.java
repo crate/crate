@@ -95,7 +95,7 @@ public final class Regclass implements Comparable<Regclass>, Writeable {
 
     @Override
     public String toString() {
-        return Integer.toString(oid);
+        return name;
     }
 
     @Override

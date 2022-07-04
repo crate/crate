@@ -21,18 +21,19 @@
 
 package io.crate.metadata.pgcatalog;
 
-import io.crate.metadata.RelationName;
-import io.crate.metadata.SystemTable;
-import io.crate.types.Regclass;
+import static io.crate.types.DataTypes.BOOLEAN;
+import static io.crate.types.DataTypes.INTEGER_ARRAY;
+import static io.crate.types.DataTypes.OID;
+import static io.crate.types.DataTypes.OIDVECTOR;
+import static io.crate.types.DataTypes.SHORT;
+import static io.crate.types.DataTypes.SHORT_ARRAY;
+import static io.crate.types.DataTypes.STRING;
 
 import java.util.List;
 
-import static io.crate.types.DataTypes.BOOLEAN;
-import static io.crate.types.DataTypes.INTEGER_ARRAY;
-import static io.crate.types.DataTypes.SHORT;
-import static io.crate.types.DataTypes.SHORT_ARRAY;
-import static io.crate.types.DataTypes.REGCLASS;
-import static io.crate.types.DataTypes.STRING;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.SystemTable;
+import io.crate.types.Regclass;
 
 public class PgIndexTable {
 
@@ -40,8 +41,8 @@ public class PgIndexTable {
 
     public static SystemTable<Entry> create() {
         return SystemTable.<Entry>builder(IDENT)
-            .add("indrelid", REGCLASS, x -> x.indRelId)
-            .add("indexrelid", REGCLASS, x -> x.indexRelId)
+            .add("indrelid", OID, x -> x.indRelId.oid())
+            .add("indexrelid", OID, x -> x.indexRelId.oid())
             .add("indnatts", SHORT, x -> (short) 0)
             .add("indisunique", BOOLEAN, x -> false)
             .add("indisprimary", BOOLEAN, x -> true)
@@ -54,8 +55,8 @@ public class PgIndexTable {
             .add("indislive", BOOLEAN, x -> true)
             .add("indisreplident", BOOLEAN, x -> false)
             .add("indkey", INTEGER_ARRAY, x -> x.indKey)
-            .add("indcollation", INTEGER_ARRAY, x -> null)
-            .add("indclass", INTEGER_ARRAY, x -> null)
+            .add("indcollation", OIDVECTOR, x -> null)
+            .add("indclass", OIDVECTOR, x -> null)
             .add("indoption", SHORT_ARRAY, x -> null)
             .add("indexprs", STRING, x -> null)
             .add("indpred", STRING, x -> null)

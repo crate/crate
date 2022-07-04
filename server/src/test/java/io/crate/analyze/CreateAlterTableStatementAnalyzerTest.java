@@ -1447,6 +1447,12 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     }
 
     @Test
+    public void test_oid_cannot_be_used_in_create_table() throws Exception {
+        expectedException.expectMessage("Cannot use the type `oid` for column: x");
+        analyze("CREATE TABLE tbl (x oid)");
+    }
+
+    @Test
     public void test_generated_column_arguments_are_detected_as_array_and_validation_fails_with_missing_overload() throws Exception {
         Exception exception = Assertions.assertThrows(
             Exception.class,

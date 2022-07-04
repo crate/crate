@@ -55,7 +55,8 @@ public class RegclassTypeTest {
         var sessionSettings = new SessionSettings("crate", SearchPath.createSearchPathFrom("my_schema"));
         var regclass = RegclassType.INSTANCE.explicitCast("my_table", sessionSettings);
 
-        assertThat(regclass.toString(), is("2034491507"));
+        assertThat(regclass.name(), is("my_schema.my_table"));
+        assertThat(regclass.oid(), is(2034491507));
     }
 
     @Test

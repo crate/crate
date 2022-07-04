@@ -21,15 +21,15 @@
 
 package io.crate.replication.logical.metadata.pgcatalog;
 
+import static io.crate.types.DataTypes.BOOLEAN;
+import static io.crate.types.DataTypes.OID;
+import static io.crate.types.DataTypes.STRING;
+
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SystemTable;
 import io.crate.metadata.pgcatalog.OidHash;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.replication.logical.metadata.Publication;
-
-import static io.crate.types.DataTypes.BOOLEAN;
-import static io.crate.types.DataTypes.INTEGER;
-import static io.crate.types.DataTypes.STRING;
 
 public class PgPublicationTable {
 
@@ -37,9 +37,9 @@ public class PgPublicationTable {
 
     public static SystemTable<PublicationRow> create() {
         return SystemTable.<PublicationRow>builder(IDENT)
-            .add("oid", INTEGER, p -> OidHash.publicationOid(p.name, p.publication))
+            .add("oid", OID, p -> OidHash.publicationOid(p.name, p.publication))
             .add("pubname", STRING, p -> p.name)
-            .add("pubowner", INTEGER, p -> OidHash.userOid(p.publication.owner()))
+            .add("pubowner", OID, p -> OidHash.userOid(p.publication.owner()))
             .add("puballtables", BOOLEAN, p -> p.publication.isForAllTables())
             .add("pubinsert", BOOLEAN, p -> true)
             .add("pubupdate", BOOLEAN, p -> true)

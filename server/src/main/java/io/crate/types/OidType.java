@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,22 +19,35 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.metadata.pgcatalog;
+package io.crate.types;
 
-import io.crate.metadata.RelationName;
-import io.crate.metadata.SystemTable;
-import io.crate.types.DataTypes;
+public class OidType extends IntegerType {
 
-public final class PgAmTable {
+    public static final int ID = 28;
+    public static final String NAME = "oid";
+    public static final OidType INSTANCE = new OidType();
 
-    public static final RelationName IDENT = new RelationName(PgCatalogSchemaInfo.NAME, "pg_am");
+    private OidType() {
+        super();
+    }
 
-    public static SystemTable<Void> create() {
-        return SystemTable.<Void>builder(IDENT)
-            .add("oid", DataTypes.OID, ignored -> null)
-            .add("amname", DataTypes.STRING, ignored -> null)
-            .add("amhandler", DataTypes.REGPROC, ignored -> null)
-            .add("amtype", DataTypes.BYTE, ignored -> null)
-            .build();
+    @Override
+    public int id() {
+        return ID;
+    }
+
+    @Override
+    public String getName() {
+        return NAME;
+    }
+
+    @Override
+    public StorageSupport<Number> storageSupport() {
+        return null;
+    }
+
+    @Override
+    public Precedence precedence() {
+        return Precedence.OID;
     }
 }

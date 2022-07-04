@@ -602,26 +602,26 @@ public class InformationSchemaTest extends SQLIntegrationTestCase {
                 "and table_name = 'pg_type' " +
                 "order by 1 asc");
         assertThat(printedTable(response.rows()), is(
-            "oid| integer\n" +
-            "typarray| integer\n" +
-            "typbasetype| integer\n" +
+            "oid| oid\n" +
+            "typarray| oid\n" +
+            "typbasetype| oid\n" +
             "typbyval| boolean\n" +
             "typcategory| text\n" +
             "typcollation| integer\n" +
             "typdefault| text\n" +
             "typdelim| text\n" +
-            "typelem| integer\n" +
+            "typelem| oid\n" +
             "typinput| regproc\n" +
             "typisdefined| boolean\n" +
             "typlen| smallint\n" +
             "typname| text\n" +
-            "typnamespace| integer\n" +
+            "typnamespace| oid\n" +
             "typndims| integer\n" +
             "typnotnull| boolean\n" +
             "typoutput| regproc\n" +
-            "typowner| integer\n" +
+            "typowner| oid\n" +
             "typreceive| regproc\n" +
-            "typrelid| integer\n" +
+            "typrelid| oid\n" +
             "typsend| regproc\n" +
             "typtype| text\n" +
             "typtypmod| integer\n")

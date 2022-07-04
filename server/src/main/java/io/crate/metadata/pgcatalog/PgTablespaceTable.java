@@ -31,9 +31,9 @@ public final class PgTablespaceTable {
 
     public static SystemTable<Void> create() {
         return SystemTable.<Void>builder(IDENT)
-            .add("oid", DataTypes.INTEGER, ignored -> null)
+            .add("oid", DataTypes.OID, ignored -> null)
             .add("spcname", DataTypes.STRING, ignored -> null)
-            .add("spcowner", DataTypes.INTEGER, ignored -> null)
+            .add("spcowner", DataTypes.OID, ignored -> null)
             // should be `aclitem[]` but we lack `aclitem`, so going with same choice that Cockroach made:
             // https://github.com/cockroachdb/cockroach/blob/45deb66abbca3aae56bd27910a36d90a6a8bcafe/pkg/sql/vtable/pg_catalog.go#L746
             .add("spcacl", DataTypes.STRING_ARRAY, ignored -> null)

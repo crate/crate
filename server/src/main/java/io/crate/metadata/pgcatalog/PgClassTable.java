@@ -21,18 +21,18 @@
 
 package io.crate.metadata.pgcatalog;
 
+import static io.crate.types.DataTypes.BOOLEAN;
+import static io.crate.types.DataTypes.FLOAT;
+import static io.crate.types.DataTypes.INTEGER;
+import static io.crate.types.DataTypes.OID;
+import static io.crate.types.DataTypes.SHORT;
+import static io.crate.types.DataTypes.STRING;
+import static io.crate.types.DataTypes.STRING_ARRAY;
+
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SystemTable;
 import io.crate.statistics.TableStats;
 import io.crate.types.Regclass;
-
-import static io.crate.types.DataTypes.BOOLEAN;
-import static io.crate.types.DataTypes.FLOAT;
-import static io.crate.types.DataTypes.INTEGER;
-import static io.crate.types.DataTypes.SHORT;
-import static io.crate.types.DataTypes.STRING;
-import static io.crate.types.DataTypes.STRING_ARRAY;
-import static io.crate.types.DataTypes.REGCLASS;
 
 public class PgClassTable {
 
@@ -41,19 +41,19 @@ public class PgClassTable {
 
     public static SystemTable<Entry> create(TableStats tableStats) {
         return SystemTable.<Entry>builder(IDENT)
-            .add("oid", REGCLASS, x -> x.oid)
+            .add("oid", OID, x -> x.oid.oid())
             .add("relname", STRING, x -> x.name)
-            .add("relnamespace", INTEGER, x -> x.schemaOid)
-            .add("reltype", INTEGER, x -> 0)
-            .add("reloftype", INTEGER, x -> 0)
-            .add("relowner", INTEGER, x -> 0)
-            .add("relam", INTEGER, x -> 0)
-            .add("relfilenode", INTEGER, x -> 0)
-            .add("reltablespace", INTEGER, x -> 0)
+            .add("relnamespace", OID, x -> x.schemaOid)
+            .add("reltype", OID, x -> 0)
+            .add("reloftype", OID, x -> 0)
+            .add("relowner", OID, x -> 0)
+            .add("relam", OID, x -> 0)
+            .add("relfilenode", OID, x -> 0)
+            .add("reltablespace", OID, x -> 0)
             .add("relpages", INTEGER, x -> 0)
             .add("reltuples", FLOAT, x -> x.type.equals(Entry.Type.INDEX) ? 0f : (float) tableStats.numDocs(x.ident))
             .add("relallvisible", INTEGER, x -> 0)
-            .add("reltoastrelid", INTEGER, x -> 0)
+            .add("reltoastrelid", OID, x -> 0)
             .add("relhasindex", BOOLEAN, x -> false)
             .add("relisshared", BOOLEAN, x -> false)
             .add("relpersistence", STRING, x -> PERSISTENCE_PERMANENT)

@@ -21,13 +21,14 @@
 
 package io.crate.types;
 
-import io.crate.Streamer;
+import java.io.IOException;
+import java.math.BigDecimal;
+
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
-import java.io.IOException;
-import java.math.BigDecimal;
+import io.crate.Streamer;
 
 public class IntegerType extends DataType<Integer> implements Streamer<Integer>, FixedWidthType {
 
@@ -36,7 +37,7 @@ public class IntegerType extends DataType<Integer> implements Streamer<Integer>,
     private static final int INTEGER_SIZE = (int) RamUsageEstimator.shallowSizeOfInstance(Integer.class);
     private static final StorageSupport<Number> STORAGE = new StorageSupport<>(true, true, new IntEqQuery());
 
-    private IntegerType() {
+    protected IntegerType() {
     }
 
     @Override

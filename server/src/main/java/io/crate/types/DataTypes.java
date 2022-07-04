@@ -97,6 +97,7 @@ public final class DataTypes {
     public static final ArrayType<Long> BIGINT_ARRAY = new ArrayType<>(LONG);
     public static final ArrayType<Boolean> BOOLEAN_ARRAY = new ArrayType<>(BOOLEAN);
 
+    public static final OidType OID = OidType.INSTANCE;
     public static final OidVectorType OIDVECTOR = new OidVectorType();
 
     public static final IntervalType INTERVAL = IntervalType.INSTANCE;
@@ -173,6 +174,7 @@ public final class DataTypes {
             entry(RowType.ID, RowType::new),
             entry(RegprocType.ID, in -> REGPROC),
             entry(RegclassType.ID, in -> REGCLASS),
+            entry(OidType.ID, in -> OID),
             entry(OidVectorType.ID, in -> OIDVECTOR),
             entry(DateType.ID, in -> DATE),
             entry(BitStringType.ID, BitStringType::new),
@@ -181,7 +183,7 @@ public final class DataTypes {
     );
 
     private static final Set<Integer> NUMBER_CONVERSIONS = Stream.concat(
-        Stream.of(BOOLEAN, STRING, TIMESTAMPZ, TIMESTAMP, DATE, IP, NUMERIC, CHARACTER),
+        Stream.of(BOOLEAN, STRING, TIMESTAMPZ, TIMESTAMP, DATE, IP, NUMERIC, CHARACTER, OID),
         NUMERIC_PRIMITIVE_TYPES.stream()
     ).map(DataType::id).collect(toSet());
 
@@ -194,8 +196,12 @@ public final class DataTypes {
             NUMBER_CONVERSIONS.stream(),
             Stream.of(RegprocType.ID, RegclassType.ID)
         ).collect(Collectors.toUnmodifiableSet())),
-        entry(REGPROC.id(), Set.of(STRING.id(), INTEGER.id(), CHARACTER.id())),
-        entry(REGCLASS.id(), Set.of(STRING.id(), INTEGER.id(), LONG.id(), CHARACTER.id())),
+        entry(OID.id(), Stream.concat(
+            NUMBER_CONVERSIONS.stream(),
+            Stream.of(RegprocType.ID, RegclassType.ID, STRING.id(), CHARACTER.id())
+        ).collect(Collectors.toUnmodifiableSet())),
+        entry(REGPROC.id(), Set.of(STRING.id(), INTEGER.id(), CHARACTER.id(), OID.id())),
+        entry(REGCLASS.id(), Set.of(STRING.id(), INTEGER.id(), LONG.id(), CHARACTER.id(), OID.id())),
         entry(
             LONG.id(),
             Stream.concat(
@@ -331,6 +337,7 @@ public final class DataTypes {
             case ShortType.ID:
             case IntegerType.ID:
             case FloatType.ID:
+            case OidType.ID:
                 return DataTypes.INTEGER;
 
             case DoubleType.ID:
@@ -402,6 +409,7 @@ public final class DataTypes {
         entry(REGPROC.getName(), REGPROC),
         entry(REGCLASS.getName(), REGCLASS),
         entry(OIDVECTOR.getName(), OIDVECTOR),
+        entry(OID.getName(), OID),
         entry("int2", SHORT),
         entry("int", INTEGER),
         entry("int4", INTEGER),

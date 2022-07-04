@@ -21,10 +21,11 @@
 
 package io.crate.metadata.pgcatalog;
 
+import static io.crate.types.DataTypes.OID;
+import static io.crate.types.DataTypes.REGPROC;
+
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SystemTable;
-import static io.crate.types.DataTypes.INTEGER;
-import static io.crate.types.DataTypes.REGPROC;
 
 public final class PgRangeTable {
 
@@ -32,10 +33,10 @@ public final class PgRangeTable {
 
     public static SystemTable<Void> create() {
         return SystemTable.<Void>builder(IDENT)
-            .add("rngtypid", INTEGER, ignored -> null)
-            .add("rngsubtype", INTEGER, ignored -> null)
-            .add("rngcollation", INTEGER, ignored -> null)
-            .add("rngsubopc", INTEGER, ignored -> null)
+            .add("rngtypid", OID, ignored -> null)
+            .add("rngsubtype", OID, ignored -> null)
+            .add("rngcollation", OID, ignored -> null)
+            .add("rngsubopc", OID, ignored -> null)
             .add("rngcanonical", REGPROC, ignored -> null)
             .add("rngsubdiff", REGPROC, ignored -> null)
             .build();

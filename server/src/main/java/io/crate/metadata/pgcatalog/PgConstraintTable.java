@@ -27,6 +27,7 @@ import static io.crate.metadata.pgcatalog.OidHash.schemaOid;
 import static io.crate.types.DataTypes.BOOLEAN;
 import static io.crate.types.DataTypes.INTEGER;
 import static io.crate.types.DataTypes.INTEGER_ARRAY;
+import static io.crate.types.DataTypes.OID;
 import static io.crate.types.DataTypes.SHORT_ARRAY;
 import static io.crate.types.DataTypes.STRING;
 
@@ -44,17 +45,17 @@ public class PgConstraintTable {
 
     public static SystemTable<ConstraintInfo> create() {
         return SystemTable.<ConstraintInfo>builder(IDENT)
-           .add("oid", INTEGER, c -> constraintOid(c.relationName().fqn(), c.constraintName(), c.constraintType().toString()))
+           .add("oid", OID, c -> constraintOid(c.relationName().fqn(), c.constraintName(), c.constraintType().toString()))
            .add("conname", STRING, ConstraintInfo::constraintName)
-           .add("connamespace", INTEGER, c -> schemaOid(c.relationName().schema()))
+           .add("connamespace", OID, c -> schemaOid(c.relationName().schema()))
            .add("contype", STRING, c -> c.constraintType().postgresChar())
            .add("condeferrable", BOOLEAN, c -> false)
            .add("condeferred", BOOLEAN, c -> false)
            .add("convalidated", BOOLEAN, c -> true)
-           .add("conrelid", INTEGER, c -> relationOid(c.relationInfo()))
-           .add("contypid", INTEGER, c -> 0)
-           .add("conindid", INTEGER, c -> 0)
-           .add("confrelid", INTEGER, c -> 0)
+           .add("conrelid", OID, c -> relationOid(c.relationInfo()))
+           .add("contypid", OID, c -> 0)
+           .add("conindid", OID, c -> 0)
+           .add("confrelid", OID, c -> 0)
            .add("confupdtype", STRING, c -> NO_ACTION)
            .add("confdeltype", STRING, c -> NO_ACTION)
            .add("confmatchtype", STRING, c -> MATCH_SIMPLE)

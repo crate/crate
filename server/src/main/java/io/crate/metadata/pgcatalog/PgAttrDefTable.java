@@ -22,8 +22,8 @@
 package io.crate.metadata.pgcatalog;
 
 import static io.crate.types.DataTypes.INTEGER;
+import static io.crate.types.DataTypes.OID;
 import static io.crate.types.DataTypes.STRING;
-import static io.crate.types.DataTypes.REGCLASS;
 
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SystemTable;
@@ -35,8 +35,8 @@ public class PgAttrDefTable {
 
     public static SystemTable<Void> create() {
         return SystemTable.<Void>builder(IDENT)
-            .add("oid", INTEGER, x -> 0)
-            .add("adrelid", REGCLASS, x -> null)
+            .add("oid", OID, x -> 0)
+            .add("adrelid", OID, x -> null)
             .add("adnum", INTEGER, x -> 0)
             .add("adbin", STRING, x -> null)
             .add("adsrc", STRING, x -> null)

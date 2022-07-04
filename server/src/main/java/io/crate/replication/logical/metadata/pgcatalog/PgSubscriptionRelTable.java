@@ -21,6 +21,12 @@
 
 package io.crate.replication.logical.metadata.pgcatalog;
 
+import static io.crate.types.DataTypes.LONG;
+import static io.crate.types.DataTypes.OID;
+import static io.crate.types.DataTypes.STRING;
+
+import java.util.stream.Stream;
+
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SystemTable;
 import io.crate.metadata.pgcatalog.OidHash;
@@ -28,21 +34,14 @@ import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.types.Regclass;
 
-import java.util.stream.Stream;
-
-import static io.crate.types.DataTypes.INTEGER;
-import static io.crate.types.DataTypes.LONG;
-import static io.crate.types.DataTypes.REGCLASS;
-import static io.crate.types.DataTypes.STRING;
-
 public class PgSubscriptionRelTable {
 
     public static final RelationName IDENT = new RelationName(PgCatalogSchemaInfo.NAME, "pg_subscription_rel");
 
     public static SystemTable<PgSubscriptionRelTable.PgSubscriptionRelRow> create() {
         return SystemTable.<PgSubscriptionRelTable.PgSubscriptionRelRow>builder(IDENT)
-            .add("srsubid", INTEGER, PgSubscriptionRelRow::subOid)
-            .add("srrelid", REGCLASS, PgSubscriptionRelRow::relOid)
+            .add("srsubid", OID, PgSubscriptionRelRow::subOid)
+            .add("srrelid", OID, PgSubscriptionRelRow::relOid)
             .add("srsubstate", STRING, PgSubscriptionRelRow::state)
             .add("srsubstate_reason", STRING, PgSubscriptionRelRow::state_reason)
             // CrateDB doesn't have Log Sequence Number per table, only a seqNo per shard (see SysShardsTable)
@@ -60,7 +59,7 @@ public class PgSubscriptionRelTable {
                             (r, rs) -> c.accept(
                                 new PgSubscriptionRelRow(
                                     OidHash.subscriptionOid(e.getKey(), sub),
-                                    new Regclass(OidHash.relationOid(OidHash.Type.TABLE, r), r.fqn()),
+                                    new Regclass(OidHash.relationOid(OidHash.Type.TABLE, r), r.fqn()).oid(),
                                     sub.owner(),
                                     rs.state().pg_state(),
                                     rs.reason()
@@ -73,5 +72,5 @@ public class PgSubscriptionRelTable {
         };
     }
 
-    public record PgSubscriptionRelRow(int subOid, Regclass relOid, String owner, String state, String state_reason) {}
+    public record PgSubscriptionRelRow(int subOid, int relOid, String owner, String state, String state_reason) {}
 }

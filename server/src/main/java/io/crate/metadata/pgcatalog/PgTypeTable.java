@@ -24,6 +24,7 @@ package io.crate.metadata.pgcatalog;
 import static io.crate.metadata.pgcatalog.OidHash.schemaOid;
 import static io.crate.types.DataTypes.BOOLEAN;
 import static io.crate.types.DataTypes.INTEGER;
+import static io.crate.types.DataTypes.OID;
 import static io.crate.types.DataTypes.REGPROC;
 import static io.crate.types.DataTypes.SHORT;
 import static io.crate.types.DataTypes.STRING;
@@ -41,26 +42,26 @@ public class PgTypeTable {
     @SuppressWarnings("rawtypes")
     public static SystemTable<PGType> create() {
         return SystemTable.<PGType>builder(IDENT)
-            .add("oid", INTEGER, PGType::oid)
+            .add("oid", OID, PGType::oid)
             .add("typname", STRING, PGType::typName)
             .add("typdelim", STRING, PGType::typDelim)
-            .add("typelem", INTEGER, PGType::typElem)
+            .add("typelem", OID, PGType::typElem)
             .add("typlen", SHORT, PGType::typeLen)
             .add("typbyval", BOOLEAN, c -> true)
             .add("typtype", STRING, PGType::type)
             .add("typcategory", STRING, PGType::typeCategory)
-            .add("typowner", INTEGER, c -> null)
+            .add("typowner", OID, c -> null)
             .add("typisdefined", BOOLEAN, c -> true)
             // Zero for non-composite types, otherwise should point
             // to the pg_class table entry.
-            .add("typrelid", INTEGER, c -> 0)
+            .add("typrelid", OID, c -> 0)
             .add("typndims", INTEGER, c -> 0)
             .add("typcollation", INTEGER, c -> 0)
             .add("typdefault", STRING, c -> null)
-            .add("typbasetype", INTEGER, c -> 0)
+            .add("typbasetype", OID, c -> 0)
             .add("typtypmod", INTEGER, c -> -1)
-            .add("typnamespace", INTEGER, c -> TYPE_NAMESPACE_OID)
-            .add("typarray", INTEGER, PGType::typArray)
+            .add("typnamespace", OID, c -> TYPE_NAMESPACE_OID)
+            .add("typarray", OID, PGType::typArray)
             .add("typinput", REGPROC, PGType::typInput)
             .add("typoutput", REGPROC, PGType::typOutput)
             .add("typreceive", REGPROC, PGType::typReceive)

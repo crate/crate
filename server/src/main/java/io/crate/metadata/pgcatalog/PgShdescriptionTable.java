@@ -21,7 +21,7 @@
 
 package io.crate.metadata.pgcatalog;
 
-import static io.crate.types.DataTypes.INTEGER;
+import static io.crate.types.DataTypes.OID;
 import static io.crate.types.DataTypes.STRING;
 
 import io.crate.metadata.RelationName;
@@ -33,8 +33,8 @@ public final class PgShdescriptionTable {
 
     public static SystemTable<Void> create() {
         return SystemTable.<Void>builder(IDENT)
-            .add("objoid", INTEGER, c -> null)
-            .add("classoid", INTEGER, c -> null)
+            .add("objoid", OID, c -> null)
+            .add("classoid", OID, c -> null)
             .add("description", STRING , c -> null)
             .build();
     }

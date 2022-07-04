@@ -124,7 +124,7 @@ public class ServerXContentExtension implements XContentBuilderExtension {
             }
         });
         writers.put(Regproc.class, (b, v) -> b.value(((Regproc) v).name()));
-        writers.put(Regclass.class, (b, v) -> b.value(((Regclass) v).oid()));
+        writers.put(Regclass.class, (b, v) -> b.value(((Regclass) v).name()));
         writers.put(PointImpl.class, (b, v) -> {
             Point point = (Point) v;
             b.startArray();

@@ -23,6 +23,7 @@ package io.crate.metadata.pgcatalog;
 
 import static io.crate.types.DataTypes.BOOLEAN;
 import static io.crate.types.DataTypes.INTEGER;
+import static io.crate.types.DataTypes.OID;
 import static io.crate.types.DataTypes.STRING;
 import static io.crate.types.DataTypes.STRING_ARRAY;
 
@@ -36,9 +37,9 @@ public class PgDatabaseTable {
 
     public static SystemTable<Void> create() {
         return SystemTable.<Void>builder(NAME)
-            .add("oid", INTEGER, c -> 0)
+            .add("oid", OID, c -> 0)
             .add("datname", STRING, c -> Constants.DB_NAME)
-            .add("datdba", INTEGER, c -> 1)
+            .add("datdba", OID, c -> 1)
             .add("encoding", INTEGER, c -> 6)
             .add("datcollate", STRING, c -> "en_US.UTF-8")
             .add("datctype", STRING, c -> "en_US.UTF-8")
@@ -46,10 +47,10 @@ public class PgDatabaseTable {
             .add("datallowconn", BOOLEAN, c -> true)
             .add("datconnlimit", INTEGER,c -> -1) // no limit
             // We don't have any good values for these
-            .add("datlastsysoid", INTEGER, c -> null)
+            .add("datlastsysoid", OID, c -> null)
             .add("datfrozenxid", INTEGER, c -> null)
             .add("datminmxid", INTEGER, c -> null)
-            .add("dattablespace", INTEGER, c -> null)
+            .add("dattablespace", OID, c -> null)
             .add("datacl", STRING_ARRAY, c -> null)
             .build();
     }

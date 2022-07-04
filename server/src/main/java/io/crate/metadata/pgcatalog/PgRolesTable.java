@@ -21,6 +21,7 @@
 
 package io.crate.metadata.pgcatalog;
 
+import static io.crate.types.DataTypes.OID;
 import static io.crate.types.DataTypes.STRING;
 import static io.crate.types.DataTypes.STRING_ARRAY;
 import static io.crate.types.DataTypes.BOOLEAN;
@@ -36,7 +37,7 @@ public final class PgRolesTable {
 
     public static SystemTable<Void> create() {
         return SystemTable.<Void>builder(IDENT)
-            .add("oid", INTEGER, ignored -> null)
+            .add("oid", OID, ignored -> null)
             .add("rolname", STRING, ignored -> null)
             .add("rolsuper", BOOLEAN, ignored -> null)
             .add("rolinherit", BOOLEAN, ignored -> null)

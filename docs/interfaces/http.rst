@@ -292,6 +292,8 @@ IDs of all currently available data types:
      - :ref:`JSON <data-type-json>`
    * - 27
      - :ref:`CHARACTER <data-type-character>`
+   * - 28
+     - :ref:`OID <type-oid>`
    * - 100
      - :ref:`ARRAY <type-array>`
 

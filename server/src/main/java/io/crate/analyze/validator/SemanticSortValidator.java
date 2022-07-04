@@ -44,6 +44,7 @@ public class SemanticSortValidator {
     private static final Set<Integer> SUPPORTED_TYPES = Stream.concat(
         DataTypes.PRIMITIVE_TYPES.stream(),
         Stream.of(
+            DataTypes.OID,
             DataTypes.REGCLASS,
             DataTypes.REGPROC,
             BitStringType.INSTANCE_ONE
