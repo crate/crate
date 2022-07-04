@@ -194,7 +194,7 @@ public class AnalyzedColumnDefinition<T> {
             copyToTargets,
             isParentColumn,
             storageProperties == null ? null : storageProperties.map(mapper),
-            formattedDefaultExpression,
+            formattedGeneratedExpression,
             generatedExpression == null ? null : mapper.apply(generatedExpression),
             formattedDefaultExpression,
             defaultExpression == null ? null : mapper.apply(defaultExpression),
