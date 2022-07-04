@@ -48,6 +48,7 @@ import io.crate.metadata.Reference;
 import io.crate.types.ArrayType;
 import io.crate.types.BooleanType;
 import io.crate.types.ByteType;
+import io.crate.types.CharacterType;
 import io.crate.types.DataType;
 import io.crate.types.DoubleType;
 import io.crate.types.FloatType;
@@ -89,6 +90,7 @@ public class NumTermsPerDocQuery extends Query {
                 return numValuesPerDocForSortedNumeric(reader, ref.column());
 
             case StringType.ID:
+            case CharacterType.ID:
                 return numValuesPerDocForString(reader, ref.column());
 
             case IpType.ID:
