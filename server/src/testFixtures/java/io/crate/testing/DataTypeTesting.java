@@ -143,7 +143,14 @@ public class DataTypeTesting {
                 return () -> {
                     // Can't use immutable Collections.singletonMap; insert-analyzer mutates the map
                     Map<String, Object> geoShape = new HashMap<>(2);
-                    geoShape.put("coordinates", Arrays.asList(10.2d, 32.2d));
+
+                    geoShape.put(
+                        "coordinates",
+                        Arrays.asList(
+                            BiasedNumbers.randomDoubleBetween(random, -180, 180),
+                            BiasedNumbers.randomDoubleBetween(random, -90, 90)
+                        )
+                    );
                     geoShape.put("type", "Point");
                     return (T) geoShape;
                 };
