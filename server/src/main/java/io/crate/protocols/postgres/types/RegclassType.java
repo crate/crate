@@ -23,6 +23,7 @@ package io.crate.protocols.postgres.types;
 
 import java.nio.charset.StandardCharsets;
 
+import io.crate.metadata.IndexParts;
 import io.crate.types.Regclass;
 import io.netty.buffer.ByteBuf;
 
@@ -79,7 +80,8 @@ public class RegclassType extends PGType<Regclass> {
             int oid = Integer.parseInt(oidStr);
             return new Regclass(oid, oidStr);
         } catch (NumberFormatException e) {
-            return Regclass.fromRelationName(oidStr);
+            var indexParts = new IndexParts(oidStr);
+            return Regclass.fromRelationName(indexParts.toRelationName());
         }
     }
 }
