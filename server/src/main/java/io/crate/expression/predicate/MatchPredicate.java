@@ -21,7 +21,6 @@
 
 package io.crate.expression.predicate;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -57,15 +56,10 @@ import io.crate.lucene.FunctionToQuery;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.lucene.LuceneQueryBuilder.Context;
 import io.crate.lucene.match.MatchQueries;
-import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
-import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.FunctionName;
-import io.crate.metadata.FunctionType;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.ObjectType;
 
 /**
  * The match predicate is only used to generate lucene queries from.
@@ -103,13 +97,6 @@ public class MatchPredicate implements FunctionImplementation, FunctionToQuery {
         DataTypes.BOOLEAN.getTypeSignature()
     );
 
-
-    // IDENT / INFO here are for BWC of mixed clusters running 4.1 and 4.2;
-    public static final FunctionIdent IDENT = new FunctionIdent(
-        new FunctionName(null, NAME),
-        Arrays.asList(ObjectType.UNTYPED, DataTypes.STRING, DataTypes.STRING, ObjectType.UNTYPED)
-    );
-    public static final FunctionInfo INFO = new FunctionInfo(IDENT, DataTypes.BOOLEAN, FunctionType.SCALAR, Set.of());
 
     public static void register(PredicateModule module) {
         module.register(

@@ -21,30 +21,24 @@
 
 package io.crate.expression.symbol;
 
-import io.crate.execution.engine.aggregation.impl.CountAggregation;
-import io.crate.metadata.FunctionInfo;
-import org.elasticsearch.test.ESTestCase;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.junit.Test;
+import static org.hamcrest.Matchers.is;
 
 import java.util.List;
 
-import static org.hamcrest.Matchers.is;
+import org.elasticsearch.Version;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
+
+import io.crate.execution.engine.aggregation.impl.CountAggregation;
 
 public class AggregationTest extends ESTestCase {
 
     @Test
     public void test_serialization_with_filter() throws Exception {
-        var functionInfo = FunctionInfo.of(
-            CountAggregation.COUNT_STAR_SIGNATURE,
-            List.of(),
-            CountAggregation.COUNT_STAR_SIGNATURE.getReturnType().createType()
-        );
         Aggregation actual = new Aggregation(
             CountAggregation.COUNT_STAR_SIGNATURE,
-            functionInfo,
             CountAggregation.COUNT_STAR_SIGNATURE.getReturnType().createType(),
             CountAggregation.COUNT_STAR_SIGNATURE.getReturnType().createType(),
             List.of(),

@@ -109,9 +109,7 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     public void testWhereRefEqRef() throws Exception {
         // 3vl
         Query query = convert("name = name");
-        assertThat(query, instanceOf(ConstantScoreQuery.class));
-        ConstantScoreQuery scoreQuery = (ConstantScoreQuery) query;
-        assertThat(scoreQuery.getQuery(), instanceOf(FieldExistsQuery.class));
+        assertThat(query, instanceOf(FieldExistsQuery.class));
         // 2vl
         query = convert("ignore3vl(name = name)");
         assertThat(query, instanceOf(MatchAllDocsQuery.class));
@@ -342,9 +340,9 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     @Test
     public void testIsNullOnObjectArray() throws Exception {
         Query isNull = convert("o_array IS NULL");
-        assertThat(isNull.toString(), is("+*:* -ConstantScore(ConstantScore(FieldExistsQuery [field=o_array.xs]))"));
+        assertThat(isNull.toString(), is("+*:* -ConstantScore(FieldExistsQuery [field=o_array.xs])"));
         Query isNotNull = convert("o_array IS NOT NULL");
-        assertThat(isNotNull.toString(), is("ConstantScore(ConstantScore(FieldExistsQuery [field=o_array.xs]))"));
+        assertThat(isNotNull.toString(), is("ConstantScore(FieldExistsQuery [field=o_array.xs])"));
     }
 
     @Test
@@ -401,7 +399,7 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     @Test
     public void testIsNullOnGeoPoint() throws Exception {
         Query query = convert("point is null");
-        assertThat(query.toString(), is("+*:* -ConstantScore(FieldExistsQuery [field=point])"));
+        assertThat(query.toString(), is("+*:* -FieldExistsQuery [field=point]"));
     }
 
     @Test

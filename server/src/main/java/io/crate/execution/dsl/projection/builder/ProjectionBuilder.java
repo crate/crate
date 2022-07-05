@@ -21,6 +21,15 @@
 
 package io.crate.execution.dsl.projection.builder;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Nullable;
+
+import org.elasticsearch.common.settings.Settings;
+
 import io.crate.common.collections.Lists2;
 import io.crate.execution.dsl.projection.AggregationProjection;
 import io.crate.execution.dsl.projection.EvalProjection;
@@ -38,19 +47,11 @@ import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SearchPath;
 import io.crate.types.DataType;
-import org.elasticsearch.common.settings.Settings;
-
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
 
 public class ProjectionBuilder {
 
@@ -109,7 +110,7 @@ public class ProjectionBuilder {
                                                    java.util.function.Function<Symbol, Symbol> subQueryAndParamBinder) {
         ArrayList<Aggregation> aggregations = new ArrayList<>(functions.size());
         for (Function function : functions) {
-            assert function.type() == FunctionType.AGGREGATE :
+            assert function.signature().getKind() == FunctionType.AGGREGATE :
                     "function type must be " + FunctionType.AGGREGATE;
             List<Symbol> aggregationInputs;
             Symbol filterInput;
@@ -137,21 +138,14 @@ public class ProjectionBuilder {
             }
 
             AggregationFunction<?, ?> aggregationFunction = (AggregationFunction<?, ?>) nodeCtx.functions().getQualified(
-                function,
-                searchPath
+                function
             );
             assert aggregationFunction != null :
                 "Aggregation function implementation not found using full qualified lookup: " + function;
 
             var valueType = mode.returnType(aggregationFunction);
-            var functionInfo = FunctionInfo.of(
-                aggregationFunction.signature(),
-                aggregationFunction.boundSignature().getArgumentDataTypes(),
-                valueType
-            );
             Aggregation aggregation = new Aggregation(
                 aggregationFunction.signature(),
-                functionInfo,
                 aggregationFunction.boundSignature().getReturnType().createType(),
                 valueType,
                 Lists2.map(aggregationInputs, subQueryAndParamBinder),

@@ -67,7 +67,7 @@ import io.crate.types.RowType;
  *     SELECT srf(...)
  *     srf
  *     ---------------
- *     1                    <-- {@link #info()#returnType()} will be a `bigint`,
+ *     1                    <-- {@link #boundSignature()#returnType()} will be a `bigint`,
  *     2                         but {@link #returnType()} will be a RowType which describes the single column.
  * </pre>
  *
@@ -84,8 +84,8 @@ public abstract class TableFunctionImplementation<T> extends Scalar<Iterable<Row
     /**
      * An ObjectType which describes the result of the table function.
      *
-     * This can be the same as {@link #info()#returnType()},
-     * but if there is only a single inner type, then {@link #info()#returnType()} will return that inner-type directly.
+     * This can be the same as {@link #boundSignature()#returnType()},
+     * but if there is only a single inner type, then {@link #boundSignature()#returnType()} will return that inner-type directly.
      *
      * See the class documentation for more information about that behavior.
      */

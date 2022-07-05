@@ -21,6 +21,25 @@
 
 package io.crate.metadata;
 
+import static io.crate.common.collections.Lists2.getOnlyElement;
+
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiFunction;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+
+import javax.annotation.Nullable;
+
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.logging.Loggers;
+
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists2;
 import io.crate.expression.symbol.Symbol;
@@ -33,23 +52,6 @@ import io.crate.metadata.pgcatalog.OidHash;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.TypeSignature;
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.logging.Loggers;
-
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.BiFunction;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-
-import static io.crate.common.collections.Lists2.getOnlyElement;
 
 public class Functions {
 
@@ -293,38 +295,14 @@ public class Functions {
         return null;
     }
 
-    public FunctionImplementation getQualified(io.crate.expression.symbol.Function function,
-                                               SearchPath searchPath) {
+    public FunctionImplementation getQualified(io.crate.expression.symbol.Function function) {
         var signature = function.signature();
-        if (signature != null) {
-            return getQualified(signature, Symbols.typeView(function.arguments()), function.valueType());
-        }
-        // Fallback to full function resolving
-        // TODO: This is for BWC of older nodes, should be removed on the next major 5.0.
-        return get(
-            function.info().ident().fqnName().schema(),
-            function.info().ident().fqnName().name(),
-            function.info().ident().argumentTypes(),
-            function.arguments(),
-            searchPath
-            );
+        return getQualified(signature, Symbols.typeView(function.arguments()), function.valueType());
     }
 
-    public FunctionImplementation getQualified(io.crate.expression.symbol.Aggregation function,
-                                               SearchPath searchPath) {
+    public FunctionImplementation getQualified(io.crate.expression.symbol.Aggregation function) {
         var signature = function.signature();
-        if (signature != null) {
-            return getQualified(signature, Symbols.typeView(function.inputs()), function.boundSignatureReturnType());
-        }
-        // Fallback to full function resolving
-        // TODO: This is for BWC of older nodes, should be removed on the next major 5.0.
-        return get(
-            function.functionIdent().fqnName().schema(),
-            function.functionIdent().fqnName().name(),
-            function.functionIdent().argumentTypes(),
-            function.inputs(),
-            searchPath
-            );
+        return getQualified(signature, Symbols.typeView(function.inputs()), function.boundSignatureReturnType());
     }
 
     /**

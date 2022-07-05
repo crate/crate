@@ -238,10 +238,7 @@ public class LuceneQueryBuilder {
             }
             function = rewriteAndValidateFields(function, context);
 
-            FunctionImplementation implementation = context.nodeContext.functions().getQualified(
-                function,
-                context.txnCtx.sessionSettings().searchPath()
-            );
+            FunctionImplementation implementation = context.nodeContext.functions().getQualified(function);
             if (implementation instanceof FunctionToQuery funcToQuery) {
                 Query query;
                 try {
@@ -262,9 +259,7 @@ public class LuceneQueryBuilder {
         private Query queryFromInnerFunction(Function parent, Context context) {
             for (Symbol arg : parent.arguments()) {
                 if (arg instanceof Function inner) {
-                    FunctionImplementation implementation = context.nodeContext.functions().getQualified(
-                        inner, context.txnCtx.sessionSettings().searchPath()
-                    );
+                    FunctionImplementation implementation = context.nodeContext.functions().getQualified(inner);
                     Query query = implementation instanceof FunctionToQuery funcToQuery
                         ? funcToQuery.toQuery(parent, inner, context)
                         : null;

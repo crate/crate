@@ -201,10 +201,7 @@ public class InputFactory {
 
         @Override
         public Input<?> visitAggregation(Aggregation aggregation, Void context) {
-            FunctionImplementation impl = nodeCtx.functions().getQualified(
-                aggregation,
-                txnCtx.sessionSettings().searchPath()
-            );
+            FunctionImplementation impl = nodeCtx.functions().getQualified(aggregation);
             assert impl != null : "Function implementation not found using full qualified lookup";
 
             //noinspection unchecked
