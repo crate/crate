@@ -419,12 +419,14 @@ public class DDLIntegrationTest extends SQLIntegrationTestCase {
         assertThat(printedTable(response.rows()), is(
             "doc| t| CHECK| check_id_ge_zero\n" +
             "doc| t| CHECK| check_qty_gt_zero\n" +
+            "doc| t| CHECK| doc_t_id_not_null\n" +
             "doc| t| PRIMARY KEY| t_pk\n"
         ));
         execute("alter table t drop constraint check_id_ge_zero");
         execute(selectCheckConstraintsStmt);
         assertThat(printedTable(response.rows()), is(
             "doc| t| CHECK| check_qty_gt_zero\n" +
+            "doc| t| CHECK| doc_t_id_not_null\n" +
             "doc| t| PRIMARY KEY| t_pk\n"
         ));
         execute("insert into t(id, qty) values(-42, 100)");
@@ -470,12 +472,21 @@ public class DDLIntegrationTest extends SQLIntegrationTestCase {
                 "clustered into 1 shards " +
                 "with (number_of_replicas=0)");
         ensureYellow();
-        execute("alter table t add column name string primary key");
-        execute("select constraint_name from information_schema.table_constraints " +
-                "where table_name = 't' and table_schema = 'doc' and constraint_type = 'PRIMARY KEY'");
+        response = execute("select constraint_name from information_schema.table_constraints " +
+            "where table_name = 't' and table_schema = 'doc' order by constraint_name");
+        assertThat(response.rowCount(), is(2L));
+        assertThat(response.rows()[0][0], is("doc_t_id_not_null"));
+        assertThat(response.rows()[1][0], is("t_pk"));
 
-        assertThat(response.rowCount(), is(1L));
-        assertThat(response.rows()[0][0], is("t_pk"));
+        execute("alter table t add column name string primary key");
+        response = execute("select constraint_name from information_schema.table_constraints " +
+                "where table_name = 't' and table_schema = 'doc' order by constraint_name");
+
+        assertThat(response.rowCount(), is(3L));
+        assertThat(response.rows()[0][0], is("doc_t_id_not_null"));
+        assertThat(response.rows()[1][0], is("doc_t_name_not_null"));
+        assertThat(response.rows()[2][0], is("t_pk"));
+
     }
 
     @Test

@@ -22,7 +22,7 @@ existing user-created doc table in the cluster::
     | SHOW CREATE TABLE doc.my_table                      |
     +-----------------------------------------------------+
     | CREATE TABLE IF NOT EXISTS "doc"."my_table" (       |
-    |    "first_column" INTEGER,                          |
+    |    "first_column" INTEGER NOT NULL,                          |
     |    "second_column" TEXT,                            |
     |    "third_column" TIMESTAMP WITH TIME ZONE,         |
     |    "fourth_column" OBJECT(STRICT) AS (              |
