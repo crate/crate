@@ -219,6 +219,8 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Fixed an issue that caused ``col IS NULL`` to match empty arrays.
+
 - Fixed an issue that caused ``col IS NULL`` expressions to match rows where
   ``col`` is not ``null`` if ``col`` had ``INDEX OFF`` and ``STORAGE WITH
   (columnstore = false)`` set.
