@@ -691,7 +691,7 @@ public abstract class SQLIntegrationTestCase extends ESIntegTestCase {
                     Lists2.map(argTypes, t -> Literal.of(t, null)),
                     searchPath);
                 assertThat(func, is(not(nullValue())));
-                assertThat(func.info().ident().argumentTypes(), is(equalTo(argTypes)));
+                assertThat(func.boundSignature().getArgumentDataTypes(), is(equalTo(argTypes)));
             }
         }, 20L, TimeUnit.SECONDS);
     }
@@ -708,7 +708,7 @@ public abstract class SQLIntegrationTestCase extends ESIntegTestCase {
                         // arguments will be returned. Therefore, we have to assert that
                         // the provided arguments do not match the arguments of the resolved
                         // function if the function was deleted.
-                        assertThat(func.info().ident().argumentTypes(), not(equalTo(Symbols.typeView(arguments))));
+                        assertThat(func.boundSignature().getArgumentDataTypes(), not(equalTo(Symbols.typeView(arguments))));
                     }
                 } catch (UnsupportedOperationException e) {
                     assertThat(e.getMessage().startsWith("Unknown function"), is(true));

@@ -21,25 +21,16 @@
 
 package io.crate.metadata;
 
+import javax.annotation.Nullable;
+
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.functions.Signature;
-
-import javax.annotation.Nullable;
 
 /**
  * Base interface for function implementations.
  */
 public interface FunctionImplementation {
-
-    /**
-     * @deprecated Use {@link #signature()} instead. Will be removed with next major version.
-     *
-     * Provides meta information about this function implementation.
-     */
-    default FunctionInfo info() {
-        return FunctionInfo.of(boundSignature());
-    }
 
     /**
      * Return the declared signature for this implementation.

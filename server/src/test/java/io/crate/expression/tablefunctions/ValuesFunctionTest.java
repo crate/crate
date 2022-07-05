@@ -21,17 +21,18 @@
 
 package io.crate.expression.tablefunctions;
 
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.Matchers.contains;
+
+import java.util.List;
+
+import org.junit.Test;
+
 import io.crate.expression.symbol.Function;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.types.DataTypes;
 import io.crate.types.RowType;
-import org.junit.Test;
-
-import java.util.List;
-
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.Matchers.contains;
 
 public class ValuesFunctionTest extends AbstractTableFunctionsTest {
 
@@ -96,8 +97,7 @@ public class ValuesFunctionTest extends AbstractTableFunctionsTest {
         Function function = (Function) sqlExpressions.asSymbol("_values([['a', 'b']])");
 
         var funcImplementation = (TableFunctionImplementation<?>) sqlExpressions.nodeCtx.functions().getQualified(
-            function,
-            txnCtx.sessionSettings().searchPath()
+            function
         );
 
         assertThat(funcImplementation.returnType(), instanceOf(RowType.class));
@@ -117,8 +117,7 @@ public class ValuesFunctionTest extends AbstractTableFunctionsTest {
     public void test_bound_signature_return_type_resolves_correct_row_type_parameters() {
         var function = (Function) sqlExpressions.asSymbol("_values([1], ['a'], [{}])");
         var functionImplementation = (TableFunctionImplementation<?>) sqlExpressions.nodeCtx.functions().getQualified(
-            function,
-            txnCtx.sessionSettings().searchPath()
+            function
         );
         assertThat(
             functionImplementation.boundSignature().getReturnType().createType().getTypeParameters(),

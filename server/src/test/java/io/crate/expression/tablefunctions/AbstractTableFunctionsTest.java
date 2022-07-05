@@ -82,8 +82,7 @@ public abstract class AbstractTableFunctionsTest extends ESTestCase {
 
         var function = (Function) functionSymbol;
         var functionImplementation = (TableFunctionImplementation<?>) sqlExpressions.nodeCtx.functions().getQualified(
-            function,
-            txnCtx.sessionSettings().searchPath()
+            function
         );
 
         if (functionImplementation.returnType().numElements() > 1) {
@@ -108,7 +107,7 @@ public abstract class AbstractTableFunctionsTest extends ESTestCase {
         functionSymbol = sqlExpressions.normalize(functionSymbol);
         assertThat("function expression was normalized, compile would not be hit", functionSymbol, not(instanceOf(Literal.class)));
         Function function = (Function) functionSymbol;
-        Scalar scalar = (Scalar) sqlExpressions.nodeCtx.functions().getQualified(function, txnCtx.sessionSettings().searchPath());
+        Scalar scalar = (Scalar) sqlExpressions.nodeCtx.functions().getQualified(function);
         assertThat("Function implementation not found using full qualified lookup", scalar, Matchers.notNullValue());
         Scalar compiled = scalar.compile(function.arguments(), "dummy", () -> List.of(User.CRATE_USER));
         assertThat(compiled, matcher.apply(scalar));

@@ -21,14 +21,10 @@
 
 package io.crate.metadata;
 
-import io.crate.expression.symbol.Aggregation;
-import io.crate.expression.symbol.Function;
-import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.functions.Signature;
-import org.elasticsearch.test.ESTestCase;
-import io.crate.types.DataTypes;
-import org.junit.Test;
+import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
+import static io.crate.types.TypeSignature.parseTypeSignature;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.is;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -37,10 +33,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
 
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-import static io.crate.types.TypeSignature.parseTypeSignature;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.is;
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
+
+import io.crate.expression.symbol.Aggregation;
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.functions.Signature;
+import io.crate.types.DataTypes;
 
 public class FunctionsTest extends ESTestCase {
 
@@ -103,7 +104,7 @@ public class FunctionsTest extends ESTestCase {
                 new DummyFunction(signature)
         );
         var impl = resolve("foo", List.of(Literal.of("hoschi")));
-        assertThat(impl.info().ident().argumentTypes(), contains(DataTypes.STRING));
+        assertThat(impl.boundSignature().getArgumentDataTypes(), contains(DataTypes.STRING));
     }
 
     @Test
@@ -118,7 +119,7 @@ public class FunctionsTest extends ESTestCase {
                 new DummyFunction(signature)
         );
         var impl = resolve("foo", List.of(Literal.of(1L)));
-        assertThat(impl.info().ident().argumentTypes(), contains(DataTypes.INTEGER));
+        assertThat(impl.boundSignature().getArgumentDataTypes(), contains(DataTypes.INTEGER));
     }
 
     @Test
@@ -145,7 +146,7 @@ public class FunctionsTest extends ESTestCase {
         var impl = resolve("foo", List.of(Literal.of(1L)));
 
         // float is more specific than double
-        assertThat(impl.info().ident().argumentTypes(), contains(DataTypes.FLOAT));
+        assertThat(impl.boundSignature().getArgumentDataTypes(), contains(DataTypes.FLOAT));
     }
 
     @Test
@@ -170,7 +171,7 @@ public class FunctionsTest extends ESTestCase {
         );
 
         var impl = resolve("foo", List.of(Literal.of(DataTypes.UNDEFINED, null)));
-        assertThat(impl.info().ident().argumentTypes(), contains(DataTypes.STRING));
+        assertThat(impl.boundSignature().getArgumentDataTypes(), contains(DataTypes.STRING));
     }
 
     @Test
@@ -195,7 +196,7 @@ public class FunctionsTest extends ESTestCase {
         );
 
         var impl = resolve("foo", List.of(Literal.of(DataTypes.UNDEFINED, null)));
-        assertThat(impl.info().ident().argumentTypes(), contains(DataTypes.STRING));
+        assertThat(impl.boundSignature().getArgumentDataTypes(), contains(DataTypes.STRING));
     }
 
     @Test
@@ -234,7 +235,7 @@ public class FunctionsTest extends ESTestCase {
         );
 
         var impl = resolve("foo", List.of(Literal.of(1), Literal.of(1L)));
-        assertThat(impl.info().ident().argumentTypes(), contains(DataTypes.INTEGER, DataTypes.INTEGER));
+        assertThat(impl.boundSignature().getArgumentDataTypes(), contains(DataTypes.INTEGER, DataTypes.INTEGER));
     }
 
     @Test
@@ -253,7 +254,7 @@ public class FunctionsTest extends ESTestCase {
         );
 
         var func = new Function(dummyFunction.signature(), List.of(Literal.of("hoschi")), DataTypes.INTEGER);
-        var funcImpl = createFunctions().getQualified(func, SearchPath.pathWithPGCatalogAndDoc());
+        var funcImpl = createFunctions().getQualified(func);
 
         assertThat(funcImpl, is(dummyFunction));
     }
@@ -274,7 +275,7 @@ public class FunctionsTest extends ESTestCase {
         );
 
         var agg = new Aggregation(dummyFunction.signature, DataTypes.STRING, List.of(Literal.of("hoschi")));
-        var funcImpl = createFunctions().getQualified(agg, SearchPath.pathWithPGCatalogAndDoc());
+        var funcImpl = createFunctions().getQualified(agg);
 
         assertThat(funcImpl, is(dummyFunction));
     }

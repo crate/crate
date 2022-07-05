@@ -21,6 +21,15 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
+import static org.hamcrest.CoreMatchers.is;
+
+import java.math.BigDecimal;
+import java.util.List;
+
+import org.elasticsearch.Version;
+import org.hamcrest.Matchers;
+import org.junit.Test;
+
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.aggregation.impl.average.AverageAggregation;
 import io.crate.execution.engine.aggregation.impl.average.numeric.NumericAverageState;
@@ -32,14 +41,6 @@ import io.crate.operation.aggregation.AggregationTestCase;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.NumericType;
-import org.elasticsearch.Version;
-import org.hamcrest.Matchers;
-import org.junit.Test;
-
-import java.math.BigDecimal;
-import java.util.List;
-
-import static org.hamcrest.CoreMatchers.is;
 
 public class AverageAggregationTest extends AggregationTestCase {
 
@@ -71,8 +72,8 @@ public class AverageAggregationTest extends AggregationTestCase {
     @Test
     public void testReturnType() throws Exception {
         // Return type is fixed to Double
-        assertEquals(DataTypes.DOUBLE, getFunction("avg").info().returnType());
-        assertEquals(DataTypes.DOUBLE, getFunction("mean").info().returnType());
+        assertEquals(DataTypes.DOUBLE, getFunction("avg").boundSignature().getReturnType().createType());
+        assertEquals(DataTypes.DOUBLE, getFunction("mean").boundSignature().getReturnType().createType());
     }
 
     private FunctionImplementation getFunction(String name) {

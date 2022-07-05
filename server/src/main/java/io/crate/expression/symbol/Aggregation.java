@@ -21,26 +21,25 @@
 
 package io.crate.expression.symbol;
 
-import io.crate.expression.symbol.format.Style;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.functions.Signature;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
+import static java.util.Objects.requireNonNull;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
 
-import static java.util.Objects.requireNonNull;
+import javax.annotation.Nullable;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+
+import io.crate.expression.symbol.format.Style;
+import io.crate.metadata.functions.Signature;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
 public class Aggregation implements Symbol {
 
-    private final FunctionInfo functionInfo;
     private final Signature signature;
     private final DataType<?> boundSignatureReturnType;
     private final List<Symbol> inputs;
@@ -49,7 +48,6 @@ public class Aggregation implements Symbol {
 
     public Aggregation(Signature signature, DataType<?> valueType, List<Symbol> inputs) {
         this(signature,
-            FunctionInfo.of(signature, Symbols.typeView(inputs), valueType),
             valueType,
             valueType,
             inputs,
@@ -58,7 +56,6 @@ public class Aggregation implements Symbol {
     }
 
     public Aggregation(Signature signature,
-                       FunctionInfo functionInfo,
                        DataType<?> boundSignatureReturnType,
                        DataType<?> valueType,
                        List<Symbol> inputs,
@@ -67,7 +64,6 @@ public class Aggregation implements Symbol {
         requireNonNull(filter, "filter must not be null");
 
         this.valueType = valueType;
-        this.functionInfo = functionInfo;
         this.signature = signature;
         this.boundSignatureReturnType = boundSignatureReturnType;
         this.inputs = inputs;
@@ -75,7 +71,10 @@ public class Aggregation implements Symbol {
     }
 
     public Aggregation(StreamInput in) throws IOException {
-        functionInfo = new FunctionInfo(in);
+        Signature generatedSignature = null;
+        if (in.getVersion().before(Version.V_5_0_0)) {
+            generatedSignature = Signature.readFromFunctionInfo(in);
+        }
         valueType = DataTypes.fromStream(in);
         if (in.getVersion().onOrAfter(Version.V_4_1_0)) {
             filter = Symbols.fromStream(in);
@@ -83,11 +82,15 @@ public class Aggregation implements Symbol {
             filter = Literal.BOOLEAN_TRUE;
         }
         inputs = Symbols.listFromStream(in);
-        if (in.getVersion().onOrAfter(Version.V_4_2_0) && in.readBoolean()) {
+        if (in.getVersion().onOrAfter(Version.V_4_2_0)) {
+            if (in.getVersion().before(Version.V_5_0_0)) {
+                in.readBoolean();
+            }
             signature = new Signature(in);
             boundSignatureReturnType = DataTypes.fromStream(in);
         } else {
-            signature = null;
+            assert generatedSignature != null : "expecting a non-null generated signature";
+            signature = generatedSignature;
             boundSignatureReturnType = valueType;
         }
     }
@@ -111,13 +114,6 @@ public class Aggregation implements Symbol {
         return boundSignatureReturnType;
     }
 
-    /**
-     * @deprecated Use {{@link #signature()}} instead. Will be removed with next major version.
-     */
-    public FunctionIdent functionIdent() {
-        return functionInfo.ident();
-    }
-
     @Nullable
     public Signature signature() {
         return signature;
@@ -133,18 +129,20 @@ public class Aggregation implements Symbol {
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        functionInfo.writeTo(out);
+        if (out.getVersion().before(Version.V_5_0_0)) {
+            signature.writeAsFunctionInfo(out);
+        }
         DataTypes.toStream(valueType, out);
         if (out.getVersion().onOrAfter(Version.V_4_1_0)) {
             Symbols.toStream(filter, out);
         }
         Symbols.toStream(inputs, out);
         if (out.getVersion().onOrAfter(Version.V_4_2_0)) {
-            out.writeBoolean(signature != null);
-            if (signature != null) {
-                signature.writeTo(out);
-                DataTypes.toStream(boundSignatureReturnType, out);
+            if (out.getVersion().before(Version.V_5_0_0)) {
+                out.writeBoolean(true);
             }
+            signature.writeTo(out);
+            DataTypes.toStream(boundSignatureReturnType, out);
         }
     }
 
@@ -157,7 +155,7 @@ public class Aggregation implements Symbol {
             return false;
         }
         Aggregation that = (Aggregation) o;
-        return Objects.equals(functionInfo, that.functionInfo) &&
+        return Objects.equals(signature, that.signature) &&
                Objects.equals(inputs, that.inputs) &&
                Objects.equals(valueType, that.valueType) &&
                Objects.equals(filter, that.filter);
@@ -165,7 +163,7 @@ public class Aggregation implements Symbol {
 
     @Override
     public int hashCode() {
-        return Objects.hash(functionInfo, inputs, valueType, filter);
+        return Objects.hash(signature, inputs, valueType, filter);
     }
 
     @Override
@@ -175,7 +173,7 @@ public class Aggregation implements Symbol {
 
     @Override
     public String toString(Style style) {
-        StringBuilder sb = new StringBuilder(functionInfo.ident().name())
+        StringBuilder sb = new StringBuilder(signature.getName().name())
             .append("(");
         for (int i = 0; i < inputs.size(); i++) {
             sb.append(inputs.get(i).toString(style));

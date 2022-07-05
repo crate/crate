@@ -21,13 +21,13 @@
 
 package io.crate.analyze.validator;
 
+import java.util.Collection;
+import java.util.Locale;
+
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.MatchPredicate;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
-
-import java.util.Collection;
-import java.util.Locale;
 
 public class SelectSymbolValidator {
 
@@ -43,14 +43,14 @@ public class SelectSymbolValidator {
 
         @Override
         public Void visitFunction(Function symbol, Void context) {
-            switch (symbol.type()) {
+            switch (symbol.signature().getKind()) {
                 case SCALAR:
                 case AGGREGATE:
                 case TABLE:
                     break;
                 default:
                     throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
-                        "FunctionInfo.Type %s not handled", symbol.type()));
+                        "FunctionInfo.Type %s not handled", symbol.signature().getKind()));
             }
             for (Symbol arg : symbol.arguments()) {
                 arg.accept(this, context);

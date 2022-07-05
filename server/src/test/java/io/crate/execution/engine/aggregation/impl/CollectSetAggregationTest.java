@@ -21,6 +21,16 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+
+import java.util.List;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.hamcrest.Matchers;
+import org.junit.Test;
+
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.expression.symbol.Literal;
@@ -31,15 +41,6 @@ import io.crate.operation.aggregation.AggregationTestCase;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.hamcrest.Matchers;
-import org.junit.Test;
-
-import java.util.List;
-
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.Matchers.containsInAnyOrder;
 
 public class CollectSetAggregationTest extends AggregationTestCase {
 
@@ -59,7 +60,7 @@ public class CollectSetAggregationTest extends AggregationTestCase {
     public void testReturnType() throws Exception {
         FunctionImplementation collectSet = nodeCtx.functions().get(
             null, "collect_set", List.of(Literal.of(DataTypes.INTEGER, null)), SearchPath.pathWithPGCatalogAndDoc());
-        assertEquals(new ArrayType<>(DataTypes.INTEGER), collectSet.info().returnType());
+        assertEquals(new ArrayType<>(DataTypes.INTEGER), collectSet.boundSignature().getReturnType().createType());
     }
 
     @Test

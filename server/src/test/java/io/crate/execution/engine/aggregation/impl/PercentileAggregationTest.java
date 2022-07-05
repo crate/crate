@@ -21,6 +21,19 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
+import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
+import org.elasticsearch.Version;
+import org.junit.Before;
+import org.junit.Test;
+
 import io.crate.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.expression.symbol.Literal;
@@ -28,18 +41,6 @@ import io.crate.metadata.functions.Signature;
 import io.crate.operation.aggregation.AggregationTestCase;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.Version;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-
-import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
 
 public class PercentileAggregationTest extends AggregationTestCase {
 
@@ -98,8 +99,8 @@ public class PercentileAggregationTest extends AggregationTestCase {
 
     @Test
     public void testReturnTypes() throws Exception {
-        assertEquals(DataTypes.DOUBLE, singleArgPercentile.info().returnType());
-        assertEquals(DataTypes.DOUBLE_ARRAY, arraysPercentile.info().returnType());
+        assertEquals(DataTypes.DOUBLE, singleArgPercentile.boundSignature().getReturnType().createType());
+        assertEquals(DataTypes.DOUBLE_ARRAY, arraysPercentile.boundSignature().getReturnType().createType());
     }
 
     @Test

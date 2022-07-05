@@ -162,7 +162,7 @@ public class DocValuesAggregates {
                     aggregationReferences.add(reference);
                 }
             }
-            FunctionImplementation func = functions.getQualified(aggregation, searchPath);
+            FunctionImplementation func = functions.getQualified(aggregation);
             if (!(func instanceof AggregationFunction<?, ?> aggFunc)) {
                 throw new IllegalStateException(
                     "Expected an aggregationFunction for " + aggregation + " got: " + func);

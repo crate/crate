@@ -21,6 +21,19 @@
 
 package io.crate.expression.symbol;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
+
+import javax.annotation.Nullable;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+
 import io.crate.exceptions.ConversionException;
 import io.crate.execution.engine.aggregation.impl.CountAggregation;
 import io.crate.expression.operator.Operator;
@@ -45,26 +58,12 @@ import io.crate.expression.scalar.timestamp.CurrentTimeFunction;
 import io.crate.expression.scalar.timestamp.CurrentTimestampFunction;
 import io.crate.expression.symbol.format.MatchPrinter;
 import io.crate.expression.symbol.format.Style;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.FunctionName;
-import io.crate.metadata.FunctionType;
 import io.crate.metadata.Reference;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-
-import javax.annotation.Nullable;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
 
 public class Function implements Symbol, Cloneable {
 
@@ -79,26 +78,31 @@ public class Function implements Symbol, Cloneable {
 
     private final List<Symbol> arguments;
     protected final DataType<?> returnType;
-    private final FunctionInfo info;
-    @Nullable
     protected final Signature signature;
     @Nullable
     protected final Symbol filter;
 
     public Function(StreamInput in) throws IOException {
-        info = new FunctionInfo(in);
+        Signature generatedSignature = null;
+        if (in.getVersion().before(Version.V_5_0_0)) {
+            generatedSignature = Signature.readFromFunctionInfo(in);
+        }
         if (in.getVersion().onOrAfter(Version.V_4_1_0)) {
             filter = Symbols.nullableFromStream(in);
         } else {
             filter = null;
         }
         arguments = List.copyOf(Symbols.listFromStream(in));
-        if (in.getVersion().onOrAfter(Version.V_4_2_0) && in.readBoolean()) {
+        if (in.getVersion().onOrAfter(Version.V_4_2_0)) {
+            if (in.getVersion().before(Version.V_5_0_0)) {
+                in.readBoolean();
+            }
             signature = new Signature(in);
             returnType = DataTypes.fromStream(in);
         } else {
-            signature = null;
-            returnType = info.returnType();
+            assert generatedSignature != null : "expecting a non-null generated signature";
+            signature = generatedSignature;
+            returnType = generatedSignature.getReturnType().createType();
         }
     }
 
@@ -107,7 +111,6 @@ public class Function implements Symbol, Cloneable {
     }
 
     public Function(Signature signature, List<Symbol> arguments, DataType<?> returnType, Symbol filter) {
-        this.info = FunctionInfo.of(signature, Symbols.typeView(arguments), returnType);
         this.signature = signature;
         this.arguments = List.copyOf(arguments);
         this.returnType = returnType;
@@ -118,64 +121,10 @@ public class Function implements Symbol, Cloneable {
         return arguments;
     }
 
-    /**
-     * @deprecated Use {{@link #signature()}} instead. Will be removed with next major version.
-     */
-    public FunctionInfo info() {
-        return info;
-    }
-
-    /**
-     * Wrapper method for BWC when symbols are retrieved from older nodes without a signature.
-     */
     public String name() {
-        if (signature != null) {
-            return signature.getName().name();
-        }
-        return info.ident().name();
+        return signature.getName().name();
     }
 
-    /**
-     * Wrapper method for BWC when symbols are retrieved from older nodes without a signature.
-     */
-    public boolean hasFeature(Scalar.Feature feature) {
-        if (signature != null) {
-            return signature.hasFeature(feature);
-        }
-        return info.hasFeature(feature);
-    }
-
-    /**
-     * Wrapper method for BWC when symbols are retrieved from older nodes without a signature.
-     */
-    public boolean isDeterministic() {
-        if (signature != null) {
-            return signature.isDeterministic();
-        }
-        return info.isDeterministic();
-    }
-
-    /**
-     * Wrapper method for BWC when symbols are retrieved from older nodes without a signature.
-     */
-    public FunctionName fqnName() {
-        if (signature != null) {
-            return signature.getName();
-        }
-        return info.ident().fqnName();
-    }
-
-    /**
-     * Wrapper method for BWC when symbols are retrieved from older nodes without a signature.
-     */
-    public FunctionType type() {
-        if (signature != null) {
-            return signature.getKind();
-        }
-        return info.type();
-    }
-
-    @Nullable
     public Signature signature() {
         return signature;
     }
@@ -192,12 +141,7 @@ public class Function implements Symbol, Cloneable {
 
     @Override
     public Symbol cast(DataType<?> targetType, CastMode... modes) {
-        String name;
-        if (signature != null) {
-            name = signature.getName().name();
-        } else {
-            name = info.ident().name();
-        }
+        String name = signature.getName().name();
         if (targetType instanceof ArrayType && name.equals(ArrayFunction.NAME)) {
             /* We treat _array(...) in a special way since it's a value constructor and no regular function
              * This allows us to do proper type inference for inserts/updates where there are assignments like
@@ -242,17 +186,19 @@ public class Function implements Symbol, Cloneable {
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        info.writeTo(out);
+        if (out.getVersion().before(Version.V_5_0_0)) {
+            signature.writeAsFunctionInfo(out);
+        }
         if (out.getVersion().onOrAfter(Version.V_4_1_0)) {
             Symbols.nullableToStream(filter, out);
         }
         Symbols.toStream(arguments, out);
         if (out.getVersion().onOrAfter(Version.V_4_2_0)) {
-            out.writeBoolean(signature != null);
-            if (signature != null) {
-                signature.writeTo(out);
-                DataTypes.toStream(returnType, out);
+            if (out.getVersion().before(Version.V_5_0_0)) {
+                out.writeBoolean(true);
             }
+            signature.writeTo(out);
+            DataTypes.toStream(returnType, out);
         }
     }
 
@@ -266,13 +212,13 @@ public class Function implements Symbol, Cloneable {
         }
         Function function = (Function) o;
         return Objects.equals(arguments, function.arguments) &&
-               Objects.equals(info, function.info) &&
+               Objects.equals(signature, function.signature) &&
                Objects.equals(filter, function.filter);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(arguments, info, filter);
+        return Objects.hash(arguments, signature, filter);
     }
 
     @Override
@@ -407,8 +353,9 @@ public class Function implements Symbol, Cloneable {
     }
 
     private void printCastFunction(StringBuilder builder, Style style) {
-        var name = info.ident().name();
-        var targetType = info.returnType();
+        var name = signature.getName().name();
+        assert arguments.size() == 2 : "Expecting 2 arguments for function " + name;
+        var targetType = arguments.get(1).valueType();
         builder
             .append(name)
             .append("(")
@@ -419,13 +366,13 @@ public class Function implements Symbol, Cloneable {
                 .append(arguments.get(1).toString(style));
         } else {
             builder.append(" AS ")
-                .append(targetType.getTypeSignature().toString());
+                .append(targetType.toString());
         }
         builder.append(")");
     }
 
     private void printExtract(StringBuilder builder, Style style) {
-        String name = info.ident().name();
+        String name = signature.getName().name();
         assert name.startsWith(ExtractFunctions.NAME_PREFIX) : "name of function passed to printExtract must start with extract_";
         String fieldName = name.substring(ExtractFunctions.NAME_PREFIX.length());
         builder.append("extract(")
@@ -437,7 +384,7 @@ public class Function implements Symbol, Cloneable {
 
     private void printOperator(StringBuilder builder, Style style, String operator) {
         if (operator == null) {
-            String name = info.ident().name();
+            String name = signature.getName().name();
             assert name.startsWith(Operator.PREFIX);
             operator = name.substring(Operator.PREFIX.length()).toUpperCase(Locale.ENGLISH);
         }
@@ -470,7 +417,7 @@ public class Function implements Symbol, Cloneable {
     }
 
     private void printFunctionWithParenthesis(StringBuilder builder, Style style) {
-        FunctionName functionName = info.ident().fqnName();
+        FunctionName functionName = signature.getName();
         builder.append(functionName.displayName());
         builder.append("(");
         for (int i = 0; i < arguments.size(); i++) {

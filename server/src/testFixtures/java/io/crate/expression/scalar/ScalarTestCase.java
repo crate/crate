@@ -140,7 +140,7 @@ public abstract class ScalarTestCase extends CrateDummyClusterServiceUnitTest {
             return;
         }
         Function function = (Function) functionSymbol;
-        FunctionImplementation impl = sqlExpressions.nodeCtx.functions().getQualified(function, txnCtx.sessionSettings().searchPath());
+        FunctionImplementation impl = sqlExpressions.nodeCtx.functions().getQualified(function);
         assertThat("Function implementation not found using full qualified lookup", impl, Matchers.notNullValue());
 
         Symbol normalized = sqlExpressions.normalize(function);
@@ -204,7 +204,7 @@ public abstract class ScalarTestCase extends CrateDummyClusterServiceUnitTest {
             });
         }
 
-        Scalar scalar = (Scalar) sqlExpressions.nodeCtx.functions().getQualified(function, txnCtx.sessionSettings().searchPath());
+        Scalar scalar = (Scalar) sqlExpressions.nodeCtx.functions().getQualified(function);
         assertThat("Function implementation not found using full qualified lookup", scalar, Matchers.notNullValue());
 
         AssertMax1ValueCallInput[] arguments = new AssertMax1ValueCallInput[function.arguments().size()];
@@ -260,7 +260,7 @@ public abstract class ScalarTestCase extends CrateDummyClusterServiceUnitTest {
         functionSymbol = sqlExpressions.normalize(functionSymbol);
         assertThat("function expression was normalized, compile would not be hit", functionSymbol, not(instanceOf(Literal.class)));
         Function function = (Function) functionSymbol;
-        Scalar scalar = (Scalar) sqlExpressions.nodeCtx.functions().getQualified(function, txnCtx.sessionSettings().searchPath());
+        Scalar scalar = (Scalar) sqlExpressions.nodeCtx.functions().getQualified(function);
         assertThat("Function implementation not found using full qualified lookup", scalar, Matchers.notNullValue());
 
         Scalar compiled = scalar.compile(function.arguments(), "dummy", userLookup);
