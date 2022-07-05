@@ -107,7 +107,7 @@ public class BitStringQueryTest extends CrateDummyClusterServiceUnitTest {
     public void test_is_not_null_on_bit_column_uses_doc_values_field_exists_query() throws Exception {
         try (var tester = builder("create table tbl (bits bit(8))").build()) {
             Query query = tester.toQuery("bits is not null");
-            assertThat(query.toString(), is("ConstantScore(DocValuesFieldExistsQuery [field=bits])"));
+            assertThat(query.toString(), is("DocValuesFieldExistsQuery [field=bits]"));
         }
     }
 
