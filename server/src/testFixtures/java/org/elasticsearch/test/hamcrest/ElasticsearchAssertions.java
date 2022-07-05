@@ -25,7 +25,6 @@ import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.ActionRequestBuilder;
-import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequestBuilder;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
@@ -72,10 +71,6 @@ public class ElasticsearchAssertions {
 
     public static void assertAcked(AcknowledgedRequestBuilder<?, ?, ?> builder) {
         assertAcked(builder.get());
-    }
-
-    public static void assertNoTimeout(ClusterHealthRequestBuilder requestBuilder) {
-        assertNoTimeout(requestBuilder.get());
     }
 
     public static void assertNoTimeout(ClusterHealthResponse response) {

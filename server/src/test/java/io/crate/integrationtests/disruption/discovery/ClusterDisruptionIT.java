@@ -21,33 +21,13 @@
 
 package io.crate.integrationtests.disruption.discovery;
 
-import io.crate.exceptions.DuplicateKeyException;
-import io.crate.integrationtests.SQLIntegrationTestCase;
-import org.apache.logging.log4j.message.ParameterizedMessage;
-import org.apache.lucene.index.CorruptIndexException;
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.NoShardAvailableActionException;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.action.shard.ShardStateAction;
-import org.elasticsearch.cluster.routing.Murmur3HashFunction;
-import org.elasticsearch.cluster.routing.ShardRouting;
-import org.elasticsearch.cluster.routing.ShardRoutingState;
-import io.crate.common.unit.TimeValue;
-import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
-import org.elasticsearch.index.shard.IndexShard;
-import org.elasticsearch.index.shard.IndexShardTestCase;
-import org.elasticsearch.indices.IndicesService;
-import org.elasticsearch.plugins.Plugin;
-import org.elasticsearch.test.ESIntegTestCase;
-import org.elasticsearch.test.InternalSettingsPlugin;
-import org.elasticsearch.test.InternalTestCluster;
-import org.elasticsearch.test.disruption.NetworkDisruption;
-import org.elasticsearch.test.disruption.NetworkDisruption.Bridge;
-import org.elasticsearch.test.disruption.NetworkDisruption.NetworkLinkDisruptionType;
-import org.elasticsearch.test.disruption.ServiceDisruptionScheme;
-import org.elasticsearch.test.junit.annotations.TestLogging;
-import org.junit.Test;
+import static io.crate.metadata.IndexParts.toIndexName;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.everyItem;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.in;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -64,13 +44,36 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
-import static io.crate.metadata.IndexParts.toIndexName;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.everyItem;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.Matchers.in;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
+import org.apache.logging.log4j.message.ParameterizedMessage;
+import org.apache.lucene.index.CorruptIndexException;
+import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.NoShardAvailableActionException;
+import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.action.shard.ShardStateAction;
+import org.elasticsearch.cluster.routing.Murmur3HashFunction;
+import org.elasticsearch.cluster.routing.ShardRouting;
+import org.elasticsearch.cluster.routing.ShardRoutingState;
+import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
+import org.elasticsearch.common.util.concurrent.FutureUtils;
+import org.elasticsearch.index.shard.IndexShard;
+import org.elasticsearch.index.shard.IndexShardTestCase;
+import org.elasticsearch.indices.IndicesService;
+import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.test.InternalSettingsPlugin;
+import org.elasticsearch.test.InternalTestCluster;
+import org.elasticsearch.test.disruption.NetworkDisruption;
+import org.elasticsearch.test.disruption.NetworkDisruption.Bridge;
+import org.elasticsearch.test.disruption.NetworkDisruption.NetworkLinkDisruptionType;
+import org.elasticsearch.test.disruption.ServiceDisruptionScheme;
+import org.elasticsearch.test.junit.annotations.TestLogging;
+import org.junit.Test;
+
+import io.crate.common.unit.TimeValue;
+import io.crate.exceptions.DuplicateKeyException;
+import io.crate.integrationtests.SQLIntegrationTestCase;
 
 /**
  * Tests various cluster operations (e.g., indexing) during disruptions.
@@ -278,7 +281,10 @@ public class ClusterDisruptionIT extends AbstractDisruptionTestCase {
         scheme.startDisrupting();
         ensureStableCluster(2, notIsolatedNode);
         String indexName = toIndexName(sqlExecutor.getCurrentSchema(), "t", null);
-        assertFalse(client(notIsolatedNode).admin().cluster().prepareHealth(indexName).setWaitForYellowStatus().get().isTimedOut());
+        assertFalse(FutureUtils.get(
+            client(notIsolatedNode).admin().cluster().health(
+                new ClusterHealthRequest(indexName).waitForYellowStatus()
+            )).isTimedOut());
 
         execute("insert into t (id, x) values (1, 10)", null, notIsolatedNode);
 

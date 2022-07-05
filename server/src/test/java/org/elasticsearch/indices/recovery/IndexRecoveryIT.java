@@ -53,6 +53,7 @@ import java.util.stream.StreamSupport;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.util.SetOnce;
 import org.elasticsearch.Version;
+import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.cluster.snapshots.get.GetSnapshotsAction;
 import org.elasticsearch.action.admin.cluster.snapshots.get.GetSnapshotsRequest;
@@ -573,7 +574,7 @@ public class IndexRecoveryIT extends SQLIntegrationTestCase {
 
         logger.info("--> start node C");
         String nodeC = internalCluster().startNode();
-        assertFalse(client().admin().cluster().prepareHealth().setWaitForNodes("3").get().isTimedOut());
+        assertFalse(client().admin().cluster().health(new ClusterHealthRequest().waitForNodes("3")).get().isTimedOut());
 
         logger.info("--> slowing down recoveries");
         slowDownRecovery(shardSize);
@@ -713,7 +714,7 @@ public class IndexRecoveryIT extends SQLIntegrationTestCase {
         final String redNodeName = internalCluster()
             .startNode(Settings.builder().put("node.attr.color", "red").put(nodeSettings).build());
 
-        ClusterHealthResponse response = client().admin().cluster().prepareHealth().setWaitForNodes(">=3").get();
+        ClusterHealthResponse response = client().admin().cluster().health(new ClusterHealthRequest().waitForNodes(">=3")).get();
         assertThat(response.isTimedOut(), is(false));
 
         execute("CREATE TABLE doc." + indexName + " (id int) CLUSTERED INTO 1 SHARDS " +
@@ -895,7 +896,7 @@ public class IndexRecoveryIT extends SQLIntegrationTestCase {
         final String redNodeName = internalCluster()
             .startNode(Settings.builder().put("node.attr.color", "red").put(nodeSettings).build());
 
-        ClusterHealthResponse response = client().admin().cluster().prepareHealth().setWaitForNodes(">=3").get();
+        ClusterHealthResponse response = client().admin().cluster().health(new ClusterHealthRequest().waitForNodes(">=3")).get();
         assertThat(response.isTimedOut(), is(false));
 
         execute("CREATE TABLE doc." + indexName + " (id int) CLUSTERED INTO 1 SHARDS " +
@@ -1270,7 +1271,7 @@ public class IndexRecoveryIT extends SQLIntegrationTestCase {
             internalCluster().ensureAtLeastNumDataNodes(3);
             execute("ALTER TABLE doc.test RESET (\"routing.allocation.include._name\")");
             execute("ALTER TABLE doc.test SET (number_of_replicas = 2)");
-            assertFalse(client().admin().cluster().prepareHealth("test").setWaitForActiveShards(2).get().isTimedOut());
+            assertFalse(client().admin().cluster().health(new ClusterHealthRequest("test").waitForActiveShards(2)).get().isTimedOut());
         } finally {
             allowToCompletePhase1Latch.countDown();
         }
@@ -1473,9 +1474,12 @@ public class IndexRecoveryIT extends SQLIntegrationTestCase {
                                       new InternalTestCluster.RestartCallback() {
                                           @Override
                                           public Settings onNodeStopped(String nodeName) throws Exception {
-                                              assertFalse(client().admin().cluster().prepareHealth()
-                                                              .setWaitForNodes(Integer.toString(discoveryNodes.getSize() - 1))
-                                                              .setWaitForEvents(Priority.LANGUID).get().isTimedOut());
+                                              assertFalse(
+                                                    client().admin().cluster().health(
+                                                        new ClusterHealthRequest()
+                                                            .waitForNodes(Integer.toString(discoveryNodes.getSize() - 1))
+                                                            .waitForEvents(Priority.LANGUID)
+                                                    ).get().isTimedOut());
 
                                               final PlainActionFuture<ReplicationResponse> future = new PlainActionFuture<>();
                                               primary.removeRetentionLease(ReplicationTracker.getPeerRecoveryRetentionLeaseId(replicaShardRouting), future);
@@ -1521,25 +1525,35 @@ public class IndexRecoveryIT extends SQLIntegrationTestCase {
                                                                  discoveryNodes.get(indexShardRoutingTable.primaryShard().currentNodeId()).getName()).getShardOrNull(shardId);
 
         final ShardRouting replicaShardRouting = indexShardRoutingTable.replicaShards().get(0);
-        internalCluster().restartNode(discoveryNodes.get(replicaShardRouting.currentNodeId()).getName(),
-                                      new InternalTestCluster.RestartCallback() {
-                                          @Override
-                                          public Settings onNodeStopped(String nodeName) throws Exception {
-                                              assertFalse(client().admin().cluster().prepareHealth()
-                                                              .setWaitForNodes(Integer.toString(discoveryNodes.getSize() - 1))
-                                                              .setWaitForEvents(Priority.LANGUID).get().isTimedOut());
+        internalCluster().restartNode(
+            discoveryNodes.get(replicaShardRouting.currentNodeId()).getName(),
+            new InternalTestCluster.RestartCallback() {
+                @Override
+                public Settings onNodeStopped(String nodeName) throws Exception {
+                    assertFalse(
+                        client().admin().cluster().health(
+                            new ClusterHealthRequest()
+                                .waitForNodes(Integer.toString(discoveryNodes.getSize() - 1))
+                                .waitForEvents(Priority.LANGUID)
+                            ).get().isTimedOut()
+                    );
 
-                                              execute("INSERT INTO doc.test (num) VALUES (?)", args);
+                    execute("INSERT INTO doc.test (num) VALUES (?)", args);
 
-                                              // We do not guarantee that the replica can recover locally all the way to its own global checkpoint before starting
-                                              // to recover from the primary, so we must be careful not to perform an operations-based recovery if this would require
-                                              // some operations that are not being retained. Emulate this by advancing the lease ahead of the replica's GCP:
-                                              primary.renewRetentionLease(ReplicationTracker.getPeerRecoveryRetentionLeaseId(replicaShardRouting),
-                                                                          primary.seqNoStats().getMaxSeqNo() + 1, ReplicationTracker.PEER_RECOVERY_RETENTION_LEASE_SOURCE);
+                    // We do not guarantee that the replica can recover locally all the way to its
+                    // own global checkpoint before starting
+                    // to recover from the primary, so we must be careful not to perform an
+                    // operations-based recovery if this would require
+                    // some operations that are not being retained. Emulate this by advancing the
+                    // lease ahead of the replica's GCP:
+                    primary.renewRetentionLease(
+                            ReplicationTracker.getPeerRecoveryRetentionLeaseId(replicaShardRouting),
+                            primary.seqNoStats().getMaxSeqNo() + 1,
+                            ReplicationTracker.PEER_RECOVERY_RETENTION_LEASE_SOURCE);
 
-                                              return super.onNodeStopped(nodeName);
-                                          }
-                                      });
+                    return super.onNodeStopped(nodeName);
+                }
+            });
 
         ensureGreen(indexName);
 
@@ -1610,9 +1624,12 @@ public class IndexRecoveryIT extends SQLIntegrationTestCase {
                                       new InternalTestCluster.RestartCallback() {
                                           @Override
                                           public Settings onNodeStopped(String nodeName) throws Exception {
-                                              assertFalse(client().admin().cluster().prepareHealth()
-                                                              .setWaitForNodes(Integer.toString(discoveryNodes.getSize() - 1))
-                                                              .setWaitForEvents(Priority.LANGUID).get().isTimedOut());
+                                              assertFalse(
+                                                    client().admin().cluster().health(
+                                                        new ClusterHealthRequest()
+                                                            .waitForNodes(Integer.toString(discoveryNodes.getSize() - 1))
+                                                            .waitForEvents(Priority.LANGUID)
+                                                    ).get().isTimedOut());
 
                                               final int newDocCount = Math.toIntExact(Math.round(Math.ceil(
                                                   (1 + Math.ceil(docCount * reasonableOperationsBasedRecoveryProportion))

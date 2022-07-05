@@ -41,10 +41,12 @@ import java.util.function.Consumer;
 
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.support.replication.ReplicationResponse;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
@@ -591,7 +593,9 @@ public class RetentionLeaseIT extends SQLIntegrationTestCase  {
             }
         );
         ensureYellowAndNoInitializingShards("tbl");
-        assertFalse(client().admin().cluster().prepareHealth("tbl").setWaitForActiveShards(numDataNodes).get().isTimedOut());
+        var clusterHealthResponse = FutureUtils.get(
+            client().admin().cluster().health(new ClusterHealthRequest("tbl").waitForActiveShards(numDataNodes)));
+        assertFalse(clusterHealthResponse.isTimedOut());
 
         final String primaryShardNodeId = clusterService().state().routingTable().index("tbl").shard(0).primaryShard().currentNodeId();
         final String primaryShardNodeName = clusterService().state().nodes().get(primaryShardNodeId).getName();

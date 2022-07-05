@@ -21,17 +21,21 @@
 
 package io.crate.integrationtests;
 
-import com.carrotsearch.hppc.cursors.ObjectCursor;
-import io.crate.testing.TestingHelpers;
+import static org.hamcrest.Matchers.is;
+
+import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
 import org.elasticsearch.cluster.routing.allocation.command.MoveAllocationCommand;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
-import io.crate.common.unit.TimeValue;
+import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
 
-import static org.hamcrest.Matchers.is;
+import com.carrotsearch.hppc.cursors.ObjectCursor;
+
+import io.crate.common.unit.TimeValue;
+import io.crate.testing.TestingHelpers;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2)
 public class RemoteCollectorIntegrationTest extends SQLIntegrationTestCase {
@@ -67,10 +71,12 @@ public class RemoteCollectorIntegrationTest extends SQLIntegrationTestCase {
             .add(new MoveAllocationCommand(getFqn("t"), 0, sourceNodeId, targetNodeId))
             .execute().actionGet();
 
-        client().admin().cluster().prepareHealth(getFqn("t"))
-            .setWaitForEvents(Priority.LANGUID)
-            .setWaitForNoRelocatingShards(true)
-            .setTimeout(TimeValue.timeValueSeconds(5)).execute().actionGet();
+        FutureUtils.get(client().admin().cluster().health(
+            new ClusterHealthRequest(getFqn("t"))
+                .waitForEvents(Priority.LANGUID)
+                .waitForNoRelocatingShards(true)
+                .timeout(TimeValue.timeValueSeconds(5))
+            ));
 
         execute(plan).getResult();
 

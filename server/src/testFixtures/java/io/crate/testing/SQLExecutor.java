@@ -61,7 +61,6 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.blob.BlobSchemaInfo;
-import io.crate.metadata.cluster.DDLClusterStateHelpers;
 import io.crate.metadata.doc.DocSchemaInfoFactory;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.DocTableInfoFactory;

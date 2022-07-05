@@ -21,29 +21,9 @@
 
 package io.crate.integrationtests;
 
-import com.carrotsearch.randomizedtesting.ThreadFilter;
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakFilters;
-import io.crate.blob.PutChunkAction;
-import io.crate.blob.PutChunkRequest;
-import io.crate.blob.StartBlobAction;
-import io.crate.blob.StartBlobRequest;
-import io.crate.blob.v2.BlobAdminClient;
-import io.crate.blob.v2.BlobIndex;
-import io.crate.blob.v2.BlobIndicesService;
-import io.crate.blob.v2.BlobShard;
-import io.crate.common.Hex;
-import io.crate.common.unit.TimeValue;
-import io.crate.test.utils.Blobs;
-import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
-import org.elasticsearch.client.Client;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.routing.allocation.command.MoveAllocationCommand;
-import org.elasticsearch.common.Priority;
-import org.elasticsearch.common.bytes.BytesArray;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.test.ESIntegTestCase;
-import org.junit.Test;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.core.IsEqual.equalTo;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -55,9 +35,33 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.core.IsEqual.equalTo;
+import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
+import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
+import org.elasticsearch.client.Client;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.routing.allocation.command.MoveAllocationCommand;
+import org.elasticsearch.common.Priority;
+import org.elasticsearch.common.bytes.BytesArray;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.util.concurrent.FutureUtils;
+import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.test.ESIntegTestCase;
+import org.junit.Test;
+
+import com.carrotsearch.randomizedtesting.ThreadFilter;
+import com.carrotsearch.randomizedtesting.annotations.ThreadLeakFilters;
+
+import io.crate.blob.PutChunkAction;
+import io.crate.blob.PutChunkRequest;
+import io.crate.blob.StartBlobAction;
+import io.crate.blob.StartBlobRequest;
+import io.crate.blob.v2.BlobAdminClient;
+import io.crate.blob.v2.BlobIndex;
+import io.crate.blob.v2.BlobIndicesService;
+import io.crate.blob.v2.BlobShard;
+import io.crate.common.Hex;
+import io.crate.common.unit.TimeValue;
+import io.crate.test.utils.Blobs;
 
 @ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.SUITE, numDataNodes = 0, numClientNodes = 0)
 @ThreadLeakFilters(filters = {RecoveryTests.RecoveryTestThreadFilter.class})
@@ -229,18 +233,22 @@ public class RecoveryTests extends BlobIntegrationTestBase {
             internalCluster().client(node1).admin().cluster().prepareReroute()
                 .add(new MoveAllocationCommand(BlobIndex.fullIndexName("test"), 0, fromNode, toNode))
                 .execute().actionGet();
-            ClusterHealthResponse clusterHealthResponse = internalCluster().client(node1).admin().cluster()
-                .prepareHealth()
-                .setWaitForEvents(Priority.LANGUID)
-                .setWaitForNoRelocatingShards(true)
-                .setTimeout(ACCEPTABLE_RELOCATION_TIME).execute().actionGet();
+            ClusterHealthResponse clusterHealthResponse = FutureUtils.get(internalCluster().client(node1).admin().cluster()
+                .health(
+                    new ClusterHealthRequest()
+                        .waitForEvents(Priority.LANGUID)
+                        .waitForNoRelocatingShards(true)
+                        .timeout(ACCEPTABLE_RELOCATION_TIME)
+                ));
 
             assertThat(clusterHealthResponse.isTimedOut(), equalTo(false));
-            clusterHealthResponse = internalCluster().client(node2).admin().cluster()
-                .prepareHealth()
-                .setWaitForEvents(Priority.LANGUID)
-                .setWaitForNoRelocatingShards(true)
-                .setTimeout(ACCEPTABLE_RELOCATION_TIME).execute().actionGet();
+            clusterHealthResponse = FutureUtils.get(internalCluster().client(node2).admin().cluster()
+                .health(
+                    new ClusterHealthRequest()
+                        .waitForEvents(Priority.LANGUID)
+                        .waitForNoRelocatingShards(true)
+                        .timeout(ACCEPTABLE_RELOCATION_TIME)
+                ));
             assertThat(clusterHealthResponse.isTimedOut(), equalTo(false));
             logger.trace("--> DONE relocate the shard from {} to {}", fromNode, toNode);
         }

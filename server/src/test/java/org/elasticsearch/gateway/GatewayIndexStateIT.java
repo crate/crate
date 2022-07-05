@@ -226,9 +226,13 @@ public class GatewayIndexStateIT extends SQLIntegrationTestCase {
         });
 
         logger.info("--> waiting for test index to be created");
-        ClusterHealthResponse health = client().admin().cluster().prepareHealth().setWaitForEvents(Priority.LANGUID)
-            .setIndices(tableName)
-            .execute().actionGet(REQUEST_TIMEOUT);
+        ClusterHealthResponse health = FutureUtils.get(
+            client().admin().cluster().health(
+                new ClusterHealthRequest(tableName)
+                    .waitForEvents(Priority.LANGUID)
+            ),
+            REQUEST_TIMEOUT
+        );
         assertThat(health.isTimedOut(), equalTo(false));
 
         logger.info("--> verify we have an index");
@@ -266,8 +270,15 @@ public class GatewayIndexStateIT extends SQLIntegrationTestCase {
         execute("refresh table test");
 
         logger.info("--> waiting for green status");
-        ClusterHealthResponse health = client().admin().cluster().prepareHealth().setWaitForEvents(Priority.LANGUID).setWaitForGreenStatus()
-            .setWaitForNodes("2").execute().actionGet(REQUEST_TIMEOUT);
+        ClusterHealthResponse health = FutureUtils.get(
+            client().admin().cluster().health(
+                new ClusterHealthRequest()
+                    .waitForEvents(Priority.LANGUID)
+                    .waitForGreenStatus()
+                    .waitForNodes("2")
+            ),
+            REQUEST_TIMEOUT
+        );
         assertThat(health.isTimedOut(), equalTo(false));
 
         logger.info("--> verify 1 doc in the index");
@@ -287,8 +298,15 @@ public class GatewayIndexStateIT extends SQLIntegrationTestCase {
         execute("alter table test open");
 
         logger.info("--> waiting for green status");
-        health = client().admin().cluster().prepareHealth().setWaitForEvents(Priority.LANGUID).setWaitForGreenStatus()
-            .setWaitForNodes("2").execute().actionGet(REQUEST_TIMEOUT);
+        health = FutureUtils.get(
+            client().admin().cluster().health(
+                new ClusterHealthRequest()
+                    .waitForEvents(Priority.LANGUID)
+                    .waitForGreenStatus()
+                    .waitForNodes("2")
+            ),
+            REQUEST_TIMEOUT
+        );
         assertThat(health.isTimedOut(), equalTo(false));
 
         logger.info("--> verify 1 doc in the index");
