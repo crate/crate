@@ -191,7 +191,8 @@ public class ArrayUpperFunction extends Scalar<Integer, Object> {
         }
         int cmpVal = cmpNumber.intValue();
 
-        // Only unique values are stored, so the doc-value-count represent the number of unique values
+        // For numeric types all values are stored, so the doc-value-count represents the number of not-null values
+        // Only unique values are stored for IP and TEXT types, so the doc-value-count represents the number of unique not-null  values
         // [a, a, a]
         //      -> docValueCount 1
         //      -> arrayLength   3
@@ -226,7 +227,7 @@ public class ArrayUpperFunction extends Scalar<Integer, Object> {
                 if (cmpVal == 0) {
                     return IsNullPredicate.refExistsQuery(arrayRef, context);
                 }
-                return genericAndDocValueCount(parent, context, arrayRef, valueCountIsMatch);
+                return docValueCountOrGeneric(parent, context, arrayRef, valueCountIsMatch);
 
             case GteOperator.NAME:
                 if (cmpVal == 0) {
@@ -252,6 +253,21 @@ public class ArrayUpperFunction extends Scalar<Integer, Object> {
             default:
                 throw new IllegalArgumentException("Illegal operator: " + parentName);
         }
+    }
+
+    private static Query docValueCountOrGeneric(Function parent,
+                                                 LuceneQueryBuilder.Context context,
+                                                 Reference arrayRef,
+                                                 IntPredicate valueCountIsMatch) {
+        BooleanQuery.Builder query = new BooleanQuery.Builder();
+        query.setMinimumNumberShouldMatch(1);
+        return query
+            .add(
+                numTermsPerDocQuery(arrayRef, valueCountIsMatch),
+                BooleanClause.Occur.SHOULD
+            )
+            .add(genericFunctionFilter(parent, context), BooleanClause.Occur.SHOULD)
+            .build();
     }
 
     private static Query genericAndDocValueCount(Function parent,
