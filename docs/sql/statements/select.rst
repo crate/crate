@@ -338,9 +338,10 @@ UNION
 
 The ``UNION ALL`` :ref:`operator <gloss-operator>` combines the result sets of
 two or more ``SELECT`` statements. The two ``SELECT`` statements that represent
-the direct :ref:`operands <gloss-operand>` of the ``UNION ALL`` must produce
-the same number of columns, and corresponding columns must be of the same data
-types. The result of ``UNION ALL`` may contain duplicate rows. Use
+the direct :ref:`operands <gloss-operand>` of the ``UNION ALL`` must produce the
+same number of columns, and corresponding columns must have a compatible type.
+
+The result of ``UNION ALL`` may contain duplicate rows. Use
 ``UNION DISTINCT`` or ``UNION`` to remove duplicates. You can find
 :ref:`here <sql-union>` sample usages of the variations of ``UNION``.
 

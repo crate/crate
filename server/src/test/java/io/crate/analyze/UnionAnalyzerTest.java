@@ -39,7 +39,9 @@ import io.crate.exceptions.ColumnUnknownException;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.Asserts;
 import io.crate.testing.SQLExecutor;
+import io.crate.testing.SymbolMatchers;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 
 public class UnionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -198,10 +200,12 @@ public class UnionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                 "create table v2 (obj object as (col text))"
             ).build();
 
-        Asserts.assertThrowsMatches(
-            () -> analyze("select obj from v1 union all select obj from v2"),
-            UnsupportedOperationException.class,
-            "Output columns at position 1 must be compatible for all parts of a UNION. Got `object` and `object`"
+        UnionSelect union = analyze("select obj from v1 union all select obj from v2");
+        ObjectType expectedType = ObjectType.builder().setInnerType("col", DataTypes.STRING).build();
+        assertThat(
+            "Output type is object(col::text) because text has higher precedence than int",
+            union.outputs(),
+            contains(SymbolMatchers.isField("obj", expectedType))
         );
     }
 

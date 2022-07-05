@@ -132,6 +132,9 @@ SQL Statements
 - Added support for using ``NULL`` literals in a ``UNION`` without requiring an
   explicit cast.
 
+- Changed ``UNION`` to support implicit casts if the type of expressions in the
+  first relation don't match the types in the second relation.
+
 New Types
 ---------
 

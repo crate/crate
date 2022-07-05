@@ -240,9 +240,14 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         for (int i = 0; i < leftOutputs.size(); i++) {
             Symbol leftOutput = leftOutputs.get(i);
             Symbol rightOutput = rightOutputs.get(i);
+
             DataType<?> leftType = leftOutput.valueType();
             DataType<?> rightType = rightOutput.valueType();
-            if (!DataTypes.isCompatibleType(leftType, rightType)) {
+
+            boolean isConvertable = rightType.precedes(leftType)
+                ? leftType.isConvertableTo(rightType, false)
+                : rightType.isConvertableTo(leftType, false);
+            if (!isConvertable) {
                 if (Symbol.hasLiteralValue(leftOutput, null) || Symbol.hasLiteralValue(rightOutput, null)) {
                     continue;
                 }
