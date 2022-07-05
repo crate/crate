@@ -21,20 +21,8 @@
 
 package io.crate.execution.engine.collect.files;
 
-import io.crate.analyze.CopyFromParserProperties;
-import io.crate.common.annotations.VisibleForTesting;
-import io.crate.data.BatchIterator;
-import io.crate.data.Input;
-import io.crate.data.Row;
-import io.crate.exceptions.Exceptions;
-import io.crate.execution.dsl.phases.FileUriCollectPhase;
-import io.crate.expression.InputRow;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.settings.Settings;
+import static io.crate.exceptions.Exceptions.rethrowUnchecked;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -52,70 +40,26 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Predicate;
 import java.util.zip.GZIPInputStream;
 
-import static io.crate.exceptions.Exceptions.rethrowUnchecked;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.common.settings.Settings;
+
+import io.crate.analyze.CopyFromParserProperties;
+import io.crate.common.annotations.VisibleForTesting;
+import io.crate.data.BatchIterator;
+import io.crate.data.Input;
+import io.crate.data.Row;
+import io.crate.exceptions.Exceptions;
+import io.crate.execution.dsl.phases.FileUriCollectPhase;
+import io.crate.expression.InputRow;
 
 public class FileReadingIterator implements BatchIterator<Row> {
 
     private static final Logger LOGGER = LogManager.getLogger(FileReadingIterator.class);
     private static final int MAX_SOCKET_TIMEOUT_RETRIES = 5;
-    private final Map<String, FileInputFactory> fileInputFactories;
-    private final Boolean shared;
-    private final int numReaders;
-    private final int readerNumber;
-    private final boolean compressed;
-    private static final Predicate<URI> MATCH_ALL_PREDICATE = (URI input) -> true;
-    private final List<FileInput> fileInputs;
-
-    private final Iterable<LineCollectorExpression<?>> collectorExpressions;
-
-    private volatile Throwable killed;
-    private final List<String> targetColumns;
-    private final CopyFromParserProperties parserProperties;
-    private final FileUriCollectPhase.InputFormat inputFormat;
-    private Iterator<FileInput> fileInputsIterator = null;
-    private FileInput currentInput = null;
-    private Iterator<URI> currentInputUriIterator = null;
-    private URI currentUri;
-    private BufferedReader currentReader = null;
-    private long currentLineNumber;
-    private final Row row;
-    private LineProcessor lineProcessor;
-
-    private FileReadingIterator(Collection<String> fileUris,
-                                List<? extends Input<?>> inputs,
-                                Iterable<LineCollectorExpression<?>> collectorExpressions,
-                                String compression,
-                                Map<String, FileInputFactory> fileInputFactories,
-                                Boolean shared,
-                                int numReaders,
-                                int readerNumber,
-                                List<String> targetColumns,
-                                CopyFromParserProperties parserProperties,
-                                FileUriCollectPhase.InputFormat inputFormat,
-                                Settings withClauseOptions) {
-        this.compressed = compression != null && compression.equalsIgnoreCase("gzip");
-        this.row = new InputRow(inputs);
-        this.fileInputFactories = fileInputFactories;
-        this.shared = shared;
-        this.numReaders = numReaders;
-        this.readerNumber = readerNumber;
-        this.fileInputs = fileUris.stream().map(uri -> toFileInput(uri, withClauseOptions)).filter(Objects::nonNull).toList();
-        this.collectorExpressions = collectorExpressions;
-        this.targetColumns = targetColumns;
-        this.parserProperties = parserProperties;
-        this.inputFormat = inputFormat;
-        initCollectorState();
-    }
-
-    @Override
-    public Row currentElement() {
-        return row;
-    }
-
-    @Override
-    public void kill(@Nonnull Throwable throwable) {
-        killed = throwable;
-    }
 
     public static BatchIterator<Row> newInstance(Collection<String> fileUris,
                                                  List<Input<?>> inputs,
@@ -142,6 +86,67 @@ public class FileReadingIterator implements BatchIterator<Row> {
             parserProperties,
             inputFormat,
             withClauseOptions);
+    }
+
+
+    private final Map<String, FileInputFactory> fileInputFactories;
+    private final Boolean shared;
+    private final int numReaders;
+    private final int readerNumber;
+    private final boolean compressed;
+    private static final Predicate<URI> MATCH_ALL_PREDICATE = (URI input) -> true;
+    private final List<FileInput> fileInputs;
+
+    private final Iterable<LineCollectorExpression<?>> collectorExpressions;
+
+    private volatile Throwable killed;
+    private final List<String> targetColumns;
+    private final CopyFromParserProperties parserProperties;
+    private final FileUriCollectPhase.InputFormat inputFormat;
+    private Iterator<FileInput> fileInputsIterator = null;
+    private FileInput currentInput = null;
+    private Iterator<URI> currentInputUriIterator = null;
+    private URI currentUri;
+    private BufferedReader currentReader = null;
+    private long currentLineNumber;
+    private final Row row;
+    private LineProcessor lineProcessor;
+
+    @VisibleForTesting
+    FileReadingIterator(Collection<String> fileUris,
+                        List<? extends Input<?>> inputs,
+                        Iterable<LineCollectorExpression<?>> collectorExpressions,
+                        String compression,
+                        Map<String, FileInputFactory> fileInputFactories,
+                        Boolean shared,
+                        int numReaders,
+                        int readerNumber,
+                        List<String> targetColumns,
+                        CopyFromParserProperties parserProperties,
+                        FileUriCollectPhase.InputFormat inputFormat,
+                        Settings withClauseOptions) {
+        this.compressed = compression != null && compression.equalsIgnoreCase("gzip");
+        this.row = new InputRow(inputs);
+        this.fileInputFactories = fileInputFactories;
+        this.shared = shared;
+        this.numReaders = numReaders;
+        this.readerNumber = readerNumber;
+        this.fileInputs = fileUris.stream().map(uri -> toFileInput(uri, withClauseOptions)).filter(Objects::nonNull).toList();
+        this.collectorExpressions = collectorExpressions;
+        this.targetColumns = targetColumns;
+        this.parserProperties = parserProperties;
+        this.inputFormat = inputFormat;
+        initCollectorState();
+    }
+
+    @Override
+    public Row currentElement() {
+        return row;
+    }
+
+    @Override
+    public void kill(@Nonnull Throwable throwable) {
+        killed = throwable;
     }
 
     private void initCollectorState() {
@@ -180,7 +185,12 @@ public class FileReadingIterator implements BatchIterator<Row> {
             }
         } catch (IOException e) {
             lineProcessor.setUriFailure(e.getMessage());
-            return true;
+            closeCurrentReader();
+            // If the error happens on the first line, return true so that the error is collected by {@link #currentElement()}
+            if (currentLineNumber == 0) {
+                return true;
+            }
+            return moveNext();
         } catch (Exception e) {
             lineProcessor.setParsingFailure(e.getMessage());
             return true;
@@ -226,7 +236,7 @@ public class FileReadingIterator implements BatchIterator<Row> {
             try {
                 currentReader.close();
             } catch (IOException e) {
-                LOGGER.error("Unable to close reader for {}", e, currentUri);
+                LOGGER.error("Unable to close reader for " + currentUri, e);
             }
             currentReader = null;
         }
@@ -248,7 +258,7 @@ public class FileReadingIterator implements BatchIterator<Row> {
         } catch (SocketTimeoutException e) {
             if (retry > MAX_SOCKET_TIMEOUT_RETRIES) {
                 URI uri = currentInput.uri();
-                LOGGER.info("Timeout during COPY FROM '{}' after {} retries", e, uri.toString(), retry);
+                LOGGER.error("Timeout during COPY FROM '" + uri.toString() + "' after " + retry + " retries", e);
                 throw e;
             } else {
                 long startLine = currentLineNumber + 1;
@@ -260,7 +270,7 @@ public class FileReadingIterator implements BatchIterator<Row> {
             URI uri = currentInput.uri();
             // it's nice to know which exact file/uri threw an error
             // when COPY FROM returns less rows than expected
-            LOGGER.info("Error during COPY FROM '{}'", e, uri.toString());
+            LOGGER.error("Error during COPY FROM '" + uri.toString() + "'", e);
             rethrowUnchecked(e);
         }
         return line;
@@ -326,7 +336,8 @@ public class FileReadingIterator implements BatchIterator<Row> {
         return new URLFileInput(uri);
     }
 
-    private BufferedReader createBufferedReader(InputStream inputStream) throws IOException {
+    @VisibleForTesting
+    BufferedReader createBufferedReader(InputStream inputStream) throws IOException {
         BufferedReader reader;
         if (compressed) {
             reader = new BufferedReader(new InputStreamReader(new GZIPInputStream(inputStream),
