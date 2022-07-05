@@ -46,6 +46,11 @@ Breaking Changes
   TIME ZONE <type-timestamp-with-tz>` to :ref:`TIMESTAMP WITHOUT TIME ZONE
   <type-timestamp-without-tz>` to be compatible with the SQL standard.
 
+  Tables created prior to updating to CrateDB 5.0 will remain unchanged. Tables
+  created after updating to 5.0 while using the ``TIMESTAMP`` alias will use
+  ``TIMESTAMP WITHOUT TIME ZONE``. Change the type definition to ``TIMESTAMP
+  WITH TIME ZONE`` if you want to preserve the old behavior.
+
 - Creating tables with soft deletes disabled is no longer supported.
   The setting :ref:`sql-create-table-soft-deletes-enabled` will
   always be set to ``true`` and removed in CrateDB 6.0.
@@ -61,11 +66,25 @@ Breaking Changes
   9.0.0. Refer to :ref:`store types <sql-create-table-store-type>` for
   alternatives.
 
-- Renamed column names returned from ``Table Functions``. 1) If the table
-  function is aliased and is returning a base data type (scalar type), the
-  table alias is used as the column name. 2) If the table function is not
-  aliased and is returning a base data type, the table function name is used
-  as the column name.
+- Changed the default column name for the ``generate_series``,
+  ``regexp_matches`` and ``unnest`` table functions. Previously they'd default
+  to ``col1`` as column name. The behavior changed to use the table function's
+  name as column name unless the function returns more than one column. Some
+  examples:
+
+    ``cr> SELECT * FROM generate_series(1, 2);``
+
+  This used to return a column named ``col1`` and now returns a column named
+  ``generate_series``
+
+    ``cr> SELECT * FROM generate_series(1, 2) as numbers;``
+
+  This used to return a column named ``col1`` and now returns a column named
+  ``numbers``
+
+  To ease migration we added a new setting
+  (:ref:`legacy.table_function_column_naming
+  <legacy.table_function_column_naming>`.) to opt-out of this new behavior.
 
 - Fields of type ``pg_node_tree`` in PostgreSQL in the ``pg_class`` and
   ``pg_index`` tables now return ``TEXT`` instead of ``ARRAY(OBJECT)`` for
@@ -84,6 +103,11 @@ Deprecations
 
 Changes
 =======
+
+SQL Statements
+--------------
+
+- Added support for non-recursive :ref:`sql_dql_with`.
 
 - Added support for using subscript expressions on top of aliases within the
   ``ORDER BY`` clause. An example: ``SELECT percentile(x, [0.90, 0.95]) AS
@@ -108,38 +132,25 @@ Changes
 - Added support for using ``NULL`` literals in a ``UNION`` without requiring an
   explicit cast.
 
-- Added an optimization to push down constant join conditions to the relation
-  in an inner join, which results in a more efficient execution plan.
+New Types
+---------
 
-- Updated the bundled JDK to 18.0.1+10
-
-- Moved the :ref:`scalar-quote_ident` function to `pg_catalog` for improved
-  compatibility with PostgreSQL.
-
-- Added the :ref:`concat_ws <scalar-concat-ws>` scalar function which allows
-  concatenation with a custom separator.
+- Added full support, incl. storage and indexing, for the fixed-length,
+  blank padded :ref:`data-type-character` data type. Previously, the single
+  byte ``byte`` was exposed as ``char`` which has been fixed, see
+  `Breaking Changes`_.
 
 - Added ``decimal`` type as alias to ``numeric``
 
-- Users with AL privileges can now run ``ANALYZE``
+
+SQL Standard And PostgreSQL Schema Compatibility
+------------------------------------------------
 
 - Added ``typsend`` column to ``pg_catalog.pgtype`` table for improved
   compatibility with PostgreSQL.
 
-- Added the :ref:`object_keys <scalar-object_keys>` scalar function which returns
-  the set of first level keys of an ``object``.
-
-- Added support for non-recursive :ref:`sql_dql_with`.
-
-- Added :ref:`has_schema_privilege <scalar-has-schema-priv>` scalar function
-  which checks whether user (or current user if not specified) has specific
-  privilege(s) for the specific schema.
-
-- Updated Admin UI to 1.22.0, including an update with the new logo and colors.
-
-- Added ``SUBSTRING`` to non-reserved SQL keywords in order to support the
-  generic function call syntax for improved PostgreSQL compatibility.
-  Example: ``SUBSTRING('crate', 1, 3)``
+- Added primary key and check constraint column positions into ``conkey`` field
+  of the ``pg_constraint`` table for improved compatibility with PostgreSQL.
 
 - Added ``pg_catalog.pg_tables`` and ``pg_catalog.pg_views`` tables for improved
   PostgreSQL compatibility.
@@ -147,21 +158,29 @@ Changes
 - Added identity columns information to ``information_schema.columns`` table for
   improved PostgreSQL compatibility. CrateDB does not support identity columns.
 
+- Added an empty ``pg_catalog.pg_shdescription`` table for improved PostgreSQL
+  compatibility.
+
+Scalar Functions
+----------------
+
+- Added ``SUBSTRING`` to the non-reserved SQL keywords in order to support the
+  generic function call syntax for improved PostgreSQL compatibility. Example:
+  ``SUBSTRING('crate', 1, 3)``
+
+- Added the :ref:`concat_ws <scalar-concat-ws>` scalar function which allows
+  concatenation with a custom separator.
+
+- Added the :ref:`object_keys <scalar-object_keys>` scalar function which returns
+  the set of first level keys of an ``object``.
+
 - Added the :ref:`pg_get_serial_sequence <scalar-pg_get_serial_sequence>` scalar
   function for improved compatibility with PostgreSQL. CrateDB does not support
   sequences.
 
-- Added primary key and check constraint column positions into ``conkey`` field
-  of the ``pg_constraint`` table for improved compatibility with PostgreSQL.
-
-- Updated Admin UI to 1.22.1, including an optimization to the web fonts.
-  Admin UI now stops making requests to external resources completely.
-
-- Defined a node setting, :ref:`legacy.table_function_column_naming
-  <legacy.table_function_column_naming>`. This setting can be set to revert the
-  breaking change that caused the output column names of ``unnest``,
-  ``regexp_matches``, and ``generate_series`` to be the respective table
-  function names.
+- Added :ref:`has_schema_privilege <scalar-has-schema-priv>` scalar function
+  which checks whether user (or current user if not specified) has specific
+  privilege(s) for the specific schema.
 
 - Added support for an optional boolean argument ``pretty`` at the
   :ref:`pg_get_expr <scalar-pg_get_expr>` scalar function for improved
@@ -171,13 +190,27 @@ Changes
   function for improved compatibility with PostgreSQL. Partitioning in CrateDB
   is different from PostgreSQL, therefore this function always returns ``NULL``.
 
-- Added an empty ``pg_catalog.pg_shdescription`` table for improved PostgreSQL
-  compatibility.
+- Moved the :ref:`scalar-quote_ident` function to ``pg_catalog`` for improved
+  compatibility with PostgreSQL.
 
-- Added full support, incl. storage and indexing, for the fixed-length,
-  blank padded :ref:`data-type-character` data type. Previously, the single
-  byte ``byte`` was exposed as ``char`` which has been fixed, see
-  `Breaking Changes`_.
+
+Performance Improvements
+------------------------
+
+- Added an optimization to push down constant join conditions to the relation
+  in an inner join, which results in a more efficient execution plan.
+
+- Added an optimization for ``array_column = []`` queries.
+
+Administration and Operations
+-----------------------------
+
+- Updated the bundled JDK to 18.0.1+10
+
+- Users with AL privileges can now run ``ANALYZE``
+
+- Updated the Admin UI. It includes a new color, new colors and no longer loads
+  resources like web fonts from external services.
 
 Fixes
 =====
