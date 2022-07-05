@@ -230,9 +230,8 @@ public class RecoveryTests extends BlobIntegrationTestBase {
             String fromNode = (i % 2 == 0) ? node1 : node2;
             String toNode = node1.equals(fromNode) ? node2 : node1;
             logger.trace("--> START relocate the shard from {} to {}", fromNode, toNode);
-            internalCluster().client(node1).admin().cluster().prepareReroute()
-                .add(new MoveAllocationCommand(BlobIndex.fullIndexName("test"), 0, fromNode, toNode))
-                .execute().actionGet();
+
+            execute("alter table blob.test reroute move shard 0 from ? to ?", new Object[] { fromNode, toNode });
             ClusterHealthResponse clusterHealthResponse = FutureUtils.get(internalCluster().client(node1).admin().cluster()
                 .health(
                     new ClusterHealthRequest()

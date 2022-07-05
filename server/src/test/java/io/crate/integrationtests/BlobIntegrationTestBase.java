@@ -48,7 +48,7 @@ import io.crate.blob.v2.BlobIndex;
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.blob.v2.BlobShard;
 
-public abstract class BlobIntegrationTestBase extends ESIntegTestCase {
+public abstract class BlobIntegrationTestBase extends SQLIntegrationTestCase {
 
     private Field indicesField;
     private Field shardsField;
