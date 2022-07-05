@@ -111,3 +111,7 @@ Fixes
 
 - Fixed possible infinitive loops on ``COPY FROM`` statements if an IO error
   happen while trying to read lines from an URI.
+
+- Fixed an issue that caused :ref:`ARRAY_LENGTH <scalar-array_length>` in
+  combination with a ``greater than `` (``>``) comparison to exclude rows if an
+  array contained duplicates or nulls.
