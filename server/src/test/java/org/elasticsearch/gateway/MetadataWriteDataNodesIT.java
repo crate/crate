@@ -19,8 +19,11 @@
 
 package org.elasticsearch.gateway;
 
-import io.crate.integrationtests.SQLIntegrationTestCase;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
 
+import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.cluster.coordination.Coordinator;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
@@ -32,9 +35,7 @@ import org.elasticsearch.test.ESIntegTestCase.ClusterScope;
 import org.elasticsearch.test.ESIntegTestCase.Scope;
 import org.elasticsearch.test.InternalTestCluster;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.List;
+import io.crate.integrationtests.SQLIntegrationTestCase;
 
 
 @ClusterScope(scope = Scope.TEST, numDataNodes = 0)
@@ -70,7 +71,7 @@ public class MetadataWriteDataNodesIT extends SQLIntegrationTestCase {
 
         logger.debug("relocating index...");
         execute("alter table doc.test set(\"routing.allocation.include._name\" = ?)", new Object[] {node2});
-        client().admin().cluster().prepareHealth().setWaitForNoRelocatingShards(true).get();
+        client().admin().cluster().health(new ClusterHealthRequest().waitForNoRelocatingShards(true)).get();
         ensureGreen();
         assertIndexDirectoryDeleted(node1, resolveIndex);
         assertIndexInMetaState(node2, "test");

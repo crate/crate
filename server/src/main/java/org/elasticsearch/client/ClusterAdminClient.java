@@ -24,7 +24,6 @@ import java.util.concurrent.CompletableFuture;
 import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
-import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequestBuilder;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.cluster.node.stats.NodesStatsRequest;
 import org.elasticsearch.action.admin.cluster.node.stats.NodesStatsResponse;
@@ -52,11 +51,6 @@ public interface ClusterAdminClient extends ElasticsearchClient {
      * @return The result future
      */
     CompletableFuture<ClusterHealthResponse> health(ClusterHealthRequest request);
-
-    /**
-     * The health of the cluster.
-     */
-    ClusterHealthRequestBuilder prepareHealth(String... indices);
 
     /**
      * The state of the cluster.

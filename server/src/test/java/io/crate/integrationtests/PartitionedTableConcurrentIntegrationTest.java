@@ -21,28 +21,9 @@
 
 package io.crate.integrationtests;
 
-import io.crate.data.Bucket;
-import io.crate.data.CollectionBucket;
-import io.crate.data.Row;
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.RelationName;
-import io.crate.testing.SQLResponse;
-import io.crate.testing.SQLTransportExecutor;
-import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteRequestBuilder;
-import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
-import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.cluster.node.DiscoveryNodes;
-import org.elasticsearch.cluster.routing.ShardRouting;
-import org.elasticsearch.cluster.routing.ShardRoutingState;
-import org.elasticsearch.cluster.routing.allocation.command.MoveAllocationCommand;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.Priority;
-import io.crate.common.unit.TimeValue;
-import org.elasticsearch.test.ESIntegTestCase;
-import org.hamcrest.Matchers;
-import org.junit.After;
-import org.junit.Test;
+import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
+import static com.carrotsearch.randomizedtesting.RandomizedTest.randomAsciiLettersOfLength;
+import static org.hamcrest.core.Is.is;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -54,9 +35,31 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
-import static com.carrotsearch.randomizedtesting.RandomizedTest.randomAsciiLettersOfLength;
-import static org.hamcrest.core.Is.is;
+import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
+import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteRequestBuilder;
+import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.node.DiscoveryNodes;
+import org.elasticsearch.cluster.routing.ShardRouting;
+import org.elasticsearch.cluster.routing.ShardRoutingState;
+import org.elasticsearch.cluster.routing.allocation.command.MoveAllocationCommand;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.Priority;
+import org.elasticsearch.common.util.concurrent.FutureUtils;
+import org.elasticsearch.test.ESIntegTestCase;
+import org.hamcrest.Matchers;
+import org.junit.After;
+import org.junit.Test;
+
+import io.crate.common.unit.TimeValue;
+import io.crate.data.Bucket;
+import io.crate.data.CollectionBucket;
+import io.crate.data.Row;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
+import io.crate.testing.SQLResponse;
+import io.crate.testing.SQLTransportExecutor;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2)
 public class PartitionedTableConcurrentIntegrationTest extends SQLIntegrationTestCase {
@@ -156,10 +159,11 @@ public class PartitionedTableConcurrentIntegrationTest extends SQLIntegrationTes
 
                 if (numMoves > 0) {
                     clusterRerouteRequestBuilder.execute().actionGet();
-                    client().admin().cluster().prepareHealth()
-                        .setWaitForEvents(Priority.LANGUID)
-                        .setWaitForNoRelocatingShards(false)
-                        .setTimeout(ACCEPTABLE_RELOCATION_TIME).execute().actionGet();
+                    FutureUtils.get(client().admin().cluster().health(new ClusterHealthRequest()
+                        .waitForEvents(Priority.LANGUID)
+                        .waitForNoRelocatingShards(false)
+                        .timeout(ACCEPTABLE_RELOCATION_TIME)
+                    ));
                     relocations.countDown();
                 }
             }

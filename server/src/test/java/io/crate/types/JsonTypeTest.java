@@ -30,7 +30,6 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.settings.SessionSettings;
 
 public class JsonTypeTest {
 

@@ -18,16 +18,10 @@
  */
 package org.elasticsearch.cluster.coordination;
 
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.action.admin.cluster.configuration.AddVotingConfigExclusionsAction;
-import org.elasticsearch.action.admin.cluster.configuration.AddVotingConfigExclusionsRequest;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.Priority;
-import org.elasticsearch.plugins.Plugin;
-import org.elasticsearch.test.ESIntegTestCase;
-import org.elasticsearch.test.transport.MockTransportService;
-import org.elasticsearch.transport.TransportService;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.nullValue;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -35,10 +29,18 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.nullValue;
+import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.action.admin.cluster.configuration.AddVotingConfigExclusionsAction;
+import org.elasticsearch.action.admin.cluster.configuration.AddVotingConfigExclusionsRequest;
+import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.common.Priority;
+import org.elasticsearch.common.util.concurrent.FutureUtils;
+import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.test.transport.MockTransportService;
+import org.elasticsearch.transport.TransportService;
 
 @ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.TEST, numDataNodes = 0, autoManageMasterNodes = false)
 public class VotingConfigurationIT extends ESIntegTestCase {
@@ -56,7 +58,7 @@ public class VotingConfigurationIT extends ESIntegTestCase {
         logger.info("--> excluding master node {}", originalMaster);
         client().legacyExecute(AddVotingConfigExclusionsAction.INSTANCE,
             new AddVotingConfigExclusionsRequest(new String[]{originalMaster})).get();
-        client().admin().cluster().prepareHealth().setWaitForEvents(Priority.LANGUID).get();
+        FutureUtils.get(client().admin().cluster().health(new ClusterHealthRequest().waitForEvents(Priority.LANGUID)));
         assertNotEquals(originalMaster, internalCluster().getMasterName());
     }
 
@@ -68,8 +70,12 @@ public class VotingConfigurationIT extends ESIntegTestCase {
         // by failing at the pre-voting stage, so that the extra node must be elected instead when the master shuts down. This extra node
         // should then add itself into the voting configuration.
 
-        assertFalse(internalCluster().client().admin().cluster().prepareHealth()
-            .setWaitForNodes("4").setWaitForEvents(Priority.LANGUID).get().isTimedOut());
+        var clusterHealthResponse = FutureUtils.get(internalCluster().client().admin().cluster().health(
+            new ClusterHealthRequest()
+                .waitForNodes("4")
+                .waitForEvents(Priority.LANGUID)
+            ));
+        assertFalse(clusterHealthResponse.isTimedOut());
 
         String excludedNodeName = null;
         final ClusterState clusterState
@@ -103,8 +109,12 @@ public class VotingConfigurationIT extends ESIntegTestCase {
         }
 
         internalCluster().stopCurrentMasterNode();
-        assertFalse(internalCluster().client().admin().cluster().prepareHealth()
-            .setWaitForNodes("3").setWaitForEvents(Priority.LANGUID).get().isTimedOut());
+        clusterHealthResponse = FutureUtils.get(internalCluster().client().admin().cluster().health(
+            new ClusterHealthRequest()
+                .waitForNodes("3")
+                .waitForEvents(Priority.LANGUID)
+            ));
+        assertFalse(clusterHealthResponse.isTimedOut());
 
         final ClusterState newClusterState
             = internalCluster().client().admin().cluster().prepareState().clear().setNodes(true).setMetadata(true).get().getState();
