@@ -36,14 +36,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
-import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteRequestBuilder;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.routing.ShardRoutingState;
-import org.elasticsearch.cluster.routing.allocation.command.MoveAllocationCommand;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
@@ -56,6 +54,7 @@ import io.crate.common.unit.TimeValue;
 import io.crate.data.Bucket;
 import io.crate.data.CollectionBucket;
 import io.crate.data.Row;
+import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.testing.SQLResponse;
@@ -134,12 +133,12 @@ public class PartitionedTableConcurrentIntegrationTest extends SQLIntegrationTes
         nodeSwap.put(nodeIds.get(1), nodeIds.get(0));
 
         final CountDownLatch relocations = new CountDownLatch(20);
+
         Thread relocatingThread = new Thread(() -> {
             while (relocations.getCount() > 0) {
                 ClusterStateResponse clusterStateResponse = admin().cluster().prepareState().setIndices(indexName).execute().actionGet();
                 List<ShardRouting> shardRoutings = clusterStateResponse.getState().routingTable().allShards(indexName);
 
-                ClusterRerouteRequestBuilder clusterRerouteRequestBuilder = admin().cluster().prepareReroute();
                 int numMoves = 0;
                 for (ShardRouting shardRouting : shardRoutings) {
                     if (shardRouting.currentNodeId() == null) {
@@ -149,16 +148,16 @@ public class PartitionedTableConcurrentIntegrationTest extends SQLIntegrationTes
                         continue;
                     }
                     String toNode = nodeSwap.get(shardRouting.currentNodeId());
-                    clusterRerouteRequestBuilder.add(new MoveAllocationCommand(
-                        shardRouting.getIndexName(),
-                        shardRouting.shardId().id(),
-                        shardRouting.currentNodeId(),
-                        toNode));
+
+                    assert new IndexParts(shardRouting.getIndexName()).getTable().equals("t") : "Must use index of `t` table";
+                    execute(
+                        "alter table t PARTITION (p = 'a') REROUTE MOVE SHARD ? FROM ? TO ?",
+                        new Object[] { shardRouting.shardId().id(), shardRouting.currentNodeId(), toNode }
+                    );
                     numMoves++;
                 }
 
                 if (numMoves > 0) {
-                    clusterRerouteRequestBuilder.execute().actionGet();
                     FutureUtils.get(client().admin().cluster().health(new ClusterHealthRequest()
                         .waitForEvents(Priority.LANGUID)
                         .waitForNoRelocatingShards(false)

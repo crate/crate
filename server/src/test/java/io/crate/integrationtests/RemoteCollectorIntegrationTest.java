@@ -67,9 +67,7 @@ public class RemoteCollectorIntegrationTest extends SQLIntegrationTestCase {
         }
         assert targetNodeId != null;
 
-        client().admin().cluster().prepareReroute()
-            .add(new MoveAllocationCommand(getFqn("t"), 0, sourceNodeId, targetNodeId))
-            .execute().actionGet();
+        execute("alter table t reroute move shard 0 from ? to ?", new Object[] { sourceNodeId, targetNodeId });
 
         FutureUtils.get(client().admin().cluster().health(
             new ClusterHealthRequest(getFqn("t"))
