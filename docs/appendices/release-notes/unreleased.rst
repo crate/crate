@@ -108,3 +108,6 @@ Fixes
 
 - Fixed an issue which caused ``PRIMARY KEY`` columns to be shown
   as nullable in the ``pg_catalog.pg_attribute`` table.
+
+- Fixed possible infinitive loops on ``COPY FROM`` statements if an IO error
+  happen while trying to read lines from an URI.
