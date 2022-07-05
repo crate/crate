@@ -825,6 +825,31 @@ Object property can also be addressed in the :ref:`where clause
     +------------+----------------------------------------------------------------------+
     SELECT 1 row in set (... sec)
 
+For displaying the object's keys, use the :ref:`scalar-object_keys` function::
+
+    cr> select name, object_keys(inhabitants) as inhabitant_keys from locations
+    ... where name = 'Betelgeuse';
+    +------------+-------------------------+
+    | name       | inhabitant_keys         |
+    +------------+-------------------------+
+    | Betelgeuse | ["name", "description"] |
+    +------------+-------------------------+
+    SELECT 1 row in set (... sec)
+
+By combining the :ref:`scalar-object_keys` function with the ``ANY`` operator,
+you can find all records where an object contains a specific object key::
+
+    cr> select name from locations
+    ... where 'interests' = ANY(object_keys(inhabitants));
+    +-------------------+
+    | name              |
+    +-------------------+
+    | Arkintoofle Minor |
+    | Bartledan         |
+    | Argabuthon        |
+    +-------------------+
+    SELECT 3 rows in set (... sec)
+
 For selecting records having values with empty or unassigned objects, like::
 
     cr> insert into locations (id, name, position, kind, inhabitants) values
