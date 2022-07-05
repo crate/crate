@@ -101,6 +101,7 @@ import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
+import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.env.TestEnvironment;
@@ -698,7 +699,7 @@ public abstract class ESIntegTestCase extends ESTestCase {
             // been removed by the master so that the health check applies to the set of nodes we expect to be part of the cluster.
             .waitForNodes(Integer.toString(cluster().size()));
 
-        ClusterHealthResponse actionGet = client().admin().cluster().health(healthRequest).actionGet();
+        ClusterHealthResponse actionGet = FutureUtils.get(client().admin().cluster().health(healthRequest));
         if (actionGet.isTimedOut()) {
             logger.info("{} timed out, cluster state:\n{}\n{}",
                 method,
@@ -758,8 +759,7 @@ public abstract class ESIntegTestCase extends ESTestCase {
         if (status != null) {
             request.waitForStatus(status);
         }
-        ClusterHealthResponse actionGet = client().admin().cluster()
-            .health(request).actionGet();
+        ClusterHealthResponse actionGet = FutureUtils.get(client().admin().cluster() .health(request));
         if (actionGet.isTimedOut()) {
             logger.info("waitForRelocation timed out (status={}), cluster state:\n{}\n{}", status,
                 client().admin().cluster().prepareState().get().getState(), client().admin().cluster().preparePendingClusterTasks().get());

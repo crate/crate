@@ -29,6 +29,7 @@ import javax.annotation.Nullable;
 import org.elasticsearch.ElasticsearchTimeoutException;
 
 import io.crate.common.SuppressForbidden;
+import io.crate.common.unit.TimeValue;
 import io.crate.exceptions.Exceptions;
 import io.crate.exceptions.SQLExceptions;
 
@@ -64,6 +65,13 @@ public class FutureUtils {
         } catch (ExecutionException e) {
             throw rethrowExecutionException(e);
         }
+    }
+
+    /**
+     * Calls {@link #get(Future, long, TimeUnit)}
+     */
+    public static <T> T get(Future<T> future, TimeValue timeValue) {
+        return get(future, timeValue.getMillis(), TimeUnit.MILLISECONDS);
     }
 
     /**

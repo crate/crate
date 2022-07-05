@@ -176,8 +176,8 @@ public abstract class AbstractClient implements Client {
         }
 
         @Override
-        public ActionFuture<ClusterHealthResponse> health(final ClusterHealthRequest request) {
-            return legacyExecute(ClusterHealthAction.INSTANCE, request);
+        public CompletableFuture<ClusterHealthResponse> health(final ClusterHealthRequest request) {
+            return execute(ClusterHealthAction.INSTANCE, request);
         }
 
         @Override
