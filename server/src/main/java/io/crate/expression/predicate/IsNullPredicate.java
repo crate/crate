@@ -46,6 +46,7 @@ import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
+import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.lucene.LuceneQueryBuilder.Context;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
@@ -121,7 +122,18 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
                 return Queries.newMatchNoDocsQuery("`x IS NULL` on column that is NOT NULL can't match");
             }
             Query refExistsQuery = refExistsQuery(ref, context);
-            return refExistsQuery == null ? null : Queries.not(refExistsQuery);
+            if (refExistsQuery == null) {
+                return null;
+            }
+            if (ref.valueType() instanceof ArrayType<?>
+                    && (refExistsQuery instanceof DocValuesFieldExistsQuery || refExistsQuery instanceof NormsFieldExistsQuery)) {
+                // For empty arrays there is nothing in the index and fieldsExists checks don't work
+                return new BooleanQuery.Builder()
+                    .add(Queries.not(refExistsQuery), Occur.MUST)
+                    .add(LuceneQueryBuilder.genericFunctionFilter(function, context), Occur.MUST)
+                    .build();
+            }
+            return Queries.not(refExistsQuery);
         }
         return null;
     }
@@ -133,7 +145,7 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
         if (storageSupport == null && ref instanceof DynamicReference) {
             return Queries.newMatchNoDocsQuery("DynamicReference/type without storageSupport does not exist");
         } else if (ref.hasDocValues()) {
-            return new ConstantScoreQuery(new DocValuesFieldExistsQuery(field));
+            return new DocValuesFieldExistsQuery(field);
         } else if (ref.columnPolicy() == ColumnPolicy.IGNORED) {
             // Not indexed, need to use source lookup
             return null;
