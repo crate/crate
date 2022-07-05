@@ -21,12 +21,12 @@
 
 package io.crate.expression.scalar.conditional;
 
+import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
+import static io.crate.types.TypeSignature.parseTypeSignature;
+
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
-
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-import static io.crate.types.TypeSignature.parseTypeSignature;
 
 public class LeastFunction extends ConditionalCompareFunction {
 
@@ -52,7 +52,7 @@ public class LeastFunction extends ConditionalCompareFunction {
     @SuppressWarnings({"rawtypes", "unchecked"})
     @Override
     public int compare(Object o1, Object o2) {
-        DataType dataType = info().returnType();
+        DataType dataType = boundSignature().getReturnType().createType();
         return dataType.compare(o1, o2);
     }
 }

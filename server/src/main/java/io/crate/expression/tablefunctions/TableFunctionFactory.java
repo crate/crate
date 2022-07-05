@@ -29,7 +29,6 @@ import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.metadata.FunctionImplementation;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
@@ -78,8 +77,11 @@ public class TableFunctionFactory {
 
         private ScalarTableFunctionImplementation(Scalar<?, T> functionImplementation) {
             this.functionImplementation = functionImplementation;
-            FunctionInfo info = functionImplementation.info();
-            returnType = new RowType(List.of(info.returnType()), List.of(info.ident().name()));
+            var boundReturnTypeSignature = functionImplementation.boundSignature().getReturnType();
+            returnType = new RowType(
+                List.of(boundReturnTypeSignature.createType()),
+                List.of(functionImplementation.signature().getName().name())
+            );
             signature = Signature.table(
                 functionImplementation.signature().getName(),
                 Lists2.concat(
@@ -91,7 +93,7 @@ public class TableFunctionFactory {
                 functionImplementation.boundSignature().getName(),
                 Lists2.concat(
                     functionImplementation.boundSignature().getArgumentTypes(),
-                    functionImplementation.boundSignature().getReturnType()
+                    boundReturnTypeSignature
                 ).toArray(new TypeSignature[0])
             );
         }

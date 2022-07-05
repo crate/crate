@@ -21,8 +21,23 @@
 
 package io.crate.operation.aggregation;
 
+import static io.crate.testing.TestingHelpers.createNodeContext;
+import static org.hamcrest.Matchers.is;
+
+import java.util.List;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+import javax.annotation.Nullable;
+
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.junit.Before;
+import org.junit.Test;
+
 import com.carrotsearch.randomizedtesting.RandomizedContext;
 import com.carrotsearch.randomizedtesting.generators.RandomPicks;
+
 import io.crate.Streamer;
 import io.crate.execution.engine.aggregation.impl.HyperLogLogPlusPlus;
 import io.crate.expression.symbol.Literal;
@@ -33,18 +48,6 @@ import io.crate.module.ExtraFunctionsModule;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.junit.Before;
-import org.junit.Test;
-
-import javax.annotation.Nullable;
-import java.util.List;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
-import static io.crate.testing.TestingHelpers.createNodeContext;
-import static org.hamcrest.Matchers.is;
 
 public class HyperLogLogDistinctAggregationTest extends AggregationTestCase {
 
@@ -106,14 +109,14 @@ public class HyperLogLogDistinctAggregationTest extends AggregationTestCase {
             List.of(Literal.of(1)),
             SearchPath.pathWithPGCatalogAndDoc()
         );
-        assertEquals(DataTypes.LONG, func.info().returnType());
+        assertEquals(DataTypes.LONG, func.boundSignature().getReturnType().createType());
         func = nodeCtx.functions().get(
             null,
             HyperLogLogDistinctAggregation.NAME,
             List.of(Literal.of(1), Literal.of(2)),
             SearchPath.pathWithPGCatalogAndDoc()
         );
-        assertEquals(DataTypes.LONG, func.info().returnType());
+        assertEquals(DataTypes.LONG, func.boundSignature().getReturnType().createType());
     }
 
     @Test

@@ -21,6 +21,18 @@
 
 package io.crate.expression;
 
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.sameInstance;
+import static org.hamcrest.core.Is.is;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+
+import org.junit.Before;
+import org.junit.Test;
+
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.data.Input;
@@ -44,17 +56,6 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
 import io.crate.types.DataTypes;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.sameInstance;
-import static org.hamcrest.core.Is.is;
 
 public class InputFactoryTest extends CrateDummyClusterServiceUnitTest {
 
@@ -188,10 +189,7 @@ public class InputFactoryTest extends CrateDummyClusterServiceUnitTest {
         FunctionImplementation impl = (FunctionImplementation) f.get(expression);
         assertThat(impl.signature(), is(function.signature()));
 
-        FunctionImplementation uncompiled = expressions.nodeCtx.functions().getQualified(
-            function,
-            txnCtx.sessionSettings().searchPath()
-        );
+        FunctionImplementation uncompiled = expressions.nodeCtx.functions().getQualified(function);
         assertThat(uncompiled, not(sameInstance(impl)));
     }
 

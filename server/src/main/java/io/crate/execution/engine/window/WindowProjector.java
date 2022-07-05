@@ -21,6 +21,21 @@
 
 package io.crate.execution.engine.window;
 
+import static io.crate.analyze.SymbolEvaluator.evaluateWithoutParams;
+import static io.crate.execution.engine.sort.Comparators.createComparator;
+
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.concurrent.Executor;
+import java.util.function.BiFunction;
+import java.util.function.IntSupplier;
+import java.util.function.Supplier;
+
+import javax.annotation.Nullable;
+
+import org.elasticsearch.Version;
+
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WindowDefinition;
 import io.crate.breaker.RamAccounting;
@@ -45,19 +60,6 @@ import io.crate.metadata.TransactionContext;
 import io.crate.sql.tree.WindowFrame;
 import io.crate.types.DataType;
 import io.crate.types.IntervalType;
-import org.elasticsearch.Version;
-
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.concurrent.Executor;
-import java.util.function.BiFunction;
-import java.util.function.IntSupplier;
-import java.util.function.Supplier;
-
-import static io.crate.analyze.SymbolEvaluator.evaluateWithoutParams;
-import static io.crate.execution.engine.sort.Comparators.createComparator;
 
 public class WindowProjector {
 
@@ -86,10 +88,7 @@ public class WindowProjector {
             InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForInputColumns(txnCtx);
             ctx.add(windowFunctionSymbol.arguments());
 
-            FunctionImplementation impl = nodeCtx.functions().getQualified(
-                windowFunctionSymbol,
-                txnCtx.sessionSettings().searchPath()
-            );
+            FunctionImplementation impl = nodeCtx.functions().getQualified(windowFunctionSymbol);
             assert impl != null : "Function implementation not found using full qualified lookup";
             if (impl instanceof AggregationFunction) {
                 var filterInputFactoryCtx = inputFactory.ctxForInputColumns(txnCtx);

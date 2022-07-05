@@ -21,18 +21,6 @@
 
 package io.crate.metadata.functions;
 
-import io.crate.common.collections.EnumSets;
-import io.crate.common.collections.Lists2;
-import io.crate.metadata.FunctionName;
-import io.crate.metadata.FunctionType;
-import io.crate.metadata.Scalar;
-import io.crate.types.DataType;
-import io.crate.types.TypeSignature;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Writeable;
-
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -40,6 +28,21 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+
+import javax.annotation.Nullable;
+
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Writeable;
+
+import io.crate.common.collections.EnumSets;
+import io.crate.common.collections.Lists2;
+import io.crate.metadata.FunctionName;
+import io.crate.metadata.FunctionType;
+import io.crate.metadata.Scalar;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
+import io.crate.types.TypeSignature;
 
 public final class Signature implements Writeable {
 
@@ -242,6 +245,36 @@ public final class Signature implements Writeable {
         }
     }
 
+    /**
+     * Create a signature out of the read values of the old FunctionInfo format for BWC compatibility with
+     * nodes < 4.2.0.
+     */
+    public static Signature readFromFunctionInfo(StreamInput in) throws IOException {
+        // read old FunctionIdent
+        var functionName = new FunctionName(in);
+        int numTypes = in.readVInt();
+        ArrayList<TypeSignature> argumentTypeSignatures = new ArrayList<>(numTypes);
+        for (int i = 0; i < numTypes; i++) {
+            argumentTypeSignatures.add(DataTypes.fromStream(in).getTypeSignature());
+        }
+        // FunctionIdent end
+
+        var returnType = DataTypes.fromStream(in);
+        var type = FunctionType.values()[in.readVInt()];
+
+        int enumElements = in.readVInt();
+        var features = Collections.unmodifiableSet(EnumSets.unpackFromInt(enumElements, Scalar.Feature.class));
+
+        return Signature.builder()
+            .name(functionName)
+            .kind(type)
+            .argumentTypes(argumentTypeSignatures)
+            .returnType(returnType.getTypeSignature())
+            .features(features)
+            .build();
+    }
+
+
 
     private final FunctionName name;
     private final FunctionType kind;
@@ -393,5 +426,25 @@ public final class Signature implements Writeable {
 
         return name + (allConstraints.isEmpty() ? "" : "<" + String.join(",", allConstraints) + ">") +
                "(" + Lists2.joinOn(",", argumentTypes, TypeSignature::toString) + "):" + returnType;
+    }
+
+
+    /**
+     * Write the given {@link Signature} to the stream in the format of the old FunctionInfo class for BWC compatibility
+     * with nodes < 4.2.0
+     */
+    public void writeAsFunctionInfo(StreamOutput out) throws IOException {
+        // old FunctionIdent
+        name.writeTo(out);
+        var argumentTypes = getArgumentDataTypes();
+        out.writeVInt(argumentTypes.size());
+        for (DataType<?> argumentType : argumentTypes) {
+            DataTypes.toStream(argumentType, out);
+        }
+        // FunctionIdent end
+
+        DataTypes.toStream(returnType.createType(), out);
+        out.writeVInt(kind.ordinal());
+        out.writeVInt(EnumSets.packToInt(features));
     }
 }
