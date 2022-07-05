@@ -562,11 +562,12 @@ public class SQLTransportExecutor {
 
     private ClusterHealthStatus ensureState(ClusterHealthStatus state) {
         Client client = clientProvider.client();
-        ClusterHealthResponse actionGet = client.admin().cluster().health(
+        ClusterHealthResponse actionGet = FutureUtils.get(client.admin().cluster().health(
             new ClusterHealthRequest()
                 .waitForStatus(state)
-                .waitForEvents(Priority.LANGUID).waitForNoRelocatingShards(false)
-        ).actionGet();
+                .waitForEvents(Priority.LANGUID)
+                .waitForNoRelocatingShards(false)
+        ));
 
         if (actionGet.isTimedOut()) {
             LOGGER.info("ensure state timed out, cluster state:\n{}\n{}",
