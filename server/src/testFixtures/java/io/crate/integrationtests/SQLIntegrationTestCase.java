@@ -267,7 +267,7 @@ public abstract class SQLIntegrationTestCase extends ESIntegTestCase {
 
     @Before
     public void setSearchPath() throws Exception {
-        sqlExecutor.setSearchPath(RandomizedSchema());
+        sqlExecutor.setSearchPath(randomizedSchema());
     }
 
     @After
@@ -487,11 +487,11 @@ public abstract class SQLIntegrationTestCase extends ESIntegTestCase {
                 }
 
                 SQLResponse resp = sqlExecutor.exec(statement, session);
-            assertThat(
-                "The query:\n\t" + statement + "\nwith session statements: [" +
-                String.join(", ", setSessionStatements) + "] must produce correct result",
-                resp,
-                matcher);
+                assertThat(
+                    "The query:\n\t" + statement + "\nwith session statements: [" +
+                    String.join(", ", setSessionStatements) + "] must produce correct result",
+                    resp,
+                    matcher);
             }
         }
     }
@@ -870,7 +870,7 @@ public abstract class SQLIntegrationTestCase extends ESIntegTestCase {
      * <p>
      * Method annotations have higher priority than class annotations.
      */
-    private String RandomizedSchema() {
+    private String randomizedSchema() {
         UseRandomizedSchema annotation = getTestAnnotation(UseRandomizedSchema.class);
         if (annotation == null || annotation.random() == false) {
             return Schemas.DOC_SCHEMA_NAME;

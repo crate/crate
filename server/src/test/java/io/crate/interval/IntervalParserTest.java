@@ -21,11 +21,11 @@
 
 package io.crate.interval;
 
+import static org.hamcrest.core.Is.is;
+
 import org.elasticsearch.test.ESTestCase;
 import org.joda.time.Period;
 import org.junit.Test;
-
-import static org.hamcrest.core.Is.is;
 
 public class IntervalParserTest extends ESTestCase {
 
@@ -144,7 +144,7 @@ public class IntervalParserTest extends ESTestCase {
 
     @Test
     public void parse_invalid_input_3() {
-        Period result =  IntervalParser.apply("0-0 0 0:0:0");
+        Period result = IntervalParser.apply("0-0 0 0:0:0");
         assertThat(result, is(Period.ZERO));
     }
 
@@ -189,6 +189,7 @@ public class IntervalParserTest extends ESTestCase {
         assertThat(period,
                    is(new Period().withYears(6).withMonths(5).withDays(4).withHours(3).withMinutes(2).withSeconds(1)));
     }
+
     @Test
     public void test_weeks() {
         Period period = IntervalParser.apply("1 week");

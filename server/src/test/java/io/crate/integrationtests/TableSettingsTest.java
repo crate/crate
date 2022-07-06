@@ -197,7 +197,7 @@ public class TableSettingsTest extends SQLIntegrationTestCase {
 
     @Test
     public void testSetDynamicSettingGroup() {
-        assertThrowsMatches(() ->  execute("alter table settings_table set (\"routing.allocation.exclude\" = {foo = 'bar2'})"),
+        assertThrowsMatches(() -> execute("alter table settings_table set (\"routing.allocation.exclude\" = {foo = 'bar2'})"),
                      isSQLError(is("Cannot change a dynamic group setting, only concrete settings allowed."),
                                 INTERNAL_ERROR,
                                 BAD_REQUEST,
@@ -221,7 +221,7 @@ public class TableSettingsTest extends SQLIntegrationTestCase {
 
     @Test
     public void testResetDynamicSettingGroup() {
-        assertThrowsMatches(() ->  execute("alter table settings_table reset (\"routing.allocation.exclude\")"),
+        assertThrowsMatches(() -> execute("alter table settings_table reset (\"routing.allocation.exclude\")"),
                      isSQLError(is("Cannot change a dynamic group setting, only concrete settings allowed."),
                                 INTERNAL_ERROR,
                                 BAD_REQUEST,

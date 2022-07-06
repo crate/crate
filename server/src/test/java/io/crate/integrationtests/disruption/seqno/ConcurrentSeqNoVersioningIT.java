@@ -18,31 +18,11 @@
  * with Crate these terms will supersede the license and you may use the
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
+
 package io.crate.integrationtests.disruption.seqno;
 
-import io.crate.common.SuppressForbidden;
-import io.crate.common.unit.TimeValue;
-import io.crate.integrationtests.disruption.discovery.AbstractDisruptionTestCase;
-import io.crate.testing.SQLResponse;
-import org.apache.logging.log4j.message.ParameterizedMessage;
-import org.elasticsearch.ExceptionsHelper;
-import org.elasticsearch.cluster.coordination.LinearizabilityChecker;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.io.stream.InputStreamStreamInput;
-import org.elasticsearch.common.io.stream.NamedWriteable;
-import org.elasticsearch.common.io.stream.NamedWriteableAwareStreamInput;
-import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.plugins.Plugin;
-import org.elasticsearch.test.ESIntegTestCase;
-import org.elasticsearch.test.InternalSettingsPlugin;
-import org.elasticsearch.test.disruption.ServiceDisruptionScheme;
-import org.elasticsearch.threadpool.Scheduler;
-import org.elasticsearch.threadpool.ThreadPool;
-import org.junit.Test;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.greaterThan;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -66,8 +46,30 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.greaterThan;
+import org.apache.logging.log4j.message.ParameterizedMessage;
+import org.elasticsearch.ExceptionsHelper;
+import org.elasticsearch.cluster.coordination.LinearizabilityChecker;
+import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.InputStreamStreamInput;
+import org.elasticsearch.common.io.stream.NamedWriteable;
+import org.elasticsearch.common.io.stream.NamedWriteableAwareStreamInput;
+import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.test.InternalSettingsPlugin;
+import org.elasticsearch.test.disruption.ServiceDisruptionScheme;
+import org.elasticsearch.threadpool.Scheduler;
+import org.elasticsearch.threadpool.ThreadPool;
+import org.junit.Test;
+
+import io.crate.common.SuppressForbidden;
+import io.crate.common.unit.TimeValue;
+import io.crate.integrationtests.disruption.discovery.AbstractDisruptionTestCase;
+import io.crate.testing.SQLResponse;
 
 
 /**
@@ -233,12 +235,13 @@ public class ConcurrentSeqNoVersioningIT extends AbstractDisruptionTestCase {
             setDaemon(true);
         }
 
+        @Override
         public void run() {
             while (stop == false) {
                 try {
                     roundBarrier.await(70, TimeUnit.SECONDS);
 
-                    int numberOfUpdates = randomIntBetween(3, 13)  * partitions.size();
+                    int numberOfUpdates = randomIntBetween(3, 13) * partitions.size();
                     for (int i = 0; i < numberOfUpdates; ++i) {
                         final int keyIndex = random.nextInt(partitions.size());
                         final Partition partition = partitions.get(keyIndex);
@@ -279,7 +282,7 @@ public class ConcurrentSeqNoVersioningIT extends AbstractDisruptionTestCase {
                                     new Version(primaryTerm, seqNo)
                                 );
                                 logger.debug("Successful updated id={}, using seq_no={}, primary_term={}. Returned version={}",
-                                            partition.id, version.seqNo, version.primaryTerm, historyOutput.outputVersion);
+                                             partition.id, version.seqNo, version.primaryTerm, historyOutput.outputVersion);
                                 // update was successful
                                 historyResponse.accept(historyOutput);
                                 // validate version and seqNo strictly increasing for successful CAS to avoid that overhead during
@@ -400,6 +403,7 @@ public class ConcurrentSeqNoVersioningIT extends AbstractDisruptionTestCase {
             return "version";
         }
 
+        @Override
         public void writeTo(StreamOutput out) throws IOException {
             out.writeLong(primaryTerm);
             out.writeLong(seqNo);
@@ -658,7 +662,7 @@ public class ConcurrentSeqNoVersioningIT extends AbstractDisruptionTestCase {
         private FailureHistoryOutput() {
         }
 
-        private FailureHistoryOutput(@SuppressWarnings("unused") StreamInput streamInput) {
+        private FailureHistoryOutput(StreamInput streamInput) {
         }
 
         @Override

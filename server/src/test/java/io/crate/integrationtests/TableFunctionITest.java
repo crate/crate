@@ -21,17 +21,18 @@
 
 package io.crate.integrationtests;
 
-import io.crate.testing.UseJdbc;
-import org.junit.Test;
+import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
+import static io.crate.testing.TestingHelpers.printedTable;
+import static org.hamcrest.Matchers.arrayContaining;
+import static org.hamcrest.core.Is.is;
 
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 
-import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
-import static io.crate.testing.TestingHelpers.printedTable;
-import static org.hamcrest.Matchers.arrayContaining;
-import static org.hamcrest.core.Is.is;
+import org.junit.Test;
+
+import io.crate.testing.UseJdbc;
 
 public class TableFunctionITest extends SQLIntegrationTestCase {
 
@@ -186,7 +187,7 @@ public class TableFunctionITest extends SQLIntegrationTestCase {
                 unnest(regexp_matches(col1, 'crate_(\\d+.\\d+.\\d+)')) as version
             FROM
                 (VALUES ('crate_4.3.1')) as tbl
-        """;
+            """;
         execute("EXPLAIN " + stmt);
         assertThat(printedTable(response.rows()), is(
             "Eval[unnest(regexp_matches(col1, 'crate_(\\d+.\\d+.\\d+)')) AS version]\n" +

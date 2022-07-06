@@ -32,16 +32,16 @@ import org.junit.Test;
 
 import io.crate.testing.TestingHelpers;
 
-public class FulltextIntegrationTest extends SQLIntegrationTestCase  {
+public class FulltextIntegrationTest extends SQLIntegrationTestCase {
 
     @Test
     public void testSelectMatch() throws Exception {
         execute("create table quotes (quote string)");
 
-        execute("insert into quotes values (?)", new Object[]{"don't panic"});
+        execute("insert into quotes values (?)", new Object[] {"don't panic"});
         refresh();
 
-        execute("select quote from quotes where match(quote, ?)", new Object[]{"don't panic"});
+        execute("select quote from quotes where match(quote, ?)", new Object[] {"don't panic"});
         assertEquals(1L, response.rowCount());
         assertEquals("don't panic", response.rows()[0][0]);
     }

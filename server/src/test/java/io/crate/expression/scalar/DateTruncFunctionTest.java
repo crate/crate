@@ -18,15 +18,17 @@
  * with Crate these terms will supersede the license and you may use the
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
-package io.crate.expression.scalar;
 
-import io.crate.expression.symbol.Literal;
-import io.crate.types.DataTypes;
-import org.hamcrest.core.IsSame;
-import org.junit.Test;
+package io.crate.expression.scalar;
 
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static org.hamcrest.Matchers.not;
+
+import org.hamcrest.core.IsSame;
+import org.junit.Test;
+
+import io.crate.expression.symbol.Literal;
+import io.crate.types.DataTypes;
 
 public class DateTruncFunctionTest extends ScalarTestCase {
 
@@ -34,17 +36,17 @@ public class DateTruncFunctionTest extends ScalarTestCase {
     private static final Literal TIMESTAMP = Literal.of(DataTypes.TIMESTAMPZ, 919946281123L);
 
     @Test
-    public void testDateTruncWithLongLiteral() {
+    public void testDateTruncWithLongLiteral() throws Exception {
         assertNormalize("date_trunc('day', 1401777485000)", isLiteral(1401753600000L));
     }
 
     @Test
-    public void testDateTruncWithStringLiteral() {
+    public void testDateTruncWithStringLiteral() throws Exception {
         assertNormalize("date_trunc('day', '2014-06-03')", isLiteral(1401753600000L));
     }
 
     @Test
-    public void test_date_trunc_works_with_timestamp_without_timezone() {
+    public void test_date_trunc_works_with_timestamp_without_timezone() throws Exception {
         assertNormalize(
             "date_trunc('day', cast('2014-06-03' as timestamp without time zone))",
             isLiteral(1401753600000L)
@@ -69,32 +71,48 @@ public class DateTruncFunctionTest extends ScalarTestCase {
     }
 
     @Test
-    public void testNullTimestamp() {
+    public void testNullTimestamp() throws Exception {
         assertEvaluate("date_trunc('second', timestamp_tz)", null, Literal.of(DataTypes.TIMESTAMPZ, null));
         assertEvaluate("date_trunc('second', 'UTC', timestamp_tz)", null, Literal.of(DataTypes.TIMESTAMPZ, null));
     }
 
     @Test
     public void testEvaluate() throws Exception {
-        assertEvaluate("date_trunc('second', timestamp_tz)", 919946281000L, TIMESTAMP);  // Thu Feb 25 12:38:01.000 UTC 1999
-        assertEvaluate("date_trunc('minute', timestamp_tz)", 919946280000L, TIMESTAMP);  // Thu Feb 25 12:38:00.000 UTC 1999
-        assertEvaluate("date_trunc('hour', timestamp_tz)", 919944000000L, TIMESTAMP);    // Thu Feb 25 12:00:00.000 UTC 1999
-        assertEvaluate("date_trunc('day', timestamp_tz)", 919900800000L, TIMESTAMP);     // Thu Feb 25 00:00:00.000 UTC 1999
-        assertEvaluate("date_trunc('week', timestamp_tz)", 919641600000L, TIMESTAMP);    // Mon Feb 22 00:00:00.000 UTC 1999
-        assertEvaluate("date_trunc('month', timestamp_tz)", 917827200000L, TIMESTAMP);   // Mon Feb  1 00:00:00.000 UTC 1999
-        assertEvaluate("date_trunc('year', timestamp_tz)", 915148800000L, TIMESTAMP);    // Fri Jan  1 00:00:00.000 UTC 1999
-        assertEvaluate("date_trunc('quarter', timestamp_tz)", 915148800000L, TIMESTAMP); // Fri Jan  1 00:00:00.000 UTC 1999
+        assertEvaluate("date_trunc('second', timestamp_tz)",
+                       919946281000L,
+                       TIMESTAMP);  // Thu Feb 25 12:38:01.000 UTC 1999
+        assertEvaluate("date_trunc('minute', timestamp_tz)",
+                       919946280000L,
+                       TIMESTAMP);  // Thu Feb 25 12:38:00.000 UTC 1999
+        assertEvaluate("date_trunc('hour', timestamp_tz)",
+                       919944000000L,
+                       TIMESTAMP);    // Thu Feb 25 12:00:00.000 UTC 1999
+        assertEvaluate("date_trunc('day', timestamp_tz)",
+                       919900800000L,
+                       TIMESTAMP);     // Thu Feb 25 00:00:00.000 UTC 1999
+        assertEvaluate("date_trunc('week', timestamp_tz)",
+                       919641600000L,
+                       TIMESTAMP);    // Mon Feb 22 00:00:00.000 UTC 1999
+        assertEvaluate("date_trunc('month', timestamp_tz)",
+                       917827200000L,
+                       TIMESTAMP);   // Mon Feb  1 00:00:00.000 UTC 1999
+        assertEvaluate("date_trunc('year', timestamp_tz)",
+                       915148800000L,
+                       TIMESTAMP);    // Fri Jan  1 00:00:00.000 UTC 1999
+        assertEvaluate("date_trunc('quarter', timestamp_tz)",
+                       915148800000L,
+                       TIMESTAMP); // Fri Jan  1 00:00:00.000 UTC 1999
     }
 
 
     @Test
-    public void testDateTruncWithLongDataType() {
+    public void testDateTruncWithLongDataType() throws Exception {
         assertEvaluate("date_trunc('day', 'Europe/Vienna', x)", 1401746400000L,
             Literal.of(1401777485000L));
     }
 
     @Test
-    public void testDateTruncWithStringLiteralTzAware() {
+    public void testDateTruncWithStringLiteralTzAware() throws Exception {
         assertNormalize("date_trunc('day', 'Europe/Vienna', '2014-06-03')", isLiteral(1401746400000L));
     }
 
@@ -107,18 +125,32 @@ public class DateTruncFunctionTest extends ScalarTestCase {
 
     @Test
     public void testEvaluateTimeZoneAware() throws Exception {
-        assertEvaluate("date_trunc('hour', 'Europe/Vienna', timestamp_tz)", 919944000000L, TIMESTAMP); // Thu Feb 25 12:00:00.000 UTC 1999
-        assertEvaluate("date_trunc('hour', 'CET', timestamp_tz)", 919944000000L, TIMESTAMP);           // Thu Feb 25 12:00:00.000 UTC 1999
-        assertEvaluate("date_trunc('day', 'UTC', timestamp_tz)", 919900800000L, TIMESTAMP);            // Thu Feb 25 12:00:00.000 UTC 1999
-        assertEvaluate("date_trunc('day', 'Europe/Moscow', timestamp_tz)", 919890000000L, TIMESTAMP);  // Wed Feb 24 21:00:00.000 UTC 1999
-        assertEvaluate("date_trunc('day', '+01:00', timestamp_tz)", 919897200000L, TIMESTAMP);         // Wed Feb 24 23:00:00.000 UTC 1999
-        assertEvaluate("date_trunc('day', '+03:00', timestamp_tz)", 919890000000L, TIMESTAMP);         //  Wed Feb 24 21:00:00.000 UTC 1999
-        assertEvaluate("date_trunc('day', '-08:00', timestamp_tz)", 919929600000L, TIMESTAMP);         //  Thu Feb 25 08:00:00.000 UTC 1999
+        assertEvaluate("date_trunc('hour', 'Europe/Vienna', timestamp_tz)",
+                       919944000000L,
+                       TIMESTAMP); // Thu Feb 25 12:00:00.000 UTC 1999
+        assertEvaluate("date_trunc('hour', 'CET', timestamp_tz)",
+                       919944000000L,
+                       TIMESTAMP);           // Thu Feb 25 12:00:00.000 UTC 1999
+        assertEvaluate("date_trunc('day', 'UTC', timestamp_tz)",
+                       919900800000L,
+                       TIMESTAMP);            // Thu Feb 25 12:00:00.000 UTC 1999
+        assertEvaluate("date_trunc('day', 'Europe/Moscow', timestamp_tz)",
+                       919890000000L,
+                       TIMESTAMP);  // Wed Feb 24 21:00:00.000 UTC 1999
+        assertEvaluate("date_trunc('day', '+01:00', timestamp_tz)",
+                       919897200000L,
+                       TIMESTAMP);         // Wed Feb 24 23:00:00.000 UTC 1999
+        assertEvaluate("date_trunc('day', '+03:00', timestamp_tz)",
+                       919890000000L,
+                       TIMESTAMP);         //  Wed Feb 24 21:00:00.000 UTC 1999
+        assertEvaluate("date_trunc('day', '-08:00', timestamp_tz)",
+                       919929600000L,
+                       TIMESTAMP);         //  Thu Feb 25 08:00:00.000 UTC 1999
     }
 
     @Test
     public void testCompile() throws Exception {
         assertCompile("date_trunc(interval, timezone, timestamp_tz)", IsSame::sameInstance);
-        assertCompile("date_trunc('day', 'UTC', timestamp_tz)", (s) -> not(IsSame.sameInstance(s)) );
+        assertCompile("date_trunc('day', 'UTC', timestamp_tz)", (s) -> not(IsSame.sameInstance(s)));
     }
 }

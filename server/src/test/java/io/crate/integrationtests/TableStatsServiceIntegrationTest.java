@@ -21,16 +21,17 @@
 
 package io.crate.integrationtests;
 
-import io.crate.metadata.RelationName;
-import io.crate.statistics.TableStats;
+import static org.hamcrest.Matchers.is;
+
+import java.util.concurrent.TimeUnit;
+
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.concurrent.TimeUnit;
-
-import static org.hamcrest.Matchers.is;
+import io.crate.metadata.RelationName;
+import io.crate.statistics.TableStats;
 
 
 @ESIntegTestCase.ClusterScope(supportsDedicatedMasters = false, numDataNodes = 2, numClientNodes = 0)
@@ -53,11 +54,11 @@ public class TableStatsServiceIntegrationTest extends SQLIntegrationTestCase {
         execute("insert into t1(a) values(1), (2), (3), (4), (5)");
         execute("refresh table t1");
         assertBusy(() -> {
-                TableStats tableStats = internalCluster().getDataNodeInstance(TableStats.class);
-                assertThat(tableStats.numDocs(new RelationName(sqlExecutor.getCurrentSchema(), "t1")), is(5L));
-                // tableStats.tableStats.estimatedSizePerRow() is not tested because it's based on sys.shards size
-                // column which is is cached for 10 secs in ShardSizeExpression which will increase the time needed
-                // to run this test.
-            }, 5, TimeUnit.SECONDS);
+            TableStats tableStats = internalCluster().getDataNodeInstance(TableStats.class);
+            assertThat(tableStats.numDocs(new RelationName(sqlExecutor.getCurrentSchema(), "t1")), is(5L));
+            // tableStats.tableStats.estimatedSizePerRow() is not tested because it's based on sys.shards size
+            // column which is is cached for 10 secs in ShardSizeExpression which will increase the time needed
+            // to run this test.
+        }, 5, TimeUnit.SECONDS);
     }
 }

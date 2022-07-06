@@ -21,8 +21,9 @@
 
 package io.crate.expression.scalar;
 
-import org.junit.Test;
 import static io.crate.testing.SymbolMatchers.isLiteral;
+
+import org.junit.Test;
 
 public class ConcatWsFunctionTest extends ScalarTestCase {
 
@@ -57,20 +58,19 @@ public class ConcatWsFunctionTest extends ScalarTestCase {
     }
 
     @Test
-    public void testNullSeparatorReturnsNull(){
+    public void testNullSeparatorReturnsNull() {
         assertEvaluate("concat_ws(NULL, 'abcde','2')",
-            null);
+                       null);
     }
 
     @Test
-    public void testInvalidArrayArgument(){
+    public void testInvalidArrayArgument() {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage(
             "Unknown function: concat_ws(',', 'foo', []), " +
-                "no overload found for matching argument types: (text, text, undefined_array). " +
-                "Possible candidates: concat_ws(text):text"
+            "no overload found for matching argument types: (text, text, undefined_array). " +
+            "Possible candidates: concat_ws(text):text"
         );
-        assertNormalize("concat_ws(',' , 'foo', [])"
-            ,null);
+        assertNormalize("concat_ws(',' , 'foo', [])", null);
     }
 }

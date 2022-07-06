@@ -21,16 +21,16 @@
 
 package io.crate.integrationtests;
 
-import io.crate.testing.SQLResponse;
-import io.crate.testing.SQLTransportExecutor;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
+import io.crate.testing.SQLResponse;
+import io.crate.testing.SQLTransportExecutor;
 
 public class Setup {
 
@@ -86,20 +86,20 @@ public class Setup {
             new Object[]{
                 "3", "Galactic Sector QQ7 Active J Gamma", "2013-05-01", "Galaxy", 4,
                 "Galactic Sector QQ7 Active J Gamma contains the Sun Zarss, " +
-                "the planet Preliumtarn of the famed Sevorbeupstry and " +
-                "Quentulus Quazgar Mountains.", null
+                    "the planet Preliumtarn of the famed Sevorbeupstry and " +
+                    "Quentulus Quazgar Mountains.", null
             },
             new Object[]{
                 "4", "Aldebaran", "2013-07-16", "Star System", 1,
                 "Max Quordlepleen claims that the only thing left after the end " +
-                "of the Universe will be the sweets trolley and a fine selection " +
-                "of Aldebaran liqueurs.", null
+                    "of the Universe will be the sweets trolley and a fine selection " +
+                    "of Aldebaran liqueurs.", null
             },
             new Object[]{
                 "5", "Algol", "2013-07-16", "Star System", 2,
                 "Algol is the home of the Algolian Suntiger, " +
-                "the tooth of which is one of the ingredients of the " +
-                "Pan Galactic Gargle Blaster.", null
+                    "the tooth of which is one of the ingredients of the " +
+                    "Pan Galactic Gargle Blaster.", null
             },
             new Object[]{
                 "6", "Alpha Centauri", "1979-10-12", "Star System", 3,
@@ -108,35 +108,34 @@ public class Setup {
             new Object[]{
                 "7", "Altair", "2013-07-16", "Star System", 4,
                 "The Altairian dollar is one of three freely convertible currencies in the galaxy, " +
-                "though by the time of the novels it had apparently recently collapsed.",
+                    "though by the time of the novels it had apparently recently collapsed.",
                 null
             },
             new Object[]{
                 "8", "Allosimanius Syneca", "2013-07-16", "Planet", 1,
                 "Allosimanius Syneca is a planet noted for ice, snow, " +
-                "mind-hurtling beauty and stunning cold.", null
+                    "mind-hurtling beauty and stunning cold.", null
             },
             new Object[]{
                 "9", "Argabuthon", "2013-07-16", "Planet", 2,
                 "It is also the home of Prak, a man placed into solitary confinement " +
-                "after an overdose of truth drug caused him to tell the Truth in its absolute " +
-                "and final form, causing anyone to hear it to go insane.", null,
+                    "after an overdose of truth drug caused him to tell the Truth in its absolute " +
+                    "and final form, causing anyone to hear it to go insane.", null,
             },
             new Object[]{
                 "10", "Arkintoofle Minor", "1979-10-12", "Planet", 3,
                 "Motivated by the fact that the only thing in the Universe that " +
-                "travels faster than light is bad news, the Hingefreel people native " +
-                "to Arkintoofle Minor constructed a starship driven by bad news.", null
+                    "travels faster than light is bad news, the Hingefreel people native " +
+                    "to Arkintoofle Minor constructed a starship driven by bad news.", null
             },
             new Object[]{
                 "11", "Bartledan", "2013-07-16", "Planet", 4,
                 "An Earthlike planet on which Arthur Dent lived for a short time, " +
-                "Bartledan is inhabited by Bartledanians, a race that appears human but only physically.",
-                new HashMap<String, Object>() {{
-                    put("name", "Bartledannians");
-                    put("description", "Similar to humans, but do not breathe");
-                    put("interests", "netball");
-                }}
+                    "Bartledan is inhabited by Bartledanians, a race that appears human but only physically.",
+                Map.of(
+                    "name", "Bartledannians",
+                    "description", "Similar to humans, but do not breathe",
+                    "interests", "netball")
             },
             new Object[]{
                 "12", "", "2013-07-16", "Planet", 5, "This Planet doesn't really exist", null
@@ -227,16 +226,12 @@ public class Setup {
         transportExecutor.exec("insert into ot (title, author, details) values (?, ?, ?)",
             new Object[]{
                 "The Hitchhiker's Guide to the Galaxy",
-                new HashMap<String, Object>() {{
-                    put("name", new HashMap<String, Object>() {{
-                        put("first_name", "Douglas");
-                        put("last_name", "Adams");
-                    }});
-                    put("age", 49);
-                }},
-                new HashMap<String, Object>() {{
-                    put("num_pages", 224);
-                }}
+                Map.of(
+                    "name", Map.of(
+                        "first_name", "Douglas",
+                        "last_name", "Adams"),
+                    "age", 49),
+                Map.of("num_pages", 224)
             }
         );
         transportExecutor.exec("refresh table ot");
@@ -250,14 +245,16 @@ public class Setup {
                                "  tags array(string)" +
                                ") with (number_of_replicas=0)");
         transportExecutor.ensureGreen();
-        SQLResponse response = transportExecutor.exec("insert into any_table (id, temps, names, tags) values (?,?,?,?), (?,?,?,?), (?,?,?,?), (?,?,?,?)",
-            new Object[] {
-                1, Arrays.asList(0L, 0L, 0L), Arrays.asList("Dornbirn", "Berlin", "St. Margrethen"), Arrays.asList("cool"),
-                2, Arrays.asList(0, 1, -1), Arrays.asList("Dornbirn", "Dornbirn", "Dornbirn"), Arrays.asList("cool", null),
-                3, Arrays.asList(42, -42), Arrays.asList("Hangelsberg", "Berlin"), Arrays.asList("kuhl", "cool"),
-                4, null, null, Arrays.asList("kuhl", null)
-            }
-        );
+        SQLResponse response =
+            transportExecutor.exec(
+                "insert into any_table (id, temps, names, tags) values (?,?,?,?), (?,?,?,?), (?,?,?,?), (?,?,?,?)",
+                new Object[] {
+                    1, Arrays.asList(0L, 0L, 0L), Arrays.asList("Dornbirn", "Berlin", "St. Margrethen"), Arrays.asList("cool"),
+                    2, Arrays.asList(0, 1, -1), Arrays.asList("Dornbirn", "Dornbirn", "Dornbirn"), Arrays.asList("cool", null),
+                    3, Arrays.asList(42, -42), Arrays.asList("Hangelsberg", "Berlin"), Arrays.asList("kuhl", "cool"),
+                    4, null, null, Arrays.asList("kuhl", null)
+                }
+            );
         assertThat(response.rowCount(), is(4L));
         transportExecutor.exec("refresh table any_table");
     }

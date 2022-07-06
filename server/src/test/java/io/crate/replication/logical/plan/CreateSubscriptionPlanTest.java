@@ -35,7 +35,7 @@ public class CreateSubscriptionPlanTest extends CrateDummyClusterServiceUnitTest
     public void test_create_subscription_plan_checks_subscribing_user() throws Exception {
         SQLExecutor e = SQLExecutor.builder(clusterService).build();
         assertThrowsMatches(
-            () ->  {
+            () -> {
                 CreateSubscriptionPlan plan = e.plan("CREATE SUBSCRIPTION sub CONNECTION 'crate://example.com' publication pub1");
                 PlannerContext plannerContext = e.getPlannerContext(clusterService.state());
                 plan.executeOrFail(null, plannerContext, null, null, null);

@@ -512,22 +512,29 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         DependencyCarrier executor = mock(DependencyCarrier.class, Answers.RETURNS_MOCKS);
         Planner planner = mock(Planner.class);
         when(planner.plan(any(AnalyzedStatement.class), any(PlannerContext.class)))
-            .thenReturn(new Plan() {
-                            @Override
-                            public StatementType type() {
-                                return StatementType.INSERT;
-                            }
+            .thenReturn(
+                new Plan() {
+                    @Override
+                    public StatementType type() {
+                        return StatementType.INSERT;
+                    }
 
-                            @Override
-                            public void executeOrFail(DependencyCarrier dependencies, PlannerContext plannerContext, RowConsumer consumer, Row params, SubQueryResults subQueryResults) throws Exception {
+                    @Override
+                    public void executeOrFail(DependencyCarrier dependencies,
+                                              PlannerContext plannerContext,
+                                              RowConsumer consumer,
+                                              Row params,
+                                              SubQueryResults subQueryResults) throws Exception {
+                    }
 
-                            }
-
-                            @Override
-                            public List<CompletableFuture<Long>> executeBulk(DependencyCarrier executor, PlannerContext plannerContext, List<Row> bulkParams, SubQueryResults subQueryResults) {
-                                return List.of(completedFuture(1L), completedFuture(1L));
-                            }
-                        }
+                    @Override
+                    public List<CompletableFuture<Long>> executeBulk(DependencyCarrier executor,
+                                                                     PlannerContext plannerContext,
+                                                                     List<Row> bulkParams,
+                                                                     SubQueryResults subQueryResults) {
+                        return List.of(completedFuture(1L), completedFuture(1L));
+                    }
+                }
             );
         JobsLogs jobsLogs = new JobsLogs(() -> true);
         Session session = new Session(
@@ -571,13 +578,14 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table clusters (id text, subscription_id text)")
             .build();
 
-        AnalyzedStatement stmt = e.analyze("""
-            select
-                *
-            from subscriptions
-            join clusters on clusters.subscription_id = subscriptions.id
-                AND subscriptions.name = ?
-        """);
+        AnalyzedStatement stmt = e.analyze(
+            """
+                    select
+                        *
+                    from subscriptions
+                    join clusters on clusters.subscription_id = subscriptions.id
+                        AND subscriptions.name = ?
+                """);
         ParameterTypeExtractor typeExtractor = new ParameterTypeExtractor();
         DataType[] parameterTypes = typeExtractor.getParameterTypes(stmt::visitSymbols);
         assertThat(parameterTypes, arrayContaining(DataTypes.STRING));

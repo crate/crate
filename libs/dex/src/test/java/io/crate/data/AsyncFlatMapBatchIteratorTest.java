@@ -42,7 +42,7 @@ import io.crate.testing.TestingBatchIterators;
 public class AsyncFlatMapBatchIteratorTest {
 
     @SafeVarargs
-    private final static <T> CloseableIterator<T> mkIter(T... rows) {
+    private static final <T> CloseableIterator<T> mkIter(T... rows) {
         return CloseableIterator.fromIterator(Arrays.asList(rows).iterator());
     }
 

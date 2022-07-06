@@ -107,7 +107,7 @@ public class TypeConversionTest extends ESTestCase {
 
             ArrayType<?> arrayType = new ArrayType<>(type);
             assertThat(
-                "type '" +  arrayType + "' is not self convertible",
+                "type '" + arrayType + "' is not self convertible",
                 arrayType.isConvertableTo(arrayType, false), is(true));
         }
     }
@@ -204,15 +204,15 @@ public class TypeConversionTest extends ESTestCase {
         // Dynamic objects allow dynamic creation of new sub-columns
         // Because of that we must allow conversions from one object to another
         // where one object contains more or different columns than the other.
-         ObjectType objX = ObjectType.builder()
-             .setInnerType("x", DataTypes.INTEGER)
-             .build();
-         ObjectType objY = ObjectType.builder()
-             .setInnerType("y", DataTypes.INTEGER)
-             .build();
+        ObjectType objX = ObjectType.builder()
+            .setInnerType("x", DataTypes.INTEGER)
+            .build();
+        ObjectType objY = ObjectType.builder()
+            .setInnerType("y", DataTypes.INTEGER)
+            .build();
 
-         assertThat(objX.isConvertableTo(objY, false), is(true));
-         assertThat(objY.isConvertableTo(objX, false), is(true));
+        assertThat(objX.isConvertableTo(objY, false), is(true));
+        assertThat(objY.isConvertableTo(objX, false), is(true));
     }
 
     @Test

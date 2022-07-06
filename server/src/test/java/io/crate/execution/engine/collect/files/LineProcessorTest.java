@@ -21,9 +21,11 @@
 
 package io.crate.execution.engine.collect.files;
 
-import io.crate.analyze.CopyFromParserProperties;
-import org.junit.Before;
-import org.junit.Test;
+import static io.crate.execution.dsl.phases.FileUriCollectPhase.InputFormat.CSV;
+import static io.crate.execution.dsl.phases.FileUriCollectPhase.InputFormat.JSON;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -33,11 +35,10 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
 
-import static io.crate.execution.dsl.phases.FileUriCollectPhase.InputFormat.CSV;
-import static io.crate.execution.dsl.phases.FileUriCollectPhase.InputFormat.JSON;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
+import org.junit.Before;
+import org.junit.Test;
+
+import io.crate.analyze.CopyFromParserProperties;
 
 public class LineProcessorTest {
 
@@ -47,12 +48,12 @@ public class LineProcessorTest {
 
     @Before
     public void setup() {
-        subjectUnderTest  = new LineProcessor(CopyFromParserProperties.DEFAULT, List.of("a", "b"));
+        subjectUnderTest = new LineProcessor(CopyFromParserProperties.DEFAULT, List.of("a", "b"));
     }
 
     @Test
     public void readFirstLine_givenFileExtensionIsCsv_AndDefaultJSONFileFormat_thenReadsLine() throws URISyntaxException, IOException {
-        uri = new URI ("file.csv");
+        uri = new URI("file.csv");
         Reader reader = new StringReader("some/string");
         bufferedReader = new BufferedReader(reader);
 
@@ -63,7 +64,7 @@ public class LineProcessorTest {
 
     @Test
     public void readFirstLine_givenFileFormatIsCsv_thenReadsLine() throws URISyntaxException, IOException {
-        uri = new URI ("file.any");
+        uri = new URI("file.any");
         Reader reader = new StringReader("some/string");
         bufferedReader = new BufferedReader(reader);
 
@@ -74,7 +75,7 @@ public class LineProcessorTest {
 
     @Test
     public void readFirstLine_givenFileExtensionIsJson__AndDefaultJSONFileFormat_thenDoesNotReadLine() throws URISyntaxException, IOException {
-        uri = new URI ("file.json");
+        uri = new URI("file.json");
         Reader reader = new StringReader("some/string");
         bufferedReader = new BufferedReader(reader);
 
@@ -85,7 +86,7 @@ public class LineProcessorTest {
 
     @Test
     public void readFirstLine_givenFileFormatIsJson_thenDoesNotReadLine() throws URISyntaxException, IOException {
-        uri = new URI ("file.any");
+        uri = new URI("file.any");
         Reader reader = new StringReader("some/string");
         bufferedReader = new BufferedReader(reader);
 

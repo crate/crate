@@ -161,7 +161,7 @@ public class CopyFromFailFastITest extends SQLIntegrationTestCase {
                 "assert failure on node=" + nodeNameOfShard1,
                 "io.crate.execution.dml.upsert.TransportShardUpsertAction",
                 Level.DEBUG,
-                "Failed to execute upsert on nodeName="+nodeNameOfShard1 + ".*")
+                "Failed to execute upsert on nodeName=" + nodeNameOfShard1 + ".*")
         );
 
         execute("SELECT COUNT(*) FROM doc.t");
@@ -233,7 +233,7 @@ public class CopyFromFailFastITest extends SQLIntegrationTestCase {
                 "assert failure on node=" + nodeNameOfShard0,
                 "io.crate.execution.dml.upsert.TransportShardUpsertAction",
                 Level.DEBUG,
-                "Failed to execute upsert on nodeName="+nodeNameOfShard0 + ".*")
+                "Failed to execute upsert on nodeName=" + nodeNameOfShard0 + ".*")
         );
 
         execute("SELECT COUNT(*) FROM doc.t");

@@ -22,9 +22,7 @@
 
 package io.crate.execution.engine.collect.files;
 
-import io.crate.common.collections.Lists2;
-import org.elasticsearch.test.ESTestCase;
-import org.junit.Test;
+import static org.hamcrest.Matchers.is;
 
 import java.io.IOException;
 import java.net.URI;
@@ -37,7 +35,10 @@ import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static org.hamcrest.Matchers.is;
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
+
+import io.crate.common.collections.Lists2;
 
 public class LocalFsFileInputTest extends ESTestCase {
 
@@ -102,17 +103,17 @@ public class LocalFsFileInputTest extends ESTestCase {
                 path + "nested_dir/nested_dir_2/*/sub.json",
                 path + "nested_dir/nested_dir_*/*/sub.json"
             );
-            List<String> preGlobURIs = uris.stream()
-                .map(URI::create)
-                .map(uri -> {
-                    try {
-                        return new LocalFsFileInput(uri);
-                    } catch (IOException e) {
-                        return null;
-                    }
-                })
-                .filter(Objects::nonNull)
-                .map(fi -> fi.preGlobUri.toString())
+        List<String> preGlobURIs = uris.stream()
+            .map(URI::create)
+            .map(uri -> {
+                try {
+                    return new LocalFsFileInput(uri);
+                } catch (IOException e) {
+                    return null;
+                }
+            })
+            .filter(Objects::nonNull)
+            .map(fi -> fi.preGlobUri.toString())
                 .toList();
         assertThat(preGlobURIs, is(List.of(
             path + "nested_dir/",

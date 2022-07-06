@@ -38,7 +38,7 @@ import io.crate.integrationtests.SQLIntegrationTestCase;
 import io.crate.integrationtests.Setup;
 import io.crate.testing.TestingHelpers;
 
-public class FulltextITest extends SQLIntegrationTestCase{
+public class FulltextITest extends SQLIntegrationTestCase {
 
     private Setup setup = new Setup(sqlExecutor);
 

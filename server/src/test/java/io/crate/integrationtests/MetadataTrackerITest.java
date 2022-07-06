@@ -21,28 +21,29 @@
 
 package io.crate.integrationtests;
 
-import io.crate.exceptions.OperationOnInaccessibleRelationException;
-import io.crate.replication.logical.LogicalReplicationService;
-import io.crate.replication.logical.MetadataTracker;
-import io.crate.testing.UseRandomizedSchema;
-import org.junit.Test;
+import static io.crate.testing.TestingHelpers.printedTable;
+import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.is;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import static io.crate.testing.TestingHelpers.printedTable;
-import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.is;
+import org.junit.Test;
+
+import io.crate.exceptions.OperationOnInaccessibleRelationException;
+import io.crate.replication.logical.LogicalReplicationService;
+import io.crate.replication.logical.MetadataTracker;
+import io.crate.testing.UseRandomizedSchema;
 
 @UseRandomizedSchema(random = false)
 public class MetadataTrackerITest extends LogicalReplicationITestCase {
 
     @Test
     public void test_schema_changes_of_subscribed_table_is_replicated() throws Exception {
-        executeOnPublisher("CREATE TABLE t1 (id INT) WITH(" + defaultTableSettings() +")");
+        executeOnPublisher("CREATE TABLE t1 (id INT) WITH(" + defaultTableSettings() + ")");
         executeOnPublisher("INSERT INTO t1 (id) VALUES (1), (2)");
         createPublication("pub1", false, List.of("t1"));
         createSubscription("sub1", "pub1");
@@ -62,7 +63,7 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
 
     @Test
     public void test_schema_changes_of_subscribed_table_is_replicated_and_new_data_is_synced() throws Exception {
-        executeOnPublisher("CREATE TABLE t1 (id INT) WITH(" + defaultTableSettings() +")");
+        executeOnPublisher("CREATE TABLE t1 (id INT) WITH(" + defaultTableSettings() + ")");
         executeOnPublisher("INSERT INTO t1 (id) VALUES (1), (2)");
         createPublication("pub1", false, List.of("t1"));
         createSubscription("sub1", "pub1");
@@ -86,7 +87,7 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
             var r = executeOnSubscriber("SELECT * FROM t1 ORDER BY id");
             assertThat(printedTable(r.rows()), is("1| NULL| NULL\n" +
                                                   "2| NULL| NULL\n" +
-                                                  "3| chewbacca| NULL\n"+
+                                                  "3| chewbacca| NULL\n" +
                                                   "4| r2d2| NULL\n" +
                                                   "5| luke| 37\n" +
                                                   "6| yoda| 900\n"));
@@ -99,7 +100,7 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
         int numberOfTables = randomIntBetween(1,10);
         var tableNames = new ArrayList<String>();
         for (int i = 1; i <= numberOfTables; i++) {
-            executeOnPublisher("CREATE TABLE t" + i + " (id INT) WITH(" + defaultTableSettings() +")");
+            executeOnPublisher("CREATE TABLE t" + i + " (id INT) WITH(" + defaultTableSettings() + ")");
             tableNames.add("t" + i);
         }
 
@@ -321,12 +322,12 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
         createPublication("pub", true, List.of());
 
         // subscription is created on the same cluster
-        executeOnPublisher("CREATE SUBSCRIPTION sub "+
-            " CONNECTION '" + publisherConnectionUrl() + "' publication pub");
+        executeOnPublisher("CREATE SUBSCRIPTION sub " +
+                           " CONNECTION '" + publisherConnectionUrl() + "' publication pub");
 
         executeOnPublisher("CREATE TABLE doc.t1 (id INT) WITH(" +
-            defaultTableSettings() +
-            ")");
+                           defaultTableSettings() +
+                           ")");
         executeOnPublisher("CREATE TABLE doc.t2 (id INT, p INT) PARTITIONED BY (p)");
 
         executeOnPublisher("GRANT DQL ON TABLE doc.t1, doc.t2 TO " + SUBSCRIBING_USER);

@@ -21,8 +21,33 @@
 
 package io.crate.execution.engine.collect;
 
+import static io.crate.testing.TestingHelpers.isRow;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.mockito.Mockito.mock;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.function.UnaryOperator;
+
+import org.elasticsearch.cluster.routing.ShardRouting;
+import org.elasticsearch.common.Randomness;
+import org.elasticsearch.indices.IndicesService;
+import org.elasticsearch.test.ESIntegTestCase;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntIndexedContainer;
+
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
 import io.crate.data.Bucket;
@@ -41,7 +66,6 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.integrationtests.SQLIntegrationTestCase;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
-import io.crate.metadata.SimpleReference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
@@ -49,33 +73,11 @@ import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.SearchPath;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.testing.UseRandomizedSchema;
 import io.crate.types.DataTypes;
-import org.elasticsearch.cluster.routing.ShardRouting;
-import org.elasticsearch.common.Randomness;
-import org.elasticsearch.indices.IndicesService;
-import org.elasticsearch.test.ESIntegTestCase;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.TreeMap;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.function.UnaryOperator;
-
-import static io.crate.testing.TestingHelpers.isRow;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.mockito.Mockito.mock;
 
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 1)
@@ -83,14 +85,14 @@ import static org.mockito.Mockito.mock;
 public class DocLevelCollectTest extends SQLIntegrationTestCase {
 
     private static final String TEST_TABLE_NAME = "test_table";
-    private static final SimpleReference testDocLevelReference = new SimpleReference(
+    private static final SimpleReference TEST_DOC_LEVEL_REFERENCE = new SimpleReference(
         new ReferenceIdent(new RelationName(Schemas.DOC_SCHEMA_NAME, TEST_TABLE_NAME), "doc"),
         RowGranularity.DOC,
         DataTypes.INTEGER,
         0,
         null
     );
-    private static final SimpleReference underscoreIdReference = new SimpleReference(
+    private static final SimpleReference UNDERSCORE_ID_REFERENCE = new SimpleReference(
         new ReferenceIdent(new RelationName(Schemas.DOC_SCHEMA_NAME, TEST_TABLE_NAME), "_id"),
         RowGranularity.DOC,
         DataTypes.STRING,
@@ -161,7 +163,7 @@ public class DocLevelCollectTest extends SQLIntegrationTestCase {
 
     @Test
     public void testCollectDocLevel() throws Throwable {
-        List<Symbol> toCollect = Arrays.asList(testDocLevelReference, underscoreIdReference);
+        List<Symbol> toCollect = Arrays.asList(TEST_DOC_LEVEL_REFERENCE, UNDERSCORE_ID_REFERENCE);
         RoutedCollectPhase collectNode = getCollectNode(toCollect, WhereClause.MATCH_ALL);
         Bucket result = collect(collectNode);
         assertThat(result, containsInAnyOrder(
@@ -172,10 +174,10 @@ public class DocLevelCollectTest extends SQLIntegrationTestCase {
 
     @Test
     public void testCollectDocLevelWhereClause() throws Throwable {
-        List<Symbol> arguments = Arrays.asList(testDocLevelReference, Literal.of(2));
+        List<Symbol> arguments = Arrays.asList(TEST_DOC_LEVEL_REFERENCE, Literal.of(2));
         EqOperator op =
             (EqOperator) functions.get(null, EqOperator.NAME, arguments, SearchPath.pathWithPGCatalogAndDoc());
-        List<Symbol> toCollect = Collections.singletonList(testDocLevelReference);
+        List<Symbol> toCollect = Collections.singletonList(TEST_DOC_LEVEL_REFERENCE);
         WhereClause whereClause = new WhereClause(
             new Function(op.signature(), arguments, EqOperator.RETURN_TYPE)
         );

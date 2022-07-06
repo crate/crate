@@ -116,7 +116,7 @@ public class NthValueFunctionsTest extends AbstractWindowFunctionTest {
         );
     }
 
-        @Test
+    @Test
     public void testNthValueWithEmptyOver() throws Throwable {
         assertEvaluate("nth_value(x, 3) over()",
             contains(new Object[] {3, 3, 3, 3}),

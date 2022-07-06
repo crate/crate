@@ -21,9 +21,13 @@
 
 package io.crate.expression.udf;
 
-import io.crate.analyze.FunctionArgumentDefinition;
-import io.crate.types.ArrayType;
-import io.crate.types.DataTypes;
+import static io.crate.expression.udf.UserDefinedFunctionMetadata.argumentTypesFrom;
+import static io.crate.expression.udf.UserDefinedFunctionMetadata.specificName;
+import static org.hamcrest.core.Is.is;
+
+import java.io.IOException;
+import java.util.List;
+
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -36,12 +40,9 @@ import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
-import java.io.IOException;
-import java.util.List;
-
-import static io.crate.expression.udf.UserDefinedFunctionMetadata.argumentTypesFrom;
-import static io.crate.expression.udf.UserDefinedFunctionMetadata.specificName;
-import static org.hamcrest.core.Is.is;
+import io.crate.analyze.FunctionArgumentDefinition;
+import io.crate.types.ArrayType;
+import io.crate.types.DataTypes;
 
 public class UserDefinedFunctionsMetadataTest extends ESTestCase {
 
@@ -56,7 +57,7 @@ public class UserDefinedFunctionsMetadataTest extends ESTestCase {
         args,
         DataTypes.FLOAT,
         "dummy_lang",
-       definition
+        definition
     );
 
     public static final UserDefinedFunctionsMetadata DUMMY_UDF_METADATA = UserDefinedFunctionsMetadata.of(FUNCTION_METADATA);

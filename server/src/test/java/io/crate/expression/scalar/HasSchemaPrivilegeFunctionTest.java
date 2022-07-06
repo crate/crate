@@ -21,6 +21,14 @@
 
 package io.crate.expression.scalar;
 
+import static org.hamcrest.core.IsNot.not;
+
+import java.util.Set;
+
+import org.hamcrest.core.IsSame;
+import org.junit.Before;
+import org.junit.Test;
+
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.pgcatalog.OidHash;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
@@ -29,13 +37,6 @@ import io.crate.testing.SqlExpressions;
 import io.crate.user.Privilege;
 import io.crate.user.StubUserManager;
 import io.crate.user.User;
-import org.hamcrest.core.IsSame;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.util.Set;
-
-import static org.hamcrest.core.IsNot.not;
 
 public class HasSchemaPrivilegeFunctionTest extends ScalarTestCase {
 
@@ -69,7 +70,7 @@ public class HasSchemaPrivilegeFunctionTest extends ScalarTestCase {
         sqlExpressions = new SqlExpressions(tableSources, null, null, null);
 
         Asserts.assertThrowsMatches(
-            () ->  assertEvaluate("has_schema_privilege('not_existing_user', 'pg_catalog', ' USAGE')", null),
+            () -> assertEvaluate("has_schema_privilege('not_existing_user', 'pg_catalog', ' USAGE')", null),
             IllegalArgumentException.class,
             "User not_existing_user does not exist"
         );
@@ -140,7 +141,7 @@ public class HasSchemaPrivilegeFunctionTest extends ScalarTestCase {
     @Test
     public void test_same_results_for_name_and_oid() {
         int schemaOid = OidHash.schemaOid("doc");
-        int userOid  = OidHash.userOid("test");
+        int userOid = OidHash.userOid("test");
         // Testing all 6 possible signatures.
         assertEvaluate("has_schema_privilege('test', 'doc', 'USAGE')", false);
         assertEvaluate("has_schema_privilege('test', " + schemaOid + ", 'USAGE')", false);

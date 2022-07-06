@@ -21,15 +21,15 @@
 
 package io.crate.metadata;
 
-import org.elasticsearch.test.ESTestCase;
-import org.junit.Test;
+import static java.util.Collections.singletonList;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.core.Is.is;
 
 import java.util.Arrays;
 import java.util.List;
 
-import static java.util.Collections.singletonList;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.core.Is.is;
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
 
 public class PartitionNameTest extends ESTestCase {
 
@@ -231,7 +231,7 @@ public class PartitionNameTest extends ESTestCase {
         assertTrue(
             new PartitionName(
                 new RelationName("doc", "table"), Arrays.asList("xxx")).equals(
-                new PartitionName(new RelationName("doc", "table"), Arrays.asList("xxx"))));
+                    new PartitionName(new RelationName("doc", "table"), Arrays.asList("xxx"))));
         assertTrue(
             new PartitionName(new RelationName("doc", "table"), Arrays.asList("xxx")).equals(
                 new PartitionName(

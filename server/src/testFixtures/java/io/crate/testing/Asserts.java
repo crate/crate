@@ -21,13 +21,13 @@
 
 package io.crate.testing;
 
-import org.hamcrest.Matcher;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.function.Executable;
-
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.instanceOf;
+
+import org.hamcrest.Matcher;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.function.Executable;
 
 public class Asserts {
 
@@ -42,13 +42,20 @@ public class Asserts {
         }
     }
 
-    public static void assertThrowsMatches(Executable executable, Class<? extends Throwable> type, String subString) {
+    public static void assertThrowsMatches(Executable executable, Class<? extends Throwable> type, String msgSubString) {
+        assertThrowsMatches(executable, type, msgSubString,"Expected exception to be thrown, but nothing was thrown.");
+    }
+
+    public static void assertThrowsMatches(Executable executable,
+                                           Class<? extends Throwable> type,
+                                           String msgSubString,
+                                           String assertionFailMsg) {
         try {
             executable.execute();
-            Assertions.fail("Expected exception to be thrown, but nothing was thrown.");
+            Assertions.fail(assertionFailMsg);
         } catch (Throwable t) {
             assertThat(t, instanceOf(type));
-            assertThat(t.getMessage(), containsString(subString));
+            assertThat(t.getMessage(), containsString(msgSubString));
         }
     }
 }

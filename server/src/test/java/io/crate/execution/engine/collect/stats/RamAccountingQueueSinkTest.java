@@ -21,22 +21,10 @@
 
 package io.crate.execution.engine.collect.stats;
 
-import io.crate.user.User;
-import io.crate.breaker.SizeEstimator;
-import io.crate.common.collections.BlockingEvictingQueue;
-import io.crate.expression.reference.sys.job.ContextLog;
-import io.crate.expression.reference.sys.job.JobContext;
-import io.crate.expression.reference.sys.job.JobContextLog;
-import io.crate.planner.Plan;
-import io.crate.planner.operators.StatementClassifier;
-import org.elasticsearch.test.ESTestCase;
-import org.elasticsearch.common.breaker.CircuitBreaker;
-import io.crate.common.unit.TimeValue;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import static org.hamcrest.Matchers.is;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -47,9 +35,23 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 
-import static org.hamcrest.Matchers.is;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import javax.annotation.Nullable;
+
+import org.elasticsearch.common.breaker.CircuitBreaker;
+import org.elasticsearch.test.ESTestCase;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+
+import io.crate.breaker.SizeEstimator;
+import io.crate.common.collections.BlockingEvictingQueue;
+import io.crate.common.unit.TimeValue;
+import io.crate.expression.reference.sys.job.ContextLog;
+import io.crate.expression.reference.sys.job.JobContext;
+import io.crate.expression.reference.sys.job.JobContextLog;
+import io.crate.planner.Plan;
+import io.crate.planner.operators.StatementClassifier;
+import io.crate.user.User;
 
 public class RamAccountingQueueSinkTest extends ESTestCase {
 
@@ -68,7 +70,7 @@ public class RamAccountingQueueSinkTest extends ESTestCase {
         }
     }
 
-    private static class  NoopLogEstimator extends SizeEstimator<NoopLog> {
+    private static class NoopLogEstimator extends SizeEstimator<NoopLog> {
         @Override
         public long estimateSize(@Nullable NoopLog value) {
             return 0L;

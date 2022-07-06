@@ -37,7 +37,6 @@ import org.junit.Test;
 import io.crate.analyze.relations.UnionSelect;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.Asserts;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.SymbolMatchers;
 import io.crate.types.DataTypes;
@@ -112,7 +111,7 @@ public class UnionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testUnionDistinct() throws Exception{
+    public void testUnionDistinct() throws Exception {
         SQLExecutor.builder(clusterService)
             .addTable(
                 "create table x (a text)"
@@ -191,7 +190,7 @@ public class UnionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testUnionObjectTypesWithSubColumnsOfSameNameButDifferentInnerTypes() throws Exception{
+    public void testUnionObjectTypesWithSubColumnsOfSameNameButDifferentInnerTypes() throws Exception {
         SQLExecutor.builder(clusterService)
             .addTable(
                 "create table v1 (obj object as (col int))"
@@ -210,7 +209,7 @@ public class UnionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testUnionObjectTypesWithSubColumnsOfDifferentNames() throws Exception{
+    public void testUnionObjectTypesWithSubColumnsOfDifferentNames() throws Exception {
         SQLExecutor.builder(clusterService)
             .addTable(
                 "create table v1 (obj object as (obj1 object as (col text)))"

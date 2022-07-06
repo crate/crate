@@ -29,8 +29,8 @@ import org.hamcrest.Matchers;
 import org.hamcrest.core.IsNull;
 import org.junit.Test;
 
-import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
@@ -238,10 +238,7 @@ public class UpdateIntegrationTest extends SQLIntegrationTestCase {
         execute("insert into test values(1.1, ?),(2.2, ?)", new Object[]{new Object[0],
             new Object[]{
                 new HashMap<String, Object>(),
-                new HashMap<String, Object>() {{
-                    put("hello", "world");
-                }}
-            }
+                Map.of("hello", "world")}
         });
         assertEquals(2, response.rowCount());
         refresh();
@@ -467,26 +464,24 @@ public class UpdateIntegrationTest extends SQLIntegrationTestCase {
     @Test
     public void testUpdateResetNestedObjectUsingUpdateRequest() throws Exception {
         execute("create table test (id string, data object(ignored))");
-        Map<String, Object> data = new HashMap<>() {{
-            put("foo", "bar");
-            put("days", new ArrayList<String>() {{
-                add("Mon");
-                add("Tue");
-                add("Wen");
-            }});
-        }};
+        Map<String, Object> data = Map.of(
+            "foo", "bar",
+            "days", List.of(
+                "Mon",
+                "Tue",
+                "Wen"));
+
         execute("insert into test (id, data) values (?, ?)", new Object[]{"1", data});
         refresh();
 
         execute("select data from test where id = ?", new Object[]{"1"});
         assertEquals(data, response.rows()[0][0]);
 
-        Map<String, Object> new_data = new HashMap<String, Object>() {{
-            put("days", new ArrayList<String>() {{
-                add("Mon");
-                add("Wen");
-            }});
-        }};
+        Map<String, Object> new_data = Map.of(
+            "days", List.of(
+                "Mon",
+                "Wen"));
+
         execute("update test set data = ? where id = ?", new Object[]{new_data, "1"});
         assertEquals(1, response.rowCount());
         refresh();
@@ -502,12 +497,9 @@ public class UpdateIntegrationTest extends SQLIntegrationTestCase {
     @Test
     public void testUpdateResetNestedNestedObject() throws Exception {
         execute("create table test (coolness object)");
-        Map<String, Object> map = new HashMap<>() {{
-            put("x", "1");
-            put("y", new HashMap<String, Object>() {{
-                put("z", 3);
-            }});
-        }};
+        Map<String, Object> map = Map.of(
+            "x", "1",
+            "y", Map.of("z", 3));
 
         execute("insert into test values (?)", new Object[]{map});
         assertEquals(1, response.rowCount());
@@ -725,7 +717,7 @@ public class UpdateIntegrationTest extends SQLIntegrationTestCase {
         execute("create table t (name string) with (number_of_replicas = 0)");
         // regression test, used to throw a ClassCastException because the JobLauncher created a
         // QueryResult instead of RowCountResult
-        long[] rowCounts  = execute("update t set name = 'Trillian' where name = ?", $$($("Arthur")));
+        long[] rowCounts = execute("update t set name = 'Trillian' where name = ?", $$($("Arthur")));
         assertThat(rowCounts.length, is(1));
     }
 
@@ -925,8 +917,8 @@ public class UpdateIntegrationTest extends SQLIntegrationTestCase {
 
         execute("update test set message='msg' where id = 1 returning id");
 
-        assertThat((response.cols()[0]), is("id" ));
-        assertThat(printedTable(response.rows()), is("1\n" ));
+        assertThat((response.cols()[0]), is("id"));
+        assertThat(printedTable(response.rows()), is("1\n"));
     }
 
     @Test
@@ -938,8 +930,8 @@ public class UpdateIntegrationTest extends SQLIntegrationTestCase {
 
         execute("update test set message='msg' where id = 1 returning id as renamed");
 
-        assertThat((response.cols()[0]), is("renamed" ));
-        assertThat(printedTable(response.rows()), is("1\n" ));
+        assertThat((response.cols()[0]), is("renamed"));
+        assertThat(printedTable(response.rows()), is("1\n"));
     }
 
     @Test
@@ -951,7 +943,7 @@ public class UpdateIntegrationTest extends SQLIntegrationTestCase {
 
         execute("update test set message='updated' where id = (select 1) returning id");
 
-        assertThat(printedTable(response.rows()), is("1\n" ));
+        assertThat(printedTable(response.rows()), is("1\n"));
     }
 
     @Test
