@@ -58,11 +58,11 @@ public class ArrayLengthQueryBuilderTest extends LuceneQueryBuilderTest {
     }
 
     @Test
-    public void testArrayLengthGt1UsesNumTermsPerDocAndGenericFunction() {
+    public void testArrayLengthGt1UsesNumTermsPerOrAndGenericFunction() {
         Query query = convert("array_length(y_array, 1) > 1");
         assertThat(
             query.toString(),
-            is("+NumTermsPerDoc: y_array #(array_length(y_array, 1) > 1)")
+            is("(NumTermsPerDoc: y_array (array_length(y_array, 1) > 1))~1")
         );
     }
 
