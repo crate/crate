@@ -81,7 +81,7 @@ public class UnionIntegrationTest extends SQLIntegrationTestCase {
         execute("select id from t1 " +
                 "union all " +
                 "select id from t1");
-        assertThat(response.rows(),  arrayContainingInAnyOrder(
+        assertThat(response.rows(), arrayContainingInAnyOrder(
             new Object[] {1},
             new Object[] {42},
             new Object[] {1000},
@@ -182,8 +182,8 @@ public class UnionIntegrationTest extends SQLIntegrationTestCase {
         assertThat(response.rows(), arrayContaining(
             new Object[] {42, "magic number"},
             new Object[] {43, "magic number"},
-            new Object[] {1,  "text"},
-            new Object[] {11, "text"},
+            new Object[] {1, "text"},
+            new Object[] {11,"text"},
             new Object[] {1000, "text2"}));
     }
 
@@ -192,7 +192,7 @@ public class UnionIntegrationTest extends SQLIntegrationTestCase {
         execute("select * from (select text from t1 order by text limit 2) a " +
                 "union all " +
                 "select * from (select text from t2 order by text limit 1) b " +
-                "order by text " );
+                "order by text ");
         assertThat(response.rows(), arrayContaining(
             new Object[] {"magic number"},
             new Object[] {"magic number"},
@@ -210,7 +210,7 @@ public class UnionIntegrationTest extends SQLIntegrationTestCase {
         execute("select * from (select text from t1 limit 1) a " +
                 "union all " +
                 "select * from (select text from t2 limit 1) b " +
-                "order by text " );
+                "order by text ");
         assertThat(response.rows().length, is(2));
     }
 

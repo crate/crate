@@ -21,13 +21,14 @@
 
 package io.crate.expression.scalar.timestamp;
 
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+
 import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.SystemClock;
 import io.crate.types.DataTypes;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
 
 public class TimezoneFunctionTest extends ScalarTestCase {
 
@@ -146,6 +147,6 @@ public class TimezoneFunctionTest extends ScalarTestCase {
     @Test
     public void test_timezone_doesnt_truncate_millis() {
         assertEvaluate("timezone('UTC', current_timestamp)", NOW_MILLIS);
-        assertEvaluate("timezone('GMT+1', current_timestamp)", NOW_MILLIS  + 3600 * 1000);
+        assertEvaluate("timezone('GMT+1', current_timestamp)", NOW_MILLIS + 3600 * 1000);
     }
 }

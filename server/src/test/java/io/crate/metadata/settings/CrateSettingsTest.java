@@ -97,7 +97,7 @@ public class CrateSettingsTest extends CrateDummyClusterServiceUnitTest {
                     ).map()
             ).map();
 
-        Settings.Builder builder  = Settings.builder();
+        Settings.Builder builder = Settings.builder();
         Settings expected = Settings.builder()
             .put("stats.enabled", true)
             .put("stats.breaker.log.jobs.overhead", 1.05d)

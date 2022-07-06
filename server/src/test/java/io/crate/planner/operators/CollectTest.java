@@ -21,29 +21,27 @@
 
 package io.crate.planner.operators;
 
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
+
+import java.util.List;
+import java.util.Set;
+
+import org.junit.Test;
+
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.data.Row;
-import io.crate.execution.dsl.phases.NestedLoopPhase;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.Symbol;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
-import io.crate.planner.node.dql.join.Join;
 import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
-import org.junit.Test;
-import org.mockito.internal.matchers.Null;
-
-import java.util.List;
-import java.util.Set;
-
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
 
 public class CollectTest extends CrateDummyClusterServiceUnitTest {
 

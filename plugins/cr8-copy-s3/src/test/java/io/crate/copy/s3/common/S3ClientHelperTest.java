@@ -21,16 +21,13 @@
 
 package io.crate.copy.s3.common;
 
-import com.amazonaws.http.IdleConnectionReaper;
-import io.crate.copy.s3.common.S3ClientHelper;
-import io.crate.copy.s3.common.S3URI;
+import java.net.URI;
+
 import org.elasticsearch.test.ESTestCase;
 import org.junit.After;
 import org.junit.Test;
 
-import java.net.URI;
-
-import static org.hamcrest.Matchers.is;
+import com.amazonaws.http.IdleConnectionReaper;
 
 public class S3ClientHelperTest extends ESTestCase {
 

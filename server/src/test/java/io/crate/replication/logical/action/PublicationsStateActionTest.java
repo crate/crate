@@ -30,7 +30,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.logging.log4j.Level;
-import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.test.MockLogAppender;
 import org.junit.After;

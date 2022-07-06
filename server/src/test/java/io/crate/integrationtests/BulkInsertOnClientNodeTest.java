@@ -22,20 +22,21 @@
 package io.crate.integrationtests;
 
 
-import io.crate.action.sql.SQLOperations;
-import io.crate.testing.SQLTransportExecutor;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.is;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 import org.elasticsearch.client.Client;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.stream.Collectors;
-
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.is;
+import io.crate.action.sql.SQLOperations;
+import io.crate.testing.SQLTransportExecutor;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 1)
 public class BulkInsertOnClientNodeTest extends SQLIntegrationTestCase {
@@ -66,7 +67,7 @@ public class BulkInsertOnClientNodeTest extends SQLIntegrationTestCase {
 
                 private String nodeName() {
                     if (nodeName == null) {
-                        Client client= client();
+                        Client client = client();
                         nodeName = client.settings().get("name");
                     }
                     return nodeName;
@@ -83,9 +84,7 @@ public class BulkInsertOnClientNodeTest extends SQLIntegrationTestCase {
             execute("insert into test (id, value) values (?, ?)",
                 new Object[][]{
                     new Object[]{1, 1},                                 // use id 1 to ensure shard 0
-                    new Object[]{3, new HashMap<String, Object>() {{    // use id 3 to ensure shard 1
-                        put("foo", 127);
-                    }}},
+                    new Object[] {3, Map.of("foo", 127)}         // use id 3 to ensure shard 1
                 })).boxed().collect(Collectors.toList());
         assertThat(rowCounts.size(), is(2));
         assertThat(rowCounts, Matchers.anyOf(

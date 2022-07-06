@@ -28,7 +28,7 @@ import org.junit.Test;
 
 import static io.crate.planner.operators.LogicalPlannerTest.isPlan;
 
-public class SelectDistinctLogicalPlannerTest extends CrateDummyClusterServiceUnitTest  {
+public class SelectDistinctLogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     private SQLExecutor e;
 

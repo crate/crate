@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.lucene.index;
 
 import java.io.IOException;
@@ -182,7 +183,7 @@ public class PatchedAssertingLeafReader extends FilterLeafReader {
 
         private enum State {
             INITIAL, POSITIONED, UNPOSITIONED
-        };
+        }
 
         private State state = State.INITIAL;
         private final boolean delegateOverridesSeekExact;
@@ -343,9 +344,9 @@ public class PatchedAssertingLeafReader extends FilterLeafReader {
         }
     }
 
-    static enum DocsEnumState {
+    enum DocsEnumState {
         START, ITERATING, FINISHED
-    };
+    }
 
     /** Wraps a docsenum with additional checks */
     public static class AssertingPostingsEnum extends FilterPostingsEnum {

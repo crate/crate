@@ -430,4 +430,4 @@ public class ShowIntegrationTest extends SQLIntegrationTestCase {
             "server_version_num| 100500| Reports the emulated PostgreSQL version number\n")
         );
     }
-     }
+}

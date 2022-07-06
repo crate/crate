@@ -21,25 +21,6 @@
 
 package io.crate.integrationtests;
 
-import io.crate.exceptions.OperationOnInaccessibleRelationException;
-import io.crate.metadata.PartitionName;
-import io.crate.testing.SQLResponse;
-import io.crate.testing.TestingHelpers;
-import io.crate.testing.UseJdbc;
-import org.apache.lucene.util.Version;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.test.ESIntegTestCase;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.nio.file.Path;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_COLUMN;
 import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_TABLE;
@@ -56,8 +37,27 @@ import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
+
+import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
+import org.apache.lucene.util.Version;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.test.ESIntegTestCase;
+import org.junit.Before;
+import org.junit.Test;
+
+import io.crate.exceptions.OperationOnInaccessibleRelationException;
+import io.crate.metadata.PartitionName;
+import io.crate.testing.SQLResponse;
+import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseJdbc;
 
 @ESIntegTestCase.ClusterScope(numClientNodes = 0, numDataNodes = 2, supportsDedicatedMasters = false)
 public class SysShardsTest extends SQLIntegrationTestCase {

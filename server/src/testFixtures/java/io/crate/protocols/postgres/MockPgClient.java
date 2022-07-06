@@ -79,6 +79,7 @@ public class MockPgClient extends PgClient {
         public DiscoveryNode getNode() {
             return connection.getNode();
         }
+
         public void sendRequest(long requestId,
                                 String action,
                                 TransportRequest request,

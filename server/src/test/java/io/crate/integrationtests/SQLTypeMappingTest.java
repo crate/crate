@@ -33,7 +33,6 @@ import static org.hamcrest.core.IsInstanceOf.instanceOf;
 
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -123,22 +122,15 @@ public class SQLTypeMappingTest extends SQLIntegrationTestCase {
         execute("insert into test12 (object_field, strict_field, " +
                 "no_dynamic_field) values (?,?,?)",
             new Object[]{
-                new HashMap<String, Object>() {{
-                    put("size", 127);
-                    put("created", "2013-11-19");
-                }},
-                new HashMap<String, Object>() {{
-                    put("path", "/dev/null");
-                    put("created", "1970-01-01T00:00:00");
-                }},
-                new HashMap<String, Object>() {{
-                    put("path", "/etc/shadow");
-                    put("dynamic_again", new HashMap<String, Object>() {{
-                            put("field", 1384790145.289);
-                        }}
-                    );
-                }}
-            });
+                Map.of(
+                    "size", 127,
+                    "created", "2013-11-19"),
+                Map.of(
+                    "path", "/dev/null",
+                    "created", "1970-01-01T00:00:00"),
+                Map.of(
+                    "path", "/etc/shadow",
+                    "dynamic_again", Map.of("field", 1384790145.289))});
         refresh();
 
         SQLResponse response = execute("select object_field, strict_field, no_dynamic_field from test12");
@@ -160,9 +152,7 @@ public class SQLTypeMappingTest extends SQLIntegrationTestCase {
         Map<String, Object> noDynamicMap = (Map<String, Object>) response.rows()[0][2];
         assertEquals("/etc/shadow", noDynamicMap.get("path"));
         assertEquals(
-            new HashMap<String, Object>() {{
-                put("field", 1384790145289L);
-            }},
+            Map.of("field", 1384790145289L),
             noDynamicMap.get("dynamic_again")
         );
 
@@ -235,11 +225,8 @@ public class SQLTypeMappingTest extends SQLIntegrationTestCase {
 
         execute("insert into t1 (id, byte_field, short_field, integer_field, long_field, " +
                 "float_field, double_field, boolean_field, string_field, timestamp_field," +
-                "object_field) values (?,?,?,?,?,?,?,?,?,?,?)", new Object[]{
-            0, 0, 0, 0, 0, 0.0f, 1.0, false, "", "1970-01-01", new HashMap<String, Object>() {{
-            put("inner", "1970-01-01");
-        }}
-        });
+                "object_field) values (?,?,?,?,?,?,?,?,?,?,?)",
+                new Object[]{0, 0, 0, 0, 0, 0.0f, 1.0, false, "", "1970-01-01", Map.of("inner", "1970-01-01")});
         execute("update t1 set " +
                 "byte_field=?," +
                 "short_field=?," +
@@ -252,13 +239,12 @@ public class SQLTypeMappingTest extends SQLIntegrationTestCase {
                 "timestamp_field=?," +
                 "object_field=?," +
                 "ip_field=? " +
-                "where id=0", new Object[]{
-            Byte.MAX_VALUE, Short.MIN_VALUE, Integer.MAX_VALUE, Long.MIN_VALUE,
-            1.0f, Math.PI, true, "a string", "2013-11-20",
-            new HashMap<String, Object>() {{
-                put("inner", "2013-11-20");
-            }}, "127.0.0.1"
-        });
+                "where id=0",
+                new Object[]{
+                    Byte.MAX_VALUE, Short.MIN_VALUE, Integer.MAX_VALUE, Long.MIN_VALUE,
+                    1.0f, Math.PI, true, "a string", "2013-11-20",
+                    Map.of("inner", "2013-11-20"), "127.0.0.1"
+                });
         refresh();
 
         SQLResponse response = execute("select id, byte_field, short_field, integer_field, long_field," +
@@ -275,9 +261,9 @@ public class SQLTypeMappingTest extends SQLIntegrationTestCase {
         assertEquals(true, response.rows()[0][7]);
         assertEquals("a string", response.rows()[0][8]);
         assertEquals(1384905600000L, response.rows()[0][9]);
-        assertEquals(new HashMap<String, Object>() {{
-            put("inner", 1384905600000L);
-        }}, response.rows()[0][10]);
+        assertEquals(
+            Map.of("inner", 1384905600000L),
+            response.rows()[0][10]);
         assertEquals("127.0.0.1", response.rows()[0][11]);
     }
 
@@ -293,13 +279,11 @@ public class SQLTypeMappingTest extends SQLIntegrationTestCase {
         execute("insert into t1 (id, string_field, boolean_field, byte_field, short_field, integer_field," +
                 "long_field, float_field, double_field, object_field," +
                 "timestamp_field, ip_field) values " +
-                "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", new Object[]{
-            0, "Blabla", true, 120, 1000, 1200000,
-            120000000000L, 1.4, 3.456789, new HashMap<String, Object>() {{
-            put("inner", "1970-01-01");
-        }},
-            "1970-01-01", "127.0.0.1"
-        });
+                "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                new Object[]{
+                    0, "Blabla", true, 120, 1000, 1200000,
+                    120000000000L, 1.4, 3.456789, Map.of("inner", "1970-01-01"),
+                    "1970-01-01", "127.0.0.1"});
         refresh();
         SQLResponse getResponse = execute("select * from t1 where id=0");
         SQLResponse searchResponse = execute("select * from t1 limit 1");
@@ -331,15 +315,15 @@ public class SQLTypeMappingTest extends SQLIntegrationTestCase {
     @Test
     public void testInsertNewObjectColumn() throws Exception {
         setUpSimple();
-        execute("insert into t1 (id, new_col) values (?,?)", new Object[]{
-            0,
-            new HashMap<String, Object>() {{
-                put("a_date", "1970-01-01");
-                put("an_int", 127);
-                put("a_long", Long.MAX_VALUE);
-                put("a_boolean", true);
-            }}
-        });
+        execute("insert into t1 (id, new_col) values (?,?)",
+                new Object[]{
+                    0,
+                    Map.of(
+                        "a_date", "1970-01-01",
+                        "an_int", 127,
+                        "a_long", Long.MAX_VALUE,
+                        "a_boolean", true)
+                    });
         refresh();
 
         waitForMappingUpdateOnAll("t1", "new_col");
@@ -358,10 +342,9 @@ public class SQLTypeMappingTest extends SQLIntegrationTestCase {
     @Test
     public void testInsertNewColumnToObject() throws Exception {
         setUpObjectTable();
-        Map<String, Object> objectContent = new HashMap<String, Object>() {{
-            put("new_col", "a string");
-            put("another_new_col", "1970-01-01T00:00:00");
-        }};
+        Map<String, Object> objectContent = Map.of(
+            "new_col", "a string",
+            "another_new_col", "1970-01-01T00:00:00");
         execute("insert into test12 (object_field) values (?)",
             new Object[]{objectContent});
         refresh();
@@ -378,7 +361,7 @@ public class SQLTypeMappingTest extends SQLIntegrationTestCase {
     public void testInsertNewColumnToStrictObject() throws Exception {
         setUpObjectTable();
 
-        assertThrowsMatches(() ->  execute("insert into test12 (strict_field) values (?)",
+        assertThrowsMatches(() -> execute("insert into test12 (strict_field) values (?)",
                                     new Object[]{Map.of("another_new_col", "1970-01-01T00:00:00")}),
                      isSQLError(is("mapping set to strict, dynamic introduction of [another_new_col] within [strict_field] is not allowed"),
                          INTERNAL_ERROR,
@@ -390,10 +373,9 @@ public class SQLTypeMappingTest extends SQLIntegrationTestCase {
     public void testInsertNewColumnToIgnoredObject() throws Exception {
 
         setUpObjectTable();
-        Map<String, Object> notDynamicContent = new HashMap<String, Object>() {{
-            put("new_col", "a string");
-            put("another_new_col", "1970-01-01T00:00:00");
-        }};
+        Map<String, Object> notDynamicContent = Map.of(
+            "new_col", "a string",
+            "another_new_col", "1970-01-01T00:00:00");
         execute("insert into test12 (no_dynamic_field) values (?)",
             new Object[]{notDynamicContent});
         refresh();

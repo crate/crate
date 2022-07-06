@@ -18,7 +18,18 @@
  * with Crate these terms will supersede the license and you may use the
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
+
 package io.crate.execution.engine.fetch;
+
+import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
+import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
+import static io.crate.testing.TestingHelpers.createNodeContext;
+import static org.hamcrest.Matchers.is;
+
+import java.util.List;
+import java.util.Map;
+
+import org.junit.Test;
 
 import com.carrotsearch.hppc.IntHashSet;
 import com.carrotsearch.hppc.IntObjectHashMap;
@@ -35,15 +46,6 @@ import io.crate.planner.node.fetch.FetchSource;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
-import org.junit.Test;
-
-import java.util.List;
-import java.util.Map;
-
-import static io.crate.testing.TestingHelpers.createNodeContext;
-import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
-import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
-import static org.hamcrest.Matchers.is;
 
 public class FetchRowsTest extends CrateDummyClusterServiceUnitTest {
 

@@ -45,7 +45,7 @@ import java.util.concurrent.TimeUnit;
 @ESIntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 0, supportsDedicatedMasters = false)
 public class SslReqHandlerIntegrationTest extends SQLIntegrationTestCase {
 
-    private final static char[] EMPTY_PASS = new char[]{};
+    private static final char[] EMPTY_PASS = new char[]{};
 
     private static SelfSignedCertificate trustedCert;
     private static File keyStoreFile;

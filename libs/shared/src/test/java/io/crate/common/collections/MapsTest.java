@@ -44,9 +44,9 @@ public class MapsTest {
         Assert.assertThat(Maps.getByPath(map, "a"), is("b"));
         Assert.assertNull(Maps.getByPath(map, "a.b"));
 
-        Map<String, Object> nestedMap = new HashMap<String, Object>() {{
-            put("b", 123);
-        }};
+        Map<String, Object> nestedMap = new HashMap<>() {{
+                put("b", 123);
+            }};
         map.put("a", nestedMap);
         Assert.assertThat(Maps.getByPath(map, "a"), is(nestedMap));
         Assert.assertThat(Maps.getByPath(map, "a.b"), is(123));

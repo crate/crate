@@ -21,23 +21,6 @@
 
 package io.crate.analyze;
 
-import io.crate.analyze.relations.AliasedAnalyzedRelation;
-import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.expression.operator.LikeOperators;
-import io.crate.expression.symbol.Function;
-import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.SQLExecutor;
-import org.hamcrest.Matchers;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.jupiter.api.Assertions;
-
-import java.io.IOException;
-import java.util.List;
-
 import static io.crate.testing.SymbolMatchers.isAlias;
 import static io.crate.testing.SymbolMatchers.isField;
 import static io.crate.testing.SymbolMatchers.isFunction;
@@ -49,6 +32,23 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
+
+import java.io.IOException;
+import java.util.List;
+
+import org.hamcrest.Matchers;
+import org.junit.Before;
+import org.junit.Test;
+
+import io.crate.analyze.relations.AliasedAnalyzedRelation;
+import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.expression.operator.LikeOperators;
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.Reference;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
 
 @SuppressWarnings("ConstantConditions")
 public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {

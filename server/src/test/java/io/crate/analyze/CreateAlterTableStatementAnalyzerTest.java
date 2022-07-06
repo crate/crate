@@ -21,6 +21,48 @@
 
 package io.crate.analyze;
 
+import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
+import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.ANALYZER;
+import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.testing.Asserts.assertThrowsMatches;
+import static io.crate.testing.SQLErrorMatcher.isSQLError;
+import static io.crate.testing.TestingHelpers.mapToSortedString;
+import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_ROUTING_EXCLUDE_GROUP_SETTING;
+import static org.elasticsearch.index.engine.EngineConfig.INDEX_CODEC_SETTING;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.hasItems;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.isEmptyOrNullString;
+import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.startsWith;
+
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+
+import org.elasticsearch.cluster.ClusterName;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.AutoExpandReplicas;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.routing.allocation.decider.EnableAllocationDecider;
+import org.elasticsearch.cluster.routing.allocation.decider.MaxRetryAllocationDecider;
+import org.elasticsearch.common.Randomness;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.IndexSettings;
+import org.elasticsearch.index.mapper.MapperService;
+import org.elasticsearch.test.ClusterServiceUtils;
+import org.hamcrest.Matchers;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+
 import io.crate.common.collections.Maps;
 import io.crate.data.RowN;
 import io.crate.exceptions.ColumnUnknownException;
@@ -46,48 +88,6 @@ import io.crate.sql.tree.ColumnPolicy;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
-import org.elasticsearch.cluster.ClusterName;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.AutoExpandReplicas;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.routing.allocation.decider.EnableAllocationDecider;
-import org.elasticsearch.cluster.routing.allocation.decider.MaxRetryAllocationDecider;
-import org.elasticsearch.common.Randomness;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.IndexSettings;
-import org.elasticsearch.index.mapper.MapperService;
-import org.elasticsearch.test.ClusterServiceUtils;
-import org.hamcrest.Matchers;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.jupiter.api.Assertions;
-
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-
-import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
-import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.ANALYZER;
-import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
-import static io.crate.testing.Asserts.assertThrowsMatches;
-import static io.crate.testing.SQLErrorMatcher.isSQLError;
-import static io.crate.testing.TestingHelpers.mapToSortedString;
-import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
-import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_ROUTING_EXCLUDE_GROUP_SETTING;
-import static org.elasticsearch.index.engine.EngineConfig.INDEX_CODEC_SETTING;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.hasItems;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.isEmptyOrNullString;
-import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.Matchers.startsWith;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -166,14 +166,14 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     }
 
     @Test
-    public void test_cannot_create_table_that_contains_a_column_definition_of_type_time () {
+    public void test_cannot_create_table_that_contains_a_column_definition_of_type_time() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Cannot use the type `time with time zone` for column: ts");
         analyze("create table t (ts time with time zone)");
     }
 
     @Test
-    public void test_cannot_alter_table_to_add_a_column_definition_of_type_time () {
+    public void test_cannot_alter_table_to_add_a_column_definition_of_type_time() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Cannot use the type `time with time zone` for column: ts");
         analyze("alter table user_refresh_interval add column ts time with time zone");
@@ -402,7 +402,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
 
     @Test
     @SuppressWarnings("unchecked")
-    public void testCreateTableWithIgnoredObject()  {
+    public void testCreateTableWithIgnoredObject() {
         BoundCreateTable analysis = analyze(
             "create table foo (id integer primary key, details object(ignored))");
 
@@ -1357,11 +1357,12 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
 
     @Test
     public void testNumberOfRoutingShardsCanBeSetAtCreateTable() {
-        BoundCreateTable stmt = analyze("""
-            create table t (x int)
-            clustered into 2 shards
-            with (number_of_routing_shards = 10)
-        """);
+        BoundCreateTable stmt = analyze(
+            """
+                    create table t (x int)
+                    clustered into 2 shards
+                    with (number_of_routing_shards = 10)
+                """);
         assertThat(stmt.tableParameter().settings().get("index.number_of_routing_shards"), is("10"));
     }
 
@@ -1397,16 +1398,24 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     @Test
     public void test_alter_table_update_final_setting_on_open_table() throws IOException {
         e = SQLExecutor.builder(clusterService).addTable("create table doc.test(i int)").build();
-        assertThrowsMatches(() ->  analyze(e, "alter table test SET (\"store.type\" = 'simplefs')"),
-            isSQLError(containsString("Invalid property \"store.type\" passed to [ALTER | CREATE] TABLE statement"), INTERNAL_ERROR, INTERNAL_SERVER_ERROR,5000)
+        assertThrowsMatches(() -> analyze(e, "alter table test SET (\"store.type\" = 'simplefs')"),
+                            isSQLError(containsString(
+                                           "Invalid property \"store.type\" passed to [ALTER | CREATE] TABLE statement"),
+                                       INTERNAL_ERROR,
+                                       INTERNAL_SERVER_ERROR,
+                                       5000)
         );
     }
 
     @Test
     public void test_alter_table_update_final_setting_on_closed_table() throws IOException {
         e = SQLExecutor.builder(clusterService).addTable("create table doc.test(i int)").closeTable("test").build();
-        assertThrowsMatches(() ->  analyze(e, "alter table test SET (number_of_routing_shards = 5)"),
-            isSQLError(containsString("Invalid property \"number_of_routing_shards\" passed to [ALTER | CREATE] TABLE statement"), INTERNAL_ERROR, INTERNAL_SERVER_ERROR,5000)
+        assertThrowsMatches(() -> analyze(e, "alter table test SET (number_of_routing_shards = 5)"),
+                            isSQLError(containsString(
+                                           "Invalid property \"number_of_routing_shards\" passed to [ALTER | CREATE] TABLE statement"),
+                                       INTERNAL_ERROR,
+                                       INTERNAL_SERVER_ERROR,
+                                       5000)
         );
     }
 

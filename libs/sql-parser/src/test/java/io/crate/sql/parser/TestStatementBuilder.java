@@ -265,10 +265,10 @@ public class TestStatementBuilder {
 
     @Test
     public void testNullNotAllowedAsArgToExtractField() {
-    assertThrowsMatches(
-        () -> printStatement("select extract(null from x)"),
-        ParsingException.class,
-        "line 1:16: no viable alternative at input 'select extract(null'");
+        assertThrowsMatches(
+            () -> printStatement("select extract(null from x)"),
+            ParsingException.class,
+            "line 1:16: no viable alternative at input 'select extract(null'");
     }
 
     @Test
@@ -960,7 +960,7 @@ public class TestStatementBuilder {
         printStatement("select - ( + - 10) * - ( - 10 - + 10)");
         printStatement("select - - col['x']");
 
-//         expressions as subscript index are only supported by the parser
+        // expressions as subscript index are only supported by the parser
         printStatement("select col[1 + 2] - col['y'] from foo");
 
         printStatement("select x is distinct from y from foo where a is not distinct from b");
@@ -1098,15 +1098,15 @@ public class TestStatementBuilder {
 
     @Test
     public void testArrayConstructorSubSelectBuilderNoParenthesisThrowsParsingException() {
-    assertThrowsMatches(
-        () -> printStatement("select array from f2"),
-        ParsingException.class,
-        "line 1:14: no viable alternative at input 'select array from'");
+        assertThrowsMatches(
+            () -> printStatement("select array from f2"),
+            ParsingException.class,
+            "line 1:14: no viable alternative at input 'select array from'");
     }
 
-   @Test
+    @Test
     public void testArrayConstructorSubSelectBuilderNoSubQueryThrowsParsingException() {
-       assertThrowsMatches(
+        assertThrowsMatches(
             () -> printStatement("select array() as array1 from f2"),
             ParsingException.class,
             "line 1:14: no viable alternative at input 'select array()'");
@@ -1759,7 +1759,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void test_create_table_with_parametrized_varchar_data_type   () {
+    public void test_create_table_with_parametrized_varchar_data_type() {
         printStatement("create table test(col varchar(1))");
         printStatement("create table test(col character varying(2))");
     }
@@ -1866,9 +1866,10 @@ public class TestStatementBuilder {
             statement instanceof CreateSubscription ||
             statement instanceof DropSubscription ||
             statement instanceof AlterSubscription) {
-                println(SqlFormatter.formatSql(statement));
-                println("");
-                assertFormattedSql(statement);
+
+            println(SqlFormatter.formatSql(statement));
+            println("");
+            assertFormattedSql(statement);
         }
 
         println("=".repeat(60));

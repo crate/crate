@@ -58,11 +58,11 @@ public class ShardLimitsIT extends SQLIntegrationTestCase {
     @Test
     public void test_shard_limit_is_checked_on_partition_creation() throws Exception {
         execute("""
-            create table tbl (x int, p int)
-            clustered into 4 shards
-            partitioned by (p)
-            with (number_of_replicas = 0)
-        """);
+                    create table tbl (x int, p int)
+                    clustered into 4 shards
+                    partitioned by (p)
+                    with (number_of_replicas = 0)
+                    """);
         execute("set global \"cluster.max_shards_per_node\" = 1");
         Asserts.assertThrowsMatches(
             () -> execute("insert into tbl (x, p) values (1, 1)"),

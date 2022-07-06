@@ -18,20 +18,22 @@
  * with Crate these terms will supersede the license and you may use the
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
+
 package io.crate.expression.scalar;
 
-import io.crate.metadata.SystemClock;
+import static io.crate.testing.Asserts.assertThrowsMatches;
+
+import java.time.LocalDate;
+import java.time.Month;
+import java.time.ZoneOffset;
+
 import org.joda.time.Period;
 import org.joda.time.PeriodType;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.time.LocalDate;
-import java.time.Month;
-import java.time.ZoneOffset;
-
-import static io.crate.testing.Asserts.assertThrowsMatches;
+import io.crate.metadata.SystemClock;
 
 public class AgeFunctionTest extends ScalarTestCase {
 
@@ -56,13 +58,15 @@ public class AgeFunctionTest extends ScalarTestCase {
     @Test
     public void test_1_argument_before_curdate_age_is_positive() {
         // 1 second before the current_date (manually set 2021.01.01 midnight)
-        assertEvaluate("pg_catalog.age('2020-12-31T23:59:59'::timestamp)",  Period.seconds(1).normalizedStandard(PeriodType.yearMonthDayTime()));
+        assertEvaluate("pg_catalog.age('2020-12-31T23:59:59'::timestamp)",
+                       Period.seconds(1).normalizedStandard(PeriodType.yearMonthDayTime()));
     }
 
     @Test
     public void test_1_argument_after_curdate_age_is_negative() {
         // 1 second before the current_date (manually set 2021.01.01 midnight)
-        assertEvaluate("pg_catalog.age('2021-01-01T00:00:01'::timestamp)",  Period.seconds(1).normalizedStandard(PeriodType.yearMonthDayTime()).negated());
+        assertEvaluate("pg_catalog.age('2021-01-01T00:00:01'::timestamp)",
+                       Period.seconds(1).normalizedStandard(PeriodType.yearMonthDayTime()).negated());
     }
 
     @Test
@@ -76,13 +80,13 @@ public class AgeFunctionTest extends ScalarTestCase {
     public void test_2_arguments_more_than_7_days_no_weeks() {
         // Postgres returns 8 days.
         // If we remove PeriodType.yearMonthDayTime() normalization in the implementation, age returns 1 week 1 day.
-        var expectedInterval= Period.days(8).normalizedStandard(PeriodType.yearMonthDayTime());
+        var expectedInterval = Period.days(8).normalizedStandard(PeriodType.yearMonthDayTime());
         assertEvaluate("pg_catalog.age('2021-01-09T00:00:00'::timestamp, '2021-01-01T00:00:00'::timestamp)", expectedInterval);
     }
 
     @Test
     public void test_age_is_1_month_regardless_of_days_in_month() {
-        var expectedInterval= Period.months(1).normalizedStandard(PeriodType.yearMonthDayTime());
+        var expectedInterval = Period.months(1).normalizedStandard(PeriodType.yearMonthDayTime());
         assertEvaluate("pg_catalog.age('2021-02-01T00:00:00'::timestamp, '2021-01-01T00:00:00'::timestamp)", expectedInterval); // 31 days but 1 month
         assertEvaluate("pg_catalog.age('2021-03-01T00:00:00'::timestamp, '2021-02-01T00:00:00'::timestamp)", expectedInterval); // 28 days but 1 month
         assertEvaluate("pg_catalog.age('2021-05-01T00:00:00'::timestamp, '2021-04-01T00:00:00'::timestamp)", expectedInterval); // 30 days but 1 month
@@ -91,7 +95,7 @@ public class AgeFunctionTest extends ScalarTestCase {
     @Test
     public void test_2_arguments_positive() {
         // 1 year 2 months 3 days 4 hours 5 minutes 6 seconds 7 milliseconds before the current_date (manually set 2021.01.01 midnight)
-        var expectedInterval= Period.years(1).plusMonths(2).plusDays(3).plusHours(4).plusMinutes(5).plusSeconds(6)
+        var expectedInterval = Period.years(1).plusMonths(2).plusDays(3).plusHours(4).plusMinutes(5).plusSeconds(6)
             .plusMillis(7).normalizedStandard(PeriodType.yearMonthDayTime());
         assertEvaluate("pg_catalog.age('2021-01-01T00:00:00'::timestamp, '2019-10-28T19:54:53.993'::timestamp)", expectedInterval);
     }
@@ -99,7 +103,7 @@ public class AgeFunctionTest extends ScalarTestCase {
     @Test
     public void test_2_arguments_negative() {
         // 1 year 2 months 3 days 4 hours 5 minutes 6 seconds 7 milliseconds after the current_date (manually set 2021.01.01 midnight)
-        var expectedInterval= Period.years(1).plusMonths(2).plusDays(3).plusHours(4).plusMinutes(5).plusSeconds(6)
+        var expectedInterval = Period.years(1).plusMonths(2).plusDays(3).plusHours(4).plusMinutes(5).plusSeconds(6)
             .plusMillis(7).normalizedStandard(PeriodType.yearMonthDayTime()).negated();
         assertEvaluate("pg_catalog.age('2021-01-01T00:00:00'::timestamp, '2022-03-04T04:05:06.007'::timestamp)", expectedInterval);
     }

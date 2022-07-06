@@ -138,21 +138,16 @@ public class ValueNormalizerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testNormalizeObjectLiteral() throws Exception {
         Reference objInfo = userTableInfo.getReference(new ColumnIdent("dyn"));
-        Map<String, Object> map = new HashMap<String, Object>() {{
-            put("d", 2.9d);
-            put("inner_strict", new HashMap<String, Object>() {{
-                put("double", "-88.7");
-            }});
-        }};
+        Map<String, Object> map = Map.of(
+            "d", 2.9d,
+            "inner_strict", Map.of(
+                "double", "-88.7"));
         normalizeInputForReference(Literal.of(map), objInfo);
         Symbol normalized = normalizeInputForReference(Literal.of(map), objInfo);
         assertThat(normalized, instanceOf(Literal.class));
         assertThat(((Literal<Map<String, Object>>) normalized).value().get("d"), Matchers.<Object>is(2.9d));
         assertThat(((Literal<Map<String, Object>>) normalized).value().get("inner_strict"),
-            Matchers.<Object>is(new HashMap<String, Object>() {{
-                                    put("double", -88.7d);
-                                }}
-            ));
+            Matchers.is(Map.of("double", -88.7d)));
     }
 
     @Test
@@ -189,11 +184,10 @@ public class ValueNormalizerTest extends CrateDummyClusterServiceUnitTest {
     @Test(expected = ColumnUnknownException.class)
     public void testNormalizeStrictObjectLiteralWithAdditionalNestedColumn() throws Exception {
         Reference objInfo = userTableInfo.getReference(new ColumnIdent("strict"));
-        Map<String, Object> map = new HashMap<>();
-        map.put("inner_d", 2.9d);
-        map.put("inner_map", new HashMap<String, Object>() {{
-            put("much_inner", "yaw");
-        }});
+        Map<String, Object> map = Map.of(
+            "inner_d", 2.9d,
+            "inner_map", Map.of(
+                "much_inner", "yaw"));
         normalizeInputForReference(Literal.of(map), objInfo);
     }
 
@@ -201,21 +195,18 @@ public class ValueNormalizerTest extends CrateDummyClusterServiceUnitTest {
     public void testNormalizeNestedStrictObjectLiteralWithAdditionalColumn() throws Exception {
         Reference objInfo = userTableInfo.getReference(new ColumnIdent("dyn"));
 
-        Map<String, Object> map = new HashMap<>();
-        map.put("inner_strict", new HashMap<String, Object>() {{
-            put("double", 2.9d);
-            put("half", "1.45");
-        }});
-        map.put("half", "1.45");
+        Map<String, Object> map = Map.of(
+            "inner_strict", Map.of(
+                    "double", 2.9d,
+                    "half", "1.45"),
+            "half", "1.45");
         normalizeInputForReference(Literal.of(map), objInfo);
     }
 
     @Test
     public void testNormalizeDynamicNewColumnTimestamp() throws Exception {
         Reference objInfo = userTableInfo.getReference(new ColumnIdent("dyn"));
-        Map<String, Object> map = new HashMap<String, Object>() {{
-            put("time", "1970-01-01T00:00:00");
-        }};
+        Map<String, Object> map = Map.of("time", "1970-01-01T00:00:00");
         Literal<Map<String, Object>> literal = (Literal) normalizeInputForReference(
             Literal.of(map),
             objInfo);
@@ -225,21 +216,17 @@ public class ValueNormalizerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testNormalizeIgnoredNewColumnTimestamp() throws Exception {
         Reference objInfo = userTableInfo.getReference(new ColumnIdent("ignored"));
-        Map<String, Object> map = new HashMap<String, Object>() {{
-            put("time", "1970-01-01T00:00:00");
-        }};
+        Map<String, Object> map = Map.of("time", "1970-01-01T00:00:00");
         Literal<Map<String, Object>> literal = (Literal) normalizeInputForReference(
-            Literal.of(map),
-            objInfo);
+                Literal.of(map),
+                objInfo);
         assertThat((String) literal.value().get("time"), is("1970-01-01T00:00:00"));
     }
 
     @Test
     public void testNormalizeDynamicNewColumnNoTimestamp() throws Exception {
         Reference objInfo = userTableInfo.getReference(new ColumnIdent("ignored"));
-        Map<String, Object> map = new HashMap<String, Object>() {{
-            put("no_time", "1970");
-        }};
+        Map<String, Object> map = Map.of("no_time", "1970");
         Literal<Map<String, Object>> literal = (Literal) normalizeInputForReference(
             Literal.of(map),
             objInfo);

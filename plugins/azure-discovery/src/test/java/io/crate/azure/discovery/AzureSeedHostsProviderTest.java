@@ -54,9 +54,9 @@ import static org.mockito.Mockito.when;
 
 public class AzureSeedHostsProviderTest {
 
-    private static final String rgName = "my_resourcegroup";
-    private static final String vnetName = "myVnet";
-    private static final String subnetName = "mySubnet2";
+    private static final String RG_NAME = "my_resourcegroup";
+    private static final String VNET_NAME = "myVnet";
+    private static final String SUBNET_NAME = "mySubnet2";
     private Logger logger;
 
     private NetworkResourceProviderClient providerClient = mock(NetworkResourceProviderClientImpl.class);
@@ -72,38 +72,42 @@ public class AzureSeedHostsProviderTest {
         subnet.setIpConfigurations(CollectionUtils.asArrayList(resourceId));
         subnet.setName("mySubnet");
 
-        VirtualNetworkOperations virtualNetworkOperations = mock(VirtualNetworkOperationsImpl.class);
-        VirtualNetworkGetResponse virtualNetworkGetResponse = mock(VirtualNetworkGetResponse.class);
+        final VirtualNetworkOperations virtualNetworkOperations = mock(VirtualNetworkOperationsImpl.class);
+        final VirtualNetworkGetResponse virtualNetworkGetResponse = mock(VirtualNetworkGetResponse.class);
         final NetworkInterfaceOperations networkInterfaceOperations = mock(NetworkInterfaceOperationsImpl.class);
-        NetworkInterfaceGetResponse networkInterfaceGetResponse = mock(NetworkInterfaceGetResponse.class);
+        final NetworkInterfaceGetResponse networkInterfaceGetResponse = mock(NetworkInterfaceGetResponse.class);
 
-        NetworkInterfaceIpConfiguration ipConfiguration = new NetworkInterfaceIpConfiguration();
+        final NetworkInterfaceIpConfiguration ipConfiguration = new NetworkInterfaceIpConfiguration();
         ipConfiguration.setPrivateIpAddress("10.0.0.4");
 
-        NetworkInterface nic = new NetworkInterface();
+        final NetworkInterface nic = new NetworkInterface();
         nic.setName("nic_dummy");
         nic.setIpConfigurations(CollectionUtils.asArrayList(ipConfiguration));
 
-        VirtualNetwork virtualNetwork = new VirtualNetwork();
+        final VirtualNetwork virtualNetwork = new VirtualNetwork();
         virtualNetwork.setSubnets(CollectionUtils.asArrayList(subnet));
 
         when(virtualNetworkGetResponse.getVirtualNetwork()).thenReturn(virtualNetwork);
         when(providerClient.getVirtualNetworksOperations()).thenReturn(virtualNetworkOperations);
-        when(virtualNetworkOperations.get(rgName, vnetName)).thenReturn(virtualNetworkGetResponse);
+        when(virtualNetworkOperations.get(RG_NAME, VNET_NAME)).thenReturn(virtualNetworkGetResponse);
 
         when(providerClient.getNetworkInterfacesOperations()).thenReturn(networkInterfaceOperations);
-        when(networkInterfaceOperations.get(rgName, "nic_dummy")).thenReturn(networkInterfaceGetResponse);
+        when(networkInterfaceOperations.get(RG_NAME, "nic_dummy")).thenReturn(networkInterfaceGetResponse);
         when(networkInterfaceGetResponse.getNetworkInterface()).thenReturn(nic);
     }
 
     @Test
     public void testSingleSubnet() throws IOException, ServiceException {
-        List<String> networkAddresses = AzureSeedHostsProvider.listIPAddresses(providerClient, rgName, vnetName, "", "vnet",
+        List<String> networkAddresses = AzureSeedHostsProvider.listIPAddresses(providerClient,
+                                                                               RG_NAME,
+                                                                               VNET_NAME, "", "vnet",
                                                                                AzureSeedHostsProvider.HostType.PRIVATE_IP, logger);
         assertEquals(networkAddresses.size(), 1);
         assertEquals(networkAddresses.get(0), "10.0.0.4");
 
-        List<String> networkAddresses2 = AzureSeedHostsProvider.listIPAddresses(providerClient, rgName, vnetName, "", "vnet",
+        List<String> networkAddresses2 = AzureSeedHostsProvider.listIPAddresses(providerClient,
+                                                                                RG_NAME,
+                                                                                VNET_NAME, "", "vnet",
                                                                                 AzureSeedHostsProvider.HostType.PUBLIC_IP, logger);
         assertEquals(networkAddresses2.size(), 0);
     }
@@ -120,43 +124,53 @@ public class AzureSeedHostsProviderTest {
         subnet2.setIpConfigurations(CollectionUtils.asArrayList(resourceId2));
         subnet2.setName("mySubnet2");
 
-        NetworkInterfaceGetResponse networkInterfaceGetResponse2 = mock(NetworkInterfaceGetResponse.class);
-        PublicIpAddressOperations publicIpAddressOperations = mock(PublicIpAddressOperationsImpl.class);
-        PublicIpAddressGetResponse publicIpAddressGetResponse = mock(PublicIpAddressGetResponse.class);
+        final NetworkInterfaceGetResponse networkInterfaceGetResponse2 = mock(NetworkInterfaceGetResponse.class);
+        final PublicIpAddressOperations publicIpAddressOperations = mock(PublicIpAddressOperationsImpl.class);
+        final PublicIpAddressGetResponse publicIpAddressGetResponse = mock(PublicIpAddressGetResponse.class);
 
-        NetworkInterfaceIpConfiguration ipConfiguration2 = new NetworkInterfaceIpConfiguration();
+        final NetworkInterfaceIpConfiguration ipConfiguration2 = new NetworkInterfaceIpConfiguration();
         ipConfiguration2.setPrivateIpAddress("10.0.0.5");
 
         ipConfiguration2.setPublicIpAddress(resourceId3);
 
-        PublicIpAddress publicIpAddress = new PublicIpAddress();
+        final PublicIpAddress publicIpAddress = new PublicIpAddress();
         publicIpAddress.setIpAddress("33.33.33.33");
 
-        NetworkInterface nic2 = new NetworkInterface();
+        final NetworkInterface nic2 = new NetworkInterface();
         nic2.setName("nic_dummy2");
         nic2.setIpConfigurations(CollectionUtils.asArrayList(ipConfiguration2));
 
-        providerClient.getVirtualNetworksOperations().get(rgName, vnetName).getVirtualNetwork().getSubnets().add(subnet2);
+        providerClient.getVirtualNetworksOperations().get(RG_NAME,
+                                                          VNET_NAME).getVirtualNetwork().getSubnets().add(subnet2);
 
-        when(providerClient.getNetworkInterfacesOperations().get(rgName, "nic_dummy2")).thenReturn(networkInterfaceGetResponse2);
+        when(providerClient.getNetworkInterfacesOperations().get(RG_NAME, "nic_dummy2")).thenReturn(networkInterfaceGetResponse2);
         when(networkInterfaceGetResponse2.getNetworkInterface()).thenReturn(nic2);
 
         when(providerClient.getPublicIpAddressesOperations()).thenReturn(publicIpAddressOperations);
-        when(publicIpAddressOperations.get(rgName, "ip_public1")).thenReturn(publicIpAddressGetResponse);
+        when(publicIpAddressOperations.get(RG_NAME, "ip_public1")).thenReturn(publicIpAddressGetResponse);
         when(publicIpAddressGetResponse.getPublicIpAddress()).thenReturn(publicIpAddress);
 
-        List<String> networkAddresses = AzureSeedHostsProvider.listIPAddresses(providerClient, rgName, vnetName, subnetName, "subnet",
+        List<String> networkAddresses = AzureSeedHostsProvider.listIPAddresses(providerClient,
+                                                                               RG_NAME,
+                                                                               VNET_NAME,
+                                                                               SUBNET_NAME, "subnet",
                                                                                AzureSeedHostsProvider.HostType.PRIVATE_IP, logger);
         assertEquals(networkAddresses.size(), 1);
         assertEquals(networkAddresses.get(0), "10.0.0.5");
 
-        List<String> networkAddresses2 = AzureSeedHostsProvider.listIPAddresses(providerClient, rgName, vnetName, subnetName, "vnet",
+        List<String> networkAddresses2 = AzureSeedHostsProvider.listIPAddresses(providerClient,
+                                                                                RG_NAME,
+                                                                                VNET_NAME,
+                                                                                SUBNET_NAME, "vnet",
                                                                                 AzureSeedHostsProvider.HostType.PRIVATE_IP, logger);
         assertEquals(networkAddresses2.size(), 2);
         assertEquals(networkAddresses2.contains("10.0.0.5"), true);
         assertEquals(networkAddresses2.contains("10.0.0.4"), true);
 
-        List<String> networkAddresses3 = AzureSeedHostsProvider.listIPAddresses(providerClient, rgName, vnetName, subnetName, "vnet",
+        List<String> networkAddresses3 = AzureSeedHostsProvider.listIPAddresses(providerClient,
+                                                                                RG_NAME,
+                                                                                VNET_NAME,
+                                                                                SUBNET_NAME, "vnet",
                                                                                 AzureSeedHostsProvider.HostType.PUBLIC_IP, logger);
         assertEquals(networkAddresses3.size(), 1);
         assertEquals(networkAddresses3.contains("33.33.33.33"), true);

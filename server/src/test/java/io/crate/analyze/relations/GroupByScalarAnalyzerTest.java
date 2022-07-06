@@ -21,15 +21,16 @@
 
 package io.crate.analyze.relations;
 
-import io.crate.expression.symbol.Symbols;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.SQLExecutor;
-import org.junit.Before;
-import org.junit.Test;
+import static org.hamcrest.core.Is.is;
 
 import java.io.IOException;
 
-import static org.hamcrest.core.Is.is;
+import org.junit.Before;
+import org.junit.Test;
+
+import io.crate.expression.symbol.Symbols;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
 
 
 public class GroupByScalarAnalyzerTest extends CrateDummyClusterServiceUnitTest {

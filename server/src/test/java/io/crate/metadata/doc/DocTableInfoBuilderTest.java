@@ -21,26 +21,26 @@
 
 package io.crate.metadata.doc;
 
+import static com.carrotsearch.randomizedtesting.RandomizedTest.randomAsciiLettersOfLength;
+import static io.crate.testing.TestingHelpers.createNodeContext;
+
+import java.util.Collections;
+import java.util.Locale;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.cluster.ClusterName;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
+
 import io.crate.Constants;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
-import org.elasticsearch.test.ESTestCase;
-import org.elasticsearch.Version;
-import org.elasticsearch.cluster.ClusterName;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.common.settings.Settings;
-import org.junit.Test;
-
-import java.util.Collections;
-import java.util.Locale;
-
-import static com.carrotsearch.randomizedtesting.RandomizedTest.randomAsciiLettersOfLength;
-import static io.crate.testing.TestingHelpers.createNodeContext;
 
 
 public class DocTableInfoBuilderTest extends ESTestCase {

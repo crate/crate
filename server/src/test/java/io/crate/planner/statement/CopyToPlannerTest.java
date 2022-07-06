@@ -21,7 +21,20 @@
 
 package io.crate.planner.statement;
 
+import static java.util.Collections.singletonList;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.is;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.elasticsearch.common.settings.Settings;
+import org.junit.Before;
+import org.junit.Test;
+
 import com.carrotsearch.randomizedtesting.RandomizedTest;
+
 import io.crate.analyze.TableDefinitions;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
@@ -37,18 +50,6 @@ import io.crate.planner.operators.SubQueryResults;
 import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.elasticsearch.common.settings.Settings;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
-import static java.util.Collections.singletonList;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.is;
 
 public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -154,6 +155,6 @@ public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
         merge = plan("copy users to directory '/path/to/'");
         collect = (Collect) merge.subPlan();
         writerProjection = (WriterProjection) collect.collectPhase().projections().get(0);
-        assertThat(writerProjection.withClauseOptions(), is (Settings.EMPTY));
+        assertThat(writerProjection.withClauseOptions(), is(Settings.EMPTY));
     }
 }

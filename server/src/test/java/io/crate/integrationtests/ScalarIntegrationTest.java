@@ -21,16 +21,15 @@
 
 package io.crate.integrationtests;
 
+import static org.hamcrest.Matchers.is;
+
+import org.junit.Test;
+
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.testing.Asserts;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
 import io.crate.types.DataTypes;
-import org.junit.Test;
-
-import java.util.List;
-
-import static org.hamcrest.Matchers.is;
 
 @UseJdbc(0) // data types needed
 public class ScalarIntegrationTest extends SQLIntegrationTestCase {
@@ -49,10 +48,9 @@ public class ScalarIntegrationTest extends SQLIntegrationTestCase {
         var session = sqlExecutor.newSession();
         session.sessionContext().setErrorOnUnknownObjectKey(true);
         Asserts.assertThrowsMatches(
-            () -> {
-                sqlExecutor.exec("SELECT col1['x'] FROM UNNEST(['{\"x\":1,\"y\":2}','{\"y\":2,\"z\":3}']::ARRAY(OBJECT))",
-                                 session);
-                },
+            () -> sqlExecutor.exec(
+                "SELECT col1['x'] FROM UNNEST(['{\"x\":1,\"y\":2}','{\"y\":2,\"z\":3}']::ARRAY(OBJECT))",
+                session),
             ColumnUnknownException.class,
             "The object `{y=2, z=3}` does not contain the key `x`"
         );

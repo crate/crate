@@ -21,24 +21,24 @@
 
 package io.crate.expression.udf;
 
-import io.crate.analyze.FunctionArgumentDefinition;
-import io.crate.exceptions.UserDefinedFunctionAlreadyExistsException;
-import io.crate.exceptions.UserDefinedFunctionUnknownException;
-import io.crate.metadata.Schemas;
-import io.crate.testing.SQLExecutor;
-import io.crate.types.DataTypes;
-import org.junit.Test;
-import org.junit.jupiter.api.Assertions;
-
-import java.util.List;
-
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import java.util.List;
+
+import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+
+import io.crate.analyze.FunctionArgumentDefinition;
+import io.crate.exceptions.UserDefinedFunctionAlreadyExistsException;
+import io.crate.exceptions.UserDefinedFunctionUnknownException;
+import io.crate.metadata.Schemas;
+import io.crate.testing.SQLExecutor;
+import io.crate.types.DataTypes;
 
 public class UserDefinedFunctionServiceTest extends UdfUnitTest {
 

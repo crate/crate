@@ -21,11 +21,24 @@
 
 package io.crate.protocols.postgres;
 
+import static org.hamcrest.Matchers.arrayContaining;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.emptyArray;
+import static org.hamcrest.Matchers.is;
+import static org.mockito.Mockito.mock;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.concurrent.TimeUnit;
+
+import org.elasticsearch.common.settings.Settings;
+import org.junit.Test;
+import org.mockito.Answers;
+
 import io.crate.action.sql.BaseResultReceiver;
 import io.crate.action.sql.Session;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.AnalyzedStatement;
-import io.crate.auth.AccessControl;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
@@ -35,24 +48,11 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.PlannerContext;
-import io.crate.statistics.TableStats;
 import io.crate.planner.operators.SubQueryResults;
+import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.user.StubUserManager;
-import org.elasticsearch.common.settings.Settings;
-import org.junit.Test;
-import org.mockito.Answers;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.concurrent.TimeUnit;
-
-import static org.hamcrest.Matchers.arrayContaining;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.emptyArray;
-import static org.hamcrest.Matchers.is;
-import static org.mockito.Mockito.mock;
 
 public class BatchPortalTest extends CrateDummyClusterServiceUnitTest {
 

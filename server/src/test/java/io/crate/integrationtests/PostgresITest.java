@@ -205,7 +205,7 @@ public class PostgresITest extends SQLIntegrationTestCase {
             FROM pg_enum
             JOIN pg_type ON pg_type.oid=enumtypid
             ORDER BY oid, enumsortorder;
-        """;
+            """;
 
         Properties properties = new Properties();
         properties.setProperty("user", "crate");
@@ -994,8 +994,8 @@ public class PostgresITest extends SQLIntegrationTestCase {
     @Test
     @UseJdbc(0) // Simulate explicit call by a user through HTTP iface
     public void test_proper_termination_of_deallocate_through_http_call() throws Exception {
-       execute("DEALLOCATE ALL");
-       assertThat(response.rowCount(), is (0L));
+        execute("DEALLOCATE ALL");
+        assertThat(response.rowCount(), is(0L));
     }
 
     @Test
@@ -1106,20 +1106,19 @@ public class PostgresITest extends SQLIntegrationTestCase {
         Properties properties = new Properties();
         properties.setProperty("user", "crate");
         try (var conn = DriverManager.getConnection(url(RW), properties)) {
-            var selectUnnest = conn.prepareStatement(
-                "select unnest(?)");
-                var toUnnest = new Object[10];
-                for (int i = 0; i < 10; i++) {
-                    toUnnest[i] = i;
-                }
-                selectUnnest.setArray(1, conn.createArrayOf("bigint", toUnnest));
+            var selectUnnest = conn.prepareStatement("select unnest(?)");
+            var toUnnest = new Object[10];
+            for (int i = 0; i < 10; i++) {
+                toUnnest[i] = i;
+            }
+            selectUnnest.setArray(1, conn.createArrayOf("bigint", toUnnest));
 
-                var result = selectUnnest.executeQuery();
-                int numResults = 0;
-                while (result.next()) {
-                    numResults++;
-                }
-                assertThat(numResults, is(10));
+            var result = selectUnnest.executeQuery();
+            int numResults = 0;
+            while (result.next()) {
+                numResults++;
+            }
+            assertThat(numResults, is(10));
         }
     }
 

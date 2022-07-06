@@ -21,25 +21,20 @@
 
 package io.crate.expression.reference.sys;
 
-import io.crate.expression.NestableInput;
-import io.crate.expression.reference.ReferenceResolver;
-import io.crate.expression.reference.sys.shard.ShardRowContext;
-import io.crate.expression.udf.UserDefinedFunctionService;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.IndexParts;
-import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
-import io.crate.metadata.RowGranularity;
-import io.crate.metadata.Schemas;
-import io.crate.metadata.SystemTable;
-import io.crate.metadata.doc.DocSchemaInfoFactory;
-import io.crate.metadata.doc.TestingDocTableInfoFactory;
-import io.crate.metadata.settings.CrateSettings;
-import io.crate.metadata.shard.ShardReferenceResolver;
-import io.crate.metadata.sys.SysSchemaInfo;
-import io.crate.metadata.sys.SysShardsTableInfo;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.types.DataTypes;
+import static io.crate.testing.TestingHelpers.createNodeContext;
+import static io.crate.testing.TestingHelpers.refInfo;
+import static io.crate.testing.TestingHelpers.resolveCanonicalString;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Collections;
+import java.util.Map;
+
 import org.apache.lucene.store.AlreadyClosedException;
 import org.apache.lucene.util.Version;
 import org.elasticsearch.cluster.routing.RecoverySource;
@@ -62,20 +57,25 @@ import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-
-import static io.crate.testing.TestingHelpers.createNodeContext;
-import static io.crate.testing.TestingHelpers.refInfo;
-import static io.crate.testing.TestingHelpers.resolveCanonicalString;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import io.crate.expression.NestableInput;
+import io.crate.expression.reference.ReferenceResolver;
+import io.crate.expression.reference.sys.shard.ShardRowContext;
+import io.crate.expression.udf.UserDefinedFunctionService;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.IndexParts;
+import io.crate.metadata.NodeContext;
+import io.crate.metadata.Reference;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.Schemas;
+import io.crate.metadata.SystemTable;
+import io.crate.metadata.doc.DocSchemaInfoFactory;
+import io.crate.metadata.doc.TestingDocTableInfoFactory;
+import io.crate.metadata.settings.CrateSettings;
+import io.crate.metadata.shard.ShardReferenceResolver;
+import io.crate.metadata.sys.SysSchemaInfo;
+import io.crate.metadata.sys.SysShardsTableInfo;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.types.DataTypes;
 
 public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
 
@@ -87,7 +87,7 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
     private SystemTable<ShardRowContext> sysShards;
 
     @Before
-    public void prepare()  {
+    public void prepare() {
         NodeContext nodeCtx = createNodeContext();
         indexShard = mockIndexShard();
         CrateSettings crateSettings = new CrateSettings(clusterService, clusterService.getSettings());
@@ -312,25 +312,23 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
         assertEquals(RecoveryState.Stage.DONE.name(), recovery.get("stage"));
         assertEquals(10_000L, recovery.get("total_time"));
 
-        Map<String, Object> expectedFiles = new HashMap<String, Object>() {{
-            put("used", 2);
-            put("reused", 1);
-            put("recovered", 1);
-            put("percent", 0.0f);
-        }};
+        Map<String, Object> expectedFiles = Map.of(
+            "used", 2,
+            "reused", 1,
+            "recovered", 1,
+            "percent", 0.0f);
         assertEquals(expectedFiles, recovery.get("files"));
 
-        Map<String, Object> expectedBytes = new HashMap<String, Object>() {{
-            put("used", 2_048L);
-            put("reused", 1_024L);
-            put("recovered", 1_024L);
-            put("percent", 0.0f);
-        }};
+        Map<String, Object> expectedBytes = Map.of(
+            "used", 2_048L,
+            "reused", 1_024L,
+            "recovered", 1_024L,
+            "percent", 0.0f);
         assertEquals(expectedBytes, recovery.get("size"));
     }
 
     @Test
-    public void test_recovery_type_is_null_if_recovery_state_is_null(){
+    public void test_recovery_type_is_null_if_recovery_state_is_null() {
         when(indexShard.recoveryState()).thenReturn(null);
 
         var ref = sysShards.getReference(new ColumnIdent("recovery", "type"));

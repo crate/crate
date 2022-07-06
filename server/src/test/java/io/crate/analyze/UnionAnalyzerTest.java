@@ -21,22 +21,23 @@
 
 package io.crate.analyze;
 
-import io.crate.analyze.relations.UnionSelect;
-import io.crate.exceptions.ColumnUnknownException;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.Asserts;
-import io.crate.testing.SQLExecutor;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.io.IOException;
-
 import static io.crate.testing.SymbolMatchers.isField;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.SymbolMatchers.isReference;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+
+import java.io.IOException;
+
+import org.junit.Before;
+import org.junit.Test;
+
+import io.crate.analyze.relations.UnionSelect;
+import io.crate.exceptions.ColumnUnknownException;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.Asserts;
+import io.crate.testing.SQLExecutor;
 
 public class UnionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -107,7 +108,7 @@ public class UnionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testUnionDistinct() throws Exception{
+    public void testUnionDistinct() throws Exception {
         SQLExecutor.builder(clusterService)
             .addTable(
                 "create table x (a text)"
@@ -170,7 +171,7 @@ public class UnionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testUnionObjectTypesWithSubColumnsOfSameNameButDifferentInnerTypes() throws Exception{
+    public void testUnionObjectTypesWithSubColumnsOfSameNameButDifferentInnerTypes() throws Exception {
         SQLExecutor.builder(clusterService)
             .addTable(
                 "create table v1 (obj object as (col int))"
@@ -187,7 +188,7 @@ public class UnionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testUnionObjectTypesWithSubColumnsOfDifferentNames() throws Exception{
+    public void testUnionObjectTypesWithSubColumnsOfDifferentNames() throws Exception {
         SQLExecutor.builder(clusterService)
             .addTable(
                 "create table v1 (obj object as (obj1 object as (col text)))"

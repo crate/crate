@@ -21,36 +21,6 @@
 
 package io.crate.integrationtests;
 
-import io.crate.execution.engine.collect.stats.JobsLogService;
-import io.crate.testing.SQLResponse;
-import io.crate.testing.SQLTransportExecutor;
-import io.crate.testing.UseJdbc;
-import org.apache.lucene.util.Constants;
-import org.elasticsearch.Build;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.DeprecationHandler;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
-import org.elasticsearch.test.ESIntegTestCase;
-import org.hamcrest.Matchers;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
-
-import java.nio.charset.StandardCharsets;
-import java.nio.file.DirectoryStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
-import java.util.concurrent.TimeUnit;
-
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_TABLE;
@@ -68,6 +38,36 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.hamcrest.Matchers.startsWith;
 import static org.hamcrest.core.Is.is;
+
+import java.nio.charset.StandardCharsets;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.concurrent.TimeUnit;
+
+import org.apache.lucene.util.Constants;
+import org.elasticsearch.Build;
+import org.elasticsearch.Version;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.xcontent.DeprecationHandler;
+import org.elasticsearch.common.xcontent.NamedXContentRegistry;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
+import org.elasticsearch.test.ESIntegTestCase;
+import org.hamcrest.Matchers;
+import org.junit.After;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+
+import io.crate.execution.engine.collect.stats.JobsLogService;
+import io.crate.testing.SQLResponse;
+import io.crate.testing.SQLTransportExecutor;
+import io.crate.testing.UseJdbc;
 
 @ESIntegTestCase.ClusterScope(numClientNodes = 0, numDataNodes = 2, supportsDedicatedMasters = false)
 public class TransportSQLActionClassLifecycleTest extends SQLIntegrationTestCase {

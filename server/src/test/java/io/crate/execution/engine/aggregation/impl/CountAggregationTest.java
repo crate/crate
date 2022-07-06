@@ -248,7 +248,7 @@ public class CountAggregationTest extends AggregationTestCase {
             DataTypes.STRING,
             0,
             null);
-        Reference sibling = new Reference(  //unused
+        Reference sibling = new Reference(//unused
             new ReferenceIdent(null, new ColumnIdent("top_level_sibling")),
             RowGranularity.DOC,
             ObjectType.builder().setInnerType(notNullSibilingsChild.column().leafName(), notNullSibilingsChild.valueType()).build(),

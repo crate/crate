@@ -23,7 +23,7 @@ package io.crate.expression.scalar;
 
 import org.junit.Test;
 
-public class PiFunctionTest extends ScalarTestCase{
+public class PiFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_pi_returns_pi() {

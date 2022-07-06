@@ -21,15 +21,16 @@
 
 package io.crate.integrationtests;
 
-import io.crate.testing.SQLResponse;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import static org.hamcrest.core.Is.is;
 
 import java.io.File;
 import java.nio.file.Paths;
 
-import static org.hamcrest.core.Is.is;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+
+import io.crate.testing.SQLResponse;
 
 public class DefaultSchemaIntegrationTest extends SQLIntegrationTestCase {
 
@@ -37,6 +38,7 @@ public class DefaultSchemaIntegrationTest extends SQLIntegrationTestCase {
     @Rule
     public TemporaryFolder tmpFolder = new TemporaryFolder();
 
+    @Override
     public SQLResponse execute(String stmt, Object[] args, String schema) {
         return execute(stmt, args, createSession(schema));
     }
@@ -45,10 +47,10 @@ public class DefaultSchemaIntegrationTest extends SQLIntegrationTestCase {
     public void testSelectFromFooSchemaWithRequestHeaders() throws Exception {
         // this test uses all kind of different statements that involve a table to make sure the schema is applied in each case.
 
-        execute("create table foobar (x string) with (number_of_replicas = 0)", "foo" );
+        execute("create table foobar (x string) with (number_of_replicas = 0)", "foo");
         ensureYellow();
         waitNoPendingTasksOnAll();
-        execute("alter table foobar set (number_of_replicas = '0-1')", "foo" );
+        execute("alter table foobar set (number_of_replicas = '0-1')", "foo");
 
         assertThat(getTableCount("foo", "foobar"), is(1L));
         assertThat(getTableCount("doc", "foobar"), is(0L));

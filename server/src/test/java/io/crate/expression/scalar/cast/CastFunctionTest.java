@@ -21,29 +21,6 @@
 
 package io.crate.expression.scalar.cast;
 
-import io.crate.exceptions.ConversionException;
-import io.crate.expression.scalar.ScalarTestCase;
-import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.format.Style;
-import io.crate.geo.GeoJSONUtils;
-import io.crate.metadata.functions.Signature;
-import io.crate.sql.tree.BitString;
-import io.crate.types.ArrayType;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
-import io.crate.types.ObjectType;
-
-import org.hamcrest.core.IsSame;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
-import java.math.BigDecimal;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 import static io.crate.testing.DataTypeTesting.getDataGenerator;
 import static io.crate.testing.DataTypeTesting.randomType;
@@ -56,6 +33,28 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
+
+import java.math.BigDecimal;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.hamcrest.core.IsSame;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
+import io.crate.exceptions.ConversionException;
+import io.crate.expression.scalar.ScalarTestCase;
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.format.Style;
+import io.crate.geo.GeoJSONUtils;
+import io.crate.metadata.functions.Signature;
+import io.crate.types.ArrayType;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 
 // cast is just a wrapper around  DataType.value(val) which is why here are just a few tests
 public class CastFunctionTest extends ScalarTestCase {
@@ -218,10 +217,10 @@ public class CastFunctionTest extends ScalarTestCase {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void test_cast_wkt_point_string_array_to_geo_shape_array() {
         Symbol funcSymbol = sqlExpressions.asSymbol("['POINT(2 3)']::array(geo_shape)");
         assertThat(funcSymbol.valueType(), is(new ArrayType<>(GEO_SHAPE)));
-        //noinspection unchecked
         var geoShapes = (List<Map<String, Object>>) ((Literal<?>) funcSymbol).value();
         assertThat(
             GEO_SHAPE.compare(
@@ -304,6 +303,6 @@ public class CastFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_implicit_cast_is_compiled() throws Exception {
-        assertCompile("_cast(a, 'double precision')", (s) -> not(IsSame.sameInstance(s)) );
+        assertCompile("_cast(a, 'double precision')", (s) -> not(IsSame.sameInstance(s)));
     }
 }

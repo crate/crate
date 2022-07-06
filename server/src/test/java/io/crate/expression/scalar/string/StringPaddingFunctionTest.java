@@ -21,9 +21,10 @@
 
 package io.crate.expression.scalar.string;
 
+import org.junit.Test;
+
 import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.expression.symbol.Literal;
-import org.junit.Test;
 
 public class StringPaddingFunctionTest extends ScalarTestCase {
 
@@ -142,7 +143,7 @@ public class StringPaddingFunctionTest extends ScalarTestCase {
     }
 
     @Test
-    public void test_rpad_function () {
+    public void test_rpad_function() {
         assertEvaluate("rpad('', 5, 'yes')", "yesye");
         assertEvaluate("rpad('', 5, name)", "yesye", Literal.of("yes"));
         assertEvaluate("rpad(name, 5, 'yes')", "yesye", Literal.of(""));

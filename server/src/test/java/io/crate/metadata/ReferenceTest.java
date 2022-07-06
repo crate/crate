@@ -21,26 +21,27 @@
 
 package io.crate.metadata;
 
-import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.Symbol;
-import io.crate.sql.tree.ColumnPolicy;
-import org.elasticsearch.Version;
-import org.elasticsearch.test.ESTestCase;
-import io.crate.types.ArrayType;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.junit.Test;
+import static org.hamcrest.core.Is.is;
 
 import java.util.Map;
 
-import static org.hamcrest.core.Is.is;
+import org.elasticsearch.Version;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
+
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
+import io.crate.sql.tree.ColumnPolicy;
+import io.crate.types.ArrayType;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
 public class ReferenceTest extends ESTestCase {
 
     @Test
-    public void testEquals()  {
+    public void testEquals() {
         RelationName relationName = new RelationName("doc", "test");
         ReferenceIdent referenceIdent = new ReferenceIdent(relationName, "object_column");
         DataType<?> dataType1 = new ArrayType<>(DataTypes.UNTYPED_OBJECT);

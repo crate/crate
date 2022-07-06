@@ -39,7 +39,6 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import io.crate.breaker.RamAccounting;
@@ -66,6 +65,7 @@ public class CollectTaskTest extends ESTestCase {
     private TestingRowConsumer consumer;
     private MapSideDataCollectOperation collectOperation;
 
+    @Override
     @Before
     public void setUp() throws Exception {
         super.setUp();
@@ -77,14 +77,10 @@ public class CollectTaskTest extends ESTestCase {
         when(collectPhase.maxRowGranularity()).thenReturn(RowGranularity.DOC);
         collectOperation = mock(MapSideDataCollectOperation.class);
         Mockito
-            .doAnswer(new Answer<>(){
-
-                @Override
-                public Object answer(InvocationOnMock invocation) throws Throwable {
-                    Runnable runnable = invocation.getArgument(0);
-                    runnable.run();
-                    return null;
-                }
+            .doAnswer((Answer<Object>) invocation -> {
+                Runnable runnable = invocation.getArgument(0);
+                runnable.run();
+                return null;
             })
             .when(collectOperation).launch(Mockito.any(), Mockito.anyString());
         consumer = new TestingRowConsumer();

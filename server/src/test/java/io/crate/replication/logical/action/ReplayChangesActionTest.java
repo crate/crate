@@ -59,7 +59,7 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 
 public class ReplayChangesActionTest extends CrateDummyClusterServiceUnitTest {
 
-    private final static Index INDEX = new Index("index", UUIDs.randomBase64UUID());
+    private static final Index INDEX = new Index("index", UUIDs.randomBase64UUID());
     protected final ShardId shardId = new ShardId(INDEX, 0);
 
     private ReplayChangesAction.TransportAction transportAction;

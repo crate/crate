@@ -84,7 +84,7 @@ public class AverageAggregationTest extends AggregationTestCase {
     public void testDouble() throws Exception {
         Object[][] data = new Object[100][];
         for (int i = 0; i < 100; i++) {
-                data[i] = new Object[]{10000.1d};
+            data[i] = new Object[] {10000.1d};
         }
 
         // AverageAggregation returns double
@@ -141,8 +141,8 @@ public class AverageAggregationTest extends AggregationTestCase {
     }
 
     @Test
+    @SuppressWarnings("rawtypes")
     public void test_avg_numeric_on_long_non_doc_values_does_not_overflow() {
-        //noinspection rawtypes
         Version minNodeVersion = randomBoolean()
             ? Version.CURRENT
             : Version.V_4_0_9;
@@ -160,8 +160,8 @@ public class AverageAggregationTest extends AggregationTestCase {
     }
 
     @Test
+    @SuppressWarnings("rawtypes")
     public void test_avg_numeric_on_double_non_doc_values() {
-        //noinspection rawtypes
         Version minNodeVersion = randomBoolean()
             ? Version.CURRENT
             : Version.V_4_0_9;
@@ -178,12 +178,12 @@ public class AverageAggregationTest extends AggregationTestCase {
     }
 
     @Test
+    @SuppressWarnings("rawtypes")
     public void test_avg_numeric_with_precision_and_scale_on_double_non_doc_values() {
         var type = NumericType.of(16, 2);
         var expected = type.implicitCast(12.4357);
         assertThat(expected.toString(), Matchers.is("12.44"));
 
-        //noinspection rawtypes
         Version minNodeVersion = randomBoolean()
             ? Version.CURRENT
             : Version.V_4_0_9;

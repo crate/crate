@@ -667,12 +667,12 @@ public class SubSelectIntegrationTest extends SQLIntegrationTestCase {
                 "order by 1, 2");
         assertThat(response.rowCount(), is(6L));
         assertThat(printedTable(response.rows()),
-            is ("asok| internship\n" +
-                "catbert| HR\n" +
-                "dilbert| engineering\n" +
-                "pointy haired boss| management\n" +
-                "ratbert| HR\n" +
-                "wally| engineering\n"));
+                   is("asok| internship\n" +
+                      "catbert| HR\n" +
+                      "dilbert| engineering\n" +
+                      "pointy haired boss| management\n" +
+                      "ratbert| HR\n" +
+                      "wally| engineering\n"));
     }
 
     @Test

@@ -157,7 +157,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testNegativeLiteral() throws Exception {
         var executor = SQLExecutor.builder(clusterService).build();
-        QueriedSelectRelation relation =  executor.analyze("select * from sys.nodes where port['http'] = -400");
+        QueriedSelectRelation relation = executor.analyze("select * from sys.nodes where port['http'] = -400");
         Function whereClause = (Function) relation.where();
         Symbol symbol = whereClause.arguments().get(1);
         assertThat(((Literal<?>) symbol).value(), is(-400));
@@ -2425,7 +2425,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
-    public void testCastTimestampFromStringLiteral()  {
+    public void testCastTimestampFromStringLiteral() {
         var executor = SQLExecutor.builder(clusterService)
             .build();
         AnalyzedRelation relation = executor.analyze("select timestamp '2018-12-12T00:00:00'");
@@ -2433,7 +2433,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
-    public void testCastTimestampWithoutTimeZoneFromStringLiteralUsingSQLStandardFormat()  {
+    public void testCastTimestampWithoutTimeZoneFromStringLiteralUsingSQLStandardFormat() {
         var executor = SQLExecutor.builder(clusterService)
             .build();
         AnalyzedRelation relation = executor.analyze("select timestamp without time zone '2018-12-12 00:00:00'");
@@ -2441,7 +2441,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
-    public void test_cast_time_from_string_literal()  {
+    public void test_cast_time_from_string_literal() {
         var executor = SQLExecutor.builder(clusterService)
             .build();
         AnalyzedRelation relation = executor.analyze("select time with time zone '23:59:59.999+02'");
@@ -2504,7 +2504,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
                 isField("f1"),
                 isLiteral("id")
             )
-       ));
+        ));
     }
 
     @Test
@@ -2679,7 +2679,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
-    public void testSubscriptExpressionWithUnknownObjectKeyWithSessionSetting() throws Exception{
+    public void testSubscriptExpressionWithUnknownObjectKeyWithSessionSetting() throws Exception {
         /*
          * CREATE TABLE tbl (obj object, obj_n object as (obj_n2 object));
          * select obj['u']             from tbl; --> ColumnUnknownException

@@ -21,6 +21,20 @@
 
 package io.crate.analyze;
 
+import static io.crate.analyze.TableDefinitions.USER_TABLE_IDENT;
+import static io.crate.testing.SymbolMatchers.isFunction;
+import static io.crate.testing.SymbolMatchers.isLiteral;
+import static io.crate.testing.SymbolMatchers.isReference;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+
+import java.io.IOException;
+import java.util.List;
+
+import org.junit.Before;
+import org.junit.Test;
+
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationUnknown;
@@ -31,19 +45,6 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.io.IOException;
-import java.util.List;
-
-import static io.crate.analyze.TableDefinitions.USER_TABLE_IDENT;
-import static io.crate.testing.SymbolMatchers.isFunction;
-import static io.crate.testing.SymbolMatchers.isLiteral;
-import static io.crate.testing.SymbolMatchers.isReference;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
 
 public class DeleteAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -68,7 +69,7 @@ public class DeleteAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testDeleteSystemTable() throws Exception {
         expectedException.expect(OperationOnInaccessibleRelationException.class);
-        expectedException.expectMessage("The relation \"sys.nodes\" doesn't support or allow DELETE "+
+        expectedException.expectMessage("The relation \"sys.nodes\" doesn't support or allow DELETE " +
                                         "operations, as it is read-only.");
         e.analyze("delete from sys.nodes where name='Trillian'");
     }
