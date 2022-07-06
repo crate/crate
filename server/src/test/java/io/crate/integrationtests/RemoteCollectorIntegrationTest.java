@@ -25,7 +25,6 @@ import static org.hamcrest.Matchers.is;
 
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
-import org.elasticsearch.cluster.routing.allocation.command.MoveAllocationCommand;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
@@ -67,9 +66,7 @@ public class RemoteCollectorIntegrationTest extends SQLIntegrationTestCase {
         }
         assert targetNodeId != null;
 
-        client().admin().cluster().prepareReroute()
-            .add(new MoveAllocationCommand(getFqn("t"), 0, sourceNodeId, targetNodeId))
-            .execute().actionGet();
+        execute("alter table t reroute move shard 0 from ? to ?", new Object[] { sourceNodeId, targetNodeId });
 
         FutureUtils.get(client().admin().cluster().health(
             new ClusterHealthRequest(getFqn("t"))

@@ -27,15 +27,12 @@ import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.cluster.node.stats.NodesStatsRequest;
 import org.elasticsearch.action.admin.cluster.node.stats.NodesStatsResponse;
-import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryRequestBuilder;
-import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteRequestBuilder;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequestBuilder;
 import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotRequestBuilder;
 import org.elasticsearch.action.admin.cluster.snapshots.get.GetSnapshotsRequestBuilder;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequestBuilder;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
-import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksRequestBuilder;
 
 /**
  * Administrative actions/operations against indices.
@@ -71,16 +68,6 @@ public interface ClusterAdminClient extends ElasticsearchClient {
     ClusterUpdateSettingsRequestBuilder prepareUpdateSettings();
 
     /**
-     * Update settings in the cluster.
-     */
-    ClusterRerouteRequestBuilder prepareReroute();
-
-    /**
-     * Registers a snapshot repository.
-     */
-    PutRepositoryRequestBuilder preparePutRepository(String name);
-
-    /**
      * Creates a new snapshot.
      */
     CreateSnapshotRequestBuilder prepareCreateSnapshot(String repository, String name);
@@ -89,12 +76,6 @@ public interface ClusterAdminClient extends ElasticsearchClient {
      * Get snapshot.
      */
     GetSnapshotsRequestBuilder prepareGetSnapshots(String repository);
-
-    /**
-     * Returns a list of the pending cluster tasks, that are scheduled to be executed. This includes operations
-     * that update the cluster state (for example, a create index operation)
-     */
-    PendingClusterTasksRequestBuilder preparePendingClusterTasks();
 
     /**
      * Nodes stats of the cluster.

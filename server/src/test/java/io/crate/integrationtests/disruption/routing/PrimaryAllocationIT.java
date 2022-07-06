@@ -21,9 +21,21 @@
 
 package io.crate.integrationtests.disruption.routing;
 
-import io.crate.common.collections.Sets;
-import io.crate.integrationtests.SQLIntegrationTestCase;
-import io.crate.metadata.IndexParts;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.in;
+import static org.hamcrest.Matchers.not;
+
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+
+import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteAction;
+import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteRequest;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
 import org.elasticsearch.cluster.routing.ShardRouting;
@@ -46,18 +58,9 @@ import org.elasticsearch.test.transport.MockTransportService;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.in;
-import static org.hamcrest.Matchers.not;
+import io.crate.common.collections.Sets;
+import io.crate.integrationtests.SQLIntegrationTestCase;
+import io.crate.metadata.IndexParts;
 
 @ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.TEST, numDataNodes = 0)
 @SQLIntegrationTestCase.Slow
@@ -122,12 +125,12 @@ public class PrimaryAllocationIT extends SQLIntegrationTestCase {
 
         logger.info("--> check that old primary shard does not get promoted to primary again");
         // kick reroute and wait for all shard states to be fetched
-        client(master).admin().cluster().prepareReroute().get();
+        client(master).admin().cluster().execute(ClusterRerouteAction.INSTANCE, new ClusterRerouteRequest()).get();
         assertBusy(() -> assertThat(internalCluster().getInstance(GatewayAllocator.class, master).getNumberOfInFlightFetch(),
             equalTo(0)));
         // kick reroute a second time and check that all shards are unassigned
-        assertThat(client(master).admin().cluster().prepareReroute().get().getState().getRoutingNodes().unassigned().size(),
-            equalTo(2));
+        var clusterRerouteResponse = client(master).admin().cluster().execute(ClusterRerouteAction.INSTANCE, new ClusterRerouteRequest()).get();
+        assertThat(clusterRerouteResponse.getState().getRoutingNodes().unassigned().size(), equalTo(2));
         return inSyncDataPathSettings;
     }
 

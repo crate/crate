@@ -39,7 +39,6 @@ import java.util.stream.Stream;
 
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugins.Plugin;
-import org.elasticsearch.test.ESIntegTestCase;
 import org.elasticsearch.transport.Netty4Plugin;
 import org.junit.After;
 import org.junit.Before;
@@ -48,7 +47,7 @@ import io.crate.blob.v2.BlobIndex;
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.blob.v2.BlobShard;
 
-public abstract class BlobIntegrationTestBase extends ESIntegTestCase {
+public abstract class BlobIntegrationTestBase extends SQLIntegrationTestCase {
 
     private Field indicesField;
     private Field shardsField;

@@ -19,8 +19,14 @@
 
 package org.elasticsearch.snapshots;
 
-import io.crate.common.unit.TimeValue;
-import io.crate.testing.UseJdbc;
+import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertAcked;
+import static org.hamcrest.Matchers.containsString;
+
+import java.util.ArrayList;
+import java.util.Collection;
+
+import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryAction;
+import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryRequest;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.repositories.RepositoriesService;
@@ -28,11 +34,8 @@ import org.elasticsearch.snapshots.mockstore.MockRepository;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
 
-import java.util.ArrayList;
-import java.util.Collection;
-
-import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertAcked;
-import static org.hamcrest.Matchers.containsString;
+import io.crate.common.unit.TimeValue;
+import io.crate.testing.UseJdbc;
 
 /**
  * Tests for snapshot/restore that require at least 2 threads available
@@ -62,11 +65,14 @@ public class MinThreadsSnapshotRestoreIT extends AbstractSnapshotIntegTestCase {
     public void testConcurrentSnapshotDeletionsNotAllowed() throws Exception {
         logger.info("--> creating repository");
 
-        assertAcked(client().admin().cluster().preparePutRepository("repo").setType("mock").setSettings(
-            Settings.builder()
+        var putRepositoryRequest = new PutRepositoryRequest("repo")
+            .type("mock")
+            .settings(Settings.builder()
                 .put("location", randomRepoPath())
                 .put("random", randomAlphaOfLength(10))
-                .put("wait_after_unblock", 200)).get());
+                .put("wait_after_unblock", 200)
+            );
+        assertAcked(client().admin().cluster().execute(PutRepositoryAction.INSTANCE, putRepositoryRequest).get());
 
         logger.info("--> snapshot twice");
         execute("create table doc.test1 (x integer) clustered into 1 shards with (number_of_replicas=0)");

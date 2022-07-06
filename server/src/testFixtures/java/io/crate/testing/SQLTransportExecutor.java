@@ -60,6 +60,8 @@ import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
+import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksAction;
+import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksRequest;
 import org.elasticsearch.action.support.AdapterActionFuture;
 import org.elasticsearch.action.support.PlainActionFuture;
 import org.elasticsearch.client.Client;
@@ -570,9 +572,9 @@ public class SQLTransportExecutor {
         ));
 
         if (actionGet.isTimedOut()) {
-            LOGGER.info("ensure state timed out, cluster state:\n{}\n{}",
-                client.admin().cluster().prepareState().get().getState(),
-                client.admin().cluster().preparePendingClusterTasks().get());
+            var clusterState = client.admin().cluster().prepareState().get().getState();
+            var pendingClusterTasks = FutureUtils.get(client.admin().cluster().execute(PendingClusterTasksAction.INSTANCE, new PendingClusterTasksRequest()));
+            LOGGER.info("ensure state timed out, cluster state:\n{}\n{}", clusterState, pendingClusterTasks);
             assertThat("timed out waiting for state", actionGet.isTimedOut(), equalTo(false));
         }
         if (state == ClusterHealthStatus.YELLOW) {
