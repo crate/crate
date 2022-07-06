@@ -125,7 +125,6 @@ checkstyle {
         'licenseHeaderFile' : 'header.txt'
     ]
     configFile = file(checkstyle_dir + "rules.xml")
-    checkstyleTest.enabled = false
 }
 
 tasks.withType(Test) {
@@ -151,7 +150,7 @@ tasks.withType(Test) {
     }
 
     jacoco {
-        enabled = true;
+        enabled = true
     }
 
     // ES testing framework adds the resources target build paths to the classpath of the tests,
