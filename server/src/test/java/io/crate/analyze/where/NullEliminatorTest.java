@@ -21,6 +21,13 @@
 
 package io.crate.analyze.where;
 
+import static org.hamcrest.Matchers.is;
+
+import java.util.function.Function;
+
+import org.junit.Before;
+import org.junit.Test;
+
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.eval.NullEliminator;
 import io.crate.expression.symbol.Symbol;
@@ -28,12 +35,6 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.util.function.Function;
-
-import static org.hamcrest.Matchers.is;
 
 public class NullEliminatorTest extends CrateDummyClusterServiceUnitTest {
 
@@ -45,12 +46,14 @@ public class NullEliminatorTest extends CrateDummyClusterServiceUnitTest {
     }
 
     private void assertReplaced(String expression, String expectedString) {
-        assertReplaced(expression, expectedString,  s -> s);
+        assertReplaced(expression, expectedString, s -> s);
     }
 
     private void assertReplacedAndNormalized(String expression, String expectedString) {
         EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(sqlExpressions.nodeCtx);
-        assertReplaced(expression, expectedString,  s -> normalizer.normalize(s, CoordinatorTxnCtx.systemTransactionContext()));
+        assertReplaced(expression,
+                       expectedString,
+                       s -> normalizer.normalize(s, CoordinatorTxnCtx.systemTransactionContext()));
     }
 
     private void assertReplaced(String expression, String expectedString, Function<Symbol, Symbol> postProcessor) {

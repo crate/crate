@@ -21,14 +21,15 @@
 
 package io.crate.analyze.expressions;
 
-import io.crate.exceptions.ConversionException;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.SQLExecutor;
+import static io.crate.testing.SymbolMatchers.isLiteral;
+
 import org.joda.time.Period;
 import org.junit.Before;
 import org.junit.Test;
 
-import static io.crate.testing.SymbolMatchers.isLiteral;
+import io.crate.exceptions.ConversionException;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
 
 public class IntervalAnalysisTest extends CrateDummyClusterServiceUnitTest {
 
@@ -82,22 +83,22 @@ public class IntervalAnalysisTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_interval_conversion() throws Exception {
-        var symbol =  e.asSymbol("INTERVAL '1' HOUR to SECOND");
+        var symbol = e.asSymbol("INTERVAL '1' HOUR to SECOND");
         assertThat(symbol, isLiteral(new Period().withSeconds(1)));
 
-        symbol =  e.asSymbol( "INTERVAL '100' DAY TO SECOND");
+        symbol = e.asSymbol("INTERVAL '100' DAY TO SECOND");
         assertThat(symbol, isLiteral(new Period().withMinutes(1).withSeconds(40)));
     }
 
     @Test
     public void test_seconds_millis() throws Exception {
-        var symbol =  e.asSymbol("INTERVAL '1'");
+        var symbol = e.asSymbol("INTERVAL '1'");
         assertThat(symbol, isLiteral(new Period().withSeconds(1)));
 
-        symbol =  e.asSymbol("INTERVAL '1.1'");
+        symbol = e.asSymbol("INTERVAL '1.1'");
         assertThat(symbol, isLiteral(new Period().withSeconds(1).withMillis(100)));
 
-        symbol =  e.asSymbol("INTERVAL '60.1'");
+        symbol = e.asSymbol("INTERVAL '60.1'");
         assertThat(symbol, isLiteral(new Period().withMinutes(1).withMillis(100)));
     }
 
@@ -110,7 +111,7 @@ public class IntervalAnalysisTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_odd() throws Exception {
-        var symbol =  e.asSymbol("INTERVAL '100.123' SECOND");
+        var symbol = e.asSymbol("INTERVAL '100.123' SECOND");
         assertThat(symbol, isLiteral(new Period().withMinutes(1).withSeconds(40).withMillis(123)));
     }
 

@@ -21,16 +21,6 @@
 
 package io.crate.integrationtests;
 
-import io.crate.action.sql.SQLOperations;
-import io.crate.action.sql.Session;
-import io.crate.expression.udf.UserDefinedFunctionService;
-import io.crate.testing.SQLResponse;
-import io.crate.user.User;
-import io.crate.user.UserLookup;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
@@ -42,6 +32,17 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.core.Is.is;
+
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+
+import io.crate.action.sql.SQLOperations;
+import io.crate.action.sql.Session;
+import io.crate.expression.udf.UserDefinedFunctionService;
+import io.crate.testing.SQLResponse;
+import io.crate.user.User;
+import io.crate.user.UserLookup;
 
 public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
 
@@ -73,6 +74,7 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
         return sqlOperations.createSession(defaultSchema, user);
     }
 
+    @Override
     @Before
     public void setUp() throws Exception {
         super.setUp();
@@ -263,20 +265,27 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
                                                      "t2\n" +
                                                      "v1\n" +
                                                      "v2\n"));
-        execute("select table_name from information_schema.table_partitions order by table_name", null, testUserSession());
+        execute("select table_name from information_schema.table_partitions order by table_name",
+                null,
+                testUserSession());
         assertThat(printedTable(response.rows()), is("t1\n" +
                                                      "t1\n"));
         execute("select table_name from information_schema.columns order by table_name", null, testUserSession());
-        assertThat(printedTable(response.rows()),  is("t1\n" +
-                                                      "t2\n" +
-                                                      "v1\n" +
-                                                      "v2\n"));
-        execute("select table_name, constraint_name from information_schema.table_constraints order by table_name, constraint_name", null, testUserSession());
+        assertThat(printedTable(response.rows()), is("t1\n" +
+                                                     "t2\n" +
+                                                     "v1\n" +
+                                                     "v2\n"));
+        execute(
+            "select table_name, constraint_name from information_schema.table_constraints order by table_name, constraint_name",
+            null,
+            testUserSession());
         assertThat(printedTable(response.rows()), is(
             "t2| my_schema_t2_x_not_null\n" +
-                "t2| t2_pk\n")
+            "t2| t2_pk\n")
         );
-        execute("select routine_schema from information_schema.routines order by routine_schema", null, testUserSession());
+        execute("select routine_schema from information_schema.routines order by routine_schema",
+                null,
+                testUserSession());
         assertThat(printedTable(response.rows()), is("my_schema\n"));
 
         execute("select table_name from information_schema.views order by table_name", null, testUserSession());
@@ -290,7 +299,7 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
     @Test
     public void testRenameTableTransfersPrivilegesToNewTable() {
         executeAsSuperuser("create table doc.t1 (x int) clustered into 1 shards with (number_of_replicas = 0)");
-        executeAsSuperuser("grant dql on table t1 to "+ TEST_USERNAME);
+        executeAsSuperuser("grant dql on table t1 to " + TEST_USERNAME);
 
         executeAsSuperuser("alter table doc.t1 rename to t1_renamed");
         ensureYellow();
@@ -326,7 +335,7 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
     @Test
     public void testDropTableRemovesPrivileges() {
         executeAsSuperuser("create table doc.t1 (x int) clustered into 1 shards with (number_of_replicas = 0)");
-        executeAsSuperuser("grant dql on table t1 to "+ TEST_USERNAME);
+        executeAsSuperuser("grant dql on table t1 to " + TEST_USERNAME);
 
         executeAsSuperuser("drop table t1");
         ensureYellow();
@@ -343,7 +352,7 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
     @Test
     public void testDropViewRemovesPrivileges() {
         executeAsSuperuser("create view doc.v1 as select 1");
-        executeAsSuperuser("grant dql on view v1 to "+ TEST_USERNAME);
+        executeAsSuperuser("grant dql on view v1 to " + TEST_USERNAME);
 
         executeAsSuperuser("drop view v1");
         ensureYellow();
@@ -358,14 +367,15 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
 
     @Test
     public void testDropEmptyPartitionedTableRemovesPrivileges() {
-        executeAsSuperuser("create table doc.t1 (x int) partitioned by (x) clustered into 1 shards with (number_of_replicas = 0)");
-        executeAsSuperuser("grant dql on table t1 to "+ TEST_USERNAME);
+        executeAsSuperuser(
+            "create table doc.t1 (x int) partitioned by (x) clustered into 1 shards with (number_of_replicas = 0)");
+        executeAsSuperuser("grant dql on table t1 to " + TEST_USERNAME);
 
         executeAsSuperuser("drop table t1");
         ensureYellow();
 
         executeAsSuperuser("select * from sys.privileges where grantee = ? and ident = ?",
-            new Object[]{TEST_USERNAME, "doc.t1"});
+                           new Object[] {TEST_USERNAME, "doc.t1"});
         assertThat(response.rowCount(), is(0L));
 
         executeAsSuperuser("create table doc.t1 (x int) clustered into 1 shards with (number_of_replicas = 0)");
@@ -383,20 +393,20 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
         executeAsSuperuser("create table t2 (x int)");
         ensureYellow();
 
-        executeAsSuperuser("grant dql on table t2 to "+ TEST_USERNAME);
+        executeAsSuperuser("grant dql on table t2 to " + TEST_USERNAME);
         assertThat(response.rowCount(), is(1L));
 
-        assertThrowsMatches(() -> executeAsSuperuser("grant dql on table t1 to "+ TEST_USERNAME),
-                     isSQLError(is("Relation 't1' unknown"),
-                                INTERNAL_ERROR,
-                                NOT_FOUND,
-                                4041));
+        assertThrowsMatches(() -> executeAsSuperuser("grant dql on table t1 to " + TEST_USERNAME),
+                            isSQLError(is("Relation 't1' unknown"),
+                                       INTERNAL_ERROR,
+                                       NOT_FOUND,
+                                       4041));
     }
 
     @Test
     public void testAlterClusterRerouteRetryFailedPrivileges() {
         executeAsSuperuser("alter cluster reroute retry failed");
-        assertThat(response.rowCount(), is (0L));
+        assertThat(response.rowCount(), is(0L));
 
         assertThrowsMatches(() -> executeAsNormalUser("alter cluster reroute retry failed"),
                      isSQLError(containsString("Missing 'AL' privilege for user 'normal'"),
@@ -414,12 +424,12 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
         executeAsSuperuser("grant dql on schema s to " + TEST_USERNAME);
         assertThat(response.rowCount(), is(1L));
 
-        assertThrowsMatches(() ->  execute("refresh table s.t1", null, testUserSession()),
-                     isSQLError(containsString("The relation \"s.t1\" doesn't support or allow REFRESH " +
-                                               "operations, as it is currently closed."),
-                                INTERNAL_ERROR,
-                                BAD_REQUEST,
-                                4007));
+        assertThrowsMatches(() -> execute("refresh table s.t1", null, testUserSession()),
+                            isSQLError(containsString("The relation \"s.t1\" doesn't support or allow REFRESH " +
+                                                      "operations, as it is currently closed."),
+                                       INTERNAL_ERROR,
+                                       BAD_REQUEST,
+                                       4007));
     }
 
     @Test

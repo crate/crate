@@ -21,11 +21,15 @@
 
 package io.crate.integrationtests;
 
-import io.crate.data.ArrayBucket;
-import io.crate.data.Paging;
-import io.crate.testing.SQLResponse;
-import io.crate.testing.TestingHelpers;
-import io.crate.testing.UseJdbc;
+import static com.carrotsearch.randomizedtesting.RandomizedTest.randomAsciiLettersOfLength;
+import static io.crate.testing.TestingHelpers.printedTable;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.Matchers.closeTo;
+import static org.hamcrest.Matchers.isIn;
+import static org.hamcrest.Matchers.not;
+
+import java.util.Arrays;
+
 import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.Is;
@@ -33,14 +37,11 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.jupiter.api.Assertions;
 
-import java.util.Arrays;
-
-import static com.carrotsearch.randomizedtesting.RandomizedTest.randomAsciiLettersOfLength;
-import static io.crate.testing.TestingHelpers.printedTable;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.Matchers.closeTo;
-import static org.hamcrest.Matchers.isIn;
-import static org.hamcrest.Matchers.not;
+import io.crate.data.ArrayBucket;
+import io.crate.data.Paging;
+import io.crate.testing.SQLResponse;
+import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseJdbc;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0, supportsDedicatedMasters = false)
 public class GroupByAggregateTest extends SQLIntegrationTestCase {
@@ -1226,11 +1227,11 @@ public class GroupByAggregateTest extends SQLIntegrationTestCase {
     public void testGroupByOnIndexOff() throws Exception {
         execute("create table t1 (i int index off, s string index off)");
         execute("insert into t1 (i, s) values (?,?)",
-            new Object[][]{
-                {1, "foo"},
-                {2, "bar"},
-                {1, "foo"}
-        });
+                new Object[][] {
+                    {1, "foo"},
+                    {2, "bar"},
+                    {1, "foo"}
+                });
         refresh();
         execute("select count(*), i, s from t1 group by i, s order by 1");
         assertThat(printedTable(response.rows()), is("1| 2| bar\n" +
@@ -1241,11 +1242,11 @@ public class GroupByAggregateTest extends SQLIntegrationTestCase {
     public void testAggregateOnIndexOff() throws Exception {
         execute("create table t1 (i int index off, s string index off)");
         execute("insert into t1 (i, s) values (?,?)",
-            new Object[][]{
-                {1, "foo"},
-                {2, "foobar"},
-                {1, "foo"}
-        });
+                new Object[][] {
+                    {1, "foo"},
+                    {2, "foobar"},
+                    {1, "foo"}
+                });
         refresh();
         execute("select sum(i), max(s) from t1");
         assertThat(printedTable(response.rows()), is("4| foobar\n"));
@@ -1365,7 +1366,7 @@ public class GroupByAggregateTest extends SQLIntegrationTestCase {
             printedTable(response.rows()),
             Is.is(
                 "Eval[name, count(x), count(x)]\n" +
-                "  └ GroupHashAggregate[name | count(x)]\n"+
+                "  └ GroupHashAggregate[name | count(x)]\n" +
                 "    └ Collect[doc.tbl | [x, name] | true]\n"
             )
         );

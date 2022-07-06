@@ -21,6 +21,16 @@
 
 package io.crate.integrationtests;
 
+import static io.crate.testing.TestingHelpers.printedTable;
+import static org.hamcrest.core.Is.is;
+
+import java.util.Iterator;
+
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.test.ESIntegTestCase;
+import org.junit.After;
+import org.junit.Test;
+
 import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;
 import io.crate.execution.engine.collect.stats.JobsLogService;
@@ -29,16 +39,6 @@ import io.crate.expression.reference.sys.job.JobContextLog;
 import io.crate.testing.UseHashJoins;
 import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedSchema;
-
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.test.ESIntegTestCase;
-import org.junit.After;
-import org.junit.Test;
-
-import java.util.Iterator;
-
-import static io.crate.testing.TestingHelpers.printedTable;
-import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0, supportsDedicatedMasters = false)
 @UseRandomizedSchema(random = false) // Avoid set session stmt to interfere with tests
@@ -72,7 +72,7 @@ public class JobLogIntegrationTest extends SQLIntegrationTestCase {
                 Iterator<JobContextLog> iterator = jobsLogs.jobsLog().iterator();
                 if (iterator.hasNext()) {
                     if (iterator.next().statement().equalsIgnoreCase(setStmt)) {
-                       setStmtFound = true;
+                        setStmtFound = true;
                     }
                 }
             }

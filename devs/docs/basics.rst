@@ -22,6 +22,19 @@ Then, clone the repository and navigate into its directory::
     $ cd crate
 
 
+Ignore commits in blame view
+----------------------------
+
+If you want to ignore commits (i.e. bulk code formatting) when watching blame
+history please issue the following::
+
+    $ git config blame.ignoreRevsFile .git-blame-ignore-revs
+
+If you'd like to just ignore them for a single run of git blame::
+
+    $ git blame --ignore-revs-file .git-blame-ignore-revs
+
+
 Manual Build
 ============
 
@@ -161,7 +174,7 @@ are analyzed and not the test sources.
 
 After setting up code style, it can be checked by running::
 
-    ./gradlew checkstyleMain
+    ./gradlew checkstyleMain checkstyleTest checkstyleTextFixtures
 
 Test Coverage
 --------------

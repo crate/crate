@@ -50,9 +50,9 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: 17
-      - name: Run checkstyleMain
+      - name: Run checkstyle
         run: |
-          ./gradlew checkstyleMain
+          ./gradlew checkstyleMain checkstyleTest checkstyleTestFixtures
 
   linkcheck:
     name: Sphinx linkcheck

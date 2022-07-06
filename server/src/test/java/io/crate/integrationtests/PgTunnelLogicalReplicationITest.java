@@ -83,7 +83,7 @@ public class PgTunnelLogicalReplicationITest extends ESTestCase {
                 return null;
             }
         };
-        var cluster =  new InternalTestCluster(
+        var cluster = new InternalTestCluster(
             randomLong(),
             createTempDir(),
             false,

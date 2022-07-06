@@ -100,7 +100,7 @@ public class SubscriptionDisruptionIT extends LogicalReplicationITestCase {
     @Test
     public void test_subscription_metadata_tracker_retries_on_publisher_disconnect() throws Exception {
         String subscriptionName = "sub1";
-        executeOnPublisher("CREATE TABLE doc.t1 (id INT) CLUSTERED INTO 1 SHARDS WITH(" + defaultTableSettings() +")");
+        executeOnPublisher("CREATE TABLE doc.t1 (id INT) CLUSTERED INTO 1 SHARDS WITH(" + defaultTableSettings() + ")");
         createPublication("pub1", false, List.of("doc.t1"));
         executeOnPublisher("INSERT INTO doc.t1 (id) VALUES (1), (2)");
         executeOnSubscriber("CREATE SUBSCRIPTION " + subscriptionName +
@@ -147,7 +147,7 @@ public class SubscriptionDisruptionIT extends LogicalReplicationITestCase {
     @Test
     public void test_subscription_metadata_tracker_stops_on_unresolvable_error() throws Exception {
         String subscriptionName = "sub1";
-        executeOnPublisher("CREATE TABLE doc.t1 (id INT) CLUSTERED INTO 1 SHARDS WITH(" + defaultTableSettings() +")");
+        executeOnPublisher("CREATE TABLE doc.t1 (id INT) CLUSTERED INTO 1 SHARDS WITH(" + defaultTableSettings() + ")");
         createPublication("pub1", false, List.of("doc.t1"));
         executeOnPublisher("INSERT INTO doc.t1 (id) VALUES (1), (2)");
         executeOnSubscriber("CREATE SUBSCRIPTION " + subscriptionName +
@@ -199,7 +199,7 @@ public class SubscriptionDisruptionIT extends LogicalReplicationITestCase {
 
     @Test
     public void test_subscription_keeps_tracking_on_subscriber_master_node_changed() throws Exception {
-        executeOnPublisher("CREATE TABLE doc.t1 (id INT) CLUSTERED INTO 1 SHARDS WITH(" + defaultTableSettings() +")");
+        executeOnPublisher("CREATE TABLE doc.t1 (id INT) CLUSTERED INTO 1 SHARDS WITH(" + defaultTableSettings() + ")");
         createPublication("pub1", false, List.of("doc.t1"));
         executeOnPublisher("INSERT INTO doc.t1 (id) VALUES (1), (2)");
         executeOnSubscriber("CREATE SUBSCRIPTION sub1" +

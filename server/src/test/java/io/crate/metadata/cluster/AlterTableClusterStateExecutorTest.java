@@ -21,24 +21,6 @@
 
 package io.crate.metadata.cluster;
 
-import io.crate.execution.ddl.tables.AlterTableRequest;
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.Schemas;
-import io.crate.testing.Asserts;
-
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
-import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.common.settings.IndexScopedSettings;
-import org.elasticsearch.common.settings.Settings;
-import org.junit.Test;
-
-import java.io.IOException;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_CREATION_DATE;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_SHARDS;
 import static org.elasticsearch.common.settings.AbstractScopedSettings.ARCHIVED_SETTINGS_PREFIX;
@@ -50,6 +32,24 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+
+import java.io.IOException;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.common.settings.IndexScopedSettings;
+import org.elasticsearch.common.settings.Settings;
+import org.junit.Test;
+
+import io.crate.execution.ddl.tables.AlterTableRequest;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.Schemas;
+import io.crate.testing.Asserts;
 
 public class AlterTableClusterStateExecutorTest {
 
@@ -125,16 +125,16 @@ public class AlterTableClusterStateExecutorTest {
     }
 
     @Test
-    public void testAddExistingMetaDoesNotAllowToModifyRoutingColumn() throws IOException{
+    public void testAddExistingMetaDoesNotAllowToModifyRoutingColumn() throws IOException {
         Map<String, Object> mapping = new HashMap<>();
         mapping.put("routing", "routing_col_update");
-        var currentMeta = new HashMap<String,Object>();
+        var currentMeta = new HashMap<String, Object>();
         AlterTableRequest request = new AlterTableRequest(RelationName.fromIndexName("dummy"),
-                                                           null,
-                                                           true,
-                                                           true,
-                                                           Settings.EMPTY,
-                                                           Collections.singletonMap("_meta", mapping));
+                                                          null,
+                                                          true,
+                                                          true,
+                                                          Settings.EMPTY,
+                                                          Collections.singletonMap("_meta", mapping));
 
         Asserts.assertThrowsMatches(
             () -> AlterTableClusterStateExecutor.addExistingMeta(request, currentMeta),

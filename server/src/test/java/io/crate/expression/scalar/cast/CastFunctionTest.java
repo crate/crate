@@ -222,7 +222,6 @@ public class CastFunctionTest extends ScalarTestCase {
     public void test_cast_wkt_point_string_array_to_geo_shape_array() {
         Symbol funcSymbol = sqlExpressions.asSymbol("['POINT(2 3)']::array(geo_shape)");
         assertThat(funcSymbol.valueType(), is(new ArrayType<>(GEO_SHAPE)));
-        //noinspection unchecked
         var geoShapes = (List<Map<String, Object>>) ((Literal<?>) funcSymbol).value();
         assertThat(
             GEO_SHAPE.compare(
@@ -305,7 +304,7 @@ public class CastFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_implicit_cast_is_compiled() throws Exception {
-        assertCompile("_cast(a, 'double precision')", (s) -> not(IsSame.sameInstance(s)) );
+        assertCompile("_cast(a, 'double precision')", (s) -> not(IsSame.sameInstance(s)));
     }
 
     @Test

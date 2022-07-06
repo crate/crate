@@ -93,11 +93,11 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
-    public void testCopyFromFileWithJsonExtension() throws Exception {
+    public void testCopyFromFileWithJsonExtension() {
         execute("create table quotes (id int primary key, " +
                 "quote string index using fulltext) with (number_of_replicas = 0)");
 
-        execute("copy quotes from ?", new Object[]{copyFilePath + "test_copy_from.json"});
+        execute("copy quotes from ?", new Object[] {copyFilePath + "test_copy_from.json"});
         assertEquals(3L, response.rowCount());
         refresh();
 
@@ -820,8 +820,8 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         }
 
         // with shared=true and wildcards all nodes will try to match a file
-        filename =  "*.json";
-        execute("copy t1 from ? with (shared=true) return summary", new Object[]{tmpDirStr + filename});
+        filename = "*.json";
+        execute("copy t1 from ? with (shared=true) return summary", new Object[] {tmpDirStr + filename});
         assertThat(response.rowCount(), is((long) internalCluster().numDataNodes()));
 
         for (Object[] row : response.rows()) {
@@ -861,12 +861,13 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
 
     @Test
     public void test_can_import_data_requiring_cast_from_csv_into_partitioned_table() throws Exception {
-        execute("""
-            create table tbl (
-                ts timestamp with time zone not null,
-                ts_month timestamp with time zone generated always as date_trunc('month', ts)
-            ) partitioned by (ts_month)
-        """);
+        execute(
+            """
+                    create table tbl (
+                        ts timestamp with time zone not null,
+                        ts_month timestamp with time zone generated always as date_trunc('month', ts)
+                    ) partitioned by (ts_month)
+                """);
         List<String> lines = List.of(
             "ts",
             "1626188198073"
@@ -875,7 +876,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         Files.write(file.toPath(), lines, StandardCharsets.UTF_8);
 
         execute("COPY tbl FROM ? WITH (format = 'csv', shared = true)",
-            new Object[]{Paths.get(file.toURI()).toUri().toString()}
+                new Object[] {Paths.get(file.toURI()).toUri().toString()}
         );
         execute("refresh table tbl");
         execute("SELECT * FROM tbl");

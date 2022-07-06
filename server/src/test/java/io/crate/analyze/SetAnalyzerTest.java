@@ -163,7 +163,7 @@ public class SetAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             analysis.settings().get(0),
             is(new Assignment<>(Literal.of("stats.operations_log_size"), List.of(Literal.of(1)))));
     }
-//
+
     @Test
     public void testObjectValue() throws Exception {
         AnalyzedSetStatement analysis = analyze("SET GLOBAL PERSISTENT cluster.graceful_stop = {timeout='1h'}");

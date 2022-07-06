@@ -21,9 +21,11 @@
 
 package io.crate.expression.scalar.object;
 
-import io.crate.expression.scalar.ScalarTestCase;
-import org.junit.Test;
 import java.util.List;
+
+import org.junit.Test;
+
+import io.crate.expression.scalar.ScalarTestCase;
 
 public class ObjectKeysFunctionTest extends ScalarTestCase {
 
@@ -35,8 +37,8 @@ public class ObjectKeysFunctionTest extends ScalarTestCase {
     @Test
     public void test_array_input() {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Unknown function: object_keys(_array(1)), no overload found for"+
-                                        " matching argument types: (integer_array). Possible candidates:"+
+        expectedException.expectMessage("Unknown function: object_keys(_array(1)), no overload found for" +
+                                        " matching argument types: (integer_array). Possible candidates:" +
                                         " object_keys(object):array(text)");
         assertEvaluate("object_keys([1])", null);
     }

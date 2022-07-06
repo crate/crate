@@ -192,12 +192,13 @@ public abstract class ScalarTestCase extends CrateDummyClusterServiceUnitTest {
             Literal<?> literal = unusedLiterals.pollFirst(); //Can be null.
             return literal;
         });
-        if(unusedLiterals.size() == literals.length) {
+        if (unusedLiterals.size() == literals.length) {
             // Currently it's supposed that literals will be either references or parameters.
             // One of replaceRefs and bindParameters does nothing and doesn't consume unusedLiterals.
             function = (Function) ParameterBinder.bindParameters(function, p -> {
                 if (unusedLiterals.isEmpty()) {
-                    throw new IllegalArgumentException("No value literal for parameter=" + p + ", please add more literals");
+                    throw new IllegalArgumentException(
+                        "No value literal for parameter=" + p + ", please add more literals");
                 }
                 Literal<?> literal = unusedLiterals.pollFirst(); //Can be null.
                 return literal;

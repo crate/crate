@@ -21,13 +21,14 @@
 
 package io.crate.execution.engine.window;
 
-import io.crate.metadata.ColumnIdent;
-import io.crate.testing.Asserts;
-import org.junit.Test;
+import static org.hamcrest.Matchers.contains;
 
 import java.util.List;
 
-import static org.hamcrest.Matchers.contains;
+import org.junit.Test;
+
+import io.crate.metadata.ColumnIdent;
+import io.crate.testing.Asserts;
 
 public class RowNumberWindowFunctionTest extends AbstractWindowFunctionTest {
 
@@ -36,12 +37,12 @@ public class RowNumberWindowFunctionTest extends AbstractWindowFunctionTest {
         Object[] expected = new Object[] {1, 2, 3, 4};
 
         assertEvaluate("row_number() over(order by x)",
-            contains(expected),
-           List.of(new ColumnIdent("x")),
-            new Object[] {4},
-            new Object[] {3},
-            new Object[] {2},
-            new Object[] {1}
+                       contains(expected),
+                       List.of(new ColumnIdent("x")),
+                       new Object[] {4},
+                       new Object[] {3},
+                       new Object[] {2},
+                       new Object[] {1}
         );
     }
 

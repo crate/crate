@@ -75,7 +75,7 @@ public class AlterTableRenameAnalyzerTest extends CrateDummyClusterServiceUnitTe
         var clusterService = clusterServiceWithPublicationMetadata(false, new RelationName("doc", "t1"));
         var executor = SQLExecutor.builder(clusterService).enableDefaultTables().build();
         assertThrowsMatches(
-            () ->  executor.analyze("ALTER TABLE t1 rename to t1_renamed"),
+            () -> executor.analyze("ALTER TABLE t1 rename to t1_renamed"),
             OperationOnInaccessibleRelationException.class,
             "The relation \"doc.t1\" doesn't allow ALTER RENAME operations, because it is included in a logical replication publication."
         );
@@ -87,7 +87,7 @@ public class AlterTableRenameAnalyzerTest extends CrateDummyClusterServiceUnitTe
         var clusterService = clusterServiceWithPublicationMetadata(true);
         var executor = SQLExecutor.builder(clusterService).enableDefaultTables().build();
         assertThrowsMatches(
-            () ->  executor.analyze("ALTER TABLE t1 rename to t1_renamed"),
+            () -> executor.analyze("ALTER TABLE t1 rename to t1_renamed"),
             OperationOnInaccessibleRelationException.class,
             "The relation \"doc.t1\" doesn't allow ALTER RENAME operations, because it is included in a logical replication publication."
         );

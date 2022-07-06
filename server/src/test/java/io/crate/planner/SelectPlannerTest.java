@@ -1398,7 +1398,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
                 WHERE
                     id = 10 AND (name = 'bar' or name IS NULL)
                 ) u
-        """);
+            """);
         Collect collect = (Collect) merge.subPlan();
         var pkLookup = (PKLookupPhase) collect.collectPhase();
         assertThat(pkLookup.projections(), Matchers.contains(

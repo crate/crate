@@ -22,19 +22,20 @@
 package io.crate.expression.reference.doc.lucene;
 
 
-import io.crate.common.collections.Maps;
-import io.crate.metadata.ColumnIdent;
-import io.crate.types.DataTypes;
-import io.crate.types.ObjectType;
+import static org.hamcrest.CoreMatchers.is;
+
+import java.util.List;
+import java.util.Map;
+
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.test.ESTestCase;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
-import java.util.List;
-import java.util.Map;
-
-import static org.hamcrest.CoreMatchers.is;
+import io.crate.common.collections.Maps;
+import io.crate.metadata.ColumnIdent;
+import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 
 public class SourceParserTest extends ESTestCase {
 
@@ -43,9 +44,10 @@ public class SourceParserTest extends ESTestCase {
         SourceParser sourceParser = new SourceParser();
         var column = new ColumnIdent("_doc", List.of("x"));
         sourceParser.register(column, DataTypes.INTEGER);
-        Map<String, Object> result = sourceParser.parse(new BytesArray("""
-            {"x": 10, "y": 20}
-        """));
+        Map<String, Object> result = sourceParser.parse(new BytesArray(
+            """
+               {"x": 10, "y": 20}
+            """));
 
         assertThat(result.get("x"), is(10));
         assertThat(result.get("y"), Matchers.nullValue());
@@ -58,9 +60,10 @@ public class SourceParserTest extends ESTestCase {
         var z = new ColumnIdent("_doc", List.of("obj", "z"));
         sourceParser.register(x, DataTypes.INTEGER);
         sourceParser.register(z, DataTypes.LONG);
-        Map<String, Object> result = sourceParser.parse(new BytesArray("""
-            {"obj": {"x": 1, "y": 2, "z": 3}}
-        """));
+        Map<String, Object> result = sourceParser.parse(new BytesArray(
+            """
+                {"obj": {"x": 1, "y": 2, "z": 3}}
+            """));
 
         assertThat(Maps.getByPath(result, "obj.x"), is(1));
         assertThat(Maps.getByPath(result, "obj.y"), Matchers.nullValue());
@@ -82,9 +85,10 @@ public class SourceParserTest extends ESTestCase {
             sourceParser.register(x, DataTypes.INTEGER);
         }
 
-        Map<String, Object> result = sourceParser.parse(new BytesArray("""
-            {"obj": {"x": 1, "y": 2}}
-        """));
+        Map<String, Object> result = sourceParser.parse(new BytesArray(
+            """
+                {"obj": {"x": 1, "y": 2}}
+            """));
 
         assertThat(result.get("obj"), is(Map.of("x", 1, "y", 2)));
     }
@@ -100,9 +104,10 @@ public class SourceParserTest extends ESTestCase {
         sourceParser.register(new ColumnIdent("_doc", List.of("b")), DataTypes.BYTE);
         sourceParser.register(new ColumnIdent("_doc", List.of("ts")), DataTypes.TIMESTAMP);
         sourceParser.register(new ColumnIdent("_doc", List.of("tsz")), DataTypes.TIMESTAMPZ);
-        Map<String, Object> result = sourceParser.parse(new BytesArray("""
+        Map<String, Object> result = sourceParser.parse(new BytesArray(
+            """
             {"i": "1", "l": "2", "f": "0.12", "d": "0.23", "s": "4", "b": "5", "ts": "915757200000", "tsz": "915757200000"}
-        """));
+            """));
 
         assertThat(result.get("i"), is(1));
         assertThat(result.get("l"), is(2L));
@@ -118,9 +123,10 @@ public class SourceParserTest extends ESTestCase {
     public void test_string_encoded_boolean_will_be_parsed_by_data_type() {
         SourceParser sourceParser = new SourceParser();
         sourceParser.register(new ColumnIdent("_doc", List.of("b")), DataTypes.BOOLEAN);
-        Map<String, Object> result = sourceParser.parse(new BytesArray("""
-            {"b": "true"}
-        """));
+        Map<String, Object> result = sourceParser.parse(new BytesArray(
+            """
+                {"b": "true"}
+            """));
 
         assertThat(result.get("b"), is(true));
     }

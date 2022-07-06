@@ -141,7 +141,7 @@ public class CollectQueryCastRulesTest extends CrateDummyClusterServiceUnitTest 
 
     @Test
     public void test_any_operator_cast_on_right_reference_is_moved_to_cast_on_literal() {
-        for(var op : AnyOperator.SUPPORTED_COMPARISONS) {
+        for (var op : AnyOperator.SUPPORTED_COMPARISONS) {
             assertCollectQuery(
                 "'1' " + op + " ANY(d_array)",
                 "(1.0 " + op + " ANY(d_array))"

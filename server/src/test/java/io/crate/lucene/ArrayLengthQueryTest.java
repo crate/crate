@@ -21,24 +21,25 @@
 
 package io.crate.lucene;
 
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.core.Is.is;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.function.Supplier;
+
+import org.elasticsearch.Version;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.DataTypeTesting;
 import io.crate.testing.QueryTester;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.ObjectType;
-import org.elasticsearch.Version;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.util.Arrays;
-import java.util.List;
-import java.util.function.Supplier;
-
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.core.Is.is;
 
 public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
 
@@ -292,7 +293,7 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
                 THREAD_POOL,
                 clusterService,
                 Version.CURRENT,
-                "create table \"t_"+ type.getName() + "\" (xs array(\"" + type.getName() + "\"))"
+                "create table \"t_" + type.getName() + "\" (xs array(\"" + type.getName() + "\"))"
             ).indexValues("xs", values).build()) {
                 List<Object> result = tester.runQuery("xs", "array_length(xs, 1) > 1");
                 assertThat("array_length(xs, 1) > 1 must match for " + type, result.size(), is(1));

@@ -284,47 +284,47 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
         Reference birthday = md.references().get(new ColumnIdent("person", "birthday"));
         assertThat(birthday.valueType(), is(DataTypes.TIMESTAMPZ));
         assertThat(birthday.indexType(), is(IndexType.PLAIN));
-        assertThat(birthday.defaultExpression(), is(nullValue()) );
+        assertThat(birthday.defaultExpression(), is(nullValue()));
 
         Reference integerIndexed = md.references().get(new ColumnIdent("integerIndexed"));
         assertThat(integerIndexed.indexType(), is(IndexType.PLAIN));
-        assertThat(integerIndexed.defaultExpression(), is(nullValue()) );
+        assertThat(integerIndexed.defaultExpression(), is(nullValue()));
 
         Reference integerIndexedBWC = md.references().get(new ColumnIdent("integerIndexedBWC"));
         assertThat(integerIndexedBWC.indexType(), is(IndexType.PLAIN));
-        assertThat(integerIndexedBWC.defaultExpression(), is(nullValue()) );
+        assertThat(integerIndexedBWC.defaultExpression(), is(nullValue()));
 
         Reference integerNotIndexed = md.references().get(new ColumnIdent("integerNotIndexed"));
         assertThat(integerNotIndexed.indexType(), is(IndexType.NONE));
-        assertThat(integerNotIndexed.defaultExpression(), is(nullValue()) );
+        assertThat(integerNotIndexed.defaultExpression(), is(nullValue()));
 
         Reference integerNotIndexedBWC = md.references().get(new ColumnIdent("integerNotIndexedBWC"));
         assertThat(integerNotIndexedBWC.indexType(), is(IndexType.NONE));
-        assertThat(integerNotIndexedBWC.defaultExpression(), is(nullValue()) );
+        assertThat(integerNotIndexedBWC.defaultExpression(), is(nullValue()));
 
         Reference stringNotIndexed = md.references().get(new ColumnIdent("stringNotIndexed"));
         assertThat(stringNotIndexed.indexType(), is(IndexType.NONE));
-        assertThat(stringNotIndexed.defaultExpression(), is(nullValue()) );
+        assertThat(stringNotIndexed.defaultExpression(), is(nullValue()));
 
         Reference stringNotIndexedBWC = md.references().get(new ColumnIdent("stringNotIndexedBWC"));
         assertThat(stringNotIndexedBWC.indexType(), is(IndexType.NONE));
-        assertThat(stringNotIndexedBWC.defaultExpression(), is(nullValue()) );
+        assertThat(stringNotIndexedBWC.defaultExpression(), is(nullValue()));
 
         Reference stringNotAnalyzed = md.references().get(new ColumnIdent("stringNotAnalyzed"));
         assertThat(stringNotAnalyzed.indexType(), is(IndexType.PLAIN));
-        assertThat(stringNotAnalyzed.defaultExpression(), is(nullValue()) );
+        assertThat(stringNotAnalyzed.defaultExpression(), is(nullValue()));
 
         Reference stringNotAnalyzedBWC = md.references().get(new ColumnIdent("stringNotAnalyzedBWC"));
         assertThat(stringNotAnalyzedBWC.indexType(), is(IndexType.PLAIN));
-        assertThat(stringNotAnalyzedBWC.defaultExpression(), is(nullValue()) );
+        assertThat(stringNotAnalyzedBWC.defaultExpression(), is(nullValue()));
 
         Reference stringAnalyzed = md.references().get(new ColumnIdent("stringAnalyzed"));
         assertThat(stringAnalyzed.indexType(), is(IndexType.FULLTEXT));
-        assertThat(stringAnalyzed.defaultExpression(), is(nullValue()) );
+        assertThat(stringAnalyzed.defaultExpression(), is(nullValue()));
 
         Reference stringAnalyzedBWC = md.references().get(new ColumnIdent("stringAnalyzedBWC"));
         assertThat(stringAnalyzedBWC.indexType(), is(IndexType.FULLTEXT));
-        assertThat(stringAnalyzedBWC.defaultExpression(), is(nullValue()) );
+        assertThat(stringAnalyzedBWC.defaultExpression(), is(nullValue()));
 
         assertThat(
             Lists2.map(md.references().values(), r -> r.column().fqn()),
@@ -811,30 +811,30 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testSchemaWithNotNullNestedColumns() throws Exception {
         XContentBuilder builder = XContentFactory.jsonBuilder()
-        .startObject()
-            .startObject(Constants.DEFAULT_MAPPING_TYPE)
-                .startObject("_meta")
-                    .startObject("constraints")
-                        .array("not_null", "nested.level1", "nested.level1.level2")
+            .startObject()
+                .startObject(Constants.DEFAULT_MAPPING_TYPE)
+                    .startObject("_meta")
+                        .startObject("constraints")
+                            .array("not_null", "nested.level1", "nested.level1.level2")
+                        .endObject()
                     .endObject()
-                .endObject()
-                .startObject("properties")
-                    .startObject("nested")
-                        .field("type", "object")
-                            .startObject("properties")
-                                .startObject("level1")
-                                    .field("type", "object")
-                                    .startObject("properties")
-                                        .startObject("level2")
-                                            .field("type", "string")
+                    .startObject("properties")
+                        .startObject("nested")
+                            .field("type", "object")
+                                .startObject("properties")
+                                    .startObject("level1")
+                                        .field("type", "object")
+                                        .startObject("properties")
+                                            .startObject("level2")
+                                                .field("type", "string")
+                                            .endObject()
                                         .endObject()
                                     .endObject()
-                                .endObject()
-                             .endObject()
+                                 .endObject()
+                        .endObject()
                     .endObject()
                 .endObject()
-            .endObject()
-        .endObject();
+            .endObject();
         IndexMetadata metadata = getIndexMetadata("test_notnull_columns", builder);
         DocIndexMetadata md = newMeta(metadata, "test_notnull_columns");
 
@@ -1058,7 +1058,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
 
         DocTableInfoFactory docTableInfoFactory = new DocTableInfoFactory(nodeCtx);
         ViewInfoFactory viewInfoFactory = (ident, state) -> null;
-        DocSchemaInfo docSchemaInfo = new DocSchemaInfo(Schemas.DOC_SCHEMA_NAME, clusterService, nodeCtx, udfService, viewInfoFactory, docTableInfoFactory );
+        DocSchemaInfo docSchemaInfo = new DocSchemaInfo(Schemas.DOC_SCHEMA_NAME, clusterService, nodeCtx, udfService, viewInfoFactory, docTableInfoFactory);
         Path homeDir = createTempDir();
         Schemas schemas = new Schemas(
                 Map.of("doc", docSchemaInfo),
@@ -1498,28 +1498,28 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_resolve_inner_object_types() throws Exception {
         XContentBuilder builder = XContentFactory.jsonBuilder()
-        .startObject()
-            .startObject(Constants.DEFAULT_MAPPING_TYPE)
-                .startObject("properties")
-                    .startObject("object")
-                        .field("type", "object")
-                            .startObject("properties")
-                                .startObject("nestedObject")
-                                    .field("type", "object")
-                                    .startObject("properties")
-                                        .startObject("nestedNestedString")
-                                            .field("type", "string")
+            .startObject()
+                .startObject(Constants.DEFAULT_MAPPING_TYPE)
+                    .startObject("properties")
+                        .startObject("object")
+                            .field("type", "object")
+                                .startObject("properties")
+                                    .startObject("nestedObject")
+                                        .field("type", "object")
+                                        .startObject("properties")
+                                            .startObject("nestedNestedString")
+                                                .field("type", "string")
+                                            .endObject()
                                         .endObject()
                                     .endObject()
-                                .endObject()
-                                .startObject("nestedString")
-                                    .field("type", "string")
-                                .endObject()
-                             .endObject()
+                                    .startObject("nestedString")
+                                        .field("type", "string")
+                                    .endObject()
+                                 .endObject()
+                        .endObject()
                     .endObject()
                 .endObject()
-            .endObject()
-        .endObject();
+            .endObject();
         IndexMetadata metadata = getIndexMetadata("test", builder);
         DocIndexMetadata md = newMeta(metadata, "test");
 

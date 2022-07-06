@@ -21,9 +21,12 @@
 
 package io.crate.integrationtests.disruption.seqno;
 
-import io.crate.integrationtests.SQLIntegrationTestCase;
-import io.crate.integrationtests.disruption.discovery.AbstractDisruptionTestCase;
-import io.crate.metadata.IndexParts;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
+
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+
 import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.routing.ShardRouting;
@@ -31,11 +34,9 @@ import org.elasticsearch.test.ESIntegTestCase;
 import org.elasticsearch.test.disruption.NetworkDisruption;
 import org.junit.Test;
 
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
+import io.crate.integrationtests.SQLIntegrationTestCase;
+import io.crate.integrationtests.disruption.discovery.AbstractDisruptionTestCase;
+import io.crate.metadata.IndexParts;
 
 @ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.TEST, numDataNodes = 0, numClientNodes = 0)
 @SQLIntegrationTestCase.Slow
@@ -52,17 +53,18 @@ public class SequenceConsistencyIT extends AbstractDisruptionTestCase {
         logger.info("wait for all nodes to join the cluster");
         ensureGreen();
 
-        execute("""
-            create table registers (
-                id int primary key,
-                value text
-            ) CLUSTERED INTO 1 shards
-            with (
-                number_of_replicas = 1,
-                "write.wait_for_active_shards" = 'ALL',
-                "unassigned.node_left.delayed_timeout" = '1s'
-            )
-        """);
+        execute(
+            """
+                     create table registers (
+                        id int primary key,
+                        value text
+                    ) CLUSTERED INTO 1 shards
+                    with (
+                        number_of_replicas = 1,
+                        "write.wait_for_active_shards" = 'ALL',
+                        "unassigned.node_left.delayed_timeout" = '1s'
+                    )
+                """);
         execute("insert into registers values (1, 'initial value')");
         refresh();
 

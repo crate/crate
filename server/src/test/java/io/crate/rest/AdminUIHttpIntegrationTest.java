@@ -133,7 +133,7 @@ public abstract class AdminUIHttpIntegrationTest extends ESIntegTestCase {
             // get all redirection locations
             return context.getRedirectLocations();
         } finally {
-            if(response != null) {
+            if (response != null) {
                 response.close();
             }
         }

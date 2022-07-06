@@ -22,18 +22,18 @@
 package io.crate.integrationtests;
 
 
+import static io.crate.testing.TestingHelpers.printedTable;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.core.Is.is;
+import static org.hamcrest.core.StringStartsWith.startsWith;
+
+import java.io.IOException;
+
 import org.apache.http.Header;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.message.BasicHeader;
 import org.apache.http.util.EntityUtils;
 import org.junit.Test;
-
-import java.io.IOException;
-
-import static io.crate.testing.TestingHelpers.printedTable;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.core.Is.is;
-import static org.hamcrest.core.StringStartsWith.startsWith;
 
 public class RestSQLActionIntegrationTest extends SQLHttpIntegrationTest {
 
@@ -109,7 +109,7 @@ public class RestSQLActionIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
-    public void test_interval_is_represented_as_text_via_http() throws Exception{
+    public void test_interval_is_represented_as_text_via_http() throws Exception {
         var resp = post("{\"stmt\": \"select '5 days'::interval as x\"}");
         String bodyAsString = EntityUtils.toString(resp.getEntity());
         assertThat(bodyAsString, containsString("5 days"));

@@ -21,24 +21,25 @@
 
 package io.crate.execution.dsl.projection;
 
+import java.util.Collections;
+import java.util.List;
+
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
+
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.metadata.RowGranularity;
-import org.elasticsearch.test.ESTestCase;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.junit.Test;
-
-import java.util.Collections;
-import java.util.List;
 
 public class FilterProjectionTest extends ESTestCase {
 
     @Test
     public void testStreaming() throws Exception {
-        var eqFunction =  new Function(
+        var eqFunction = new Function(
             EqOperator.SIGNATURE,
             List.of(
                 new InputColumn(0, DataTypes.INTEGER),

@@ -21,13 +21,13 @@
 
 package io.crate.execution.engine.indexing;
 
-import io.crate.breaker.RamAccounting;
-import io.crate.execution.dml.ShardRequest;
+import static org.hamcrest.Matchers.is;
+
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
-
-import static org.hamcrest.Matchers.is;
+import io.crate.breaker.RamAccounting;
+import io.crate.execution.dml.ShardRequest;
 
 public class BulkShardCreationLimiterTest extends ESTestCase {
 
@@ -44,6 +44,7 @@ public class BulkShardCreationLimiterTest extends ESTestCase {
         (s) -> new DummyShardRequest(),
         RamAccounting.NO_ACCOUNTING
     );
+
     static {
         SHARED_REQUESTS.add(new DummyRequestItem("1"), 10, "dummy", null, RowSourceInfo.EMPTY_INSTANCE);
     }

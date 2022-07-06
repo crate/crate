@@ -18,6 +18,7 @@
  * with Crate these terms will supersede the license and you may use the
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
+
 package io.crate.execution.engine.fetch;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
@@ -28,10 +29,10 @@ import static org.hamcrest.Matchers.is;
 import java.util.List;
 import java.util.Map;
 
+import org.junit.Test;
+
 import com.carrotsearch.hppc.IntHashSet;
 import com.carrotsearch.hppc.IntObjectHashMap;
-
-import org.junit.Test;
 
 import io.crate.breaker.RamAccounting;
 import io.crate.data.ArrayBucket;

@@ -100,7 +100,7 @@ public class CSVLineParserTest {
 
     @Test
     public void parse_givenEmptyRowWithCommas_thenParsesAsEmptyStrings() throws IOException {
-        String header ="Code,Country\n";
+        String header = "Code,Country\n";
         csvParser.parseHeader(header);
         result = csvParser.parse(",", 0);
 

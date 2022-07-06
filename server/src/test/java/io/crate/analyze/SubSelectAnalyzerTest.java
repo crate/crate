@@ -21,21 +21,6 @@
 
 package io.crate.analyze;
 
-import io.crate.analyze.relations.AliasedAnalyzedRelation;
-import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.DocTableRelation;
-import io.crate.exceptions.AmbiguousColumnException;
-import io.crate.expression.symbol.SelectSymbol;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.doc.DocTableInfo;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.SQLExecutor;
-import org.hamcrest.Matchers;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.io.IOException;
-
 import static io.crate.testing.RelationMatchers.isDocTable;
 import static io.crate.testing.SymbolMatchers.isAlias;
 import static io.crate.testing.SymbolMatchers.isField;
@@ -46,6 +31,22 @@ import static io.crate.testing.TestingHelpers.isSQL;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+
+import java.io.IOException;
+
+import org.hamcrest.Matchers;
+import org.junit.Before;
+import org.junit.Test;
+
+import io.crate.analyze.relations.AliasedAnalyzedRelation;
+import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.DocTableRelation;
+import io.crate.exceptions.AmbiguousColumnException;
+import io.crate.expression.symbol.SelectSymbol;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.doc.DocTableInfo;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
 
 public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -256,7 +257,7 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testPreserveAliasOnSubSelectInSelectList() throws Exception {
         QueriedSelectRelation relation = analyze("SELECT " +
                                                  "   (select min(t1.x) from t1) as min_col," +
-                                                 "   (select 10) + (select 20) as add_subquery "+
+                                                 "   (select 10) + (select 20) as add_subquery " +
                                                  "FROM (select * from t1) tt1");
 
         assertThat(relation.outputs(), contains(

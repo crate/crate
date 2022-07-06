@@ -95,7 +95,7 @@ public class CrateCircuitBreakerServiceTest extends CrateDummyClusterServiceUnit
             .put(HierarchyCircuitBreakerService.JOBS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING.getKey(), "100m")
             .put(HierarchyCircuitBreakerService.OPERATIONS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING.getKey(), "100m")
             .build();
-         clusterService.getClusterSettings().applySettings(newSettings);
+        clusterService.getClusterSettings().applySettings(newSettings);
 
         breaker = breakerService.getBreaker(HierarchyCircuitBreakerService.JOBS_LOG);
         assertThat(breaker.getLimit(), is(104_857_600L));

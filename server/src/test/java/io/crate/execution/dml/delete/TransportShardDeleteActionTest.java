@@ -59,7 +59,7 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 
 public class TransportShardDeleteActionTest extends CrateDummyClusterServiceUnitTest {
 
-    private final static RelationName TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "characters");
+    private static final RelationName TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "characters");
 
     private TransportShardDeleteAction transportShardDeleteAction;
     private IndexShard indexShard;

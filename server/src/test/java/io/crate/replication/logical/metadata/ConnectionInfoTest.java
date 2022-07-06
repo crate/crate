@@ -101,7 +101,7 @@ public class ConnectionInfoTest extends ESTestCase {
 
     @Test
     public void test_safe_connection_string() {
-        var connInfoSniff= ConnectionInfo.fromURL("crate://example.com:4310,123.123.123.123?" +
+        var connInfoSniff = ConnectionInfo.fromURL("crate://example.com:4310,123.123.123.123?" +
             "user=my_user&password=1234&" +
             "sslmode=disable"       // <- sslMode is ignored on SNIFF mode
         );
@@ -111,7 +111,7 @@ public class ConnectionInfoTest extends ESTestCase {
                 "mode=sniff"
             )
         );
-        var connInfoPg= ConnectionInfo.fromURL("crate://example.com?" +
+        var connInfoPg = ConnectionInfo.fromURL("crate://example.com?" +
             "user=my_user&password=1234&" +
             "mode=pg_tunnel&" +
             "sslmode=disable"

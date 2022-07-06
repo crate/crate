@@ -39,7 +39,7 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
 
-public class WhereClauseOptimizerTest extends CrateDummyClusterServiceUnitTest{
+public class WhereClauseOptimizerTest extends CrateDummyClusterServiceUnitTest {
 
     private SQLExecutor e;
 

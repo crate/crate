@@ -21,22 +21,6 @@
 
 package io.crate.integrationtests;
 
-import com.carrotsearch.randomizedtesting.annotations.Repeat;
-import io.crate.exceptions.VersioningValidationException;
-import io.crate.testing.SQLResponse;
-import io.crate.testing.UseJdbc;
-import io.crate.common.collections.MapBuilder;
-import org.elasticsearch.test.ESIntegTestCase;
-import org.hamcrest.Matchers;
-import org.hamcrest.core.IsNull;
-import org.junit.Test;
-import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
-import org.locationtech.spatial4j.shape.impl.PointImpl;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.randomAsciiLettersOfLength;
@@ -53,6 +37,24 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.elasticsearch.test.ESIntegTestCase;
+import org.hamcrest.Matchers;
+import org.hamcrest.core.IsNull;
+import org.junit.Test;
+import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
+import org.locationtech.spatial4j.shape.impl.PointImpl;
+
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
+
+import io.crate.common.collections.MapBuilder;
+import io.crate.exceptions.VersioningValidationException;
+import io.crate.testing.SQLResponse;
+import io.crate.testing.UseJdbc;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2)
 public class InsertIntoIntegrationTest extends SQLIntegrationTestCase {
@@ -317,17 +319,20 @@ public class InsertIntoIntegrationTest extends SQLIntegrationTestCase {
     public void testInsertWithPrimaryKeyFailing() throws Exception {
         this.setup.createTestTableWithPrimaryKey();
 
-        execute("insert into test (pk_col, message) values (?, ?)", new Object[]{"1",
+        execute("insert into test (pk_col, message) values (?, ?)", new Object[] {"1",
             "A towel is about the most massively useful thing an interstellar hitch hiker can have."});
         refresh();
 
-        assertThrowsMatches(() -> execute("insert into test (pk_col, message) values (?, ?)", new Object[]{"1",
-                         "I always thought something was fundamentally wrong with the universe."}),
-                     isSQLError(is("A document with the same primary key exists already"),
-                                UNIQUE_VIOLATION,
-                                CONFLICT,
-                                4091
-                     )
+        assertThrowsMatches(() -> execute("insert into test (pk_col, message) values (?, ?)",
+                                          new Object[] {
+                                              "1",
+                                              "I always thought something was fundamentally wrong with the universe."
+                                          }),
+                            isSQLError(is("A document with the same primary key exists already"),
+                                       UNIQUE_VIOLATION,
+                                       CONFLICT,
+                                       4091
+                            )
         );
     }
 
@@ -388,25 +393,30 @@ public class InsertIntoIntegrationTest extends SQLIntegrationTestCase {
                 ") not null)");
         ensureYellow();
 
-        assertThrowsMatches(() ->execute("insert into test (stuff) values('{\"level1\":{\"other_field\":\"value\"}}')"),
-                     isSQLError(is("\"stuff['level1']['level2']\" must not be null"), INTERNAL_ERROR, BAD_REQUEST, 4000));
+        assertThrowsMatches(() -> execute("insert into test (stuff) values('{\"level1\":{\"other_field\":\"value\"}}')"),
+                            isSQLError(is("\"stuff['level1']['level2']\" must not be null"),
+                                       INTERNAL_ERROR,
+                                       BAD_REQUEST,
+                                       4000));
     }
 
     @Test
     public void testInsertWithUniqueConstraintViolation() throws Exception {
         this.setup.createTestTableWithPrimaryKey();
 
-        Object[] args = new Object[]{
+        Object[] args = new Object[] {
             "1", "All the doors in this spaceship have a cheerful and sunny disposition.",
         };
         execute("insert into test (pk_col, message) values (?, ?)", args);
 
-        assertThrowsMatches(() -> execute("insert into test (pk_col, message) values (?, ?)", new Object[]{
-                         "1", "I always thought something was fundamentally wrong with the universe"}),
-                     isSQLError(is("A document with the same primary key exists already"),
-                                UNIQUE_VIOLATION,
-                                CONFLICT,
-                                4091)
+        assertThrowsMatches(() -> execute("insert into test (pk_col, message) values (?, ?)",
+                                          new Object[] {
+                                              "1",
+                                              "I always thought something was fundamentally wrong with the universe"}),
+                            isSQLError(is("A document with the same primary key exists already"),
+                                       UNIQUE_VIOLATION,
+                                       CONFLICT,
+                                       4091)
         );
     }
 
@@ -416,12 +426,12 @@ public class InsertIntoIntegrationTest extends SQLIntegrationTestCase {
 
         Object[] args = new Object[]{
             "In the beginning the Universe was created.\n" +
-            "This has made a lot of people very angry and been widely regarded as a bad move."
+                "This has made a lot of people very angry and been widely regarded as a bad move."
         };
 
         assertThrowsMatches(() -> execute("insert into test (message) values (?)", args),
-                     isSQLError(is("Column `pk_col` is required but is missing from the insert statement"),
-                                INTERNAL_ERROR, BAD_REQUEST, 4000));
+                            isSQLError(is("Column `pk_col` is required but is missing from the insert statement"),
+                                       INTERNAL_ERROR, BAD_REQUEST, 4000));
     }
 
     @Test
@@ -1373,11 +1383,11 @@ public class InsertIntoIntegrationTest extends SQLIntegrationTestCase {
         execute("insert into test (id, name) values (1, 'foo')");
         assertThat(response.rowCount(), is(1L));
         assertThrowsMatches(() -> execute("insert into test (id, name) values (1, 'bar')"),
-                     isSQLError(containsString("A document with the same primary key exists already"),
-                                UNIQUE_VIOLATION,
-                                CONFLICT,
-                                4091));
-        refresh ();
+                            isSQLError(containsString("A document with the same primary key exists already"),
+                                       UNIQUE_VIOLATION,
+                                       CONFLICT,
+                                       4091));
+        refresh();
         // we want to read from the replica but cannot force it, lets select twice to increase chances
         execute("select _version, name from test");
         assertThat((String) response.rows()[0][1], is("foo"));

@@ -21,20 +21,6 @@
 
 package io.crate.integrationtests;
 
-import io.crate.exceptions.RelationAlreadyExists;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.view.ViewsMetadata;
-import io.netty.handler.codec.http.HttpResponseStatus;
-
-import org.elasticsearch.cluster.service.ClusterService;
-import org.hamcrest.Matchers;
-import org.junit.After;
-import org.junit.Test;
-import org.junit.jupiter.api.Assertions;
-
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static io.crate.protocols.postgres.PGErrorStatus.DUPLICATE_TABLE;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
@@ -45,6 +31,20 @@ import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import org.elasticsearch.cluster.service.ClusterService;
+import org.hamcrest.Matchers;
+import org.junit.After;
+import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+
+import io.crate.exceptions.RelationAlreadyExists;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.view.ViewsMetadata;
+import io.netty.handler.codec.http.HttpResponseStatus;
 
 public class ViewsITest extends SQLIntegrationTestCase {
 
@@ -60,7 +60,7 @@ public class ViewsITest extends SQLIntegrationTestCase {
     }
 
     @Test
-    public void testViewCanBeCreatedSelectedAndThenDropped() throws Exception {
+    public void testViewCanBeCreatedSelectedAndThenDropped() {
         execute("create table t1 (x int)");
         execute("insert into t1 (x) values (1)");
         execute("refresh table t1");
@@ -93,7 +93,7 @@ public class ViewsITest extends SQLIntegrationTestCase {
     }
 
     @Test
-    public void testViewCanBeCreatedAndThenReplaced() throws Exception {
+    public void testViewCanBeCreatedAndThenReplaced() {
         execute("create view v2 as select 1 from sys.cluster");
         assertThat(printedTable(execute("select * from v2").rows()), is("1\n"));
         execute("create or replace view v2 as select 2 from sys.cluster");
@@ -109,11 +109,12 @@ public class ViewsITest extends SQLIntegrationTestCase {
     public void testCreateViewFailsIfViewAlreadyExists() {
         execute("create view v3 as select 1");
 
-        assertThrowsMatches(() ->  execute("create view v3 as select 1"),
-                     isSQLError(containsString("Relation '" + sqlExecutor.getCurrentSchema() + ".v3' already exists"),
-                                DUPLICATE_TABLE,
-                                CONFLICT,
-                                4093));
+        assertThrowsMatches(() -> execute("create view v3 as select 1"),
+                            isSQLError(containsString(
+                                           "Relation '" + sqlExecutor.getCurrentSchema() + ".v3' already exists"),
+                                       DUPLICATE_TABLE,
+                                       CONFLICT,
+                                       4093));
     }
 
     @Test
@@ -139,7 +140,7 @@ public class ViewsITest extends SQLIntegrationTestCase {
     }
 
     @Test
-    public void testCreateTableFailsIfNameConflictsWithView() throws Exception {
+    public void testCreateTableFailsIfNameConflictsWithView() {
         // First plan the create table which should conflict with the view,
         PlanForNode viewConflictingTableCreation =
             plan("create table v4 (x int) clustered into 1 shards with (number_of_replicas = 0)");
@@ -153,7 +154,7 @@ public class ViewsITest extends SQLIntegrationTestCase {
     }
 
     @Test
-    public void testCreatePartitionedTableFailsIfNameConflictsWithView() throws Exception {
+    public void testCreatePartitionedTableFailsIfNameConflictsWithView() {
         // First plan the create table which should conflict with the view,
         PlanForNode viewConflictingTableCreation =
             plan("create table v5 (x int) clustered into 1 shards with (number_of_replicas = 0)");
@@ -200,7 +201,7 @@ public class ViewsITest extends SQLIntegrationTestCase {
 
 
     @Test
-    public void test_creating_a_self_referencing_view_is_not_allowed() throws Exception {
+    public void test_creating_a_self_referencing_view_is_not_allowed() {
         execute("create view v as select * from sys.cluster");
         assertThrowsMatches(
             () -> execute("create or replace view v as select * from v"),
