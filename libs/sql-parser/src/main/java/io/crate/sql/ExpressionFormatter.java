@@ -251,7 +251,7 @@ public final class ExpressionFormatter {
 
         @Override
         public String visitBitString(BitString bitString, List<Expression> context) {
-            return bitString.asBitString();
+            return bitString.asPrefixedBitString();
         }
 
         @Override

@@ -93,12 +93,27 @@ public class BitType extends PGType<BitString> {
     @Override
     byte[] encodeAsUTF8Text(BitString value) {
         assert length >= 0 : "BitType length must be set";
-        return value.asBitString().getBytes(StandardCharsets.UTF_8);
+        // See `varbit_out` in src/backend/utils/adt/varbit.c of PostgreSQL
+        return value.asRawBitString().getBytes(StandardCharsets.UTF_8);
     }
 
     @Override
     BitString decodeUTF8Text(byte[] bytes) {
         String text = new String(bytes, StandardCharsets.UTF_8);
-        return BitString.ofBitString(text);
+        // See `varbit_in` in src/backend/utils/adt/varbit.c of PostgreSQL
+        // PostgreSQL also supports hex notation, that's currently unsupported.
+
+        // bit-or 32 normalizes ascii-upper-case:
+        // "Bar".charAt(0) | 32 == 'b'
+        // "bar".charAt(0) | 32 == 'b'
+        if (!text.isEmpty() && (text.charAt(0) | 32) == 'b') {
+            return BitString.ofBitString(text);
+        } else {
+            if (length > 0) {
+                return BitString.ofRawBits(text, length);
+            } else {
+                return BitString.ofRawBits(text);
+            }
+        }
     }
 }
