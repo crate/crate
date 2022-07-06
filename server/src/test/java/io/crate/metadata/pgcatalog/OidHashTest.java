@@ -45,7 +45,7 @@ import static org.hamcrest.Matchers.not;
 
 public class OidHashTest extends CrateDummyClusterServiceUnitTest {
 
-    private static final RelationInfo VIEW_INFO =  new ViewInfo(T1, "", Collections.emptyList(), null);
+    private static final RelationInfo VIEW_INFO = new ViewInfo(T1, "", Collections.emptyList(), null);
     private RelationInfo t1Info;
 
     @Before

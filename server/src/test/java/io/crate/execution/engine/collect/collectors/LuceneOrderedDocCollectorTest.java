@@ -35,8 +35,6 @@ import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
 
-import com.carrotsearch.randomizedtesting.RandomizedTest;
-
 import org.apache.lucene.analysis.core.KeywordAnalyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
@@ -73,6 +71,8 @@ import org.elasticsearch.index.shard.ShardId;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
+
+import com.carrotsearch.randomizedtesting.RandomizedTest;
 
 import io.crate.analyze.OrderBy;
 import io.crate.breaker.RamAccounting;
@@ -160,7 +160,7 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
             new OptimizeQueryForSearchAfter(orderBy, mock(QueryShardContext.class), name -> valueFieldType);
         Query nextPageQuery = queryForSearchAfter.apply(lastCollected);
         TopFieldDocs result = search(reader, nextPageQuery, sort);
-        Long results[] = new Long[result.scoreDocs.length];
+        Long[] results = new Long[result.scoreDocs.length];
         for (int i = 0; i < result.scoreDocs.length; i++) {
             Long value = (Long) ((FieldDoc) result.scoreDocs[i]).fields[0];
             results[i] = value.equals(missingValue) ? null : value;

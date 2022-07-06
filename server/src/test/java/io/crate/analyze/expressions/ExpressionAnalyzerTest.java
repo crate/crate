@@ -35,16 +35,10 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.sameInstance;
 
 import java.io.IOException;
-import java.sql.Ref;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import io.crate.expression.scalar.ArraySliceFunction;
-import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.RowGranularity;
-import io.crate.sql.tree.ColumnPolicy;
 import org.joda.time.Period;
 import org.junit.Before;
 import org.junit.Test;
@@ -62,6 +56,7 @@ import io.crate.expression.operator.EqOperator;
 import io.crate.expression.operator.LikeOperators;
 import io.crate.expression.operator.LtOperator;
 import io.crate.expression.operator.any.AnyEqOperator;
+import io.crate.expression.scalar.ArraySliceFunction;
 import io.crate.expression.scalar.cast.ImplicitCastFunction;
 import io.crate.expression.scalar.conditional.CoalesceFunction;
 import io.crate.expression.symbol.Function;
@@ -70,9 +65,13 @@ import io.crate.expression.symbol.ParameterSymbol;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.Reference;
+import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.RowGranularity;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.parser.SqlParser;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.Asserts;
 import io.crate.testing.SQLExecutor;
@@ -191,7 +190,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             localContext,
             txnCtx,
             expressions.nodeCtx);
-            Symbol fn2 = ExpressionAnalyzer.allocateFunction(
+        Symbol fn2 = ExpressionAnalyzer.allocateFunction(
             functionName,
             List.of(Literal.BOOLEAN_FALSE),
             null,

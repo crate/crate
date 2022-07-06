@@ -78,7 +78,7 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testNestedSimpleSelectWithJoin() throws Exception {
-        Join nl= e.plan("select t1x from (" +
+        Join nl = e.plan("select t1x from (" +
                         "select t1.x as t1x, t2.i as t2i from t1 as t1, t1 as t2 order by t1x asc limit 10" +
                         ") t order by t1x desc limit 3");
         List<Projection> projections = nl.joinPhase().projections();

@@ -21,11 +21,12 @@
 
 package io.crate.metadata;
 
-import org.junit.Test;
-
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.fail;
+
+import org.junit.Test;
+
+import io.crate.testing.Asserts;
 
 public class IndexPartsTest {
 
@@ -51,10 +52,12 @@ public class IndexPartsTest {
         assertThat(new IndexParts(schemaTable).isPartitioned(), is(false));
         assertThat(new IndexParts(partitionedTable).isPartitioned(), is(true));
         assertThat(new IndexParts(schemaPartitionedTable).isPartitioned(), is(true));
-        try {
-            new IndexParts("schema..partitioned.");
-            fail("Should have failed due to invalid index name");
-        } catch (IllegalArgumentException ignored) {}
+        Asserts.assertThrowsMatches(
+            () -> new IndexParts("schema..partitioned."),
+            IllegalArgumentException.class,
+            "Invalid index name: schema",
+            "Should have failed due to invalid index name"
+        );
 
         assertThat(IndexParts.isPartitioned(table), is(false));
         assertThat(IndexParts.isPartitioned(schemaTable), is(false));
@@ -66,7 +69,7 @@ public class IndexPartsTest {
 
         assertThat(new IndexParts(table).getPartitionIdent(), is(""));
         assertThat(new IndexParts(schemaTable).getPartitionIdent(), is(""));
-        assertThat(new IndexParts(partitionedTable).getPartitionIdent(), is(ident));;
+        assertThat(new IndexParts(partitionedTable).getPartitionIdent(), is(ident));
         assertThat(new IndexParts(schemaPartitionedTable).getPartitionIdent(), is(ident));
 
         assertThat(IndexParts.isDangling(table), is(false));

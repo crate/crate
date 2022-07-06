@@ -113,7 +113,7 @@ public class StatementClassifierTest extends CrateDummyClusterServiceUnitTest {
             "WHERE y >= 2");
         var classification = StatementClassifier.classify(plan);
         assertThat(classification.type(), is(Plan.StatementType.SELECT));
-        assertThat(classification.labels(), contains( "Eval", "Filter", "ProjectSet", "TableFunction", "WindowAgg"));
+        assertThat(classification.labels(), contains("Eval", "Filter", "ProjectSet", "TableFunction", "WindowAgg"));
     }
 
     @Test

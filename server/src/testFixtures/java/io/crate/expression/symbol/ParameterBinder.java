@@ -24,8 +24,6 @@ package io.crate.expression.symbol;
 
 import java.util.function.Function;
 
-import static java.util.Objects.requireNonNull;
-
 public final class ParameterBinder extends FunctionCopyVisitor<Function<? super ParameterSymbol, ? extends Symbol>> {
 
     private static final ParameterBinder BINDER = new ParameterBinder();

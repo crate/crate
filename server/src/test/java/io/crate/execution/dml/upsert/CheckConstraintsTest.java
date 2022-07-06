@@ -21,18 +21,19 @@
 
 package io.crate.execution.dml.upsert;
 
+import java.util.LinkedHashMap;
+import java.util.Locale;
+import java.util.Map;
+
+import org.junit.Before;
+import org.junit.Test;
+
 import io.crate.expression.InputFactory;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.util.LinkedHashMap;
-import java.util.Locale;
-import java.util.Map;
 
 /**
  * Testing {@linkplain io.crate.execution.dml.upsert.CheckConstraints},
@@ -107,14 +108,14 @@ public class CheckConstraintsTest extends CrateDummyClusterServiceUnitTest {
             throw new IllegalArgumentException("expected even number of items");
         }
         Map<String, Object> map = new LinkedHashMap<>();
-        for (int i=0; i < items.length - 1; i+=2) {
+        for (int i = 0; i < items.length - 1; i += 2) {
             Object k = items[i];
             if (k == null) {
                 throw new IllegalArgumentException(String.format(
                     Locale.ENGLISH,
                     "item[%d] represents a key and those can't be null", i));
             }
-            map.put(k.toString(), items[i+1]);
+            map.put(k.toString(), items[i + 1]);
         }
         return map;
     }

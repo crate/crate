@@ -71,7 +71,7 @@ public class ColumnStatsTest {
     }
 
     @Test
-    public void test_common_stats_can_be_serialized_and_deserialized() throws IOException  {
+    public void test_common_stats_can_be_serialized_and_deserialized() throws IOException {
         List<Integer> numbers = List.of(1, 1, 2, 4, 4, 4, 4, 4);
         ColumnStats columnStats = ColumnStats.fromSortedValues(numbers, DataTypes.INTEGER, 1, 400L);
 

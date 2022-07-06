@@ -48,7 +48,7 @@ import io.crate.types.DataTypes;
 
 public class SymbolToColumnDefinitionConverterTest extends CrateDummyClusterServiceUnitTest {
 
-    private final static ColumnPolicy OBJECT_TYPE_DEFAULT_COLUMN_POLICY = ColumnPolicy.STRICT;
+    private static final ColumnPolicy OBJECT_TYPE_DEFAULT_COLUMN_POLICY = ColumnPolicy.STRICT;
 
     private List<ColumnDefinition<Expression>> getAllColumnDefinitionsFrom(String createTableStmt) throws IOException {
         SQLExecutor e = SQLExecutor.builder(clusterService).addTable(createTableStmt).build();

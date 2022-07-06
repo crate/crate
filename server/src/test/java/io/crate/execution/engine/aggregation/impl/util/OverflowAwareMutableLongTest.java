@@ -21,14 +21,12 @@
 
 package io.crate.execution.engine.aggregation.impl.util;
 
-import io.crate.execution.engine.aggregation.impl.util.OverflowAwareMutableLong;
-import org.junit.Test;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
 import java.math.BigDecimal;
 
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
+import org.junit.Test;
 
 public class OverflowAwareMutableLongTest {
 

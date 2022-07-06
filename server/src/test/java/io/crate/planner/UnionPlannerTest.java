@@ -21,24 +21,25 @@
 
 package io.crate.planner;
 
-import com.carrotsearch.randomizedtesting.RandomizedTest;
-import io.crate.analyze.TableDefinitions;
-import io.crate.execution.dsl.projection.TopNProjection;
-import io.crate.planner.node.dql.Collect;
-import io.crate.planner.operators.Distinct;
-import io.crate.planner.operators.LogicalPlannerTest;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.SQLExecutor;
-import org.hamcrest.Matchers;
-import org.junit.Before;
-import org.junit.Test;
-
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 
 import java.util.List;
+
+import org.hamcrest.Matchers;
+import org.junit.Before;
+import org.junit.Test;
+
+import com.carrotsearch.randomizedtesting.RandomizedTest;
+
+import io.crate.analyze.TableDefinitions;
+import io.crate.execution.dsl.projection.TopNProjection;
+import io.crate.planner.node.dql.Collect;
+import io.crate.planner.operators.LogicalPlannerTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
 
 public class UnionPlannerTest extends CrateDummyClusterServiceUnitTest {
 

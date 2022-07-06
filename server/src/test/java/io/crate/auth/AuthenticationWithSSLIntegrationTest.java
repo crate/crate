@@ -101,7 +101,6 @@ public class AuthenticationWithSSLIntegrationTest extends SQLIntegrationTestCase
     }
 
     @Test
-    @SuppressWarnings("EmptyTryBlock")
     public void checkSslConfigOption() throws SQLException {
         Properties properties = new Properties();
         properties.setProperty("user", "crate");
@@ -115,18 +114,21 @@ public class AuthenticationWithSSLIntegrationTest extends SQLIntegrationTestCase
         // We have SSL available in the following tests:
 
         properties.setProperty("user", "optionalssluser");
-        try (Connection ignored = DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties)) {}
+        try (Connection ignored = DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties)) {
+        }
 
         try {
             properties.setProperty("user", "neverssluser");
-            try (Connection ignored = DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties)) {}
+            try (Connection ignored = DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties)) {
+            }
             fail("User was able to use SSL although HBA config had requireSSL=never set.");
         } catch (PSQLException e) {
             assertThat(e.getMessage(), containsString("FATAL: No valid auth.host_based entry found"));
         }
 
         properties.setProperty("user", "requiredssluser");
-        try (Connection ignored = DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties)) {}
+        try (Connection ignored = DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties)) {
+        }
     }
 
     @Test
@@ -135,9 +137,13 @@ public class AuthenticationWithSSLIntegrationTest extends SQLIntegrationTestCase
         properties.setProperty("user", "localhost");
         properties.setProperty("ssl", "true");
 
-        assertThrowsMatches(() -> { try (Connection ignored = DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties)) {}},
-                     isPGError(is("Client certificate authentication failed for user \"localhost\""),
-                               INVALID_AUTHORIZATION_SPECIFICATION));
+        assertThrowsMatches(
+            () -> {
+                try (Connection ignored = DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties)) {
+                }
+            },
+            isPGError(is("Client certificate authentication failed for user \"localhost\""),
+                      INVALID_AUTHORIZATION_SPECIFICATION));
     }
 
 

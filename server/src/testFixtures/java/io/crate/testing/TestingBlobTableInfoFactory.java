@@ -21,18 +21,18 @@
 
 package io.crate.testing;
 
+import java.io.File;
+import java.nio.file.Path;
+import java.util.Map;
+
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.common.settings.Settings;
+
 import io.crate.exceptions.RelationUnknown;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.blob.BlobTableInfo;
 import io.crate.metadata.blob.BlobTableInfoFactory;
 import io.crate.metadata.blob.InternalBlobTableInfoFactory;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.common.settings.Settings;
-
-import java.io.File;
-import java.nio.file.Path;
-import java.util.Map;
 
 class TestingBlobTableInfoFactory implements BlobTableInfoFactory {
 

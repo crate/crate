@@ -166,7 +166,7 @@ public class PgCatalogITest extends SQLIntegrationTestCase {
                 "procost", "prorows", "provariadic", "protransform", "proisagg",
                 "proiswindow", "prosecdef", "proleakproof", "proisstrict", "proretset",
                 "provolatile", "proparallel", "pronargs", "pronargdefaults",
-                "prorettype",  "proargtypes", "proallargtypes", "proargmodes",
+                "prorettype", "proargtypes", "proallargtypes", "proargmodes",
                 "proargnames", "proargdefaults", "protrftypes", "prosrc", "probin",
                 "proconfig", "proacl")
         );
@@ -233,10 +233,10 @@ public class PgCatalogITest extends SQLIntegrationTestCase {
     @Test
     public void test_npgsql_type_lookup_returns_array_typtype_and_elemtypoid() throws Exception {
         execute("""
-            select pg_proc.oid from pg_proc
-            inner join pg_type on typreceive = pg_proc.oid
-            where proname = 'array_recv' and typname = '_int4'
-        """);
+                    select pg_proc.oid from pg_proc
+                    inner join pg_type on typreceive = pg_proc.oid
+                    where proname = 'array_recv' and typname = '_int4'
+                    """);
         assertThat(printedTable(response.rows()), is(
             "556695454\n"
         ));
@@ -245,17 +245,17 @@ public class PgCatalogITest extends SQLIntegrationTestCase {
             SELECT typ.oid, typname, typrelid, typnotnull, relkind, typelem AS elemoid,
                 CASE WHEN proc.proname='array_recv' THEN 'a' ELSE typ.typtype END AS typtype,
                 CASE
-                    WHEN proc.proname='array_recv' THEN typ.typelem
-                    WHEN typ.typtype='r' THEN rngsubtype
-                    WHEN typ.typtype='d' THEN typ.typbasetype
-                END AS elemtypoid
-            FROM pg_type AS typ
-            LEFT JOIN pg_class AS cls ON (cls.oid = typ.typrelid)
-            LEFT JOIN pg_proc AS proc ON proc.oid = typ.typreceive
-            LEFT JOIN pg_range ON (pg_range.rngtypid = typ.oid)
-            where typname in ('_int2', '_int4')
-            order by 1, 3, 4, 5
-        """);
+                            WHEN proc.proname='array_recv' THEN typ.typelem
+                            WHEN typ.typtype='r' THEN rngsubtype
+                            WHEN typ.typtype='d' THEN typ.typbasetype
+                        END AS elemtypoid
+                    FROM pg_type AS typ
+                    LEFT JOIN pg_class AS cls ON (cls.oid = typ.typrelid)
+                    LEFT JOIN pg_proc AS proc ON proc.oid = typ.typreceive
+                    LEFT JOIN pg_range ON (pg_range.rngtypid = typ.oid)
+                    where typname in ('_int2', '_int4')
+                    order by 1, 3, 4, 5
+                    """);
         assertThat(printedTable(response.rows()), is(
             "1005| _int2| 0| false| NULL| 21| a| 21\n" +
             "1007| _int4| 0| false| NULL| 23| a| 23\n"

@@ -155,7 +155,7 @@ public class HandlerSideLevelCollectTest extends SQLIntegrationTestCase {
         List<Symbol> arguments = Arrays.asList(tableNameRef, Literal.of("shards"));
         FunctionImplementation eqImpl
             = functions.get(null, EqOperator.NAME, arguments, SearchPath.pathWithPGCatalogAndDoc());
-        Function whereClause = new Function(eqImpl.signature(),  arguments, EqOperator.RETURN_TYPE);
+        Function whereClause = new Function(eqImpl.signature(), arguments, EqOperator.RETURN_TYPE);
 
         RoutedCollectPhase collectNode = collectNode(routing, toCollect, RowGranularity.DOC, new WhereClause(whereClause));
         Bucket result = collect(collectNode);

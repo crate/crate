@@ -130,7 +130,7 @@ public class ObjectTypeTest extends ESTestCase {
         map.put("s", "foo");
         map.put("obj_array", List.of(Map.of("i", 0)));
         type.writeTo(out);
-        type.writeValueTo(out,  map);
+        type.writeValueTo(out, map);
 
         StreamInput in = out.bytes().streamInput();
         ObjectType otherType = new ObjectType(in);
@@ -154,7 +154,7 @@ public class ObjectTypeTest extends ESTestCase {
         map.put("s", "foo");
         map.put("obj_array", innerArray);
         type.writeTo(out);
-        type.writeValueTo(out,  map);
+        type.writeValueTo(out, map);
 
         StreamInput in = out.bytes().streamInput();
         ObjectType otherType = new ObjectType(in);

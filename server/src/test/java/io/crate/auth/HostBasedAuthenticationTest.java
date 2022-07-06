@@ -21,12 +21,27 @@
 
 package io.crate.auth;
 
-import io.crate.protocols.postgres.ConnectionProperties;
-import io.netty.buffer.UnpooledByteBufAllocator;
-import io.netty.handler.ssl.SslContextBuilder;
-import io.netty.handler.ssl.SslHandler;
-import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
-import io.netty.handler.ssl.util.SelfSignedCertificate;
+import static io.crate.auth.AuthenticationWithSSLIntegrationTest.getAbsoluteFilePathFromClassPath;
+import static io.crate.auth.HostBasedAuthentication.Matchers.isValidAddress;
+import static io.crate.auth.HostBasedAuthentication.Matchers.isValidProtocol;
+import static io.crate.auth.HostBasedAuthentication.Matchers.isValidUser;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.core.Is.is;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.net.InetAddress;
+import java.nio.file.Path;
+import java.security.cert.Certificate;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
+
+import javax.net.ssl.SSLSession;
+
 import org.apache.http.impl.conn.InMemoryDnsResolver;
 import org.apache.http.impl.conn.SystemDefaultDnsResolver;
 import org.elasticsearch.common.network.InetAddresses;
@@ -37,24 +52,12 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import javax.net.ssl.SSLSession;
-import java.net.InetAddress;
-import java.nio.file.Path;
-import java.security.cert.Certificate;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Optional;
-
-import static io.crate.auth.AuthenticationWithSSLIntegrationTest.getAbsoluteFilePathFromClassPath;
-import static io.crate.auth.HostBasedAuthentication.Matchers.isValidAddress;
-import static io.crate.auth.HostBasedAuthentication.Matchers.isValidProtocol;
-import static io.crate.auth.HostBasedAuthentication.Matchers.isValidUser;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.core.Is.is;
-import static org.mockito.Mockito.*;
+import io.crate.protocols.postgres.ConnectionProperties;
+import io.netty.buffer.UnpooledByteBufAllocator;
+import io.netty.handler.ssl.SslContextBuilder;
+import io.netty.handler.ssl.SslHandler;
+import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
+import io.netty.handler.ssl.util.SelfSignedCertificate;
 
 
 public class HostBasedAuthenticationTest extends ESTestCase {
@@ -99,7 +102,7 @@ public class HostBasedAuthenticationTest extends ESTestCase {
         .build();
 
     private static final InetAddress LOCALHOST = InetAddresses.forString("127.0.0.1");
-    private static final InMemoryDnsResolver inMemoryResolver = new InMemoryDnsResolver();
+    private static final InMemoryDnsResolver IN_MEMORY_RESOLVER = new InMemoryDnsResolver();
 
     private SSLSession sslSession;
 
@@ -110,9 +113,9 @@ public class HostBasedAuthenticationTest extends ESTestCase {
         // Until this is fixed, we force the english locale.
         // See also https://github.com/bcgit/bc-java/issues/405 (different topic, but same root cause)
         Locale.setDefault(Locale.ENGLISH);
-        inMemoryResolver.add(TEST_DNS_HOSTNAME, InetAddresses.forString(TEST_DNS_IP));
-        inMemoryResolver.add(TEST_SUBDOMAIN_HOSTNAME, InetAddresses.forString(TEST_SUBDOMAIN_IP));
-        inMemoryResolver.add(TEST_DOMAIN_HOSTNAME, InetAddresses.forString(TEST_DOMAIN_IP));
+        IN_MEMORY_RESOLVER.add(TEST_DNS_HOSTNAME, InetAddresses.forString(TEST_DNS_IP));
+        IN_MEMORY_RESOLVER.add(TEST_SUBDOMAIN_HOSTNAME, InetAddresses.forString(TEST_SUBDOMAIN_IP));
+        IN_MEMORY_RESOLVER.add(TEST_DOMAIN_HOSTNAME, InetAddresses.forString(TEST_DOMAIN_IP));
     }
 
     @Before
@@ -206,7 +209,7 @@ public class HostBasedAuthenticationTest extends ESTestCase {
 
     @Test
     public void test_filter_entries_hostname() {
-        HostBasedAuthentication authService = new HostBasedAuthentication(HBA_5, null, inMemoryResolver);
+        HostBasedAuthentication authService = new HostBasedAuthentication(HBA_5, null, IN_MEMORY_RESOLVER);
 
         Optional entry = authService.getEntry("crate",
             new ConnectionProperties(InetAddresses.forString(TEST_DNS_IP), Protocol.POSTGRES, null));
@@ -250,7 +253,7 @@ public class HostBasedAuthenticationTest extends ESTestCase {
         assertFalse(isValidAddress(hbaAddress, InetAddresses.forString("10.0.0.255"), SystemDefaultDnsResolver.INSTANCE));
         assertFalse(isValidAddress(hbaAddress, InetAddresses.forString("10.0.2.0"), SystemDefaultDnsResolver.INSTANCE));
 
-        hbaAddress  = ".b.crate.io";
+        hbaAddress = ".b.crate.io";
         // Tests below check only  subdomain logic (ends with),
         // no operation with real InetAddress except getCanonicalHostName happens in real code when starts with .
         // Mocks imitate what InetAddress.getCanonicalHostName does - we cannot change InetAddress internal DNS resolver without affecting all tests.
@@ -261,14 +264,18 @@ public class HostBasedAuthenticationTest extends ESTestCase {
         InetAddress domainAddressMock = mock(InetAddress.class);
         when(domainAddressMock.getCanonicalHostName()).thenReturn(TEST_DOMAIN_HOSTNAME);
 
-        assertTrue(isValidAddress(hbaAddress, subdomainAddressMock, inMemoryResolver));
-        assertFalse(isValidAddress(hbaAddress, domainAddressMock, inMemoryResolver));
+        assertTrue(isValidAddress(hbaAddress, subdomainAddressMock, IN_MEMORY_RESOLVER));
+        assertFalse(isValidAddress(hbaAddress, domainAddressMock, IN_MEMORY_RESOLVER));
 
         assertTrue(isValidAddress(null,
-            InetAddresses.forString(
-                String.format("%s.%s.%s.%s", randomInt(255), randomInt(255), randomInt(255), randomInt(255))),
-                SystemDefaultDnsResolver.INSTANCE
-            )
+                                  InetAddresses.forString(
+                                      String.format("%s.%s.%s.%s",
+                                                    randomInt(255),
+                                                    randomInt(255),
+                                                    randomInt(255),
+                                                    randomInt(255))),
+                                  SystemDefaultDnsResolver.INSTANCE
+                   )
         );
     }
 

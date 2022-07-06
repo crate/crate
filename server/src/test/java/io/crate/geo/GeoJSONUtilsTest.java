@@ -31,7 +31,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import java.util.List;
 import java.util.Map;
 
-
 import org.junit.Test;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
@@ -55,22 +54,22 @@ public class GeoJSONUtilsTest {
 
     private static final GeometryFactory GEOMETRY_FACTORY = new GeometryFactory(CoordinateArraySequenceFactory.instance());
 
-    public final static List<Shape> SHAPES = List.<Shape>of(
-        new JtsGeometry(new Polygon(GEOMETRY_FACTORY.createLinearRing(new Coordinate[]{
+    public static final List<Shape> SHAPES = List.of(
+        new JtsGeometry(new Polygon(GEOMETRY_FACTORY.createLinearRing(new Coordinate[] {
             new Coordinate(0.0, 1.0),
             new Coordinate(100.0, 0.1),
             new Coordinate(20.0, 23.567),
             new Coordinate(0.0, 1.0)
         }), new LinearRing[0], GEOMETRY_FACTORY), JtsSpatialContext.GEO, true, true),
         new JtsGeometry(new MultiPolygon(
-            new Polygon[]{
-                new Polygon(GEOMETRY_FACTORY.createLinearRing(new Coordinate[]{
+            new Polygon[] {
+                new Polygon(GEOMETRY_FACTORY.createLinearRing(new Coordinate[] {
                     new Coordinate(0.0, 1.0),
                     new Coordinate(0.1, 1.1),
                     new Coordinate(1.1, 60.0),
                     new Coordinate(0.0, 1.0)
                 }), new LinearRing[0], GEOMETRY_FACTORY),
-                new Polygon(GEOMETRY_FACTORY.createLinearRing(new Coordinate[]{
+                new Polygon(GEOMETRY_FACTORY.createLinearRing(new Coordinate[] {
                     new Coordinate(2.0, 1.0),
                     new Coordinate(2.1, 1.1),
                     new Coordinate(2.1, 70.0),

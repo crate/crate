@@ -74,15 +74,15 @@ public class TasksServiceIntegrationTest extends SQLIntegrationTestCase {
         activeTasks.setAccessible(true);
 
         assertBusy(() -> {
-                for (TasksService tasksService : internalCluster().getInstances(TasksService.class)) {
-                    Map<UUID, RootTask> tasksByJobId;
-                    try {
-                        tasksByJobId = (Map<UUID, RootTask>) activeTasks.get(tasksService);
-                        assertThat(tasksByJobId.size(), is(0));
-                    } catch (Exception e) {
-                        fail(e.getMessage());
-                    }
+            for (TasksService tasksService : internalCluster().getInstances(TasksService.class)) {
+                Map<UUID, RootTask> tasksByJobId;
+                try {
+                    tasksByJobId = (Map<UUID, RootTask>) activeTasks.get(tasksService);
+                    assertThat(tasksByJobId.size(), is(0));
+                } catch (Exception e) {
+                    fail(e.getMessage());
                 }
+            }
         }, 1, TimeUnit.SECONDS);
     }
 }

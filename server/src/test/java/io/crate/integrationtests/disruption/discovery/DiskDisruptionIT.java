@@ -16,23 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package io.crate.integrationtests.disruption.discovery;
 
-import com.carrotsearch.randomizedtesting.RandomizedTest;
-import io.crate.common.unit.TimeValue;
-import io.crate.integrationtests.SQLIntegrationTestCase;
-import io.crate.testing.UseRandomizedSchema;
-
-import org.apache.lucene.mockfile.FilterFileSystemProvider;
-import org.elasticsearch.common.io.PathUtilsForTesting;
-import org.elasticsearch.index.seqno.SequenceNumbers;
-import org.elasticsearch.test.BackgroundIndexer;
-import org.elasticsearch.test.ESIntegTestCase;
-import org.elasticsearch.test.InternalTestCluster;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.is;
 
 import java.io.IOException;
 import java.nio.channels.FileChannel;
@@ -46,8 +34,22 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.Matchers.is;
+import org.apache.lucene.mockfile.FilterFileSystemProvider;
+import org.elasticsearch.common.io.PathUtilsForTesting;
+import org.elasticsearch.index.seqno.SequenceNumbers;
+import org.elasticsearch.test.BackgroundIndexer;
+import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.test.InternalTestCluster;
+import org.junit.After;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
+import com.carrotsearch.randomizedtesting.RandomizedTest;
+
+import io.crate.common.unit.TimeValue;
+import io.crate.integrationtests.SQLIntegrationTestCase;
+import io.crate.testing.UseRandomizedSchema;
 
 @ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.TEST, numDataNodes = 0)
 @SQLIntegrationTestCase.Slow

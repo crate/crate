@@ -21,16 +21,15 @@
 
 package io.crate.types;
 
-import org.elasticsearch.test.ESTestCase;
-import org.junit.Test;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.startsWith;
 
 import java.math.BigDecimal;
-import java.math.BigInteger;
 import java.math.MathContext;
 import java.util.Map;
 
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.startsWith;
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
 
 public class DoubleTypeTest extends ESTestCase {
 

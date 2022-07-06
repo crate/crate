@@ -21,7 +21,49 @@
 
 package io.crate.testing;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasEntry;
+import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.core.Is.is;
+
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.lang.reflect.Array;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Objects;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
+
+import javax.annotation.Nullable;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.common.inject.AbstractModule;
+import org.elasticsearch.common.inject.ModulesBuilder;
+import org.elasticsearch.common.xcontent.DeprecationHandler;
+import org.elasticsearch.common.xcontent.NamedXContentRegistry;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
+import org.hamcrest.BaseMatcher;
+import org.hamcrest.Description;
+import org.hamcrest.FeatureMatcher;
+import org.hamcrest.Matcher;
+import org.hamcrest.TypeSafeDiagnosingMatcher;
+
 import com.carrotsearch.randomizedtesting.RandomizedTest;
+
 import io.crate.analyze.where.DocKeys;
 import io.crate.common.collections.Lists2;
 import io.crate.common.collections.Sorted;
@@ -44,45 +86,6 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.settings.session.SessionSettingModule;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.common.inject.ModulesBuilder;
-import org.elasticsearch.common.xcontent.DeprecationHandler;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
-import org.hamcrest.BaseMatcher;
-import org.hamcrest.Description;
-import org.hamcrest.FeatureMatcher;
-import org.hamcrest.Matcher;
-import org.hamcrest.TypeSafeDiagnosingMatcher;
-
-import javax.annotation.Nullable;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.PrintStream;
-import java.lang.reflect.Array;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Objects;
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
-
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasEntry;
-import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.core.Is.is;
 
 public class TestingHelpers {
 
@@ -441,12 +444,12 @@ public class TestingHelpers {
 
     public static <T> List<T> getRandomsOfType(int minLength, int maxLength, DataType<T> dataType) {
         var values = new ArrayList<T>();
-        int length  = RandomizedTest.randomIntBetween(minLength, maxLength);
+        int length = RandomizedTest.randomIntBetween(minLength, maxLength);
         var generator = DataTypeTesting.getDataGenerator(dataType);
 
         for (int i = 0; i < length; i++) {
             // 1/length chance
-            if (RandomizedTest.randomIntBetween(0, length-1) == 0) {
+            if (RandomizedTest.randomIntBetween(0, length - 1) == 0) {
                 values.add(null);
             } else {
                 values.add(dataType.sanitizeValue(generator.get()));

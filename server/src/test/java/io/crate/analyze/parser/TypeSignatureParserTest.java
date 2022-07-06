@@ -21,17 +21,17 @@
 
 package io.crate.analyze.parser;
 
-import org.elasticsearch.test.ESTestCase;
-import org.hamcrest.Matchers;
-import org.junit.Test;
-
-import java.util.List;
-
 import static io.crate.common.collections.Lists2.getOnlyElement;
 import static io.crate.types.TypeSignature.parseTypeSignature;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 
+import java.util.List;
+
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
+
+import io.crate.signatures.TypeSignatureParser;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 import io.crate.types.IntegerLiteralTypeSignature;
@@ -42,7 +42,6 @@ import io.crate.types.ParameterTypeSignature;
 import io.crate.types.RowType;
 import io.crate.types.StringType;
 import io.crate.types.TypeSignature;
-import io.crate.signatures.TypeSignatureParser;
 
 
 public class TypeSignatureParserTest extends ESTestCase {

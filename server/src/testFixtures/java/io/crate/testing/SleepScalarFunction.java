@@ -33,7 +33,7 @@ public class SleepScalarFunction extends Scalar<Boolean, Long> {
 
     public static final String NAME = "sleep";
 
-    public final static Signature SIGNATURE = Signature.scalar(
+    public static final Signature SIGNATURE = Signature.scalar(
         NAME,
         DataTypes.LONG.getTypeSignature(),
         DataTypes.BOOLEAN.getTypeSignature()

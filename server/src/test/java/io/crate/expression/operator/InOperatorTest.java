@@ -18,16 +18,18 @@
  * with Crate these terms will supersede the license and you may use the
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
-package io.crate.expression.operator;
 
-import io.crate.expression.symbol.Literal;
-import io.crate.expression.operator.any.AnyOperator;
-import io.crate.expression.scalar.ScalarTestCase;
-import io.crate.types.DataTypes;
-import org.junit.Test;
+package io.crate.expression.operator;
 
 import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
+
+import org.junit.Test;
+
+import io.crate.expression.operator.any.AnyOperator;
+import io.crate.expression.scalar.ScalarTestCase;
+import io.crate.expression.symbol.Literal;
+import io.crate.types.DataTypes;
 
 public class InOperatorTest extends ScalarTestCase {
 

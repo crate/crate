@@ -21,15 +21,16 @@
 
 package io.crate.integrationtests;
 
-import io.crate.types.DataTypes;
-import org.hamcrest.Matchers;
-import org.junit.Test;
+import static org.hamcrest.CoreMatchers.is;
 
 import java.util.List;
 
-import static org.hamcrest.CoreMatchers.is;
+import org.hamcrest.Matchers;
+import org.junit.Test;
 
-public class AnalyzeITest extends SQLIntegrationTestCase{
+import io.crate.types.DataTypes;
+
+public class AnalyzeITest extends SQLIntegrationTestCase {
 
     @Test
     public void test_analyze_statement_refreshes_table_stats_and_stats_are_visible_in_pg_class_and_pg_stats() {

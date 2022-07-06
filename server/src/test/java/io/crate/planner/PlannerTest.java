@@ -24,7 +24,7 @@ package io.crate.planner;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.mock;
 
 import java.util.Collections;
 import java.util.List;
@@ -37,7 +37,6 @@ import org.junit.Test;
 import io.crate.action.sql.SessionContext;
 import io.crate.data.Row1;
 import io.crate.exceptions.ConversionException;
-import io.crate.execution.dsl.phases.NodeOperationTree;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.RoutingProvider;
@@ -49,7 +48,6 @@ import io.crate.sql.tree.Assignment;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.Asserts;
 import io.crate.testing.SQLExecutor;
-import static org.mockito.Mockito.mock;
 
 public class PlannerTest extends CrateDummyClusterServiceUnitTest {
 

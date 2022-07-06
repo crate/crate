@@ -34,7 +34,7 @@ public class JoinUsingTests {
         for (int n : new int[]{1, 7}) {
 
             List<String> cols = new ArrayList<>(n);
-            for (int i=0; i < n; i++) {
+            for (int i = 0; i < n; i++) {
                 cols.add("col_" + i);
             }
             QualifiedName left = QualifiedName.of("doc", "t1");

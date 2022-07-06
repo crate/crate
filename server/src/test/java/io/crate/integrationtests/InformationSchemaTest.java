@@ -830,13 +830,11 @@ public class InformationSchemaTest extends SQLIntegrationTestCase {
         execute("select column_name, ordinal_position from information_schema.columns where table_name='t4'");
         assertEquals(4, response.rowCount());
 
-        execute("insert into t4 (stuff) values (?)", new Object[]{
-            new HashMap<String, Object>() {{
-                put("first_name", "Douglas");
-                put("middle_name", "Noel");
-                put("last_name", "Adams");
-            }}
-        });
+        execute("insert into t4 (stuff) values (?)", new Object[] {
+            Map.of(
+                "first_name", "Douglas",
+                "middle_name", "Noel",
+                "last_name", "Adams")});
         execute("refresh table t4");
 
         waitForMappingUpdateOnAll("t4", "stuff.first_name", "stuff.middle_name", "stuff.last_name");
@@ -857,13 +855,11 @@ public class InformationSchemaTest extends SQLIntegrationTestCase {
         execute("select column_name, ordinal_position from information_schema.columns where table_name='t4'");
         assertEquals(4, response.rowCount());
 
-        execute("insert into t4 (stuff) values (?)", new Object[]{
-            new HashMap<String, Object>() {{
-                put("first_name", "Douglas");
-                put("middle_name", "Noel");
-                put("last_name", "Adams");
-            }}
-        });
+        execute("insert into t4 (stuff) values (?)", new Object[] {
+            Map.of(
+                "first_name", "Douglas",
+                "middle_name", "Noel",
+                "last_name", "Adams")});
 
         execute("select column_name, ordinal_position from information_schema.columns where table_name='t4'");
         assertEquals(4, response.rowCount());
@@ -1072,10 +1068,10 @@ public class InformationSchemaTest extends SQLIntegrationTestCase {
         execute(stmtCreate);
 
         String stmtInsert = "insert into data_points (day, data) values (?, ?)";
-        Map<String, Object> obj = new HashMap<>();
-        obj.put("somestringroute", "stringvalue");
-        obj.put("somelongroute", 1338L);
-        Object[] argsInsert = new Object[]{
+        Map<String, Object> obj = Map.of(
+            "somestringroute", "stringvalue",
+            "somelongroute", 1338L);
+        Object[] argsInsert = new Object[] {
             "20140520",
             obj
         };

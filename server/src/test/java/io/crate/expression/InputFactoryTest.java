@@ -87,8 +87,12 @@ public class InputFactoryTest extends CrateDummyClusterServiceUnitTest {
         Function avgX = (Function) expressions.asSymbol("avg(x)");
 
         List<Symbol> aggregations = Arrays.asList(
-            new Aggregation( countX.signature(), countX.signature().getReturnType().createType(), List.of(new InputColumn(0))),
-            new Aggregation(avgX.signature(), avgX.signature().getReturnType().createType(), List.of(new InputColumn(0)))
+            new Aggregation(countX.signature(),
+                            countX.signature().getReturnType().createType(),
+                            List.of(new InputColumn(0))),
+            new Aggregation(avgX.signature(),
+                            avgX.signature().getReturnType().createType(),
+                            List.of(new InputColumn(0)))
         );
 
         InputFactory.Context<CollectExpression<Row, ?>> ctx = factory.ctxForAggregations(txnCtx);

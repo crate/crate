@@ -69,6 +69,7 @@ import io.crate.types.TimestampType;
 public class DataTypeTesting {
 
     public static final List<DataType<?>> ALL_TYPES_EXCEPT_ARRAYS = new ArrayList<>();
+
     static {
         ALL_TYPES_EXCEPT_ARRAYS.addAll(DataTypes.PRIMITIVE_TYPES);
         ALL_TYPES_EXCEPT_ARRAYS.add(DataTypes.GEO_POINT);
@@ -154,14 +155,10 @@ public class DataTypeTesting {
                 };
 
             case IntervalType.ID:
-                return () -> {
-                    return (T) new Period().withSeconds(RandomNumbers.randomIntBetween(random, 0, Integer.MAX_VALUE));
-                };
+                return () -> (T) new Period().withSeconds(RandomNumbers.randomIntBetween(random, 0, Integer.MAX_VALUE));
 
             case NumericType.ID:
-                return () -> {
-                    return (T) new BigDecimal(random.nextDouble());
-                };
+                return () -> (T) new BigDecimal(random.nextDouble());
 
             case BitStringType.ID:
                 return () -> {
@@ -172,10 +169,9 @@ public class DataTypeTesting {
                     }
                     return (T) new BitString(bitSet, length);
                 };
-
+            default:
+                throw new AssertionError("No data generator for type " + type.getName());
         }
-
-        throw new AssertionError("No data generator for type " + type.getName());
     }
 
     private static String randomIPv6Address(Random random) {

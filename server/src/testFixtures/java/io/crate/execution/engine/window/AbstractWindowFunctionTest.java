@@ -102,15 +102,14 @@ public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServic
     private static void performInputSanityChecks(Object[]... inputs) {
         List<Integer> inputSizes = Arrays.stream(inputs)
             .map(Array::getLength)
-            .distinct()
-            .collect(Collectors.toList());
+            .distinct().toList();
 
         if (inputSizes.size() != 1) {
             throw new IllegalArgumentException("Inputs need to be of equal size");
         }
     }
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({"rawtypes", "unchecked"})
     protected <T> void assertEvaluate(String functionExpression,
                                       Matcher<T> expectedValue,
                                       List<ColumnIdent> rowsColumnDescription,
@@ -133,7 +132,7 @@ public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServic
             windowFunctionSymbol,
             txnCtx.sessionSettings().searchPath()
         );
-        assert impl instanceof WindowFunction || impl instanceof AggregationFunction: "Got " + impl + " but expected a window function";
+        assert impl instanceof WindowFunction || impl instanceof AggregationFunction : "Got " + impl + " but expected a window function";
 
         WindowFunction windowFunctionImpl;
         if (impl instanceof AggregationFunction) {

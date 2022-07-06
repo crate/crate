@@ -21,20 +21,21 @@
 
 package io.crate.analyze;
 
-import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.exceptions.UnsupportedFeatureException;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.SQLExecutor;
-import org.hamcrest.Matchers;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.io.IOException;
-
 import static io.crate.testing.SymbolMatchers.isField;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
+
+import java.io.IOException;
+
+import org.hamcrest.Matchers;
+import org.junit.Before;
+import org.junit.Test;
+
+import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
 
 public class ExplainAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -57,7 +58,7 @@ public class ExplainAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testAnalyzePropertyIsSetOnExplainAnalyze() {
         ExplainAnalyzedStatement stmt = e.analyze("explain analyze select id from sys.cluster");
         assertThat(stmt.context(), notNullValue());
-     }
+    }
 
     @Test
     public void testAnalyzePropertyIsReflectedInColumnName() {

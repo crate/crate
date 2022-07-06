@@ -23,21 +23,19 @@ package io.crate.execution.engine.fetch;
 
 import static org.hamcrest.CoreMatchers.is;
 
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.junit.Test;
+
 import com.carrotsearch.hppc.IntHashSet;
 import com.carrotsearch.hppc.IntObjectHashMap;
-
-import org.junit.Test;
 
 import io.crate.breaker.BlockBasedRamAccounting;
 import io.crate.breaker.EstimateCellsSize;
 import io.crate.data.Bucket;
 import io.crate.data.CollectionBucket;
-import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.expression.symbol.FetchReference;
 import io.crate.expression.symbol.InputColumn;

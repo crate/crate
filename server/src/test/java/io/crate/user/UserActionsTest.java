@@ -39,14 +39,14 @@ import java.util.Map;
 
 public class UserActionsTest extends ESTestCase {
 
-    private static final NodeContext nodeCtx = new NodeContext(new Functions(Map.of()));
+    private static final NodeContext NODE_CTX = new NodeContext(new Functions(Map.of()));
 
     TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
 
     @Test
     public void testSecureHashIsGeneratedFromPasswordProperty() throws Exception {
         GenericProperties<Symbol> properties = new GenericProperties<>(Map.of("password", Literal.of("password")));
-        SecureHash secureHash = UserActions.generateSecureHash(properties, Row.EMPTY, txnCtx, nodeCtx);
+        SecureHash secureHash = UserActions.generateSecureHash(properties, Row.EMPTY, txnCtx, NODE_CTX);
         assertThat(secureHash, Matchers.notNullValue());
 
         SecureString password = new SecureString("password".toCharArray());
@@ -55,7 +55,7 @@ public class UserActionsTest extends ESTestCase {
 
     @Test
     public void testNoSecureHashIfPasswordPropertyNotPresent() throws Exception {
-        SecureHash secureHash = UserActions.generateSecureHash(GenericProperties.empty(), Row.EMPTY, txnCtx, nodeCtx);
+        SecureHash secureHash = UserActions.generateSecureHash(GenericProperties.empty(), Row.EMPTY, txnCtx, NODE_CTX);
         assertNull(secureHash);
     }
 
@@ -65,13 +65,13 @@ public class UserActionsTest extends ESTestCase {
 
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Password must not be empty");
-        UserActions.generateSecureHash(properties, Row.EMPTY, txnCtx, nodeCtx);
+        UserActions.generateSecureHash(properties, Row.EMPTY, txnCtx, NODE_CTX);
     }
 
     @Test
     public void testUserPasswordProperty() throws Exception {
         GenericProperties<Symbol> properties = new GenericProperties<>(Map.of("password", Literal.of("my-pass")));
-        SecureString password = UserActions.getUserPasswordProperty(properties, Row.EMPTY, txnCtx, nodeCtx);
+        SecureString password = UserActions.getUserPasswordProperty(properties, Row.EMPTY, txnCtx, NODE_CTX);
         assertEquals(new SecureString("my-pass".toCharArray()), password);
     }
 
@@ -79,7 +79,7 @@ public class UserActionsTest extends ESTestCase {
     public void testNoPasswordIfPropertyIsNull() throws Exception {
         GenericProperties<Symbol> properties = new GenericProperties<>(
             Map.of("password", Literal.of(DataTypes.UNDEFINED, null)));
-        SecureString password = UserActions.getUserPasswordProperty(properties, Row.EMPTY, txnCtx, nodeCtx);
+        SecureString password = UserActions.getUserPasswordProperty(properties, Row.EMPTY, txnCtx, NODE_CTX);
         assertNull(password);
     }
 
@@ -88,6 +88,6 @@ public class UserActionsTest extends ESTestCase {
         GenericProperties<Symbol> properties = new GenericProperties<>(Map.of("invalid", Literal.of("password")));
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("\"invalid\" is not a valid user property");
-        UserActions.generateSecureHash(properties, Row.EMPTY, txnCtx, nodeCtx);
+        UserActions.generateSecureHash(properties, Row.EMPTY, txnCtx, NODE_CTX);
     }
 }

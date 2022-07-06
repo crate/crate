@@ -61,7 +61,7 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
     private static final String TABLE_NAME = "formatter";
 
     @Before
-    public void prepare() throws Exception {
+    public void prepare() {
         String createTableStmt =
             "create table doc.formatter (" +
             "  foo text," +
@@ -100,37 +100,37 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testFormatFunctionFullQualifiedInputName() throws Exception {
+    public void testFormatFunctionFullQualifiedInputName() {
         Symbol f = sqlExpressions.asSymbol("concat('foo', foo)");
         assertPrint(f, "concat('foo', doc.formatter.foo)");
     }
 
     @Test
-    public void testFormatFunctionsWithoutBrackets() throws Exception {
+    public void testFormatFunctionsWithoutBrackets() {
         Symbol f = sqlExpressions.asSymbol("current_schema");
         assertPrint(f, "current_schema");
     }
 
     @Test
-    public void testSubstrFunction() throws Exception {
+    public void testSubstrFunction() {
         Symbol f = sqlExpressions.asSymbol("substr('foobar', 4)");
         assertPrint(f, "'bar'");
     }
 
     @Test
-    public void testSubstrFunctionWithLength() throws Exception {
+    public void testSubstrFunctionWithLength() {
         Symbol f = sqlExpressions.asSymbol("substr('foobar', 4, 1)");
         assertPrint(f, "'b'");
     }
 
     @Test
-    public void testWindowFunction() throws Exception {
+    public void testWindowFunction() {
         Symbol f = sqlExpressions.asSymbol("avg(idx) over (partition by idx order by foo)");
         assertPrint(f, "avg(doc.formatter.idx) OVER (PARTITION BY doc.formatter.idx ORDER BY doc.formatter.foo ASC)");
     }
 
     @Test
-    public void testFormatAggregation() throws Exception {
+    public void testFormatAggregation() {
         Signature signature = Signature.aggregate(
             "agg",
             DataTypes.INTEGER.getTypeSignature(),
@@ -149,8 +149,8 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
     public void testReference() throws Exception {
         Reference r = new Reference(
             new ReferenceIdent(
-            new RelationName("sys", "table"),
-            new ColumnIdent("column", Arrays.asList("path", "nested"))),
+                new RelationName("sys", "table"),
+                new ColumnIdent("column", Arrays.asList("path", "nested"))),
             RowGranularity.DOC,
             DataTypes.STRING,
             1,
@@ -163,8 +163,8 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
     public void testDocReference() throws Exception {
         Reference r = new Reference(
             new ReferenceIdent(
-            new RelationName("doc", "table"),
-            new ColumnIdent("column", Arrays.asList("path", "nested"))),
+                new RelationName("doc", "table"),
+                new ColumnIdent("column", Arrays.asList("path", "nested"))),
             RowGranularity.DOC,
             DataTypes.STRING,
             0,
@@ -174,18 +174,20 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testDynamicReference() throws Exception {
+    public void testDynamicReference() {
         Reference r = new DynamicReference(
-            new ReferenceIdent(new RelationName("schema", "table"), new ColumnIdent("column", Arrays.asList("path", "nested"))),
+            new ReferenceIdent(new RelationName("schema", "table"),
+                               new ColumnIdent("column", Arrays.asList("path", "nested"))),
             RowGranularity.DOC,
             0);
         assertPrint(r, "schema.\"table\".\"column\"['path']['nested']");
     }
 
     @Test
-    public void testVoidReference() throws Exception {
+    public void testVoidReference() {
         Reference r = new VoidReference(
-            new ReferenceIdent(new RelationName("schema", "table"), new ColumnIdent("column", Arrays.asList("path", "nested"))),
+            new ReferenceIdent(new RelationName("schema", "table"),
+                               new ColumnIdent("column", Arrays.asList("path", "nested"))),
             RowGranularity.DOC,
             0);
         assertPrint(r, "schema.\"table\".\"column\"['path']['nested']");
@@ -195,7 +197,7 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
     public void testReferenceEscaped() throws Exception {
         Reference r = new Reference(
             new ReferenceIdent(new RelationName("doc", "table"),
-            new ColumnIdent("colum\"n")),
+                               new ColumnIdent("colum\"n")),
             RowGranularity.DOC,
             DataTypes.STRING,
             0,
@@ -205,13 +207,13 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testLiteralEscaped() throws Exception {
+    public void testLiteralEscaped() {
         assertPrint(Literal.of("bla'bla"), "'bla''bla'");
 
     }
 
     @Test
-    public void testObjectLiteral() throws Exception {
+    public void testObjectLiteral() {
         Literal<Map<String, Object>> l = Literal.of(Map.ofEntries(
             Map.entry("field", "value"),
             Map.entry("array", List.of(1, 2, 3)),
@@ -221,7 +223,7 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testBooleanLiteral() throws Exception {
+    public void testBooleanLiteral() {
         Literal<Boolean> f = Literal.of(false);
         assertPrint(f, "false");
         Literal<Boolean> t = Literal.of(true);
@@ -229,19 +231,19 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void visitStringLiteral() throws Exception {
+    public void visitStringLiteral() {
         Literal<String> l = Literal.of("fooBar");
         assertPrint(l, "'fooBar'");
     }
 
     @Test
-    public void visitDoubleLiteral() throws Exception {
+    public void visitDoubleLiteral() {
         Literal<Double> d = Literal.of(-500.88765d);
         assertPrint(d, "-500.88765");
     }
 
     @Test
-    public void visitFloatLiteral() throws Exception {
+    public void visitFloatLiteral() {
         Literal<Float> f = Literal.of(500.887f);
         assertPrint(f, "500.887");
     }
@@ -253,14 +255,14 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testIsNull() throws Exception {
+    public void testIsNull() {
         assertPrintIsParseable("null IS NULL");
         assertPrintIsParseable("formatter.foo IS NULL");
         assertPrintIsParseable("'123' IS NULL");
     }
 
     @Test
-    public void testQueries() throws Exception {
+    public void testQueries() {
         assertPrintIsParseable("(1 + formatter.bar) * 4 = 14");
     }
 
@@ -273,26 +275,27 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testNull() throws Exception {
+    public void testNull() {
         assertPrint(Literal.of(DataTypes.UNDEFINED, null), "NULL");
     }
 
     @Test
-    public void testNullKey() throws Exception {
-        assertPrint(Literal.of(new HashMap<String, Object>() {{
-            put("null", null);
-        }}), "{\"null\"=NULL}");
+    public void testNullKey() {
+        assertPrint(Literal.of(new HashMap<>() {{
+                put("null", null);
+            }}
+        ), "{\"null\"=NULL}");
     }
 
     @Test
-    public void testNativeArray() throws Exception {
+    public void testNativeArray() {
         assertPrint(
             Literal.of(
                 DataTypes.GEO_SHAPE,
                 DataTypes.GEO_SHAPE.sanitizeValue(
                     Map.of(
                         "type", "Point",
-                        "coordinates", new double[]{1.0d, 2.0d})
+                        "coordinates", new double[] {1.0d, 2.0d})
                 )
             ),
             "{\"coordinates\"=[1.0, 2.0], \"type\"='Point'}"
@@ -311,22 +314,22 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testMaxDepthEllipsis() throws Exception {
+    public void testMaxDepthEllipsis() {
         Symbol nestedFn = sqlExpressions.asSymbol("abs(sqrt(ln(1+1+1+1+1+1+1+1)))");
         assertThat(nestedFn.toString(), is("1.442026886600883"));
     }
 
     @Test
-    public void testStyles() throws Exception {
+    public void testStyles() {
         Symbol nestedFn = sqlExpressions.asSymbol("abs(sqrt(ln(bar+cast(\"select\" as long)+1+1+1+1+1+1)))");
         assertThat(nestedFn.toString(Style.QUALIFIED),
-            is("abs(sqrt(ln(_cast((((((((doc.formatter.bar + cast(doc.formatter.\"select\" AS bigint)) + 1::bigint) + 1::bigint) + 1::bigint) + 1::bigint) + 1::bigint) + 1::bigint), 'double precision'))))"));
+                   is("abs(sqrt(ln(_cast((((((((doc.formatter.bar + cast(doc.formatter.\"select\" AS bigint)) + 1::bigint) + 1::bigint) + 1::bigint) + 1::bigint) + 1::bigint) + 1::bigint), 'double precision'))))"));
         assertThat(nestedFn.toString(Style.UNQUALIFIED),
-            is("abs(sqrt(ln(_cast((((((((bar + cast(\"select\" AS bigint)) + 1::bigint) + 1::bigint) + 1::bigint) + 1::bigint) + 1::bigint) + 1::bigint), 'double precision'))))"));
+                   is("abs(sqrt(ln(_cast((((((((bar + cast(\"select\" AS bigint)) + 1::bigint) + 1::bigint) + 1::bigint) + 1::bigint) + 1::bigint) + 1::bigint), 'double precision'))))"));
     }
 
     @Test
-    public void testFormatOperatorWithStaticInstance() throws Exception {
+    public void testFormatOperatorWithStaticInstance() {
         Symbol comparisonOperator = sqlExpressions.asSymbol("bar = 1 and foo = '2'");
         String printed = comparisonOperator.toString(Style.QUALIFIED);
         assertThat(
@@ -336,7 +339,7 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testPrintFetchRefs() throws Exception {
+    public void testPrintFetchRefs() {
         Symbol field = sqlExpressions.asSymbol("bar");
         assertThat(field, isReference("bar"));
         Reference ref = (Reference) field;
@@ -345,13 +348,13 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testPrintInputColumn() throws Exception {
+    public void testPrintInputColumn() {
         Symbol inputCol = new InputColumn(42);
         assertPrint(inputCol, "INPUT(42)");
     }
 
     @Test
-    public void testPrintLikeOperator() throws Exception {
+    public void testPrintLikeOperator() {
         Symbol likeQuery = sqlExpressions.asSymbol("foo like '%bla%'");
         assertPrint(likeQuery, "(doc.formatter.foo LIKE '%bla%')");
         assertPrint(likeQuery, "(doc.formatter.foo LIKE '%bla%')");
@@ -359,7 +362,7 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testPrintILikeOperator() throws Exception {
+    public void testPrintILikeOperator() {
         Symbol likeQuery = sqlExpressions.asSymbol("foo ilike '%bla%'");
         assertPrint(likeQuery, "(doc.formatter.foo ILIKE '%bla%')");
         assertPrint(likeQuery, "(doc.formatter.foo ILIKE '%bla%')");
@@ -367,30 +370,32 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testPrintAnyEqOperator() throws Exception {
+    public void testPrintAnyEqOperator() {
         assertPrintingRoundTrip("foo = ANY (['a', 'b', 'c'])", "(doc.formatter.foo = ANY(['a', 'b', 'c']))");
         assertPrintingRoundTrip("foo = ANY(s_arr)", "(doc.formatter.foo = ANY(doc.formatter.s_arr))");
     }
 
     @Test
-    public void testAnyNeqOperator() throws Exception {
-        assertPrintingRoundTrip("not foo != ANY (['a', 'b', 'c'])", "(NOT (doc.formatter.foo <> ANY(['a', 'b', 'c'])))");
+    public void testAnyNeqOperator() {
+        assertPrintingRoundTrip("not foo != ANY (['a', 'b', 'c'])",
+                                "(NOT (doc.formatter.foo <> ANY(['a', 'b', 'c'])))");
         assertPrintingRoundTrip("not foo != ANY(s_arr)", "(NOT (doc.formatter.foo <> ANY(doc.formatter.s_arr)))");
     }
 
     @Test
-    public void testNot() throws Exception {
+    public void testNot() {
         assertPrintingRoundTrip("not foo = 'bar'", "(NOT (doc.formatter.foo = 'bar'))");
     }
 
     @Test
-    public void test_negate_is_pretty_printed() throws Exception {
+    public void test_negate_is_pretty_printed() {
         assertPrintingRoundTrip("- bar", "- doc.formatter.bar");
     }
 
     @Test
-    public void testAnyLikeOperator() throws Exception {
+    public void testAnyLikeOperator() {
         assertPrintingRoundTrip("foo LIKE ANY (s_arr)", "(doc.formatter.foo LIKE ANY(doc.formatter.s_arr))");
-        assertPrintingRoundTrip("foo NOT LIKE ANY (['a', 'b', 'c'])", "(doc.formatter.foo NOT LIKE ANY(['a', 'b', 'c']))");
+        assertPrintingRoundTrip("foo NOT LIKE ANY (['a', 'b', 'c'])",
+                                "(doc.formatter.foo NOT LIKE ANY(['a', 'b', 'c']))");
     }
 }

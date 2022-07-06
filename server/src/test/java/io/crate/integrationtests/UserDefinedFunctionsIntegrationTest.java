@@ -21,6 +21,29 @@
 
 package io.crate.integrationtests;
 
+import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.testing.Asserts.assertThrowsMatches;
+import static io.crate.testing.SQLErrorMatcher.isSQLError;
+import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.Matchers.containsString;
+
+import java.util.List;
+import java.util.Locale;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
+
+import javax.script.ScriptException;
+
+import org.elasticsearch.test.ESIntegTestCase;
+import org.junit.Before;
+import org.junit.Test;
+
 import io.crate.data.Input;
 import io.crate.expression.scalar.timestamp.CurrentTimeFunction;
 import io.crate.expression.symbol.Literal;
@@ -40,32 +63,11 @@ import io.crate.metadata.pgcatalog.OidHash;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.TypeSignature;
-import org.elasticsearch.test.ESIntegTestCase;
-import org.junit.Before;
-import org.junit.Test;
-
-import javax.script.ScriptException;
-import java.util.List;
-import java.util.Locale;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
-
-import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
-import static io.crate.testing.Asserts.assertThrowsMatches;
-import static io.crate.testing.SQLErrorMatcher.isSQLError;
-import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.nullValue;
-import static org.hamcrest.Matchers.containsString;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0)
 public class UserDefinedFunctionsIntegrationTest extends SQLIntegrationTestCase {
 
-    public static class DummyFunction<InputType> extends Scalar<String, InputType>  {
+    public static class DummyFunction<InputType> extends Scalar<String, InputType> {
 
         private final Signature signature;
         private final UserDefinedFunctionMetadata metadata;

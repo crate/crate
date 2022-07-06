@@ -469,7 +469,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             select users.name as usr from users, t1
             order by usr
             limit 10
-        """);
+            """);
 
         assertThat(plan, isPlan(
             "Eval[name AS usr]\n" +
@@ -594,7 +594,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             CROSS JOIN UNNEST([1]) sensors(sensor_id)
             LEFT JOIN sensor_readings readings
                 ON time_series.time = readings.time AND sensors.sensor_id = readings.sensor_id
-        """;
+            """;
         LogicalPlan logicalPlan = executor.logicalPlan(statement);
         assertThat(logicalPlan, is(isPlan(
             "Eval[time, sensor_id, battery_level]\n" +

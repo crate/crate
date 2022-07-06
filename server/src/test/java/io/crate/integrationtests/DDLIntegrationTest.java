@@ -499,7 +499,10 @@ public class DDLIntegrationTest extends SQLIntegrationTestCase {
         refresh();
 
         assertThrowsMatches(() -> execute("alter table t add column name string primary key"),
-        isSQLError(is("Cannot add a primary key column to a table that isn't empty"), INTERNAL_ERROR, BAD_REQUEST, 4004));
+                            isSQLError(is("Cannot add a primary key column to a table that isn't empty"),
+                                       INTERNAL_ERROR,
+                                       BAD_REQUEST,
+                                       4004));
     }
 
     @Test
@@ -550,12 +553,11 @@ public class DDLIntegrationTest extends SQLIntegrationTestCase {
         execute("create table t (id int) clustered into 1 shards with (number_of_replicas=0)");
         ensureYellow();
 
-        assertThrowsMatches(() ->  execute("alter table t add \"o['x.y']\" int"),
-                     isSQLError(is("\"o['x.y']\" contains a dot"),
-                                INTERNAL_ERROR,
-                                BAD_REQUEST,
-                                4008));
-
+        assertThrowsMatches(() -> execute("alter table t add \"o['x.y']\" int"),
+                             isSQLError(is("\"o['x.y']\" contains a dot"),
+                                        INTERNAL_ERROR,
+                                        BAD_REQUEST,
+                                        4008));
     }
 
     @Test
@@ -913,25 +915,27 @@ public class DDLIntegrationTest extends SQLIntegrationTestCase {
 
     @Test
     public void test_alter_table_add_column_keeps_existing_meta_information() throws Exception {
-        execute("""
-            CREATE TABLE tbl (
-                author TEXT NOT NULL,
-                INDEX author_ft USING FULLTEXT (author) WITH (analyzer = 'standard')
-            )
-        """);
+        execute(
+            """
+                     CREATE TABLE tbl (
+                        author TEXT NOT NULL,
+                        INDEX author_ft USING FULLTEXT (author) WITH (analyzer = 'standard')
+                    )
+                """);
 
         execute("ALTER TABLE tbl ADD COLUMN dummy text NOT NULL");
 
         execute("show create table tbl");
-        assertThat((String) response.rows()[0][0], startsWith("""
-            CREATE TABLE IF NOT EXISTS "doc"."tbl" (
-               "author" TEXT NOT NULL,
-               "dummy" TEXT NOT NULL,
-               INDEX "author_ft" USING FULLTEXT ("author") WITH (
-                  analyzer = 'standard'
-               )
-            )
-            """.stripIndent()
+        assertThat((String) response.rows()[0][0], startsWith(
+            """
+                CREATE TABLE IF NOT EXISTS "doc"."tbl" (
+                   "author" TEXT NOT NULL,
+                   "dummy" TEXT NOT NULL,
+                   INDEX "author_ft" USING FULLTEXT ("author") WITH (
+                      analyzer = 'standard'
+                   )
+                )
+                """.stripIndent()
         ));
     }
 }

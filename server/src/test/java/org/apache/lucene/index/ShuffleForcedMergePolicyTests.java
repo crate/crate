@@ -19,6 +19,12 @@
 
 package org.apache.lucene.index;
 
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.greaterThan;
+
+import java.io.IOException;
+import java.util.function.Consumer;
+
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.NumericDocValuesField;
@@ -27,12 +33,6 @@ import org.apache.lucene.search.Sort;
 import org.apache.lucene.search.SortField;
 import org.apache.lucene.store.Directory;
 import org.junit.Test;
-
-import java.io.IOException;
-import java.util.function.Consumer;
-
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.greaterThan;
 
 public class ShuffleForcedMergePolicyTests extends BaseMergePolicyTestCase {
 
@@ -60,16 +60,20 @@ public class ShuffleForcedMergePolicyTests extends BaseMergePolicyTestCase {
                 }
                 try (DirectoryReader reader = DirectoryReader.open(writer)) {
                     assertThat(reader.leaves().size(), greaterThan(2));
-                    assertSegmentReaders(reader, leaf -> {
-                        assertFalse(ShuffleForcedMergePolicy.isInterleavedSegment(leaf));
-                    });
+                    assertSegmentReaders(
+                            reader,
+                            leaf -> {
+                                assertFalse(ShuffleForcedMergePolicy.isInterleavedSegment(leaf));
+                            });
                 }
                 writer.forceMerge(1);
                 try (DirectoryReader reader = DirectoryReader.open(writer)) {
                     assertThat(reader.leaves().size(), equalTo(1));
-                    assertSegmentReaders(reader, leaf -> {
-                        assertTrue(ShuffleForcedMergePolicy.isInterleavedSegment(leaf));
-                    });
+                    assertSegmentReaders(
+                            reader,
+                            leaf -> {
+                                assertTrue(ShuffleForcedMergePolicy.isInterleavedSegment(leaf));
+                            });
                 }
             }
         }
@@ -90,5 +94,6 @@ public class ShuffleForcedMergePolicyTests extends BaseMergePolicyTestCase {
     protected void assertSegmentInfos(MergePolicy policy, SegmentInfos infos) throws IOException {}
 
     @Override
-    protected void assertMerge(MergePolicy policy, MergePolicy.MergeSpecification merge) throws IOException {}
+    protected void assertMerge(MergePolicy policy, MergePolicy.MergeSpecification merge)
+            throws IOException {}
 }
