@@ -222,6 +222,9 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Fixed an issue in the serialization logic of the ``bit`` type. This could
+  cause issues with PostgreSQL clients using the text serialization mode.
+
 - Fixed an issue that caused ``col IS NULL`` to match empty arrays.
 
 - Fixed an issue that caused ``col IS NULL`` expressions to match rows where

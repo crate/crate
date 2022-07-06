@@ -211,7 +211,7 @@ public class StringType extends DataType<String> implements Streamer<String> {
         } else if (value instanceof Regclass) {
             return ((Regclass) value).name();
         } else if (value instanceof BitString bitString) {
-            return bitString.asBitString();
+            return bitString.asPrefixedBitString();
         } else {
             return value.toString();
         }
