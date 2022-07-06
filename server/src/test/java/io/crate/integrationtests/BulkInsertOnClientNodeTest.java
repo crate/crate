@@ -84,7 +84,7 @@ public class BulkInsertOnClientNodeTest extends SQLIntegrationTestCase {
             execute("insert into test (id, value) values (?, ?)",
                 new Object[][]{
                     new Object[]{1, 1},                                 // use id 1 to ensure shard 0
-                    new Object[] {3, Map.of("foo", 127)}
+                    new Object[] {3, Map.of("foo", 127)}         // use id 3 to ensure shard 1
                 })).boxed().collect(Collectors.toList());
         assertThat(rowCounts.size(), is(2));
         assertThat(rowCounts, Matchers.anyOf(

@@ -80,7 +80,7 @@ public class BitStringTest {
     public void test_can_render_bitstring_as_string() {
         String text = "00000110";
         BitString bit = BitString.ofRawBits(text);
-        assertThat(bit.asBitString(), is("B'00000110'"));
+        assertThat(bit.asPrefixedBitString(), is("B'00000110'"));
     }
 
     @Test
@@ -94,6 +94,6 @@ public class BitStringTest {
     @Property
     public void test_bitstring_compare_behaves_like_asBitString_compareTo(@From(BitStringGen.class) BitString a,
                                                                           @From(BitStringGen.class) BitString b) {
-        assertThat(a.compareTo(b), is(Integer.signum(a.asBitString().compareTo(b.asBitString()))));
+        assertThat(a.compareTo(b), is(Integer.signum(a.asPrefixedBitString().compareTo(b.asPrefixedBitString()))));
     }
 }

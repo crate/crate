@@ -103,14 +103,14 @@ public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServic
     private static void performInputSanityChecks(Object[]... inputs) {
         List<Integer> inputSizes = Arrays.stream(inputs)
             .map(Array::getLength)
-            .distinct()
-            .collect(Collectors.toList());
+            .distinct().toList();
 
         if (inputSizes.size() != 1) {
             throw new IllegalArgumentException("Inputs need to be of equal size");
         }
     }
 
+    @SuppressWarnings({"rawtypes", "unchecked"})
     protected <T> void assertEvaluate(String functionExpression,
                                       Matcher<T> expectedValue,
                                       List<ColumnIdent> rowsColumnDescription,

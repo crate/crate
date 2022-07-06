@@ -156,7 +156,7 @@ public class ServerXContentExtension implements XContentBuilderExtension {
         });
         writers.put(BitString.class, (b, v) -> {
             BitString bitString = (BitString) v;
-            b.value(bitString.asBitString());
+            b.value(bitString.asPrefixedBitString());
         });
         return writers;
     }
