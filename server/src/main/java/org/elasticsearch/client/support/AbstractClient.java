@@ -40,8 +40,6 @@ import org.elasticsearch.action.admin.cluster.state.ClusterStateAction;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequestBuilder;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
-import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksAction;
-import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksRequestBuilder;
 import org.elasticsearch.action.admin.indices.create.CreateIndexAction;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequestBuilder;
@@ -188,11 +186,6 @@ public abstract class AbstractClient implements Client {
         @Override
         public ClusterUpdateSettingsRequestBuilder prepareUpdateSettings() {
             return new ClusterUpdateSettingsRequestBuilder(this, ClusterUpdateSettingsAction.INSTANCE);
-        }
-
-        @Override
-        public PendingClusterTasksRequestBuilder preparePendingClusterTasks() {
-            return new PendingClusterTasksRequestBuilder(this, PendingClusterTasksAction.INSTANCE);
         }
 
         @Override

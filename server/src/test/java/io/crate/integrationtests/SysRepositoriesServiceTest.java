@@ -25,7 +25,6 @@ import io.crate.testing.UseJdbc;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.StringType;
-import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Before;
@@ -34,11 +33,8 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 
-import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.Matchers.is;
 
 @ESIntegTestCase.ClusterScope()
