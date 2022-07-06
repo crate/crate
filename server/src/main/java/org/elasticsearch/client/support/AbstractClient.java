@@ -26,7 +26,6 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthAction;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
-import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequestBuilder;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.cluster.node.stats.NodesStatsAction;
 import org.elasticsearch.action.admin.cluster.node.stats.NodesStatsRequest;
@@ -176,13 +175,8 @@ public abstract class AbstractClient implements Client {
         }
 
         @Override
-        public ActionFuture<ClusterHealthResponse> health(final ClusterHealthRequest request) {
-            return legacyExecute(ClusterHealthAction.INSTANCE, request);
-        }
-
-        @Override
-        public ClusterHealthRequestBuilder prepareHealth(String... indices) {
-            return new ClusterHealthRequestBuilder(this, ClusterHealthAction.INSTANCE).setIndices(indices);
+        public CompletableFuture<ClusterHealthResponse> health(final ClusterHealthRequest request) {
+            return execute(ClusterHealthAction.INSTANCE, request);
         }
 
         @Override

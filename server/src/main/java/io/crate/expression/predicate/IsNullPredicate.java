@@ -96,20 +96,18 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
     public Symbol normalizeSymbol(Function symbol, TransactionContext txnCtx, NodeContext nodeCtx) {
         assert symbol != null : "function must not be null";
         assert symbol.arguments().size() == 1 : "function's number of arguments must be 1";
-
         Symbol arg = symbol.arguments().get(0);
-        if (arg.equals(Literal.NULL)) {
-            return Literal.of(true);
-        } else if (arg.symbolType().isValueSymbol()) {
-            return Literal.of(((Input<?>) arg).value() == null);
+        if (arg instanceof Input<?> input) {
+            return Literal.of(input.value() == null);
         }
         return symbol;
     }
 
     @Override
-    public Boolean evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input[] args) {
+    @SafeVarargs
+    public final Boolean evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<T> ... args) {
         assert args.length == 1 : "number of args must be 1";
-        return args[0] == null || args[0].value() == null;
+        return args[0].value() == null;
     }
 
     @Override

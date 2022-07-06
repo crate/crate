@@ -101,6 +101,7 @@ import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
+import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.env.TestEnvironment;
@@ -604,18 +605,18 @@ public abstract class ESIntegTestCase extends ESTestCase {
      * Waits until all nodes have no pending tasks.
      */
     public void waitNoPendingTasksOnAll() throws Exception {
-        assertNoTimeout(client().admin().cluster().prepareHealth().setWaitForEvents(Priority.LANGUID).get());
+        assertNoTimeout(client().admin().cluster().health(new ClusterHealthRequest().waitForEvents(Priority.LANGUID)).get());
         assertBusy(() -> {
             for (Client client : clients()) {
-                ClusterHealthResponse clusterHealth = client.admin().cluster().prepareHealth().setLocal(true).get();
+                ClusterHealthResponse clusterHealth = client.admin().cluster().health(new ClusterHealthRequest().local(true)).get();
                 assertThat("client " + client + " still has in flight fetch", clusterHealth.getNumberOfInFlightFetch(), equalTo(0));
                 PendingClusterTasksResponse pendingTasks = client.admin().cluster().preparePendingClusterTasks().setLocal(true).get();
                 assertThat("client " + client + " still has pending tasks " + pendingTasks, pendingTasks, Matchers.emptyIterable());
-                clusterHealth = client.admin().cluster().prepareHealth().setLocal(true).get();
+                clusterHealth = client.admin().cluster().health(new ClusterHealthRequest().local(true)).get();
                 assertThat("client " + client + " still has in flight fetch", clusterHealth.getNumberOfInFlightFetch(), equalTo(0));
             }
         });
-        assertNoTimeout(client().admin().cluster().prepareHealth().setWaitForEvents(Priority.LANGUID).get());
+        assertNoTimeout(client().admin().cluster().health(new ClusterHealthRequest().waitForEvents(Priority.LANGUID)).get());
     }
 
     /**
@@ -698,7 +699,7 @@ public abstract class ESIntegTestCase extends ESTestCase {
             // been removed by the master so that the health check applies to the set of nodes we expect to be part of the cluster.
             .waitForNodes(Integer.toString(cluster().size()));
 
-        ClusterHealthResponse actionGet = client().admin().cluster().health(healthRequest).actionGet();
+        ClusterHealthResponse actionGet = FutureUtils.get(client().admin().cluster().health(healthRequest));
         if (actionGet.isTimedOut()) {
             logger.info("{} timed out, cluster state:\n{}\n{}",
                 method,
@@ -758,8 +759,7 @@ public abstract class ESIntegTestCase extends ESTestCase {
         if (status != null) {
             request.waitForStatus(status);
         }
-        ClusterHealthResponse actionGet = client().admin().cluster()
-            .health(request).actionGet();
+        ClusterHealthResponse actionGet = FutureUtils.get(client().admin().cluster() .health(request));
         if (actionGet.isTimedOut()) {
             logger.info("waitForRelocation timed out (status={}), cluster state:\n{}\n{}", status,
                 client().admin().cluster().prepareState().get().getState(), client().admin().cluster().preparePendingClusterTasks().get());
@@ -829,7 +829,9 @@ public abstract class ESIntegTestCase extends ESTestCase {
     protected void ensureClusterSizeConsistency() {
         if (cluster() != null && cluster().size() > 0) { // if static init fails the cluster can be null
             logger.trace("Check consistency for [{}] nodes", cluster().size());
-            assertNoTimeout(client().admin().cluster().prepareHealth().setWaitForNodes(Integer.toString(cluster().size())).get());
+            assertNoTimeout(FutureUtils.get(
+                client().admin().cluster().health(new ClusterHealthRequest().waitForNodes(Integer.toString(cluster().size())))
+            ));
         }
     }
 
@@ -915,13 +917,14 @@ public abstract class ESIntegTestCase extends ESTestCase {
         if (logger != null) {
             logger.debug("ensuring cluster is stable with [{}] nodes. access node: [{}]. timeout: [{}]", nodeCount, viaNode, timeValue);
         }
-        ClusterHealthResponse clusterHealthResponse = cluster.client(viaNode).admin().cluster().prepareHealth()
-            .setWaitForEvents(Priority.LANGUID)
-            .setWaitForNodes(Integer.toString(nodeCount))
-            .setTimeout(timeValue)
-            .setLocal(local)
-            .setWaitForNoRelocatingShards(true)
-            .get();
+        ClusterHealthResponse clusterHealthResponse = FutureUtils.get(cluster.client(viaNode).admin().cluster().health(
+            new ClusterHealthRequest()
+                .waitForEvents(Priority.LANGUID)
+                .waitForNodes(Integer.toString(nodeCount))
+                .timeout(timeValue)
+                .local(local)
+                .waitForNoRelocatingShards(true)
+            ));
         if (clusterHealthResponse.isTimedOut()) {
             ClusterStateResponse stateResponse = cluster.client(viaNode).admin().cluster().prepareState().get();
             fail("failed to reach a stable cluster of [" + nodeCount + "] nodes. Tried via [" + viaNode + "]. last cluster state:\n"

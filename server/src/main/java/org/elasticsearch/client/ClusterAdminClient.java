@@ -19,10 +19,11 @@
 
 package org.elasticsearch.client;
 
+import java.util.concurrent.CompletableFuture;
+
 import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
-import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequestBuilder;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.cluster.node.stats.NodesStatsRequest;
 import org.elasticsearch.action.admin.cluster.node.stats.NodesStatsResponse;
@@ -49,12 +50,7 @@ public interface ClusterAdminClient extends ElasticsearchClient {
      * @param request The cluster state request
      * @return The result future
      */
-    ActionFuture<ClusterHealthResponse> health(ClusterHealthRequest request);
-
-    /**
-     * The health of the cluster.
-     */
-    ClusterHealthRequestBuilder prepareHealth(String... indices);
+    CompletableFuture<ClusterHealthResponse> health(ClusterHealthRequest request);
 
     /**
      * The state of the cluster.

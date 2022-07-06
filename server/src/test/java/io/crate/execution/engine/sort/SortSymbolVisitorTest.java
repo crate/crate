@@ -31,7 +31,6 @@ import org.junit.Test;
 
 import io.crate.expression.reference.doc.lucene.NullSentinelValues;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
 import io.crate.types.CharacterType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;

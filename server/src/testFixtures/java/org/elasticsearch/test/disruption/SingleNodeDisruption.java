@@ -18,13 +18,15 @@
  */
 package org.elasticsearch.test.disruption;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.test.InternalTestCluster;
+import static org.junit.Assert.assertFalse;
 
 import java.util.Random;
 
-import static org.junit.Assert.assertFalse;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
+import org.elasticsearch.common.util.concurrent.FutureUtils;
+import org.elasticsearch.test.InternalTestCluster;
 
 public abstract class SingleNodeDisruption implements ServiceDisruptionScheme {
 
@@ -83,9 +85,11 @@ public abstract class SingleNodeDisruption implements ServiceDisruptionScheme {
     }
 
     protected void ensureNodeCount(InternalTestCluster cluster) {
-        assertFalse("cluster failed to form after disruption was healed", cluster.client().admin().cluster().prepareHealth()
-                .setWaitForNodes(String.valueOf(cluster.size()))
-                .setWaitForNoRelocatingShards(true)
-                .get().isTimedOut());
+        boolean timedOut = FutureUtils.get(cluster.client().admin().cluster().health(
+            new ClusterHealthRequest()
+                .waitForNodes(String.valueOf(cluster.size()))
+                .waitForNoRelocatingShards(true)
+            )).isTimedOut();
+        assertFalse("cluster failed to form after disruption was healed", timedOut);
     }
 }

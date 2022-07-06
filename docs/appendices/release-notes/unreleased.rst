@@ -263,3 +263,6 @@ Fixes
 - Fixed casts of ``TEXT`` to ``REGCLASS`` data types which were resulting in
   wrong ``REGCLASS`` values as the  ``current_schema`` was not taken into
   account.
+
+- Fixed an issue which caused ``PRIMARY KEY`` columns to be shown
+  as nullable in the ``pg_catalog.pg_attribute`` table.

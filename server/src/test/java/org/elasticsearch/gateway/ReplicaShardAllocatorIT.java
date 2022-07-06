@@ -33,6 +33,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.indices.flush.SyncedFlushAction;
 import org.elasticsearch.action.admin.indices.flush.SyncedFlushRequest;
 import org.elasticsearch.action.admin.indices.flush.SyncedFlushResponse;
@@ -41,6 +42,7 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.index.seqno.ReplicationTracker;
 import org.elasticsearch.indices.recovery.PeerRecoveryTargetService;
 import org.elasticsearch.plugins.Plugin;
@@ -211,12 +213,15 @@ public class ReplicaShardAllocatorIT extends SQLIntegrationTestCase {
             """);
             internalCluster().startDataOnlyNode(nodeWithReplicaSettings);
             // need to wait for events to ensure the reroute has happened since we perform it async when a new node joins.
-            client().admin().cluster()
-                .prepareHealth(indexName)
-                .setWaitForYellowStatus()
-                .setWaitForEvents(Priority.LANGUID)
-                .execute()
-                .get(5, TimeUnit.SECONDS);
+            FutureUtils.get(
+                client().admin().cluster().health(
+                    new ClusterHealthRequest(indexName)
+                        .waitForYellowStatus()
+                        .waitForEvents(Priority.LANGUID)
+                ),
+                5,
+                TimeUnit.SECONDS
+            );
             blockRecovery.countDown();
             ensureGreen(indexName);
             assertThat(internalCluster().nodesInclude(indexName), hasItem(newNode));
