@@ -123,7 +123,6 @@ checkstyle {
         'checkstyleDir' : checkstyle_dir,
     ]
     configDirectory = file(checkstyle_dir)
-    checkstyleTest.enabled = false
 }
 
 tasks.withType(Test) {
@@ -149,7 +148,7 @@ tasks.withType(Test) {
     }
 
     jacoco {
-        enabled = true;
+        enabled = true
     }
 
     // ES testing framework adds the resources target build paths to the classpath of the tests,
