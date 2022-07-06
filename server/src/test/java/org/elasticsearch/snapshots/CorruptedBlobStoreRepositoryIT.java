@@ -55,6 +55,7 @@ import org.junit.Test;
 import io.crate.protocols.postgres.PGErrorStatus;
 import io.crate.testing.Asserts;
 import io.crate.testing.SQLErrorMatcher;
+import io.crate.testing.TestingHelpers;
 import io.netty.handler.codec.http.HttpResponseStatus;
 
 public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCase {
@@ -110,8 +111,8 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
         execute("drop snapshot test.snapshot1");
 
         logger.info("--> make sure snapshot doesn't exist");
-        expectThrows(SnapshotMissingException.class, () -> client.admin().cluster().prepareGetSnapshots(repoName)
-            .addSnapshots(snapshot).get().getSnapshots());
+        execute("select * from sys.snapshots where repository = 'test' and name = 'snapshot1'");
+        assertThat(response.rowCount(), is(0L));
     }
 
     @Test
@@ -186,8 +187,8 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
         assertThat(getRepositoryData(repositoryAfterRestart).getGenId(), is(beforeMoveGen + 2));
 
         logger.info("--> make sure snapshot doesn't exist");
-        expectThrows(SnapshotMissingException.class, () -> client().admin().cluster().prepareGetSnapshots(repoName)
-            .addSnapshots(snapshot).get().getSnapshots());
+        execute("select * from sys.snapshots where repository = 'test' and name = 'snapshot1'");
+        assertThat(response.rowCount(), is(0L));
     }
 
     @Test
@@ -265,7 +266,7 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
                 new Object[]{repo.toAbsolutePath().toString(), randomIntBetween(100, 1000) + ByteSizeUnit.BYTES.getSuffix()});
 
         final String snapshotPrefix = "test-snap-";
-        final int snapshots = randomIntBetween(2, 2);
+        final int snapshots = 2;
         logger.info("--> creating [{}] snapshots", snapshots);
         for (int i = 0; i < snapshots; ++i) {
             var createSnapshot = new CreateSnapshotRequest("repo1", snapshotPrefix + i).waitForCompletion(true);
@@ -281,9 +282,12 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
         logger.info("--> delete root level snapshot metadata blob for snapshot [{}]", snapshotToCorrupt);
         Files.delete(repo.resolve(String.format(Locale.ROOT, BlobStoreRepository.SNAPSHOT_NAME_FORMAT, snapshotToCorrupt.getUUID())));
 
-        logger.info("--> ensure snapshot list can be retrieved without any error if ignoreUnavailable is set");
-        var resp = client().admin().cluster().prepareGetSnapshots("repo1").setIgnoreUnavailable(true).get();
-        assertThat(resp.getSnapshots().size(), is(snapshots - 1));
+        logger.info("--> ensure snapshots can be retrieved without any error");
+        execute("select state from sys.snapshots where repository = 'repo1' order by 1");
+        assertThat(TestingHelpers.printedTable(response.rows()), is(
+            "FAILED\n" +
+            "SUCCESS\n"
+        ));
 
         execute("drop snapshot repo1.\"" + snapshotToCorrupt.getName() + "\"");
     }

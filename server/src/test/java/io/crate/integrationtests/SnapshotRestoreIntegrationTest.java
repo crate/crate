@@ -59,7 +59,6 @@ import org.elasticsearch.repositories.Repository;
 import org.elasticsearch.repositories.RepositoryData;
 import org.elasticsearch.snapshots.Snapshot;
 import org.elasticsearch.snapshots.SnapshotId;
-import org.elasticsearch.snapshots.SnapshotInfo;
 import org.elasticsearch.snapshots.SnapshotState;
 import org.elasticsearch.test.MockKeywordPlugin;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -230,24 +229,25 @@ public class SnapshotRestoreIntegrationTest extends SQLIntegrationTestCase {
         waitForCompletion(REPOSITORY_NAME, "snapshot_no_wait", TimeValue.timeValueSeconds(20));
     }
 
-    private SnapshotInfo waitForCompletion(String repository, String snapshotName, TimeValue timeout) throws InterruptedException {
+    private void waitForCompletion(String repository, String snapshotName, TimeValue timeout) throws InterruptedException {
         long start = System.currentTimeMillis();
         Snapshot snapshot = new Snapshot(repository, new SnapshotId(repository, snapshotName));
         while (System.currentTimeMillis() - start < timeout.millis()) {
-            List<SnapshotInfo> snapshotInfos = client().admin().cluster().prepareGetSnapshots(repository).setSnapshots(snapshotName).get().getSnapshots();
-            assertThat(snapshotInfos.size(), equalTo(1));
-            if (snapshotInfos.get(0).state().completed()) {
+            var response = execute(
+                "select state from sys.snapshots where repository = ? and name = ?",
+                new Object[] { repository, snapshotName }
+            );
+            if (response.rowCount() > 0 && response.rows()[0][0] == "SUCCESS") {
                 // Make sure that snapshot clean up operations are finished
                 ClusterStateResponse stateResponse = client().admin().cluster().prepareState().get();
                 SnapshotsInProgress snapshotsInProgress = stateResponse.getState().custom(SnapshotsInProgress.TYPE);
                 if (snapshotsInProgress == null || snapshotsInProgress.snapshot(snapshot) == null) {
-                    return snapshotInfos.get(0);
+                    return;
                 }
             }
             Thread.sleep(100);
         }
         fail("Timeout waiting for snapshot completion!");
-        return null;
     }
 
     @Test

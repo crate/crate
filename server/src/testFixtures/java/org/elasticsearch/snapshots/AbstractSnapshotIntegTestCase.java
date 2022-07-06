@@ -149,38 +149,6 @@ public abstract class AbstractSnapshotIntegTestCase extends SQLIntegrationTestCa
         fail("Timeout waiting for node [" + node + "] to be blocked");
     }
 
-    public SnapshotInfo waitForCompletion(String repository, String snapshotName, TimeValue timeout) throws InterruptedException {
-        long start = System.currentTimeMillis();
-        while (System.currentTimeMillis() - start < timeout.millis()) {
-            List<SnapshotInfo> snapshotInfos = client().admin().cluster().prepareGetSnapshots(repository).setSnapshots(snapshotName)
-                .get().getSnapshots();
-            assertThat(snapshotInfos.size(), equalTo(1));
-            if (snapshotInfos.get(0).state().completed()) {
-                // Make sure that snapshot clean up operations are finished
-                ClusterStateResponse stateResponse = client().admin().cluster().prepareState().get();
-                SnapshotsInProgress snapshotsInProgress = stateResponse.getState().custom(SnapshotsInProgress.TYPE);
-                if (snapshotsInProgress == null) {
-                    return snapshotInfos.get(0);
-                } else {
-                    boolean found = false;
-                    for (SnapshotsInProgress.Entry entry : snapshotsInProgress.entries()) {
-                        final Snapshot curr = entry.snapshot();
-                        if (curr.getRepository().equals(repository) && curr.getSnapshotId().getName().equals(snapshotName)) {
-                            found = true;
-                            break;
-                        }
-                    }
-                    if (found == false) {
-                        return snapshotInfos.get(0);
-                    }
-                }
-            }
-            Thread.sleep(100);
-        }
-        fail("Timeout!!!");
-        return null;
-    }
-
     public static String blockMasterFromFinalizingSnapshotOnIndexFile(final String repositoryName) {
         final String masterName = internalCluster().getMasterName();
         ((MockRepository)internalCluster().getInstance(RepositoriesService.class, masterName)

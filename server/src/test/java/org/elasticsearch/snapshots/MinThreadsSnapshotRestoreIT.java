@@ -20,6 +20,7 @@
 package org.elasticsearch.snapshots;
 
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertAcked;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.containsString;
 
 import java.util.ArrayList;
@@ -114,6 +115,7 @@ public class MinThreadsSnapshotRestoreIT extends AbstractSnapshotIntegTestCase {
 
         logger.info("--> try delete first snapshot again, which should now work");
         execute("drop snapshot repo.snapshot1");
-        assertTrue(client().admin().cluster().prepareGetSnapshots("repo").setSnapshots("_all").get().getSnapshots().isEmpty());
+        execute("select * from sys.snapshots");
+        assertThat(response.rowCount(), is(0L));
     }
 }
