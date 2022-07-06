@@ -33,7 +33,6 @@ import org.elasticsearch.action.admin.cluster.snapshots.get.GetSnapshotsRequestB
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequestBuilder;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
-import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksRequestBuilder;
 
 /**
  * Administrative actions/operations against indices.
@@ -77,12 +76,6 @@ public interface ClusterAdminClient extends ElasticsearchClient {
      * Get snapshot.
      */
     GetSnapshotsRequestBuilder prepareGetSnapshots(String repository);
-
-    /**
-     * Returns a list of the pending cluster tasks, that are scheduled to be executed. This includes operations
-     * that update the cluster state (for example, a create index operation)
-     */
-    PendingClusterTasksRequestBuilder preparePendingClusterTasks();
 
     /**
      * Nodes stats of the cluster.

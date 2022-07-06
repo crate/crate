@@ -71,7 +71,8 @@ import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
-import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksResponse;
+import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksAction;
+import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequestBuilder;
 import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
 import org.elasticsearch.action.admin.indices.refresh.RefreshResponse;
@@ -610,7 +611,8 @@ public abstract class ESIntegTestCase extends ESTestCase {
             for (Client client : clients()) {
                 ClusterHealthResponse clusterHealth = client.admin().cluster().health(new ClusterHealthRequest().local(true)).get();
                 assertThat("client " + client + " still has in flight fetch", clusterHealth.getNumberOfInFlightFetch(), equalTo(0));
-                PendingClusterTasksResponse pendingTasks = client.admin().cluster().preparePendingClusterTasks().setLocal(true).get();
+                var pendingTasks = FutureUtils.get(
+                    client.admin().cluster().execute(PendingClusterTasksAction.INSTANCE, new PendingClusterTasksRequest().local(true)));
                 assertThat("client " + client + " still has pending tasks " + pendingTasks, pendingTasks, Matchers.emptyIterable());
                 clusterHealth = client.admin().cluster().health(new ClusterHealthRequest().local(true)).get();
                 assertThat("client " + client + " still has in flight fetch", clusterHealth.getNumberOfInFlightFetch(), equalTo(0));
@@ -701,10 +703,11 @@ public abstract class ESIntegTestCase extends ESTestCase {
 
         ClusterHealthResponse actionGet = FutureUtils.get(client().admin().cluster().health(healthRequest));
         if (actionGet.isTimedOut()) {
+            var pendingClusterTasks = FutureUtils.get(client().admin().cluster().execute(PendingClusterTasksAction.INSTANCE, new PendingClusterTasksRequest()));
             logger.info("{} timed out, cluster state:\n{}\n{}",
                 method,
                 client().admin().cluster().prepareState().get().getState(),
-                client().admin().cluster().preparePendingClusterTasks().get());
+                pendingClusterTasks);
             fail("timed out waiting for " + color + " state");
         }
         assertThat("Expected at least " + clusterHealthStatus + " but got " + actionGet.getStatus(),
@@ -759,10 +762,16 @@ public abstract class ESIntegTestCase extends ESTestCase {
         if (status != null) {
             request.waitForStatus(status);
         }
-        ClusterHealthResponse actionGet = FutureUtils.get(client().admin().cluster() .health(request));
+        ClusterHealthResponse actionGet = FutureUtils.get(client().admin().cluster().health(request));
         if (actionGet.isTimedOut()) {
-            logger.info("waitForRelocation timed out (status={}), cluster state:\n{}\n{}", status,
-                client().admin().cluster().prepareState().get().getState(), client().admin().cluster().preparePendingClusterTasks().get());
+            var clusterStateResponse = client().admin().cluster().prepareState().get();
+            var pendingClusterTasks = FutureUtils.get(
+                client().admin().cluster().execute(PendingClusterTasksAction.INSTANCE, new PendingClusterTasksRequest()));
+            logger.info(
+                "waitForRelocation timed out (status={}), cluster state:\n{}\n{}",
+                status,
+                clusterStateResponse.getState(),
+                pendingClusterTasks);
             assertThat("timed out waiting for relocation", actionGet.isTimedOut(), equalTo(false));
         }
         if (status != null) {
@@ -816,14 +825,6 @@ public abstract class ESIntegTestCase extends ESTestCase {
             maxWaitTimeMs,
             TimeUnit.MILLISECONDS
         );
-    }
-
-    /**
-     * Prints the current cluster state as debug logging.
-     */
-    public void logClusterState() {
-        logger.debug("cluster state:\n{}\n{}",
-            client().admin().cluster().prepareState().get().getState(), client().admin().cluster().preparePendingClusterTasks().get());
     }
 
     protected void ensureClusterSizeConsistency() {
