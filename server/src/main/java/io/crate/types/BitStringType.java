@@ -22,6 +22,7 @@
 package io.crate.types;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.BitSet;
 import java.util.List;
 import java.util.Locale;
@@ -130,6 +131,9 @@ public final class BitStringType extends DataType<BitString> implements Streamer
 
     @Override
     public BitString sanitizeValue(Object value) {
+        if (value instanceof String str) {
+            return new BitString(BitSet.valueOf(str.getBytes(StandardCharsets.UTF_8)), length);
+        }
         return (BitString) value;
     }
 
