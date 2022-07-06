@@ -21,6 +21,14 @@
 
 package io.crate.execution.engine.collect;
 
+import static io.crate.testing.TestingHelpers.createNodeContext;
+import static org.hamcrest.core.Is.is;
+
+import java.util.List;
+
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
+
 import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.expression.symbol.InputColumn;
@@ -29,17 +37,10 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
-import org.elasticsearch.test.ESTestCase;
-import org.junit.Test;
-
-import java.util.List;
-
-import static io.crate.testing.TestingHelpers.createNodeContext;
-import static org.hamcrest.core.Is.is;
 
 public class RowShardResolverTest extends ESTestCase {
 
-    private final static ColumnIdent ID_IDENT = new ColumnIdent("_id");
+    private static final ColumnIdent ID_IDENT = new ColumnIdent("_id");
 
     private Row row(Object... cells) {
         if (cells == null) {

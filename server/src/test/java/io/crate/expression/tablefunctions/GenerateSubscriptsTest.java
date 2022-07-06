@@ -50,6 +50,7 @@ public class GenerateSubscriptsTest extends AbstractTableFunctionsTest {
         assertExecute("generate_subscripts([null, null, null], 1)", "1\n2\n3\n");
         assertExecute("generate_subscripts([[null], [null], [null]], 2)", "1\n");
     }
+
     @Test
     public void test_greater_dimension_than_the_array_has_returns_empty_table() {
         assertExecute("generate_subscripts([1], 2)", "");
@@ -78,7 +79,7 @@ public class GenerateSubscriptsTest extends AbstractTableFunctionsTest {
         assertExecute("generate_subscripts([ [[1], null], [[3], [null]], [null, null]], 3)", "1\n");
     }
 
-    public void test_reversed(){
+    public void test_reversed() {
         assertExecute("generate_subscripts([1, 2, 3, 200, null, -1], 1, true)", "6\n5\n4\n3\n2\n1\n");
     }
 }

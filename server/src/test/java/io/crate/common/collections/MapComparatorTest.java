@@ -41,15 +41,15 @@ public class MapComparatorTest extends ESTestCase {
     @Test
     public void testCompareMapsWithNullValues() {
         Map<String, Integer> map1 = new HashMap<>() {{
-            put("str1", 1);
-            put("str2", null);
-            put("str3", 3);
-        }};
+                put("str1", 1);
+                put("str2", null);
+                put("str3", 3);
+            }};
         Map<String, Integer> map2 = new HashMap<>() {{
-            put("str1", 1);
-            put("str2", 2);
-            put("str3", 3);
-        }};
+                put("str1", 1);
+                put("str2", 2);
+                put("str3", 3);
+            }};
         assertThat(MapComparator.compareMaps(map1, map2), is(1));
         assertThat(MapComparator.compareMaps(map2, map1), is(-1));
 
@@ -60,15 +60,15 @@ public class MapComparatorTest extends ESTestCase {
     @Test
     public void testCompareMapsWithValuesOfTheSameClass() {
         Map<String, Integer> map1 = new HashMap<>() {{
-            put("str1", 1);
-            put("str2", 2);
-            put("str3", 3);
-        }};
+                put("str1", 1);
+                put("str2", 2);
+                put("str3", 3);
+            }};
         Map<String, Integer> map2 = new HashMap<>() {{
-            put("str1", 1);
-            put("str2", 2);
-            put("str3", 3);
-        }};
+                put("str1", 1);
+                put("str2", 2);
+                put("str3", 3);
+            }};
         assertThat(MapComparator.compareMaps(map1, map2), is(0));
         assertThat(MapComparator.compareMaps(map2, map1), is(0));
 
@@ -79,15 +79,15 @@ public class MapComparatorTest extends ESTestCase {
 
     public void testCompareMapsWithValuesOfDifferentClass() {
         Map<String, Number> map1 = new HashMap<>() {{
-            put("str1", 1);
-            put("str2", 2);
-            put("str3", 3);
-        }};
+                put("str1", 1);
+                put("str2", 2);
+                put("str3", 3);
+            }};
         Map<String, Number> map2 = new HashMap<>() {{
-            put("str1", 1);
-            put("str2", 2L);
-            put("str3", 3);
-        }};
+                put("str1", 1);
+                put("str2", 2L);
+                put("str3", 3);
+            }};
         assertThat(MapComparator.compareMaps(map1, map2), is(0));
         assertThat(MapComparator.compareMaps(map2, map1), is(0));
 
@@ -102,13 +102,13 @@ public class MapComparatorTest extends ESTestCase {
          * ... WHERE o = {"x" = 'foo'}
          */
         Map<String, Object> map1 = new HashMap<>() {{
-            put("str1", "a");
-            put("str3", "3");
-        }};
+                put("str1", "a");
+                put("str3", "3");
+            }};
         Map<String, Object> map2 = new HashMap<>() {{
-            put("str1", "a");
-            put("str3", 3);
-        }};
+                put("str1", "a");
+                put("str3", 3);
+            }};
         assertThat(MapComparator.compareMaps(map1, map2), is(0));
         assertThat(MapComparator.compareMaps(map2, map1), is(0));
     }

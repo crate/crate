@@ -21,10 +21,23 @@
 
 package io.crate.http;
 
+import java.io.ByteArrayOutputStream;
+import java.io.UnsupportedEncodingException;
+import java.net.InetSocketAddress;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.fasterxml.jackson.core.JsonEncoding;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
+
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -47,23 +60,12 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.QueryStringDecoder;
 import io.netty.util.ReferenceCountUtil;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
-import java.io.ByteArrayOutputStream;
-import java.io.UnsupportedEncodingException;
-import java.net.InetSocketAddress;
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 
 public class HttpTestServer {
 
     private final int port;
     private final boolean fail;
-    private final static JsonFactory jsonFactory;
+    private static final JsonFactory JSON_FACTORY;
 
     private Channel channel;
     private NioEventLoopGroup group;
@@ -71,10 +73,10 @@ public class HttpTestServer {
     public List<String> responses = new ArrayList<>();
 
     static {
-        jsonFactory = new JsonFactory();
-        jsonFactory.configure(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES, true);
-        jsonFactory.configure(JsonGenerator.Feature.QUOTE_FIELD_NAMES, true);
-        jsonFactory.configure(JsonParser.Feature.ALLOW_COMMENTS, true);
+        JSON_FACTORY = new JsonFactory();
+        JSON_FACTORY.configure(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES, true);
+        JSON_FACTORY.configure(JsonGenerator.Feature.QUOTE_FIELD_NAMES, true);
+        JSON_FACTORY.configure(JsonParser.Feature.ALLOW_COMMENTS, true);
     }
 
 
@@ -145,7 +147,7 @@ public class HttpTestServer {
 
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             try {
-                JsonGenerator generator = jsonFactory.createGenerator(out, JsonEncoding.UTF8);
+                JsonGenerator generator = JSON_FACTORY.createGenerator(out, JsonEncoding.UTF8);
                 generator.writeStartObject();
                 for (Map.Entry<String, List<String>> entry : decoder.parameters().entrySet()) {
                     if (entry.getValue().size() == 1) {

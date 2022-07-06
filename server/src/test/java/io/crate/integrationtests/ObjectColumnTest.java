@@ -53,13 +53,11 @@ public class ObjectColumnTest extends SQLIntegrationTestCase {
 
     @Test
     public void testInsertIntoDynamicObject() throws Exception {
-        Map<String, Object> authorMap = new HashMap<String, Object>() {{
-            put("name", new HashMap<String, Object>() {{
-                put("first_name", "Douglas");
-                put("last_name", "Adams");
-            }});
-            put("age", 49);
-        }};
+        Map<String, Object> authorMap = Map.of(
+            "name", Map.of(
+                    "first_name", "Douglas",
+                    "last_name", "Adams"),
+            "age", 49);
         execute("insert into ot (title, author) values (?, ?)",
             new Object[]{
                 "Life, the Universe and Everything",
@@ -74,14 +72,15 @@ public class ObjectColumnTest extends SQLIntegrationTestCase {
 
     @Test
     public void testAddColumnToDynamicObject() throws Exception {
-        Map<String, Object> authorMap = new HashMap<String, Object>() {{
-            put("name", new HashMap<String, Object>() {{
-                put("first_name", "Douglas");
-                put("last_name", "Adams");
-            }});
-            put("dead", true);
-            put("age", 49);
-        }};
+        Map<String, Object> authorMap = new HashMap<>() {{
+                put("name", new HashMap<String, Object>() {{
+                        put("first_name", "Douglas");
+                        put("last_name", "Adams");
+                    }}
+                );
+                put("dead", true);
+                put("age", 49);
+            }};
         execute("insert into ot (title, author) values (?, ?)",
             new Object[]{
                 "Life, the Universe and Everything",
@@ -169,14 +168,12 @@ public class ObjectColumnTest extends SQLIntegrationTestCase {
                 "where author['name']['first_name']='Douglas' and author['name']['last_name']='Adams'");
         assertEquals(1, response.rowCount());
         assertEquals(
-            new HashMap<String, Object>() {{
-                put("name", new HashMap<String, Object>() {{
-                    put("first_name", "Douglas");
-                    put("last_name", "Adams");
-                }});
-                put("age", 49);
-                put("job", "Writer");
-            }},
+            Map.of(
+                "name", Map.of(
+                    "first_name", "Douglas",
+                    "last_name", "Adams"),
+                "age", 49,
+                "job", "Writer"),
             response.rows()[0][0]
         );
         assertEquals("Writer", response.rows()[0][1]);
@@ -212,14 +209,12 @@ public class ObjectColumnTest extends SQLIntegrationTestCase {
 
     @Test
     public void selectDynamicAddedColumnWhere() throws Exception {
-        Map<String, Object> authorMap = new HashMap<String, Object>() {{
-            put("name", new HashMap<String, Object>() {{
-                put("first_name", "Douglas");
-                put("last_name", "Adams");
-            }});
-            put("dead", true);
-            put("age", 49);
-        }};
+        Map<String, Object> authorMap = Map.of(
+            "name", Map.of(
+                "first_name", "Douglas",
+                "last_name", "Adams"),
+            "dead", true,
+            "age", 49);
         execute("insert into ot (title, author) values (?, ?)",
             new Object[]{
                 "Life, the Universe and Everything",
@@ -234,12 +229,11 @@ public class ObjectColumnTest extends SQLIntegrationTestCase {
 
     @Test
     public void selectIgnoredAddedColumnWhere() throws Exception {
-        Map<String, Object> detailMap = new HashMap<String, Object>() {{
-            put("num_pages", 240);
-            put("publishing_date", "1982-01-01");
-            put("isbn", "978-0345391827");
-            put("weight", 4.8d);
-        }};
+        Map<String, Object> detailMap = Map.of(
+            "num_pages", 240,
+            "publishing_date", "1982-01-01",
+            "isbn", "978-0345391827",
+            "weight", 4.8d);
         execute("insert into ot (title, details) values (?, ?)",
             new Object[]{
                 "Life, the Universe and Everything",
@@ -256,14 +250,12 @@ public class ObjectColumnTest extends SQLIntegrationTestCase {
 
     @Test
     public void selectDynamicAddedColumnOrderBy() throws Exception {
-        Map<String, Object> authorMap = new HashMap<String, Object>() {{
-            put("name", new HashMap<String, Object>() {{
-                put("first_name", "Douglas");
-                put("last_name", "Adams");
-            }});
-            put("dead", true);
-            put("age", 49);
-        }};
+        Map<String, Object> authorMap = Map.of(
+            "name", Map.of(
+                "first_name", "Douglas",
+                "last_name", "Adams"),
+            "dead", true,
+            "age", 49);
         execute("insert into ot (title, author) values (?, ?)",
             new Object[]{
                 "Life, the Universe and Everything",
@@ -273,14 +265,12 @@ public class ObjectColumnTest extends SQLIntegrationTestCase {
         execute("insert into ot (title, author) values (?, ?)",
             new Object[]{
                 "Don't Panic: Douglas Adams and the \"Hitchhiker's Guide to the Galaxy\"",
-                new HashMap<String, Object>() {{
-                    put("name", new HashMap<String, Object>() {{
-                        put("first_name", "Neil");
-                        put("last_name", "Gaiman");
-                    }});
-                    put("dead", false);
-                    put("age", 53);
-                }}
+                Map.of(
+                "name", Map.of(
+                        "first_name", "Neil",
+                        "last_name", "Gaiman"),
+                    "dead", false,
+                    "age", 53)
             }
         );
         refresh();

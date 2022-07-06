@@ -58,6 +58,7 @@ public class Lists2Test {
             is(1)
         );
     }
+
     @Test
     public void testFindFirstNonPeerAllSame() {
         var numbers = List.of(1, 1, 1, 1, 1, 1, 1, 1);

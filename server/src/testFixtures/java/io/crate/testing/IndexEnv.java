@@ -22,8 +22,12 @@
 package io.crate.testing;
 
 
-import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
-import io.crate.metadata.doc.DocTableInfo;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
+
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
@@ -58,11 +62,8 @@ import org.elasticsearch.indices.mapper.MapperRegistry;
 import org.elasticsearch.test.IndexSettingsModule;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicReference;
+import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
+import io.crate.metadata.doc.DocTableInfo;
 
 public final class IndexEnv implements AutoCloseable {
 
@@ -78,7 +79,7 @@ public final class IndexEnv implements AutoCloseable {
                     DocTableInfo table,
                     ClusterState clusterState,
                     Version indexVersion,
-                    Path tempDir) throws IOException  {
+                    Path tempDir) throws IOException {
         String indexName = table.ident().indexNameOrAlias();
         assert clusterState.metadata().hasIndex(indexName) : "ClusterState must contain the index: " + indexName;
 

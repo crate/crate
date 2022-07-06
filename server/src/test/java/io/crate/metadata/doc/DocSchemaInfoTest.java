@@ -195,7 +195,7 @@ public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
     public void test_publish_all_tables_when_tables_have_been_previously_published() throws Exception {
         var state = docTablesByName("t1", "t2", "t3", "t4");
         // publish t3, t4 drop t1, t2
-        var  prevMetaData = publicationsMetadata("pub1", false, List.of("t1", "t2"));
+        var prevMetaData = publicationsMetadata("pub1", false, List.of("t1", "t2"));
         var newMetaData = publicationsMetadata("pub1", true, List.of());
 
         assertThat(getTablesAffectedByPublicationsChange(prevMetaData, newMetaData, state), containsInAnyOrder("t3", "t4"));
@@ -239,7 +239,7 @@ public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
         var result = new HashMap<String, DocTableInfo>();
         for (String table : tables) {
             result.put(table, docTableInfo(table));
-        };
+        }
         return result;
     }
 

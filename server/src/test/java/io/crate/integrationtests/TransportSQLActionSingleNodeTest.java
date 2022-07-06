@@ -22,21 +22,22 @@
 package io.crate.integrationtests;
 
 
-import io.crate.testing.SQLResponse;
-import io.crate.testing.TestingHelpers;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.After;
 import org.junit.Test;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
+import io.crate.testing.SQLResponse;
+import io.crate.testing.TestingHelpers;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 0, supportsDedicatedMasters = false)
 public class TransportSQLActionSingleNodeTest extends SQLIntegrationTestCase {
@@ -149,11 +150,9 @@ public class TransportSQLActionSingleNodeTest extends SQLIntegrationTestCase {
     public void testInsertBulkDifferentTypesResultsInRemoteFailure() throws Exception {
         execute("create table foo (value integer) with (number_of_replicas=0, column_policy = 'dynamic')");
         long[] rowCounts = execute("insert into foo (bar) values (?)",
-            new Object[][]{
-                new Object[]{new HashMap<String, Object>() {{
-                    put("foo", 127);
-                }}},
-                new Object[]{1},
+            new Object[][] {
+                new Object[] {Map.of("foo", 127)},
+                new Object[] {1},
             });
         // One is inserted, the other fails because of a cast error
         assertThat(rowCounts[0] + rowCounts[1], is(-1L));
@@ -226,11 +225,7 @@ public class TransportSQLActionSingleNodeTest extends SQLIntegrationTestCase {
                 "clustered into 1 shards with (number_of_replicas=0)");
         ensureYellow();
         execute("insert into test (id, names) values (?, ?)",
-            new Object[]{1, Arrays.asList(
-                new HashMap<String, String>() {{
-                    put("surname", "Adams");
-                }}
-            )});
+                new Object[] {1, Arrays.asList(Map.of("surname", "Adams"))});
         refresh();
         execute("select names[1]['surname'] from test");
         assertThat(response.rowCount(), is(1L));
@@ -294,6 +289,7 @@ public class TransportSQLActionSingleNodeTest extends SQLIntegrationTestCase {
         waitUntilShardOperationsFinished();
     }
 
+    @Override
     @After
     public void tearDown() throws Exception {
         super.tearDown();

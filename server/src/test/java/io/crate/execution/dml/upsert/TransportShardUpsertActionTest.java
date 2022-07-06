@@ -92,12 +92,13 @@ import io.crate.types.DataTypes;
 
 public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnitTest {
 
-    private final static RelationName TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "characters");
-    private final static String PARTITION_INDEX = new PartitionName(TABLE_IDENT, Arrays.asList("1395874800000")).asIndexName();
-    private final static SimpleReference ID_REF = new SimpleReference(
+    private static final RelationName TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "characters");
+    private static final String PARTITION_INDEX = new PartitionName(TABLE_IDENT,
+                                                                    Arrays.asList("1395874800000")).asIndexName();
+    private static final SimpleReference ID_REF = new SimpleReference(
         new ReferenceIdent(TABLE_IDENT, "id"), RowGranularity.DOC, DataTypes.SHORT, 0, null);
 
-    private final static SessionSettings DUMMY_SESSION_INFO = new SessionSettings(
+    private static final SessionSettings DUMMY_SESSION_INFO = new SessionSettings(
         "dummyUser",
         SearchPath.createSearchPathFrom("dummySchema"));
 

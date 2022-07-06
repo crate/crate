@@ -21,6 +21,25 @@
 
 package io.crate.analyze;
 
+import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
+import static io.crate.analyze.TableDefinitions.TEST_PARTITIONED_TABLE_IDENT;
+import static io.crate.analyze.TableDefinitions.USER_TABLE_IDENT;
+import static io.crate.testing.SymbolMatchers.isFunction;
+import static io.crate.testing.SymbolMatchers.isLiteral;
+import static io.crate.testing.SymbolMatchers.isReference;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.core.IsEqual.equalTo;
+
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
+import org.elasticsearch.common.settings.Settings;
+import org.junit.Before;
+import org.junit.Test;
+
 import io.crate.data.RowN;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.PartitionUnknownException;
@@ -39,24 +58,6 @@ import io.crate.planner.statement.CopyFromPlan;
 import io.crate.planner.statement.CopyToPlan;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.elasticsearch.common.settings.Settings;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-
-import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
-import static io.crate.analyze.TableDefinitions.TEST_PARTITIONED_TABLE_IDENT;
-import static io.crate.analyze.TableDefinitions.USER_TABLE_IDENT;
-import static io.crate.testing.SymbolMatchers.isFunction;
-import static io.crate.testing.SymbolMatchers.isLiteral;
-import static io.crate.testing.SymbolMatchers.isReference;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.core.IsEqual.equalTo;
 
 public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -69,7 +70,6 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         plannerContext = e.getPlannerContext(clusterService.state());
     }
 
-    @SuppressWarnings("unchecked")
     private <S> S analyze(String stmt, Object... arguments) {
         AnalyzedStatement analyzedStatement = e.analyze(stmt);
         if (analyzedStatement instanceof AnalyzedCopyFrom) {
@@ -131,7 +131,7 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testCopyFromSystemTable() throws Exception {
         expectedException.expect(OperationOnInaccessibleRelationException.class);
-        expectedException.expectMessage("The relation \"sys.shards\" doesn't support or allow INSERT "+
+        expectedException.expectMessage("The relation \"sys.shards\" doesn't support or allow INSERT " +
                                         "operations, as it is read-only.");
         analyze("COPY sys.shards FROM '/nope/nope/still.nope'");
     }

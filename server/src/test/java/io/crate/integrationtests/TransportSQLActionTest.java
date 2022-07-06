@@ -1592,7 +1592,7 @@ public class TransportSQLActionTest extends SQLIntegrationTestCase {
 
     @Test
     public void testSelectWithSingleBulkArgRaisesUnsupportedError() {
-        assertThrowsMatches(() ->  execute("select * from sys.cluster", new Object[1][0]),
+        assertThrowsMatches(() -> execute("select * from sys.cluster", new Object[1][0]),
                      isSQLError(is("Bulk operations for statements that return result sets is not supported"),
                                 INTERNAL_ERROR,
                                 BAD_REQUEST,

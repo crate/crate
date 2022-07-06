@@ -21,30 +21,6 @@
 
 package io.crate.integrationtests;
 
-import io.crate.data.CollectionBucket;
-import io.crate.execution.engine.join.RamBlockSizeCalculator;
-import io.crate.execution.engine.sort.OrderingByPosition;
-import io.crate.metadata.RelationName;
-import io.crate.statistics.Stats;
-import io.crate.statistics.TableStats;
-import io.crate.testing.TestingHelpers;
-import io.crate.testing.UseHashJoins;
-import io.crate.testing.UseRandomizedSchema;
-import org.elasticsearch.common.breaker.CircuitBreaker;
-import org.elasticsearch.index.IndexNotFoundException;
-import org.elasticsearch.indices.breaker.CircuitBreakerService;
-import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
-import org.elasticsearch.test.ESIntegTestCase;
-import org.junit.After;
-import org.junit.Test;
-
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
@@ -55,6 +31,31 @@ import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+
+import org.elasticsearch.common.breaker.CircuitBreaker;
+import org.elasticsearch.index.IndexNotFoundException;
+import org.elasticsearch.indices.breaker.CircuitBreakerService;
+import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
+import org.elasticsearch.test.ESIntegTestCase;
+import org.junit.After;
+import org.junit.Test;
+
+import io.crate.data.CollectionBucket;
+import io.crate.execution.engine.join.RamBlockSizeCalculator;
+import io.crate.execution.engine.sort.OrderingByPosition;
+import io.crate.metadata.RelationName;
+import io.crate.statistics.Stats;
+import io.crate.statistics.TableStats;
+import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseHashJoins;
+import io.crate.testing.UseRandomizedSchema;
 
 @ESIntegTestCase.ClusterScope(minNumDataNodes = 2)
 public class JoinIntegrationTest extends SQLIntegrationTestCase {
@@ -1152,17 +1153,18 @@ public class JoinIntegrationTest extends SQLIntegrationTestCase {
 
         execute("refresh table t1, t2, t3");
         execute("analyze");
-        String stmt = """
-            SELECT
-                *
-            FROM
-                t1
-                JOIN t2 on t2.id = t1.id
-                JOIN t3 on t3.id = t2.id
-                LEFT OUTER JOIN t4 on t4.id = t3.id
-            WHERE
-                t2.id = 1 OR t2.id = 2
-        """;
+        String stmt =
+            """
+                    SELECT
+                        *
+                    FROM
+                        t1
+                        JOIN t2 on t2.id = t1.id
+                        JOIN t3 on t3.id = t2.id
+                        LEFT OUTER JOIN t4 on t4.id = t3.id
+                    WHERE
+                        t2.id = 1 OR t2.id = 2
+                """;
         execute("EXPLAIN " + stmt);
         // ensure that the query is using the execution plan we want to test
         // This should prevent from the test case becoming invalid
@@ -1192,22 +1194,23 @@ public class JoinIntegrationTest extends SQLIntegrationTestCase {
         execute("insert into t2 (id, b) values (1, 2), (2, 20)");
         Object[][] bulkArgs = new Object[10][];
         for (int i = 0; i < 10; i++) {
-            bulkArgs[i] = new Object[] { i, i * 10 };
+            bulkArgs[i] = new Object[] {i, i * 10};
         }
         execute("insert into t3 (id, c) values (?, ?)", bulkArgs);
         execute("refresh table t1, t2, t3");
         execute("analyze");
-        String stmt = """
-            SELECT
-                *
-            FROM
-                t1
-                JOIN t2 on t2.id = t1.id
-                LEFT OUTER JOIN t3 on t3.id = t2.id
-            WHERE
-                t2.id = 1
-                AND t3.id = 1
-        """;
+        String stmt =
+            """
+                    SELECT
+                        *
+                    FROM
+                        t1
+                        JOIN t2 on t2.id = t1.id
+                        LEFT OUTER JOIN t3 on t3.id = t2.id
+                    WHERE
+                        t2.id = 1
+                        AND t3.id = 1
+                """;
         execute("EXPLAIN " + stmt);
         // ensure that the query is using the execution plan we want to test
         // This should prevent from the test case becoming invalid

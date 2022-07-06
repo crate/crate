@@ -422,7 +422,7 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
         OperationContext ctxA = new OperationContext(0, UUID.randomUUID(), "dummyOperation", 1L, () -> -1);
         jobsLogs.operationStarted(ctxA.id, ctxA.jobId, ctxA.name, () -> -1);
 
-        OperationContext ctxB = new OperationContext(0, UUID.randomUUID(), "dummyOperation", 1L, ()-> -1);
+        OperationContext ctxB = new OperationContext(0, UUID.randomUUID(), "dummyOperation", 1L, () -> -1);
         jobsLogs.operationStarted(ctxB.id, ctxB.jobId, ctxB.name, () -> 1);
 
         jobsLogs.operationFinished(ctxB.id, ctxB.jobId, null);

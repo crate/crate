@@ -75,7 +75,7 @@ public class QueryStatsTest {
     public void testTrackedStatementTypes() {
         List<MetricsView> oneMetricForEachStatementType = new ArrayList<>();
         for (StatementType type : StatementType.values()) {
-            if(type.equals(StatementType.UNDEFINED)) {
+            if (type.equals(StatementType.UNDEFINED)) {
                 continue;
             }
             oneMetricForEachStatementType.add(createMetric(new Classification(type), 1));

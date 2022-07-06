@@ -21,10 +21,10 @@
 
 package io.crate.integrationtests;
 
-import org.junit.Test;
-
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.is;
+
+import org.junit.Test;
 
 public class ArraySubQueryIntegrationTest extends SQLIntegrationTestCase {
 
@@ -39,11 +39,11 @@ public class ArraySubQueryIntegrationTest extends SQLIntegrationTestCase {
                 "order by height desc " +
                 "limit 5");
         assertThat(printedTable(response.rows()),
-        is("Großglockner| 3798| [3798, 3770, 3666, 3564, 3550]\n" +
-           "Wildspitze| 3770| [3798, 3770, 3666, 3564, 3550]\n" +
-           "Großvenediger| 3666| [3798, 3770, 3666, 3564, 3550]\n" +
-           "Großes Wiesbachhorn| 3564| [3798, 3770, 3666, 3564, 3550]\n" +
-           "Großer Ramolkogel| 3550| [3798, 3770, 3666, 3564, 3550]\n"));
+                   is("Großglockner| 3798| [3798, 3770, 3666, 3564, 3550]\n" +
+                      "Wildspitze| 3770| [3798, 3770, 3666, 3564, 3550]\n" +
+                      "Großvenediger| 3666| [3798, 3770, 3666, 3564, 3550]\n" +
+                      "Großes Wiesbachhorn| 3564| [3798, 3770, 3666, 3564, 3550]\n" +
+                      "Großer Ramolkogel| 3550| [3798, 3770, 3666, 3564, 3550]\n"));
     }
 
     @Test

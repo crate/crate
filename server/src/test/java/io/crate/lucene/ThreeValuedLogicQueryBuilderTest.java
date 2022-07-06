@@ -21,10 +21,10 @@
 
 package io.crate.lucene;
 
+import static org.hamcrest.Matchers.is;
+
 import org.apache.lucene.search.Query;
 import org.junit.Test;
-
-import static org.hamcrest.Matchers.is;
 
 public class ThreeValuedLogicQueryBuilderTest extends LuceneQueryBuilderTest {
 
@@ -34,8 +34,7 @@ public class ThreeValuedLogicQueryBuilderTest extends LuceneQueryBuilderTest {
             convert("NOT 10 = ANY(y_array)").toString(),
             is("+(+*:* -y_array:[10 TO 10]) +(+*:* -((10::bigint = ANY(y_array)) IS NULL))")
         );
-        assertThat
-            (
+        assertThat(
             convert("NOT d = ANY([1,2,3])").toString(),
             is("+(+*:* -d:{1.0 2.0 3.0}) +(+*:* -((d = ANY([1.0, 2.0, 3.0])) IS NULL))")
         );

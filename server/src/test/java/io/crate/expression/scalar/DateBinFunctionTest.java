@@ -18,15 +18,19 @@
  * with Crate these terms will supersede the license and you may use the
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
+
 package io.crate.expression.scalar;
-
-import org.hamcrest.core.IsSame;
-import org.junit.Test;
-
-import java.time.*;
 
 import static io.crate.testing.Asserts.assertThrowsMatches;
 import static org.hamcrest.core.IsNot.not;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.Month;
+import java.time.ZoneOffset;
+
+import org.hamcrest.core.IsSame;
+import org.junit.Test;
 
 public class DateBinFunctionTest extends ScalarTestCase {
 
@@ -52,9 +56,9 @@ public class DateBinFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_interval_is_zero_exception_thrown() {
-        assertThrowsMatches(() ->  assertEvaluate("date_bin('0 days' :: INTERVAL, CURRENT_TIMESTAMP, 0)", null),
-            IllegalArgumentException.class,
-            "Interval cannot be zero");
+        assertThrowsMatches(() -> assertEvaluate("date_bin('0 days' :: INTERVAL, CURRENT_TIMESTAMP, 0)", null),
+                            IllegalArgumentException.class,
+                            "Interval cannot be zero");
     }
 
     @Test
@@ -75,7 +79,7 @@ public class DateBinFunctionTest extends ScalarTestCase {
         // This test checks case when abs(origin-ts) < abs(interval).
 
         // origin < ts, beginning of the bin is origin for any sign of interval
-        long expected  = FIRST_JAN_2001_MIDNIGHT_UTC_AS_DATE.toEpochSecond(ZoneOffset.UTC) * 1000;
+        long expected = FIRST_JAN_2001_MIDNIGHT_UTC_AS_DATE.toEpochSecond(ZoneOffset.UTC) * 1000;
         assertEvaluate("date_bin('8 days'::interval, '2001-01-04 00:00:00' :: timestamp without time zone, " +
             " '2001-01-01 00:00:00' :: timestamp without time zone)", expected);
         assertEvaluate("date_bin('-8 days'::interval, '2001-01-04 00:00:00' :: timestamp without time zone, " +
@@ -91,7 +95,7 @@ public class DateBinFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_interval_any_sign_source_equal_to_origin_returns_origin() {
-        long expected  = FIRST_JAN_2001_MIDNIGHT_UTC_AS_DATE.toEpochSecond(ZoneOffset.UTC) * 1000;
+        long expected = FIRST_JAN_2001_MIDNIGHT_UTC_AS_DATE.toEpochSecond(ZoneOffset.UTC) * 1000;
         assertEvaluate("date_bin('7 weeks' :: INTERVAL, '2001-01-01 00:00:00' :: timestamp without time zone," +
             " '2001-01-01 00:00:00' :: timestamp without time zone)", expected);
         assertEvaluate("date_bin('-7 weeks' :: INTERVAL, '2001-01-01 00:00:00' :: timestamp without time zone ," +

@@ -21,16 +21,17 @@
 
 package io.crate.analyze;
 
-import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.SQLExecutor;
-import org.junit.Before;
-import org.junit.Test;
+import static org.hamcrest.core.Is.is;
 
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.hamcrest.core.Is.is;
+import org.junit.Before;
+import org.junit.Test;
+
+import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
 
 public class QuerySpecTest extends CrateDummyClusterServiceUnitTest {
 
@@ -45,15 +46,15 @@ public class QuerySpecTest extends CrateDummyClusterServiceUnitTest {
     public void testVisitSymbolVisitsAllSymbols() throws Exception {
         AnalyzedRelation relation = e.analyze(
             "select " +
-            "       x," +           // 1
-            "       count(*) " +    // 2
+            "       x," +            // 1
+            "       count(*) " +     // 2
             "from t1 " +
-            "where x = 2 " +        // 3 (function counts as 1 symbol)
-            "group by 1 " +         // 4
-            "having count(*) = 2 " +// 5
-            "order by 2 " +         // 6
-            "limit 1 " +            // 7
-            "offset 1");            // 8
+            "where x = 2 " +         // 3 (function counts as 1 symbol)
+            "group by 1 " +          // 4
+            "having count(*) = 2 " + // 5
+            "order by 2 " +          // 6
+            "limit 1 " +             // 7
+            "offset 1");             // 8
         final AtomicInteger numSymbols = new AtomicInteger(0);
         relation.visitSymbols(s -> numSymbols.incrementAndGet());
         assertThat(numSymbols.get(), is(8));

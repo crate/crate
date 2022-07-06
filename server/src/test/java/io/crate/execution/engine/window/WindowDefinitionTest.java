@@ -21,7 +21,21 @@
 
 package io.crate.execution.engine.window;
 
+import static io.crate.sql.tree.FrameBound.Type.CURRENT_ROW;
+import static io.crate.sql.tree.FrameBound.Type.UNBOUNDED_FOLLOWING;
+import static io.crate.sql.tree.FrameBound.Type.UNBOUNDED_PRECEDING;
+import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.core.Is.is;
+import static org.hamcrest.core.IsInstanceOf.instanceOf;
+
+import java.io.IOException;
+import java.util.List;
+
+import org.junit.Before;
+import org.junit.Test;
+
 import com.carrotsearch.randomizedtesting.RandomizedTest;
+
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.TableDefinitions;
 import io.crate.analyze.relations.AnalyzedRelation;
@@ -32,18 +46,6 @@ import io.crate.expression.symbol.WindowFunction;
 import io.crate.planner.node.dql.Collect;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.io.IOException;
-import java.util.List;
-
-import static io.crate.sql.tree.FrameBound.Type.CURRENT_ROW;
-import static io.crate.sql.tree.FrameBound.Type.UNBOUNDED_FOLLOWING;
-import static io.crate.sql.tree.FrameBound.Type.UNBOUNDED_PRECEDING;
-import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.hamcrest.core.Is.is;
-import static org.hamcrest.core.IsInstanceOf.instanceOf;
 
 public class WindowDefinitionTest extends CrateDummyClusterServiceUnitTest {
 
@@ -119,7 +121,7 @@ public class WindowDefinitionTest extends CrateDummyClusterServiceUnitTest {
         assertThat(projections.size(), is(2));
         WindowAggProjection windowProjection = null;
         for (Projection projection : projections) {
-            if(projection instanceof WindowAggProjection) {
+            if (projection instanceof WindowAggProjection) {
                 windowProjection = (WindowAggProjection) projection;
                 break;
             }
@@ -129,7 +131,7 @@ public class WindowDefinitionTest extends CrateDummyClusterServiceUnitTest {
         assertThat(outputs.size(), is(2)); // IC and window function
         WindowFunction windowFunction = null;
         for (Symbol output : outputs) {
-            if(output instanceof WindowFunction) {
+            if (output instanceof WindowFunction) {
                 windowFunction = (WindowFunction) output;
             }
         }

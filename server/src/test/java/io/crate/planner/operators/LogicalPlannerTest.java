@@ -443,7 +443,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
             select * from (select distinct name from users) u
             inner join t1 on t1.a like u.name
             limit 10
-        """);
+            """);
         assertThat(plan, isPlan(
             "Fetch[name, a, x, i]\n" +
             "  └ Limit[10::bigint;0]\n" +
@@ -461,7 +461,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
             select * from (select distinct name from users) u
             inner join t1 on t1.a = u.name
             limit 10
-        """);
+            """);
         assertThat(plan, isPlan(
             "Fetch[name, a, x, i]\n" +
             "  └ Limit[10::bigint;0]\n" +

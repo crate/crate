@@ -16,13 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package io.crate.integrationtests.disruption.seqno;
 
-import io.crate.integrationtests.SQLIntegrationTestCase;
+import static org.hamcrest.Matchers.equalTo;
+
 import org.junit.Test;
 
-
-import static org.hamcrest.Matchers.equalTo;
+import io.crate.integrationtests.SQLIntegrationTestCase;
 
 public class SimpleVersioningIT extends SQLIntegrationTestCase {
 

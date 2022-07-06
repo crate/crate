@@ -21,6 +21,26 @@
 
 package io.crate.metadata;
 
+import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_REPLICAS;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_SHARDS;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_VERSION_CREATED;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.is;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.common.settings.Settings;
+import org.junit.Test;
+
 import io.crate.action.sql.SessionContext;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationUnknown;
@@ -37,25 +57,6 @@ import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
-import org.elasticsearch.Version;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.common.settings.Settings;
-import org.junit.Test;
-
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_REPLICAS;
-import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_SHARDS;
-import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_VERSION_CREATED;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.is;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class SchemasTest extends CrateDummyClusterServiceUnitTest {
 
@@ -214,7 +215,7 @@ public class SchemasTest extends CrateDummyClusterServiceUnitTest {
     public void testResolveRelationThrowsRelationUnknownIfRelationIsNotInSearchPath() throws IOException {
         SQLExecutor sqlExecutor = getSqlExecutorBuilderForTable(new RelationName("schema", "t"), "doc", "schema")
             .build();
-        QualifiedName table = QualifiedName.of( "missing_table");
+        QualifiedName table = QualifiedName.of("missing_table");
 
         expectedException.expect(RelationUnknown.class);
         expectedException.expectMessage("Relation 'missing_table' unknown");

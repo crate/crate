@@ -67,7 +67,7 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
 
         executeOnPublisher("DROP USER " + publicationOwner);
         assertThrowsMatches(
-            () ->  executeOnPublisherAsUser("CREATE PUBLICATION pub1 FOR TABLE doc.t1", user),
+            () -> executeOnPublisherAsUser("CREATE PUBLICATION pub1 FOR TABLE doc.t1", user),
             IllegalStateException.class,
             "Publication 'pub1' cannot be created as the user 'publication_owner' owning the publication has been dropped."
         );
@@ -111,7 +111,7 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
             () -> executeOnPublisher("DROP USER " + publicationOwner),
             IllegalStateException.class,
             "User 'publication_owner' cannot be dropped. Publication 'pub1' needs to be dropped first."
-       );
+        );
     }
 
     @Test
@@ -176,7 +176,7 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
 
     @Test
     public void test_drop_subscription() throws Exception {
-        executeOnPublisher("CREATE TABLE doc.t1 (id INT) WITH(" + defaultTableSettings() +")");
+        executeOnPublisher("CREATE TABLE doc.t1 (id INT) WITH(" + defaultTableSettings() + ")");
 
         createPublication("pub1", false, List.of("doc.t1"));
         createSubscription("sub1", "pub1");
@@ -195,13 +195,13 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
 
     @Test
     public void test_create_subscription_subscribing_user_not_found() {
-        executeOnPublisher("CREATE TABLE doc.t1 (id INT) WITH(" + defaultTableSettings() +")");
+        executeOnPublisher("CREATE TABLE doc.t1 (id INT) WITH(" + defaultTableSettings() + ")");
 
         // createPublication is not used in order not to create SUBSCRIBING_USER and verify that check is done in PublicationsStateAction
         executeOnPublisher("CREATE PUBLICATION pub1 FOR TABLE doc.t1");
 
         assertThrowsMatches(
-            () ->   createSubscription("sub1", "pub1"),
+            () -> createSubscription("sub1", "pub1"),
             Matchers.anyOf(
                 // If executing via sniff mode, the user is not found
                 MoreMatchers.exception(
@@ -284,7 +284,7 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
         assertThrows(
             "Subscription 'sub1' cannot be created as included relation 'doc.t1' already exists",
             RelationAlreadyExists.class,
-            () ->  createSubscription("sub1", "pub1")
+            () -> createSubscription("sub1", "pub1")
         );
     }
 
@@ -447,7 +447,7 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
                         var currentState = subscription.relations().get(RelationName.fromIndexName("doc.t1")).state();
                         synchronized (subscriptionStates) {
                             var size = subscriptionStates.size();
-                            if (size == 0 || subscriptionStates.get(size -1).equals(currentState) == false) {
+                            if (size == 0 || subscriptionStates.get(size - 1).equals(currentState) == false) {
                                 subscriptionStates.add(currentState);
                             }
                         }
@@ -528,7 +528,7 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
      */
     @Test
     public void test_recreate_dropped_subscription() throws Exception {
-        executeOnPublisher("CREATE TABLE t1 (id INT) WITH(" + defaultTableSettings() +")");
+        executeOnPublisher("CREATE TABLE t1 (id INT) WITH(" + defaultTableSettings() + ")");
         executeOnPublisher("INSERT INTO t1 (id) VALUES (1), (2), (3), (4)");
 
         createPublication("pub1", false, List.of("t1"));
@@ -548,13 +548,13 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
 
     @Test
     public void test_drop_subscribed_table_is_not_allowed() throws Exception {
-        executeOnPublisher("CREATE TABLE t1 (id INT) WITH(" + defaultTableSettings() +")");
+        executeOnPublisher("CREATE TABLE t1 (id INT) WITH(" + defaultTableSettings() + ")");
 
         createPublication("pub1", false, List.of("t1"));
         createSubscription("sub1", "pub1");
 
         assertThrowsMatches(
-            () ->  executeOnSubscriber("DROP TABLE t1"),
+            () -> executeOnSubscriber("DROP TABLE t1"),
             OperationOnInaccessibleRelationException.class,
             "The relation \"doc.t1\" doesn't allow DROP operations, because it is included in a logical replication subscription."
         );
@@ -566,7 +566,7 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
      */
     @Test
     public void test_drop_and_recreate_subscription_while_published_table_is_written_to() throws Exception {
-        executeOnPublisher("CREATE TABLE t1 (id INT) WITH(" + defaultTableSettings() +")");
+        executeOnPublisher("CREATE TABLE t1 (id INT) WITH(" + defaultTableSettings() + ")");
         executeOnPublisher("INSERT INTO t1 (id) VALUES (1), (2), (3), (4)");
         createPublication("pub1", false, List.of("t1"));
 

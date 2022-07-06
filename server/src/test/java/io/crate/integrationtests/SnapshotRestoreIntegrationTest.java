@@ -21,9 +21,31 @@
 
 package io.crate.integrationtests;
 
-import io.crate.common.unit.TimeValue;
-import io.crate.expression.udf.UserDefinedFunctionService;
-import io.crate.testing.SQLResponse;
+import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
+import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.testing.Asserts.assertThrowsMatches;
+import static io.crate.testing.SQLErrorMatcher.isSQLError;
+import static io.crate.testing.TestingHelpers.printedTable;
+import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
+import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
+import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
+
 import org.apache.lucene.util.SetOnce;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.cluster.SnapshotsInProgress;
@@ -47,30 +69,9 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.StandardOpenOption;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CountDownLatch;
-
-import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
-import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
-import static io.crate.testing.Asserts.assertThrowsMatches;
-import static io.crate.testing.SQLErrorMatcher.isSQLError;
-import static io.crate.testing.TestingHelpers.printedTable;
-import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
-import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
-import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.lessThanOrEqualTo;
+import io.crate.common.unit.TimeValue;
+import io.crate.expression.udf.UserDefinedFunctionService;
+import io.crate.testing.SQLResponse;
 
 public class SnapshotRestoreIntegrationTest extends SQLIntegrationTestCase {
 
@@ -599,7 +600,7 @@ public class SnapshotRestoreIntegrationTest extends SQLIntegrationTestCase {
         execute("REFRESH TABLE t1");
 
         var snapShotName1 = "s1";
-        var fullSnapShotName1 =  REPOSITORY_NAME + "." + snapShotName1;
+        var fullSnapShotName1 = REPOSITORY_NAME + "." + snapShotName1;
         execute("CREATE SNAPSHOT " + fullSnapShotName1 + " ALL WITH (wait_for_completion=true)");
 
         var repositoryData = getRepositoryData();
@@ -619,7 +620,7 @@ public class SnapshotRestoreIntegrationTest extends SQLIntegrationTestCase {
         assertSnapShotState(snapShotName1, SnapshotState.SUCCESS);
 
         execute("drop table t1");
-        execute("RESTORE SNAPSHOT " +  fullSnapShotName1 + " TABLE t1 with (wait_for_completion=true)");
+        execute("RESTORE SNAPSHOT " + fullSnapShotName1 + " TABLE t1 with (wait_for_completion=true)");
         ensureYellow();
 
         execute("SELECT COUNT(*) FROM t1");

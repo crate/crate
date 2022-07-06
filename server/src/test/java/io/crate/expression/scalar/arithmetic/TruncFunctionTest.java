@@ -21,15 +21,16 @@
 
 package io.crate.expression.scalar.arithmetic;
 
-import io.crate.expression.scalar.ScalarTestCase;
-import io.crate.expression.symbol.Literal;
-import io.crate.types.DataTypes;
-import org.junit.Test;
+import static io.crate.testing.SymbolMatchers.isFunction;
+import static io.crate.testing.SymbolMatchers.isLiteral;
 
 import java.util.List;
 
-import static io.crate.testing.SymbolMatchers.isFunction;
-import static io.crate.testing.SymbolMatchers.isLiteral;
+import org.junit.Test;
+
+import io.crate.expression.scalar.ScalarTestCase;
+import io.crate.expression.symbol.Literal;
+import io.crate.types.DataTypes;
 
 public class TruncFunctionTest extends ScalarTestCase {
 
@@ -40,7 +41,7 @@ public class TruncFunctionTest extends ScalarTestCase {
         assertNormalize("trunc(-29.1947, 0)", isLiteral(-29.0));
         assertNormalize("trunc(29.1947, 0)", isLiteral(29.0));
         assertNormalize("trunc(29.1947, 1)", isLiteral(29.1d));
-        assertNormalize("trunc(cast(null as double))", isLiteral(null,  DataTypes.LONG));
+        assertNormalize("trunc(cast(null as double))", isLiteral(null, DataTypes.LONG));
     }
 
     @Test
@@ -93,6 +94,6 @@ public class TruncFunctionTest extends ScalarTestCase {
         assertEvaluate("trunc(x, -2)", 200.0, value);
         assertEvaluate("trunc(x, -1)", 240.0, value);
         assertEvaluate("trunc(x, 0)", 246.0, value);
-        assertEvaluate("trunc(x, 1)",  246.0, value);
+        assertEvaluate("trunc(x, 1)", 246.0, value);
     }
 }

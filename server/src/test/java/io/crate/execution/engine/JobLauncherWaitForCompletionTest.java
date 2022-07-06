@@ -79,6 +79,6 @@ public class JobLauncherWaitForCompletionTest extends CrateDummyClusterServiceUn
     public void testCopyPlanWaitForCompletion() throws Exception {
         TestingRowConsumer consumer = new TestingRowConsumer();
         jobLauncher.execute(consumer, plannerContext.transactionContext(), true);
-        assertThrows(TimeoutException.class, ()-> consumer.getResult(100));
+        assertThrows(TimeoutException.class, () -> consumer.getResult(100));
     }
 }

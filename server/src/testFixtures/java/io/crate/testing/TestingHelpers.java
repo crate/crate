@@ -50,9 +50,6 @@ import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
 
-import com.carrotsearch.randomizedtesting.RandomizedTest;
-
-import io.crate.user.User;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.ModulesBuilder;
@@ -65,6 +62,8 @@ import org.hamcrest.Description;
 import org.hamcrest.FeatureMatcher;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
+
+import com.carrotsearch.randomizedtesting.RandomizedTest;
 
 import io.crate.analyze.where.DocKeys;
 import io.crate.common.collections.Lists2;
@@ -89,6 +88,7 @@ import io.crate.metadata.SimpleReference;
 import io.crate.metadata.settings.session.SessionSettingModule;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.user.User;
 
 public class TestingHelpers {
 
@@ -458,12 +458,12 @@ public class TestingHelpers {
 
     public static <T> List<T> getRandomsOfType(int minLength, int maxLength, DataType<T> dataType) {
         var values = new ArrayList<T>();
-        int length  = RandomizedTest.randomIntBetween(minLength, maxLength);
+        int length = RandomizedTest.randomIntBetween(minLength, maxLength);
         var generator = DataTypeTesting.getDataGenerator(dataType);
 
         for (int i = 0; i < length; i++) {
             // 1/length chance
-            if (RandomizedTest.randomIntBetween(0, length-1) == 0) {
+            if (RandomizedTest.randomIntBetween(0, length - 1) == 0) {
                 values.add(null);
             } else {
                 values.add(dataType.sanitizeValue(generator.get()));

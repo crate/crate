@@ -157,14 +157,14 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     }
 
     @Test
-    public void test_cannot_create_table_that_contains_a_column_definition_of_type_time () {
+    public void test_cannot_create_table_that_contains_a_column_definition_of_type_time() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Cannot use the type `time with time zone` for column: ts");
         analyze("create table t (ts time with time zone)");
     }
 
     @Test
-    public void test_cannot_alter_table_to_add_a_column_definition_of_type_time () {
+    public void test_cannot_alter_table_to_add_a_column_definition_of_type_time() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Cannot use the type `time with time zone` for column: ts");
         analyze("alter table user_refresh_interval add column ts time with time zone");
@@ -393,7 +393,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
 
     @Test
     @SuppressWarnings("unchecked")
-    public void testCreateTableWithIgnoredObject()  {
+    public void testCreateTableWithIgnoredObject() {
         BoundCreateTable analysis = analyze(
             "create table foo (id integer primary key, details object(ignored))");
 
@@ -1348,11 +1348,12 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
 
     @Test
     public void testNumberOfRoutingShardsCanBeSetAtCreateTable() {
-        BoundCreateTable stmt = analyze("""
-            create table t (x int)
-            clustered into 2 shards
-            with (number_of_routing_shards = 10)
-        """);
+        BoundCreateTable stmt = analyze(
+            """
+                    create table t (x int)
+                    clustered into 2 shards
+                    with (number_of_routing_shards = 10)
+                """);
         assertThat(stmt.tableParameter().settings().get("index.number_of_routing_shards"), is("10"));
     }
 
@@ -1388,16 +1389,24 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     @Test
     public void test_alter_table_update_final_setting_on_open_table() throws IOException {
         e = SQLExecutor.builder(clusterService).addTable("create table doc.test(i int)").build();
-        assertThrowsMatches(() ->  analyze(e, "alter table test SET (\"store.type\" = 'simplefs')"),
-            isSQLError(containsString("Invalid property \"store.type\" passed to [ALTER | CREATE] TABLE statement"), INTERNAL_ERROR, INTERNAL_SERVER_ERROR,5000)
+        assertThrowsMatches(() -> analyze(e, "alter table test SET (\"store.type\" = 'simplefs')"),
+                            isSQLError(containsString(
+                                           "Invalid property \"store.type\" passed to [ALTER | CREATE] TABLE statement"),
+                                       INTERNAL_ERROR,
+                                       INTERNAL_SERVER_ERROR,
+                                       5000)
         );
     }
 
     @Test
     public void test_alter_table_update_final_setting_on_closed_table() throws IOException {
         e = SQLExecutor.builder(clusterService).addTable("create table doc.test(i int)").closeTable("test").build();
-        assertThrowsMatches(() ->  analyze(e, "alter table test SET (number_of_routing_shards = 5)"),
-            isSQLError(containsString("Invalid property \"number_of_routing_shards\" passed to [ALTER | CREATE] TABLE statement"), INTERNAL_ERROR, INTERNAL_SERVER_ERROR,5000)
+        assertThrowsMatches(() -> analyze(e, "alter table test SET (number_of_routing_shards = 5)"),
+                            isSQLError(containsString(
+                                           "Invalid property \"number_of_routing_shards\" passed to [ALTER | CREATE] TABLE statement"),
+                                       INTERNAL_ERROR,
+                                       INTERNAL_SERVER_ERROR,
+                                       5000)
         );
     }
 

@@ -260,10 +260,10 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
                 "S1",
                 "select ? in (1, 2, 3)",
                 new int[] { PGTypes.get(DataTypes.INTEGER).oid() });
-                ClientMessages.sendBindMessage(buffer,
-                    "P1",
-                    "S1",
-                    Collections.singletonList(1));
+            ClientMessages.sendBindMessage(buffer,
+                "P1",
+                "S1",
+                Collections.singletonList(1));
             channel.writeInbound(buffer);
             channel.releaseInbound();
 
@@ -719,8 +719,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
                                                      @Nullable CompletableFuture future) {
         SQLOperations sqlOperations = Mockito.mock(SQLOperations.class);
         Session session = mock(Session.class);
-        when(session.execute(any(String.class), any(int.class), any(RowCountReceiver.class))).
-            thenReturn(future);
+        when(session.execute(any(String.class), any(int.class), any(RowCountReceiver.class))).thenReturn(future);
         SessionContext sessionContext = new SessionContext(User.CRATE_USER);
         when(session.sessionContext()).thenReturn(sessionContext);
         when(sqlOperations.createSession(any(String.class), any(User.class))).thenReturn(session);

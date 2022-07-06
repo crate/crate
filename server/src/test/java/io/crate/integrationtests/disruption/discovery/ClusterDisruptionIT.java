@@ -102,7 +102,7 @@ public class ClusterDisruptionIT extends AbstractDisruptionTestCase {
                  "org.elasticsearch.indices.cluster:TRACE,org.elasticsearch.index.shard:TRACE")
     @Test
     public void testAckedIndexing() throws Exception {
-        final List<String> nodes = startCluster( 3);
+        final List<String> nodes = startCluster(3);
 
         int numberOfShards = 1 + randomInt(2);
         int replicas = randomInt(2);

@@ -54,7 +54,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-
 import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesRequest;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
@@ -1108,12 +1107,13 @@ public class PartitionedTableIntegrationTest extends SQLIntegrationTestCase {
         execute("insert into quotes (id, quote, date, author) values(?, ?, ?, ?), (?, ?, ?, ?)",
             new Object[]{1, "Don't panic", 1395874800000L,
                 new HashMap<String, Object>() {{
-                    put("name", "Douglas");
-                }},
+                        put("name", "Douglas");
+                    }},
                 2, "Time is an illusion. Lunchtime doubly so", 1395961200000L,
                 new HashMap<String, Object>() {{
-                    put("name", "Ford");
-                }}});
+                        put("name", "Ford");
+                    }}
+            });
         ensureYellow();
         refresh();
 
@@ -1123,9 +1123,10 @@ public class PartitionedTableIntegrationTest extends SQLIntegrationTestCase {
         execute("insert into quotes (id, quote, date, author) values(?, ?, ?, ?)",
             new Object[]{3, "I'd far rather be happy than right any day", 1395874800000L,
                 new HashMap<String, Object>() {{
-                    put("name", "Douglas");
-                    put("surname", "Adams");
-                }}});
+                        put("name", "Douglas");
+                        put("surname", "Adams");
+                    }}
+            });
         ensureYellow();
         refresh();
         waitForMappingUpdateOnAll("quotes", "author.surname");
@@ -1240,7 +1241,7 @@ public class PartitionedTableIntegrationTest extends SQLIntegrationTestCase {
     }
 
     @Test
-    public void testPartitionedTableNestedAllConstraintsRoundTrip()  {
+    public void testPartitionedTableNestedAllConstraintsRoundTrip() {
         execute("create table quotes (" +
                 "id integer, " +
                 "quote string, " +
@@ -1455,19 +1456,19 @@ public class PartitionedTableIntegrationTest extends SQLIntegrationTestCase {
             new Object[]{"foo", "shards", 1, "bar", "replicas", 2});
         refresh();
         execute("select settings['routing']['allocation'] from information_schema.table_partitions where table_name='attrs'");
-        HashMap<String, Object> routingAllocation = new HashMap<String, Object>() {{
-            put("enable", "all");
-            put("total_shards_per_node", 5);
-        }};
+        HashMap<String, Object> routingAllocation = new HashMap<>() {{
+                put("enable", "all");
+                put("total_shards_per_node", 5);
+            }};
         assertEquals(routingAllocation, response.rows()[0][0]);
         assertEquals(routingAllocation, response.rows()[1][0]);
 
         execute("alter table attrs set (\"routing.allocation.total_shards_per_node\"=1)");
         execute("select settings['routing']['allocation'] from information_schema.table_partitions where table_name='attrs'");
-        routingAllocation = new HashMap<String, Object>() {{
-            put("enable", "all");
-            put("total_shards_per_node", 1);
-        }};
+        routingAllocation = new HashMap<>() {{
+                put("enable", "all");
+                put("total_shards_per_node", 1);
+            }};
         assertEquals(routingAllocation, response.rows()[0][0]);
         assertEquals(routingAllocation, response.rows()[1][0]);
     }
@@ -1538,11 +1539,12 @@ public class PartitionedTableIntegrationTest extends SQLIntegrationTestCase {
             ") partitioned by (date) with (refresh_interval=0)");
         ensureYellow();
 
-        assertThrowsMatches(() ->  execute("refresh table parted partition(date=0)"),
-                     isSQLError(is(String.format("No partition for table '%s' with ident '04130' exists", getFqn("parted"))),
-                         INTERNAL_ERROR,
-                         NOT_FOUND,
-                         4046));
+        assertThrowsMatches(() -> execute("refresh table parted partition(date=0)"),
+                            isSQLError(is(String.format("No partition for table '%s' with ident '04130' exists",
+                                                        getFqn("parted"))),
+                                       INTERNAL_ERROR,
+                                       NOT_FOUND,
+                                       4046));
     }
 
     @Test
@@ -2114,7 +2116,7 @@ public class PartitionedTableIntegrationTest extends SQLIntegrationTestCase {
         execute("insert into t1 (id) values (1)");
         refresh();
 
-        assertThrowsMatches(() ->execute("select id/0 from t1"),
+        assertThrowsMatches(() -> execute("select id/0 from t1"),
                      isSQLError(is("/ by zero"),
                          INTERNAL_ERROR,
                          BAD_REQUEST,
@@ -2148,7 +2150,7 @@ public class PartitionedTableIntegrationTest extends SQLIntegrationTestCase {
     @Test
     public void test_refresh_not_existing_partition() {
         execute("CREATE TABLE doc.parted (x TEXT) PARTITIONED BY (x)");
-        assertThrowsMatches(() ->  execute("REFRESH TABLE doc.parted PARTITION (x = 'hddsGNJHSGFEFZÜ')"),
+        assertThrowsMatches(() -> execute("REFRESH TABLE doc.parted PARTITION (x = 'hddsGNJHSGFEFZÜ')"),
                      isSQLError(is("No partition for table 'doc.parted' with ident '048mgp34ed3ksii8ad3kcha6bb1po' exists"),
                          INTERNAL_ERROR,
                          NOT_FOUND,
@@ -2158,7 +2160,7 @@ public class PartitionedTableIntegrationTest extends SQLIntegrationTestCase {
     @Test
     public void test_refresh_partition_in_non_partitioned_table() {
         execute("CREATE TABLE doc.not_parted (x TEXT)");
-        assertThrowsMatches(() ->  execute("REFRESH TABLE doc.not_parted PARTITION (x = 'n')"),
+        assertThrowsMatches(() -> execute("REFRESH TABLE doc.not_parted PARTITION (x = 'n')"),
                      isSQLError(is("table 'doc.not_parted' is not partitioned"),
                          INTERNAL_ERROR,
                          BAD_REQUEST,
@@ -2230,7 +2232,7 @@ public class PartitionedTableIntegrationTest extends SQLIntegrationTestCase {
         assertThat(response.rowCount(), Matchers.is(3L));
 
         // trying to perform an update on a partition with a write block
-        assertThrowsMatches(() ->  execute("update my_table set content=\'content42\' where par=1"),
+        assertThrowsMatches(() -> execute("update my_table set content=\'content42\' where par=1"),
                      isSQLError(is("blocked by: [FORBIDDEN/8/index write (api)];"),
                          INTERNAL_ERROR,
                          INTERNAL_SERVER_ERROR,

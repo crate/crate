@@ -155,6 +155,6 @@ public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
         merge = plan("copy users to directory '/path/to/'");
         collect = (Collect) merge.subPlan();
         writerProjection = (WriterProjection) collect.collectPhase().projections().get(0);
-        assertThat(writerProjection.withClauseOptions(), is (Settings.EMPTY));
+        assertThat(writerProjection.withClauseOptions(), is(Settings.EMPTY));
     }
 }
