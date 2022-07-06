@@ -20,6 +20,9 @@
 package org.elasticsearch.snapshots;
 
 import io.crate.common.unit.TimeValue;
+
+import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryAction;
+import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryRequest;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.index.snapshots.IndexShardSnapshotStatus;
@@ -28,6 +31,7 @@ import org.elasticsearch.snapshots.mockstore.MockRepository;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.elasticsearch.test.disruption.NetworkDisruption;
 import org.elasticsearch.test.transport.MockTransportService;
+import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -53,16 +57,20 @@ public class SnapshotShardsServiceIT extends AbstractSnapshotIntegTestCase {
         return plugins;
     }
 
+    @Test
     public void testRetryPostingSnapshotStatusMessages() throws Exception {
         String masterNode = internalCluster().startMasterOnlyNode();
         String dataNode = internalCluster().startDataOnlyNode();
 
         logger.info("-->  creating repository");
-        assertAcked(client().admin().cluster().preparePutRepository("repo")
-                        .setType("mock").setSettings(Settings.builder()
-                                                         .put("location", randomRepoPath())
-                                                         .put("compress", randomBoolean())
-                                                         .put("chunk_size", randomIntBetween(100, 1000), ByteSizeUnit.BYTES)));
+        var putRepositoryRequest = new PutRepositoryRequest("repo")
+            .type("mock")
+            .settings(Settings.builder()
+                .put("location", randomRepoPath())
+                .put("compress", randomBoolean())
+                .put("chunk_size", randomIntBetween(100, 1000), ByteSizeUnit.BYTES)
+            );
+        assertAcked(client().admin().cluster().execute(PutRepositoryAction.INSTANCE, putRepositoryRequest).get());
 
         final int shards = between(1, 10);
         execute("create table doc.test(x integer) clustered into ? shards with (number_of_replicas=0)", new Object[]{shards});

@@ -48,8 +48,6 @@ public class SysRepositoriesServiceTest extends SQLIntegrationTestCase {
     @ClassRule
     public static TemporaryFolder TEMP_FOLDER = new TemporaryFolder();
 
-    private List<String> repositories = new ArrayList<>();
-
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {
         return Settings.builder()
@@ -60,19 +58,11 @@ public class SysRepositoriesServiceTest extends SQLIntegrationTestCase {
 
     @Before
     public void setUpRepositories() throws Exception {
-        createRepository("test-repo");
-    }
-
-    private void createRepository(String name) {
-        AcknowledgedResponse putRepositoryResponse = client().admin().cluster().preparePutRepository(name)
-            .setType("fs")
-            .setSettings(Settings.builder()
-                .put("location", new File(TEMP_FOLDER.getRoot(), "backup").getAbsolutePath())
-                .put("chunk_size", "5k")
-                .put("compress", false)
-            ).get();
-        assertThat(putRepositoryResponse.isAcknowledged(), equalTo(true));
-        repositories.add(name);
+        String location = new File(TEMP_FOLDER.getRoot(), "backup").getAbsolutePath();
+        execute(
+            "CREATE REPOSITORY \"test-repo\" TYPE fs WITH (location = ?, chunk_size = '5k', compress = false)",
+            new Object[] { location }
+        );
     }
 
     @Test
