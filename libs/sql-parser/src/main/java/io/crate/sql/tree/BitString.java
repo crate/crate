@@ -72,12 +72,34 @@ public class BitString extends Literal implements Comparable<BitString> {
         return length;
     }
 
-    public String asBitString() {
+    /**
+     * Return bits as string with B' prefix. Example:
+     *
+     * <pre>
+     *  B'1101'
+     * </pre>
+     */
+    public String asPrefixedBitString() {
         var sb = new StringBuilder("B'");
         for (int i = 0; i < length; i++) {
             sb.append(bitSet.get(i) ? '1' : '0');
         }
         sb.append("'");
+        return sb.toString();
+    }
+
+    /**
+     * Return bits as string without B' prefix. Example:
+     *
+     * <pre>
+     *  1101
+     * </pre>
+     */
+    public String asRawBitString() {
+        var sb = new StringBuilder();
+        for (int i = 0; i < length; i++) {
+            sb.append(bitSet.get(i) ? '1' : '0');
+        }
         return sb.toString();
     }
 

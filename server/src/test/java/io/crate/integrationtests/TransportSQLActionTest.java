@@ -1974,12 +1974,12 @@ public class TransportSQLActionTest extends SQLIntegrationTestCase {
             }
         }
         assertThat(results, Matchers.contains(
-            "B'0000'",
-            "B'0001'",
-            "B'0011'",
-            "B'0111'",
-            "B'1001'",
-            "B'1111'"
+            "0000",
+            "0001",
+            "0011",
+            "0111",
+            "1001",
+            "1111"
         ));
     }
 
