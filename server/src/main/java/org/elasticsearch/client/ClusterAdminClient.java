@@ -27,7 +27,6 @@ import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.cluster.node.stats.NodesStatsRequest;
 import org.elasticsearch.action.admin.cluster.node.stats.NodesStatsResponse;
-import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryRequestBuilder;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequestBuilder;
 import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotRequestBuilder;
 import org.elasticsearch.action.admin.cluster.snapshots.get.GetSnapshotsRequestBuilder;
@@ -68,11 +67,6 @@ public interface ClusterAdminClient extends ElasticsearchClient {
      * Update settings in the cluster.
      */
     ClusterUpdateSettingsRequestBuilder prepareUpdateSettings();
-
-    /**
-     * Registers a snapshot repository.
-     */
-    PutRepositoryRequestBuilder preparePutRepository(String name);
 
     /**
      * Creates a new snapshot.
