@@ -219,6 +219,7 @@ public class CastFunctionTest extends ScalarTestCase {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void test_cast_wkt_point_string_array_to_geo_shape_array() {
         Symbol funcSymbol = sqlExpressions.asSymbol("['POINT(2 3)']::array(geo_shape)");
         assertThat(funcSymbol.valueType(), is(new ArrayType<>(GEO_SHAPE)));
