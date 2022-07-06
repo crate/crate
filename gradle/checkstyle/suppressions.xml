@@ -26,5 +26,19 @@
         "http://www.puppycrawl.com/dtds/suppressions_1_1.dtd">
 
 <suppressions>
-    <suppress files=".*[/\\]antlr[/\\].*" checks="[a-zA-Z0-9]*"/>
+    <suppress files=".*[/\\]antlr[/\\].*" checks="."/>
+    <suppress files=".*[/\\]test[/\\]java[/\\]org[\\/]elasticsearch[/\\].*java" checks="."/>
+    <suppress files=".*[/\\]test[/\\]java[/\\]org[\\/]apache[/\\]lucene[/\\].*java" checks="."/>
+    <suppress files=".*[/\\]testFixtures[/\\]java[/\\]org[\\/]elasticsearch[/\\].*java" checks="."/>
+    <suppress files=".*[/\\]test[/\\]java[/\\]io[/\\]crate[/\\]common[/\\]OctalTest.java" checks="IllegalTokenText"/>
+    <suppress
+            files=".*[/\\]test[/\\]java[/\\]io[/\\]crate[/\\]expression[/\\]scalar[/\\]string[/\\]EncodeDecodeFunctionTest.java"
+            checks="IllegalTokenText"/>
+    <suppress files=".*[/\\]test[/\\]java[/\\].*.java" checks="MethodName"/>
+    <suppress files=".*[/\\]test[/\\]java[/\\].*.java" checks="VariableDeclarationUsageDistance"/>
+    <suppress files=".*[/\\]test[/\\]java[/\\].*.java" checks="CommentsIndentation"/>
+    <suppress files=".*[/\\]test[/\\]java[/\\].*.java" checks="EmptyCatchBlock"/>
+    <suppress files=".*[/\\]test[/\\]java[/\\].*.java" checks="AvoidEscapedUnicodeCharacters"/>
+    <suppress files=".*[/\\]test[/\\]java[/\\].*.java" checks="EmptyBlock"/>
+    <suppress files=".*[/\\]test[/\\]java[/\\].*.java" checks="ConstantName"/>
 </suppressions>
