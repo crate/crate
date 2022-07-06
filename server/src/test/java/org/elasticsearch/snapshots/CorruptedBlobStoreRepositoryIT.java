@@ -20,7 +20,6 @@ package org.elasticsearch.snapshots;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 
 import java.nio.file.Files;
@@ -32,7 +31,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.elasticsearch.Version;
-import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotResponse;
+import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotAction;
+import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotRequest;
 import org.elasticsearch.action.support.PlainActionFuture;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterState;
@@ -81,11 +81,7 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
         final String snapshot = "snapshot1";
 
         logger.info("--> creating snapshot");
-        CreateSnapshotResponse createSnapshotResponse = client.admin().cluster().prepareCreateSnapshot(repoName, snapshot)
-            .setWaitForCompletion(true).setIndices("test*").get();
-        assertThat(createSnapshotResponse.getSnapshotInfo().successfulShards(), greaterThan(0));
-        assertThat(createSnapshotResponse.getSnapshotInfo().successfulShards(),
-                   equalTo(createSnapshotResponse.getSnapshotInfo().totalShards()));
+        execute("create snapshot test.snapshot1 table doc.test1, doc.test2 with (wait_for_completion = true)");
 
         logger.info("--> move index-N blob to next generation");
         final RepositoryData repositoryData =
@@ -138,11 +134,7 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
         final String snapshot = "snapshot1";
 
         logger.info("--> creating snapshot");
-        CreateSnapshotResponse createSnapshotResponse = client().admin().cluster().prepareCreateSnapshot(repoName, snapshot)
-            .setWaitForCompletion(true).setIndices("test*").get();
-        assertThat(createSnapshotResponse.getSnapshotInfo().successfulShards(), greaterThan(0));
-        assertThat(createSnapshotResponse.getSnapshotInfo().successfulShards(),
-                   equalTo(createSnapshotResponse.getSnapshotInfo().totalShards()));
+        execute("create snapshot test.snapshot1 table doc.test1, doc.test2 with (wait_for_completion = true)");
 
         final Repository repository = internalCluster().getCurrentMasterNodeInstance(RepositoriesService.class).repository(repoName);
 
@@ -213,8 +205,8 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
         for (int i = 0; i < snapshots; ++i) {
             // Workaround to simulate BwC situation: taking a snapshot without indices here so that we don't create any new version shard
             // generations (the existence of which would short-circuit checks for the repo containing old version snapshots)
-            CreateSnapshotResponse createSnapshotResponse = client().admin().cluster().prepareCreateSnapshot(repoName, snapshotPrefix + i)
-                .setIndices().setWaitForCompletion(true).get();
+            var createSnapshot = new CreateSnapshotRequest(repoName, snapshotPrefix + i).waitForCompletion(true);
+            var createSnapshotResponse = client().admin().cluster().execute(CreateSnapshotAction.INSTANCE, createSnapshot).get();
             assertThat(createSnapshotResponse.getSnapshotInfo().successfulShards(), is(0));
             assertThat(createSnapshotResponse.getSnapshotInfo().successfulShards(),
                 equalTo(createSnapshotResponse.getSnapshotInfo().totalShards()));
@@ -276,8 +268,8 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
         final int snapshots = randomIntBetween(2, 2);
         logger.info("--> creating [{}] snapshots", snapshots);
         for (int i = 0; i < snapshots; ++i) {
-            CreateSnapshotResponse createSnapshotResponse = client().admin().cluster().prepareCreateSnapshot("repo1", snapshotPrefix + i)
-                .setIndices().setWaitForCompletion(true).get();
+            var createSnapshot = new CreateSnapshotRequest("repo1", snapshotPrefix + i).waitForCompletion(true);
+            var createSnapshotResponse = client().admin().cluster().execute(CreateSnapshotAction.INSTANCE, createSnapshot).get();
             assertThat(createSnapshotResponse.getSnapshotInfo().successfulShards(), is(0));
             assertThat(createSnapshotResponse.getSnapshotInfo().successfulShards(),
                        equalTo(createSnapshotResponse.getSnapshotInfo().totalShards()));
@@ -309,8 +301,10 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
         final String snapshot = "test-snap";
 
         logger.info("--> creating snapshot");
-        CreateSnapshotResponse createSnapshotResponse = client.admin().cluster().prepareCreateSnapshot(repoName, snapshot)
-            .setWaitForCompletion(true).setIndices("test-idx-*").get();
+        var createSnapshot = new CreateSnapshotRequest(repoName, snapshot)
+            .waitForCompletion(true)
+            .indices("test-idx-*");
+        var createSnapshotResponse = client.admin().cluster().execute(CreateSnapshotAction.INSTANCE, createSnapshot).get();
         assertThat(createSnapshotResponse.getSnapshotInfo().successfulShards(),
             equalTo(createSnapshotResponse.getSnapshotInfo().totalShards()));
 
@@ -344,9 +338,14 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
         );
 
         logger.info("--> try to create snapshot");
-        final RepositoryException repositoryException4 = expectThrows(RepositoryException.class,
-                                                                      () -> client.admin().cluster().prepareCreateSnapshot(repo, existingSnapshot).execute().actionGet());
-        assertThat(repositoryException4.getMessage(),
-                   containsString("Could not read repository data because the contents of the repository do not match its expected state."));
+        Asserts.assertThrowsMatches(
+            () -> execute("create snapshot \"" + repo + "\".\"" + existingSnapshot + "\" ALL"),
+            SQLErrorMatcher.isSQLError(
+                containsString("Could not read repository data because the contents of the repository do not match its expected state."),
+                PGErrorStatus.INTERNAL_ERROR,
+                HttpResponseStatus.INTERNAL_SERVER_ERROR,
+                5000
+            )
+        );
     }
 }

@@ -83,10 +83,8 @@ public class SnapshotShardsServiceIT extends AbstractSnapshotIntegTestCase {
 
         logger.info("--> blocking repository");
         String blockedNode = blockNodeWithIndex("repo", "test");
-        dataNodeClient().admin().cluster().prepareCreateSnapshot("repo", "snapshot")
-            .setWaitForCompletion(false)
-            .setIndices("test")
-            .get();
+
+        execute("create snapshot repo.snapshot table doc.test with (wait_for_completion = false)");
         waitForBlock(blockedNode, "repo", TimeValue.timeValueSeconds(60));
 
         final SnapshotId snapshotId = client().admin().cluster().prepareGetSnapshots("repo").setSnapshots("snapshot")
