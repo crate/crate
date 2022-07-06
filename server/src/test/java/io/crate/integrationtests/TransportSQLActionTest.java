@@ -1948,19 +1948,25 @@ public class TransportSQLActionTest extends SQLIntegrationTestCase {
     @UseJdbc(0)
     @UseRandomizedSchema(random = false)
     public void test_bit_string_can_be_inserted_and_queried() throws Exception {
-        execute("create table tbl (xs bit(4))");
-        execute("insert into tbl (xs) values (B'0000'), (B'0001'), (B'0011'), (B'0111'), (B'1111'), (B'1001')");
+        execute("create table tbl (id int primary key, xs bit(4))");
+        execute("insert into tbl (id, xs) values (1, B'0000'), (2, B'0001'), (3, B'0011'), (4, B'0111'), (5, B'1111'), (6, B'1001')");
         assertThat(response.rowCount(), is(6L));
         execute("refresh table tbl");
 
         execute("SELECT _doc['xs'], xs, _raw, xs::bit(3) FROM tbl WHERE xs = B'1001'");
         assertThat(TestingHelpers.printedTable(response.rows()), is(
-            "B'1001'| B'1001'| {\"xs\":\"CQ==\"}| B'100'\n"
+            "B'1001'| B'1001'| {\"id\":6,\"xs\":\"CQ==\"}| B'100'\n"
         ));
         // use LIMIT 1 to hit a different execution path that should load `xs` differently
         execute("SELECT _doc['xs'], xs, _raw, xs::bit(3) FROM tbl WHERE xs = B'1001' LIMIT 1");
         assertThat(TestingHelpers.printedTable(response.rows()), is(
-            "B'1001'| B'1001'| {\"xs\":\"CQ==\"}| B'100'\n"
+            "B'1001'| B'1001'| {\"id\":6,\"xs\":\"CQ==\"}| B'100'\n"
+        ));
+
+        // primary key lookup uses different execution path to decode the value
+        execute("select xs from tbl where id = 6");
+        assertThat(TestingHelpers.printedTable(response.rows()), is(
+            "B'1100'\n"
         ));
 
         var properties = new Properties();
