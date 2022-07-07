@@ -519,12 +519,12 @@ public class IndexRecoveryIT extends SQLIntegrationTestCase {
         logger.info("--> checking throttling increases");
         final long finalNodeAThrottling = nodeAThrottling;
         final long finalNodeBThrottling = nodeBThrottling;
+        var indexShardNodeA = indicesServiceNodeA.indexServiceSafe(index).getShard(0);
+        var indexShardNodeB = indicesServiceNodeB.indexServiceSafe(index).getShard(0);
         assertBusy(() -> {
-            var recoveryStats = indicesServiceNodeA.indexServiceSafe(index).getShard(0).recoveryStats();
-            assertThat("node A throttling should increase", recoveryStats.throttleTime().millis(),
+            assertThat("node A throttling should increase", indexShardNodeA.recoveryStats().throttleTime().millis(),
                        greaterThan(finalNodeAThrottling));
-            recoveryStats = indicesServiceNodeB.indexServiceSafe(index).getShard(0).recoveryStats();
-            assertThat("node B throttling should increase", recoveryStats.throttleTime().millis(),
+            assertThat("node B throttling should increase", indexShardNodeB.recoveryStats().throttleTime().millis(),
                        greaterThan(finalNodeBThrottling));
         });
 
