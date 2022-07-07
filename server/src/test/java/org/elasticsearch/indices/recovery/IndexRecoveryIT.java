@@ -84,7 +84,6 @@ import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.index.Index;
-import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.MockEngineFactoryPlugin;
 import org.elasticsearch.index.analysis.AbstractTokenFilterFactory;
@@ -522,17 +521,13 @@ public class IndexRecoveryIT extends SQLIntegrationTestCase {
         logger.info("--> checking throttling increases");
         final long finalNodeAThrottling = nodeAThrottling;
         final long finalNodeBThrottling = nodeBThrottling;
+        var indexShardNodeA = indicesServiceNodeA.indexServiceSafe(index).getShard(0);
+        var indexShardNodeB = indicesServiceNodeB.indexServiceSafe(index).getShard(0);
         assertBusy(() -> {
-            try {
-                var recoveryStats = indicesServiceNodeA.indexServiceSafe(index).getShard(0).recoveryStats();
-                assertThat("node A throttling should increase", recoveryStats.throttleTime().millis(),
-                        greaterThan(finalNodeAThrottling));
-                recoveryStats = indicesServiceNodeB.indexServiceSafe(index).getShard(0).recoveryStats();
-                assertThat("node B throttling should increase", recoveryStats.throttleTime().millis(),
-                        greaterThan(finalNodeBThrottling));
-            } catch (IndexNotFoundException e) {
-                throw new AssertionError(e.getMessage(), e);
-            }
+            assertThat("node A throttling should increase", indexShardNodeA.recoveryStats().throttleTime().millis(),
+                    greaterThan(finalNodeAThrottling));
+            assertThat("node B throttling should increase", indexShardNodeB.recoveryStats().throttleTime().millis(),
+                    greaterThan(finalNodeBThrottling));
         });
 
 
