@@ -265,7 +265,7 @@ public class IndexRecoveryIT extends SQLIntegrationTestCase {
 
         logger.info("--> request recoveries");
         var indexName = IndexParts.toIndexName(sqlExecutor.getCurrentSchema(), INDEX_NAME, null);
-        RecoveryResponse response = client().legacyExecute(RecoveryAction.INSTANCE, new RecoveryRequest(indexName)).actionGet();
+        RecoveryResponse response = client().execute(RecoveryAction.INSTANCE, new RecoveryRequest(indexName)).get();
         assertThat(response.shardRecoveryStates().size(), equalTo(SHARD_COUNT));
         assertThat(response.shardRecoveryStates().get(indexName).size(), equalTo(1));
 
@@ -339,7 +339,7 @@ public class IndexRecoveryIT extends SQLIntegrationTestCase {
         assertThat(response.rowCount(), is(2L));
 
         var indexName = IndexParts.toIndexName(sqlExecutor.getCurrentSchema(), INDEX_NAME, null);
-        final RecoveryResponse response = client().legacyExecute(RecoveryAction.INSTANCE, new RecoveryRequest(indexName)).actionGet();
+        final RecoveryResponse response = client().execute(RecoveryAction.INSTANCE, new RecoveryRequest(indexName)).get();
 
         // we should now have two total shards, one primary and one replica
         List<RecoveryState> recoveryStates = response.shardRecoveryStates().get(indexName);
@@ -423,7 +423,7 @@ public class IndexRecoveryIT extends SQLIntegrationTestCase {
                     phase1ReadyBlocked.await();
                     // nodeB stopped, peer recovery from nodeA to nodeC, it will be cancelled after nodeB get started.
                     var indexName = IndexParts.toIndexName(sqlExecutor.getCurrentSchema(), INDEX_NAME, null);
-                    RecoveryResponse response = client().legacyExecute(RecoveryAction.INSTANCE, new RecoveryRequest(indexName)).actionGet();
+                    RecoveryResponse response = client().execute(RecoveryAction.INSTANCE, new RecoveryRequest(indexName)).get();
                     List<RecoveryState> recoveryStates = response.shardRecoveryStates().get(indexName);
                     List<RecoveryState> nodeCRecoveryStates = findRecoveriesForTargetNode(nodeC, recoveryStates);
                     assertThat(nodeCRecoveryStates.size(), equalTo(1));
@@ -487,7 +487,7 @@ public class IndexRecoveryIT extends SQLIntegrationTestCase {
         });
 
         logger.info("--> request recoveries");
-        RecoveryResponse response = client().legacyExecute(RecoveryAction.INSTANCE, new RecoveryRequest(index.getName())).actionGet();
+        RecoveryResponse response = client().execute(RecoveryAction.INSTANCE, new RecoveryRequest(index.getName())).get();
 
         List<RecoveryState> recoveryStates = response.shardRecoveryStates().get(index.getName());
         List<RecoveryState> nodeARecoveryStates = findRecoveriesForTargetNode(nodeA, recoveryStates);
@@ -535,7 +535,7 @@ public class IndexRecoveryIT extends SQLIntegrationTestCase {
         // wait for it to be finished
         ensureGreen(index.getName());
 
-        response = client().legacyExecute(RecoveryAction.INSTANCE, new RecoveryRequest(index.getName())).actionGet();
+        response = client().execute(RecoveryAction.INSTANCE, new RecoveryRequest(index.getName())).get();
         recoveryStates = response.shardRecoveryStates().get(index.getName());
         assertThat(recoveryStates.size(), equalTo(1));
 
@@ -551,7 +551,7 @@ public class IndexRecoveryIT extends SQLIntegrationTestCase {
         // we have to use assertBusy as recovery counters are decremented only when the last reference to the RecoveryTarget
         // is decremented, which may happen after the recovery was done.
 
-        // CrateDB does not expose the RecoveryStats via an API, it can only be retrieved by by the IndicesService.
+        // CrateDB does not expose the RecoveryStats via an API, it can only be retrieved by the IndicesService.
         // NodeA does not hold the index anymore, such resolving RecoveryStats via NodeA is not possible.
         //assertBusy(() -> assertNodeHasThrottleTimeAndNoRecoveries.accept(nodeA));
         assertBusy(() -> assertNodeHasThrottleTimeAndNoRecoveries.accept(nodeB));
@@ -575,7 +575,7 @@ public class IndexRecoveryIT extends SQLIntegrationTestCase {
         logger.info("--> move replica shard from: {} to: {}", nodeA, nodeC);
         execute("ALTER TABLE " + INDEX_NAME + " REROUTE MOVE SHARD 0 FROM '" + nodeA + "' TO '" + nodeC + "'");
 
-        response = client().legacyExecute(RecoveryAction.INSTANCE, new RecoveryRequest(index.getName())).actionGet();
+        response = client().execute(RecoveryAction.INSTANCE, new RecoveryRequest(index.getName())).get();
         recoveryStates = response.shardRecoveryStates().get(index.getName());
 
         nodeARecoveryStates = findRecoveriesForTargetNode(nodeA, recoveryStates);
@@ -600,7 +600,7 @@ public class IndexRecoveryIT extends SQLIntegrationTestCase {
             internalCluster().stopRandomNode(InternalTestCluster.nameFilter(nodeA));
             ensureStableCluster(2);
 
-            response = client().legacyExecute(RecoveryAction.INSTANCE, new RecoveryRequest(index.getName())).actionGet();
+            response = client().execute(RecoveryAction.INSTANCE, new RecoveryRequest(index.getName())).get();
             recoveryStates = response.shardRecoveryStates().get(index.getName());
 
             nodeARecoveryStates = findRecoveriesForTargetNode(nodeA, recoveryStates);
@@ -621,7 +621,7 @@ public class IndexRecoveryIT extends SQLIntegrationTestCase {
         restoreRecoverySpeed();
         ensureGreen();
 
-        response = client().legacyExecute(RecoveryAction.INSTANCE, new RecoveryRequest(index.getName())).actionGet();
+        response = client().execute(RecoveryAction.INSTANCE, new RecoveryRequest(index.getName())).get();
         recoveryStates = response.shardRecoveryStates().get(index.getName());
 
         nodeARecoveryStates = findRecoveriesForTargetNode(nodeA, recoveryStates);
@@ -667,12 +667,12 @@ public class IndexRecoveryIT extends SQLIntegrationTestCase {
         ensureGreen();
 
         var snapshotInfo = client()
-            .legacyExecute(GetSnapshotsAction.INSTANCE, new GetSnapshotsRequest(REPO_NAME, new String[]{SNAP_NAME}))
+            .execute(GetSnapshotsAction.INSTANCE, new GetSnapshotsRequest(REPO_NAME, new String[]{SNAP_NAME}))
             .get().getSnapshots().get(0);
 
         logger.info("--> request recoveries");
         var indexName = IndexParts.toIndexName(sqlExecutor.getCurrentSchema(), INDEX_NAME, null);
-        RecoveryResponse response = client().legacyExecute(RecoveryAction.INSTANCE, new RecoveryRequest(indexName)).actionGet();
+        RecoveryResponse response = client().execute(RecoveryAction.INSTANCE, new RecoveryRequest(indexName)).get();
 
         for (Map.Entry<String, List<RecoveryState>> indexRecoveryStates : response.shardRecoveryStates().entrySet()) {
 
@@ -1299,7 +1299,7 @@ public class IndexRecoveryIT extends SQLIntegrationTestCase {
             }
         }
         SyncedFlushUtil.attemptSyncedFlush(logger, internalCluster(), shardId);
-        assertBusy(() -> assertThat(client().legacyExecute(SyncedFlushAction.INSTANCE, new SyncedFlushRequest(indexName)).get().failedShards(), equalTo(0)));
+        assertBusy(() -> assertThat(client().execute(SyncedFlushAction.INSTANCE, new SyncedFlushRequest(indexName)).get().failedShards(), equalTo(0)));
         execute("ALTER TABLE doc.test SET (number_of_replicas = 2)");
         ensureGreen(indexName);
         // Recovery should keep syncId if no indexing activity on the primary after synced-flush.
@@ -1411,7 +1411,7 @@ public class IndexRecoveryIT extends SQLIntegrationTestCase {
         }
         final long maxSeqNo = shard.seqNoStats().getMaxSeqNo();
         shard.failShard("test", new IOException("simulated"));
-        StartRecoveryRequest startRecoveryRequest = startRecoveryRequestFuture.actionGet();
+        StartRecoveryRequest startRecoveryRequest = startRecoveryRequestFuture.get();
         logger.info("--> start recovery request: starting seq_no {}, commit {}", startRecoveryRequest.startingSeqNo(),
                     startRecoveryRequest.metadataSnapshot().getCommitUserData());
         SequenceNumbers.CommitInfo commitInfoAfterLocalRecovery = SequenceNumbers.loadSeqNoInfoFromLuceneCommit(
@@ -1421,7 +1421,7 @@ public class IndexRecoveryIT extends SQLIntegrationTestCase {
         assertThat(startRecoveryRequest.startingSeqNo(), equalTo(lastSyncedGlobalCheckpoint + 1));
         ensureGreen(indexName);
         assertThat((long) localRecoveredOps.get(), equalTo(lastSyncedGlobalCheckpoint - localCheckpointOfSafeCommit));
-        for (var recoveryState : client().legacyExecute(RecoveryAction.INSTANCE, new RecoveryRequest()).get().shardRecoveryStates().get(indexName)) {
+        for (var recoveryState : client().execute(RecoveryAction.INSTANCE, new RecoveryRequest()).get().shardRecoveryStates().get(indexName)) {
             if (startRecoveryRequest.targetNode().equals(recoveryState.getTargetNode())) {
                 assertThat("expect an operation-based recovery", recoveryState.getIndex().fileDetails().values(), empty());
                 assertThat("total recovered translog operations must include both local and remote recovery",
@@ -1482,7 +1482,7 @@ public class IndexRecoveryIT extends SQLIntegrationTestCase {
         ensureGreen(indexName);
 
         //noinspection OptionalGetWithoutIsPresent because it fails the test if absent
-        final var recoveryState = client().legacyExecute(RecoveryAction.INSTANCE, new RecoveryRequest()).get()
+        final var recoveryState = client().execute(RecoveryAction.INSTANCE, new RecoveryRequest()).get()
             .shardRecoveryStates().get(indexName).stream().filter(rs -> rs.getPrimary() == false).findFirst().get();
         assertThat(recoveryState.getIndex().totalFileCount(), greaterThan(0));
     }
@@ -1538,7 +1538,7 @@ public class IndexRecoveryIT extends SQLIntegrationTestCase {
         ensureGreen(indexName);
 
         //noinspection OptionalGetWithoutIsPresent because it fails the test if absent
-        final var recoveryState = client().legacyExecute(RecoveryAction.INSTANCE, new RecoveryRequest()).get()
+        final var recoveryState = client().execute(RecoveryAction.INSTANCE, new RecoveryRequest()).get()
             .shardRecoveryStates().get(indexName).stream().filter(rs -> rs.getPrimary() == false).findFirst().get();
         assertThat(recoveryState.getIndex().totalFileCount(), greaterThan(0));
     }
@@ -1649,7 +1649,7 @@ public class IndexRecoveryIT extends SQLIntegrationTestCase {
         ensureGreen(indexName);
 
         //noinspection OptionalGetWithoutIsPresent because it fails the test if absent
-        final var recoveryState = client().legacyExecute(RecoveryAction.INSTANCE, new RecoveryRequest()).get()
+        final var recoveryState = client().execute(RecoveryAction.INSTANCE, new RecoveryRequest()).get()
             .shardRecoveryStates().get(indexName).stream().filter(rs -> rs.getPrimary() == false).findFirst().get();
         assertThat(recoveryState.getIndex().totalFileCount(), greaterThan(0));
     }
@@ -1689,7 +1689,7 @@ public class IndexRecoveryIT extends SQLIntegrationTestCase {
         final long maxSeqNoAfterRecovery = primary.seqNoStats().getMaxSeqNo();
 
         //noinspection OptionalGetWithoutIsPresent because it fails the test if absent
-        final var recoveryState = client().legacyExecute(RecoveryAction.INSTANCE, new RecoveryRequest()).get()
+        final var recoveryState = client().execute(RecoveryAction.INSTANCE, new RecoveryRequest()).get()
             .shardRecoveryStates().get(indexName).stream().filter(rs -> rs.getPrimary() == false).findFirst().get();
         assertThat((long)recoveryState.getTranslog().recoveredOperations(),
                    lessThanOrEqualTo(maxSeqNoAfterRecovery - maxSeqNoBeforeRecovery));
