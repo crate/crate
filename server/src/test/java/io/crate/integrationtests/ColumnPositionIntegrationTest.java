@@ -61,10 +61,10 @@ public class ColumnPositionIntegrationTest extends SQLIntegrationTestCase {
                                                          tc['te']| 5
                                                          tc['tf']| 6
                                                          tc['tf']['tg']| 7
-                                                         ti| 8
-                                                         ti['tj']| 9
-                                                         ti['tk']| 10
-                                                         tl| 11
+                                                         ti| 9
+                                                         ti['tj']| 10
+                                                         ti['tk']| 11
+                                                         tl| 12
                                                          """));
     }
 
