@@ -25,7 +25,7 @@ jobs:
         env:
           CRATE_TESTS_SQL_REQUEST_TIMEOUT: "20"
         with:
-          arguments: :server:test -Dtests.crate.run-windows-incompatible=${{ matrix.os == 'ubuntu-latest' }}
+          arguments: :server:test -PtestForks=8 -Dtests.nightly=true -Dtests.crate.run-windows-incompatible=${{ matrix.os == 'ubuntu-latest' }}
 
 
   forbiddenApis:
@@ -52,7 +52,7 @@ jobs:
           java-version: 17
       - name: Run checkstyle
         run: |
-          ./gradlew checkstyleMain checkstyleTest checkstyleTestFixtures
+          ./gradlew -PtestForks=8 checkstyleMain checkstyleTest checkstyleTestFixtures
 
   linkcheck:
     name: Sphinx linkcheck
