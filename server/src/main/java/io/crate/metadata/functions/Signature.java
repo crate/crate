@@ -432,13 +432,15 @@ public final class Signature implements Writeable {
     /**
      * Write the given {@link Signature} to the stream in the format of the old FunctionInfo class for BWC compatibility
      * with nodes < 4.2.0
+     * @param argumentDataTypes is list of concrete types when getArgumentDataTypes() cannot be used as it's contains type variable constraints.
      */
-    public void writeAsFunctionInfo(StreamOutput out) throws IOException {
+    public void writeAsFunctionInfo(StreamOutput out, List<DataType<?>> argumentDataTypes) throws IOException {
+
         // old FunctionIdent
         name.writeTo(out);
-        var argumentTypes = getArgumentDataTypes();
-        out.writeVInt(argumentTypes.size());
-        for (DataType<?> argumentType : argumentTypes) {
+
+        out.writeVInt(argumentDataTypes.size());
+        for (DataType<?> argumentType : argumentDataTypes) {
             DataTypes.toStream(argumentType, out);
         }
         // FunctionIdent end

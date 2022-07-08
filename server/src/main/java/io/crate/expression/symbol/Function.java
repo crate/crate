@@ -187,7 +187,7 @@ public class Function implements Symbol, Cloneable {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         if (out.getVersion().before(Version.V_5_0_0)) {
-            signature.writeAsFunctionInfo(out);
+            signature.writeAsFunctionInfo(out, Symbols.typeView(arguments));
         }
         if (out.getVersion().onOrAfter(Version.V_4_1_0)) {
             Symbols.nullableToStream(filter, out);
