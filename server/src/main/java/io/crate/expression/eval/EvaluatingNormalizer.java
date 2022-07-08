@@ -57,6 +57,8 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
 import io.crate.types.DataTypes;
 
+import static io.crate.expression.predicate.MatchPredicate.TEXT_MATCH;
+
 
 /**
  * The normalizer does several things:
@@ -174,7 +176,7 @@ public class EvaluatingNormalizer {
                         if (out.getVersion().onOrAfter(Version.V_4_2_4)) {
                             super.writeTo(out);
                         } else {
-                            io.crate.expression.predicate.MatchPredicate.TEXT_MATCH.writeAsFunctionInfo(out);
+                            TEXT_MATCH.writeAsFunctionInfo(out, TEXT_MATCH.getArgumentDataTypes());
                             if (out.getVersion().onOrAfter(Version.V_4_1_0)) {
                                 Symbols.nullableToStream(filter, out);
                             }
