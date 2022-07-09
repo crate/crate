@@ -23,6 +23,7 @@ package io.crate.analyze;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
 
@@ -31,6 +32,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.AddColumnDefinition;
@@ -68,7 +70,11 @@ public class TableElementsAnalyzer {
                                                        @Nullable DocTableInfo tableInfo,
                                                        boolean logWarnings) {
         AnalyzedTableElements<T> analyzedTableElements = new AnalyzedTableElements<>();
-        int positionOffset = tableInfo == null ? 0 : tableInfo.columns().size() + tableInfo.indexColumns().size();
+        int positionOffset = tableInfo == null ? 0 :
+            StreamSupport.stream(tableInfo.spliterator(), false)
+                .filter(r -> !DocSysColumns.COLUMN_IDENTS.containsKey(r.ident().columnIdent()))
+                .mapToInt(Reference::position).max().orElse(0) +
+            tableInfo.indexColumns().size();
         InnerTableElementsAnalyzer<T> analyzer = new InnerTableElementsAnalyzer<>();
         for (int i = 0; i < tableElements.size(); i++) {
             TableElement<T> tableElement = tableElements.get(i);
@@ -87,6 +93,7 @@ public class TableElementsAnalyzer {
             }
             positionOffset = ctx.currentColumnPosition;
         }
+        // TODO: assert that positions are unique and not null
         return analyzedTableElements;
     }
 
@@ -169,6 +176,8 @@ public class TableElementsAnalyzer {
                     if (parentRef != null) {
                         parent.position = parentRef.position();
                         if (parentRef.valueType().id() == ArrayType.ID) {
+                            var childrenType = ((ArrayType) parentRef.valueType()).innerType();
+                            childrenCnt = (childrenType.id() == ObjectType.ID) ? ((ObjectType) childrenType).innerTypes().size() : 0;
                             parent.collectionType(ArrayType.NAME);
                         } else {
                             childrenCnt = ((ObjectType) parentRef.valueType()).innerTypes().size();

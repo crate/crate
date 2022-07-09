@@ -78,7 +78,7 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
             boundAddColumn.mapping().toString(),
             is("{_meta={primary_keys=[pk.a, pk.b.c]}, " +
                "properties={" +
-                    "x={position=2, type=integer}, " +
+                    "x={position=5, type=integer}, " +
                     "pk={dynamic=true, type=object, properties={a={type=integer}, b={dynamic=true, type=object, properties={c={type=integer}}}}}}}")
         );
     }
@@ -295,7 +295,7 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
                                                                 "position=2, " +
                                                                 "properties={" +
                                                                     "is_nice={" +
-                                                                      "position=3, " +
+                                                                      "position=5, " +
                                                                       "type=boolean" +
                                                                     "}" +
                                                                 "}, " +
