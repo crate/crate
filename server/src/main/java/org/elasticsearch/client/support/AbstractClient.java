@@ -276,13 +276,8 @@ public abstract class AbstractClient implements Client {
         }
 
         @Override
-        public ActionFuture<AcknowledgedResponse> putTemplate(final PutIndexTemplateRequest request) {
-            return legacyExecute(PutIndexTemplateAction.INSTANCE, request);
-        }
-
-        @Override
-        public void putTemplate(final PutIndexTemplateRequest request, final ActionListener<AcknowledgedResponse> listener) {
-            execute(PutIndexTemplateAction.INSTANCE, request).whenComplete(listener);
+        public CompletableFuture<AcknowledgedResponse> putTemplate(final PutIndexTemplateRequest request) {
+            return execute(PutIndexTemplateAction.INSTANCE, request);
         }
 
         @Override
