@@ -67,7 +67,6 @@ import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesRequ
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateAction;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
-import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequestBuilder;
 import org.elasticsearch.action.admin.indices.upgrade.post.UpgradeAction;
 import org.elasticsearch.action.admin.indices.upgrade.post.UpgradeRequest;
 import org.elasticsearch.action.admin.indices.upgrade.post.UpgradeResponse;
@@ -284,11 +283,6 @@ public abstract class AbstractClient implements Client {
         @Override
         public void putTemplate(final PutIndexTemplateRequest request, final ActionListener<AcknowledgedResponse> listener) {
             execute(PutIndexTemplateAction.INSTANCE, request).whenComplete(listener);
-        }
-
-        @Override
-        public PutIndexTemplateRequestBuilder preparePutTemplate(String name) {
-            return new PutIndexTemplateRequestBuilder(this, PutIndexTemplateAction.INSTANCE, name);
         }
 
         @Override

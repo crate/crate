@@ -76,7 +76,8 @@ import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequestBuilder;
 import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
 import org.elasticsearch.action.admin.indices.refresh.RefreshResponse;
-import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequestBuilder;
+import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateAction;
+import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
 import org.elasticsearch.action.support.ActiveShardCount;
 import org.elasticsearch.client.AdminClient;
 import org.elasticsearch.client.Client;
@@ -310,12 +311,12 @@ public abstract class ESIntegTestCase extends ESTestCase {
             if (randomBoolean()) {
                 randomSettingsBuilder.put(IndexModule.INDEX_QUERY_CACHE_ENABLED_SETTING.getKey(), randomBoolean());
             }
-            PutIndexTemplateRequestBuilder putTemplate = client().admin().indices()
-                .preparePutTemplate("random_index_template")
-                .setPatterns(Collections.singletonList("*"))
-                .setOrder(0)
-                .setSettings(randomSettingsBuilder);
-            assertAcked(putTemplate.execute().actionGet());
+            PutIndexTemplateRequest request = new PutIndexTemplateRequest("random_index_template")
+                .patterns(Collections.singletonList("*"))
+                .order(0)
+                .settings(randomSettingsBuilder);
+
+            assertAcked(FutureUtils.get(client().admin().indices().execute(PutIndexTemplateAction.INSTANCE, request)));
         }
     }
 
