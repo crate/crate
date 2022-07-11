@@ -33,7 +33,6 @@ import org.elasticsearch.action.admin.indices.recovery.RecoveryRequest;
 import org.elasticsearch.action.admin.indices.recovery.RecoveryResponse;
 import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
 import org.elasticsearch.action.admin.indices.refresh.RefreshResponse;
-import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequestBuilder;
 import org.elasticsearch.action.admin.indices.stats.IndicesStatsRequest;
 import org.elasticsearch.action.admin.indices.stats.IndicesStatsRequestBuilder;
@@ -54,11 +53,6 @@ import org.elasticsearch.action.support.master.AcknowledgedResponse;
  * @see AdminClient#indices()
  */
 public interface IndicesAdminClient extends ElasticsearchClient {
-
-    /**
-     * Indices stats.
-     */
-    ActionFuture<IndicesStatsResponse> stats(IndicesStatsRequest request);
 
     /**
      * Indices stats.
@@ -126,14 +120,6 @@ public interface IndicesAdminClient extends ElasticsearchClient {
      * Add mapping definition for a type into one or more indices.
      */
     PutMappingRequestBuilder preparePutMapping(String... indices);
-
-    /**
-     * Updates settings of one or more indices.
-     *
-     * @param request the update settings request
-     * @return The result future
-     */
-    ActionFuture<AcknowledgedResponse> updateSettings(UpdateSettingsRequest request);
 
     /**
      * Update indices settings.
