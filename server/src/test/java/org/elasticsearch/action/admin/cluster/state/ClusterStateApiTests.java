@@ -19,21 +19,20 @@
 
 package org.elasticsearch.action.admin.cluster.state;
 
-import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertAcked;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
 import java.util.concurrent.CompletableFuture;
 
-import org.elasticsearch.action.ActionFuture;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.test.ESIntegTestCase;
+import org.junit.Test;
 
 import io.crate.common.unit.TimeValue;
+import io.crate.integrationtests.SQLIntegrationTestCase;
 
-public class ClusterStateApiTests extends ESIntegTestCase {
+public class ClusterStateApiTests extends SQLIntegrationTestCase {
 
+    @Test
     public void testWaitForMetaDataVersion() throws Exception {
         ClusterStateRequest clusterStateRequest = new ClusterStateRequest();
         clusterStateRequest.waitForTimeout(TimeValue.timeValueHours(1));
@@ -52,9 +51,7 @@ public class ClusterStateApiTests extends ESIntegTestCase {
         assertThat(future2.isDone(), is(false));
 
         // Pick an arbitrary dynamic cluster setting and change it. Just to get metadata version incremented:
-        assertAcked(client().admin().cluster().prepareUpdateSettings().setTransientSettings(Settings.builder().put(
-            "cluster.max_shards_per_node",
-            999)).execute().actionGet());
+        execute("set global transient cluster.max_shards_per_node = 999");
 
         assertBusy(() -> {
             assertThat(future2.isDone(), is(true));
@@ -76,9 +73,7 @@ public class ClusterStateApiTests extends ESIntegTestCase {
         assertThat(response.getState(), nullValue());
 
         // Remove transient setting, otherwise test fails with the reason that this test leaves state behind:
-        assertAcked(client().admin().cluster().prepareUpdateSettings().setTransientSettings(Settings.builder().put(
-            "cluster.max_shards_per_node",
-            (String) null)).execute().actionGet());
+        execute("reset global cluster.max_shards_per_node");
     }
 
 }

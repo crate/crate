@@ -40,6 +40,8 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
+import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsAction;
+import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.elasticsearch.cluster.ClusterInfoService;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.MockInternalClusterInfoService;
@@ -372,13 +374,25 @@ public class DiskUsagesITest extends SQLIntegrationTestCase {
         cis.setDiskUsageFunctionAndRefresh((discoveryNode, fsInfoPath) -> setDiskUsage(fsInfoPath, 100, between(15, 100)));
 
         final boolean watermarkBytes = randomBoolean(); // we have to consistently use bytes or percentage for the disk watermark settings
-        client().admin().cluster().prepareUpdateSettings().setTransientSettings(Settings.builder()
-            .put(DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_LOW_DISK_WATERMARK_SETTING.getKey(), watermarkBytes ? "15b" : "85%")
-            .put(DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_HIGH_DISK_WATERMARK_SETTING.getKey(), watermarkBytes ? "10b" : "90%")
-            .put(
-                DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_DISK_FLOOD_STAGE_WATERMARK_SETTING.getKey(),
-                watermarkBytes ? "5b" : "95%")
-            .put(DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_REROUTE_INTERVAL_SETTING.getKey(), "150ms")).get();
+        execute("""
+            set global transient
+                cluster.routing.allocation.disk.watermark.low = ?,
+                cluster.routing.allocation.disk.watermark.high = ?,
+                cluster.routing.allocation.disk.watermark.flood_stage = ?
+            """,
+            new Object[] {
+                watermarkBytes ? "15b" : "85%",
+                watermarkBytes ? "10b" : "90%",
+                watermarkBytes ? "5b" : "95%"
+            }
+        );
+        // reroute_interval is not exposed
+        var updateSettingsRequest = new ClusterUpdateSettingsRequest()
+            .transientSettings(Settings.builder()
+                .put(DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_REROUTE_INTERVAL_SETTING.getKey(), "150ms")
+            );
+        client().admin().cluster().execute(ClusterUpdateSettingsAction.INSTANCE, updateSettingsRequest).get();
+
 
         // Create an index with 6 shards so we can check allocation for it
         execute("create table test (id int primary key, foo text) " +

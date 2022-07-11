@@ -30,19 +30,22 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.env.TestEnvironment;
 import org.elasticsearch.test.ESIntegTestCase;
+import org.junit.Test;
+
+import io.crate.integrationtests.SQLIntegrationTestCase;
 
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 
 @ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.TEST, numDataNodes = 0, autoManageMasterNodes = false)
-public class RemoveSettingsCommandIT extends ESIntegTestCase {
+public class RemoveSettingsCommandIT extends SQLIntegrationTestCase {
 
+    @Test
     public void testRemoveSettingsAbortedByUser() throws Exception {
         internalCluster().setBootstrapMasterNodeIndex(0);
         String node = internalCluster().startNode();
-        client().admin().cluster().prepareUpdateSettings().setPersistentSettings(Settings.builder()
-                                                                                     .put(DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_DISK_THRESHOLD_ENABLED_SETTING.getKey(), false).build()).get();
+        execute("set global persistent cluster.routing.allocation.disk.threshold_enabled = false");
         Settings dataPathSettings = internalCluster().dataPathSettings(node);
         ensureStableCluster(1);
         internalCluster().stopRandomDataNode();
@@ -54,11 +57,11 @@ public class RemoveSettingsCommandIT extends ESIntegTestCase {
                      ElasticsearchNodeCommand.ABORTED_BY_USER_MSG);
     }
 
+    @Test
     public void testRemoveSettingsSuccessful() throws Exception {
         internalCluster().setBootstrapMasterNodeIndex(0);
         String node = internalCluster().startNode();
-        client().admin().cluster().prepareUpdateSettings().setPersistentSettings(Settings.builder()
-                                                                                     .put(DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_DISK_THRESHOLD_ENABLED_SETTING.getKey(), false).build()).get();
+        execute("set global persistent cluster.routing.allocation.disk.threshold_enabled = false");
         assertThat(client().admin().cluster().prepareState().get().getState().metadata().persistentSettings().keySet(),
                    contains(DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_DISK_THRESHOLD_ENABLED_SETTING.getKey()));
         Settings dataPathSettings = internalCluster().dataPathSettings(node);
@@ -82,11 +85,11 @@ public class RemoveSettingsCommandIT extends ESIntegTestCase {
                    not(contains(DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_DISK_THRESHOLD_ENABLED_SETTING.getKey())));
     }
 
+    @Test
     public void testSettingDoesNotMatch() throws Exception {
         internalCluster().setBootstrapMasterNodeIndex(0);
         String node = internalCluster().startNode();
-        client().admin().cluster().prepareUpdateSettings().setPersistentSettings(Settings.builder()
-                                                                                     .put(DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_DISK_THRESHOLD_ENABLED_SETTING.getKey(), false).build()).get();
+        execute("set global persistent cluster.routing.allocation.disk.threshold_enabled = false");
         assertThat(client().admin().cluster().prepareState().get().getState().metadata().persistentSettings().keySet(),
                    contains(DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_DISK_THRESHOLD_ENABLED_SETTING.getKey()));
         Settings dataPathSettings = internalCluster().dataPathSettings(node);

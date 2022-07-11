@@ -45,6 +45,8 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
+import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsAction;
+import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.client.Client;
@@ -591,8 +593,11 @@ public class GatewayIndexStateIT extends SQLIntegrationTestCase {
             + SETTING_CLUSTER_MAX_SHARDS_PER_NODE.getKey()));
 
         // delete these settings
-        client().admin().cluster().prepareUpdateSettings().setPersistentSettings(Settings.builder().putNull("archived.*"))
-            .execute().actionGet(REQUEST_TIMEOUT);
+        client().admin().cluster().execute(
+            ClusterUpdateSettingsAction.INSTANCE,
+            new ClusterUpdateSettingsRequest()
+                .persistentSettings(Settings.builder().putNull("archived.*"))
+        ).get(REQUEST_TIMEOUT.millis(), TimeUnit.MILLISECONDS);
 
         state = client().admin().cluster().prepareState().get().getState();
         assertNull(state.metadata().persistentSettings().get("archived.this.is.unknown"));
