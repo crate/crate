@@ -52,7 +52,6 @@ import org.elasticsearch.action.admin.indices.refresh.RefreshAction;
 import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
 import org.elasticsearch.action.admin.indices.refresh.RefreshResponse;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsAction;
-import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequestBuilder;
 import org.elasticsearch.action.admin.indices.stats.IndicesStatsAction;
 import org.elasticsearch.action.admin.indices.stats.IndicesStatsRequest;
@@ -245,11 +244,6 @@ public abstract class AbstractClient implements Client {
         }
 
         @Override
-        public ActionFuture<IndicesStatsResponse> stats(final IndicesStatsRequest request) {
-            return legacyExecute(IndicesStatsAction.INSTANCE, request);
-        }
-
-        @Override
         public void stats(final IndicesStatsRequest request, final ActionListener<IndicesStatsResponse> listener) {
             execute(IndicesStatsAction.INSTANCE, request).whenComplete(listener);
         }
@@ -262,12 +256,6 @@ public abstract class AbstractClient implements Client {
         @Override
         public ActionFuture<RecoveryResponse> recoveries(final RecoveryRequest request) {
             return legacyExecute(RecoveryAction.INSTANCE, request);
-        }
-
-
-        @Override
-        public ActionFuture<AcknowledgedResponse> updateSettings(final UpdateSettingsRequest request) {
-            return legacyExecute(UpdateSettingsAction.INSTANCE, request);
         }
 
         @Override
