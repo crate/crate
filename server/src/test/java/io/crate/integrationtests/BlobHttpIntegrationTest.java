@@ -39,6 +39,7 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicHeader;
 import org.apache.http.util.EntityUtils;
 import org.apache.lucene.util.IOUtils;
+import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.http.HttpServerTransport;
@@ -97,11 +98,11 @@ public abstract class BlobHttpIntegrationTest extends BlobIntegrationTestBase {
         blobAdminClient.createBlobTable("test", indexSettings).get();
         blobAdminClient.createBlobTable("test_blobs2", indexSettings).get();
 
-        client().admin().indices().prepareCreate("test_no_blobs")
-            .setSettings(
+        client().admin().indices().create(new CreateIndexRequest("test_no_blobs")
+            .settings(
                 Settings.builder()
                     .put("number_of_shards", 2)
-                    .put("number_of_replicas", 0).build()).execute().actionGet();
+                    .put("number_of_replicas", 0).build())).get();
         ensureGreen();
     }
 

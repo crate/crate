@@ -24,7 +24,6 @@ import java.util.concurrent.CompletableFuture;
 import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
-import org.elasticsearch.action.admin.indices.create.CreateIndexRequestBuilder;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
@@ -75,14 +74,7 @@ public interface IndicesAdminClient extends ElasticsearchClient {
      * @param request The create index request
      * @return The result future
      */
-    ActionFuture<CreateIndexResponse> create(CreateIndexRequest request);
-
-    /**
-     * Creates an index using an explicit request allowing to specify the settings of the index.
-     *
-     * @param index The index name to create
-     */
-    CreateIndexRequestBuilder prepareCreate(String index);
+    CompletableFuture<CreateIndexResponse> create(CreateIndexRequest request);
 
     /**
      * Deletes an index based on the index name.

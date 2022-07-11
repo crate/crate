@@ -46,6 +46,7 @@ import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
+import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexGraveyard;
@@ -490,10 +491,15 @@ public class GatewayIndexStateIT extends SQLIntegrationTestCase {
         logger.info("--> starting one node");
         internalCluster().startNode();
         var tableName = getFqn("test");
-        prepareCreate(tableName).setSettings(Settings.builder()
-            .put("index.analysis.analyzer.test.tokenizer", "standard")
-            .put("index.number_of_shards", "1"))
-            .addMapping("{\n" +
+        client().admin().indices().create(
+            new CreateIndexRequest(
+                tableName,
+                Settings.builder()
+                    .put("index.analysis.analyzer.test.tokenizer", "standard")
+                    .put("index.number_of_shards", "1")
+                    .build()
+            )
+            .mapping("{\n" +
                 "    \"default\": {\n" +
                 "      \"properties\": {\n" +
                 "        \"field1\": {\n" +
@@ -502,7 +508,8 @@ public class GatewayIndexStateIT extends SQLIntegrationTestCase {
                 "        }\n" +
                 "      }\n" +
                 "    }\n" +
-                "  }}", XContentType.JSON).get();
+                "  }}", XContentType.JSON)
+        ).get();
         logger.info("--> indexing a simple document");
         execute("insert into test (field1) values ('value one')");
         execute("refresh table test");

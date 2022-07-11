@@ -38,7 +38,6 @@ import org.elasticsearch.action.admin.cluster.state.ClusterStateRequestBuilder;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.action.admin.indices.create.CreateIndexAction;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
-import org.elasticsearch.action.admin.indices.create.CreateIndexRequestBuilder;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexAction;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
@@ -209,13 +208,8 @@ public abstract class AbstractClient implements Client {
         }
 
         @Override
-        public ActionFuture<CreateIndexResponse> create(final CreateIndexRequest request) {
-            return legacyExecute(CreateIndexAction.INSTANCE, request);
-        }
-
-        @Override
-        public CreateIndexRequestBuilder prepareCreate(String index) {
-            return new CreateIndexRequestBuilder(this, CreateIndexAction.INSTANCE, index);
+        public CompletableFuture<CreateIndexResponse> create(final CreateIndexRequest request) {
+            return execute(CreateIndexAction.INSTANCE, request);
         }
 
         @Override
