@@ -425,9 +425,6 @@ public abstract class ESIntegTestCase extends ESTestCase {
                         final Set<String> persistent = metadata.persistentSettings().keySet();
                         assertThat("test leaves persistent cluster metadata behind: " + persistent, persistent.size(), equalTo(0));
                         final Set<String> transientSettings =  new HashSet<>(metadata.transientSettings().keySet());
-                        // CRATE_PATCH: crate has a cluster id that is generated upon startup ... remove it here
-                        transientSettings.remove("cluster_id");
-
                         assertThat("test leaves transient cluster metadata behind: " + transientSettings,
                             transientSettings, empty());
                     }
