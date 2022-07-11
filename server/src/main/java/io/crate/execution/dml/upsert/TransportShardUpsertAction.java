@@ -285,6 +285,8 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                     }
                 }
                 throw e;
+            } catch (IllegalStateException e2) {
+                indexShard.refresh("test");
             }
         }
         logger.warn("[{}] VersionConflict for document id={}, version={} exceeded retry limit of {}, will stop retrying",

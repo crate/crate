@@ -209,6 +209,12 @@ public abstract class TransportShardAction<Request extends ShardRequest<Request,
         if (result.getResultType() == Engine.Result.Type.MAPPING_UPDATE_REQUIRED) {
             try {
                 mappingUpdate.updateMappings(result.getRequiredMappingUpdate(), shardId);
+            } catch (IllegalStateException e2) {
+              if (!e2.getMessage().contains("duplicate positions")) {
+                  return onMappingUpdateError.apply(e2);
+              } else {
+                  throw e2;
+              }
             } catch (Exception e) {
                 return onMappingUpdateError.apply(e);
             }

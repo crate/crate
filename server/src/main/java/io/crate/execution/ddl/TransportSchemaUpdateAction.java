@@ -26,6 +26,7 @@ import io.crate.Constants;
 import io.crate.action.FutureActionListener;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Maps;
 import io.crate.common.unit.TimeValue;
 import io.crate.metadata.IndexMappings;
 import io.crate.metadata.IndexParts;
@@ -64,11 +65,14 @@ import org.elasticsearch.transport.TransportService;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
+import static io.crate.metadata.doc.DocIndexMetadata.furtherColumnProperties;
 import static org.elasticsearch.index.mapper.MapperService.parseMapping;
 
 @Singleton
@@ -202,12 +206,38 @@ public class TransportSchemaUpdateAction extends TransportMasterNodeAction<Schem
         for (ObjectObjectCursor<String, CompressedXContent> cursor : template.mappings()) {
             Map<String, Object> source = parseMapping(xContentRegistry, cursor.value.toString());
             mergeIntoSource(source, newMapping);
+            validateSource(source);
             try (XContentBuilder xContentBuilder = JsonXContent.contentBuilder()) {
                 templateBuilder.putMapping(cursor.key, Strings.toString(xContentBuilder.map(source)));
             }
         }
         Metadata.Builder builder = Metadata.builder(currentState.metadata()).put(templateBuilder);
         return ClusterState.builder(currentState).metadata(builder).build();
+    }
+
+    private static void validateSource(Map<String, Object> source) {
+        Map<String, Object> defaultMap = Maps.get(source, "default");
+        validateColumnPositions(defaultMap, new HashSet<>());
+    }
+
+    private static void validateColumnPositions(Map<String, Object> source, Set<Integer> positions) {
+        Map<String, Object> properties = Maps.get(source, "properties");
+        if (properties == null) {
+            return;
+        }
+        for (var e : properties.values()) {
+            Map<String, Object> columnProperties = (Map<String, Object>) e;
+            columnProperties = furtherColumnProperties(columnProperties);
+            Integer position = (Integer) columnProperties.get("position");
+            if (position != null) {
+                if (positions.contains(position)) {
+                    throw new IllegalStateException("Cannot update schema due to duplicate positions");
+                } else {
+                    positions.add(position);
+                }
+            }
+            validateColumnPositions(columnProperties, positions);
+        }
     }
 
     static void mergeIntoSource(Map<String, Object> source, Map<String, Object> mappingUpdate) {
