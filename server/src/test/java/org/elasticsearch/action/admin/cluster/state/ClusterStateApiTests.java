@@ -19,33 +19,36 @@
 
 package org.elasticsearch.action.admin.cluster.state;
 
-import io.crate.common.unit.TimeValue;
-import org.elasticsearch.action.ActionFuture;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.test.ESIntegTestCase;
-
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertAcked;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
+
+import java.util.concurrent.CompletableFuture;
+
+import org.elasticsearch.action.ActionFuture;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.test.ESIntegTestCase;
+
+import io.crate.common.unit.TimeValue;
 
 public class ClusterStateApiTests extends ESIntegTestCase {
 
     public void testWaitForMetaDataVersion() throws Exception {
         ClusterStateRequest clusterStateRequest = new ClusterStateRequest();
         clusterStateRequest.waitForTimeout(TimeValue.timeValueHours(1));
-        ActionFuture<ClusterStateResponse> future1 = client().admin().cluster().state(clusterStateRequest);
+        CompletableFuture<ClusterStateResponse> future1 = client().admin().cluster().state(clusterStateRequest);
         assertBusy(() -> {
             assertThat(future1.isDone(), is(true));
         });
-        assertThat(future1.actionGet().isWaitForTimedOut(), is(false));
-        long metadataVersion = future1.actionGet().getState().getMetadata().version();
+        assertThat(future1.get().isWaitForTimedOut(), is(false));
+        long metadataVersion = future1.get().getState().getMetadata().version();
 
         // Verify that cluster state api returns after the cluster settings have been updated:
         clusterStateRequest = new ClusterStateRequest();
         clusterStateRequest.waitForMetadataVersion(metadataVersion + 1);
 
-        ActionFuture<ClusterStateResponse> future2 = client().admin().cluster().state(clusterStateRequest);
+        CompletableFuture<ClusterStateResponse> future2 = client().admin().cluster().state(clusterStateRequest);
         assertThat(future2.isDone(), is(false));
 
         // Pick an arbitrary dynamic cluster setting and change it. Just to get metadata version incremented:
@@ -56,7 +59,7 @@ public class ClusterStateApiTests extends ESIntegTestCase {
         assertBusy(() -> {
             assertThat(future2.isDone(), is(true));
         });
-        ClusterStateResponse response = future2.actionGet();
+        ClusterStateResponse response = future2.get();
         assertThat(response.isWaitForTimedOut(), is(false));
         assertThat(response.getState().metadata().version(), equalTo(metadataVersion + 1));
 
@@ -64,11 +67,11 @@ public class ClusterStateApiTests extends ESIntegTestCase {
         metadataVersion = response.getState().getMetadata().version();
         clusterStateRequest.waitForMetadataVersion(metadataVersion + 1);
         clusterStateRequest.waitForTimeout(TimeValue.timeValueSeconds(1)); // Fail fast
-        ActionFuture<ClusterStateResponse> future3 = client().admin().cluster().state(clusterStateRequest);
+        CompletableFuture<ClusterStateResponse> future3 = client().admin().cluster().state(clusterStateRequest);
         assertBusy(() -> {
             assertThat(future3.isDone(), is(true));
         });
-        response = future3.actionGet();
+        response = future3.get();
         assertThat(response.isWaitForTimedOut(), is(true));
         assertThat(response.getState(), nullValue());
 

@@ -167,8 +167,8 @@ public abstract class AbstractClient implements Client {
         }
 
         @Override
-        public ActionFuture<ClusterStateResponse> state(final ClusterStateRequest request) {
-            return legacyExecute(ClusterStateAction.INSTANCE, request);
+        public CompletableFuture<ClusterStateResponse> state(final ClusterStateRequest request) {
+            return execute(ClusterStateAction.INSTANCE, request);
         }
 
         @Override
@@ -182,8 +182,8 @@ public abstract class AbstractClient implements Client {
         }
 
         @Override
-        public void nodesStats(final NodesStatsRequest request, final ActionListener<NodesStatsResponse> listener) {
-            execute(NodesStatsAction.INSTANCE, request).whenComplete(listener);
+        public CompletableFuture<NodesStatsResponse> nodesStats(final NodesStatsRequest request) {
+            return execute(NodesStatsAction.INSTANCE, request);
         }
     }
 
