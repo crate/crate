@@ -1,0 +1,93 @@
+.. _version_4.8.2:
+
+=============
+Version 4.8.2
+=============
+
+Released on 2022-07-11.
+
+.. NOTE::
+
+    If you are upgrading a cluster, you must be running CrateDB 4.0.2 or higher
+    before you upgrade to 4.8.2.
+
+    We recommend that you upgrade to the latest 4.7 release before moving to
+    4.8.2.
+
+    A rolling upgrade from 4.7.x to 4.8.2 is supported.
+
+    Before upgrading, you should `back up your data`_.
+
+.. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
+
+
+
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+
+See the :ref:`version_4.8.0` release notes for a full list of changes in the
+4.8 series.
+
+Fixes
+=====
+
+- Fixed an issue that caused queries reading values of type ``BIT`` to fail if
+  the query contains a ``WHERE`` clause ``pk_col = ?`` condition.
+
+- Fixed an issue in the serialization logic of the ``BIT`` type. This could
+  cause issues with PostgreSQL clients using the text serialization mode.
+
+- Fixed an issue that caused ``col IS NULL`` to match empty arrays.
+
+- Fixed an issue that caused ``col IS NULL`` expressions to match rows where
+  ``col`` is not ``null`` if ``col`` had ``INDEX OFF`` and ``STORAGE WITH
+  (columnstore = false)`` set.
+
+- Fixed an issue that caused queries with ``ORDER BY`` clause and ``LIMIT 0`` to
+  fail.
+
+- Fixed an issue that prevented rows inserted after the last refresh from
+  showing up in the result if a shard had been idle for more than 30 seconds.
+  This affected tables without an explicit ``refresh_interval`` setting.
+
+- Fixed an issue that caused NPE to be thrown, instead of a user-friendly error
+  message when ``NULL`` is passed as shardId for the
+  ``ALTER TABLE XXX REROUTE XXX`` statements (MOVE, ALLOCATE, PROMOTE, CANCEL).
+
+- Fixed an issue that caused queries operating on expressions with no defined
+  type to fail. Examples are queries with ``GROUP BY`` on an ignored object
+  column or ``UNION`` on ``NULL`` literals.
+
+- Fixed an issue that caused ``GROUP BY`` and ``ORDER BY`` statements with
+  ``NULL`` ordinal casted to a specific type, throw an error. Example:
+  ``SELECT NULL, count(*) from unnest([1, 2]) GROUP BY NULL::integer``.
+
+- Fixed an issue that not-null constraints used to be shown in the
+  ``pg_constraint`` table which contradicts with PostgreSQL.
+
+- Fixed an issue that caused ``IllegalArgumentException`` to be thrown when
+  attempting to insert values into a partitioned table, using less columns than
+  the ones defined in the table's ``PARTITIONED BY`` clause.
+
+- Fixed an issue that caused failure of ``ALTER TABLE`` statements when updating
+  dynamic or non-dynamic table settings on closed tables.
+
+- Fixed an issue that caused clients using PostrgreSQL wire protocol's simple
+  query to hang, when an error occurred during planning.
+
+- Fixed casts of ``TEXT`` to ``REGCLASS`` data types which were resulting in
+  wrong ``REGCLASS`` values as the  ``current_schema`` was not taken into
+  account.
+
+- Fixed an issue which caused ``PRIMARY KEY`` columns to be shown
+  as nullable in the ``pg_catalog.pg_attribute`` table.
+
+- Fixed possible infinitive loops on ``COPY FROM`` statements if an IO error
+  happen while trying to read lines from an URI.
+
+- Fixed an issue that caused :ref:`ARRAY_LENGTH <scalar-array_length>` in
+  combination with a ``greater than `` (``>``) comparison to exclude rows if an
+  array contained duplicates or nulls.
