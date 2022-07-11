@@ -148,7 +148,7 @@ public interface IndicesAdminClient extends ElasticsearchClient {
     /**
      * Deletes an index template.
      */
-    void deleteTemplate(DeleteIndexTemplateRequest request, ActionListener<AcknowledgedResponse> listener);
+    CompletableFuture<AcknowledgedResponse> deleteTemplate(DeleteIndexTemplateRequest request);
 
     /**
      * Deletes an index template.
