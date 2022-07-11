@@ -25,7 +25,6 @@ import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.cluster.node.stats.NodesStatsRequest;
 import org.elasticsearch.action.admin.cluster.node.stats.NodesStatsResponse;
-import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequestBuilder;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequestBuilder;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
@@ -57,11 +56,6 @@ public interface ClusterAdminClient extends ElasticsearchClient {
      * The state of the cluster.
      */
     ClusterStateRequestBuilder prepareState();
-
-    /**
-     * Update settings in the cluster.
-     */
-    ClusterUpdateSettingsRequestBuilder prepareUpdateSettings();
 
     /**
      * Nodes stats of the cluster.

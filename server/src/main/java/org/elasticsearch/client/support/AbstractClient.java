@@ -30,8 +30,6 @@ import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.cluster.node.stats.NodesStatsAction;
 import org.elasticsearch.action.admin.cluster.node.stats.NodesStatsRequest;
 import org.elasticsearch.action.admin.cluster.node.stats.NodesStatsResponse;
-import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsAction;
-import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequestBuilder;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateAction;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequestBuilder;
@@ -174,11 +172,6 @@ public abstract class AbstractClient implements Client {
         @Override
         public ClusterStateRequestBuilder prepareState() {
             return new ClusterStateRequestBuilder(this, ClusterStateAction.INSTANCE);
-        }
-
-        @Override
-        public ClusterUpdateSettingsRequestBuilder prepareUpdateSettings() {
-            return new ClusterUpdateSettingsRequestBuilder(this, ClusterUpdateSettingsAction.INSTANCE);
         }
 
         @Override

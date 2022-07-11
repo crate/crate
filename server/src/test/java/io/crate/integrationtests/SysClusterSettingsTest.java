@@ -104,11 +104,7 @@ public class SysClusterSettingsTest extends SQLIntegrationTestCase {
 
     @Test
     public void testDynamicTransientSettings() throws Exception {
-        Settings.Builder builder = Settings.builder()
-            .put(JobsLogService.STATS_JOBS_LOG_SIZE_SETTING.getKey(), 1)
-            .put(JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getKey(), 2)
-            .put(JobsLogService.STATS_ENABLED_SETTING.getKey(), false);
-        client().admin().cluster().prepareUpdateSettings().setTransientSettings(builder.build()).execute().actionGet();
+        execute("set global transient stats.jobs_log_size = 1, stats.operations_log_size = 2, stats.enabled = false");
 
         execute("select settings from sys.cluster");
         assertSettingsValue(JobsLogService.STATS_JOBS_LOG_SIZE_SETTING.getKey(), 1);
@@ -125,9 +121,7 @@ public class SysClusterSettingsTest extends SQLIntegrationTestCase {
 
     @Test
     public void testDynamicPersistentSettings() throws Exception {
-        Settings.Builder builder = Settings.builder()
-            .put(JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getKey(), 100);
-        client().admin().cluster().prepareUpdateSettings().setPersistentSettings(builder.build()).execute().actionGet();
+        execute("set global persistent stats.operations_log_size = 100");
 
         execute("select settings from sys.cluster");
         assertSettingsValue(JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getKey(), 100);

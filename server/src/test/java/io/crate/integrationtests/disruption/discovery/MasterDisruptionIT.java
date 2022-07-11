@@ -21,14 +21,25 @@
 
 package io.crate.integrationtests.disruption.discovery;
 
-import io.crate.integrationtests.SQLIntegrationTestCase;
+import static io.crate.metadata.IndexParts.toIndexName;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.not;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+
+import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsAction;
+import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.elasticsearch.action.admin.indices.stats.IndicesStatsResponse;
 import org.elasticsearch.action.admin.indices.stats.ShardStats;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.action.index.MappingUpdatedAction;
 import org.elasticsearch.cluster.coordination.NoMasterBlockService;
 import org.elasticsearch.common.settings.Settings;
-import io.crate.common.unit.TimeValue;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.elasticsearch.test.InternalTestCluster;
 import org.elasticsearch.test.disruption.BlockMasterServiceOnMaster;
@@ -40,17 +51,8 @@ import org.elasticsearch.test.disruption.SingleNodeDisruption;
 import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.junit.Test;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-
-
-import static io.crate.metadata.IndexParts.toIndexName;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.not;
+import io.crate.common.unit.TimeValue;
+import io.crate.integrationtests.SQLIntegrationTestCase;
 
 /**
  * Tests relating to the loss of the master.
@@ -227,9 +229,13 @@ public class MasterDisruptionIT extends AbstractDisruptionTestCase {
         ensureStableCluster(3, new TimeValue(DISRUPTION_HEALING_OVERHEAD.millis() + networkDisruption.expectedTimeToHeal().millis()));
 
         logger.info("Verify no master block with {} set to {}", NoMasterBlockService.NO_MASTER_BLOCK_SETTING.getKey(), "all");
-        client().admin().cluster().prepareUpdateSettings()
-                .setTransientSettings(Settings.builder().put(NoMasterBlockService.NO_MASTER_BLOCK_SETTING.getKey(), "all"))
-                .get();
+        client().admin().cluster()
+            .execute(
+                ClusterUpdateSettingsAction.INSTANCE,
+                new ClusterUpdateSettingsRequest()
+                    .transientSettings(Settings.builder().put(NoMasterBlockService.NO_MASTER_BLOCK_SETTING.getKey(), "all"))
+            )
+            .get();
 
         networkDisruption.startDisrupting();
 

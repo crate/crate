@@ -34,7 +34,6 @@ import io.crate.planner.node.ddl.UpdateSettingsPlan;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.Assignment;
 import io.crate.testing.TestingRowConsumer;
-import io.crate.common.collections.MapBuilder;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -57,10 +56,7 @@ public class DependencyCarrierDDLTest extends SQLIntegrationTestCase {
 
     @After
     public void resetSettings() throws Exception {
-        client().admin().cluster().prepareUpdateSettings()
-            .setPersistentSettings(MapBuilder.newMapBuilder().put("stats.enabled", null).map())
-            .setTransientSettings(MapBuilder.newMapBuilder().put("stats.enabled", null).put("bulk.request_timeout", null).map())
-            .execute().actionGet();
+        execute("reset global stats.enabled, bulk.request_timeout");
     }
 
 
