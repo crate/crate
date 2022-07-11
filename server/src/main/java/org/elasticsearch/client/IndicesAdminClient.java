@@ -143,12 +143,7 @@ public interface IndicesAdminClient extends ElasticsearchClient {
     /**
      * Puts an index template.
      */
-    ActionFuture<AcknowledgedResponse> putTemplate(PutIndexTemplateRequest request);
-
-    /**
-     * Puts an index template.
-     */
-    void putTemplate(PutIndexTemplateRequest request, ActionListener<AcknowledgedResponse> listener);
+    CompletableFuture<AcknowledgedResponse> putTemplate(PutIndexTemplateRequest request);
 
     /**
      * Deletes an index template.

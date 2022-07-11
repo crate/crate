@@ -139,22 +139,17 @@ public class TemplateUpgradeService implements ClusterStateListener {
             PutIndexTemplateRequest request =
                 new PutIndexTemplateRequest(change.getKey()).source(change.getValue(), XContentType.JSON);
             request.masterNodeTimeout(TimeValue.timeValueMinutes(1));
-            client.admin().indices().putTemplate(request, new ActionListener<AcknowledgedResponse>() {
-                @Override
-                public void onResponse(AcknowledgedResponse response) {
+            client.admin().indices().putTemplate(request).whenComplete((response, err) -> {
+                if (err == null) {
                     if (response.isAcknowledged() == false) {
                         anyUpgradeFailed.set(true);
                         LOGGER.warn("Error updating template [{}], request was not acknowledged", change.getKey());
                     }
-                    tryFinishUpgrade(anyUpgradeFailed);
-                }
-
-                @Override
-                public void onFailure(Exception e) {
+                } else {
                     anyUpgradeFailed.set(true);
-                    LOGGER.warn(new ParameterizedMessage("Error updating template [{}]", change.getKey()), e);
-                    tryFinishUpgrade(anyUpgradeFailed);
+                    LOGGER.warn(new ParameterizedMessage("Error updating template [{}]", change.getKey()), err);
                 }
+                tryFinishUpgrade(anyUpgradeFailed);
             });
         }
 
