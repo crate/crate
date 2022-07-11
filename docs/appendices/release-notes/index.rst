@@ -22,6 +22,17 @@ Versions
 
     unreleased
 
+5.x
+---
+
+5.0.x
+.....
+
+.. toctree::
+    :maxdepth: 1
+
+    5.0.0
+
 4.x
 ---
 
