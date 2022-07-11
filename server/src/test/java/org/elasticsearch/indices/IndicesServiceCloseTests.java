@@ -30,6 +30,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.concurrent.TimeUnit;
 
+import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.routing.allocation.DiskThresholdSettings;
 import org.elasticsearch.common.settings.Settings;
@@ -94,12 +95,12 @@ public class IndicesServiceCloseTests extends ESTestCase {
         IndicesService indicesService = node.injector().getInstance(IndicesService.class);
         assertEquals(1, indicesService.indicesRefCount.refCount());
 
-        assertAcked(node.client().admin().indices().prepareCreate("test")
-            .setSettings(Settings.builder()
+        assertAcked(node.client().admin().indices().create(new CreateIndexRequest("test")
+            .settings(Settings.builder()
                 .put(SETTING_NUMBER_OF_SHARDS, 1)
                 .put(SETTING_NUMBER_OF_REPLICAS, 0)
             )
-        );
+        ).get());
 
         assertEquals(2, indicesService.indicesRefCount.refCount());
         assertFalse(indicesService.awaitClose(0, TimeUnit.MILLISECONDS));
@@ -115,12 +116,13 @@ public class IndicesServiceCloseTests extends ESTestCase {
         IndicesService indicesService = node.injector().getInstance(IndicesService.class);
         assertEquals(1, indicesService.indicesRefCount.refCount());
 
-        assertAcked(node.client().admin().indices().prepareCreate("test")
-            .setSettings(Settings.builder()
+        assertAcked(node.client().admin().indices().create(new CreateIndexRequest(
+            "test",
+            Settings.builder()
                 .put(SETTING_NUMBER_OF_SHARDS, 1)
                 .put(SETTING_NUMBER_OF_REPLICAS, 0)
-            )
-        );
+                .build()
+            )).get());
 
         assertEquals(2, indicesService.indicesRefCount.refCount());
 

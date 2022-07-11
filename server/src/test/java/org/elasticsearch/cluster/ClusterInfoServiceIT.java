@@ -25,6 +25,7 @@ import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 
+import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.routing.ShardRouting;
@@ -55,11 +56,14 @@ public class ClusterInfoServiceIT extends SQLIntegrationTestCase {
     @UseRandomizedSchema(random = false)
     public void testClusterInfoServiceCollectsInformation() throws Exception {
         internalCluster().startNodes(2);
-        assertAcked(prepareCreate("test").setSettings(Settings.builder()
-                                                          .put(Store.INDEX_STORE_STATS_REFRESH_INTERVAL_SETTING.getKey(), 0)
-                                                          .put(IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.getKey(), 1)
-                                                          .put(EnableAllocationDecider.INDEX_ROUTING_REBALANCE_ENABLE_SETTING.getKey(),
-                                                               EnableAllocationDecider.Rebalance.NONE).build()));
+        assertAcked(client().admin().indices().create(
+            new CreateIndexRequest("test", Settings.builder()
+                .put(Store.INDEX_STORE_STATS_REFRESH_INTERVAL_SETTING.getKey(), 0)
+                .put(IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.getKey(), 1)
+                .put(EnableAllocationDecider.INDEX_ROUTING_REBALANCE_ENABLE_SETTING.getKey(), EnableAllocationDecider.Rebalance.NONE)
+                .build()
+            ))
+            .get());
         if (randomBoolean()) {
             execute("alter table test close");
         }
