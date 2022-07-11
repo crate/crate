@@ -70,9 +70,9 @@ public class TransportCreatePartitionsActionTest extends SQLIntegrationTestCase 
     @Test
     public void testRoutingOfIndicesIsNotOverridden() throws Exception {
         cluster().client().admin().indices()
-            .prepareCreate("index_0")
-            .setSettings(Settings.builder().put("number_of_shards", 1).put("number_of_replicas", 0))
-            .execute().actionGet();
+            .create(new CreateIndexRequest("index_0")
+                .settings(Settings.builder().put("number_of_shards", 1).put("number_of_replicas", 0))
+            ).get();
         ensureYellow("index_0");
 
         CreatePartitionsRequest request = new CreatePartitionsRequest(

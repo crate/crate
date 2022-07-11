@@ -24,7 +24,6 @@ import java.util.concurrent.CompletableFuture;
 import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
-import org.elasticsearch.action.admin.indices.create.CreateIndexRequestBuilder;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
@@ -33,7 +32,6 @@ import org.elasticsearch.action.admin.indices.recovery.RecoveryRequest;
 import org.elasticsearch.action.admin.indices.recovery.RecoveryResponse;
 import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
 import org.elasticsearch.action.admin.indices.refresh.RefreshResponse;
-import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequestBuilder;
 import org.elasticsearch.action.admin.indices.stats.IndicesStatsRequest;
 import org.elasticsearch.action.admin.indices.stats.IndicesStatsRequestBuilder;
@@ -44,7 +42,6 @@ import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesRequ
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesRequestBuilder;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
-import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequestBuilder;
 import org.elasticsearch.action.admin.indices.upgrade.post.UpgradeRequest;
 import org.elasticsearch.action.admin.indices.upgrade.post.UpgradeResponse;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
@@ -55,11 +52,6 @@ import org.elasticsearch.action.support.master.AcknowledgedResponse;
  * @see AdminClient#indices()
  */
 public interface IndicesAdminClient extends ElasticsearchClient {
-
-    /**
-     * Indices stats.
-     */
-    ActionFuture<IndicesStatsResponse> stats(IndicesStatsRequest request);
 
     /**
      * Indices stats.
@@ -82,14 +74,7 @@ public interface IndicesAdminClient extends ElasticsearchClient {
      * @param request The create index request
      * @return The result future
      */
-    ActionFuture<CreateIndexResponse> create(CreateIndexRequest request);
-
-    /**
-     * Creates an index using an explicit request allowing to specify the settings of the index.
-     *
-     * @param index The index name to create
-     */
-    CreateIndexRequestBuilder prepareCreate(String index);
+    CompletableFuture<CreateIndexResponse> create(CreateIndexRequest request);
 
     /**
      * Deletes an index based on the index name.
@@ -129,14 +114,6 @@ public interface IndicesAdminClient extends ElasticsearchClient {
     PutMappingRequestBuilder preparePutMapping(String... indices);
 
     /**
-     * Updates settings of one or more indices.
-     *
-     * @param request the update settings request
-     * @return The result future
-     */
-    ActionFuture<AcknowledgedResponse> updateSettings(UpdateSettingsRequest request);
-
-    /**
      * Update indices settings.
      */
     UpdateSettingsRequestBuilder prepareUpdateSettings(String... indices);
@@ -144,24 +121,12 @@ public interface IndicesAdminClient extends ElasticsearchClient {
     /**
      * Puts an index template.
      */
-    ActionFuture<AcknowledgedResponse> putTemplate(PutIndexTemplateRequest request);
-
-    /**
-     * Puts an index template.
-     */
-    void putTemplate(PutIndexTemplateRequest request, ActionListener<AcknowledgedResponse> listener);
-
-    /**
-     * Puts an index template.
-     *
-     * @param name The name of the template.
-     */
-    PutIndexTemplateRequestBuilder preparePutTemplate(String name);
+    CompletableFuture<AcknowledgedResponse> putTemplate(PutIndexTemplateRequest request);
 
     /**
      * Deletes an index template.
      */
-    void deleteTemplate(DeleteIndexTemplateRequest request, ActionListener<AcknowledgedResponse> listener);
+    CompletableFuture<AcknowledgedResponse> deleteTemplate(DeleteIndexTemplateRequest request);
 
     /**
      * Deletes an index template.

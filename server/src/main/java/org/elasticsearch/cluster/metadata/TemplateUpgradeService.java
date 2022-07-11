@@ -24,10 +24,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.Version;
-import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.template.delete.DeleteIndexTemplateRequest;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
-import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterState;
@@ -37,6 +35,8 @@ import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import io.crate.common.collections.Tuple;
 import io.crate.common.unit.TimeValue;
+import io.crate.exceptions.SQLExceptions;
+
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentType;
@@ -139,48 +139,39 @@ public class TemplateUpgradeService implements ClusterStateListener {
             PutIndexTemplateRequest request =
                 new PutIndexTemplateRequest(change.getKey()).source(change.getValue(), XContentType.JSON);
             request.masterNodeTimeout(TimeValue.timeValueMinutes(1));
-            client.admin().indices().putTemplate(request, new ActionListener<AcknowledgedResponse>() {
-                @Override
-                public void onResponse(AcknowledgedResponse response) {
+            client.admin().indices().putTemplate(request).whenComplete((response, err) -> {
+                if (err == null) {
                     if (response.isAcknowledged() == false) {
                         anyUpgradeFailed.set(true);
                         LOGGER.warn("Error updating template [{}], request was not acknowledged", change.getKey());
                     }
-                    tryFinishUpgrade(anyUpgradeFailed);
-                }
-
-                @Override
-                public void onFailure(Exception e) {
+                } else {
                     anyUpgradeFailed.set(true);
-                    LOGGER.warn(new ParameterizedMessage("Error updating template [{}]", change.getKey()), e);
-                    tryFinishUpgrade(anyUpgradeFailed);
+                    LOGGER.warn(new ParameterizedMessage("Error updating template [{}]", change.getKey()), err);
                 }
+                tryFinishUpgrade(anyUpgradeFailed);
             });
         }
 
         for (String template : deletions) {
             DeleteIndexTemplateRequest request = new DeleteIndexTemplateRequest(template);
             request.masterNodeTimeout(TimeValue.timeValueMinutes(1));
-            client.admin().indices().deleteTemplate(request, new ActionListener<AcknowledgedResponse>() {
-                @Override
-                public void onResponse(AcknowledgedResponse response) {
+            client.admin().indices().deleteTemplate(request).whenComplete((response, err) -> {
+                if (err == null) {
                     if (response.isAcknowledged() == false) {
                         anyUpgradeFailed.set(true);
                         LOGGER.warn("Error deleting template [{}], request was not acknowledged", template);
                     }
-                    tryFinishUpgrade(anyUpgradeFailed);
-                }
-
-                @Override
-                public void onFailure(Exception e) {
+                } else {
+                    err = SQLExceptions.unwrap(err);
                     anyUpgradeFailed.set(true);
-                    if (e instanceof IndexTemplateMissingException == false) {
+                    if (err instanceof IndexTemplateMissingException == false) {
                         // we might attempt to delete the same template from different nodes - so that's ok if template doesn't exist
                         // otherwise we need to warn
-                        LOGGER.warn(new ParameterizedMessage("Error deleting template [{}]", template), e);
+                        LOGGER.warn(new ParameterizedMessage("Error deleting template [{}]", template), err);
                     }
-                    tryFinishUpgrade(anyUpgradeFailed);
                 }
+                tryFinishUpgrade(anyUpgradeFailed);
             });
         }
     }

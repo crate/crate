@@ -73,10 +73,11 @@ import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksAction;
 import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksRequest;
-import org.elasticsearch.action.admin.indices.create.CreateIndexRequestBuilder;
+import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
 import org.elasticsearch.action.admin.indices.refresh.RefreshResponse;
-import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequestBuilder;
+import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateAction;
+import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
 import org.elasticsearch.action.support.ActiveShardCount;
 import org.elasticsearch.client.AdminClient;
 import org.elasticsearch.client.Client;
@@ -310,12 +311,12 @@ public abstract class ESIntegTestCase extends ESTestCase {
             if (randomBoolean()) {
                 randomSettingsBuilder.put(IndexModule.INDEX_QUERY_CACHE_ENABLED_SETTING.getKey(), randomBoolean());
             }
-            PutIndexTemplateRequestBuilder putTemplate = client().admin().indices()
-                .preparePutTemplate("random_index_template")
-                .setPatterns(Collections.singletonList("*"))
-                .setOrder(0)
-                .setSettings(randomSettingsBuilder);
-            assertAcked(putTemplate.execute().actionGet());
+            PutIndexTemplateRequest request = new PutIndexTemplateRequest("random_index_template")
+                .patterns(Collections.singletonList("*"))
+                .order(0)
+                .settings(randomSettingsBuilder);
+
+            assertAcked(FutureUtils.get(client().admin().indices().execute(PutIndexTemplateAction.INSTANCE, request)));
         }
     }
 
@@ -535,7 +536,7 @@ public abstract class ESIntegTestCase extends ESTestCase {
     }
 
     /**
-     * Returns a settings object used in {@link #createIndex(String...)} and {@link #prepareCreate(String)} and friends.
+     * Returns a settings object used in {@link #createIndex(String...)} and friends.
      * This method can be overwritten by subclasses to set defaults for the indices that are created by the test.
      * By default it returns a settings object that sets a random number of shards. Number of shards and replicas
      * can be controlled through specific methods.
@@ -571,12 +572,11 @@ public abstract class ESIntegTestCase extends ESTestCase {
      * already exists this method will fail and wipe all the indices created so far.
      */
     public final void createIndex(String... names) {
-
         List<String> created = new ArrayList<>();
         for (String name : names) {
             boolean success = false;
             try {
-                assertAcked(prepareCreate(name));
+                assertAcked(FutureUtils.get(client().admin().indices().create(new CreateIndexRequest(name, indexSettings()))));
                 created.add(name);
                 success = true;
             } finally {
@@ -585,21 +585,6 @@ public abstract class ESIntegTestCase extends ESTestCase {
                 }
             }
         }
-    }
-
-    /**
-     * Creates a new {@link CreateIndexRequestBuilder} with the settings obtained from {@link #indexSettings()}.
-     */
-    public final CreateIndexRequestBuilder prepareCreate(String index) {
-        return prepareCreate(index, Settings.builder());
-    }
-
-    /**
-     * Creates a new {@link CreateIndexRequestBuilder} with the settings obtained from {@link #indexSettings()}.
-     */
-    public CreateIndexRequestBuilder prepareCreate(String index, Settings.Builder settingsBuilder) {
-        Settings.Builder builder = Settings.builder().put(indexSettings()).put(settingsBuilder.build());
-        return client().admin().indices().prepareCreate(index).setSettings(builder.build());
     }
 
     /**

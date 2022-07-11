@@ -38,7 +38,6 @@ import org.elasticsearch.action.admin.cluster.state.ClusterStateRequestBuilder;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.action.admin.indices.create.CreateIndexAction;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
-import org.elasticsearch.action.admin.indices.create.CreateIndexRequestBuilder;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexAction;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
@@ -52,7 +51,6 @@ import org.elasticsearch.action.admin.indices.refresh.RefreshAction;
 import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
 import org.elasticsearch.action.admin.indices.refresh.RefreshResponse;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsAction;
-import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequestBuilder;
 import org.elasticsearch.action.admin.indices.stats.IndicesStatsAction;
 import org.elasticsearch.action.admin.indices.stats.IndicesStatsRequest;
@@ -67,7 +65,6 @@ import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesRequ
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateAction;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
-import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequestBuilder;
 import org.elasticsearch.action.admin.indices.upgrade.post.UpgradeAction;
 import org.elasticsearch.action.admin.indices.upgrade.post.UpgradeRequest;
 import org.elasticsearch.action.admin.indices.upgrade.post.UpgradeResponse;
@@ -211,13 +208,8 @@ public abstract class AbstractClient implements Client {
         }
 
         @Override
-        public ActionFuture<CreateIndexResponse> create(final CreateIndexRequest request) {
-            return legacyExecute(CreateIndexAction.INSTANCE, request);
-        }
-
-        @Override
-        public CreateIndexRequestBuilder prepareCreate(String index) {
-            return new CreateIndexRequestBuilder(this, CreateIndexAction.INSTANCE, index);
+        public CompletableFuture<CreateIndexResponse> create(final CreateIndexRequest request) {
+            return execute(CreateIndexAction.INSTANCE, request);
         }
 
         @Override
@@ -246,11 +238,6 @@ public abstract class AbstractClient implements Client {
         }
 
         @Override
-        public ActionFuture<IndicesStatsResponse> stats(final IndicesStatsRequest request) {
-            return legacyExecute(IndicesStatsAction.INSTANCE, request);
-        }
-
-        @Override
         public void stats(final IndicesStatsRequest request, final ActionListener<IndicesStatsResponse> listener) {
             execute(IndicesStatsAction.INSTANCE, request).whenComplete(listener);
         }
@@ -265,30 +252,14 @@ public abstract class AbstractClient implements Client {
             return legacyExecute(RecoveryAction.INSTANCE, request);
         }
 
-
-        @Override
-        public ActionFuture<AcknowledgedResponse> updateSettings(final UpdateSettingsRequest request) {
-            return legacyExecute(UpdateSettingsAction.INSTANCE, request);
-        }
-
         @Override
         public UpdateSettingsRequestBuilder prepareUpdateSettings(String... indices) {
             return new UpdateSettingsRequestBuilder(this, UpdateSettingsAction.INSTANCE).setIndices(indices);
         }
 
         @Override
-        public ActionFuture<AcknowledgedResponse> putTemplate(final PutIndexTemplateRequest request) {
-            return legacyExecute(PutIndexTemplateAction.INSTANCE, request);
-        }
-
-        @Override
-        public void putTemplate(final PutIndexTemplateRequest request, final ActionListener<AcknowledgedResponse> listener) {
-            execute(PutIndexTemplateAction.INSTANCE, request).whenComplete(listener);
-        }
-
-        @Override
-        public PutIndexTemplateRequestBuilder preparePutTemplate(String name) {
-            return new PutIndexTemplateRequestBuilder(this, PutIndexTemplateAction.INSTANCE, name);
+        public CompletableFuture<AcknowledgedResponse> putTemplate(final PutIndexTemplateRequest request) {
+            return execute(PutIndexTemplateAction.INSTANCE, request);
         }
 
         @Override
@@ -302,8 +273,8 @@ public abstract class AbstractClient implements Client {
         }
 
         @Override
-        public void deleteTemplate(final DeleteIndexTemplateRequest request, final ActionListener<AcknowledgedResponse> listener) {
-            execute(DeleteIndexTemplateAction.INSTANCE, request).whenComplete(listener);
+        public CompletableFuture<AcknowledgedResponse> deleteTemplate(final DeleteIndexTemplateRequest request) {
+            return execute(DeleteIndexTemplateAction.INSTANCE, request);
         }
 
         @Override
