@@ -291,8 +291,8 @@ public abstract class AbstractClient implements Client {
         }
 
         @Override
-        public void deleteTemplate(final DeleteIndexTemplateRequest request, final ActionListener<AcknowledgedResponse> listener) {
-            execute(DeleteIndexTemplateAction.INSTANCE, request).whenComplete(listener);
+        public CompletableFuture<AcknowledgedResponse> deleteTemplate(final DeleteIndexTemplateRequest request) {
+            return execute(DeleteIndexTemplateAction.INSTANCE, request);
         }
 
         @Override
