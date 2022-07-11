@@ -63,6 +63,7 @@ import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.inject.ConfigurationException;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.BoundTransportAddress;
+import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.index.Index;
@@ -652,8 +653,7 @@ public abstract class SQLIntegrationTestCase extends ESIntegTestCase {
             .nodes(false)
             .metadata(true)
             .indices(index);
-        ClusterStateResponse response = client().admin().cluster().state(request)
-            .actionGet();
+        ClusterStateResponse response = FutureUtils.get(client().admin().cluster().state(request));
 
         Metadata metadata = response.getState().metadata();
         XContentBuilder builder = XContentFactory.jsonBuilder().startObject();
@@ -735,8 +735,7 @@ public abstract class SQLIntegrationTestCase extends ESIntegTestCase {
             .nodes(false)
             .metadata(true)
             .indices(index);
-        ClusterStateResponse response = client().admin().cluster().state(request)
-            .actionGet();
+        ClusterStateResponse response = FutureUtils.get(client().admin().cluster().state(request));
 
         Metadata metadata = response.getState().metadata();
         XContentBuilder builder = XContentFactory.jsonBuilder().startObject();

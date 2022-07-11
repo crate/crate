@@ -193,7 +193,7 @@ public class InternalClusterInfoService implements ClusterInfoService, ClusterSt
         ObjectContainer<DiscoveryNode> allDataNodes = clusterService.state().getNodes().getDataNodes().values();
         final NodesStatsRequest nodesStatsRequest = new NodesStatsRequest(allDataNodes.toArray(DiscoveryNode.class));
         nodesStatsRequest.timeout(fetchTimeout);
-        client.admin().cluster().nodesStats(nodesStatsRequest, new LatchedActionListener<>(listener, latch));
+        client.admin().cluster().nodesStats(nodesStatsRequest).whenComplete(new LatchedActionListener<>(listener, latch));
         return latch;
     }
 
