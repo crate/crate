@@ -31,7 +31,6 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import org.elasticsearch.cluster.action.index.MappingUpdatedAction;
 import org.elasticsearch.cluster.action.index.NodeMappingRefreshAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.metadata.IndexGraveyard;
@@ -248,7 +247,6 @@ public class ClusterModule extends AbstractModule {
         bind(DelayedAllocationService.class).asEagerSingleton();
         bind(ShardStateAction.class).asEagerSingleton();
         bind(NodeMappingRefreshAction.class).asEagerSingleton();
-        bind(MappingUpdatedAction.class).asEagerSingleton();
         bind(AllocationDeciders.class).toInstance(allocationDeciders);
         bind(ShardsAllocator.class).toInstance(shardsAllocator);
     }

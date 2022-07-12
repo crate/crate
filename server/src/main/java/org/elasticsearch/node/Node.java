@@ -71,7 +71,6 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateObserver;
 import org.elasticsearch.cluster.InternalClusterInfoService;
 import org.elasticsearch.cluster.NodeConnectionsService;
-import org.elasticsearch.cluster.action.index.MappingUpdatedAction;
 import org.elasticsearch.cluster.metadata.AliasValidator;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
@@ -883,7 +882,6 @@ public class Node implements Closeable {
         injector.getInstance(DanglingArtifactsService.class).start();
         injector.getInstance(SslContextProviderService.class).start();
 
-        injector.getInstance(MappingUpdatedAction.class).setClient(client);
         injector.getInstance(IndicesService.class).start();
         injector.getInstance(IndicesClusterStateService.class).start();
         injector.getInstance(SnapshotsService.class).start();

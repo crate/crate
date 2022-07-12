@@ -92,7 +92,6 @@ import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.action.index.MappingUpdatedAction;
 import org.elasticsearch.cluster.coordination.ClusterBootstrapService;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -151,6 +150,7 @@ import org.elasticsearch.transport.TransportSettings;
 import io.crate.action.sql.SQLOperations;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
+import io.crate.execution.ddl.SchemaUpdateClient;
 import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.testing.SQLTransportExecutor;
 
@@ -449,7 +449,7 @@ public final class InternalTestCluster extends TestCluster {
         }
 
         if (random.nextBoolean()) {
-            builder.put(MappingUpdatedAction.INDICES_MAPPING_DYNAMIC_TIMEOUT_SETTING.getKey(),
+            builder.put(SchemaUpdateClient.INDICES_MAPPING_DYNAMIC_TIMEOUT_SETTING.getKey(),
                     timeValueSeconds(RandomNumbers.randomIntBetween(random, 10, 30)).getStringRep());
         }
 
