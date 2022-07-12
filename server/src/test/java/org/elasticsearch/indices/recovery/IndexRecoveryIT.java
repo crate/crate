@@ -55,6 +55,8 @@ import org.apache.lucene.util.SetOnce;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
+import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsAction;
+import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.elasticsearch.action.admin.cluster.snapshots.get.GetSnapshotsAction;
 import org.elasticsearch.action.admin.cluster.snapshots.get.GetSnapshotsRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
@@ -83,6 +85,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
+import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.MockEngineFactoryPlugin;
@@ -191,21 +194,29 @@ public class IndexRecoveryIT extends SQLIntegrationTestCase {
 
     private void slowDownRecovery(long shardSizeBytes) {
         long chunkSize = Math.max(1, shardSizeBytes / 10);
-        assertTrue(client().admin().cluster().prepareUpdateSettings()
-                       .setTransientSettings(Settings.builder()
-                                                 // one chunk per sec..
-                                                 .put(RecoverySettings.INDICES_RECOVERY_MAX_BYTES_PER_SEC_SETTING.getKey(), chunkSize, ByteSizeUnit.BYTES)
-                                                 // small chunks
-                                                 .put(CHUNK_SIZE_SETTING.getKey(), new ByteSizeValue(chunkSize, ByteSizeUnit.BYTES))
-                       ).get().isAcknowledged());
+        var response = FutureUtils.get(client().admin().cluster().execute(
+            ClusterUpdateSettingsAction.INSTANCE,
+            new ClusterUpdateSettingsRequest()
+                .transientSettings(Settings.builder()
+                    // one chunk per sec..
+                    .put(RecoverySettings.INDICES_RECOVERY_MAX_BYTES_PER_SEC_SETTING.getKey(), chunkSize, ByteSizeUnit.BYTES)
+                    // small chunks
+                    .put(CHUNK_SIZE_SETTING.getKey(), new ByteSizeValue(chunkSize, ByteSizeUnit.BYTES))
+                )
+            ));
+        assertTrue(response.isAcknowledged());
     }
 
     private void restoreRecoverySpeed() {
-        assertTrue(client().admin().cluster().prepareUpdateSettings()
-                       .setTransientSettings(Settings.builder()
-                                                 .put(RecoverySettings.INDICES_RECOVERY_MAX_BYTES_PER_SEC_SETTING.getKey(), "20mb")
-                                                 .put(CHUNK_SIZE_SETTING.getKey(), RecoverySettings.DEFAULT_CHUNK_SIZE)
-                       ).get().isAcknowledged());
+        var response = FutureUtils.get(client().admin().cluster().execute(
+            ClusterUpdateSettingsAction.INSTANCE,
+            new ClusterUpdateSettingsRequest()
+                .transientSettings(Settings.builder()
+                    .put(RecoverySettings.INDICES_RECOVERY_MAX_BYTES_PER_SEC_SETTING.getKey(), "20mb")
+                    .put(CHUNK_SIZE_SETTING.getKey(), RecoverySettings.DEFAULT_CHUNK_SIZE)
+                )
+        ));
+        assertTrue(response.isAcknowledged());
     }
 
     private List<RecoveryState> findRecoveriesForTargetNode(String nodeName, List<RecoveryState> recoveryStates) {
