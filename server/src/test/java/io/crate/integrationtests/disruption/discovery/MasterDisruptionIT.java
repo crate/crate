@@ -34,12 +34,14 @@ import java.util.concurrent.TimeUnit;
 
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsAction;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
+import org.elasticsearch.action.admin.indices.stats.IndicesStatsRequest;
 import org.elasticsearch.action.admin.indices.stats.IndicesStatsResponse;
 import org.elasticsearch.action.admin.indices.stats.ShardStats;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.action.index.MappingUpdatedAction;
 import org.elasticsearch.cluster.coordination.NoMasterBlockService;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.elasticsearch.test.InternalTestCluster;
 import org.elasticsearch.test.disruption.BlockMasterServiceOnMaster;
@@ -289,7 +291,7 @@ public class MasterDisruptionIT extends AbstractDisruptionTestCase {
 
         String indexName = toIndexName(sqlExecutor.getCurrentSchema(), "t", null);
         assertBusy(() -> {
-            IndicesStatsResponse stats = client().admin().indices().prepareStats(indexName).clear().get();
+            IndicesStatsResponse stats = FutureUtils.get(client().admin().indices().stats(new IndicesStatsRequest().indices(indexName).clear()));
             for (ShardStats shardStats : stats.getShards()) {
                 assertThat(shardStats.getShardRouting().toString(),
                            shardStats.getSeqNoStats().getGlobalCheckpoint(), equalTo(shardStats.getSeqNoStats().getLocalCheckpoint()));

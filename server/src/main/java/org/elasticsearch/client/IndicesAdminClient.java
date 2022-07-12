@@ -33,7 +33,6 @@ import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
 import org.elasticsearch.action.admin.indices.refresh.RefreshResponse;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequestBuilder;
 import org.elasticsearch.action.admin.indices.stats.IndicesStatsRequest;
-import org.elasticsearch.action.admin.indices.stats.IndicesStatsRequestBuilder;
 import org.elasticsearch.action.admin.indices.stats.IndicesStatsResponse;
 import org.elasticsearch.action.admin.indices.template.delete.DeleteIndexTemplateRequest;
 import org.elasticsearch.action.admin.indices.template.delete.DeleteIndexTemplateRequestBuilder;
@@ -56,11 +55,6 @@ public interface IndicesAdminClient extends ElasticsearchClient {
      * Indices stats.
      */
     CompletableFuture<IndicesStatsResponse> stats(IndicesStatsRequest request);
-
-    /**
-     * Indices stats.
-     */
-    IndicesStatsRequestBuilder prepareStats(String... indices);
 
     /**
      * Indices recoveries
