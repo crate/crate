@@ -42,7 +42,7 @@ Unreleased Changes
 Breaking Changes
 ================
 
-None
+- Removed the deprecated azure discovery functionality.
 
 
 Deprecations

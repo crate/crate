@@ -562,65 +562,6 @@ Following settings control the discovery:
   If you have your own compatible implementation of the EC2 API service you can
   set the endpoint that should be used.
 
-.. _conf_azure_discovery:
-
-Discovery on Microsoft Azure
-````````````````````````````
-
-CrateDB has built-in support for discovery via the Azure Virtual Machine API.
-To enable Azure discovery set the ``discovery.seed_providers`` setting to
-``azure``.
-
-.. _cloud.azure.management.resourcegroup.name:
-
-**cloud.azure.management.resourcegroup.name**
-  | *Runtime:*  ``no``
-
-  The name of the resource group the CrateDB cluster is running on.
-
-  All nodes need to be started within the same resource group.
-
-.. _cloud.azure.management.subscription.id:
-
-**cloud.azure.management.subscription.id**
-  | *Runtime:*  ``no``
-
-  The subscription ID of your Azure account.
-
-  You can find the ID on the `Azure Portal`_.
-
-.. _cloud.azure.management.tenant.id:
-
-**cloud.azure.management.tenant.id**
-  | *Runtime:*  ``no``
-
-  The tenant ID of the `Active Directory application`_.
-
-.. _cloud.azure.management.app.id:
-
-**cloud.azure.management.app.id**
-  | *Runtime:*  ``no``
-
-  The application ID of the `Active Directory application`_.
-
-.. _cloud.azure.management.app.secret:
-
-**cloud.azure.management.app.secret**
-  | *Runtime:*  ``no``
-
-  The password of the `Active Directory application`_.
-
-.. _discovery.azure.method:
-
-**discovery.azure.method**
-  | *Default:* ``vnet``
-  | *Runtime:* ``no``
-  | *Allowed values:* ``vnet | subnet``
-
-  Defines the scope of the discovery. ``vnet`` will discover all VMs within the
-  same virtual network (default), ``subnet`` will discover all VMs within the
-  same subnet of the CrateDB instance.
-
 
 .. _conf_routing:
 
