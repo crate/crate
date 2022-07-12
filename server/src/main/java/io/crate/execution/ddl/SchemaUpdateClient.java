@@ -22,10 +22,11 @@
 package io.crate.execution.ddl;
 
 import org.elasticsearch.ElasticsearchTimeoutException;
-import org.elasticsearch.cluster.action.index.MappingUpdatedAction;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.ClusterSettings;
+import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.index.Index;
@@ -36,6 +37,10 @@ import io.crate.common.unit.TimeValue;
 @Singleton
 public class SchemaUpdateClient {
 
+    public static final Setting<TimeValue> INDICES_MAPPING_DYNAMIC_TIMEOUT_SETTING =
+        Setting.positiveTimeSetting("indices.mapping.dynamic_timeout", TimeValue.timeValueSeconds(30),
+            Property.Dynamic, Property.NodeScope);
+
     private final TransportSchemaUpdateAction schemaUpdateAction;
     private volatile TimeValue dynamicMappingUpdateTimeout;
 
@@ -44,9 +49,9 @@ public class SchemaUpdateClient {
                               ClusterSettings clusterSettings,
                               TransportSchemaUpdateAction schemaUpdateAction) {
         this.schemaUpdateAction = schemaUpdateAction;
-        this.dynamicMappingUpdateTimeout = MappingUpdatedAction.INDICES_MAPPING_DYNAMIC_TIMEOUT_SETTING.get(settings);
+        this.dynamicMappingUpdateTimeout = SchemaUpdateClient.INDICES_MAPPING_DYNAMIC_TIMEOUT_SETTING.get(settings);
         clusterSettings.addSettingsUpdateConsumer(
-            MappingUpdatedAction.INDICES_MAPPING_DYNAMIC_TIMEOUT_SETTING, this::setDynamicMappingUpdateTimeout);
+            SchemaUpdateClient.INDICES_MAPPING_DYNAMIC_TIMEOUT_SETTING, this::setDynamicMappingUpdateTimeout);
     }
 
     private void setDynamicMappingUpdateTimeout(TimeValue dynamicMappingUpdateTimeout) {

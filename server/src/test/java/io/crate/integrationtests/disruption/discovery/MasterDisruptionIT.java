@@ -38,7 +38,6 @@ import org.elasticsearch.action.admin.indices.stats.IndicesStatsRequest;
 import org.elasticsearch.action.admin.indices.stats.IndicesStatsResponse;
 import org.elasticsearch.action.admin.indices.stats.ShardStats;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.action.index.MappingUpdatedAction;
 import org.elasticsearch.cluster.coordination.NoMasterBlockService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
@@ -54,6 +53,7 @@ import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.junit.Test;
 
 import io.crate.common.unit.TimeValue;
+import io.crate.execution.ddl.SchemaUpdateClient;
 import io.crate.integrationtests.SQLIntegrationTestCase;
 
 /**
@@ -258,7 +258,7 @@ public class MasterDisruptionIT extends AbstractDisruptionTestCase {
         InternalTestCluster internalCluster = internalCluster();
         internalCluster.startNodes(3,
                                    Settings.builder()
-                                       .put(MappingUpdatedAction.INDICES_MAPPING_DYNAMIC_TIMEOUT_SETTING.getKey(),
+                                       .put(SchemaUpdateClient.INDICES_MAPPING_DYNAMIC_TIMEOUT_SETTING.getKey(),
                                             "1ms")
                                        .build()
         );
