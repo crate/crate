@@ -44,6 +44,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsAction;
+import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.analysis.common.CommonAnalysisPlugin;
 import org.elasticsearch.common.settings.Settings;
@@ -87,9 +89,12 @@ public class FulltextAnalyzerResolverTest extends SQLIntegrationTestCase {
             .filter(s -> s.startsWith("crate"))
             .forEach(s -> settingsToRemove.put(s, null));
         if (!settingsToRemove.isEmpty()) {
-            client().admin().cluster().prepareUpdateSettings()
-                .setPersistentSettings(settingsToRemove)
-                .setTransientSettings(settingsToRemove).execute().actionGet();
+            client().admin().cluster().execute(
+                ClusterUpdateSettingsAction.INSTANCE,
+                new ClusterUpdateSettingsRequest()
+                    .transientSettings(settingsToRemove)
+                    .persistentSettings(settingsToRemove)
+            ).get();
         }
         super.tearDown();
     }

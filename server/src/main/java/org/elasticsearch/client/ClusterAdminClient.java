@@ -21,13 +21,10 @@ package org.elasticsearch.client;
 
 import java.util.concurrent.CompletableFuture;
 
-import org.elasticsearch.action.ActionFuture;
-import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.cluster.node.stats.NodesStatsRequest;
 import org.elasticsearch.action.admin.cluster.node.stats.NodesStatsResponse;
-import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequestBuilder;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequestBuilder;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
@@ -53,7 +50,7 @@ public interface ClusterAdminClient extends ElasticsearchClient {
      * @param request The cluster state request.
      * @return The result future
      */
-    ActionFuture<ClusterStateResponse> state(ClusterStateRequest request);
+    CompletableFuture<ClusterStateResponse> state(ClusterStateRequest request);
 
     /**
      * The state of the cluster.
@@ -61,17 +58,12 @@ public interface ClusterAdminClient extends ElasticsearchClient {
     ClusterStateRequestBuilder prepareState();
 
     /**
-     * Update settings in the cluster.
-     */
-    ClusterUpdateSettingsRequestBuilder prepareUpdateSettings();
-
-    /**
      * Nodes stats of the cluster.
      *
      * @param request  The nodes info request
      * @param listener A listener to be notified with a result
      */
-    void nodesStats(NodesStatsRequest request, ActionListener<NodesStatsResponse> listener);
+    CompletableFuture<NodesStatsResponse> nodesStats(NodesStatsRequest request);
 
 
 }

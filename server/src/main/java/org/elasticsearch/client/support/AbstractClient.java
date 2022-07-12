@@ -30,8 +30,6 @@ import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.cluster.node.stats.NodesStatsAction;
 import org.elasticsearch.action.admin.cluster.node.stats.NodesStatsRequest;
 import org.elasticsearch.action.admin.cluster.node.stats.NodesStatsResponse;
-import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsAction;
-import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequestBuilder;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateAction;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequestBuilder;
@@ -167,8 +165,8 @@ public abstract class AbstractClient implements Client {
         }
 
         @Override
-        public ActionFuture<ClusterStateResponse> state(final ClusterStateRequest request) {
-            return legacyExecute(ClusterStateAction.INSTANCE, request);
+        public CompletableFuture<ClusterStateResponse> state(final ClusterStateRequest request) {
+            return execute(ClusterStateAction.INSTANCE, request);
         }
 
         @Override
@@ -177,13 +175,8 @@ public abstract class AbstractClient implements Client {
         }
 
         @Override
-        public ClusterUpdateSettingsRequestBuilder prepareUpdateSettings() {
-            return new ClusterUpdateSettingsRequestBuilder(this, ClusterUpdateSettingsAction.INSTANCE);
-        }
-
-        @Override
-        public void nodesStats(final NodesStatsRequest request, final ActionListener<NodesStatsResponse> listener) {
-            execute(NodesStatsAction.INSTANCE, request).whenComplete(listener);
+        public CompletableFuture<NodesStatsResponse> nodesStats(final NodesStatsRequest request) {
+            return execute(NodesStatsAction.INSTANCE, request);
         }
     }
 
