@@ -19,16 +19,45 @@
 
 package org.elasticsearch.indices;
 
-import io.crate.common.collections.Iterables;
-import io.crate.common.collections.Sets;
-import io.crate.common.io.IOUtils;
-import io.crate.common.unit.TimeValue;
+import static io.crate.common.collections.MapBuilder.newMapBuilder;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.emptyMap;
+import static java.util.Collections.unmodifiableMap;
+import static org.elasticsearch.common.util.concurrent.EsExecutors.daemonThreadFactory;
+
+import java.io.Closeable;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+
+import javax.annotation.Nullable;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
+import org.apache.lucene.index.IndexReader.CacheHelper;
 import org.apache.lucene.util.CollectionUtil;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ResourceAlreadyExistsException;
+import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -48,6 +77,7 @@ import org.elasticsearch.common.util.concurrent.AbstractRunnable;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.common.util.concurrent.EsThreadPoolExecutor;
+import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.env.NodeEnvironment;
@@ -81,35 +111,10 @@ import org.elasticsearch.plugins.PluginsService;
 import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import javax.annotation.Nullable;
-import java.io.Closeable;
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
-
-import static io.crate.common.collections.MapBuilder.newMapBuilder;
-import static java.util.Collections.emptyList;
-import static java.util.Collections.emptyMap;
-import static java.util.Collections.unmodifiableMap;
-import static org.elasticsearch.common.util.concurrent.EsExecutors.daemonThreadFactory;
+import io.crate.common.collections.Iterables;
+import io.crate.common.collections.Sets;
+import io.crate.common.io.IOUtils;
+import io.crate.common.unit.TimeValue;
 
 public class IndicesService extends AbstractLifecycleComponent
     implements IndicesClusterStateService.AllocatedIndices<IndexShard, IndexService>, IndexService.ShardStoreDeleter {
@@ -486,10 +491,12 @@ public class IndicesService extends AbstractLifecycleComponent
             mapping -> {
                 assert recoveryState.getRecoverySource().getType() == RecoverySource.Type.LOCAL_SHARDS :
                     "mapping update consumer only required by local shards recovery";
-                client.admin().indices().preparePutMapping()
+
+                var request = new PutMappingRequest()
+                    .indices(new String[0])
                     .setConcreteIndex(shardRouting.index()) // concrete index - no name clash, it uses uuid
-                    .setSource(mapping.source().string(), XContentType.JSON)
-                    .get();
+                    .source(mapping.source().string(), XContentType.JSON);
+                FutureUtils.get(client.admin().indices().putMapping(request));
             }, this);
         return indexShard;
     }

@@ -34,6 +34,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
@@ -66,10 +67,8 @@ public class CreateTableIntegrationTest extends SQLIntegrationTestCase {
                 .endObject()
             .endObject()
             .endObject();
-        client().admin().indices().preparePutMapping("tbl")
-            .setSource(builder)
-            .execute()
-            .actionGet(5, TimeUnit.SECONDS);
+        client().admin().indices().putMapping(new PutMappingRequest("tbl").source(builder))
+            .get(5, TimeUnit.SECONDS);
 
         assertThat(
             internalCluster().getInstance(ClusterService.class).state().metadata().hasIndex("tbl"),

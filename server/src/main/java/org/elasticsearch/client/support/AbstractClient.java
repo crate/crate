@@ -40,7 +40,6 @@ import org.elasticsearch.action.admin.indices.delete.DeleteIndexAction;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingAction;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
-import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequestBuilder;
 import org.elasticsearch.action.admin.indices.recovery.RecoveryAction;
 import org.elasticsearch.action.admin.indices.recovery.RecoveryRequest;
 import org.elasticsearch.action.admin.indices.recovery.RecoveryResponse;
@@ -208,11 +207,6 @@ public abstract class AbstractClient implements Client {
         @Override
         public CompletableFuture<AcknowledgedResponse> putMapping(final PutMappingRequest request) {
             return execute(PutMappingAction.INSTANCE, request);
-        }
-
-        @Override
-        public PutMappingRequestBuilder preparePutMapping(String... indices) {
-            return new PutMappingRequestBuilder(this, PutMappingAction.INSTANCE).setIndices(indices);
         }
 
         @Override
