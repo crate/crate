@@ -62,9 +62,6 @@ import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesRequ
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateAction;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
-import org.elasticsearch.action.admin.indices.upgrade.post.UpgradeAction;
-import org.elasticsearch.action.admin.indices.upgrade.post.UpgradeRequest;
-import org.elasticsearch.action.admin.indices.upgrade.post.UpgradeResponse;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.client.AdminClient;
 import org.elasticsearch.client.Client;
@@ -217,11 +214,6 @@ public abstract class AbstractClient implements Client {
         @Override
         public PutMappingRequestBuilder preparePutMapping(String... indices) {
             return new PutMappingRequestBuilder(this, PutMappingAction.INSTANCE).setIndices(indices);
-        }
-
-        @Override
-        public ActionFuture<UpgradeResponse> upgrade(final UpgradeRequest request) {
-            return legacyExecute(UpgradeAction.INSTANCE, request);
         }
 
         @Override

@@ -40,8 +40,6 @@ import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesRequ
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesRequestBuilder;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
-import org.elasticsearch.action.admin.indices.upgrade.post.UpgradeRequest;
-import org.elasticsearch.action.admin.indices.upgrade.post.UpgradeResponse;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 
 /**
@@ -84,14 +82,6 @@ public interface IndicesAdminClient extends ElasticsearchClient {
      * @return The result future
      */
     CompletableFuture<RefreshResponse> refresh(RefreshRequest request);
-
-    /**
-     * Explicitly upgrade one or more indices
-     *
-     * @param request The upgrade request
-     * @return A result future
-     */
-    ActionFuture<UpgradeResponse> upgrade(UpgradeRequest request);
 
     /**
      * Add mapping definition for a type into one or more indices.
