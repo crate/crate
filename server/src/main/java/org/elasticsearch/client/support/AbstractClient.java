@@ -21,7 +21,6 @@ package org.elasticsearch.client.support;
 
 import java.util.concurrent.CompletableFuture;
 
-import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthAction;
@@ -207,8 +206,8 @@ public abstract class AbstractClient implements Client {
         }
 
         @Override
-        public ActionFuture<AcknowledgedResponse> putMapping(final PutMappingRequest request) {
-            return legacyExecute(PutMappingAction.INSTANCE, request);
+        public CompletableFuture<AcknowledgedResponse> putMapping(final PutMappingRequest request) {
+            return execute(PutMappingAction.INSTANCE, request);
         }
 
         @Override
@@ -227,8 +226,8 @@ public abstract class AbstractClient implements Client {
         }
 
         @Override
-        public ActionFuture<RecoveryResponse> recoveries(final RecoveryRequest request) {
-            return legacyExecute(RecoveryAction.INSTANCE, request);
+        public CompletableFuture<RecoveryResponse> recoveries(final RecoveryRequest request) {
+            return execute(RecoveryAction.INSTANCE, request);
         }
 
         @Override
@@ -242,8 +241,8 @@ public abstract class AbstractClient implements Client {
         }
 
         @Override
-        public ActionFuture<GetIndexTemplatesResponse> getTemplates(final GetIndexTemplatesRequest request) {
-            return legacyExecute(GetIndexTemplatesAction.INSTANCE, request);
+        public CompletableFuture<GetIndexTemplatesResponse> getTemplates(final GetIndexTemplatesRequest request) {
+            return execute(GetIndexTemplatesAction.INSTANCE, request);
         }
 
         @Override

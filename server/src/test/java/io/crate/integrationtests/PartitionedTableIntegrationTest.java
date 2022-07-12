@@ -1690,7 +1690,7 @@ public class PartitionedTableIntegrationTest extends SQLIntegrationTestCase {
         execute("select * from t");
         assertThat(Arrays.asList(response.cols()), Matchers.containsInAnyOrder("date", "ft_name", "id", "name"));
 
-        GetIndexTemplatesResponse templatesResponse = client().admin().indices().getTemplates(new GetIndexTemplatesRequest(".partitioned.t.")).actionGet();
+        GetIndexTemplatesResponse templatesResponse = client().admin().indices().getTemplates(new GetIndexTemplatesRequest(".partitioned.t.")).get();
         IndexTemplateMetadata metadata = templatesResponse.getIndexTemplates().get(0);
         String mappingSource = metadata.mappings().get(DEFAULT_MAPPING_TYPE).toString();
         Map mapping = (Map) XContentFactory.xContent(mappingSource)
@@ -1718,7 +1718,7 @@ public class PartitionedTableIntegrationTest extends SQLIntegrationTestCase {
         execute("select * from t");
         assertThat(Arrays.asList(response.cols()), Matchers.containsInAnyOrder("date", "id", "name"));
 
-        GetIndexTemplatesResponse templatesResponse = client().admin().indices().getTemplates(new GetIndexTemplatesRequest(".partitioned.t.")).actionGet();
+        GetIndexTemplatesResponse templatesResponse = client().admin().indices().getTemplates(new GetIndexTemplatesRequest(".partitioned.t.")).get();
         IndexTemplateMetadata metadata = templatesResponse.getIndexTemplates().get(0);
         String mappingSource = metadata.mappings().get(DEFAULT_MAPPING_TYPE).toString();
         Map mapping = (Map) XContentFactory.xContent(mappingSource)
