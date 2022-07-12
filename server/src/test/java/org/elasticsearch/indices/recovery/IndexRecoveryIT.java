@@ -65,6 +65,7 @@ import org.elasticsearch.action.admin.indices.flush.SyncedFlushRequest;
 import org.elasticsearch.action.admin.indices.recovery.RecoveryAction;
 import org.elasticsearch.action.admin.indices.recovery.RecoveryRequest;
 import org.elasticsearch.action.admin.indices.recovery.RecoveryResponse;
+import org.elasticsearch.action.admin.indices.stats.IndicesStatsRequest;
 import org.elasticsearch.action.admin.indices.stats.ShardStats;
 import org.elasticsearch.action.support.PlainActionFuture;
 import org.elasticsearch.action.support.replication.ReplicationResponse;
@@ -1301,7 +1302,8 @@ public class IndexRecoveryIT extends SQLIntegrationTestCase {
         ensureGreen();
 
         ShardId shardId = null;
-        for (ShardStats shardStats : client().admin().indices().prepareStats(indexName).get().getIndex(indexName).getShards()) {
+        var indicesStats = client().admin().indices().stats(new IndicesStatsRequest().indices(indexName)).get();
+        for (ShardStats shardStats : indicesStats.getIndex(indexName).getShards()) {
             shardId = shardStats.getShardRouting().shardId();
             if (shardStats.getShardRouting().primary() == false) {
                 assertThat(shardStats.getCommitStats().getNumDocs(), equalTo(numDocs));
@@ -1316,7 +1318,8 @@ public class IndexRecoveryIT extends SQLIntegrationTestCase {
         execute("ALTER TABLE doc.test SET (number_of_replicas = 2)");
         ensureGreen(indexName);
         // Recovery should keep syncId if no indexing activity on the primary after synced-flush.
-        Set<String> syncIds = Stream.of(client().admin().indices().prepareStats(indexName).get().getIndex(indexName).getShards())
+        indicesStats = client().admin().indices().stats(new IndicesStatsRequest().indices(indexName)).get();
+        Set<String> syncIds = Stream.of(indicesStats.getIndex(indexName).getShards())
             .map(shardStats -> shardStats.getCommitStats().syncId())
             .collect(Collectors.toSet());
         assertThat(syncIds, hasSize(1));
@@ -1347,16 +1350,19 @@ public class IndexRecoveryIT extends SQLIntegrationTestCase {
 
         final ClusterState clusterState = client().admin().cluster().prepareState().get().getState();
         final ShardRouting shardToResync = randomFrom(clusterState.routingTable().shardRoutingTable(shardId).activeShards());
-        internalCluster().restartNode(clusterState.nodes().get(shardToResync.currentNodeId()).getName(),
-                                      new InternalTestCluster.RestartCallback() {
-                                          @Override
-                                          public Settings onNodeStopped(String nodeName) throws Exception {
-                                              assertBusy(() -> assertFalse(client().admin().indices().prepareStats(indexName).get()
-                                                                               .getShards()[0].getRetentionLeaseStats().leases().contains(
-                                                  ReplicationTracker.getPeerRecoveryRetentionLeaseId(shardToResync))));
-                                              return super.onNodeStopped(nodeName);
-                                          }
-                                      });
+        internalCluster().restartNode(
+            clusterState.nodes().get(shardToResync.currentNodeId()).getName(),
+            new InternalTestCluster.RestartCallback() {
+                @Override
+                public Settings onNodeStopped(String nodeName) throws Exception {
+                    assertBusy(() -> {
+                        var indicesStats = client().admin().indices().stats(new IndicesStatsRequest().indices(indexName)).get();
+                        assertFalse(indicesStats.getShards()[0].getRetentionLeaseStats().leases().contains(
+                            ReplicationTracker.getPeerRecoveryRetentionLeaseId(shardToResync)));
+                    });
+                    return super.onNodeStopped(nodeName);
+                }
+            });
 
         ensureGreen(indexName);
     }
@@ -1604,7 +1610,8 @@ public class IndexRecoveryIT extends SQLIntegrationTestCase {
         execute("OPTIMIZE TABLE doc.test");
         // wait for all history to be discarded
         assertBusy(() -> {
-            for (ShardStats shardStats : client().admin().indices().prepareStats(indexName).get().getShards()) {
+            var indicesStats = client().admin().indices().stats(new IndicesStatsRequest().indices(indexName)).get();
+            for (ShardStats shardStats : indicesStats.getShards()) {
                 final long maxSeqNo = shardStats.getSeqNoStats().getMaxSeqNo();
                 assertTrue(shardStats.getRetentionLeaseStats().leases() + " should discard history up to " + maxSeqNo,
                            shardStats.getRetentionLeaseStats().leases().leases().stream().allMatch(
@@ -1613,7 +1620,8 @@ public class IndexRecoveryIT extends SQLIntegrationTestCase {
         });
         execute("OPTIMIZE TABLE doc.test"); // ensure that all operations are in the safe commit
 
-        final ShardStats shardStats = client().admin().indices().prepareStats(indexName).get().getShards()[0];
+        var indicesStats = client().admin().indices().stats(new IndicesStatsRequest().indices(indexName)).get();
+        final ShardStats shardStats = indicesStats.getShards()[0];
         final long docCount = shardStats.getStats().docs.getCount();
         assertThat(shardStats.getStats().docs.getDeleted(), equalTo(0L));
         assertThat(shardStats.getSeqNoStats().getMaxSeqNo() + 1, equalTo(docCount));
@@ -1623,8 +1631,8 @@ public class IndexRecoveryIT extends SQLIntegrationTestCase {
         final IndexShardRoutingTable indexShardRoutingTable = clusterService().state().routingTable().shardRoutingTable(shardId);
 
         final ShardRouting replicaShardRouting = indexShardRoutingTable.replicaShards().get(0);
-        assertTrue("should have lease for " + replicaShardRouting,
-                   client().admin().indices().prepareStats(indexName).get().getShards()[0].getRetentionLeaseStats()
+        indicesStats = client().admin().indices().stats(new IndicesStatsRequest().indices(indexName)).get();
+        assertTrue("should have lease for " + replicaShardRouting, indicesStats.getShards()[0].getRetentionLeaseStats()
                        .leases().contains(ReplicationTracker.getPeerRecoveryRetentionLeaseId(replicaShardRouting)));
         internalCluster().restartNode(discoveryNodes.get(replicaShardRouting.currentNodeId()).getName(),
                                       new InternalTestCluster.RestartCallback() {
@@ -1667,10 +1675,13 @@ public class IndexRecoveryIT extends SQLIntegrationTestCase {
 
                                               execute("OPTIMIZE TABLE doc.test");
 
-                                              assertBusy(() -> assertFalse("should no longer have lease for " + replicaShardRouting,
-                                                                           client().admin().indices().prepareStats(indexName).get().getShards()[0].getRetentionLeaseStats()
-                                                                               .leases().contains(ReplicationTracker.getPeerRecoveryRetentionLeaseId(replicaShardRouting))));
-
+                                              assertBusy(() -> {
+                                                  var indicesStats = client().admin().indices().stats(new IndicesStatsRequest().indices(indexName)).get();
+                                                  assertFalse(
+                                                        "should no longer have lease for " + replicaShardRouting,
+                                                        indicesStats.getShards()[0].getRetentionLeaseStats().leases().contains(
+                                                            ReplicationTracker.getPeerRecoveryRetentionLeaseId(replicaShardRouting)));
+                                              });
                                               return super.onNodeStopped(nodeName);
                                           }
                                       });

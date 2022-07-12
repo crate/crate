@@ -29,6 +29,7 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.CreateIndexClusterStateUpdateRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.stats.IndexShardStats;
+import org.elasticsearch.action.admin.indices.stats.IndicesStatsRequest;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterState;
@@ -113,11 +114,10 @@ public class TransportResizeAction extends TransportMasterNodeAction<ResizeReque
         // there is no need to fetch docs stats for split but we keep it simple and do it anyway for simplicity of the code
         final String sourceIndex = resizeRequest.getSourceIndex();
         final String targetIndex = resizeRequest.getTargetIndexRequest().index();
-        client.admin().indices()
-            .prepareStats(sourceIndex)
+        client.admin().indices().stats(new IndicesStatsRequest()
             .clear()
-            .setDocs(true)
-            .execute(ActionListener.delegateFailure(
+            .docs(true))
+            .whenComplete(ActionListener.delegateFailure(
                 listener,
                 (delegate, indicesStatsResponse) -> {
                     CreateIndexClusterStateUpdateRequest updateRequest = prepareCreateIndexRequest(

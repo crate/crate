@@ -52,7 +52,6 @@ import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsAction;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequestBuilder;
 import org.elasticsearch.action.admin.indices.stats.IndicesStatsAction;
 import org.elasticsearch.action.admin.indices.stats.IndicesStatsRequest;
-import org.elasticsearch.action.admin.indices.stats.IndicesStatsRequestBuilder;
 import org.elasticsearch.action.admin.indices.stats.IndicesStatsResponse;
 import org.elasticsearch.action.admin.indices.template.delete.DeleteIndexTemplateAction;
 import org.elasticsearch.action.admin.indices.template.delete.DeleteIndexTemplateRequest;
@@ -233,11 +232,6 @@ public abstract class AbstractClient implements Client {
         @Override
         public CompletableFuture<IndicesStatsResponse> stats(final IndicesStatsRequest request) {
             return execute(IndicesStatsAction.INSTANCE, request);
-        }
-
-        @Override
-        public IndicesStatsRequestBuilder prepareStats(String... indices) {
-            return new IndicesStatsRequestBuilder(this, IndicesStatsAction.INSTANCE).setIndices(indices);
         }
 
         @Override
