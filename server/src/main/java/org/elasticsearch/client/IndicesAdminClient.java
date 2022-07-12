@@ -21,7 +21,6 @@ package org.elasticsearch.client;
 
 import java.util.concurrent.CompletableFuture;
 
-import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
@@ -57,7 +56,7 @@ public interface IndicesAdminClient extends ElasticsearchClient {
     /**
      * Indices recoveries
      */
-    ActionFuture<RecoveryResponse> recoveries(RecoveryRequest request);
+    CompletableFuture<RecoveryResponse> recoveries(RecoveryRequest request);
 
     /**
      * Creates an index using an explicit request allowing to specify the settings of the index.
@@ -89,7 +88,7 @@ public interface IndicesAdminClient extends ElasticsearchClient {
      * @param request The create mapping request
      * @return A result future
      */
-    ActionFuture<AcknowledgedResponse> putMapping(PutMappingRequest request);
+    CompletableFuture<AcknowledgedResponse> putMapping(PutMappingRequest request);
 
     /**
      * Add mapping definition for a type into one or more indices.
@@ -121,7 +120,7 @@ public interface IndicesAdminClient extends ElasticsearchClient {
     /**
      * Gets index template.
      */
-    ActionFuture<GetIndexTemplatesResponse> getTemplates(GetIndexTemplatesRequest request);
+    CompletableFuture<GetIndexTemplatesResponse> getTemplates(GetIndexTemplatesRequest request);
 
     /**
      * Gets an index template (optional).
