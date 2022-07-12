@@ -25,7 +25,6 @@ import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
-import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequestBuilder;
 import org.elasticsearch.action.admin.indices.recovery.RecoveryRequest;
 import org.elasticsearch.action.admin.indices.recovery.RecoveryResponse;
 import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
@@ -89,11 +88,6 @@ public interface IndicesAdminClient extends ElasticsearchClient {
      * @return A result future
      */
     CompletableFuture<AcknowledgedResponse> putMapping(PutMappingRequest request);
-
-    /**
-     * Add mapping definition for a type into one or more indices.
-     */
-    PutMappingRequestBuilder preparePutMapping(String... indices);
 
     /**
      * Update indices settings.
