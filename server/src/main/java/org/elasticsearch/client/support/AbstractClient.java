@@ -231,8 +231,8 @@ public abstract class AbstractClient implements Client {
         }
 
         @Override
-        public void stats(final IndicesStatsRequest request, final ActionListener<IndicesStatsResponse> listener) {
-            execute(IndicesStatsAction.INSTANCE, request).whenComplete(listener);
+        public CompletableFuture<IndicesStatsResponse> stats(final IndicesStatsRequest request) {
+            return execute(IndicesStatsAction.INSTANCE, request);
         }
 
         @Override

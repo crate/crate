@@ -22,7 +22,6 @@ package org.elasticsearch.client;
 import java.util.concurrent.CompletableFuture;
 
 import org.elasticsearch.action.ActionFuture;
-import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
@@ -56,7 +55,7 @@ public interface IndicesAdminClient extends ElasticsearchClient {
     /**
      * Indices stats.
      */
-    void stats(IndicesStatsRequest request, ActionListener<IndicesStatsResponse> listener);
+    CompletableFuture<IndicesStatsResponse> stats(IndicesStatsRequest request);
 
     /**
      * Indices stats.
