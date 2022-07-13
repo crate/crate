@@ -26,6 +26,8 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.testing.TestingHelpers;
+
+import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesRequest;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
@@ -379,8 +381,8 @@ public class ColumnPolicyIntegrationTest extends SQLIntegrationTestCase {
         ensureYellow();
 
         GetIndexTemplatesResponse response = client().admin().indices()
-            .prepareGetTemplates(PartitionName.templateName(sqlExecutor.getCurrentSchema(), "numbers"))
-            .execute().actionGet();
+            .getTemplates(new GetIndexTemplatesRequest(PartitionName.templateName(sqlExecutor.getCurrentSchema(), "numbers")))
+            .get();
         assertThat(response.getIndexTemplates().size(), is(1));
         IndexTemplateMetadata template = response.getIndexTemplates().get(0);
         CompressedXContent mappingStr = template.mappings().get(Constants.DEFAULT_MAPPING_TYPE);
@@ -418,8 +420,8 @@ public class ColumnPolicyIntegrationTest extends SQLIntegrationTestCase {
         ensureYellow();
 
         GetIndexTemplatesResponse response = client().admin().indices()
-            .prepareGetTemplates(PartitionName.templateName(sqlExecutor.getCurrentSchema(), "numbers"))
-            .execute().actionGet();
+            .getTemplates(new GetIndexTemplatesRequest(PartitionName.templateName(sqlExecutor.getCurrentSchema(), "numbers")))
+            .get();
         assertThat(response.getIndexTemplates().size(), is(1));
         IndexTemplateMetadata template = response.getIndexTemplates().get(0);
         CompressedXContent mappingStr = template.mappings().get(Constants.DEFAULT_MAPPING_TYPE);
@@ -455,8 +457,8 @@ public class ColumnPolicyIntegrationTest extends SQLIntegrationTestCase {
         ensureYellow();
 
         GetIndexTemplatesResponse templateResponse = client().admin().indices()
-            .prepareGetTemplates(PartitionName.templateName(sqlExecutor.getCurrentSchema(), "numbers"))
-            .execute().actionGet();
+            .getTemplates(new GetIndexTemplatesRequest(PartitionName.templateName(sqlExecutor.getCurrentSchema(), "numbers")))
+            .get();
         assertThat(templateResponse.getIndexTemplates().size(), is(1));
         IndexTemplateMetadata template = templateResponse.getIndexTemplates().get(0);
         CompressedXContent mappingStr = template.mappings().get(Constants.DEFAULT_MAPPING_TYPE);
@@ -580,8 +582,8 @@ public class ColumnPolicyIntegrationTest extends SQLIntegrationTestCase {
         execute("refresh table dynamic_table");
         ensureYellow();
         GetIndexTemplatesResponse response = client().admin().indices()
-            .prepareGetTemplates(PartitionName.templateName(sqlExecutor.getCurrentSchema(), "dynamic_table"))
-            .execute().actionGet();
+            .getTemplates(new GetIndexTemplatesRequest(PartitionName.templateName(sqlExecutor.getCurrentSchema(), "dynamic_table")))
+            .get();
         assertThat(response.getIndexTemplates().size(), is(1));
         IndexTemplateMetadata template = response.getIndexTemplates().get(0);
         CompressedXContent mappingStr = template.mappings().get(Constants.DEFAULT_MAPPING_TYPE);

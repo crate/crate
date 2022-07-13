@@ -34,6 +34,7 @@ public class GetIndexTemplatesRequest extends MasterNodeReadRequest<GetIndexTemp
     private String[] names;
 
     public GetIndexTemplatesRequest() {
+        this.names = new String[0];
     }
 
     public GetIndexTemplatesRequest(String... names) {

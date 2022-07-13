@@ -42,6 +42,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.Version;
+import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesRequest;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Settings;
@@ -742,7 +743,7 @@ public class DDLIntegrationTest extends SQLIntegrationTestCase {
     }
 
     @Test
-    public void testAlterShardsOfPartitionedTableAffectsNewPartitions() {
+    public void testAlterShardsOfPartitionedTableAffectsNewPartitions() throws Exception {
         execute(
             "create table quotes (" +
             "   id integer," +
@@ -761,7 +762,7 @@ public class DDLIntegrationTest extends SQLIntegrationTestCase {
 
         String templateName = PartitionName.templateName(Schemas.DOC_SCHEMA_NAME, "quotes");
         GetIndexTemplatesResponse templatesResponse =
-            client().admin().indices().prepareGetTemplates(templateName).execute().actionGet();
+            client().admin().indices().getTemplates(new GetIndexTemplatesRequest(templateName)).get();
         Settings templateSettings = templatesResponse.getIndexTemplates().get(0).getSettings();
         assertThat(templateSettings.getAsInt(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 0), is(5));
 

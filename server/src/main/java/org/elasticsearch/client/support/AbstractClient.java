@@ -55,7 +55,6 @@ import org.elasticsearch.action.admin.indices.template.delete.DeleteIndexTemplat
 import org.elasticsearch.action.admin.indices.template.delete.DeleteIndexTemplateRequest;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesAction;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesRequest;
-import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesRequestBuilder;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateAction;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
@@ -236,11 +235,6 @@ public abstract class AbstractClient implements Client {
         @Override
         public CompletableFuture<GetIndexTemplatesResponse> getTemplates(final GetIndexTemplatesRequest request) {
             return execute(GetIndexTemplatesAction.INSTANCE, request);
-        }
-
-        @Override
-        public GetIndexTemplatesRequestBuilder prepareGetTemplates(String... names) {
-            return new GetIndexTemplatesRequestBuilder(this, GetIndexTemplatesAction.INSTANCE, names);
         }
 
         @Override
