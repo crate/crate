@@ -20,8 +20,6 @@
 package org.elasticsearch.action.admin.cluster.configuration;
 
 import org.elasticsearch.action.ActionType;
-import org.elasticsearch.action.ActionRequestBuilder;
-import org.elasticsearch.client.ElasticsearchClient;
 
 public class ClearVotingConfigExclusionsAction extends ActionType<ClearVotingConfigExclusionsResponse> {
 
@@ -30,14 +28,5 @@ public class ClearVotingConfigExclusionsAction extends ActionType<ClearVotingCon
 
     private ClearVotingConfigExclusionsAction() {
         super(NAME);
-    }
-
-    static class ClearVotingConfigExclusionsRequestBuilder extends ActionRequestBuilder<ClearVotingConfigExclusionsRequest, ClearVotingConfigExclusionsResponse> {
-
-        ClearVotingConfigExclusionsRequestBuilder(ElasticsearchClient client,
-                                                  ActionType<ClearVotingConfigExclusionsResponse> action,
-                                                  ClearVotingConfigExclusionsRequest request) {
-            super(client, action, request);
-        }
     }
 }
