@@ -97,14 +97,13 @@ public class RecoveryTests extends BlobIntegrationTestBase {
         logger.trace("Uploading {} digest {}", content, digestString);
         BytesArray bytes = new BytesArray(new byte[]{contentBytes[0]});
         if (content.length() == 1) {
-            client.legacyExecute(StartBlobAction.INSTANCE,
+            FutureUtils.get(client.execute(StartBlobAction.INSTANCE,
                 new StartBlobRequest(
                     resolveShardId(BlobIndex.fullIndexName("test"), digestString),
                     digest,
                     bytes,
                     true
-                ))
-                .actionGet();
+                )));
         } else {
             StartBlobRequest startBlobRequest = new StartBlobRequest(
                 resolveShardId(BlobIndex.fullIndexName("test"), digestString),
@@ -112,7 +111,7 @@ public class RecoveryTests extends BlobIntegrationTestBase {
                 bytes,
                 false
             );
-            client.legacyExecute(StartBlobAction.INSTANCE, startBlobRequest).actionGet();
+            FutureUtils.get(client.execute(StartBlobAction.INSTANCE, startBlobRequest));
             for (int i = 1; i < contentBytes.length; i++) {
                 try {
                     Thread.sleep(timeBetweenChunks.get());
@@ -121,7 +120,7 @@ public class RecoveryTests extends BlobIntegrationTestBase {
                 }
                 bytes = new BytesArray(new byte[]{contentBytes[i]});
                 try {
-                    client.legacyExecute(PutChunkAction.INSTANCE,
+                    FutureUtils.get(client.execute(PutChunkAction.INSTANCE,
                         new PutChunkRequest(
                             resolveShardId(BlobIndex.fullIndexName("test"), digestString),
                             digest,
@@ -130,7 +129,7 @@ public class RecoveryTests extends BlobIntegrationTestBase {
                             i,
                             (i + 1) == content.length()
                         )
-                    ).actionGet();
+                    ));
                 } catch (IllegalStateException ex) {
                     Thread.interrupted();
                 }
