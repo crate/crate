@@ -27,6 +27,7 @@ import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
 import org.apache.lucene.util.Version;
+import org.elasticsearch.action.admin.indices.template.delete.DeleteIndexTemplateRequest;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -371,8 +372,8 @@ public class SysShardsTest extends SQLIntegrationTestCase {
             assertThat(TestingHelpers.printedTable(response.rows()), is("false\n"));
 
             client().admin().indices()
-                .prepareDeleteTemplate(PartitionName.templateName("c", "orphan_test"))
-                .execute().get(1, TimeUnit.SECONDS);
+                .deleteTemplate(new DeleteIndexTemplateRequest(PartitionName.templateName("c", "orphan_test")))
+                .get(1, TimeUnit.SECONDS);
 
             response = execute(
                 "select orphan_partition from sys.shards where table_name = 'orphan_test'");

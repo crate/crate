@@ -33,7 +33,6 @@ import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest
 import org.elasticsearch.action.admin.indices.stats.IndicesStatsRequest;
 import org.elasticsearch.action.admin.indices.stats.IndicesStatsResponse;
 import org.elasticsearch.action.admin.indices.template.delete.DeleteIndexTemplateRequest;
-import org.elasticsearch.action.admin.indices.template.delete.DeleteIndexTemplateRequestBuilder;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesRequest;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesRequestBuilder;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
@@ -103,13 +102,6 @@ public interface IndicesAdminClient extends ElasticsearchClient {
      * Deletes an index template.
      */
     CompletableFuture<AcknowledgedResponse> deleteTemplate(DeleteIndexTemplateRequest request);
-
-    /**
-     * Deletes an index template.
-     *
-     * @param name The name of the template.
-     */
-    DeleteIndexTemplateRequestBuilder prepareDeleteTemplate(String name);
 
     /**
      * Gets index template.

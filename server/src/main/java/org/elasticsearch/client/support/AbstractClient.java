@@ -53,7 +53,6 @@ import org.elasticsearch.action.admin.indices.stats.IndicesStatsRequest;
 import org.elasticsearch.action.admin.indices.stats.IndicesStatsResponse;
 import org.elasticsearch.action.admin.indices.template.delete.DeleteIndexTemplateAction;
 import org.elasticsearch.action.admin.indices.template.delete.DeleteIndexTemplateRequest;
-import org.elasticsearch.action.admin.indices.template.delete.DeleteIndexTemplateRequestBuilder;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesAction;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesRequest;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesRequestBuilder;
@@ -247,11 +246,6 @@ public abstract class AbstractClient implements Client {
         @Override
         public CompletableFuture<AcknowledgedResponse> deleteTemplate(final DeleteIndexTemplateRequest request) {
             return execute(DeleteIndexTemplateAction.INSTANCE, request);
-        }
-
-        @Override
-        public DeleteIndexTemplateRequestBuilder prepareDeleteTemplate(String name) {
-            return new DeleteIndexTemplateRequestBuilder(this, DeleteIndexTemplateAction.INSTANCE, name);
         }
     }
 }

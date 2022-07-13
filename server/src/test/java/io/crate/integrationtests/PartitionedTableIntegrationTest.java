@@ -55,6 +55,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.Version;
+import org.elasticsearch.action.admin.indices.template.delete.DeleteIndexTemplateRequest;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesRequest;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
 import org.elasticsearch.cluster.ClusterState;
@@ -2005,7 +2006,7 @@ public class PartitionedTableIntegrationTest extends SQLIntegrationTestCase {
         execute("refresh table foo");
 
         String templateName = PartitionName.templateName(sqlExecutor.getCurrentSchema(), "foo");
-        client().admin().indices().prepareDeleteTemplate(templateName).execute().actionGet();
+        client().admin().indices().deleteTemplate(new DeleteIndexTemplateRequest(templateName)).get();
         waitNoPendingTasksOnAll();
         execute("select * from sys.shards where table_name = 'foo'");
         assertThat(response.rowCount(), Matchers.greaterThan(0L));
