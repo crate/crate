@@ -19,27 +19,7 @@
 
 package org.elasticsearch.cluster;
 
-import org.apache.logging.log4j.Level;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.message.ParameterizedMessage;
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.support.GroupedActionListener;
-import org.elasticsearch.action.support.PlainListenableActionFuture;
-import org.elasticsearch.cluster.coordination.FollowersChecker;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.cluster.node.DiscoveryNodes;
-import org.elasticsearch.cluster.service.ClusterApplier;
-import javax.annotation.Nullable;
-import org.elasticsearch.common.component.AbstractLifecycleComponent;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Settings;
-import io.crate.common.unit.TimeValue;
-import org.elasticsearch.common.util.concurrent.AbstractRunnable;
-import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.TransportService;
+import static org.elasticsearch.common.settings.Setting.positiveTimeSetting;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -48,10 +28,32 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.elasticsearch.common.settings.Setting.Property;
-import static org.elasticsearch.common.settings.Setting.positiveTimeSetting;
+import javax.annotation.Nullable;
+
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.message.ParameterizedMessage;
+import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.support.GroupedActionListener;
+import org.elasticsearch.cluster.coordination.FollowersChecker;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.node.DiscoveryNodes;
+import org.elasticsearch.cluster.service.ClusterApplier;
+import org.elasticsearch.common.component.AbstractLifecycleComponent;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Setting.Property;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.util.concurrent.AbstractRunnable;
+import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.transport.TransportService;
+
+import io.crate.common.unit.TimeValue;
 
 /**
  * This component is responsible for maintaining connections from this node to all the nodes listed in the cluster state, and for
@@ -294,7 +296,7 @@ public class NodeConnectionsService extends AbstractLifecycleComponent {
     private class ConnectionTarget {
         private final DiscoveryNode discoveryNode;
 
-        private PlainListenableActionFuture<Void> future = PlainListenableActionFuture.newListenableFuture();
+        private CompletableFuture<Void> future = new CompletableFuture<>();
         private ActivityType activityType = ActivityType.IDLE; // indicates what any listeners are awaiting
 
         private final AtomicInteger consecutiveFailureCount = new AtomicInteger();
@@ -421,14 +423,14 @@ public class NodeConnectionsService extends AbstractLifecycleComponent {
             assert Thread.holdsLock(mutex) : "mutex not held";
             assert activityType != ActivityType.IDLE;
             if (listener != null) {
-                future.addListener(listener);
+                future.whenComplete(listener);
             }
         }
 
-        private PlainListenableActionFuture<Void> getAndClearFuture() {
+        private CompletableFuture<Void> getAndClearFuture() {
             assert Thread.holdsLock(mutex) : "mutex not held";
-            final PlainListenableActionFuture<Void> drainedFuture = future;
-            future = PlainListenableActionFuture.newListenableFuture();
+            final CompletableFuture<Void> drainedFuture = future;
+            future = new CompletableFuture<>();
             return drainedFuture;
         }
 
@@ -450,9 +452,9 @@ public class NodeConnectionsService extends AbstractLifecycleComponent {
             }
 
             activityType = newActivityType;
-            final PlainListenableActionFuture<Void> oldFuture = getAndClearFuture();
+            final CompletableFuture<Void> oldFuture = getAndClearFuture();
             addListener(listener);
-            return () -> oldFuture.onFailure(new ElasticsearchException(cancellationMessage));
+            return () -> oldFuture.completeExceptionally(new ElasticsearchException(cancellationMessage));
         }
 
         private void onCompletion(ActivityType completedActivityType, @Nullable Exception e, Runnable oppositeActivity) {
@@ -462,10 +464,10 @@ public class NodeConnectionsService extends AbstractLifecycleComponent {
             synchronized (mutex) {
                 assert activityType != ActivityType.IDLE;
                 if (activityType == completedActivityType) {
-                    final PlainListenableActionFuture<Void> oldFuture = getAndClearFuture();
+                    final CompletableFuture<Void> oldFuture = getAndClearFuture();
                     activityType = ActivityType.IDLE;
 
-                    cleanup = e == null ? () -> oldFuture.onResponse(null) : () -> oldFuture.onFailure(e);
+                    cleanup = e == null ? () -> oldFuture.complete(null) : () -> oldFuture.completeExceptionally(e);
 
                     if (completedActivityType.equals(ActivityType.DISCONNECTING)) {
                         final ConnectionTarget removedTarget = targetsByNode.remove(discoveryNode);
