@@ -42,6 +42,8 @@ import java.util.stream.StreamSupport;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsAction;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
+import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
+import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.cluster.ClusterInfoService;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.MockInternalClusterInfoService;
@@ -359,7 +361,8 @@ public class DiskUsagesITest extends SQLIntegrationTestCase {
             internalCluster().startNode(Settings.builder().put(Environment.PATH_DATA_SETTING.getKey(), createTempDir()));
         }
 
-        final List<String> nodeIds = StreamSupport.stream(client().admin().cluster().prepareState().get().getState()
+        ClusterStateResponse clusterStateResponse = client().admin().cluster().state(new ClusterStateRequest()).get();
+        final List<String> nodeIds = StreamSupport.stream(clusterStateResponse.getState()
             .getRoutingNodes().spliterator(), false).map(RoutingNode::nodeId).collect(Collectors.toList());
 
         // Start with all nodes at 50% usage
@@ -467,7 +470,7 @@ public class DiskUsagesITest extends SQLIntegrationTestCase {
     }
 
     private static ClusterState clusterState() {
-        return client().admin().cluster().prepareState().get().getState();
+        return FutureUtils.get(client().admin().cluster().state(new ClusterStateRequest())).getState();
     }
 
     private static FsInfo.Path setDiskUsage(FsInfo.Path original, long totalBytes, long freeBytes) {

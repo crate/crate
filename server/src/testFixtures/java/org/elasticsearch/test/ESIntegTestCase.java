@@ -70,6 +70,7 @@ import org.apache.lucene.tests.util.LuceneTestCase;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
+import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksAction;
 import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksRequest;
@@ -422,7 +423,7 @@ public abstract class ESIntegTestCase extends ESTestCase {
             try {
                 if (cluster() != null) {
                     if (currentClusterScope != Scope.TEST) {
-                        Metadata metadata = client().admin().cluster().prepareState().execute().actionGet().getState().getMetadata();
+                        Metadata metadata = FutureUtils.get(client().admin().cluster().state(new ClusterStateRequest())).getState().getMetadata();
                         final Set<String> persistent = metadata.persistentSettings().keySet();
                         assertThat("test leaves persistent cluster metadata behind: " + persistent, persistent.size(), equalTo(0));
                         final Set<String> transientSettings =  new HashSet<>(metadata.transientSettings().keySet());
@@ -687,9 +688,10 @@ public abstract class ESIntegTestCase extends ESTestCase {
         ClusterHealthResponse actionGet = FutureUtils.get(client().admin().cluster().health(healthRequest));
         if (actionGet.isTimedOut()) {
             var pendingClusterTasks = FutureUtils.get(client().admin().cluster().execute(PendingClusterTasksAction.INSTANCE, new PendingClusterTasksRequest()));
+            ClusterState state = FutureUtils.get(client().admin().cluster().state(new ClusterStateRequest())).getState();
             logger.info("{} timed out, cluster state:\n{}\n{}",
                 method,
-                client().admin().cluster().prepareState().get().getState(),
+                state,
                 pendingClusterTasks);
             fail("timed out waiting for " + color + " state");
         }
@@ -747,7 +749,7 @@ public abstract class ESIntegTestCase extends ESTestCase {
         }
         ClusterHealthResponse actionGet = FutureUtils.get(client().admin().cluster().health(request));
         if (actionGet.isTimedOut()) {
-            var clusterStateResponse = client().admin().cluster().prepareState().get();
+            var clusterStateResponse = FutureUtils.get(client().admin().cluster().state(new ClusterStateRequest()));
             var pendingClusterTasks = FutureUtils.get(
                 client().admin().cluster().execute(PendingClusterTasksAction.INSTANCE, new PendingClusterTasksRequest()));
             logger.info(
@@ -826,7 +828,9 @@ public abstract class ESIntegTestCase extends ESTestCase {
         if (cluster() != null && cluster().size() > 0) {
             final NamedWriteableRegistry namedWriteableRegistry = cluster().getNamedWriteableRegistry();
             final Client masterClient = client();
-            ClusterState masterClusterState = masterClient.admin().cluster().prepareState().all().get().getState();
+            ClusterState masterClusterState = FutureUtils
+                .get(masterClient.admin().cluster().state(new ClusterStateRequest().all()))
+                .getState();
             byte[] masterClusterStateBytes = ClusterState.Builder.toBytes(masterClusterState);
             // remove local node reference
             masterClusterState = ClusterState.Builder.fromBytes(masterClusterStateBytes, null, namedWriteableRegistry);
@@ -834,7 +838,9 @@ public abstract class ESIntegTestCase extends ESTestCase {
             int masterClusterStateSize = ClusterState.Builder.toBytes(masterClusterState).length;
             String masterId = masterClusterState.nodes().getMasterNodeId();
             for (Client client : cluster().getClients()) {
-                ClusterState localClusterState = client.admin().cluster().prepareState().all().setLocal(true).get().getState();
+                ClusterState localClusterState = FutureUtils
+                    .get(client.admin().cluster().state(new ClusterStateRequest().all().local(true)))
+                    .getState();
                 byte[] localClusterStateBytes = ClusterState.Builder.toBytes(localClusterState);
                 // remove local node reference
                 localClusterState = ClusterState.Builder.fromBytes(localClusterStateBytes, null, namedWriteableRegistry);
@@ -910,7 +916,8 @@ public abstract class ESIntegTestCase extends ESTestCase {
                 .waitForNoRelocatingShards(true)
             ));
         if (clusterHealthResponse.isTimedOut()) {
-            ClusterStateResponse stateResponse = cluster.client(viaNode).admin().cluster().prepareState().get();
+            ClusterStateResponse stateResponse = FutureUtils
+                .get(cluster.client(viaNode).admin().cluster().state(new ClusterStateRequest()));
             fail("failed to reach a stable cluster of [" + nodeCount + "] nodes. Tried via [" + viaNode + "]. last cluster state:\n"
                  + stateResponse.getState());
         }
@@ -1252,7 +1259,9 @@ public abstract class ESIntegTestCase extends ESTestCase {
      */
     public Set<String> assertAllShardsOnNodes(String index, String... pattern) {
         Set<String> nodes = new HashSet<>();
-        ClusterState clusterState = client().admin().cluster().prepareState().execute().actionGet().getState();
+        ClusterState clusterState = FutureUtils
+            .get(client().admin().cluster().state(new ClusterStateRequest()))
+            .getState();
         for (IndexRoutingTable indexRoutingTable : clusterState.routingTable()) {
             for (IndexShardRoutingTable indexShardRoutingTable : indexRoutingTable) {
                 for (ShardRouting shardRouting : indexShardRoutingTable) {

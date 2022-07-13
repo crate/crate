@@ -23,6 +23,7 @@ import io.crate.common.unit.TimeValue;
 import io.crate.integrationtests.SQLIntegrationTestCase;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.TopDocs;
+import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Settings;
@@ -444,7 +445,9 @@ public class IndexServiceTests extends SQLIntegrationTestCase {
         assertNotNull(indexService.getFsyncTask());
         assertTrue(indexService.getFsyncTask().mustReschedule());
 
-        IndexMetadata indexMetadata = client().admin().cluster().prepareState().execute().actionGet().getState().metadata().index(indexName);
+        IndexMetadata indexMetadata = client().admin().cluster()
+            .state(new ClusterStateRequest())
+            .get().getState().metadata().index(indexName);
         assertEquals("5s", indexMetadata.getSettings().get(IndexSettings.INDEX_TRANSLOG_SYNC_INTERVAL_SETTING.getKey()));
 
         execute("alter table test close");
@@ -456,7 +459,9 @@ public class IndexServiceTests extends SQLIntegrationTestCase {
                 indexName
             ))
             .get();
-        indexMetadata = client().admin().cluster().prepareState().execute().actionGet().getState().metadata().index(indexName);
+        indexMetadata = client().admin().cluster()
+            .state(new ClusterStateRequest())
+            .get().getState().metadata().index(indexName);
         assertEquals("20s", indexMetadata.getSettings().get(IndexSettings.INDEX_TRANSLOG_SYNC_INTERVAL_SETTING.getKey()));
     }
 

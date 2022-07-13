@@ -33,6 +33,7 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
 
+import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlock;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
@@ -42,6 +43,7 @@ import org.elasticsearch.cluster.coordination.JoinHelper;
 import org.elasticsearch.cluster.coordination.LeaderChecker;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.InternalSettingsPlugin;
@@ -147,7 +149,7 @@ public abstract class AbstractDisruptionTestCase extends SQLIntegrationTestCase 
     }
 
     ClusterState getNodeClusterState(String node) {
-        return client(node).admin().cluster().prepareState().setLocal(true).get().getState();
+        return FutureUtils.get(client(node).admin().cluster().state(new ClusterStateRequest().local(true))).getState();
     }
 
     void assertNoMaster(final String node) throws Exception {

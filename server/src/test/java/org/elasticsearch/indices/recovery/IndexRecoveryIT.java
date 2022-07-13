@@ -59,6 +59,7 @@ import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsActi
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.elasticsearch.action.admin.cluster.snapshots.get.GetSnapshotsAction;
 import org.elasticsearch.action.admin.cluster.snapshots.get.GetSnapshotsRequest;
+import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.action.admin.indices.flush.SyncedFlushAction;
 import org.elasticsearch.action.admin.indices.flush.SyncedFlushRequest;
@@ -456,7 +457,7 @@ public class IndexRecoveryIT extends SQLIntegrationTestCase {
         transportService.clearAllRules();
 
         // make sure nodeA has primary and nodeB has replica
-        ClusterState state = client().admin().cluster().prepareState().get().getState();
+        ClusterState state = client().admin().cluster().state(new ClusterStateRequest()).get().getState();
         List<ShardRouting> startedShards = state.routingTable().shardsWithState(ShardRoutingState.STARTED);
         assertThat(startedShards.size(), equalTo(2));
         for (ShardRouting shardRouting : startedShards) {
@@ -748,7 +749,7 @@ public class IndexRecoveryIT extends SQLIntegrationTestCase {
         execute("INSERT INTO doc." + indexName + " (id) VALUES (?)", args);
         ensureGreen();
 
-        ClusterStateResponse stateResponse = client().admin().cluster().prepareState().get();
+        ClusterStateResponse stateResponse = client().admin().cluster().state(new ClusterStateRequest()).get();
         final String blueNodeId = internalCluster().getInstance(ClusterService.class, blueNodeName).localNode().getId();
 
         assertFalse(stateResponse.getState().getRoutingNodes().node(blueNodeId).isEmpty());
@@ -920,7 +921,7 @@ public class IndexRecoveryIT extends SQLIntegrationTestCase {
         execute("INSERT INTO doc." + indexName + " (id) VALUES (?)", args);
         ensureGreen();
 
-        ClusterStateResponse stateResponse = client().admin().cluster().prepareState().get();
+        ClusterStateResponse stateResponse = client().admin().cluster().state(new ClusterStateRequest()).get();
         final String blueNodeId = internalCluster().getInstance(ClusterService.class, blueNodeName).localNode().getId();
 
         assertFalse(stateResponse.getState().getRoutingNodes().node(blueNodeId).isEmpty());
@@ -1077,7 +1078,7 @@ public class IndexRecoveryIT extends SQLIntegrationTestCase {
                     try {
                         assertBusy(() -> assertThat(
                             "Expected there to be some initializing shards",
-                            client(blueNodeName).admin().cluster().prepareState().setLocal(true).get()
+                            client(blueNodeName).admin().cluster().state(new ClusterStateRequest().local(true)).get()
                                 .getState().getRoutingTable().index(indexName).shard(0).getAllInitializingShards(), not(empty())));
                     } catch (Exception e) {
                         throw new RuntimeException(e);
@@ -1348,7 +1349,7 @@ public class IndexRecoveryIT extends SQLIntegrationTestCase {
         final ShardId shardId = new ShardId(resolveIndex(indexName), 0);
         assertThat(SyncedFlushUtil.attemptSyncedFlush(logger, internalCluster(), shardId).successfulShards(), equalTo(2));
 
-        final ClusterState clusterState = client().admin().cluster().prepareState().get().getState();
+        final ClusterState clusterState = client().admin().cluster().state(new ClusterStateRequest()).get().getState();
         final ShardRouting shardToResync = randomFrom(clusterState.routingTable().shardRoutingTable(shardId).activeShards());
         internalCluster().restartNode(
             clusterState.nodes().get(shardToResync.currentNodeId()).getName(),

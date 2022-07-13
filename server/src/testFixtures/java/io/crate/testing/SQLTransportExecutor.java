@@ -52,14 +52,13 @@ import java.util.stream.StreamSupport;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import com.carrotsearch.randomizedtesting.RandomizedContext;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
+import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksAction;
 import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksRequest;
 import org.elasticsearch.action.support.AdapterActionFuture;
@@ -77,6 +76,8 @@ import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
 import org.locationtech.spatial4j.shape.impl.PointImpl;
 import org.postgresql.geometric.PGpoint;
 import org.postgresql.util.PGobject;
+
+import com.carrotsearch.randomizedtesting.RandomizedContext;
 
 import io.crate.action.FutureActionListener;
 import io.crate.action.sql.BaseResultReceiver;
@@ -572,7 +573,7 @@ public class SQLTransportExecutor {
         ));
 
         if (actionGet.isTimedOut()) {
-            var clusterState = client.admin().cluster().prepareState().get().getState();
+            var clusterState = FutureUtils.get(client.admin().cluster().state(new ClusterStateRequest())).getState();
             var pendingClusterTasks = FutureUtils.get(client.admin().cluster().execute(PendingClusterTasksAction.INSTANCE, new PendingClusterTasksRequest()));
             LOGGER.info("ensure state timed out, cluster state:\n{}\n{}", clusterState, pendingClusterTasks);
             assertThat("timed out waiting for state", actionGet.isTimedOut(), equalTo(false));

@@ -47,6 +47,7 @@ import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsAction;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
+import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.client.Client;
@@ -106,7 +107,7 @@ public class GatewayIndexStateIT extends SQLIntegrationTestCase {
         logger.info("--> waiting for green status");
         ensureGreen();
 
-        ClusterStateResponse stateResponse = client().admin().cluster().prepareState().execute().actionGet();
+        ClusterStateResponse stateResponse = client().admin().cluster().state(new ClusterStateRequest()).get();
         assertThat(stateResponse.getState().metadata().index(tableName).getState(), equalTo(IndexMetadata.State.OPEN));
         assertThat(stateResponse.getState().routingTable().index(tableName).shards().size(), equalTo(numPrimaries));
         assertThat(stateResponse.getState().routingTable().index(tableName).shardsWithState(ShardRoutingState.STARTED).size(),
@@ -118,7 +119,7 @@ public class GatewayIndexStateIT extends SQLIntegrationTestCase {
         logger.info("--> closing test index...");
         execute("alter table test close");
 
-        stateResponse = client().admin().cluster().prepareState().execute().actionGet();
+        stateResponse = client().admin().cluster().state(new ClusterStateRequest()).get();
         assertThat(stateResponse.getState().metadata().index(tableName).getState(), equalTo(IndexMetadata.State.CLOSE));
         assertThat(stateResponse.getState().routingTable().index(tableName), notNullValue());
 
@@ -146,7 +147,7 @@ public class GatewayIndexStateIT extends SQLIntegrationTestCase {
         logger.info("--> verifying that the state is green");
         ensureGreen();
 
-        stateResponse = client().admin().cluster().prepareState().execute().actionGet(REQUEST_TIMEOUT);
+        stateResponse = client().admin().cluster().state(new ClusterStateRequest()).get(REQUEST_TIMEOUT.millis(), TimeUnit.MILLISECONDS);
         assertThat(stateResponse.getState().metadata().index(tableName).getState(), equalTo(IndexMetadata.State.OPEN));
         assertThat(stateResponse.getState().routingTable().index(tableName).shards().size(), equalTo(numPrimaries));
         assertThat(stateResponse.getState().routingTable().index(tableName).shardsWithState(ShardRoutingState.STARTED).size(),
@@ -160,7 +161,7 @@ public class GatewayIndexStateIT extends SQLIntegrationTestCase {
         logger.info("--> closing test index...");
         execute("alter table test close");
 
-        stateResponse = client().admin().cluster().prepareState().execute().actionGet(REQUEST_TIMEOUT);
+        stateResponse = client().admin().cluster().state(new ClusterStateRequest()).get(REQUEST_TIMEOUT.millis(), TimeUnit.MILLISECONDS);
         assertThat(stateResponse.getState().metadata().index(tableName).getState(), equalTo(IndexMetadata.State.CLOSE));
         assertThat(stateResponse.getState().routingTable().index(tableName), notNullValue());
 
@@ -169,7 +170,7 @@ public class GatewayIndexStateIT extends SQLIntegrationTestCase {
         logger.info("--> waiting for two nodes and green status");
         ensureGreen();
 
-        stateResponse = client().admin().cluster().prepareState().execute().actionGet(REQUEST_TIMEOUT);
+        stateResponse = client().admin().cluster().state(new ClusterStateRequest()).get(REQUEST_TIMEOUT.millis(), TimeUnit.MILLISECONDS);
         assertThat(stateResponse.getState().metadata().index(tableName).getState(), equalTo(IndexMetadata.State.CLOSE));
         assertThat(stateResponse.getState().routingTable().index(tableName), notNullValue());
 
@@ -187,7 +188,7 @@ public class GatewayIndexStateIT extends SQLIntegrationTestCase {
         logger.info("--> waiting for green status");
         ensureGreen();
 
-        stateResponse = client().admin().cluster().prepareState().execute().actionGet();
+        stateResponse = client().admin().cluster().state(new ClusterStateRequest()).get();
         assertThat(stateResponse.getState().metadata().index(tableName).getState(), equalTo(IndexMetadata.State.OPEN));
         assertThat(stateResponse.getState().routingTable().index(tableName).shards().size(), equalTo(numPrimaries));
         assertThat(stateResponse.getState().routingTable().index(tableName).shardsWithState(ShardRoutingState.STARTED).size(),
@@ -239,9 +240,10 @@ public class GatewayIndexStateIT extends SQLIntegrationTestCase {
         assertThat(health.isTimedOut(), equalTo(false));
 
         logger.info("--> verify we have an index");
-        ClusterStateResponse clusterStateResponse = client().admin().cluster().prepareState()
-            .setIndices(tableName)
-            .execute().actionGet(REQUEST_TIMEOUT);
+        var clusterStateResponse = client().admin().cluster().state(
+            new ClusterStateRequest()
+                .indices(tableName)
+            ).get(REQUEST_TIMEOUT.millis(), TimeUnit.MILLISECONDS);
         assertThat(clusterStateResponse.getState().metadata().hasIndex(tableName), equalTo(true));
     }
 
@@ -293,7 +295,9 @@ public class GatewayIndexStateIT extends SQLIntegrationTestCase {
         logger.info("--> closing test index...");
         execute("alter table test close");
 
-        ClusterStateResponse stateResponse = client().admin().cluster().prepareState().execute().actionGet(REQUEST_TIMEOUT);
+        ClusterStateResponse stateResponse = client().admin().cluster()
+            .state(new ClusterStateRequest())
+            .get(REQUEST_TIMEOUT.millis(), TimeUnit.MILLISECONDS);
         assertThat(stateResponse.getState().metadata().index(tableName).getState(), equalTo(IndexMetadata.State.CLOSE));
         assertThat(stateResponse.getState().routingTable().index(tableName), notNullValue());
 
@@ -444,7 +448,9 @@ public class GatewayIndexStateIT extends SQLIntegrationTestCase {
                     .waitForEvents(Priority.LANGUID)
                     .waitForNoRelocatingShards(true).waitForNodes("2")), REQUEST_TIMEOUT);
         }
-        ClusterState state = client().admin().cluster().prepareState().execute().actionGet(REQUEST_TIMEOUT).getState();
+        ClusterState state = client().admin().cluster()
+            .state(new ClusterStateRequest())
+            .get(REQUEST_TIMEOUT.millis(), TimeUnit.MILLISECONDS).getState();
 
         final IndexMetadata metadata = state.getMetadata().index(tableName);
         final IndexMetadata.Builder brokenMeta = IndexMetadata.builder(metadata).settings(Settings.builder().put(metadata.getSettings())
@@ -457,7 +463,10 @@ public class GatewayIndexStateIT extends SQLIntegrationTestCase {
 
         // check that the cluster does not keep reallocating shards
         assertBusy(() -> {
-            final RoutingTable routingTable = client().admin().cluster().prepareState().get().getState().routingTable();
+            final RoutingTable routingTable = client().admin().cluster()
+                .state(new ClusterStateRequest())
+                .get()
+                .getState().routingTable();
             final IndexRoutingTable indexRoutingTable = routingTable.index(tableName);
             assertNotNull(indexRoutingTable);
             for (IndexShardRoutingTable shardRoutingTable : indexRoutingTable) {
@@ -469,7 +478,9 @@ public class GatewayIndexStateIT extends SQLIntegrationTestCase {
         }, 60, TimeUnit.SECONDS);
         execute("alter table test close");
 
-        state = client().admin().cluster().prepareState().execute().actionGet(REQUEST_TIMEOUT).getState();
+        state = client().admin().cluster()
+            .state(new ClusterStateRequest())
+            .get(REQUEST_TIMEOUT.millis(), TimeUnit.MILLISECONDS).getState();
         assertEquals(IndexMetadata.State.CLOSE, state.getMetadata().index(metadata.getIndex()).getState());
         assertEquals("classic", state.getMetadata().index(metadata.getIndex()).getSettings().get("archived.index.similarity.BM25.type"));
         // try to open it with the broken setting - fail again!
@@ -527,7 +538,7 @@ public class GatewayIndexStateIT extends SQLIntegrationTestCase {
                     .waitForEvents(Priority.LANGUID)
                     .waitForNoRelocatingShards(true).waitForNodes("2")), REQUEST_TIMEOUT);
         }
-        ClusterState state = client().admin().cluster().prepareState().get().getState();
+        ClusterState state = client().admin().cluster().state(new ClusterStateRequest()).get().getState();
 
         final IndexMetadata metadata = state.getMetadata().index(tableName);
         final IndexMetadata.Builder brokenMeta = IndexMetadata.builder(metadata).settings(metadata.getSettings()
@@ -536,7 +547,9 @@ public class GatewayIndexStateIT extends SQLIntegrationTestCase {
 
         // check that the cluster does not keep reallocating shards
         assertBusy(() -> {
-            final RoutingTable routingTable = client().admin().cluster().prepareState().execute().actionGet(REQUEST_TIMEOUT)
+            final RoutingTable routingTable = client().admin().cluster()
+                .state(new ClusterStateRequest())
+                .get(REQUEST_TIMEOUT.millis(), TimeUnit.MILLISECONDS)
                 .getState().routingTable();
             final IndexRoutingTable indexRoutingTable = routingTable.index(tableName);
             assertNotNull(indexRoutingTable);
@@ -578,7 +591,9 @@ public class GatewayIndexStateIT extends SQLIntegrationTestCase {
                     .waitForEvents(Priority.LANGUID)
                     .waitForNoRelocatingShards(true).waitForNodes("2")), REQUEST_TIMEOUT);
         }
-        ClusterState state = client().admin().cluster().prepareState().execute().actionGet(REQUEST_TIMEOUT).getState();
+        ClusterState state = client().admin().cluster()
+            .state(new ClusterStateRequest())
+            .get(REQUEST_TIMEOUT.millis(), TimeUnit.MILLISECONDS).getState();
 
         final Metadata metadata = state.getMetadata();
         final Metadata brokenMeta = Metadata.builder(metadata).persistentSettings(Settings.builder()
@@ -587,7 +602,9 @@ public class GatewayIndexStateIT extends SQLIntegrationTestCase {
         restartNodesOnBrokenClusterState(ClusterState.builder(state).metadata(brokenMeta));
 
         ensureYellow(tableName); // wait for state recovery
-        state = client().admin().cluster().prepareState().execute().actionGet(REQUEST_TIMEOUT).getState();
+        state = client().admin().cluster()
+            .state(new ClusterStateRequest())
+            .get(REQUEST_TIMEOUT.millis(), TimeUnit.MILLISECONDS).getState();
         assertEquals("true", state.metadata().persistentSettings().get("archived.this.is.unknown"));
         assertEquals("broken", state.metadata().persistentSettings().get("archived."
             + SETTING_CLUSTER_MAX_SHARDS_PER_NODE.getKey()));
@@ -599,7 +616,7 @@ public class GatewayIndexStateIT extends SQLIntegrationTestCase {
                 .persistentSettings(Settings.builder().putNull("archived.*"))
         ).get(REQUEST_TIMEOUT.millis(), TimeUnit.MILLISECONDS);
 
-        state = client().admin().cluster().prepareState().get().getState();
+        state = client().admin().cluster().state(new ClusterStateRequest()).get().getState();
         assertNull(state.metadata().persistentSettings().get("archived.this.is.unknown"));
         assertNull(state.metadata().persistentSettings().get("archived."
             + SETTING_CLUSTER_MAX_SHARDS_PER_NODE.getKey()));

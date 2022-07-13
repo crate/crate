@@ -24,7 +24,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryAction;
 import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryRequest;
-import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
+import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.admin.indices.template.delete.DeleteIndexTemplateRequest;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesRequest;
@@ -148,7 +148,8 @@ public abstract class TestCluster implements Closeable {
                 // Happens if `action.destructive_requires_name` is set to true
                 // which is the case in the CloseIndexDisableCloseAllTests
                 if ("_all".equals(indices[0])) {
-                    ClusterStateResponse clusterStateResponse = client().admin().cluster().prepareState().execute().actionGet();
+                    var clusterStateResponse = FutureUtils
+                        .get(client().admin().cluster().state(new ClusterStateRequest()));
                     ObjectArrayList<String> concreteIndices = new ObjectArrayList<>();
                     for (IndexMetadata indexMetadata : clusterStateResponse.getState().metadata()) {
                         concreteIndices.add(indexMetadata.getIndex().getName());

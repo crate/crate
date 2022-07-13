@@ -22,6 +22,8 @@
 package io.crate.integrationtests.disruption.discovery;
 
 import io.crate.integrationtests.SQLIntegrationTestCase;
+
+import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.coordination.JoinHelper;
 import org.elasticsearch.cluster.coordination.PublicationTransportHandler;
@@ -168,7 +170,7 @@ public class DiscoveryDisruptionIT extends AbstractDisruptionTestCase {
 
         isolateAllNodes.stopDisrupting();
 
-        final ClusterState state = client().admin().cluster().prepareState().get().getState();
+        final ClusterState state = client().admin().cluster().state(new ClusterStateRequest()).get().getState();
         if (state.metadata().hasIndex(toIndexName(sqlExecutor.getCurrentSchema(), "t", null)) == false) {
             fail("index 'test' was lost. current cluster state: " + state);
         }

@@ -46,9 +46,11 @@ import java.util.Map;
 
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsAction;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
+import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.analysis.common.CommonAnalysisPlugin;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.plugins.Plugin;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -100,7 +102,7 @@ public class FulltextAnalyzerResolverTest extends SQLIntegrationTestCase {
     }
 
     public Settings getPersistentClusterSettings() {
-        ClusterStateResponse response = client().admin().cluster().prepareState().execute().actionGet();
+        ClusterStateResponse response = FutureUtils.get(client().admin().cluster().state(new ClusterStateRequest()));
         return response.getState().metadata().persistentSettings();
     }
 

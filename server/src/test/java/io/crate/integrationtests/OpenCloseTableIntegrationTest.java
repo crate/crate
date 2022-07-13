@@ -21,6 +21,7 @@
 
 package io.crate.integrationtests;
 
+import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.junit.Before;
 import org.junit.Test;
@@ -213,13 +214,13 @@ public class OpenCloseTableIntegrationTest extends SQLIntegrationTestCase {
         assertEquals(1, response.rowCount());
         assertEquals(true, response.rows()[0][0]);
 
-        IndexMetadata indexMetadata = client().admin().cluster().prepareState().execute().actionGet().getState().metadata()
+        IndexMetadata indexMetadata = client().admin().cluster().state(new ClusterStateRequest()).get().getState().metadata()
             .indices().get(getFqn("t"));
         assertEquals(IndexMetadata.State.CLOSE, indexMetadata.getState());
 
         execute("alter table t open");
 
-        indexMetadata = client().admin().cluster().prepareState().execute().actionGet().getState().metadata()
+        indexMetadata = client().admin().cluster().state(new ClusterStateRequest()).get().getState().metadata()
             .indices().get(getFqn("t"));
 
         execute("select closed from information_schema.tables where table_name = 't'");

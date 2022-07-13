@@ -22,11 +22,19 @@
 
 package org.elasticsearch.cluster.coordination;
 
-import io.crate.integrationtests.SQLIntegrationTestCase;
-import io.crate.testing.UseJdbc;
-import joptsimple.OptionSet;
+import static org.elasticsearch.indices.recovery.RecoverySettings.INDICES_RECOVERY_MAX_BYTES_PER_SEC_SETTING;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+
 import org.apache.lucene.tests.util.LuceneTestCase;
 import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.cli.MockTerminal;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -42,15 +50,9 @@ import org.elasticsearch.test.ESIntegTestCase;
 import org.elasticsearch.test.InternalTestCluster;
 import org.junit.Test;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-
-import static org.elasticsearch.indices.recovery.RecoverySettings.INDICES_RECOVERY_MAX_BYTES_PER_SEC_SETTING;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
+import io.crate.integrationtests.SQLIntegrationTestCase;
+import io.crate.testing.UseJdbc;
+import joptsimple.OptionSet;
 
 @ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.TEST, numDataNodes = 0, autoManageMasterNodes = false)
 public class UnsafeBootstrapAndDetachCommandIT extends SQLIntegrationTestCase {
@@ -155,8 +157,8 @@ public class UnsafeBootstrapAndDetachCommandIT extends SQLIntegrationTestCase {
                 .put(Node.INITIAL_STATE_TIMEOUT_SETTING.getKey(), "0s") // to ensure quick node startup
                 .build());
         assertBusy(() -> {
-            ClusterState state = client().admin().cluster().prepareState().setLocal(true)
-                .execute().actionGet().getState();
+            ClusterState state = client().admin().cluster().state(new ClusterStateRequest().local(true))
+                .get().getState();
             assertTrue(state.blocks().hasGlobalBlockWithId(NoMasterBlockService.NO_MASTER_BLOCK_ID));
         });
 
@@ -258,8 +260,8 @@ public class UnsafeBootstrapAndDetachCommandIT extends SQLIntegrationTestCase {
 
         logger.info("--> ensure NO_MASTER_BLOCK on data-only node");
         assertBusy(() -> {
-            ClusterState state = internalCluster().client(dataNode).admin().cluster().prepareState().setLocal(true)
-                    .execute().actionGet().getState();
+            ClusterState state = internalCluster().client(dataNode).admin().cluster().state(new ClusterStateRequest().local(true))
+                    .get().getState();
             assertTrue(state.blocks().hasGlobalBlockWithId(NoMasterBlockService.NO_MASTER_BLOCK_ID));
         });
 
@@ -294,8 +296,8 @@ public class UnsafeBootstrapAndDetachCommandIT extends SQLIntegrationTestCase {
 
         logger.info("--> ensure there is no NO_MASTER_BLOCK and unsafe-bootstrap is reflected in cluster state");
         assertBusy(() -> {
-            ClusterState state = internalCluster().client(dataNode2).admin().cluster().prepareState().setLocal(true)
-                    .execute().actionGet().getState();
+            ClusterState state = internalCluster().client(dataNode2).admin().cluster().state(new ClusterStateRequest().local(true))
+                    .get().getState();
             assertFalse(state.blocks().hasGlobalBlockWithId(NoMasterBlockService.NO_MASTER_BLOCK_ID));
             assertTrue(state.metadata().persistentSettings().getAsBoolean(UnsafeBootstrapMasterCommand.UNSAFE_BOOTSTRAP.getKey(), false));
         });
@@ -394,8 +396,8 @@ public class UnsafeBootstrapAndDetachCommandIT extends SQLIntegrationTestCase {
                                                                 .put(masterNodeDataPathSettings)
                                                                 .build());
 
-        ClusterState state = internalCluster().client().admin().cluster().prepareState().setLocal(true)
-            .execute().actionGet().getState();
+        ClusterState state = internalCluster().client().admin().cluster().state(new ClusterStateRequest().local(true))
+            .get().getState();
         assertTrue(state.blocks().hasGlobalBlockWithId(NoMasterBlockService.NO_MASTER_BLOCK_ID));
 
         internalCluster().stopRandomNode(InternalTestCluster.nameFilter(node));
@@ -409,7 +411,7 @@ public class UnsafeBootstrapAndDetachCommandIT extends SQLIntegrationTestCase {
 
         execute("SET GLOBAL PERSISTENT indices.recovery.max_bytes_per_sec = '1234kb'");
 
-        ClusterState state = internalCluster().client().admin().cluster().prepareState().execute().actionGet().getState();
+        ClusterState state = internalCluster().client().admin().cluster().state(new ClusterStateRequest()).get().getState();
         assertThat(state.metadata().persistentSettings().get(INDICES_RECOVERY_MAX_BYTES_PER_SEC_SETTING.getKey()),
                    equalTo("1234kb"));
 
@@ -423,7 +425,7 @@ public class UnsafeBootstrapAndDetachCommandIT extends SQLIntegrationTestCase {
         internalCluster().startMasterOnlyNode(masterNodeDataPathSettings);
         ensureGreen();
 
-        state = internalCluster().client().admin().cluster().prepareState().execute().actionGet().getState();
+        state = internalCluster().client().admin().cluster().state(new ClusterStateRequest()).get().getState();
         assertThat(state.metadata().settings().get(INDICES_RECOVERY_MAX_BYTES_PER_SEC_SETTING.getKey()),
                    equalTo("1234kb"));
     }

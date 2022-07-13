@@ -46,6 +46,7 @@ import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
+import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.common.network.NetworkModule;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugins.Plugin;
@@ -160,7 +161,7 @@ public abstract class LogicalReplicationITestCase extends ESTestCase {
     }
 
     private void dropSubscriptions() throws Exception {
-        var state = subscriberCluster.client().admin().cluster().prepareState().execute().actionGet().getState();
+        var state = subscriberCluster.client().admin().cluster().state(new ClusterStateRequest()).get().getState();
         SubscriptionsMetadata subscriptionsMetadata = state.metadata().custom(SubscriptionsMetadata.TYPE);
         if (subscriptionsMetadata == null) {
             return;
