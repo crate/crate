@@ -34,7 +34,6 @@ import org.elasticsearch.action.admin.indices.stats.IndicesStatsRequest;
 import org.elasticsearch.action.admin.indices.stats.IndicesStatsResponse;
 import org.elasticsearch.action.admin.indices.template.delete.DeleteIndexTemplateRequest;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesRequest;
-import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesRequestBuilder;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
@@ -107,9 +106,4 @@ public interface IndicesAdminClient extends ElasticsearchClient {
      * Gets index template.
      */
     CompletableFuture<GetIndexTemplatesResponse> getTemplates(GetIndexTemplatesRequest request);
-
-    /**
-     * Gets an index template (optional).
-     */
-    GetIndexTemplatesRequestBuilder prepareGetTemplates(String... name);
 }

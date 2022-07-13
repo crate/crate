@@ -27,6 +27,7 @@ import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteReposito
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.admin.indices.template.delete.DeleteIndexTemplateRequest;
+import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesRequest;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -166,33 +167,13 @@ public abstract class TestCluster implements Closeable {
      */
     public void wipeAllTemplates(Set<String> exclude) {
         if (size() > 0) {
-            GetIndexTemplatesResponse response = client().admin().indices().prepareGetTemplates().get();
+            GetIndexTemplatesResponse response = FutureUtils.get(client().admin().indices().getTemplates(new GetIndexTemplatesRequest()));
             for (IndexTemplateMetadata indexTemplate : response.getIndexTemplates()) {
                 if (exclude.contains(indexTemplate.getName())) {
                     continue;
                 }
                 try {
                     FutureUtils.get(client().admin().indices().deleteTemplate(new DeleteIndexTemplateRequest(indexTemplate.getName())));
-                } catch (IndexTemplateMissingException e) {
-                    // ignore
-                }
-            }
-        }
-    }
-
-    /**
-     * Deletes index templates, support wildcard notation.
-     * If no template name is passed to this method all templates are removed.
-     */
-    public void wipeTemplates(String... templates) {
-        if (size() > 0) {
-            // if nothing is provided, delete all
-            if (templates.length == 0) {
-                templates = new String[]{"*"};
-            }
-            for (String template : templates) {
-                try {
-                    FutureUtils.get(client().admin().indices().deleteTemplate(new DeleteIndexTemplateRequest(template)));
                 } catch (IndexTemplateMissingException e) {
                     // ignore
                 }
