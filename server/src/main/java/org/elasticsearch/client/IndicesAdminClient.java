@@ -29,7 +29,7 @@ import org.elasticsearch.action.admin.indices.recovery.RecoveryRequest;
 import org.elasticsearch.action.admin.indices.recovery.RecoveryResponse;
 import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
 import org.elasticsearch.action.admin.indices.refresh.RefreshResponse;
-import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequestBuilder;
+import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.action.admin.indices.stats.IndicesStatsRequest;
 import org.elasticsearch.action.admin.indices.stats.IndicesStatsResponse;
 import org.elasticsearch.action.admin.indices.template.delete.DeleteIndexTemplateRequest;
@@ -91,7 +91,7 @@ public interface IndicesAdminClient extends ElasticsearchClient {
     /**
      * Update indices settings.
      */
-    UpdateSettingsRequestBuilder prepareUpdateSettings(String... indices);
+    CompletableFuture<AcknowledgedResponse> updateSettings(UpdateSettingsRequest request);
 
     /**
      * Puts an index template.
