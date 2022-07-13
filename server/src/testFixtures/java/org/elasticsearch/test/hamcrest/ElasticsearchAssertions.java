@@ -24,13 +24,11 @@ import org.apache.lucene.search.Query;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionFuture;
-import org.elasticsearch.action.ActionRequestBuilder;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
 import org.elasticsearch.action.support.DefaultShardOperationFailedException;
 import org.elasticsearch.action.support.broadcast.BroadcastResponse;
-import org.elasticsearch.action.support.master.AcknowledgedRequestBuilder;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.block.ClusterBlock;
 import org.elasticsearch.cluster.block.ClusterBlockException;
@@ -69,10 +67,6 @@ import static org.junit.Assert.fail;
 
 public class ElasticsearchAssertions {
 
-    public static void assertAcked(AcknowledgedRequestBuilder<?, ?, ?> builder) {
-        assertAcked(builder.get());
-    }
-
     public static void assertNoTimeout(ClusterHealthResponse response) {
         assertThat("ClusterHealthResponse has timed out - returned: [" + response + "]", response.isTimedOut(), is(false));
     }
@@ -92,15 +86,6 @@ public class ElasticsearchAssertions {
     }
 
     /**
-     * Executes the request and fails if the request has not been blocked.
-     *
-     * @param builder the request builder
-     */
-    public static void assertBlocked(ActionRequestBuilder builder) {
-        assertBlocked(builder, null);
-    }
-
-    /**
      * Checks that all shard requests of a replicated broadcast request failed due to a cluster block
      *
      * @param replicatedBroadcastResponse the response that should only contain failed shard responses
@@ -116,33 +101,6 @@ public class ElasticsearchAssertions {
                     clusterBlockException);
             assertThat(clusterBlockException.blocks().size(), greaterThan(0));
             assertThat(clusterBlockException.status(), CoreMatchers.equalTo(RestStatus.FORBIDDEN));
-        }
-    }
-
-    /**
-     * Executes the request and fails if the request has not been blocked by a specific {@link ClusterBlock}.
-     *
-     * @param builder the request builder
-     * @param expectedBlock the expected block
-     */
-    public static void assertBlocked(ActionRequestBuilder builder, ClusterBlock expectedBlock) {
-        try {
-            builder.get();
-            fail("Request executed with success but a ClusterBlockException was expected");
-        } catch (ClusterBlockException e) {
-            assertThat(e.blocks().size(), greaterThan(0));
-            assertThat(e.status(), equalTo(RestStatus.FORBIDDEN));
-
-            if (expectedBlock != null) {
-                boolean found = false;
-                for (ClusterBlock clusterBlock : e.blocks()) {
-                    if (clusterBlock.id() == expectedBlock.id()) {
-                        found = true;
-                        break;
-                    }
-                }
-                assertThat("Request should have been blocked by [" + expectedBlock + "] instead of " + e.blocks(), found, equalTo(true));
-            }
         }
     }
 
@@ -207,31 +165,6 @@ public class ElasticsearchAssertions {
     }
 
     /**
-     * Run the request from a given builder and check that it throws an exception of the right type
-     */
-    public static <E extends Throwable> void assertThrows(ActionRequestBuilder<?, ?> builder, Class<E> exceptionClass) {
-        assertThrows(builder.execute(), exceptionClass);
-    }
-
-    /**
-     * Run the request from a given builder and check that it throws an exception of the right type, with a given {@link RestStatus}
-     */
-    public static <E extends Throwable> void assertThrows(ActionRequestBuilder<?, ?> builder,
-            Class<E> exceptionClass, RestStatus status) {
-        assertThrows(builder.execute(), exceptionClass, status);
-    }
-
-    /**
-     * Run the request from a given builder and check that it throws an exception of the right type
-     *
-     * @param extraInfo extra information to add to the failure message
-     */
-    public static <E extends Throwable> void assertThrows(ActionRequestBuilder<?, ?> builder,
-            Class<E> exceptionClass, String extraInfo) {
-        assertThrows(builder.execute(), exceptionClass, extraInfo);
-    }
-
-    /**
      * Run future.actionGet() and check that it throws an exception of the right type
      */
     public static <E extends Throwable> void assertThrows(ActionFuture future, Class<E> exceptionClass) {
@@ -290,14 +223,6 @@ public class ElasticsearchAssertions {
         if (fail) {
             throw new AssertionError(extraInfo);
         }
-    }
-
-    public static <E extends Throwable> void assertThrows(ActionRequestBuilder<?, ?> builder, RestStatus status) {
-        assertThrows(builder.execute(), status);
-    }
-
-    public static <E extends Throwable> void assertThrows(ActionRequestBuilder<?, ?> builder, RestStatus status, String extraInfo) {
-        assertThrows(builder.execute(), status, extraInfo);
     }
 
     public static <E extends Throwable> void assertThrows(ActionFuture future, RestStatus status) {
