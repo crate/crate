@@ -26,6 +26,7 @@ import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteReposito
 import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
+import org.elasticsearch.action.admin.indices.template.delete.DeleteIndexTemplateRequest;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -171,7 +172,7 @@ public abstract class TestCluster implements Closeable {
                     continue;
                 }
                 try {
-                    client().admin().indices().prepareDeleteTemplate(indexTemplate.getName()).execute().actionGet();
+                    FutureUtils.get(client().admin().indices().deleteTemplate(new DeleteIndexTemplateRequest(indexTemplate.getName())));
                 } catch (IndexTemplateMissingException e) {
                     // ignore
                 }
@@ -191,7 +192,7 @@ public abstract class TestCluster implements Closeable {
             }
             for (String template : templates) {
                 try {
-                    client().admin().indices().prepareDeleteTemplate(template).execute().actionGet();
+                    FutureUtils.get(client().admin().indices().deleteTemplate(new DeleteIndexTemplateRequest(template)));
                 } catch (IndexTemplateMissingException e) {
                     // ignore
                 }
