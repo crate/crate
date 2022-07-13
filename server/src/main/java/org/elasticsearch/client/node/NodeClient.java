@@ -20,11 +20,11 @@
 package org.elasticsearch.client.node;
 
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
-import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.TransportAction;
-import org.elasticsearch.client.Client;
 import org.elasticsearch.client.support.AbstractClient;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -59,14 +59,17 @@ public class NodeClient extends AbstractClient {
                                                                Request request,
                                                                ActionListener<Response> listener) {
 
-        // Discard the task because the Client interface doesn't use it.
         executeLocally(action, request, listener);
     }
 
+    public <Request extends TransportRequest,
+            Response extends TransportResponse> CompletableFuture<Response> executeLocally(ActionType<Response> action,
+                                                                                           Request request) {
+        return transportAction(action).execute(request);
+    }
+
     /**
-     * Execute an {@link ActionType} locally, returning that {@link Task} used to track it, and linking an {@link ActionListener}. Prefer this
-     * method if you don't need access to the task when listening for the response. This is the method used to implement the {@link Client}
-     * interface.
+     * @deprecated use {@link #executeLocally(ActionType, TransportRequest)
      */
     public <Request extends TransportRequest,
             Response extends TransportResponse> void executeLocally(ActionType<Response> action,
