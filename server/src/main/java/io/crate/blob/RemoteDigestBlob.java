@@ -21,15 +21,17 @@
 
 package io.crate.blob;
 
-import io.crate.common.Hex;
-import io.netty.buffer.ByteBuf;
+import java.util.UUID;
+
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.client.Client;
-import org.apache.logging.log4j.LogManager;
+import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.transport.netty4.Netty4Utils;
 
-import java.util.UUID;
+import io.crate.common.Hex;
+import io.netty.buffer.ByteBuf;
 
 public class RemoteDigestBlob {
 
@@ -102,8 +104,7 @@ public class RemoteDigestBlob {
             shardId,
             Hex.decodeHex(digest)
         );
-
-        return client.legacyExecute(DeleteBlobAction.INSTANCE, request).actionGet().deleted;
+        return FutureUtils.get(client.execute(DeleteBlobAction.INSTANCE, request)).deleted;
     }
 
     private Status start(ByteBuf buffer, boolean last) {
@@ -118,7 +119,7 @@ public class RemoteDigestBlob {
         transferId = request.transferId();
         size += buffer.readableBytes();
 
-        startResponse = client.legacyExecute(StartBlobAction.INSTANCE, request).actionGet();
+        startResponse = FutureUtils.get(client.execute(StartBlobAction.INSTANCE, request));
         status = startResponse.status();
         return status;
     }
@@ -134,7 +135,7 @@ public class RemoteDigestBlob {
             last
         );
         size += buffer.readableBytes();
-        PutChunkResponse putChunkResponse = client.legacyExecute(PutChunkAction.INSTANCE, request).actionGet();
+        PutChunkResponse putChunkResponse = FutureUtils.get(client.execute(PutChunkAction.INSTANCE, request));
         return putChunkResponse.status();
     }
 
