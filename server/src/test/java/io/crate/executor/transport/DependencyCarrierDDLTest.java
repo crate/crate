@@ -34,6 +34,8 @@ import io.crate.planner.node.ddl.UpdateSettingsPlan;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.Assignment;
 import io.crate.testing.TestingRowConsumer;
+
+import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -100,7 +102,8 @@ public class DependencyCarrierDDLTest extends SQLIntegrationTestCase {
         Bucket objects = executePlan(node, plannerContext);
 
         assertThat(objects, contains(isRow(1L)));
-        assertEquals("false", client().admin().cluster().prepareState().execute().actionGet().getState().metadata()
+        var stateResponse = client().admin().cluster().state(new ClusterStateRequest()).get();
+        assertEquals("false", stateResponse.getState().metadata()
             .persistentSettings().get(persistentSetting)
         );
 
@@ -112,7 +115,8 @@ public class DependencyCarrierDDLTest extends SQLIntegrationTestCase {
         objects = executePlan(node, plannerContext);
 
         assertThat(objects, contains(isRow(1L)));
-        assertEquals("123s", client().admin().cluster().prepareState().execute().actionGet().getState().metadata()
+        stateResponse = client().admin().cluster().state(new ClusterStateRequest()).get();
+        assertEquals("123s", stateResponse.getState().metadata()
             .transientSettings().get(transientSetting)
         );
     }

@@ -26,7 +26,6 @@ import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.cluster.node.stats.NodesStatsRequest;
 import org.elasticsearch.action.admin.cluster.node.stats.NodesStatsResponse;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
-import org.elasticsearch.action.admin.cluster.state.ClusterStateRequestBuilder;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 
 /**
@@ -53,17 +52,10 @@ public interface ClusterAdminClient extends ElasticsearchClient {
     CompletableFuture<ClusterStateResponse> state(ClusterStateRequest request);
 
     /**
-     * The state of the cluster.
-     */
-    ClusterStateRequestBuilder prepareState();
-
-    /**
      * Nodes stats of the cluster.
      *
      * @param request  The nodes info request
      * @param listener A listener to be notified with a result
      */
     CompletableFuture<NodesStatsResponse> nodesStats(NodesStatsRequest request);
-
-
 }

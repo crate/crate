@@ -18,22 +18,25 @@
  */
 package org.elasticsearch.indices.state;
 
-import io.crate.execution.ddl.tables.TransportCloseTable;
-import io.crate.integrationtests.SQLIntegrationTestCase;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.unit.ByteSizeUnit;
-import org.elasticsearch.common.unit.ByteSizeValue;
-import org.elasticsearch.index.IndexSettings;
-import org.hamcrest.Matchers;
-import org.junit.Test;
-
-import java.util.List;
-
 import static java.util.Collections.emptySet;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
+
+import java.util.List;
+
+import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.unit.ByteSizeUnit;
+import org.elasticsearch.common.unit.ByteSizeValue;
+import org.elasticsearch.common.util.concurrent.FutureUtils;
+import org.elasticsearch.index.IndexSettings;
+import org.hamcrest.Matchers;
+import org.junit.Test;
+
+import io.crate.execution.ddl.tables.TransportCloseTable;
+import io.crate.integrationtests.SQLIntegrationTestCase;
 
 public class CloseIndexIT extends SQLIntegrationTestCase {
 
@@ -71,7 +74,7 @@ public class CloseIndexIT extends SQLIntegrationTestCase {
     }
 
     static void assertIndexIsClosed(final String... indices) {
-        var clusterState = client().admin().cluster().prepareState().get().getState();
+        var clusterState = FutureUtils.get(client().admin().cluster().state(new ClusterStateRequest())).getState();
         var availableIndices = clusterState.metadata().indices();
         assertThat(availableIndices.keys().toArray(String.class), Matchers.arrayContaining(indices));
         for (String index : indices) {

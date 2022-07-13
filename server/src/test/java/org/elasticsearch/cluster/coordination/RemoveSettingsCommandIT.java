@@ -21,8 +21,12 @@
  */
 package org.elasticsearch.cluster.coordination;
 
-import joptsimple.OptionSet;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
+
 import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.cli.MockTerminal;
 import org.elasticsearch.cli.UserException;
 import org.elasticsearch.cluster.routing.allocation.DiskThresholdSettings;
@@ -33,10 +37,7 @@ import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
 
 import io.crate.integrationtests.SQLIntegrationTestCase;
-
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.not;
+import joptsimple.OptionSet;
 
 @ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.TEST, numDataNodes = 0, autoManageMasterNodes = false)
 public class RemoveSettingsCommandIT extends SQLIntegrationTestCase {
@@ -62,7 +63,7 @@ public class RemoveSettingsCommandIT extends SQLIntegrationTestCase {
         internalCluster().setBootstrapMasterNodeIndex(0);
         String node = internalCluster().startNode();
         execute("set global persistent cluster.routing.allocation.disk.threshold_enabled = false");
-        assertThat(client().admin().cluster().prepareState().get().getState().metadata().persistentSettings().keySet(),
+        assertThat(client().admin().cluster().state(new ClusterStateRequest()).get().getState().metadata().persistentSettings().keySet(),
                    contains(DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_DISK_THRESHOLD_ENABLED_SETTING.getKey()));
         Settings dataPathSettings = internalCluster().dataPathSettings(node);
         ensureStableCluster(1);
@@ -81,7 +82,7 @@ public class RemoveSettingsCommandIT extends SQLIntegrationTestCase {
             DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_DISK_THRESHOLD_ENABLED_SETTING.getKey() + ": "  + false));
 
         internalCluster().startNode(dataPathSettings);
-        assertThat(client().admin().cluster().prepareState().get().getState().metadata().persistentSettings().keySet(),
+        assertThat(client().admin().cluster().state(new ClusterStateRequest()).get().getState().metadata().persistentSettings().keySet(),
                    not(contains(DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_DISK_THRESHOLD_ENABLED_SETTING.getKey())));
     }
 
@@ -90,7 +91,7 @@ public class RemoveSettingsCommandIT extends SQLIntegrationTestCase {
         internalCluster().setBootstrapMasterNodeIndex(0);
         String node = internalCluster().startNode();
         execute("set global persistent cluster.routing.allocation.disk.threshold_enabled = false");
-        assertThat(client().admin().cluster().prepareState().get().getState().metadata().persistentSettings().keySet(),
+        assertThat(client().admin().cluster().state(new ClusterStateRequest()).get().getState().metadata().persistentSettings().keySet(),
                    contains(DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_DISK_THRESHOLD_ENABLED_SETTING.getKey()));
         Settings dataPathSettings = internalCluster().dataPathSettings(node);
         ensureStableCluster(1);

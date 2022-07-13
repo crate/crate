@@ -36,6 +36,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
+import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -136,7 +137,7 @@ public class PartitionedTableConcurrentIntegrationTest extends SQLIntegrationTes
 
         Thread relocatingThread = new Thread(() -> {
             while (relocations.getCount() > 0) {
-                ClusterStateResponse clusterStateResponse = admin().cluster().prepareState().setIndices(indexName).execute().actionGet();
+                ClusterStateResponse clusterStateResponse = FutureUtils.get(admin().cluster().state(new ClusterStateRequest().indices(indexName)));
                 List<ShardRouting> shardRoutings = clusterStateResponse.getState().routingTable().allShards(indexName);
 
                 int numMoves = 0;
@@ -316,7 +317,7 @@ public class PartitionedTableConcurrentIntegrationTest extends SQLIntegrationTes
             boolean deleted = false;
             while (!deleted) {
                 try {
-                    Metadata metadata = client().admin().cluster().prepareState().execute().actionGet()
+                    Metadata metadata = client().admin().cluster().state(new ClusterStateRequest()).get()
                         .getState().metadata();
                     if (metadata.indices().get(partitionName) != null) {
                         execute("delete from parted where id = ?", deleteArgs);

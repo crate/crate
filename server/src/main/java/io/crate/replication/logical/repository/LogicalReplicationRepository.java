@@ -36,7 +36,7 @@ import org.apache.lucene.index.IndexCommit;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.StepListener;
-import org.elasticsearch.action.admin.cluster.state.ClusterStateAction;
+import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterState;
@@ -447,16 +447,15 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                                        String[] remoteIndices,
                                        String[] remoteTemplates) {
         Client remoteClient = getRemoteClient();
-        var clusterStateRequest = remoteClient.admin().cluster().prepareState()
-            .setIndices(remoteIndices)
-            .setTemplates(remoteTemplates)
-            .setMetadata(true)
-            .setNodes(includeNodes)
-            .setRoutingTable(includeRouting)
-            .setIndicesOptions(IndicesOptions.strictSingleIndexNoExpandForbidClosed())
-            .setWaitForTimeOut(new TimeValue(REMOTE_CLUSTER_REPO_REQ_TIMEOUT_IN_MILLI_SEC))
-            .request();
-        remoteClient.admin().cluster().execute(ClusterStateAction.INSTANCE, clusterStateRequest)
+        var clusterStateRequest = new ClusterStateRequest()
+            .indices(remoteIndices)
+            .templates(remoteTemplates)
+            .metadata(true)
+            .nodes(includeNodes)
+            .routingTable(includeRouting)
+            .indicesOptions(IndicesOptions.strictSingleIndexNoExpandForbidClosed())
+            .waitForTimeout(new TimeValue(REMOTE_CLUSTER_REPO_REQ_TIMEOUT_IN_MILLI_SEC));
+        remoteClient.admin().cluster().state(clusterStateRequest)
             .whenComplete((response, err) -> {
                 if (err == null) {
                     ClusterState remoteState = response.getState();

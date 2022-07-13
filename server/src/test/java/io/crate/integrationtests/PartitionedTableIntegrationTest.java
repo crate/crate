@@ -55,6 +55,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.Version;
+import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.indices.template.delete.DeleteIndexTemplateRequest;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesRequest;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
@@ -135,11 +136,6 @@ public class PartitionedTableIntegrationTest extends SQLIntegrationTestCase {
     }
 
 
-    /**
-     * Test requires patch in ES 2.1 (https://github.com/crate/elasticsearch/commit/66564f88d21ad3d3be908dbe50974c448f7929d7)
-     * or ES 2.x (https://github.com/elastic/elasticsearch/pull/16767).
-     * Otherwise the rowCount returned from the copy from statement is ambiguous.
-     */
     @Test
     public void testCopyFromIntoPartitionedTable() throws Exception {
         execute("create table quotes (" +
@@ -153,14 +149,14 @@ public class PartitionedTableIntegrationTest extends SQLIntegrationTestCase {
         refresh();
         ensureYellow();
 
+        ClusterState state = client().admin().cluster().state(new ClusterStateRequest()).get().getState();
         for (String id : List.of("1", "2", "3")) {
             String partitionName = new PartitionName(
                 new RelationName(sqlExecutor.getCurrentSchema(), "quotes"),
                 List.of(id)).asIndexName();
-            assertNotNull(client().admin().cluster().prepareState().execute().actionGet()
-                .getState().metadata().indices().get(partitionName));
-            assertNotNull(client().admin().cluster().prepareState().execute().actionGet()
-                .getState().metadata().indices().get(partitionName).getAliases().get(getFqn("quotes")));
+            var partitionIndexMetadata = state.metadata().indices().get(partitionName);
+            assertNotNull(partitionIndexMetadata);
+            assertNotNull(partitionIndexMetadata.getAliases().get(getFqn("quotes")));
         }
 
         execute("select * from quotes");
@@ -308,7 +304,7 @@ public class PartitionedTableIntegrationTest extends SQLIntegrationTestCase {
             new RelationName(sqlExecutor.getCurrentSchema(), "parted"),
             Collections.singletonList(String.valueOf(13959981214861L))
         ).asIndexName();
-        Metadata metadata = client().admin().cluster().prepareState().execute().actionGet()
+        Metadata metadata = client().admin().cluster().state(new ClusterStateRequest()).get()
             .getState().metadata();
         assertNotNull(metadata.indices().get(partitionName).getAliases().get(getFqn("parted")));
 
@@ -441,7 +437,7 @@ public class PartitionedTableIntegrationTest extends SQLIntegrationTestCase {
     }
 
     @Test
-    public void testInsertPartitionedTableReversedPartitionedColumns() {
+    public void testInsertPartitionedTableReversedPartitionedColumns() throws Exception {
         execute(
             "create table parted (" +
             "   id integer," +
@@ -459,7 +455,7 @@ public class PartitionedTableIntegrationTest extends SQLIntegrationTestCase {
         String partitionName = new PartitionName(
             new RelationName(sqlExecutor.getCurrentSchema(), "parted"),
             Arrays.asList("Trillian", dateValue.toString())).asIndexName();
-        assertNotNull(client().admin().cluster().prepareState().execute().actionGet()
+        assertNotNull(client().admin().cluster().state(new ClusterStateRequest()).get()
             .getState().metadata().indices().get(partitionName).getAliases().get(getFqn("parted")));
     }
 

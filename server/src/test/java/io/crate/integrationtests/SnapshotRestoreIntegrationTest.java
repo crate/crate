@@ -47,6 +47,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 
 import org.apache.lucene.util.SetOnce;
+import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.cluster.SnapshotsInProgress;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -229,7 +230,7 @@ public class SnapshotRestoreIntegrationTest extends SQLIntegrationTestCase {
         waitForCompletion(REPOSITORY_NAME, "snapshot_no_wait", TimeValue.timeValueSeconds(20));
     }
 
-    private void waitForCompletion(String repository, String snapshotName, TimeValue timeout) throws InterruptedException {
+    private void waitForCompletion(String repository, String snapshotName, TimeValue timeout) throws Exception {
         long start = System.currentTimeMillis();
         Snapshot snapshot = new Snapshot(repository, new SnapshotId(repository, snapshotName));
         while (System.currentTimeMillis() - start < timeout.millis()) {
@@ -239,7 +240,7 @@ public class SnapshotRestoreIntegrationTest extends SQLIntegrationTestCase {
             );
             if (response.rowCount() > 0 && response.rows()[0][0] == "SUCCESS") {
                 // Make sure that snapshot clean up operations are finished
-                ClusterStateResponse stateResponse = client().admin().cluster().prepareState().get();
+                ClusterStateResponse stateResponse = client().admin().cluster().state(new ClusterStateRequest()).get();
                 SnapshotsInProgress snapshotsInProgress = stateResponse.getState().custom(SnapshotsInProgress.TYPE);
                 if (snapshotsInProgress == null || snapshotsInProgress.snapshot(snapshot) == null) {
                     return;

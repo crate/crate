@@ -30,6 +30,7 @@ import java.util.Set;
 
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsAction;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
+import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.cluster.routing.IndexRoutingTable;
@@ -93,7 +94,7 @@ public class FilteringAllocationIT extends SQLIntegrationTestCase {
         ensureGreen(tableName);
 
         logger.info("--> verify all are allocated on node1 now");
-        ClusterState clusterState = client().admin().cluster().prepareState().execute().actionGet().getState();
+        ClusterState clusterState = client().admin().cluster().state(new ClusterStateRequest()).get().getState();
         for (IndexRoutingTable indexRoutingTable : clusterState.routingTable()) {
             for (IndexShardRoutingTable indexShardRoutingTable : indexRoutingTable) {
                 for (ShardRouting shardRouting : indexShardRoutingTable) {
@@ -125,7 +126,7 @@ public class FilteringAllocationIT extends SQLIntegrationTestCase {
 
         String tableName = getFqn("test");
 
-        ClusterState clusterState = client().admin().cluster().prepareState().execute().actionGet().getState();
+        ClusterState clusterState = client().admin().cluster().state(new ClusterStateRequest()).get().getState();
         assertThat(clusterState.metadata().index(tableName).getNumberOfReplicas(), equalTo(1));
         ensureGreen(tableName);
 
@@ -138,7 +139,7 @@ public class FilteringAllocationIT extends SQLIntegrationTestCase {
         ensureGreen(tableName);
 
         logger.info("--> verify all are allocated on node1 now");
-        final var cs = client().admin().cluster().prepareState().execute().actionGet().getState();
+        final var cs = client().admin().cluster().state(new ClusterStateRequest()).get().getState();
         assertThat(cs.metadata().index(tableName).getNumberOfReplicas(), equalTo(0));
         for (IndexRoutingTable indexRoutingTable : cs.routingTable()) {
             for (IndexShardRoutingTable indexShardRoutingTable : indexRoutingTable) {
@@ -179,7 +180,7 @@ public class FilteringAllocationIT extends SQLIntegrationTestCase {
             ensureGreen(tableName);
         }
 
-        ClusterState clusterState = client().admin().cluster().prepareState().execute().actionGet().getState();
+        ClusterState clusterState = client().admin().cluster().state(new ClusterStateRequest()).get().getState();
         IndexRoutingTable indexRoutingTable = clusterState.routingTable().index(tableName);
         int numShardsOnNode1 = 0;
         for (IndexShardRoutingTable indexShardRoutingTable : indexRoutingTable) {
@@ -204,7 +205,7 @@ public class FilteringAllocationIT extends SQLIntegrationTestCase {
         ensureGreen(tableName);
 
         logger.info("--> verify all shards are allocated on node_1 now");
-        var state = client().admin().cluster().prepareState().execute().actionGet().getState();
+        var state = client().admin().cluster().state(new ClusterStateRequest()).get().getState();
         for (IndexShardRoutingTable indexShardRoutingTable : state.routingTable().index(tableName)) {
             for (ShardRouting shardRouting : indexShardRoutingTable) {
                 assertThat(state.nodes().get(shardRouting.currentNodeId()).getName(), equalTo(node_1));
@@ -217,7 +218,7 @@ public class FilteringAllocationIT extends SQLIntegrationTestCase {
         ensureGreen(tableName);
 
         logger.info("--> verify that there are shards allocated on both nodes now");
-        state = client().admin().cluster().prepareState().execute().actionGet().getState();
+        state = client().admin().cluster().state(new ClusterStateRequest()).get().getState();
         assertThat(state.routingTable().index(tableName).numberOfNodesShardsAreAllocatedOn(), equalTo(2));
     }
 
@@ -236,7 +237,7 @@ public class FilteringAllocationIT extends SQLIntegrationTestCase {
         assertEquals("invalid IP address [192.168.1.1.] for [" + filterSetting.getKey() + ipKey + "]", e.getMessage());
     }
 
-    public void testTransientSettingsStillApplied() {
+    public void testTransientSettingsStillApplied() throws Exception {
         List<String> nodes = internalCluster().startNodes(6);
         Set<String> excludeNodes = new HashSet<>(nodes.subList(0, 3));
         Set<String> includeNodes = new HashSet<>(nodes.subList(3, 6));
@@ -264,7 +265,7 @@ public class FilteringAllocationIT extends SQLIntegrationTestCase {
         logger.info("--> waiting for relocation");
         waitForRelocation(ClusterHealthStatus.GREEN);
 
-        ClusterState state = client().admin().cluster().prepareState().get().getState();
+        ClusterState state = client().admin().cluster().state(new ClusterStateRequest()).get().getState();
 
         for (ShardRouting shard : state.getRoutingTable().shardsWithState(ShardRoutingState.STARTED)) {
             String node = state.getRoutingNodes().node(shard.currentNodeId()).node().getName();
@@ -282,7 +283,7 @@ public class FilteringAllocationIT extends SQLIntegrationTestCase {
         logger.info("--> waiting for relocation");
         waitForRelocation(ClusterHealthStatus.GREEN);
 
-        state = client().admin().cluster().prepareState().get().getState();
+        state = client().admin().cluster().state(new ClusterStateRequest()).get().getState();
 
         // The transient settings still exist in the state
         assertThat(state.metadata().transientSettings(),

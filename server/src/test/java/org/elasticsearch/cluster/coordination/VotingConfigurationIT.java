@@ -33,6 +33,7 @@ import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.admin.cluster.configuration.AddVotingConfigExclusionsAction;
 import org.elasticsearch.action.admin.cluster.configuration.AddVotingConfigExclusionsRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
+import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.Priority;
@@ -78,8 +79,12 @@ public class VotingConfigurationIT extends ESIntegTestCase {
         assertFalse(clusterHealthResponse.isTimedOut());
 
         String excludedNodeName = null;
-        final ClusterState clusterState
-            = internalCluster().client().admin().cluster().prepareState().clear().setNodes(true).setMetadata(true).get().getState();
+        final ClusterState clusterState = internalCluster().client().admin().cluster().state(
+            new ClusterStateRequest()
+                .clear()
+                .nodes(true)
+                .metadata(true)
+            ).get().getState();
         final Set<String> votingConfiguration = clusterState.getLastCommittedConfiguration().getNodeIds();
         assertThat(votingConfiguration, hasSize(3));
         assertThat(clusterState.nodes().getSize(), equalTo(4));
@@ -116,8 +121,12 @@ public class VotingConfigurationIT extends ESIntegTestCase {
             ));
         assertFalse(clusterHealthResponse.isTimedOut());
 
-        final ClusterState newClusterState
-            = internalCluster().client().admin().cluster().prepareState().clear().setNodes(true).setMetadata(true).get().getState();
+        final ClusterState newClusterState = internalCluster().client().admin().cluster().state(
+            new ClusterStateRequest()
+                .clear()
+                .nodes(true)
+                .metadata(true)
+            ).get().getState();
         assertThat(newClusterState.nodes().getMasterNode().getName(), equalTo(excludedNodeName));
         assertThat(newClusterState.getLastCommittedConfiguration().getNodeIds(), hasItem(newClusterState.nodes().getMasterNodeId()));
     }

@@ -32,6 +32,7 @@ import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -103,7 +104,8 @@ public class GlobalCheckpointSyncIT extends SQLIntegrationTestCase {
                 TimeValue.timeValueSeconds(randomIntBetween(1, 3)),
                 (indexName, client) -> {
                     // prevent global checkpoint syncs between all nodes
-                    final DiscoveryNodes nodes = client.admin().cluster().prepareState().get().getState().getNodes();
+                    final DiscoveryNodes nodes = FutureUtils.get(client.admin().cluster()
+                        .state(new ClusterStateRequest())).getState().getNodes();
                     for (final DiscoveryNode node : nodes) {
                         for (final DiscoveryNode other : nodes) {
                             if (node == other) {
@@ -126,7 +128,10 @@ public class GlobalCheckpointSyncIT extends SQLIntegrationTestCase {
                 },
                 (indexName, client) -> {
                     // restore global checkpoint syncs between all nodes
-                    final DiscoveryNodes nodes = client.admin().cluster().prepareState().get().getState().getNodes();
+                    final DiscoveryNodes nodes = FutureUtils
+                        .get(client.admin().cluster().state(new ClusterStateRequest()))
+                        .getState()
+                        .getNodes();
                     for (final DiscoveryNode node : nodes) {
                         for (final DiscoveryNode other : nodes) {
                             if (node == other) {

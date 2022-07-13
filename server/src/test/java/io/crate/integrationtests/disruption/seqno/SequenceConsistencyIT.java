@@ -28,6 +28,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.elasticsearch.ElasticsearchTimeoutException;
+import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.test.ESIntegTestCase;
@@ -72,7 +73,7 @@ public class SequenceConsistencyIT extends AbstractDisruptionTestCase {
         // otherwise the replica might not be ready to be promoted to primary due to "primary failed while replica initializing"
         execute("alter table registers set (\"write.wait_for_active_shards\" = 1)");
 
-        ClusterState clusterState = client().admin().cluster().prepareState().get().getState();
+        ClusterState clusterState = client().admin().cluster().state(new ClusterStateRequest()).get().getState();
         String firstDataNodeId = clusterState.getNodes().resolveNode(firstDataNodeName).getId();
         String secondDataNodeId = clusterState.getNodes().resolveNode(secondDataNodeName).getId();
 
@@ -103,7 +104,7 @@ public class SequenceConsistencyIT extends AbstractDisruptionTestCase {
         logger.info("wait for replica on the partition with the master to be promoted to primary");
         assertBusy(() -> {
             String index = IndexParts.toIndexName(schema, "registers", null);
-            ShardRouting primaryShard = client(masterNodeName).admin().cluster().prepareState().get().getState().getRoutingTable()
+            ShardRouting primaryShard = client(masterNodeName).admin().cluster().state(new ClusterStateRequest()).get().getState().getRoutingTable()
                 .index(index).shard(0).primaryShard();
             // the node that's part of the same partition as master is now the primary for the table shard
             assertThat(primaryShard.currentNodeId(), equalTo(nonIsolatedDataNodeId));

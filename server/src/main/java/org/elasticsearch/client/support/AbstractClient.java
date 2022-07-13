@@ -31,7 +31,6 @@ import org.elasticsearch.action.admin.cluster.node.stats.NodesStatsRequest;
 import org.elasticsearch.action.admin.cluster.node.stats.NodesStatsResponse;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateAction;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
-import org.elasticsearch.action.admin.cluster.state.ClusterStateRequestBuilder;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.action.admin.indices.create.CreateIndexAction;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
@@ -159,11 +158,6 @@ public abstract class AbstractClient implements Client {
         @Override
         public CompletableFuture<ClusterStateResponse> state(final ClusterStateRequest request) {
             return execute(ClusterStateAction.INSTANCE, request);
-        }
-
-        @Override
-        public ClusterStateRequestBuilder prepareState() {
-            return new ClusterStateRequestBuilder(this, ClusterStateAction.INSTANCE);
         }
 
         @Override
