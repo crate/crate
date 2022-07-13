@@ -19,21 +19,9 @@
 
 package org.elasticsearch.index.seqno;
 
-import io.crate.common.unit.TimeValue;
-import io.crate.integrationtests.SQLIntegrationTestCase;
-import org.elasticsearch.client.Client;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.cluster.node.DiscoveryNodes;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.IndexService;
-import org.elasticsearch.index.IndexSettings;
-import org.elasticsearch.index.shard.IndexShard;
-import org.elasticsearch.index.translog.Translog;
-import org.elasticsearch.indices.IndicesService;
-import org.elasticsearch.plugins.Plugin;
-import org.elasticsearch.test.InternalSettingsPlugin;
-import org.elasticsearch.test.transport.MockTransportService;
-import org.elasticsearch.transport.TransportService;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.is;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -44,9 +32,24 @@ import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.is;
+import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
+import org.elasticsearch.client.Client;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.node.DiscoveryNodes;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.util.concurrent.FutureUtils;
+import org.elasticsearch.index.IndexService;
+import org.elasticsearch.index.IndexSettings;
+import org.elasticsearch.index.shard.IndexShard;
+import org.elasticsearch.index.translog.Translog;
+import org.elasticsearch.indices.IndicesService;
+import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.test.InternalSettingsPlugin;
+import org.elasticsearch.test.transport.MockTransportService;
+import org.elasticsearch.transport.TransportService;
+
+import io.crate.common.unit.TimeValue;
+import io.crate.integrationtests.SQLIntegrationTestCase;
 
 public class GlobalCheckpointSyncIT extends SQLIntegrationTestCase {
 
@@ -81,11 +84,13 @@ public class GlobalCheckpointSyncIT extends SQLIntegrationTestCase {
         // set the sync interval high so it does not execute during this test. This only allows the global checkpoint to catch up
         // on a post-operation background sync if translog durability is set to sync. Async durability relies on a scheduled global
         // checkpoint sync to allow the information about persisted local checkpoints to be transferred to the primary.
-        runGlobalCheckpointSyncTest(TimeValue.timeValueHours(24),
-                                    (indexName, client) -> client.admin().indices().prepareUpdateSettings(indexName).setSettings(
-                                        Settings.builder().put(IndexSettings.INDEX_TRANSLOG_DURABILITY_SETTING.getKey(),
-                                    Translog.Durability.REQUEST)).get(),
-                                    (indexName, client) -> {}
+        runGlobalCheckpointSyncTest(
+            TimeValue.timeValueHours(24),
+            (indexName, client) -> FutureUtils.get(client.admin().indices().updateSettings(new UpdateSettingsRequest(
+                Settings.builder().put(IndexSettings.INDEX_TRANSLOG_DURABILITY_SETTING.getKey(), Translog.Durability.REQUEST).build(),
+                indexName
+            ))),
+            (indexName, client) -> {}
         );
     }
 

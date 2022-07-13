@@ -20,7 +20,6 @@
 package org.elasticsearch.cluster;
 
 import static io.crate.testing.SQLTransportExecutor.REQUEST_TIMEOUT;
-import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertAcked;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 
@@ -32,10 +31,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.test.InternalTestCluster;
 import org.junit.Test;
@@ -171,11 +168,7 @@ public class ClusterHealthIT extends SQLIntegrationTestCase {
             assertThat(response.getIndices().get(table_3).getStatus(), equalTo(ClusterHealthStatus.YELLOW));
         }
 
-        // CrateDB does not support altering a closed table, so we must use the ES API here
-        assertAcked(client().admin().indices().prepareUpdateSettings(table_3)
-            .setSettings(Settings.builder()
-                .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, numberOfReplicas())
-                .build()));
+        execute("alter table t3 set (number_of_replicas = ?)", new Object[] { numberOfReplicas() });
 
         {
             ClusterHealthResponse response = FutureUtils.get(

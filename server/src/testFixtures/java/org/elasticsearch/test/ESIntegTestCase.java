@@ -76,6 +76,7 @@ import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
 import org.elasticsearch.action.admin.indices.refresh.RefreshResponse;
+import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateAction;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
 import org.elasticsearch.action.support.ActiveShardCount;
@@ -615,10 +616,10 @@ public abstract class ESIntegTestCase extends ESTestCase {
         if (n > 0) {
             getExcludeSettings(n, builder);
         }
-        Settings build = builder.build();
-        if (!build.isEmpty()) {
-            logger.debug("allowNodes: updating [{}]'s setting to [{}]", index, build.toDelimitedString(';'));
-            client().admin().indices().prepareUpdateSettings(index).setSettings(build).execute().actionGet();
+        Settings settings = builder.build();
+        if (!settings.isEmpty()) {
+            logger.debug("allowNodes: updating [{}]'s setting to [{}]", index, settings.toDelimitedString(';'));
+            FutureUtils.get(client().admin().indices().updateSettings(new UpdateSettingsRequest(settings, index)));
         }
     }
 

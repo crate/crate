@@ -37,6 +37,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.action.support.GroupedActionListener;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterInfo;
@@ -350,9 +351,9 @@ public class DiskThresholdMonitor {
         Settings readOnlySettings = readOnly ? Settings.builder()
             .put(IndexMetadata.SETTING_READ_ONLY_ALLOW_DELETE, Boolean.TRUE.toString()).build() :
             Settings.builder().putNull(IndexMetadata.SETTING_READ_ONLY_ALLOW_DELETE).build();
-        client.admin().indices().prepareUpdateSettings(indicesToUpdate.toArray(Strings.EMPTY_ARRAY))
-            .setSettings(readOnlySettings)
-            .execute(ActionListener.map(wrappedListener, r -> null));
+        client.admin().indices().updateSettings(new UpdateSettingsRequest(readOnlySettings, indicesToUpdate.toArray(Strings.EMPTY_ARRAY)))
+            .thenApply(response -> (Void) null)
+            .whenComplete(wrappedListener);
     }
 
     private static void cleanUpRemovedNodes(ObjectLookupContainer<String> nodesToKeep, Set<String> nodesToCleanUp) {

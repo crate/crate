@@ -47,7 +47,7 @@ import org.elasticsearch.action.admin.indices.refresh.RefreshAction;
 import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
 import org.elasticsearch.action.admin.indices.refresh.RefreshResponse;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsAction;
-import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequestBuilder;
+import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.action.admin.indices.stats.IndicesStatsAction;
 import org.elasticsearch.action.admin.indices.stats.IndicesStatsRequest;
 import org.elasticsearch.action.admin.indices.stats.IndicesStatsResponse;
@@ -224,8 +224,8 @@ public abstract class AbstractClient implements Client {
         }
 
         @Override
-        public UpdateSettingsRequestBuilder prepareUpdateSettings(String... indices) {
-            return new UpdateSettingsRequestBuilder(this, UpdateSettingsAction.INSTANCE).setIndices(indices);
+        public CompletableFuture<AcknowledgedResponse> updateSettings(UpdateSettingsRequest request) {
+            return execute(UpdateSettingsAction.INSTANCE, request);
         }
 
         @Override

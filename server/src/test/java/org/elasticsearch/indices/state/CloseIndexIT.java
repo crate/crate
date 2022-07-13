@@ -63,8 +63,7 @@ public class CloseIndexIT extends SQLIntegrationTestCase {
         }
 
         execute("alter table doc.test close");
-        // Closed tables cannot not be altered, therefore use the api
-        client().admin().indices().prepareUpdateSettings("test").setSettings(Settings.builder().put("index.routing.allocation.include._name", dataNodes.get(1))).get();
+        execute("alter table doc.test set (\"routing.allocation.include._name\" = ?)", new Object[] { dataNodes.get(1) });
         ensureGreen("test");
         internalCluster().fullRestart();
         ensureGreen("test");

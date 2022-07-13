@@ -23,6 +23,7 @@ import io.crate.common.unit.TimeValue;
 import io.crate.integrationtests.SQLIntegrationTestCase;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.TopDocs;
+import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.engine.Engine;
@@ -35,6 +36,7 @@ import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.elasticsearch.test.InternalSettingsPlugin;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -155,24 +157,21 @@ public class IndexServiceTests extends SQLIntegrationTestCase {
         assertFalse(task.isScheduled());
     }
 
+    @Test
     public void testRefreshTaskIsUpdated() throws Exception {
         execute("create table test (x int) clustered into 1 shards");
         IndexService indexService = getIndexService("test");
-        var indexName = indexService.index().getName();
         IndexService.AsyncRefreshTask refreshTask = indexService.getRefreshTask();
         assertEquals(1000, refreshTask.getInterval().millis());
         assertTrue(indexService.getRefreshTask().mustReschedule());
 
         // now disable
-        client().admin().indices().prepareUpdateSettings(indexName)
-            .setSettings(Settings.builder().put(IndexSettings.INDEX_REFRESH_INTERVAL_SETTING.getKey(), -1)).get();
+        execute("alter table test set (refresh_interval = -1)");
         assertNotSame(refreshTask, indexService.getRefreshTask());
         assertTrue(refreshTask.isClosed());
         assertFalse(refreshTask.isScheduled());
 
-        // set it to 100ms
-        client().admin().indices().prepareUpdateSettings(indexName)
-            .setSettings(Settings.builder().put(IndexSettings.INDEX_REFRESH_INTERVAL_SETTING.getKey(),  "100ms")).get();
+        execute("alter table test set (refresh_interval = '100ms')");
         assertNotSame(refreshTask, indexService.getRefreshTask());
         assertTrue(refreshTask.isClosed());
 
@@ -181,9 +180,7 @@ public class IndexServiceTests extends SQLIntegrationTestCase {
         assertTrue(refreshTask.isScheduled());
         assertEquals(100, refreshTask.getInterval().millis());
 
-        // set it to 200ms
-        client().admin().indices().prepareUpdateSettings(indexName)
-            .setSettings(Settings.builder().put(IndexSettings.INDEX_REFRESH_INTERVAL_SETTING.getKey(), "200ms")).get();
+        execute("alter table test set (refresh_interval = '200ms')");
         assertNotSame(refreshTask, indexService.getRefreshTask());
         assertTrue(refreshTask.isClosed());
 
@@ -193,8 +190,7 @@ public class IndexServiceTests extends SQLIntegrationTestCase {
         assertEquals(200, refreshTask.getInterval().millis());
 
         // set it to 200ms again
-        client().admin().indices().prepareUpdateSettings(indexName)
-            .setSettings(Settings.builder().put(IndexSettings.INDEX_REFRESH_INTERVAL_SETTING.getKey(), "200ms")).get();
+        execute("alter table test set (refresh_interval = '200ms')");
         assertSame(refreshTask, indexService.getRefreshTask());
         assertTrue(indexService.getRefreshTask().mustReschedule());
         assertTrue(refreshTask.isScheduled());
@@ -268,6 +264,7 @@ public class IndexServiceTests extends SQLIntegrationTestCase {
         assertNull(indexService.getFsyncTask());
     }
 
+    @Test
     public void testRefreshActuallyWorks() throws Exception {
         execute("create table test (x int, data text) clustered into 1 shards");
         var indexService = getIndexService("test");
@@ -279,8 +276,7 @@ public class IndexServiceTests extends SQLIntegrationTestCase {
         IndexShard shard = indexService.getShard(0);
         execute("insert into test (x, data) values (1, 'foo')");
         // now disable the refresh
-        client().admin().indices().prepareUpdateSettings(indexName)
-            .setSettings(Settings.builder().put(IndexSettings.INDEX_REFRESH_INTERVAL_SETTING.getKey(), -1)).get();
+        execute("alter table test set (refresh_interval = -1)");
         // when we update we reschedule the existing task AND fire off an async refresh to make sure we make everything visible
         // before that this is why we need to wait for the refresh task to be unscheduled and the first doc to be visible
         assertTrue(refreshTask.isClosed());
@@ -296,8 +292,7 @@ public class IndexServiceTests extends SQLIntegrationTestCase {
         assertFalse(refreshTask.isClosed());
         // refresh every millisecond
         execute("insert into test (x, data) values (2, 'foo')");
-        client().admin().indices().prepareUpdateSettings(indexName)
-            .setSettings(Settings.builder().put(IndexSettings.INDEX_REFRESH_INTERVAL_SETTING.getKey(), "1ms")).get();
+        execute("alter table test set (refresh_interval = '1ms')");
         assertTrue(refreshTask.isClosed());
 
         assertBusy(() -> {
@@ -366,17 +361,22 @@ public class IndexServiceTests extends SQLIntegrationTestCase {
         assertBusy(() -> assertThat(EngineTestCase.getTranslog(getEngine(shard)).totalOperations(), equalTo(0)));
     }
 
+    @Test
     public void testAsyncTranslogTrimTaskOnClosedIndex() throws Exception {
         execute ("create table test(x int) clustered into 1 shards");
         var indexService = getIndexService("test");
         var indexName = indexService.index().getName();
 
+        // Setting not exposed via SQL
         client()
             .admin()
             .indices()
-            .prepareUpdateSettings(indexName)
-            .setSettings(Settings.builder().put(TRANSLOG_RETENTION_CHECK_INTERVAL_SETTING.getKey(), "100ms"))
-            .get();
+            .updateSettings(new UpdateSettingsRequest(
+                Settings.builder()
+                    .put(TRANSLOG_RETENTION_CHECK_INTERVAL_SETTING.getKey(), "100ms")
+                    .build(),
+                indexName
+            )).get();
 
         Translog translog = IndexShardTestCase.getTranslog(indexService.getShard(0));
 
@@ -423,7 +423,8 @@ public class IndexServiceTests extends SQLIntegrationTestCase {
                                 4000));
     }
 
-    public void testUpdateSyncIntervalDynamically() {
+    @Test
+    public void testUpdateSyncIntervalDynamically() throws Exception {
         execute("create table test(x int) clustered into 1 shards with(\"translog.sync_interval\" = '10s')");
         IndexService indexService = getIndexService("test");
         var indexName = indexService.index().getName();
@@ -437,8 +438,7 @@ public class IndexServiceTests extends SQLIntegrationTestCase {
         client()
             .admin()
             .indices()
-            .prepareUpdateSettings(indexName)
-            .setSettings(builder)
+            .updateSettings(new UpdateSettingsRequest(builder.build(), indexName))
             .get();
 
         assertNotNull(indexService.getFsyncTask());
@@ -451,8 +451,10 @@ public class IndexServiceTests extends SQLIntegrationTestCase {
         client()
             .admin()
             .indices()
-            .prepareUpdateSettings(indexName)
-            .setSettings(Settings.builder().put(IndexSettings.INDEX_TRANSLOG_SYNC_INTERVAL_SETTING.getKey(), "20s"))
+            .updateSettings(new UpdateSettingsRequest(
+                Settings.builder().put(IndexSettings.INDEX_TRANSLOG_SYNC_INTERVAL_SETTING.getKey(), "20s").build(),
+                indexName
+            ))
             .get();
         indexMetadata = client().admin().cluster().prepareState().execute().actionGet().getState().metadata().index(indexName);
         assertEquals("20s", indexMetadata.getSettings().get(IndexSettings.INDEX_TRANSLOG_SYNC_INTERVAL_SETTING.getKey()));

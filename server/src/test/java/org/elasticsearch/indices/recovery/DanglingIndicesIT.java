@@ -60,8 +60,7 @@ public class DanglingIndicesIT extends SQLIntegrationTestCase {
 
         boolean refreshIntervalChanged = randomBoolean();
         if (refreshIntervalChanged) {
-            client().admin().indices().prepareUpdateSettings("test").setSettings(
-                Settings.builder().put("index.refresh_interval", "42s").build()).get();
+            execute("alter table doc.test set (refresh_interval = '42s')");
             assertBusy(() -> internalCluster().getInstances(IndicesService.class).forEach(
                 indicesService -> assertTrue(indicesService.allPendingDanglingIndicesWritten())));
         }
