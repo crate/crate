@@ -63,7 +63,7 @@ public abstract class MetadataFieldMapper extends FieldMapper {
     protected MetadataFieldMapper(FieldType fieldType, MappedFieldType mappedFieldType, Settings indexSettings) {
         super(
             mappedFieldType.name(),
-            null,
+            NOT_TO_BE_POSITIONED,
             null,
             fieldType,
             mappedFieldType,

@@ -233,9 +233,9 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
         }
     }
 
-    public void merge(Map<String, Object> mappings, MergeReason reason) throws IOException {
+    public DocumentMapper merge(Map<String, Object> mappings, MergeReason reason) throws IOException {
         CompressedXContent content = new CompressedXContent(Strings.toString(XContentFactory.jsonBuilder().map(mappings)));
-        internalMerge(content, reason);
+        return internalMerge(content, reason);
     }
 
     public void merge(IndexMetadata indexMetadata, MergeReason reason) {

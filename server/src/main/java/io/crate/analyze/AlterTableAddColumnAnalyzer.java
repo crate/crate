@@ -99,14 +99,14 @@ class AlterTableAddColumnAnalyzer {
             tableElement.generatedExpression() != null
         );
         AnalyzedTableElements<Symbol> analyzedTableElements = TableElementsAnalyzer.analyze(
-            singletonList(addColumnDefinition), tableInfo.ident(), tableInfo);
+            singletonList(addColumnDefinition), tableInfo.ident(), tableInfo, true);
 
         // 2nd phase, analyze possible generated expressions
         AddColumnDefinition<Symbol> addColumnDefinitionWithExpression = (AddColumnDefinition<Symbol>) tableElement.mapExpressions(
             addColumnDefinition,
             x -> exprAnalyzerWithReferenceResolver.convert(x, exprCtx));
         AnalyzedTableElements<Symbol> analyzedTableElementsWithExpressions = TableElementsAnalyzer.analyze(
-            singletonList(addColumnDefinitionWithExpression), tableInfo.ident(), tableInfo);
+            singletonList(addColumnDefinitionWithExpression), tableInfo.ident(), tableInfo, true);
         // now analyze possible check expressions
         var checkColumnConstraintsAnalyzer = new ExpressionAnalyzer(
             txnCtx,

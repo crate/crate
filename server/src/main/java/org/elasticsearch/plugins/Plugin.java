@@ -26,6 +26,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.function.UnaryOperator;
 
 import org.elasticsearch.bootstrap.BootstrapCheck;
@@ -184,7 +185,7 @@ public abstract class Plugin implements Closeable {
     /**
      * Provides a function to modify index meta data when an index is introduced into the cluster state for the first time.
      * <p>
-     * Plugins should return the input index metadata via {@link UnaryOperator#identity()} if no upgrade is required.
+     * Plugins should return the input index metadata if no upgrade is required.
      * <p>
      * The order of the index upgrader calls for the same index is undefined and can change between runs so, it is expected that
      * plugins will modify only indices owned by them to avoid conflicts.
@@ -192,8 +193,8 @@ public abstract class Plugin implements Closeable {
      * @return Never {@code null}. The same or upgraded {@code IndexMetadata}.
      * @throws IllegalStateException if the node should not start because the index is unsupported
      */
-    public UnaryOperator<IndexMetadata> getIndexMetadataUpgrader() {
-        return UnaryOperator.identity();
+    public BiFunction<IndexMetadata, IndexTemplateMetadata, IndexMetadata> getIndexMetadataUpgrader() {
+        return (indexMetadata, indexTemplateMetadata) -> indexMetadata;
     }
 
     /**

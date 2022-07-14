@@ -32,14 +32,14 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import javax.annotation.Nullable;
-
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.common.collect.CopyOnWriteHashMap;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.time.IsoLocale;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
+
+import javax.annotation.Nullable;
 
 
 public class ObjectMapper extends Mapper implements Cloneable {
@@ -61,7 +61,6 @@ public class ObjectMapper extends Mapper implements Cloneable {
         protected Dynamic dynamic = Defaults.DYNAMIC;
 
         protected final List<Mapper.Builder> mappersBuilders = new ArrayList<>();
-        private Integer position;
 
         @SuppressWarnings("unchecked")
         public Builder(String name) {
@@ -94,7 +93,7 @@ public class ObjectMapper extends Mapper implements Cloneable {
             }
             context.path().remove();
 
-            return createMapper(
+            var mapper = createMapper(
                 name,
                 position,
                 context.path().pathAsText(name),
@@ -102,20 +101,21 @@ public class ObjectMapper extends Mapper implements Cloneable {
                 mappers,
                 context.indexSettings()
             );
+            if (mapper instanceof RootObjectMapper rootObjectMapper) {
+                context.updateRootObjectMapperWithPositionInfo(rootObjectMapper);
+            } else {
+                context.putPositionInfo(mapper, position);
+            }
+            return mapper;
         }
 
         protected ObjectMapper createMapper(String name,
-                                            Integer position,
+                                            int position,
                                             String fullPath,
                                             Dynamic dynamic,
                                             Map<String, Mapper> mappers,
                                             @Nullable Settings settings) {
             return new ObjectMapper(name, position, fullPath, dynamic, mappers, settings);
-        }
-
-        public T position(int position) {
-            this.position = position;
-            return this.builder;
         }
     }
 
@@ -225,15 +225,14 @@ public class ObjectMapper extends Mapper implements Cloneable {
 
     }
 
-    private final Integer position;
-
     private final String fullPath;
 
     private volatile Dynamic dynamic;
 
     private volatile CopyOnWriteHashMap<String, Mapper> mappers;
 
-    ObjectMapper(String name, Integer position,
+    ObjectMapper(String name,
+                 int position,
                  String fullPath,
                  Dynamic dynamic,
                  Map<String, Mapper> mappers,
@@ -307,6 +306,15 @@ public class ObjectMapper extends Mapper implements Cloneable {
     }
 
     @Override
+    public int maxColumnPosition() {
+        int maxPosition = this.position;
+        for (var mapper : this) {
+            maxPosition = Math.max(maxPosition, mapper.maxColumnPosition());
+        }
+        return maxPosition;
+    }
+
+    @Override
     public ObjectMapper merge(Mapper mergeWith) {
         if (!(mergeWith instanceof ObjectMapper)) {
             throw new IllegalArgumentException("Can't merge a non object mapping [" + mergeWith.name() + "] with an object mapping [" + name() + "]");
@@ -337,7 +345,7 @@ public class ObjectMapper extends Mapper implements Cloneable {
         }
     }
 
-    protected Integer position() {
+    protected int position() {
         return position;
     }
 
@@ -352,7 +360,7 @@ public class ObjectMapper extends Mapper implements Cloneable {
         if (mappers.isEmpty() && custom == null) { // only write the object content type if there are no properties, otherwise, it is automatically detected
             builder.field("type", CONTENT_TYPE);
         }
-        if (position != null) {
+        if (position != NOT_TO_BE_POSITIONED) {
             builder.field("position", position);
         }
         if (dynamic != null) {

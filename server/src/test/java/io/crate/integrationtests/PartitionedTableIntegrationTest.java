@@ -138,7 +138,6 @@ public class PartitionedTableIntegrationTest extends SQLIntegrationTestCase {
         assertThat(response.rows()[1][0], is("04732e1g60qj0dpl6csjicpo"));
     }
 
-
     /**
      * Test requires patch in ES 2.1 (https://github.com/crate/elasticsearch/commit/66564f88d21ad3d3be908dbe50974c448f7929d7)
      * or ES 2.x (https://github.com/elastic/elasticsearch/pull/16767).
@@ -268,7 +267,6 @@ public class PartitionedTableIntegrationTest extends SQLIntegrationTestCase {
             "   quote string," +
             "   timestamp timestamp with time zone" +
             ") partitioned by(timestamp) with (number_of_replicas=0)");
-
         execute("select * from information_schema.tables where table_schema = ? order by table_name", new Object[]{sqlExecutor.getCurrentSchema()});
         assertThat(response.rowCount(), is(1L));
         assertThat(response.rows()[0][12], is("quotes"));

@@ -64,7 +64,7 @@ public class AlterTableDropCheckConstraintAnalyzerTest extends CrateDummyCluster
         assertThat(analysis.analyzedTableElements().getCheckConstraints(), is(Map.of("check_id_ge_zero", "\"id\" >= 0")));
         Map<String, Object> mapping = analysis.mapping();
         assertThat(mapToSortedString(mapping),
-                   is("_meta={check_constraints={check_id_ge_zero=\"id\" >= 0}, primary_keys=[id]}, properties={id={type=integer}}"));
+                   is("_meta={check_constraints={check_id_ge_zero=\"id\" >= 0}, primary_keys=[id]}, properties={id={position=1, type=integer}}"));
     }
 
     @Test
