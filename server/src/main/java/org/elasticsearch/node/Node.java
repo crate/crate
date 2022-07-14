@@ -39,6 +39,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
@@ -560,8 +561,9 @@ public class Node implements Closeable {
                     .collect(Collectors.toList());
             indexTemplateMetadataUpgraders.add(new IndexTemplateUpgrader());
 
-            List<UnaryOperator<IndexMetadata>> indexMetadataUpgraders = pluginsService.filterPlugins(Plugin.class).stream()
-                .map(Plugin::getIndexMetadataUpgrader).collect(Collectors.toList());
+            List<BiFunction<IndexMetadata, IndexTemplateMetadata, IndexMetadata>> indexMetadataUpgraders =
+                pluginsService.filterPlugins(Plugin.class).stream()
+                    .map(Plugin::getIndexMetadataUpgrader).collect(Collectors.toList());
             indexMetadataUpgraders.add(new MetadataIndexUpgrader());
 
             final MetadataUpgrader metadataUpgrader = new MetadataUpgrader(customMetadataUpgraders,

@@ -468,7 +468,6 @@ public class DDLIntegrationTest extends IntegTestCase {
         assertThat((String) response.rows()[0][0], is("object"));
     }
 
-
     @Test
     public void testAlterTableAddColumnAsPrimaryKey() throws Exception {
         execute("create table t (id int primary key) " +

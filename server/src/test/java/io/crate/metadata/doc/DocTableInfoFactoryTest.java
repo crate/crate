@@ -70,6 +70,7 @@ public class DocTableInfoFactoryTest extends ESTestCase {
                 "    \"properties\":{" +
                 "      \"id\": {" +
                 "         \"type\": \"integer\"," +
+                "         \"position\": 1," +
                 "         \"index\": \"not_analyzed\"" +
                 "      }" +
                 "    }" +
