@@ -407,14 +407,18 @@ public abstract class AggregationTestCase extends ESTestCase {
                         "type",
                         DataTypes.esMappingNameFrom(
                             ((ArrayType<?>) type).innerType().id()))
+                    .field("position", i + 1)
                     .endObject();
             } else if (type instanceof BitStringType bs) {
                 builder.field("type", bs.getName());
                 builder.field("length", bs.length());
+                builder.field("position", i + 1);
             } else if (type.id() == StringType.ID) {
                 builder.field("type", "keyword");
+                builder.field("position", i + 1);
             } else {
                 builder.field("type", DataTypes.esMappingNameFrom(type.id()));
+                builder.field("position", i + 1);
             }
             builder.endObject();
         }

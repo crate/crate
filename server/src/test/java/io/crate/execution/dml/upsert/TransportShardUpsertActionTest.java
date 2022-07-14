@@ -233,15 +233,19 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         // Create valid nested mapping with underscore.
         Settings settings = Settings.builder().put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT).build();
         Mapper.BuilderContext builderContext = new Mapper.BuilderContext(settings, new ContentPath());
-        Mapper outerMapper = new ObjectMapper.Builder("valid")
-            .add(new ObjectMapper.Builder("_invalid"))
-            .build(builderContext);
+        ObjectMapper.Builder outerBuilder = new ObjectMapper.Builder("valid");
+        ObjectMapper.Builder innerBuilder = new ObjectMapper.Builder("_invalid");
+        outerBuilder.position(1);
+        innerBuilder.position(2);
+        Mapper outerMapper = outerBuilder.build(builderContext);
         TransportShardUpsertAction.validateMapping(Arrays.asList(outerMapper).iterator(), false);
 
         // Create invalid mapping
         expectedException.expect(InvalidColumnNameException.class);
         expectedException.expectMessage("system column pattern");
-        outerMapper = new ObjectMapper.Builder("_invalid").build(builderContext);
+        outerBuilder = new ObjectMapper.Builder("_invalid");
+        outerBuilder.position(1);
+        outerMapper = outerBuilder.build(builderContext);
         TransportShardUpsertAction.validateMapping(Arrays.asList(outerMapper).iterator(), false);
     }
 

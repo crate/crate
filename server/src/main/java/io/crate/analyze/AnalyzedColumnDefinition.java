@@ -420,9 +420,9 @@ public class AnalyzedColumnDefinition<T> {
         addTypeOptions(mapping, definition);
         mapping.put("type", definition.typeNameForESMapping());
 
-        if (definition.position != 0) {
-            mapping.put("position", definition.position);
-        }
+        assert definition.position != 0 : "position should not be 0";
+        mapping.put("position", definition.position);
+
         if (definition.indexType == IndexType.NONE) {
             // we must use a boolean <p>false</p> and NO string "false", otherwise parser support for old indices will fail
             mapping.put("index", false);
