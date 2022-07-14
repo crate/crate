@@ -20,6 +20,7 @@
 package org.elasticsearch;
 
 import io.crate.common.CheckedFunction;
+import io.crate.exceptions.ArrayViaDocValuesUnsupportedException;
 import io.crate.exceptions.SQLExceptions;
 
 import org.elasticsearch.action.admin.indices.alias.AliasesNotFoundException;
@@ -1028,8 +1029,8 @@ public class ElasticsearchException extends RuntimeException implements ToXConte
             161,
             Version.V_4_7_0),
         GROUP_BY_ON_ARRAY_UNSUPPORTED_EXCEPTION(
-            io.crate.exceptions.GroupByOnArrayUnsupportedException.class,
-            io.crate.exceptions.GroupByOnArrayUnsupportedException::new,
+            ArrayViaDocValuesUnsupportedException.class,
+            ArrayViaDocValuesUnsupportedException::new,
             162,
             Version.V_4_7_0),
         INVALID_ARGUMENT_EXCEPTION(

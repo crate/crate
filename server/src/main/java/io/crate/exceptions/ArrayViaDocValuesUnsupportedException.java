@@ -29,13 +29,13 @@ import java.io.IOException;
 /**
  * This exception can be in the <p>anonymous</p> scope as it can only be thrown when executed with proper authorization.
  */
-public class GroupByOnArrayUnsupportedException extends ElasticsearchException implements UnscopedException {
+public class ArrayViaDocValuesUnsupportedException extends ElasticsearchException implements UnscopedException {
 
-    public GroupByOnArrayUnsupportedException(String columnName) {
-        super("Column \"" + columnName + "\" has a value that is an array. Group by doesn't work on Arrays");
+    public ArrayViaDocValuesUnsupportedException(String columnName) {
+        super("Column \"" + columnName + "\" has a value that is an array. Loading arrays via doc-values is not supported.");
     }
 
-    public GroupByOnArrayUnsupportedException(StreamInput in) throws IOException {
+    public ArrayViaDocValuesUnsupportedException(StreamInput in) throws IOException {
         super(in);
     }
 }

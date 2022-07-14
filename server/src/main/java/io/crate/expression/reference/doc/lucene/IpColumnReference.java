@@ -22,7 +22,7 @@
 package io.crate.expression.reference.doc.lucene;
 
 
-import io.crate.exceptions.GroupByOnArrayUnsupportedException;
+import io.crate.exceptions.ArrayViaDocValuesUnsupportedException;
 import io.crate.execution.engine.fetch.ReaderContext;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.SortedSetDocValues;
@@ -48,7 +48,7 @@ public class IpColumnReference extends LuceneCollectorExpression<String> {
             if (values.advanceExact(docId)) {
                 long ord = values.nextOrd();
                 if (values.nextOrd() != SortedSetDocValues.NO_MORE_ORDS) {
-                    throw new GroupByOnArrayUnsupportedException(columnName);
+                    throw new ArrayViaDocValuesUnsupportedException(columnName);
                 }
                 BytesRef encoded = values.lookupOrd(ord);
                 return (String) DocValueFormat.IP.format(encoded);

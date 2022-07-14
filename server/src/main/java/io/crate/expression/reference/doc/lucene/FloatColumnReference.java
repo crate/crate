@@ -29,7 +29,7 @@ import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.util.NumericUtils;
 
-import io.crate.exceptions.GroupByOnArrayUnsupportedException;
+import io.crate.exceptions.ArrayViaDocValuesUnsupportedException;
 
 public class FloatColumnReference extends LuceneCollectorExpression<Float> {
 
@@ -50,7 +50,7 @@ public class FloatColumnReference extends LuceneCollectorExpression<Float> {
                         return NumericUtils.sortableIntToFloat((int) values.nextValue());
 
                     default:
-                        throw new GroupByOnArrayUnsupportedException(columnName);
+                        throw new ArrayViaDocValuesUnsupportedException(columnName);
                 }
             } else {
                 return null;
