@@ -21,7 +21,7 @@
 
 package io.crate.expression.reference.doc;
 
-import io.crate.exceptions.GroupByOnArrayUnsupportedException;
+import io.crate.exceptions.ArrayViaDocValuesUnsupportedException;
 import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.expression.reference.doc.lucene.IpColumnReference;
 import org.apache.lucene.document.Document;
@@ -126,8 +126,8 @@ public class IpColumnReferenceTest extends DocLevelExpressionsTest {
         ScoreDoc doc = topDocs.scoreDocs[0];
         columnReference.setNextDocId(doc.doc);
 
-        expectedException.expect(GroupByOnArrayUnsupportedException.class);
-        expectedException.expectMessage("Column \"ia\" has a value that is an array. Group by doesn't work on Arrays");
+        expectedException.expect(ArrayViaDocValuesUnsupportedException.class);
+        expectedException.expectMessage("Column \"ia\" has a value that is an array. Loading arrays via doc-values is not supported.");
 
         columnReference.value();
     }

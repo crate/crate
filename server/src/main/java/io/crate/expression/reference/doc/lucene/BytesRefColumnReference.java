@@ -29,7 +29,7 @@ import org.apache.lucene.index.DocValues;
 import org.elasticsearch.index.fielddata.FieldData;
 import org.elasticsearch.index.fielddata.SortedBinaryDocValues;
 
-import io.crate.exceptions.GroupByOnArrayUnsupportedException;
+import io.crate.exceptions.ArrayViaDocValuesUnsupportedException;
 
 public class BytesRefColumnReference extends LuceneCollectorExpression<String> {
 
@@ -42,13 +42,13 @@ public class BytesRefColumnReference extends LuceneCollectorExpression<String> {
     }
 
     @Override
-    public String value() throws GroupByOnArrayUnsupportedException {
+    public String value() throws ArrayViaDocValuesUnsupportedException {
         try {
             if (values.advanceExact(docId)) {
                 if (values.docValueCount() == 1) {
                     return values.nextValue().utf8ToString();
                 } else {
-                    throw new GroupByOnArrayUnsupportedException(columnName);
+                    throw new ArrayViaDocValuesUnsupportedException(columnName);
                 }
             } else {
                 return null;

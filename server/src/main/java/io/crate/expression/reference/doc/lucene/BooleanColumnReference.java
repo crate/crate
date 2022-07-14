@@ -21,7 +21,7 @@
 
 package io.crate.expression.reference.doc.lucene;
 
-import io.crate.exceptions.GroupByOnArrayUnsupportedException;
+import io.crate.exceptions.ArrayViaDocValuesUnsupportedException;
 import io.crate.execution.engine.fetch.ReaderContext;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.util.BytesRef;
@@ -51,7 +51,7 @@ public class BooleanColumnReference extends LuceneCollectorExpression<Boolean> {
                         return values.nextValue().compareTo(TRUE_BYTESREF) == 0;
 
                     default:
-                        throw new GroupByOnArrayUnsupportedException(columnName);
+                        throw new ArrayViaDocValuesUnsupportedException(columnName);
                 }
             } else {
                 return null;
