@@ -23,6 +23,8 @@ import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import io.crate.common.io.IOUtils;
 import io.crate.exceptions.Exceptions;
 
+import io.crate.metadata.IndexParts;
+import io.crate.metadata.PartitionName;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.store.AlreadyClosedException;
@@ -35,6 +37,7 @@ import org.elasticsearch.cluster.coordination.CoordinationMetadata;
 import org.elasticsearch.cluster.coordination.CoordinationState.PersistedState;
 import org.elasticsearch.cluster.coordination.InMemoryPersistedState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Manifest;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataIndexUpgradeService;
@@ -198,12 +201,33 @@ public class GatewayMetaState implements Closeable {
     public static Metadata upgradeMetadata(Metadata metadata,
                                     MetadataIndexUpgradeService metadataIndexUpgradeService,
                                     MetadataUpgrader metadataUpgrader) {
-        // upgrade index meta data
         boolean changed = false;
         final Metadata.Builder upgradedMetadata = Metadata.builder(metadata);
+
+        // carries upgraded IndexTemplateMetadata to MetadataIndexUpgradeService.upgradeIndexMetadata
+        final Map<String, IndexTemplateMetadata> upgradedIndexTemplateMetadata = new HashMap<>();
+
+        // upgrade current templates
+        if (applyPluginUpgraders(
+            metadata.getTemplates(),
+            metadataUpgrader.indexTemplateMetadataUpgraders,
+            upgradedMetadata::removeTemplate,
+            (s, indexTemplateMetadata) -> {
+                upgradedIndexTemplateMetadata.put(s, indexTemplateMetadata);
+                upgradedMetadata.put(indexTemplateMetadata);
+            })) {
+            changed = true;
+        }
+
+        // upgrade index meta data
         for (IndexMetadata indexMetadata : metadata) {
-            IndexMetadata newMetadata = metadataIndexUpgradeService.upgradeIndexMetadata(indexMetadata,
-                    Version.CURRENT.minimumIndexCompatibilityVersion());
+            String indexName = indexMetadata.getIndex().getName();
+            IndexMetadata newMetadata = metadataIndexUpgradeService.upgradeIndexMetadata(
+                indexMetadata,
+                IndexParts.isPartitioned(indexName) ?
+                    upgradedIndexTemplateMetadata.get(PartitionName.templateName(indexName)) :
+                    null,
+                Version.CURRENT.minimumIndexCompatibilityVersion());
             changed |= indexMetadata != newMetadata;
             upgradedMetadata.put(newMetadata, false);
         }
@@ -211,12 +235,6 @@ public class GatewayMetaState implements Closeable {
         // upgrade global custom meta data
         if (applyPluginUpgraders(metadata.getCustoms(), metadataUpgrader.customMetadataUpgraders,
                 upgradedMetadata::removeCustom, upgradedMetadata::putCustom)) {
-            changed = true;
-        }
-
-        // upgrade current templates
-        if (applyPluginUpgraders(metadata.getTemplates(), metadataUpgrader.indexTemplateMetadataUpgraders,
-                upgradedMetadata::removeTemplate, (s, indexTemplateMetadata) -> upgradedMetadata.put(indexTemplateMetadata))) {
             changed = true;
         }
         return changed ? upgradedMetadata.build() : metadata;

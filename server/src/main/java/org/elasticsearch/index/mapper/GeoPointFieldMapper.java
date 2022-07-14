@@ -68,7 +68,7 @@ public class GeoPointFieldMapper extends FieldMapper implements ArrayValueMapper
         @Override
         public GeoPointFieldMapper build(BuilderContext context) {
             var ft = new GeoPointFieldType(buildFullName(context), indexed, hasDocValues);
-            return new GeoPointFieldMapper(
+            var mapper = new GeoPointFieldMapper(
                 name,
                 position,
                 defaultExpression,
@@ -77,6 +77,8 @@ public class GeoPointFieldMapper extends FieldMapper implements ArrayValueMapper
                 context.indexSettings(),
                 multiFieldsBuilder.build(this, context),
                 copyTo);
+            context.putPositionInfo(mapper, position);
+            return mapper;
         }
     }
 
@@ -92,7 +94,7 @@ public class GeoPointFieldMapper extends FieldMapper implements ArrayValueMapper
     }
 
     public GeoPointFieldMapper(String simpleName,
-                               Integer position,
+                               int position,
                                @Nullable String defaultExpression,
                                FieldType fieldType,
                                MappedFieldType defaultFieldType,

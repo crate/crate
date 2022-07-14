@@ -52,6 +52,8 @@ import io.crate.common.collections.MapBuilder;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 
+import static io.crate.execution.ddl.TransportSchemaUpdateAction.populateColumnPositions;
+
 public class DDLClusterStateHelpers {
 
     public static IndexTemplateMetadata updateTemplate(IndexTemplateMetadata indexTemplateMetadata,
@@ -140,6 +142,7 @@ public class DDLClusterStateHelpers {
             XContentHelper.update(mergedMapping, (Map) o, false);
         }
         XContentHelper.update(mergedMapping, newMapping, false);
+        populateColumnPositions(mergedMapping);
         return mergedMapping;
     }
 

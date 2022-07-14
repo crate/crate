@@ -118,7 +118,7 @@ public final class CreateTableStatementAnalyzer {
             createTable.ifNotExists()
         );
         AnalyzedTableElements<Symbol> analyzedTableElements = TableElementsAnalyzer.analyze(
-            analyzedCreateTable.tableElements(), relationName, null);
+            analyzedCreateTable.tableElements(), relationName, null, false);
 
         // 2nd phase, analyze and map with a reference resolver:
         //   - generated/default expressions
@@ -145,7 +145,7 @@ public final class CreateTableStatementAnalyzer {
                 analyzedTableElements.addCheckConstraint(relationName, (CheckConstraint<Symbol>) te);
             });
         AnalyzedTableElements<Symbol> analyzedTableElementsWithExpressions = TableElementsAnalyzer.analyze(
-            tableElementsWithExpressions, relationName, null, false);
+            tableElementsWithExpressions, relationName, null, false, false);
         if (analyzedTableElementsWithExpressions.hasGeneratedColumns()) {
             List<ColumnIdent> generatedColumns = analyzedTableElementsWithExpressions.columns().stream()
                 .filter(AnalyzedColumnDefinition::isGenerated)

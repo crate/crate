@@ -21,35 +21,68 @@
 
 package io.crate.metadata.cluster;
 
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 import io.crate.Constants;
+import io.crate.common.collections.MapBuilder;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.common.Strings;
-import io.crate.common.collections.MapBuilder;
+import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.common.xcontent.XContentHelper;
+import org.elasticsearch.common.xcontent.XContentType;
 import org.junit.Test;
 
 import java.util.List;
 import java.util.Map;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
-
 public class DDLClusterStateHelpersTest {
 
     @Test
     public void testMergeTemplateMapping() throws Exception {
-        Map<String, Object> oldMapping = MapBuilder.<String, Object>newMapBuilder()
-            .put("properties", MapBuilder.<String, String>newMapBuilder().put("foo", "foo").map())
-            .put("_meta", MapBuilder.<String, String>newMapBuilder().put("meta1", "val1").map())
-            .map();
 
-        Map<String, Object> newMapping = MapBuilder.<String, Object>newMapBuilder()
-            .put("properties", MapBuilder.<String, String>newMapBuilder().put("foo", "bar").map())
-            .put("_meta", MapBuilder.<String, String>newMapBuilder()
-                .put("meta1", "v1")
-                .put("meta2", "v2")
-                .map())
-            .map();
+        XContentBuilder oldMappingBuilder = XContentFactory.jsonBuilder()
+            .startObject()
+            .startObject("properties")
+            .startObject("foo")
+            .field("merge-this-field", "foo")
+            .field("position", 1)
+            .endObject()
+            .endObject()
+            .startObject("_meta")
+            .startObject("meta1")
+            .field("field", "val1")
+            .field("position", 2)
+            .endObject()
+            .endObject()
+            .endObject();
+
+        Map<String, Object> oldMapping =
+            XContentHelper.convertToMap(BytesReference.bytes(oldMappingBuilder), true, XContentType.JSON).v2();
+
+        XContentBuilder newMappingBuilder = XContentFactory.jsonBuilder()
+            .startObject()
+            .startObject("properties")
+            .startObject("foo")
+            .field("merge-this-field", "bar")
+            .field("position", 1)
+            .endObject()
+            .endObject()
+            .startObject("_meta")
+            .startObject("meta1")
+            .field("field", "val1")
+            .field("position", 2)
+            .endObject()
+            .startObject("meta2")
+            .field("field", "val2")
+            .field("position", 3)
+            .endObject()
+            .endObject()
+            .endObject();
+
+        Map<String, Object> newMapping =
+            XContentHelper.convertToMap(BytesReference.bytes(newMappingBuilder), true, XContentType.JSON).v2();
 
         Map<String, Object> mapping = DDLClusterStateHelpers.mergeTemplateMapping(
             IndexTemplateMetadata.builder("foo")
@@ -62,7 +95,7 @@ public class DDLClusterStateHelpersTest {
                 .build(),
             newMapping);
         assertThat(Strings.toString(XContentFactory.jsonBuilder().map(mapping)), is(
-            "{\"_meta\":{\"meta2\":\"v2\",\"meta1\":\"v1\"},\"properties\":{\"foo\":\"bar\"}}"));
+            "{\"_meta\":{\"meta2\":{\"field\":\"val2\",\"position\":3},\"meta1\":{\"field\":\"val1\",\"position\":2}},\"properties\":{\"foo\":{\"merge-this-field\":\"bar\",\"position\":1}}}"));
     }
 
 }

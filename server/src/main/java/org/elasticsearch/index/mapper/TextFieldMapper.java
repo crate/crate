@@ -93,7 +93,7 @@ public class TextFieldMapper extends FieldMapper {
         @Override
         public TextFieldMapper build(BuilderContext context) {
             TextFieldType tft = buildFieldType(context);
-            return new TextFieldMapper(
+            var mapper = new TextFieldMapper(
                 name,
                 position,
                 defaultExpression,
@@ -103,6 +103,8 @@ public class TextFieldMapper extends FieldMapper {
                 multiFieldsBuilder.build(this, context),
                 copyTo
             );
+            context.putPositionInfo(mapper, position);
+            return mapper;
         }
 
 
@@ -139,7 +141,7 @@ public class TextFieldMapper extends FieldMapper {
     }
 
     protected TextFieldMapper(String simpleName,
-                              Integer position,
+                              int position,
                               String defaultExpression,
                               FieldType fieldType,
                               TextFieldType mappedFieldType,

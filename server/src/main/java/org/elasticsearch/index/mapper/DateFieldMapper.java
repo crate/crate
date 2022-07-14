@@ -116,7 +116,7 @@ public class DateFieldMapper extends FieldMapper {
         public DateFieldMapper build(BuilderContext context) {
             DateFieldType ft = setupFieldType(context);
             Long nullTimestamp = nullValue == null ? null : ft.dateTimeFormatter.parser().parseMillis(nullValue);
-            return new DateFieldMapper(
+            var mapper = new DateFieldMapper(
                 name,
                 position,
                 defaultExpression,
@@ -128,6 +128,8 @@ public class DateFieldMapper extends FieldMapper {
                 context.indexSettings(),
                 multiFieldsBuilder.build(this, context),
                 copyTo);
+            context.putPositionInfo(mapper, position);
+            return mapper;
         }
     }
 
@@ -199,7 +201,7 @@ public class DateFieldMapper extends FieldMapper {
 
     private DateFieldMapper(
             String simpleName,
-            Integer position,
+            int position,
             @Nullable String defaultExpression,
             FieldType fieldType,
             MappedFieldType mappedFieldType,

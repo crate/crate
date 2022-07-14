@@ -68,6 +68,7 @@ public class KeywordFieldMapperTest extends CrateDummyClusterServiceUnitTest {
                             .startObject("text_col")
                                 .field("type", "keyword")
                                 .field("index", false)
+                                .field("position", 1)
                                 .field("length_limit", 1)
                             .endObject()
                         .endObject()
@@ -83,7 +84,7 @@ public class KeywordFieldMapperTest extends CrateDummyClusterServiceUnitTest {
         assertThat(expectedMapping, is(actualMapping));
         assertThat(actualMapping, is(
             "{\"default\":{\"properties\":" +
-            "{\"text_col\":{\"type\":\"keyword\",\"index\":false,\"length_limit\":1}}}}"));
+            "{\"text_col\":{\"type\":\"keyword\",\"index\":false,\"position\":1,\"length_limit\":1}}}}"));
     }
 
     @Test
@@ -97,6 +98,7 @@ public class KeywordFieldMapperTest extends CrateDummyClusterServiceUnitTest {
                         .startObject("properties")
                             .startObject("text_col")
                                 .field("type", "keyword")
+                                .field("position", 1)
                                 .field("length_limit", 2)
                             .endObject()
                         .endObject()
@@ -110,6 +112,7 @@ public class KeywordFieldMapperTest extends CrateDummyClusterServiceUnitTest {
                             .startObject("text_col")
                                 .field("type", "keyword")
                                 .field("index", false)
+                                .field("position", 2)
                                 .field("length_limit", 1)
                             .endObject()
                         .endObject()

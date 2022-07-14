@@ -46,7 +46,7 @@ public class MetadataIndexUpgraderTest extends ESTestCase {
     public void testDynamicStringTemplateIsPurged() throws IOException {
         MetadataIndexUpgrader metadataIndexUpgrader = new MetadataIndexUpgrader();
         MappingMetadata mappingMetadata = new MappingMetadata(createDynamicStringMappingTemplate());
-        MappingMetadata newMappingMetadata = metadataIndexUpgrader.createUpdatedIndexMetadata(mappingMetadata, "dummy");
+        MappingMetadata newMappingMetadata = metadataIndexUpgrader.createUpdatedIndexMetadata(mappingMetadata, "dummy", null);
 
         Object dynamicTemplates = newMappingMetadata.getSourceAsMap().get("dynamic_templates");
         assertThat(dynamicTemplates, nullValue());
@@ -74,10 +74,10 @@ public class MetadataIndexUpgraderTest extends ESTestCase {
             .build();
 
         MetadataIndexUpgrader metadataIndexUpgrader = new MetadataIndexUpgrader();
-        IndexMetadata updatedMetadata = metadataIndexUpgrader.apply(indexMetadata);
+        IndexMetadata updatedMetadata = metadataIndexUpgrader.apply(indexMetadata, null);
 
         MappingMetadata mapping = updatedMetadata.mapping();
-        assertThat(mapping.source().string(), Matchers.is("{\"default\":{\"properties\":{\"name\":{\"type\":\"keyword\"}}}}"));
+        assertThat(mapping.source().string(), Matchers.is("{\"default\":{\"properties\":{\"name\":{\"type\":\"keyword\",\"position\":1}}}}"));
     }
 
     @Test
@@ -90,7 +90,7 @@ public class MetadataIndexUpgraderTest extends ESTestCase {
             .build();
 
         MetadataIndexUpgrader metadataIndexUpgrader = new MetadataIndexUpgrader();
-        IndexMetadata updatedMetadata = metadataIndexUpgrader.apply(indexMetadata);
+        IndexMetadata updatedMetadata = metadataIndexUpgrader.apply(indexMetadata, null);
 
         assertThat(updatedMetadata.mapping(), is(nullValue()));
     }

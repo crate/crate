@@ -78,7 +78,7 @@ public class BooleanFieldMapper extends FieldMapper {
 
         @Override
         public BooleanFieldMapper build(BuilderContext context) {
-            return new BooleanFieldMapper(
+            var mapper = new BooleanFieldMapper(
                 name,
                 position,
                 defaultExpression,
@@ -88,6 +88,8 @@ public class BooleanFieldMapper extends FieldMapper {
                 multiFieldsBuilder.build(this, context),
                 copyTo,
                 nullValue);
+            context.putPositionInfo(mapper, position);
+            return mapper;
         }
     }
 
@@ -157,7 +159,7 @@ public class BooleanFieldMapper extends FieldMapper {
     private final Boolean nullValue;
 
     protected BooleanFieldMapper(String simpleName,
-                                 Integer position,
+                                 int position,
                                  @Nullable String defaultExpression,
                                  FieldType fieldType,
                                  MappedFieldType defaultFieldType,

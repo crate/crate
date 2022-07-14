@@ -22,11 +22,12 @@ package org.elasticsearch.index.mapper;
 import java.util.Iterator;
 import java.util.Map;
 
-import javax.annotation.Nullable;
-
+import org.elasticsearch.cluster.metadata.ColumnPositionResolver;
 import org.elasticsearch.common.settings.Settings;
 
 public class RootObjectMapper extends ObjectMapper {
+
+    private ColumnPositionResolver<Mapper> columnPositionResolver = new ColumnPositionResolver<>();
 
     public static class Builder extends ObjectMapper.Builder<Builder> {
 
@@ -41,8 +42,8 @@ public class RootObjectMapper extends ObjectMapper {
         }
 
         @Override
-        protected ObjectMapper createMapper(String name, Integer position, String fullPath, Dynamic dynamic,
-                Map<String, Mapper> mappers, @Nullable Settings settings) {
+        protected ObjectMapper createMapper(String name, int position, String fullPath, Dynamic dynamic,
+                Map<String, Mapper> mappers, Settings settings) {
             return new RootObjectMapper(
                 name,
                 dynamic,
@@ -76,11 +77,19 @@ public class RootObjectMapper extends ObjectMapper {
                      Dynamic dynamic,
                      Map<String, Mapper> mappers,
                      Settings settings) {
-        super(name, null, name, dynamic, mappers, settings);
+        super(name, NOT_TO_BE_POSITIONED, name, dynamic, mappers, settings);
     }
 
     @Override
     public RootObjectMapper merge(Mapper mergeWith) {
-        return (RootObjectMapper) super.merge(mergeWith);
+        RootObjectMapper newMapper = (RootObjectMapper) super.merge(mergeWith);
+        if (mergeWith instanceof RootObjectMapper rootObjectMapper) {
+            rootObjectMapper.columnPositionResolver.updatePositions(this.maxColumnPosition());
+        }
+        return newMapper;
+    }
+
+    public void updateColumnPositionResolver(ColumnPositionResolver<Mapper> columnPositionResolver) {
+        this.columnPositionResolver = columnPositionResolver;
     }
 }

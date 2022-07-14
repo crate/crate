@@ -101,3 +101,6 @@ Fixes
   partitioned tables. This won't fix it for existing tables as the version
   information the table was created with was not stored and such is not
   known. The issue doesn't affect the version exposed for individual partitions.
+
+- Fixed a column positions issue that caused an ``INSERT`` or any other
+  statements that adds columns dynamically to throw an exception.
