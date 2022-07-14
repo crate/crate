@@ -72,7 +72,7 @@ public class NumberFieldMapper extends FieldMapper {
 
         @Override
         public NumberFieldMapper build(BuilderContext context) {
-            return new NumberFieldMapper(
+            var mapper = new NumberFieldMapper(
                 name,
                 position,
                 defaultExpression,
@@ -81,6 +81,8 @@ public class NumberFieldMapper extends FieldMapper {
                 context.indexSettings(),
                 copyTo
             );
+            context.putPositionInfo(mapper, position);
+            return mapper;
         }
     }
 
@@ -450,7 +452,7 @@ public class NumberFieldMapper extends FieldMapper {
 
     private NumberFieldMapper(
             String simpleName,
-            Integer position,
+            int position,
             @Nullable String defaultExpression,
             FieldType fieldType,
             MappedFieldType mappedFieldType,

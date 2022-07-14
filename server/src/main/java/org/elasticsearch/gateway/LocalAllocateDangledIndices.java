@@ -23,6 +23,8 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
 
+import io.crate.metadata.IndexParts;
+import io.crate.metadata.PartitionName;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
@@ -141,7 +143,12 @@ public class LocalAllocateDangledIndices {
                         try {
                             // The dangled index might be from an older version, we need to make sure it's compatible
                             // with the current version and upgrade it if needed.
-                            upgradedIndexMetadata = metadataIndexUpgradeService.upgradeIndexMetadata(indexMetadata,
+                            String indexName = indexMetadata.getIndex().getName();
+                            upgradedIndexMetadata = metadataIndexUpgradeService.upgradeIndexMetadata(
+                                indexMetadata,
+                                IndexParts.isPartitioned(indexName) ?
+                                    currentState.metadata().getTemplates().get(PartitionName.templateName(indexName)) :
+                                    null,
                                 minIndexCompatibilityVersion);
                         } catch (Exception ex) {
                             // upgrade failed - adding index as closed

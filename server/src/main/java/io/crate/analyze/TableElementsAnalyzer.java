@@ -58,20 +58,28 @@ public class TableElementsAnalyzer {
 
     public static <T> AnalyzedTableElements<T> analyze(List<TableElement<T>> tableElements,
                                                        RelationName relationName,
-                                                       @Nullable TableInfo tableInfo) {
-        return analyze(tableElements, relationName, tableInfo, true);
+                                                       @Nullable TableInfo tableInfo,
+                                                       boolean isAddColumn) {
+        return analyze(tableElements, relationName, tableInfo, true, isAddColumn);
     }
 
+    /**
+     *
+     * @param isAddColumn When set to true, column positions of the analyzed table elements will contain negative column estimates
+     *                    representing the ordering of the columns to be added dynamically. The estimates will be assigned by {@link ColumnDefinitionContext#increaseCurrentPosition()}
+     *                    then re-calculated to be the exact column positions by {@link org.elasticsearch.cluster.metadata.ColumnPositionResolver}
+     */
     public static <T> AnalyzedTableElements<T> analyze(List<TableElement<T>> tableElements,
                                                        RelationName relationName,
                                                        @Nullable TableInfo tableInfo,
-                                                       boolean logWarnings) {
+                                                       boolean logWarnings,
+                                                       boolean isAddColumn) {
         AnalyzedTableElements<T> analyzedTableElements = new AnalyzedTableElements<>();
-        int positionOffset = tableInfo == null ? 0 : tableInfo.columns().size();
+        int positionOffset = isAddColumn ? 0 : (tableInfo == null ? 0 : tableInfo.columns().size());
         InnerTableElementsAnalyzer<T> analyzer = new InnerTableElementsAnalyzer<>();
         for (int i = 0; i < tableElements.size(); i++) {
             TableElement<T> tableElement = tableElements.get(i);
-            int position = positionOffset + 1;
+            int position = positionOffset + (isAddColumn ? -1 : 1);
             ColumnDefinitionContext<T> ctx = new ColumnDefinitionContext<>(
                 position,
                 null,
@@ -114,7 +122,11 @@ public class TableElementsAnalyzer {
         }
 
         public void increaseCurrentPosition() {
-            currentColumnPosition++;
+            if (currentColumnPosition > 0) {
+                currentColumnPosition++;
+            } else {
+                currentColumnPosition--;
+            }
         }
     }
 
@@ -164,20 +176,17 @@ public class TableElementsAnalyzer {
                     // If it is an array, set the collection type to array, or if it's an object keep the object column
                     // policy.
                     Reference parentRef = context.tableInfo.getReference(parent.ident());
-                    int childrenCnt = 0;
                     if (parentRef != null) {
                         parent.position = parentRef.position();
                         if (parentRef.valueType().id() == ArrayType.ID) {
                             parent.collectionType(ArrayType.NAME);
                         } else {
-                            childrenCnt = ((ObjectType) parentRef.valueType()).innerTypes().size();
                             parent.objectType(parentRef.columnPolicy());
                         }
                     }
                     parent.markAsParentColumn();
-                    int position = parent.position + childrenCnt + 1;
-                    context.currentColumnPosition = position;
-                    leaf = new AnalyzedColumnDefinition<>(position, parent);
+                    assert context.currentColumnPosition < 0 : "ADD COLUMN's column positions should be negative, representing column ordering";
+                    leaf = new AnalyzedColumnDefinition<>(context.currentColumnPosition, parent);
                     leaf.name(name);
                     parent.addChild(leaf);
                     parent = leaf;
@@ -224,6 +233,7 @@ public class TableElementsAnalyzer {
                     context.logWarnings
                 );
                 columnDefinition.accept(this, childContext);
+                context.currentColumnPosition = childContext.currentColumnPosition;
                 context.analyzedColumnDefinition.addChild(childContext.analyzedColumnDefinition);
             }
 

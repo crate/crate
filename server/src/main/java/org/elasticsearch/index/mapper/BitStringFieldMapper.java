@@ -42,7 +42,7 @@ public class BitStringFieldMapper extends FieldMapper {
     private Integer length;
 
     protected BitStringFieldMapper(String simpleName,
-                                   Integer position,
+                                   int position,
                                    Integer length,
                                    String defaultExpression,
                                    FieldType fieldType,
@@ -98,7 +98,7 @@ public class BitStringFieldMapper extends FieldMapper {
 
         @Override
         public BitStringFieldMapper build(BuilderContext context) {
-            return new BitStringFieldMapper(
+            var mapper = new BitStringFieldMapper(
                 name,
                 position,
                 length,
@@ -107,6 +107,8 @@ public class BitStringFieldMapper extends FieldMapper {
                 new BitStringFieldType(name, true, true),
                 context.indexSettings(),
                 copyTo);
+            context.putPositionInfo(mapper, position);
+            return mapper;
         }
 
         public void length(Integer length) {

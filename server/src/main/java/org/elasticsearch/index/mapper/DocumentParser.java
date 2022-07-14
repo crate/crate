@@ -24,7 +24,6 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
-import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
 
@@ -396,8 +395,8 @@ final class DocumentParser {
             if (dynamic == ObjectMapper.Dynamic.STRICT) {
                 throw new StrictDynamicMappingException(mapper.fullPath(), currentFieldName);
             } else if (dynamic == ObjectMapper.Dynamic.TRUE) {
-                Mapper.Builder<?> builder = new ObjectMapper.Builder<>(currentFieldName)
-                        .position(getPositionForDynamicField(context, mapper));
+                Mapper.Builder<?> builder = new ObjectMapper.Builder<>(currentFieldName);
+                builder.position(getPositionEstimate(context));
                 Mapper.BuilderContext builderContext = new Mapper.BuilderContext(context.indexSettings().getSettings(), context.path());
                 objectMapper = builder.build(builderContext);
                 context.addDynamicMapper(objectMapper);
@@ -412,6 +411,14 @@ final class DocumentParser {
                 context.path().remove();
             }
         }
+    }
+
+    /**
+     * Returns position estimates instead of the exact positions, which will be used for the actual column position calculations
+     * by {@link org.elasticsearch.cluster.metadata.ColumnPositionResolver#updatePositions(int)}
+     */
+    static int getPositionEstimate(ParseContext context) {
+        return -1 - context.getDynamicMappers().size();
     }
 
     private static void parseArray(ParseContext context,
@@ -566,23 +573,10 @@ final class DocumentParser {
         }
         final Mapper.BuilderContext builderContext = new Mapper.BuilderContext(context.indexSettings().getSettings(), context.path());
         final Mapper.Builder<?> builder = createBuilderFromDynamicValue(context, token, currentFieldName);
-        if (parentMapper.equals(context.root())) {
-            int position = getPositionForDynamicField(context, parentMapper);
-            if (builder instanceof FieldMapper.Builder<?> fieldMapperBuilder) {
-                fieldMapperBuilder.position(position);
-            }
-        }
+        builder.position(getPositionEstimate(context));
         Mapper mapper = builder.build(builderContext);
         context.addDynamicMapper(mapper);
-
         parseObjectOrField(context, mapper);
-    }
-
-    private static int getPositionForDynamicField(ParseContext context, Mapper parentMapper) {
-        return StreamSupport.stream(parentMapper.spliterator(), false)
-                    .map(m -> m instanceof FieldMapper ? ((FieldMapper) m).position() : ((ObjectMapper) m).position())
-                    .mapToInt(x -> x == null ? 0 : x)
-                    .max().orElse(0) + 1 + context.getDynamicMappers().size();
     }
 
     /** Creates instances of the fields that the current field should be copied to */
@@ -662,6 +656,7 @@ final class DocumentParser {
                         throw new StrictDynamicMappingException(parent.fullPath(), paths[i]);
                     case TRUE:
                         Mapper.Builder<?> builder = new ObjectMapper.Builder<>(paths[i]);
+                        builder.position(getPositionEstimate(context));
                         Mapper.BuilderContext builderContext = new Mapper.BuilderContext(context.indexSettings().getSettings(),
                             context.path());
                         mapper = (ObjectMapper) builder.build(builderContext);

@@ -60,7 +60,7 @@ public class IpFieldMapper extends FieldMapper {
 
         @Override
         public IpFieldMapper build(BuilderContext context) {
-            return new IpFieldMapper(
+            var mapper = new IpFieldMapper(
                 name,
                 position,
                 defaultExpression,
@@ -68,6 +68,8 @@ public class IpFieldMapper extends FieldMapper {
                 new IpFieldType(buildFullName(context), indexed, hasDocValues),
                 context.indexSettings(),
                 copyTo);
+            context.putPositionInfo(mapper, position);
+            return mapper;
         }
     }
 
@@ -102,7 +104,7 @@ public class IpFieldMapper extends FieldMapper {
 
     private IpFieldMapper(
             String simpleName,
-            Integer position,
+            int position,
             String defaultExpression,
             FieldType fieldType,
             MappedFieldType mappedFieldType,
