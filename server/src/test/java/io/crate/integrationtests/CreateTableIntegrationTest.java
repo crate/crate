@@ -123,6 +123,7 @@ public class CreateTableIntegrationTest extends SQLIntegrationTestCase {
         assertThat(printedTable(response.rows()), is("2020-02-11 15:30:00\n"));
     }
 
+    @Test
     public void test_constraint_on_generated_column() {
         execute(
             """
@@ -140,5 +141,52 @@ public class CreateTableIntegrationTest extends SQLIntegrationTestCase {
 
         execute("INSERT INTO test(col1) VALUES(1),(2),(3)");
         assertThat(printedTable(response.rows()), is(""));
+    }
+
+    @Test
+    public void test_column_positions_from_create_table() {
+        execute(
+            """
+                create table t (
+                    ta boolean default true,
+                    tb text constraint c check (length(tb) > 3),
+                    tc object(dynamic) as (
+                        td text,
+                        te timestamp with time zone,
+                        tf object(dynamic) as (
+                            tg integer
+                        )
+                    ),
+                    INDEX th using fulltext(tb, tc['td']),
+                    ti ARRAY(OBJECT AS (tj INTEGER, tk object as (tl text))),
+                    tm ARRAY(GEO_POINT),
+                    tn boolean as (ta = false)
+                )
+                """
+        );
+        execute("""
+                    select column_name, ordinal_position
+                    from information_schema.columns
+                    where table_name = 't'
+                    order by 2""");
+        assertThat(printedTable(response.rows()), is(
+             """
+             ta| 1
+             tb| 2
+             tc| 3
+             tc['td']| 4
+             tc['te']| 5
+             tc['tf']| 6
+             tc['tf']['tg']| 7
+             ti| 9
+             ti['tj']| 10
+             ti['tk']| 11
+             ti['tk']['tl']| 12
+             tm| 13
+             tn| 14
+             """)); // 'th' is a named index and is assigned column position 8
+
+        execute("select * from t");
+        assertThat(response.cols(), is(new String[] {"ta", "tb", "tc", "ti", "tm", "tn"}));
     }
 }

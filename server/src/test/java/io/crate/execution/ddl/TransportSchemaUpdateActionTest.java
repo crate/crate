@@ -23,22 +23,10 @@ package io.crate.execution.ddl;
 
 import static io.crate.metadata.PartitionName.templateName;
 import static java.util.Collections.singletonMap;
-import static org.hamcrest.core.Is.is;
-
-import java.util.Arrays;
-import java.util.HashMap;
-
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
-import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
-import org.hamcrest.Matchers;
-import org.junit.Test;
-
+import static org.hamcrest.Matchers.is;
 import io.crate.Constants;
 import io.crate.analyze.BoundAddColumn;
+import io.crate.common.collections.Maps;
 import io.crate.data.Row;
 import io.crate.metadata.IndexMappings;
 import io.crate.planner.PlannerContext;
@@ -46,6 +34,17 @@ import io.crate.planner.node.ddl.AlterTableAddColumnPlan;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.xcontent.NamedXContentRegistry;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
+import org.junit.Test;
+
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 public class TransportSchemaUpdateActionTest extends CrateDummyClusterServiceUnitTest {
 
@@ -66,6 +65,10 @@ public class TransportSchemaUpdateActionTest extends CrateDummyClusterServiceUni
             SubQueryResults.EMPTY,
             null
         );
+        Map<String, Object> mapping = addXLong.mapping();
+        Map<String, Object> propertiesMap = Maps.get(mapping, "properties");
+        Map<String, Object> xLong = Maps.get(propertiesMap, "x");
+        xLong.put("position", 1);
         BoundAddColumn addXString = AlterTableAddColumnPlan.bind(
             e.analyze("alter table t add column x string"),
             plannerContext.transactionContext(),
@@ -74,7 +77,10 @@ public class TransportSchemaUpdateActionTest extends CrateDummyClusterServiceUni
             SubQueryResults.EMPTY,
             null
         );
-
+        mapping = addXString.mapping();
+        propertiesMap = Maps.get(mapping, "properties");
+        Map<String, Object> xString = Maps.get(propertiesMap, "x");
+        xString.put("position", 2);
         String templateName = templateName("doc", "t");
         IndexTemplateMetadata template = currentState.metadata().templates().get(templateName);
         ClusterState stateWithXLong = ClusterState.builder(currentState)
@@ -101,7 +107,7 @@ public class TransportSchemaUpdateActionTest extends CrateDummyClusterServiceUni
         HashMap<String, Object> source = new HashMap<>();
         source.put("dynamic", true);
         TransportSchemaUpdateAction.mergeIntoSource(source, singletonMap("dynamic", "true"));
-        assertThat(source.get("dynamic"), Matchers.is("true"));
+        assertThat(source.get("dynamic"), is("true"));
     }
 
     @Test
@@ -109,7 +115,7 @@ public class TransportSchemaUpdateActionTest extends CrateDummyClusterServiceUni
         HashMap<String, Object> source = new HashMap<>();
         source.put("dynamic", null);
         TransportSchemaUpdateAction.mergeIntoSource(source, singletonMap("dynamic", "true"));
-        assertThat(source.get("dynamic"), Matchers.is("true"));
+        assertThat(source.get("dynamic"), is("true"));
     }
 
     @Test
@@ -125,5 +131,156 @@ public class TransportSchemaUpdateActionTest extends CrateDummyClusterServiceUni
         );
 
         assertThat(source.get(versionKey), is(100));
+    }
+
+    @Test
+    public void test_populateColumnPositions_method_with_empty_map() {
+        assertFalse(TransportSchemaUpdateAction.populateColumnPositions(Map.of()));
+        assertFalse(TransportSchemaUpdateAction.populateColumnPositions(Map.of("properties", Map.of())));
+    }
+
+    @Test
+    public void test_populateColumnPositions_method_without_missing_columns() {
+        assertFalse(TransportSchemaUpdateAction.populateColumnPositions(
+            Map.of("properties",
+                   Map.of("a", Map.of("position", 1),
+                          "b", Map.of("inner",
+                                      Map.of("position", 2,
+                                             "properties", Map.of("c", Map.of("position", 3))
+                                      )
+                       )
+                   )
+            )));
+    }
+
+    @Test
+    public void test_populateColumnPositions_method_orders_by_column_order_if_same_level() {
+        Map<String, Object> d = new HashMap<>();
+        Map<String, Object> e = new HashMap<>();
+        // column order
+        d.put("position", -2);
+        e.put("position", -1);
+        assertTrue(TransportSchemaUpdateAction.populateColumnPositions(
+            Map.of("properties",
+                   Map.of("a", Map.of("position", 1,
+                                      "properties", Map.of(
+                                  "e", e)),
+                          "b", Map.of("inner",
+                                      Map.of("position", 2,
+                                             "properties", Map.of(
+                                              "c", Map.of("position", 3),
+                                              "d", d)
+                                      )
+                       )
+                   )
+            )));
+        assertThat(e.get("position"), is(4));
+        assertThat(d.get("position"), is(5));
+
+        // swap d and e
+        d = new HashMap<>();
+        e = new HashMap<>();
+        // column order
+        d.put("position", -1);
+        e.put("position", -2);
+        assertTrue(TransportSchemaUpdateAction.populateColumnPositions(
+            Map.of("properties",
+                   Map.of("a", Map.of("position", 1,
+                                      "properties", Map.of(
+                                  "d", d)),
+                          "b", Map.of("inner",
+                                      Map.of("position", 2,
+                                             "properties", Map.of(
+                                              "c", Map.of("position", 3),
+                                              "e", e)
+                                      )
+                       )
+                   )
+            )));
+        assertThat(d.get("position"), is(4));
+        assertThat(e.get("position"), is(5));
+    }
+
+    @Test
+    public void test_populateColumnPositions_method_orders_by_level() {
+        Map<String, Object> d = new HashMap<>();
+        Map<String, Object> f = new HashMap<>();
+        d.put("position", -1);
+        f.put("position", -2);
+        assertTrue(TransportSchemaUpdateAction.populateColumnPositions(
+            Map.of("properties",
+                   Map.of("a", Map.of("position", 1,
+                                      "properties", Map.of(
+                                  "e", Map.of("position", 4,
+                                              "properties", Map.of(
+                                          "f", f) // deeper
+                                  ))),
+                          "b", Map.of("inner",
+                                      Map.of("position", 2,
+                                             "properties", Map.of(
+                                              "c", Map.of("position", 3),
+                                              "d", d)
+                                      )
+                       )
+                   )
+            )));
+        //check d < f
+        assertThat(d.get("position"), is(5));
+        assertThat(f.get("position"), is(6));
+
+        // swap d and f
+        d = new HashMap<>();
+        f = new HashMap<>();
+        d.put("position", -1);
+        f.put("position", -2);
+        assertTrue(TransportSchemaUpdateAction.populateColumnPositions(
+            Map.of("properties",
+                   Map.of("a", Map.of("position", 1,
+                                      "properties", Map.of(
+                                  "e", Map.of("position", 4,
+                                              "properties", Map.of(
+                                          "d", d) // deeper
+                                  ))),
+                          "b", Map.of("inner",
+                                      Map.of("position", 2,
+                                             "properties", Map.of(
+                                              "c", Map.of("position", 3),
+                                              "f", f)
+                                      )
+                       )
+                   )
+            )));
+        // f < d
+        assertThat(d.get("position"), is(6));
+        assertThat(f.get("position"), is(5));
+    }
+
+    @Test
+    public void test_populateColumnPositions_method_ignores_duplicate_column_positions() {
+        // duplicates do not break anything
+        Map<String, Object> c = new HashMap<>();
+        c.put("position", -1);
+        Map<String, Object> map = Map.of("properties",
+                                         Map.of(
+                                             "a", Map.of("position", 1),
+                                             "b", Map.of("position", 1),
+                                             "c", c
+                                         )
+        );
+
+        assertTrue(TransportSchemaUpdateAction.populateColumnPositions(map));
+        assertThat(c.get("position"), is(2));
+    }
+
+    @Test
+    public void test_populateColumnPositions_method_ignores_column_orders() {
+        // duplicates do not break anything
+        Map<String, Object> a = new HashMap<>();
+        Map<String, Object> b = new HashMap<>();
+        a.put("position", -1);
+        b.put("position", -1);
+        assertTrue(TransportSchemaUpdateAction.populateColumnPositions(Map.of("properties", Map.of("a", a, "b", b))));
+        assertThat(a.get("position"), is(1));
+        assertThat(b.get("position"), is(2));
     }
 }

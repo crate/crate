@@ -108,7 +108,7 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
                         .startObject("array_field")
                             .field("type", ArrayMapper.CONTENT_TYPE)
                             .startObject(ArrayMapper.INNER_TYPE)
-                                .field("type", "keyword")
+                                .field("type", "keyword").field("position", 1)
                             .endObject()
                         .endObject()
                     .endObject()
@@ -138,7 +138,8 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
                "\"array_field\":{" +
                "\"type\":\"array\"," +
                "\"inner\":{" +
-               "\"type\":\"keyword\"" +
+               "\"type\":\"keyword\"," +
+               "\"position\":1" +
                "}" +
                "}" +
                "}" +
@@ -175,7 +176,7 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
             .startObject("array_field")
             .field("type", ArrayMapper.CONTENT_TYPE)
             .startObject(ArrayMapper.INNER_TYPE)
-            .field("type", "double")
+            .field("type", "double").field("position", 1)
             .endObject()
             .endObject()
             .endObject().endObject().endObject());
@@ -202,11 +203,11 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
                         .startObject("array_field")
                             .field("type", ArrayMapper.CONTENT_TYPE)
                             .startObject(ArrayMapper.INNER_TYPE)
-                                .field("type", "object")
+                                .field("type", "object").field("position", 1)
                                 .field("dynamic", true)
                                 .startObject("properties")
                                     .startObject("s")
-                                        .field("type", "keyword")
+                                        .field("type", "keyword").field("position", 2)
                                     .endObject()
                                 .endObject()
                             .endObject()
@@ -247,10 +248,12 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
                "\"array_field\":{" +
                "\"type\":\"array\"," +
                "\"inner\":{" +
+               "\"position\":1," +
                "\"dynamic\":\"true\"," +
                "\"properties\":{" +
                "\"s\":{" +
-               "\"type\":\"keyword\"" +
+               "\"type\":\"keyword\"," +
+               "\"position\":2" +
                "}" +
                "}" +
                "}" +
@@ -270,9 +273,11 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
                             .startObject(ArrayMapper.INNER_TYPE)
                                 .field("type", "object")
                                 .field("dynamic", true)
+                                .field("position", 1)
                                 .startObject("properties")
                                     .startObject("s")
                                         .field("type", "keyword")
+                                        .field("position", 2)
                                     .endObject()
                                 .endObject()
                             .endObject()
@@ -302,6 +307,7 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
         String[] values = doc.docs().get(0).getValues("array_field.new");
         assertThat(values, arrayContainingInAnyOrder(is("T"), is("1")));
         String mappingSourceString = new CompressedXContent(mapper, XContentType.JSON, ToXContent.EMPTY_PARAMS).string();
+        // column position calculation is carried out within clusterstate changes, so 'new' still has position = null
         assertThat(
             mappingSourceString,
             is("{\"default\":{" +
@@ -309,11 +315,13 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
                "\"array_field\":{" +
                "\"type\":\"array\"," +
                "\"inner\":{" +
+               "\"position\":1," +
                "\"dynamic\":\"true\"," +
                "\"properties\":{" +
-               "\"new\":{\"type\":\"boolean\"}," +
+               "\"new\":{\"type\":\"boolean\",\"position\":-1}," +
                "\"s\":{" +
-               "\"type\":\"keyword\"" +
+               "\"type\":\"keyword\"," +
+               "\"position\":2" +
                "}" +
                "}" +
                "}" +
@@ -351,7 +359,7 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
                         .startObject("array_field")
                             .field("type", ArrayMapper.CONTENT_TYPE)
                             .startObject(ArrayMapper.INNER_TYPE)
-                                .field("type", "double")
+                                .field("type", "double").field("position", 1)
                             .endObject()
                         .endObject()
                     .endObject()
@@ -379,7 +387,7 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
                         .startObject("array_field")
                             .field("type", ArrayMapper.CONTENT_TYPE)
                             .startObject(ArrayMapper.INNER_TYPE)
-                                .field("type", "object")
+                                .field("type", "object").field("position", 1)
                                 .startObject("properties")
                                 .endObject()
                             .endObject()
@@ -447,6 +455,7 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
                     .startObject(ArrayMapper.INNER_TYPE)
                         .field("type", "text")
                         .field("index", "true")
+                        .field("position", 1)
                         .field("copy_to", "string_array_ft")
                     .endObject()
                 .endObject()

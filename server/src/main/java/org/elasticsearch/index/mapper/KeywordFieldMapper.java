@@ -125,7 +125,7 @@ public final class KeywordFieldMapper extends FieldMapper {
 
         @Override
         public KeywordFieldMapper build(BuilderContext context) {
-            return new KeywordFieldMapper(
+            var mapper = new KeywordFieldMapper(
                 name,
                 position,
                 defaultExpression,
@@ -138,6 +138,8 @@ public final class KeywordFieldMapper extends FieldMapper {
                 multiFieldsBuilder.build(this, context),
                 copyTo
             );
+            context.putPositionInfo(mapper, position);
+            return mapper;
         }
     }
 
@@ -212,21 +214,20 @@ public final class KeywordFieldMapper extends FieldMapper {
     }
 
     private int ignoreAbove;
-    private Integer lengthLimit;
-    private String nullValue;
+    private final Integer lengthLimit;
+    private final String nullValue;
 
-
-    protected KeywordFieldMapper(String simpleName,
-                                 Integer position,
-                                 @Nullable String defaultExpression,
-                                 FieldType fieldType,
-                                 MappedFieldType mappedFieldType,
-                                 int ignoreAbove,
-                                 String nullValue,
-                                 Integer lengthLimit,
-                                 Settings indexSettings,
-                                 MultiFields multiFields,
-                                 CopyTo copyTo) {
+    private KeywordFieldMapper(String simpleName,
+                               Integer position,
+                               @Nullable String defaultExpression,
+                               FieldType fieldType,
+                               MappedFieldType mappedFieldType,
+                               int ignoreAbove,
+                               String nullValue,
+                               Integer lengthLimit,
+                               Settings indexSettings,
+                               MultiFields multiFields,
+                               CopyTo copyTo) {
         super(simpleName, position, defaultExpression, fieldType, mappedFieldType, indexSettings, multiFields, copyTo);
         assert fieldType.indexOptions().compareTo(IndexOptions.DOCS_AND_FREQS) <= 0;
         this.ignoreAbove = ignoreAbove;

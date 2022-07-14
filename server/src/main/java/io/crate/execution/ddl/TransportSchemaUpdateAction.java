@@ -26,6 +26,7 @@ import io.crate.Constants;
 import io.crate.action.FutureActionListener;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Maps;
 import io.crate.common.unit.TimeValue;
 import io.crate.metadata.IndexMappings;
 import io.crate.metadata.IndexParts;
@@ -41,6 +42,7 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateUpdateTask;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
+import org.elasticsearch.cluster.metadata.ColumnPositionResolver;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -59,6 +61,7 @@ import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.index.Index;
+import org.elasticsearch.index.mapper.ContentPath;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
@@ -69,6 +72,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
+import static io.crate.metadata.doc.DocIndexMetadata.furtherColumnProperties;
 import static org.elasticsearch.index.mapper.MapperService.parseMapping;
 
 @Singleton
@@ -202,6 +206,8 @@ public class TransportSchemaUpdateAction extends TransportMasterNodeAction<Schem
         for (ObjectObjectCursor<String, CompressedXContent> cursor : template.mappings()) {
             Map<String, Object> source = parseMapping(xContentRegistry, cursor.value.toString());
             mergeIntoSource(source, newMapping);
+            Map<String, Object> defaultMap = Maps.get(source, "default");
+            populateColumnPositions(defaultMap);
             try (XContentBuilder xContentBuilder = JsonXContent.contentBuilder()) {
                 templateBuilder.putMapping(cursor.key, Strings.toString(xContentBuilder.map(source)));
             }
@@ -229,6 +235,9 @@ public class TransportSchemaUpdateAction extends TransportMasterNodeAction<Schem
                     } else if (updateAllowed(key, sourceValue, updateValue)) {
                         source.put(key, updateValue);
                     } else if (!isUpdateIgnored(path) && !Objects.equals(sourceValue, updateValue)) {
+                        if (ignorePositionUpdate(key, updateValue)) {
+                            continue;
+                        }
                         String fqKey = String.join(".", path) + '.' + key;
                         throw new IllegalArgumentException(
                             "Can't overwrite " + fqKey + "=" + sourceValue + " with " + updateValue);
@@ -238,6 +247,20 @@ public class TransportSchemaUpdateAction extends TransportMasterNodeAction<Schem
                 source.put(key, updateValue);
             }
         }
+    }
+
+    /**
+     *  ex) copy-from to a partitioned table results in multiple template mapping updates.
+     *  If the copy-from stmt dynamically adds columns, its column positions will be negative first
+     *  representing that they are not yet fully calculated then positive representing the exact column positions.
+     *  So, if the sourceValue already contains something, it should be positive
+     *  meaning that the exact column positions have been calculated and updated the mapping.
+     *  Therefore, if updateValue is different(and negative) from the sourceValue, simply ignore it.
+     *
+     *  The negative values for copy-from originate from {@link org.elasticsearch.index.mapper.DocumentParser.getPositionEstimate()}
+     */
+    private static boolean ignorePositionUpdate(String key, Object updateValue) {
+        return key.equals("position") && updateValue instanceof Integer intValue && intValue < 0;
     }
 
     private static boolean isUpdateIgnored(List<String> path) {
@@ -255,5 +278,43 @@ public class TransportSchemaUpdateAction extends TransportMasterNodeAction<Schem
     @Override
     protected ClusterBlockException checkBlock(SchemaUpdateRequest request, ClusterState state) {
         return state.blocks().globalBlockedException(ClusterBlockLevel.METADATA_WRITE);
+    }
+
+    public static boolean populateColumnPositions(Map<String, Object> mapping) {
+        var columnPositionResolver = new ColumnPositionResolver<Map<String, Object>>();
+        int[] maxColumnPosition = new int[]{0};
+        populateColumnPositions(mapping, new ContentPath(), columnPositionResolver, maxColumnPosition);
+        columnPositionResolver.updatePositions(maxColumnPosition[0]);
+        return columnPositionResolver.numberOfColumnsToReposition() > 0;
+    }
+
+    private static void populateColumnPositions(Map<String, Object> mapping,
+                                                ContentPath contentPath,
+                                                ColumnPositionResolver<Map<String, Object>> columnPositionResolver,
+                                                int[] maxColumnPosition) {
+
+        Map<String, Object> properties = Maps.get(mapping, "properties");
+        if (properties == null) {
+            return;
+        }
+        for (var e : properties.entrySet()) {
+            String name = e.getKey();
+            contentPath.add(name);
+            Map<String, Object> columnProperties = (Map<String, Object>) e.getValue();
+            columnProperties = furtherColumnProperties(columnProperties);
+            Integer position = (Integer) columnProperties.get("position");
+            assert position != null : "position should not be null";
+            if (position < 0) {
+                columnPositionResolver.addColumnToReposition(contentPath.pathAsText(""),
+                                                             position,
+                                                             columnProperties,
+                                                             (cp, p) -> cp.put("position", p),
+                                                             contentPath.currentDepth());
+            } else {
+                maxColumnPosition[0] = Math.max(maxColumnPosition[0], position);
+            }
+            populateColumnPositions(columnProperties, contentPath, columnPositionResolver, maxColumnPosition);
+            contentPath.remove();
+        }
     }
 }
