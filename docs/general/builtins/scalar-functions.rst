@@ -2526,7 +2526,9 @@ Returns: ``array``
 ------------------------------------
 
 The ``array_upper`` function returns the number of elements in the requested
-array dimension (the upper bound of the dimension).
+array dimension (the upper bound of the dimension). CrateDB allows mixing
+arrays with different sizes on the same dimension. Returns ``NULL`` if array
+argument is ``NULL`` or if dimension <= 0 or if dimension is ``NULL``.
 
 Returns: ``integer``
 
@@ -2569,7 +2571,8 @@ Returns: ``integer``
 
 The ``array_lower`` function returns the lower bound of the requested array
 dimension (which is ``1`` if the dimension is valid and has at least one
-element).
+element). Returns ``NULL`` if array argument is ``NULL`` or if dimension <= 0
+or if dimension is ``NULL``.
 
 Returns: ``integer``
 
@@ -2583,6 +2586,18 @@ Returns: ``integer``
     +------+
     SELECT 1 row in set (... sec)
 
+If there is at least one empty array or ``NULL`` on the requested dimension
+return value is ``NULL``. Example:
+
+::
+
+    cr> select array_lower([[1, 4], [3], []], 2) AS size;
+    +------+
+    | size |
+    +------+
+    | NULL |
+    +------+
+    SELECT 1 row in set (... sec)
 
 .. _scalar-array_slice:
 
