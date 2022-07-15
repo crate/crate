@@ -56,6 +56,8 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 
+import javax.annotation.Nullable;
+
 public class ArrayUpperFunction extends Scalar<Integer, Object> {
 
     public static final String ARRAY_UPPER = "array_upper";
@@ -98,21 +100,42 @@ public class ArrayUpperFunction extends Scalar<Integer, Object> {
     public Integer evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input[] args) {
         @SuppressWarnings("unchecked")
         List<Object> values = (List<Object>) args[0].value();
-        Object dimension1Indexed = args[1].value();
-        if (values == null || values.isEmpty() || dimension1Indexed == null) {
+        Object dimensionArg = args[1].value();
+        if (values == null || values.isEmpty() || dimensionArg == null) {
             return null;
         }
-        // sql dimensions are 1 indexed
-        int dimension = (int) dimension1Indexed - 1;
-        try {
-            Object dimensionValue = values.get(dimension);
-            if (dimensionValue.getClass().isArray()) {
-                Object[] dimensionArray = (Object[]) dimensionValue;
-                return dimensionArray.length;
+        int dimension = (int) dimensionArg;
+        if (dimension <= 0) {
+            return null;
+        }
+        return upperBound(values, dimension, 1);
+    }
+
+    /**
+     * Recursively traverses all sub-arrays up to requestedDimension.
+     * If arrayOrItem is not a List we reached the last possible dimension.
+     * @param requestedDimension original dimension provided in array_upper. Guaranteed to be > 0 before the first call.
+     * @param currentDimension <= requestedDimension on initial and further calls.
+     */
+    static final Integer upperBound(@Nullable Object arrayOrItem, int requestedDimension, int currentDimension) {
+        if (arrayOrItem instanceof List dimensionArray) {
+            // instanceof is null safe
+            if (currentDimension == requestedDimension) {
+                return dimensionArray.size();
+            } else {
+                int max = Integer.MIN_VALUE;
+                for (Object object: dimensionArray) {
+                    Integer upper = upperBound(object, requestedDimension, currentDimension + 1);
+                    if (upper != null) {
+                        max = Math.max(max, upper);
+                    }
+                }
+                // if max is not updated, all elements at level currentDimension+1 are nulls, this and further dimensions don't exist.
+                return max == Integer.MIN_VALUE ? null : max;
             }
-            // it's a one dimension array so return the argument length
-            return values.size();
-        } catch (IndexOutOfBoundsException e) {
+        } else {
+            // We are on the last dimension (array with regular non-array items)
+            // but requested dimension size is not yet resolved and thus doesn't exist.
             return null;
         }
     }
@@ -152,6 +175,7 @@ public class ArrayUpperFunction extends Scalar<Integer, Object> {
         }
         int dimension = ((Number) ((Input<?>) dimensionSymbol).value()).intValue();
         if (dimension != 1) {
+            // Storage of the multidimensional arrays is not supported.
             return null;
         }
         Reference arrayRef = (Reference) arraySymbol;
