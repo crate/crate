@@ -75,3 +75,6 @@ Fixes
 
 - Fixed a ``NullPointerException`` when using a ``IS NULL`` expression on an
   object column that just had a child column added.
+
+- Fixed an issue that caused ``array_upper`` and ``array_lower`` scalar
+  functions return wrong results on multidimensional arrays.
