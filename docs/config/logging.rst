@@ -166,8 +166,8 @@ garbage collection logging.
   If you have installed `a CrateDB Linux package`_, the default directory is
   ``/var/log/crate`` instead.
 
-.. _basic installation: https://crate.io/docs/crate/tutorials/en/latest/install.html#ad-hoc-unix-macos-windows
-.. _a CrateDB Linux package: https://crate.io/docs/crate/tutorials/en/latest/install.html#linux
+.. _basic installation: https://crate.io/docs/crate/tutorials/en/latest/basic/
+.. _a CrateDB Linux package: https://crate.io/docs/crate/tutorials/en/latest/basic/index.html#linux
 
 .. _conf-logging-gc-log-size:
 
