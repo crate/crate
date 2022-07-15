@@ -27,7 +27,6 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyObject;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
@@ -66,11 +65,11 @@ import org.apache.lucene.index.CorruptIndexException;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexCommit;
 import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.tests.index.RandomIndexWriter;
 import org.apache.lucene.index.Term;
-import org.apache.lucene.tests.store.BaseDirectoryWrapper;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.IOContext;
+import org.apache.lucene.tests.index.RandomIndexWriter;
+import org.apache.lucene.tests.store.BaseDirectoryWrapper;
 import org.apache.lucene.util.SetOnce;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.Version;
@@ -554,7 +553,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
         doAnswer(invocation -> {
             ((ActionListener<Releasable>)invocation.getArguments()[0]).onResponse(() -> {});
             return null;
-        }).when(shard).acquirePrimaryOperationPermit(any(), anyString(), anyObject());
+        }).when(shard).acquirePrimaryOperationPermit(any(), anyString(), any());
 
         final IndexMetadata.Builder indexMetadata = IndexMetadata.builder("test").settings(Settings.builder()
             .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, between(0,5))
@@ -743,7 +742,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
             freed.set(false);
             ((ActionListener<Releasable>)invocation.getArguments()[0]).onResponse(() -> freed.set(true));
             return null;
-        }).when(shard).acquirePrimaryOperationPermit(any(), anyString(), anyObject());
+        }).when(shard).acquirePrimaryOperationPermit(any(), anyString(), any());
 
         Thread cancelingThread = new Thread(() -> cancellableThreads.cancel("test"));
         cancelingThread.start();
@@ -824,7 +823,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
                     startingSeqNo,
                     threadPool.absoluteTimeInMillis(),
                     ReplicationTracker.PEER_RECOVERY_RETENTION_LEASE_SOURCE));
-            };
+            }
 
         };
         cancelRecovery.set(() -> handler.cancel("test"));
