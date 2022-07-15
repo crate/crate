@@ -31,6 +31,29 @@ public class ArrayUpperFunctionTest extends ScalarTestCase {
     }
 
     @Test
+    public void test_not_null_but_invalid_dimension() {
+        assertEvaluate("array_length([1], 0)", null);
+        assertEvaluate("array_length([1], -1)", null);
+    }
+
+    @Test
+    public void test_3d_array_with_mixed_sizes_within_dimension() {
+        // arr[3][2-3][2-3]
+        // This test shows that we have to traverse all arrays on each dimension.
+        // Second 2D has only 2 rows, but long and third 2D arrays consists of more arrays but they are shorter and this affects
+        // Also testing null on each dimension.
+        String array =
+            "[null," +           // first 2D array is null
+            "[null, [null, 1, 1]], " + // second 2D array's first row is null
+            "[[1, 1], [1, 1], [1, 1]]]";
+
+        assertEvaluate("array_length(" + array + ", 1)", 3);
+        assertEvaluate("array_length(" + array + ", 2)", 3);
+        assertEvaluate("array_length(" + array + ", 3)", 3);
+        assertEvaluate("array_length(" + array + ", 4)", null);
+    }
+
+    @Test
     public void testSingleDimensionArrayValidDimension() {
         assertEvaluate("array_upper([4, 5], 1)", 2);
     }
@@ -42,7 +65,9 @@ public class ArrayUpperFunctionTest extends ScalarTestCase {
 
     @Test
     public void testMultiDimensionArrayValidDimension() {
-        assertEvaluate("array_upper([[1, 2, 3], [3, 4]], 2)", 2);
+        // CrateDB allows usage of arrays with different sizes on the same dimension.
+        // Array upper returns maximal size on the given dimension.
+        assertEvaluate("array_upper([[3, 4], [1, 2, 3]], 2)", 3);
     }
 
     @Test
