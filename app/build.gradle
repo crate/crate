@@ -19,8 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-import java.nio.file.Paths
-import org.apache.tools.ant.filters.ReplaceTokens;
+import org.apache.tools.ant.filters.ReplaceTokens
 
 apply plugin: 'distribution'
 apply from: "$rootDir/gradle/javaModule.gradle"
@@ -69,7 +68,7 @@ dependencies {
     impl "org.graalvm.sdk:graal-sdk:${versions.graalvm}"
     impl "org.graalvm.truffle:truffle-api:${versions.graalvm}"
 
-    impl('org.apache.xbean:xbean-finder:4.5') {
+    impl("org.apache.xbean:xbean-finder:${versions.xbeanfinder}") {
         exclude group: 'org.apache.xbean', module: 'xbean-asm-util'
     }
     impl "com.google.code.findbugs:jsr305:${versions.jsr305}"
