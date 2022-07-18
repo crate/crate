@@ -2799,8 +2799,11 @@ This means ``TEXT[]`` is equivalent to ``ARRAY(text)``.
 
 .. NOTE::
 
-    Nested arrays are not supported. Something like ``ARRAY(ARRAY(TEXT))``
-    won't work.
+    Nested arrays are not supported as a column type. Something like
+    ``ARRAY(ARRAY(TEXT))`` won't work. However, it's possible to store a
+    multidimensional array as a part of an object.
+
+
 
 Arrays are always represented as zero or more literal elements inside square
 brackets (``[]``), for example::
