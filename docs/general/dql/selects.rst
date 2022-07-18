@@ -1061,9 +1061,7 @@ This is useful if used in conjunction with :ref:`aggregation functions
    Grouping will be executed against the real table column when aliases that
    shadow the table columns are used.
 
-   Grouping on array columns doesn't work, but arrays can be unnested in a
-   :ref:`subquery <gloss-subquery>` using :ref:`unnest <unnest>`. It is then
-   possible to use ``GROUP BY`` on the subquery.
+   Grouping on array columns is supported. Arrays are compared per element.
 
 
 .. _sql_dql_having:

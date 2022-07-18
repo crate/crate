@@ -54,7 +54,7 @@ None
 Changes
 =======
 
-None
+- Added support of ``GROUP BY`` on ``ARRAY`` typed columns.
 
 
 Fixes

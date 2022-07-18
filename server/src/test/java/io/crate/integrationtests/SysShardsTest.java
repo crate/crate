@@ -455,6 +455,7 @@ public class SysShardsTest extends SQLIntegrationTestCase {
         execute("create table doc.tbl (x int)");
         execute("insert into doc.tbl values(1)");
         execute("alter table doc.tbl close");
+        waitNoPendingTasksOnAll(); // ensure close is processed
         assertThrowsMatches(() -> execute("insert into doc.tbl values(2)"),
                      OperationOnInaccessibleRelationException.class,
                      "The relation \"doc.tbl\" doesn't support or allow INSERT operations, as it is currently closed.");
