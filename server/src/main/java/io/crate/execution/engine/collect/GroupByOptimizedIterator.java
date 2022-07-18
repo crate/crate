@@ -65,7 +65,7 @@ import io.crate.data.CollectingBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.exceptions.Exceptions;
-import io.crate.exceptions.GroupByOnArrayUnsupportedException;
+import io.crate.exceptions.ArrayViaDocValuesUnsupportedException;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.projection.GroupProjection;
 import io.crate.execution.dsl.projection.Projection;
@@ -321,7 +321,7 @@ final class GroupByOptimizedIterator {
                             aggregateValues(aggregations, ramAccounting, memoryManager, states);
                         }
                         if (values.nextOrd() != SortedSetDocValues.NO_MORE_ORDS) {
-                            throw new GroupByOnArrayUnsupportedException(keyColumnName);
+                            throw new ArrayViaDocValuesUnsupportedException(keyColumnName);
                         }
                     } else {
                         if (nullStates == null) {

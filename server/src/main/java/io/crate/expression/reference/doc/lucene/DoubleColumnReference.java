@@ -30,7 +30,7 @@ import org.apache.lucene.index.SortedNumericDocValues;
 import org.elasticsearch.index.fielddata.FieldData;
 import org.elasticsearch.index.fielddata.SortedNumericDoubleValues;
 
-import io.crate.exceptions.GroupByOnArrayUnsupportedException;
+import io.crate.exceptions.ArrayViaDocValuesUnsupportedException;
 
 public class DoubleColumnReference extends LuceneCollectorExpression<Double> {
 
@@ -51,7 +51,7 @@ public class DoubleColumnReference extends LuceneCollectorExpression<Double> {
                         return values.nextValue();
 
                     default:
-                        throw new GroupByOnArrayUnsupportedException(columnName);
+                        throw new ArrayViaDocValuesUnsupportedException(columnName);
                 }
             } else {
                 return null;

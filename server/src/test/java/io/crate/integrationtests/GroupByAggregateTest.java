@@ -1417,4 +1417,24 @@ public class GroupByAggregateTest extends SQLIntegrationTestCase {
             is("10| 1\nfoo| 1\n")
         ));
     }
+
+    @Test
+    public void test_group_by_array_type() {
+        execute("create table tbl (arr array(int))");
+        execute("insert into tbl(arr) values ([1, 2, null]), ([2, 1]), ([1, 2]), ([1, 2])");
+        execute("insert into tbl(arr) values ([]::int[]), ([]::int[]), ([]::int[])");
+        execute("insert into tbl(arr) values ([null]), ([null]), ([null]), ([null])");
+        execute("insert into tbl(arr) values (null), (null), (null), (null), (null)");
+        refresh();
+        execute("select arr, count(*) cnt from tbl group by arr order by cnt, arr[1]");
+        assertThat(TestingHelpers.printedTable(response.rows()),
+            Is.is("[1, 2, null]| 1\n" +
+                "[2, 1]| 1\n" +
+                "[1, 2]| 2\n" +
+                "[]| 3\n" +
+                "[null]| 4\n" +
+                "NULL| 5\n"
+            )
+        );
+    }
 }
