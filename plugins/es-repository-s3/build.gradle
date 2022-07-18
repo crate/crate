@@ -11,9 +11,9 @@ dependencies {
     implementation "org.apache.httpcomponents:httpcore:${versions.httpcore}"
     implementation "commons-logging:commons-logging:${versions.commonslogging}"
     implementation "commons-codec:commons-codec:${versions.commonscodec}"
-    implementation 'com.fasterxml.jackson.core:jackson-databind:2.6.7.1'
-    implementation 'com.fasterxml.jackson.core:jackson-annotations:2.6.0'
-    implementation 'javax.xml.bind:jaxb-api:2.2.2'
+    implementation "com.fasterxml.jackson.core:jackson-databind:${versions.jacksond_atabind}"
+    implementation "com.fasterxml.jackson.core:jackson-annotations:${versions.jackson_annotations}"
+    implementation "javax.xml.bind:jaxb-api:${versions.jaxb_api}"
 
     testImplementation(testFixtures(project(':server')))
     testImplementation "junit:junit:${versions.junit}"

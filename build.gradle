@@ -19,8 +19,9 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-import org.gradle.api.JavaVersion
-import io.crate.gradle.TestLogger;
+import com.github.jk1.license.filter.LicenseBundleNormalizer
+import com.github.jk1.license.render.InventoryMarkdownReportRenderer
+import io.crate.gradle.TestLogger
 
 buildscript {
     repositories {
@@ -177,8 +178,8 @@ allprojects {
     }
 }
 
-final testLogger = new TestLogger();
-project.gradle.addListener(testLogger);
+final testLogger = new TestLogger()
+project.gradle.addListener(testLogger)
 
 
 task jacocoReport(type: JacocoReport) {
@@ -278,8 +279,6 @@ idea {
     }
 }
 
-import com.github.jk1.license.render.InventoryMarkdownReportRenderer;
-import com.github.jk1.license.filter.LicenseBundleNormalizer;
 task generateLicenseNotes() {
     // Generate report about the licenses of the dependencies.
     // This task is an improved variant of the vanilla "generateLicenseReport".
