@@ -22,13 +22,9 @@ package org.elasticsearch.gateway;
 import java.util.Arrays;
 import java.util.function.Function;
 
-import com.carrotsearch.hppc.ObjectFloatHashMap;
-import com.carrotsearch.hppc.cursors.ObjectCursor;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.FailedNodeException;
-import org.elasticsearch.action.support.PlainActionFuture;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -36,6 +32,9 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.index.Index;
+
+import com.carrotsearch.hppc.ObjectFloatHashMap;
+import com.carrotsearch.hppc.cursors.ObjectCursor;
 
 public class Gateway {
 
@@ -57,12 +56,18 @@ public class Gateway {
             LOGGER.trace("performing state recovery from {}", Arrays.toString(nodes));
         }
         var request = new TransportNodesListGatewayMetaState.Request(nodes);
-        PlainActionFuture<TransportNodesListGatewayMetaState.NodesGatewayMetaState> future = PlainActionFuture.newFuture();
-        client.executeLocally(TransportNodesListGatewayMetaState.TYPE, request, future);
-        final TransportNodesListGatewayMetaState.NodesGatewayMetaState nodesState = future.actionGet();
+        client.executeLocally(TransportNodesListGatewayMetaState.TYPE, request).whenComplete((res, err) -> {
+            if (err == null) {
+                performStateRecovery(res, listener);
+            } else {
+                listener.onFailure(err.getMessage());
+            }
+        });
+    }
 
+    private void performStateRecovery(TransportNodesListGatewayMetaState.NodesGatewayMetaState nodesState,
+                                      GatewayStateRecoveredListener listener) throws GatewayException {
         final int requiredAllocation = 1;
-
         if (nodesState.hasFailures()) {
             for (final FailedNodeException failedNodeException : nodesState.failures()) {
                 LOGGER.warn("failed to fetch state from node", failedNodeException);

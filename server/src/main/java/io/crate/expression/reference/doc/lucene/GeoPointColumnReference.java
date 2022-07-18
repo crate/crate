@@ -32,7 +32,7 @@ import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
 import org.locationtech.spatial4j.shape.Point;
 import org.locationtech.spatial4j.shape.impl.PointImpl;
 
-import io.crate.exceptions.GroupByOnArrayUnsupportedException;
+import io.crate.exceptions.ArrayViaDocValuesUnsupportedException;
 
 public class GeoPointColumnReference extends LuceneCollectorExpression<Point> {
 
@@ -58,7 +58,7 @@ public class GeoPointColumnReference extends LuceneCollectorExpression<Point> {
                         );
 
                     default:
-                        throw new GroupByOnArrayUnsupportedException(columnName);
+                        throw new ArrayViaDocValuesUnsupportedException(columnName);
                 }
             } else {
                 return null;

@@ -29,7 +29,7 @@ import java.util.BitSet;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.SortedSetDocValues;
 
-import io.crate.exceptions.GroupByOnArrayUnsupportedException;
+import io.crate.exceptions.ArrayViaDocValuesUnsupportedException;
 import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.sql.tree.BitString;
 
@@ -51,7 +51,7 @@ public class BitStringColumnReference extends LuceneCollectorExpression<BitStrin
             if (values.advanceExact(docId)) {
                 long ord = values.nextOrd();
                 if (values.nextOrd() != SortedSetDocValues.NO_MORE_ORDS) {
-                    throw new GroupByOnArrayUnsupportedException(columnName);
+                    throw new ArrayViaDocValuesUnsupportedException(columnName);
                 }
                 var bytesRef = values.lookupOrd(ord);
                 var buffer = ByteBuffer.wrap(bytesRef.bytes, bytesRef.offset, bytesRef.length);
