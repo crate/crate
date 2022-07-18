@@ -30,6 +30,8 @@ import javax.annotation.Nullable;
 
 public final class StringUtils {
 
+    public static final ThreadLocal<long[]> PARSE_LONG_BUFFER = ThreadLocal.withInitial(() -> new long[1]);
+
     public static List<String> splitToList(char delim, String value) {
         ArrayList<String> result = new ArrayList<>();
         int lastStart = 0;
@@ -114,5 +116,51 @@ public final class StringUtils {
         }
 
         return target.substring(start, len);
+    }
+
+    /**
+     * This is a copy of {@link Long.parseLong} but optimized to avoid
+     * creating an exception and filling its stacktrace if the input cannot be parsed.
+     */
+    public static boolean tryParseLong(String s, long[] out) {
+        boolean negative = false;
+        int radix = 10;
+        int i = 0, len = s.length();
+        long limit = -Long.MAX_VALUE;
+
+        if (len > 0) {
+            char firstChar = s.charAt(0);
+            if (firstChar < '0') { // Possible leading "+" or "-"
+                if (firstChar == '-') {
+                    negative = true;
+                    limit = Long.MIN_VALUE;
+                } else if (firstChar != '+') {
+                    return false;
+                }
+
+                if (len == 1) { // Cannot have lone "+" or "-"
+                    return false;
+                }
+                i++;
+            }
+            long multmin = limit / radix;
+            long result = 0;
+            while (i < len) {
+                // Accumulating negatively avoids surprises near MAX_VALUE
+                int digit = Character.digit(s.charAt(i++),radix);
+                if (digit < 0 || result < multmin) {
+                    return false;
+                }
+                result *= radix;
+                if (result < limit + digit) {
+                    return false;
+                }
+                result -= digit;
+            }
+            out[0] = negative ? result : -result;
+            return true;
+        } else {
+            return false;
+        }
     }
 }
