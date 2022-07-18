@@ -4,7 +4,6 @@ queue_rules:
     conditions:
       - check-success=ci/jenkins/pr_tests
       - check-success~=^Test CrateDB SQL on ubuntu
-      - check-success~=^Test CrateDB SQL on windows
       - check-success=docs/readthedocs.org:crate
       - check-success~=^checkstyle
       - check-success~=^Vale
@@ -17,7 +16,6 @@ pull_request_rules:
       - '#approved-reviews-by>=1'
       - status-success=ci/jenkins/pr_tests
       - status-success~=^Test CrateDB SQL on ubuntu
-      - status-success~=^Test CrateDB SQL on windows
       - status-success=docs/readthedocs.org:crate
       - status-success~=^checkstyle
       - status-success~=^Vale
