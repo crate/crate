@@ -22,6 +22,8 @@
 package io.crate.types;
 
 import io.crate.Streamer;
+import io.crate.common.StringUtils;
+
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -148,51 +150,50 @@ public final class TimestampType extends DataType<Long>
         return LongType.LONG_SIZE;
     }
 
+
     static long parseTimestamp(String timestamp) {
-        try {
-            return Long.parseLong(timestamp);
-        } catch (NumberFormatException e) {
-            TemporalAccessor dt;
-            try {
-                dt = TIMESTAMP_PARSER.parseBest(
-                    timestamp, OffsetDateTime::from, LocalDateTime::from, LocalDate::from);
-            } catch (DateTimeParseException e1) {
-                throw new IllegalArgumentException(e1.getMessage());
-            }
-
-            if (dt instanceof LocalDateTime) {
-                LocalDateTime localDateTime = LocalDateTime.from(dt);
-                return localDateTime.toInstant(UTC).toEpochMilli();
-            } else if (dt instanceof LocalDate) {
-                LocalDate localDate = LocalDate.from(dt);
-                return localDate.atStartOfDay(UTC).toInstant().toEpochMilli();
-            }
-
-            OffsetDateTime offsetDateTime = OffsetDateTime.from(dt);
-            return offsetDateTime.toInstant().toEpochMilli();
+        long[] out = StringUtils.PARSE_LONG_BUFFER.get();
+        if (StringUtils.tryParseLong(timestamp, out)) {
+            return out[0];
         }
+        TemporalAccessor dt;
+        try {
+            dt = TIMESTAMP_PARSER.parseBest(
+                timestamp, OffsetDateTime::from, LocalDateTime::from, LocalDate::from);
+        } catch (DateTimeParseException e1) {
+            throw new IllegalArgumentException(e1.getMessage());
+        }
+        if (dt instanceof LocalDateTime) {
+            LocalDateTime localDateTime = LocalDateTime.from(dt);
+            return localDateTime.toInstant(UTC).toEpochMilli();
+        } else if (dt instanceof LocalDate) {
+            LocalDate localDate = LocalDate.from(dt);
+            return localDate.atStartOfDay(UTC).toInstant().toEpochMilli();
+        }
+        OffsetDateTime offsetDateTime = OffsetDateTime.from(dt);
+        return offsetDateTime.toInstant().toEpochMilli();
     }
 
     public static long parseTimestampIgnoreTimeZone(String timestamp) {
-        try {
-            return Long.parseLong(timestamp);
-        } catch (NumberFormatException e) {
-            TemporalAccessor dt;
-            try {
-                dt = TIMESTAMP_PARSER.parseBest(
-                    timestamp, LocalDateTime::from, LocalDate::from);
-            } catch (DateTimeParseException e1) {
-                throw new IllegalArgumentException(e1.getMessage());
-            }
-
-            if (dt instanceof LocalDate) {
-                LocalDate localDate = LocalDate.from(dt);
-                return localDate.atStartOfDay(UTC).toInstant().toEpochMilli();
-            }
-
-            LocalDateTime localDateTime = LocalDateTime.from(dt);
-            return localDateTime.toInstant(UTC).toEpochMilli();
+        long[] out = StringUtils.PARSE_LONG_BUFFER.get();
+        if (StringUtils.tryParseLong(timestamp, out)) {
+            return out[0];
         }
+        TemporalAccessor dt;
+        try {
+            dt = TIMESTAMP_PARSER.parseBest(
+                timestamp, LocalDateTime::from, LocalDate::from);
+        } catch (DateTimeParseException e1) {
+            throw new IllegalArgumentException(e1.getMessage());
+        }
+
+        if (dt instanceof LocalDate) {
+            LocalDate localDate = LocalDate.from(dt);
+            return localDate.atStartOfDay(UTC).toInstant().toEpochMilli();
+        }
+
+        LocalDateTime localDateTime = LocalDateTime.from(dt);
+        return localDateTime.toInstant(UTC).toEpochMilli();
     }
 
     private static final DateTimeFormatter TIMESTAMP_PARSER = new DateTimeFormatterBuilder()
