@@ -63,7 +63,7 @@ public class CSVLineParser {
             .typedSchemaFor(String.class)
             .withColumnSeparator(properties.columnSeparator());
         csvReader = mapper
-            .readerWithTypedSchemaFor(String.class)
+            .readerWithTypedSchemaFor(Object.class)
             .with(csvSchema);
     }
 
@@ -85,7 +85,7 @@ public class CSVLineParser {
     }
 
     public byte[] parse(String row, long rowNumber) throws IOException {
-        MappingIterator<String> iterator = csvReader.readValues(row.getBytes(StandardCharsets.UTF_8));
+        MappingIterator<Object> iterator = csvReader.readValues(row.getBytes(StandardCharsets.UTF_8));
         out.reset();
         XContentBuilder jsonBuilder = new XContentBuilder(JsonXContent.JSON_XCONTENT, out).startObject();
         int i = 0, j = 0;
