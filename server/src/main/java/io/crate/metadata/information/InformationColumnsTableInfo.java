@@ -21,6 +21,7 @@
 
 package io.crate.metadata.information;
 
+import io.crate.Constants;
 import io.crate.expression.reference.information.ColumnContext;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
@@ -57,7 +58,7 @@ public class InformationColumnsTableInfo {
         return SystemTable.<ColumnContext>builder(IDENT)
             .addNonNull("table_schema", STRING, r -> r.ref().ident().tableIdent().schema())
             .addNonNull("table_name", STRING, r -> r.ref().ident().tableIdent().name())
-            .addNonNull("table_catalog", STRING, r -> r.ref().ident().tableIdent().schema())
+            .addNonNull("table_catalog", STRING, r -> Constants.DB_NAME)
             .addNonNull("column_name", STRING, r -> r.ref().column().sqlFqn())
             .addNonNull("ordinal_position", INTEGER, r -> r.ref().position())
             .addNonNull("data_type", STRING, r -> r.ref().valueType().getName())

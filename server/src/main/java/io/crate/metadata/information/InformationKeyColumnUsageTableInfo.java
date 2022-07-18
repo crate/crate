@@ -25,6 +25,7 @@ import static io.crate.execution.engine.collect.sources.InformationSchemaIterabl
 import static io.crate.types.DataTypes.INTEGER;
 import static io.crate.types.DataTypes.STRING;
 
+import io.crate.Constants;
 import io.crate.execution.engine.collect.sources.InformationSchemaIterables;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
@@ -40,10 +41,10 @@ public class InformationKeyColumnUsageTableInfo {
 
     public static SystemTable<InformationSchemaIterables.KeyColumnUsage> create() {
         return SystemTable.<InformationSchemaIterables.KeyColumnUsage>builder(IDENT)
-            .add("constraint_catalog", STRING, InformationSchemaIterables.KeyColumnUsage::getSchema)
+            .add("constraint_catalog", STRING, k -> Constants.DB_NAME)
             .add("constraint_schema", STRING, InformationSchemaIterables.KeyColumnUsage::getSchema)
             .add("constraint_name", STRING, k -> k.getTableName() + PK_SUFFIX)
-            .add("table_catalog", STRING, InformationSchemaIterables.KeyColumnUsage::getSchema)
+            .add("table_catalog", STRING, k -> Constants.DB_NAME)
             .add("table_schema", STRING, InformationSchemaIterables.KeyColumnUsage::getSchema)
             .add("table_name", STRING, InformationSchemaIterables.KeyColumnUsage::getTableName)
             .add("column_name", STRING, InformationSchemaIterables.KeyColumnUsage::getPkColumnIdent)

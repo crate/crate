@@ -44,6 +44,9 @@ Breaking Changes
 
 - Removed the deprecated azure discovery functionality.
 
+- Fields referencing ``catalog`` in :ref:`information_schema <information_schema>`
+  tables now return ``'crate'`` (the only catalog in CrateDB) instead of the
+  table ``schema``.
 
 Deprecations
 ============
