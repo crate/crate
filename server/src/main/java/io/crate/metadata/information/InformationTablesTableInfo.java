@@ -21,6 +21,7 @@
 
 package io.crate.metadata.information;
 
+import io.crate.Constants;
 import io.crate.common.collections.Lists2;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexMappings;
@@ -72,7 +73,7 @@ public class InformationTablesTableInfo {
         return SystemTable.<RelationInfo>builder(IDENT)
             .add("table_schema", STRING, r -> r.ident().schema())
             .add("table_name", STRING, r -> r.ident().name())
-            .add("table_catalog", STRING, r -> r.ident().schema())
+            .add("table_catalog", STRING, r -> Constants.DB_NAME)
             .add("table_type", STRING, r -> r.relationType().pretty())
             .add("number_of_shards", INTEGER, row -> {
                 if (row instanceof ShardedTable) {

@@ -30,6 +30,8 @@ import io.crate.metadata.view.ViewInfo;
 import static io.crate.types.DataTypes.BOOLEAN;
 import static io.crate.types.DataTypes.STRING;
 
+import io.crate.Constants;
+
 public class InformationViewsTableInfo {
 
     public static final String NAME = "views";
@@ -39,7 +41,7 @@ public class InformationViewsTableInfo {
 
     public static SystemTable<ViewInfo> create() {
         return SystemTable.<ViewInfo>builder(IDENT)
-            .add("table_catalog", STRING, r -> r.ident().schema())
+            .add("table_catalog", STRING, r -> Constants.DB_NAME)
             .add("table_schema", STRING, r -> r.ident().schema())
             .add("table_name", STRING, r -> r.ident().name())
             .add("view_definition", STRING, ViewInfo::definition)

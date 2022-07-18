@@ -23,6 +23,7 @@ package io.crate.metadata.information;
 
 import static io.crate.types.DataTypes.STRING;
 
+import io.crate.Constants;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SystemTable;
@@ -37,8 +38,8 @@ public class InformationTableConstraintsTableInfo {
         return SystemTable.<ConstraintInfo>builder(IDENT)
             .add("constraint_schema", STRING, r -> r.relationName().schema())
             .add("constraint_name", STRING, ConstraintInfo::constraintName)
-            .add("constraint_catalog", STRING, r -> r.relationName().schema())
-            .add("table_catalog", STRING, r -> r.relationName().schema())
+            .add("constraint_catalog", STRING, r -> Constants.DB_NAME)
+            .add("table_catalog", STRING, r -> Constants.DB_NAME)
             .add("table_schema", STRING, r -> r.relationName().schema())
             .add("table_name", STRING, r -> r.relationName().name())
             .add("constraint_type", STRING, r -> r.constraintType().toString())
