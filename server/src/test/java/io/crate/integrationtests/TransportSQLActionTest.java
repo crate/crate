@@ -54,6 +54,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
 import java.util.UUID;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.elasticsearch.common.xcontent.DeprecationHandler;
@@ -70,6 +71,7 @@ import org.locationtech.spatial4j.shape.Point;
 import com.carrotsearch.randomizedtesting.RandomizedContext;
 import com.carrotsearch.randomizedtesting.generators.RandomPicks;
 
+import io.crate.analyze.validator.SemanticSortValidator;
 import io.crate.common.collections.Lists2;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.testing.DataTypeTesting;
@@ -78,6 +80,7 @@ import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedSchema;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.StorageSupport;
 
 @ESIntegTestCase.ClusterScope(minNumDataNodes = 2)
 public class TransportSQLActionTest extends SQLIntegrationTestCase {
@@ -1989,6 +1992,53 @@ public class TransportSQLActionTest extends SQLIntegrationTestCase {
             "1001",
             "1111"
         ));
+    }
+
+    @Test
+    @UseJdbc(0)
+    public void test_types_with_storage_can_be_inserted_and_queried() {
+        for (var type : DataTypeTesting.ALL_TYPES_EXCEPT_ARRAYS) {
+            StorageSupport<?> storageSupport = type.storageSupport();
+            if (storageSupport == null) {
+                continue;
+            }
+            if (type.equals(DataTypes.GEO_POINT)) {
+                // source and doc-value values don't match exactly
+                continue;
+            }
+
+            execute("create table tbl (id int primary key, x " + type.getName() + ")");
+            Supplier<?> dataGenerator = DataTypeTesting.getDataGenerator(type);
+            Object val1 = dataGenerator.get();
+            execute("insert into tbl (id, x) values (?, ?)", new Object[] { 1, val1 });
+            execute("refresh table tbl");
+
+            var resp1 = execute("select _doc['x'], x, _raw FROM tbl where x = ?", new Object[] { val1 });
+            assertThat(
+                "inserted value must match selected value for type " + type,
+                ((DataType) type).compare(resp1.rows()[0][1], val1),
+                is(0)
+            );
+
+            var resp2 = execute("select _doc['x'], x, _raw FROM tbl where id = ?", new Object[] { 1 });
+            assertThat(
+                "primary key lookup output must match regular select output for type " + type,
+                resp2.rows()[0],
+                Matchers.arrayContaining(resp1.rows()[0])
+            );
+
+            if (SemanticSortValidator.SUPPORTED_TYPES.contains(type)) {
+                // should use doc-values/query-without-fetch execution path due to order + limit
+                var resp3 = execute("select _doc['x'], x, _raw FROM tbl order by x limit 1");
+                assertThat(
+                    "output of query with order and limit must match output of query without" + type,
+                    resp3.rows()[0],
+                    Matchers.arrayContaining(resp1.rows()[0])
+                );
+            }
+
+            execute("drop table tbl");
+        }
     }
 
     @Test

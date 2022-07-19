@@ -41,7 +41,10 @@ import io.crate.types.DataTypes;
 public class SemanticSortValidator {
 
     private static final InnerValidator INNER_VALIDATOR = new InnerValidator();
-    private static final Set<Integer> SUPPORTED_TYPES = Stream.concat(
+
+    // Instead of this we should probably have a property on DataType
+    // that indicates if ordering is supported and encapsulate the required functionality somehow
+    public static final Set<Integer> SUPPORTED_TYPES = Stream.concat(
         DataTypes.PRIMITIVE_TYPES.stream(),
         Stream.of(
             DataTypes.REGCLASS,
