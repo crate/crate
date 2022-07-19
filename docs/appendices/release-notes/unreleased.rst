@@ -67,6 +67,9 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Fixed a race condition that could cause a ``INSERT INTO`` operation to get
+  stuck.
+
 - Fixed an issue that could cause queries with ``objectColumn = ?`` expressions
   to fail if the object contains inner arrays.
 
