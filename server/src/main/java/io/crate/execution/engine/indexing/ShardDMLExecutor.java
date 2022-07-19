@@ -43,6 +43,8 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.index.IndexNotFoundException;
+import org.elasticsearch.index.shard.ShardNotFoundException;
 
 import io.crate.action.FutureActionListener;
 import io.crate.concurrent.limits.ConcurrencyLimit;
@@ -117,12 +119,16 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
     private String resolveNodeId(TReq request) {
         // The primary shard might be moving to another node,
         // so this is not 100% accurate but good enough for the congestion control purposes.
-        ShardRouting primaryShard = clusterService
-            .state()
-            .routingTable()
-            .shardRoutingTable(request.shardId())
-            .primaryShard();
-        return primaryShard == null ? null : primaryShard.currentNodeId();
+        try {
+            ShardRouting primaryShard = clusterService
+                .state()
+                .routingTable()
+                .shardRoutingTable(request.shardId())
+                .primaryShard();
+            return primaryShard == null ? null : primaryShard.currentNodeId();
+        } catch (IndexNotFoundException | ShardNotFoundException ignored) {
+            return null;
+        }
     }
 
     private CompletableFuture<TAcc> executeBatch(TReq request) {
