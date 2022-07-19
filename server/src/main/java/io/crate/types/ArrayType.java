@@ -43,6 +43,7 @@ import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
+import org.locationtech.spatial4j.shape.Point;
 
 import io.crate.Streamer;
 import io.crate.common.collections.Lists2;
@@ -227,6 +228,11 @@ public class ArrayType<T> extends DataType<List<T>> {
                     throw new IllegalArgumentException("Cannot parse `" + value + "` as array", e);
                 }
             }
+        } else if (value instanceof Point point && DataTypes.isNumericPrimitive(innerType)) {
+            // As per docs: [<lon_value>, <lat_value>]
+            return (List<T>) List.of(
+                innerType.sanitizeValue(point.getLon()),
+                innerType.sanitizeValue(point.getLat()));
         } else {
             return convertObjectArray((Object[]) value, convertInner);
         }
