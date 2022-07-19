@@ -1,0 +1,23 @@
+---
+# This is a dummy job to unblock mergify on PRs that have no code-changes
+# See https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/defining-the-mergeability-of-pull-requests/troubleshooting-required-status-checks#handling-skipped-but-required-checks
+name: CrateDB SQL
+on:
+  pull_request:
+    paths-ignore:
+      - '**.java'
+      - '**.gradle'
+      - 'gradle/version.properties'
+
+jobs:
+  test:
+    name: Test CrateDB SQL on ubuntu-latest
+    runs-on: ubuntu-latest
+    steps:
+      - run: 'echo "No build required" '
+
+  checkstyle:
+    name: checkstyle
+    runs-on: ubuntu-latest
+    steps:
+      - run: 'echo "No build required" '
