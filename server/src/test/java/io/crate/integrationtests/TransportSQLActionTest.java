@@ -2111,4 +2111,24 @@ public class TransportSQLActionTest extends SQLIntegrationTestCase {
         execute("select 1 order by 1 offset 10 limit 0");
         assertThat(response.rowCount(), is(0L));
     }
+
+    /**
+     * https://github.com/crate/crate/issues/12756
+     */
+    @Test
+    public void test_is_null_on_object_with_dynamically_added_column_does_not_raise_npe() {
+        execute("create table tbl (xo object)");
+
+        // This triggers creation/caching of the ShardCollectorProvider
+        execute("select * from tbl where xo is null");
+
+        execute("insert into tbl (xo) values ({foo='bar'})");
+        execute("refresh table tbl");
+
+        // This tries to utilize `foo` within the query,
+        // this used to throw a NPE because the `DocTableInfo` instance used in the
+        // ShardCollectorProvider got stale and didn't have the new column
+        execute("select * from tbl where xo is null");
+        assertThat(response.rowCount(), is(0L));
+    }
 }

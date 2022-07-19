@@ -76,7 +76,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
     private final DocInputFactory docInputFactory;
     private final BigArrays bigArrays;
     private final FieldTypeLookup fieldTypeLookup;
-    private final DocTableInfo table;
+    private final RelationName relationName;
 
     public LuceneShardCollectorProvider(Schemas schemas,
                                         LuceneQueryBuilder luceneQueryBuilder,
@@ -112,8 +112,8 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
         } else {
             fieldTypeLookup = mapperService::fieldType;
         }
-        var relationName = RelationName.fromIndexName(indexShard.shardId().getIndexName());
-        this.table = schemas.getTableInfo(relationName);
+        this.relationName = RelationName.fromIndexName(indexShard.shardId().getIndexName());
+        DocTableInfo table = schemas.getTableInfo(relationName);
         this.docInputFactory = new DocInputFactory(
             nodeCtx,
             new LuceneReferenceResolver(
@@ -141,6 +141,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
             return InMemoryBatchIterator.empty(SentinelRow.SENTINEL);
         }
         QueryShardContext queryShardContext = sharedShardContext.indexService().newQueryShardContext();
+        DocTableInfo table = schemas.getTableInfo(relationName);
         LuceneQueryBuilder.Context queryContext = luceneQueryBuilder.convert(
             collectPhase.where(),
             collectTask.txnCtx(),
@@ -167,6 +168,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
     @Nullable
     @Override
     protected BatchIterator<Row> getProjectionFusedIterator(RoutedCollectPhase normalizedPhase, CollectTask collectTask) {
+        DocTableInfo table = schemas.getTableInfo(relationName);
         var it = GroupByOptimizedIterator.tryOptimizeSingleStringKey(
             indexShard,
             table,
@@ -217,6 +219,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
         collectTask.addSearcher(sharedShardContext.readerId(), searcher);
         IndexService indexService = sharedShardContext.indexService();
         QueryShardContext queryShardContext = indexService.newQueryShardContext();
+        DocTableInfo table = schemas.getTableInfo(relationName);
         final var queryContext = luceneQueryBuilder.convert(
             collectPhase.where(),
             collectTask.txnCtx(),
