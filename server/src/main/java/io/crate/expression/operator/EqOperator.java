@@ -70,6 +70,7 @@ import io.crate.sql.tree.BitString;
 import io.crate.types.ArrayType;
 import io.crate.types.BitStringType;
 import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import io.crate.types.DoubleType;
 import io.crate.types.EqQuery;
 import io.crate.types.FloatType;
@@ -151,7 +152,7 @@ public final class EqOperator extends Operator<Object> {
             case ObjectType.ID -> refEqObject(function, fqn, (ObjectType) dataType, (Map<String, Object>) value, context);
             case ArrayType.ID -> termsAndGenericFilter(
                 function,
-                ref,
+                ref.column().fqn(),
                 ArrayType.unnest(dataType),
                 (Collection) value,
                 context
@@ -194,8 +195,7 @@ public final class EqOperator extends Operator<Object> {
         return new ConstantScoreQuery(builder.build());
     }
 
-    private static Query termsAndGenericFilter(Function function, Reference arrayRef, DataType<?> innerType, Collection<?> values, LuceneQueryBuilder.Context context) {
-        String column = arrayRef.column().fqn();
+    private static Query termsAndGenericFilter(Function function, String column, DataType<?> elementType, Collection<?> values, LuceneQueryBuilder.Context context) {
         MappedFieldType fieldType = context.getFieldTypeOrNull(column);
         if (fieldType == null) {
             // field doesn't exist, can't match
@@ -208,7 +208,7 @@ public final class EqOperator extends Operator<Object> {
             // `arrayRef = []` - termsQuery would be null
 
             filterClauses.add(
-                NumTermsPerDocQuery.forArray(arrayRef, numDocs -> numDocs == 0),
+                NumTermsPerDocQuery.forColumn(column, elementType, numDocs -> numDocs == 0),
                 BooleanClause.Occur.MUST
             );
             // Still need the genericFunctionFilter to avoid a match where the array contains NULL values.
@@ -218,7 +218,7 @@ public final class EqOperator extends Operator<Object> {
             // wrap boolTermsFilter and genericFunction filter in an additional BooleanFilter to control the ordering of the filters
             // termsFilter is applied first
             // afterwards the more expensive genericFunctionFilter
-            Query termsQuery = termsQuery(column, innerType, values);
+            Query termsQuery = termsQuery(column, elementType, values);
             if (termsQuery == null) {
                 return genericFunctionFilter;
             }
@@ -271,7 +271,12 @@ public final class EqOperator extends Operator<Object> {
                 continue;
             }
             String fqNestedColumn = fqn + '.' + key;
-            Query innerQuery = fromPrimitive(innerType, fqNestedColumn, entry.getValue());
+            Query innerQuery;
+            if (DataTypes.isArray(innerType)) {
+                innerQuery = termsAndGenericFilter(eq, fqNestedColumn, innerType, (Collection<?>) entry.getValue(), context);
+            } else {
+                innerQuery = fromPrimitive(innerType, fqNestedColumn, entry.getValue());
+            }
             if (innerQuery == null) {
                 continue;
             }

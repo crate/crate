@@ -64,5 +64,8 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Fixed an issue that could cause queries with ``objectColumn = ?`` expressions
+  to fail if the object contains inner arrays.
+
 - Fixed a ``NullPointerException`` when using a ``IS NULL`` expression on an
   object column that just had a child column added.

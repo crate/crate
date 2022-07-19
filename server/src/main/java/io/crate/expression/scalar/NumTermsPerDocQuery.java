@@ -43,7 +43,6 @@ import org.apache.lucene.search.Weight;
 import org.elasticsearch.index.fielddata.FieldData;
 import org.elasticsearch.index.fielddata.SortedBinaryDocValues;
 
-import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.types.ArrayType;
 import io.crate.types.BooleanType;
@@ -66,16 +65,24 @@ public class NumTermsPerDocQuery extends Query {
     private final java.util.function.Function<LeafReaderContext, IntUnaryOperator> numTermsPerDocFactory;
     private final IntPredicate matches;
 
-    public static NumTermsPerDocQuery forArray(Reference arrayRef, IntPredicate valueCountIsMatch) {
+    public static NumTermsPerDocQuery forRef(Reference ref, IntPredicate valueCountIsMatch) {
         return new NumTermsPerDocQuery(
-            arrayRef.column().fqn(),
-            leafReaderContext -> getNumTermsPerDocFunction(leafReaderContext.reader(), arrayRef),
+            ref.column().fqn(),
+            leafReaderContext -> getNumTermsPerDocFunction(leafReaderContext.reader(), ref.column().fqn(), ref.valueType()),
             valueCountIsMatch
         );
     }
 
-    private static IntUnaryOperator getNumTermsPerDocFunction(LeafReader reader, Reference ref) {
-        DataType<?> elementType = ArrayType.unnest(ref.valueType());
+    public static NumTermsPerDocQuery forColumn(String fqColumn, DataType<?> type, IntPredicate valueCountIsMatch) {
+        return new NumTermsPerDocQuery(
+            fqColumn,
+            leafReaderContext -> getNumTermsPerDocFunction(leafReaderContext.reader(), fqColumn, type),
+            valueCountIsMatch
+        );
+    }
+
+    private static IntUnaryOperator getNumTermsPerDocFunction(LeafReader reader, String fqColumn, DataType<?> type) {
+        DataType<?> elementType = ArrayType.unnest(type);
         switch (elementType.id()) {
             case BooleanType.ID:
             case ByteType.ID:
@@ -87,24 +94,24 @@ public class NumTermsPerDocQuery extends Query {
             case FloatType.ID:
             case DoubleType.ID:
             case GeoPointType.ID:
-                return numValuesPerDocForSortedNumeric(reader, ref.column());
+                return numValuesPerDocForSortedNumeric(reader, fqColumn);
 
             case StringType.ID:
             case CharacterType.ID:
-                return numValuesPerDocForString(reader, ref.column());
+                return numValuesPerDocForString(reader, fqColumn);
 
             case IpType.ID:
-                return numValuesPerDocForIP(reader, ref.column());
+                return numValuesPerDocForIP(reader, fqColumn);
 
             default:
                 throw new UnsupportedOperationException("NYI: " + elementType);
         }
     }
 
-    private static IntUnaryOperator numValuesPerDocForIP(LeafReader reader, ColumnIdent column) {
+    private static IntUnaryOperator numValuesPerDocForIP(LeafReader reader, String fqColumn) {
         SortedSetDocValues docValues;
         try {
-            docValues = reader.getSortedSetDocValues(column.fqn());
+            docValues = reader.getSortedSetDocValues(fqColumn);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -124,10 +131,10 @@ public class NumTermsPerDocQuery extends Query {
         };
     }
 
-    private static IntUnaryOperator numValuesPerDocForString(LeafReader reader, ColumnIdent column) {
+    private static IntUnaryOperator numValuesPerDocForString(LeafReader reader, String fqColumn) {
         SortedBinaryDocValues docValues;
         try {
-            docValues = FieldData.toString(DocValues.getSortedSet(reader, column.fqn()));
+            docValues = FieldData.toString(DocValues.getSortedSet(reader, fqColumn));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -140,10 +147,10 @@ public class NumTermsPerDocQuery extends Query {
         };
     }
 
-    private static IntUnaryOperator numValuesPerDocForSortedNumeric(LeafReader reader, ColumnIdent column) {
+    private static IntUnaryOperator numValuesPerDocForSortedNumeric(LeafReader reader, String fqColumn) {
         final SortedNumericDocValues sortedNumeric;
         try {
-            sortedNumeric = DocValues.getSortedNumeric(reader, column.fqn());
+            sortedNumeric = DocValues.getSortedNumeric(reader, fqColumn);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
