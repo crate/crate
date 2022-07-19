@@ -18,18 +18,8 @@
  */
 package org.elasticsearch.snapshots;
 
-import io.crate.common.unit.TimeValue;
-import io.crate.integrationtests.SQLIntegrationTestCase;
-import org.elasticsearch.action.support.PlainActionFuture;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.plugins.Plugin;
-import org.elasticsearch.repositories.RepositoriesService;
-import org.elasticsearch.repositories.Repository;
-import org.elasticsearch.repositories.RepositoryData;
-import org.elasticsearch.repositories.blobstore.BlobStoreTestUtil;
-import org.elasticsearch.snapshots.mockstore.MockRepository;
-import org.elasticsearch.threadpool.ThreadPool;
-import org.junit.After;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
@@ -42,6 +32,20 @@ import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import org.elasticsearch.action.support.PlainActionFuture;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.repositories.RepositoriesService;
+import org.elasticsearch.repositories.Repository;
+import org.elasticsearch.repositories.RepositoryData;
+import org.elasticsearch.repositories.blobstore.BlobStoreTestUtil;
+import org.elasticsearch.snapshots.mockstore.MockRepository;
+import org.elasticsearch.threadpool.ThreadPool;
+import org.junit.After;
+
+import io.crate.common.unit.TimeValue;
+import io.crate.integrationtests.SQLIntegrationTestCase;
 
 
 public abstract class AbstractSnapshotIntegTestCase extends SQLIntegrationTestCase {
@@ -82,7 +86,7 @@ public abstract class AbstractSnapshotIntegTestCase extends SQLIntegrationTestCa
     }
 
     protected void disableRepoConsistencyCheck(String reason) {
-        assertNotNull(reason);
+        assertThat(reason).isNotNull();
         skipRepoConsistencyCheckReason = reason;
     }
 
@@ -114,7 +118,7 @@ public abstract class AbstractSnapshotIntegTestCase extends SQLIntegrationTestCa
                 return FileVisitResult.CONTINUE;
             }
         });
-        assertEquals("Unexpected file count, found: [" + found + "].", expectedCount, found.size());
+        assertThat(found.size()).as("Unexpected file count, found: [" + found + "].").isEqualTo(expectedCount);
     }
 
     public static int numberOfFiles(Path dir) throws IOException {
@@ -193,7 +197,7 @@ public abstract class AbstractSnapshotIntegTestCase extends SQLIntegrationTestCa
             return false;
         }, timeout.millis(), TimeUnit.MILLISECONDS);
 
-        assertTrue("No repository is blocked waiting on a data node", blocked);
+        assertThat(blocked).as("No repository is blocked waiting on a data node").isTrue();
     }
 
     public static void unblockNode(final String repository, final String node) {

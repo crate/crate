@@ -21,6 +21,7 @@ package org.elasticsearch.index.engine;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.shuffle;
+import static org.assertj.core.api.Assertions.fail;
 import static org.elasticsearch.index.engine.Engine.Operation.Origin.PEER_RECOVERY;
 import static org.elasticsearch.index.engine.Engine.Operation.Origin.PRIMARY;
 import static org.elasticsearch.index.engine.Engine.Operation.Origin.REPLICA;
@@ -29,6 +30,9 @@ import static org.elasticsearch.index.translog.TranslogDeletionPolicies.createTr
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.nio.charset.Charset;

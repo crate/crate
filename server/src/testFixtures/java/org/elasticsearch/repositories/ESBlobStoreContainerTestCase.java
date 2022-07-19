@@ -18,14 +18,10 @@
  */
 package org.elasticsearch.repositories;
 
-import org.apache.lucene.util.BytesRef;
-import org.apache.lucene.util.BytesRefBuilder;
-import org.elasticsearch.common.blobstore.BlobContainer;
-import org.elasticsearch.common.blobstore.BlobMetadata;
-import org.elasticsearch.common.blobstore.BlobPath;
-import org.elasticsearch.common.blobstore.BlobStore;
-import org.elasticsearch.common.bytes.BytesArray;
-import org.elasticsearch.test.ESTestCase;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.elasticsearch.repositories.ESBlobStoreTestCase.randomBytes;
+import static org.elasticsearch.repositories.ESBlobStoreTestCase.writeRandomBlob;
+import static org.junit.Assert.assertArrayEquals;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -37,10 +33,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.elasticsearch.repositories.ESBlobStoreTestCase.randomBytes;
-import static org.elasticsearch.repositories.ESBlobStoreTestCase.writeRandomBlob;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.notNullValue;
+import org.apache.lucene.util.BytesRef;
+import org.apache.lucene.util.BytesRefBuilder;
+import org.elasticsearch.common.blobstore.BlobContainer;
+import org.elasticsearch.common.blobstore.BlobMetadata;
+import org.elasticsearch.common.blobstore.BlobPath;
+import org.elasticsearch.common.blobstore.BlobStore;
+import org.elasticsearch.common.bytes.BytesArray;
+import org.elasticsearch.test.ESTestCase;
 
 /**
  * Generic test case for blob store container implementation.
@@ -77,16 +77,16 @@ public abstract class ESBlobStoreContainerTestCase extends ESTestCase {
                     int read = stream.read(buffer, offset, buffer.length - offset);
                     target.append(new BytesRef(buffer, offset, read));
                 }
-                assertEquals(data.length, target.length());
+                assertThat(target.length()).isEqualTo(data.length);
                 assertArrayEquals(data, Arrays.copyOfRange(target.bytes(), 0, target.length()));
             }
         }
     }
 
     public void testList() throws IOException {
-        try(BlobStore store = newBlobStore()) {
+        try (BlobStore store = newBlobStore()) {
             final BlobContainer container = store.blobContainer(new BlobPath());
-            assertThat(container.listBlobs().size(), equalTo(0));
+            assertThat(container.listBlobs()).isEmpty();
             int numberOfFooBlobs = randomIntBetween(0, 10);
             int numberOfBarBlobs = randomIntBetween(3, 20);
             Map<String, Long> generatedBlobs = new HashMap<>();
@@ -108,33 +108,33 @@ public abstract class ESBlobStoreContainerTestCase extends ESTestCase {
             byte[] data = writeRandomBlob(container, name, length);
 
             Map<String, BlobMetadata> blobs = container.listBlobs();
-            assertThat(blobs.size(), equalTo(numberOfFooBlobs + numberOfBarBlobs));
+            assertThat(blobs).hasSize(numberOfFooBlobs + numberOfBarBlobs);
             for (Map.Entry<String, Long> generated : generatedBlobs.entrySet()) {
                 BlobMetadata blobMetadata = blobs.get(generated.getKey());
-                assertThat(generated.getKey(), blobMetadata, notNullValue());
-                assertThat(blobMetadata.name(), equalTo(generated.getKey()));
-                assertThat(blobMetadata.length(), equalTo(generated.getValue()));
+                assertThat(blobMetadata).as(generated.getKey()).isNotNull();
+                assertThat(blobMetadata.name()).isEqualTo(generated.getKey());
+                assertThat(blobMetadata.length()).isEqualTo(generated.getValue());
             }
 
-            assertThat(container.listBlobsByPrefix("foo-").size(), equalTo(numberOfFooBlobs));
-            assertThat(container.listBlobsByPrefix("bar-").size(), equalTo(numberOfBarBlobs));
-            assertThat(container.listBlobsByPrefix("baz-").size(), equalTo(0));
+            assertThat(container.listBlobsByPrefix("foo-")).hasSize(numberOfFooBlobs);
+            assertThat(container.listBlobsByPrefix("bar-")).hasSize(numberOfBarBlobs);
+            assertThat(container.listBlobsByPrefix("baz-")).isEmpty();
         }
     }
 
     public void testDeleteBlobs() throws IOException {
         try (BlobStore store = newBlobStore()) {
-            final List<String> blobNames = List.of("foobar", "barfoo");
-            final BlobContainer container = store.blobContainer(new BlobPath());
+            List<String> blobNames = List.of("foobar", "barfoo");
+            BlobContainer container = store.blobContainer(new BlobPath());
             container.deleteBlobsIgnoringIfNotExists(blobNames); // does not raise when blobs don't exist
             byte[] data = randomBytes(randomIntBetween(10, scaledRandomIntBetween(1024, 1 << 16)));
-            final BytesArray bytesArray = new BytesArray(data);
+            BytesArray bytesArray = new BytesArray(data);
             for (String blobName : blobNames) {
                 writeBlob(container, blobName, bytesArray, randomBoolean());
             }
-            assertEquals(container.listBlobs().size(), 2);
+            assertThat(container.listBlobs()).hasSize(2);
             container.deleteBlobsIgnoringIfNotExists(blobNames);
-            assertTrue(container.listBlobs().isEmpty());
+            assertThat(container.listBlobs().isEmpty());
             container.deleteBlobsIgnoringIfNotExists(blobNames); // does not raise when blobs don't exist
         }
     }
@@ -142,9 +142,9 @@ public abstract class ESBlobStoreContainerTestCase extends ESTestCase {
     public void testVerifyOverwriteFails() throws IOException {
         try (BlobStore store = newBlobStore()) {
             final String blobName = "foobar";
-            final BlobContainer container = store.blobContainer(new BlobPath());
+            BlobContainer container = store.blobContainer(new BlobPath());
             byte[] data = randomBytes(randomIntBetween(10, scaledRandomIntBetween(1024, 1 << 16)));
-            final BytesArray bytesArray = new BytesArray(data);
+            BytesArray bytesArray = new BytesArray(data);
             writeBlob(container, blobName, bytesArray, true);
             // should not be able to overwrite existing blob
             expectThrows(FileAlreadyExistsException.class, () -> writeBlob(container, blobName, bytesArray, true));
@@ -153,7 +153,7 @@ public abstract class ESBlobStoreContainerTestCase extends ESTestCase {
         }
     }
 
-    protected void writeBlob(final BlobContainer container, final String blobName, final BytesArray bytesArray,
+    protected void writeBlob(BlobContainer container, String blobName, BytesArray bytesArray,
                              boolean failIfAlreadyExists) throws IOException {
         try (InputStream stream = bytesArray.streamInput()) {
             if (randomBoolean()) {

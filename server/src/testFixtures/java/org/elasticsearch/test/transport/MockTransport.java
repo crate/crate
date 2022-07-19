@@ -19,7 +19,15 @@
 
 package org.elasticsearch.test.transport;
 
-import io.crate.common.collections.Tuple;
+import static org.apache.lucene.tests.util.CrateLuceneTestCase.rarely;
+
+import java.io.IOException;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.function.Function;
+
+import javax.annotation.Nullable;
+
 import org.elasticsearch.cluster.ClusterModule;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.Randomness;
@@ -42,13 +50,7 @@ import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportResponseHandler;
 import org.elasticsearch.transport.TransportService;
 
-import javax.annotation.Nullable;
-import java.io.IOException;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.function.Function;
-
-import static org.apache.lucene.tests.util.LuceneTestCase.rarely;
+import io.crate.common.collections.Tuple;
 
 /**
  * A basic transport implementation that allows to intercept requests that have been sent
