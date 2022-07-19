@@ -73,15 +73,18 @@ public final class DocRefResolver implements ReferenceResolver<CollectExpression
                 return forFunction(Doc::getSource);
 
             default:
+                final ColumnIdent column = columnIdent.name().equals(DocSysColumns.Names.DOC)
+                    ? columnIdent.shiftRight()
+                    : columnIdent;
                 for (int i = 0; i < partitionedByColumns.size(); i++) {
                     var pColumn = partitionedByColumns.get(i);
-                    if (pColumn.equals(columnIdent)) {
+                    if (pColumn.equals(column)) {
                         final int idx = i;
                         return forFunction(
                             getResp -> ref.valueType().implicitCast(
                                 PartitionName.fromIndexOrTemplate(getResp.getIndex()).values().get(idx))
                         );
-                    } else if (pColumn.isChildOf(columnIdent)) {
+                    } else if (pColumn.isChildOf(column)) {
                         final int idx = i;
                         return forFunction(response -> {
                             if (response == null) {
@@ -91,7 +94,7 @@ public final class DocRefResolver implements ReferenceResolver<CollectExpression
                             var partitionValue = partitionName.values().get(idx);
                             var source = response.getSource();
                             Maps.mergeInto(source, pColumn.name(), pColumn.path(), partitionValue);
-                            return ref.valueType().sanitizeValue(ValueExtractors.fromMap(source, columnIdent));
+                            return ref.valueType().sanitizeValue(ValueExtractors.fromMap(source, column));
                         });
                     }
                 }
@@ -100,7 +103,7 @@ public final class DocRefResolver implements ReferenceResolver<CollectExpression
                     if (response == null) {
                         return null;
                     }
-                    return ref.valueType().sanitizeValue(ValueExtractors.fromMap(response.getSource(), ref.column()));
+                    return ref.valueType().sanitizeValue(ValueExtractors.fromMap(response.getSource(), column));
                 });
         }
     }
