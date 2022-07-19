@@ -18,13 +18,20 @@
  */
 package org.elasticsearch.test.engine;
 
+import java.io.Closeable;
+import java.io.IOException;
+import java.lang.reflect.Constructor;
+import java.util.IdentityHashMap;
+import java.util.Random;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.lucene.tests.index.AssertingDirectoryReader;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.FilterDirectoryReader;
 import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.tests.index.AssertingDirectoryReader;
+import org.apache.lucene.tests.util.CrateLuceneTestCase;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
@@ -34,13 +41,6 @@ import org.elasticsearch.index.engine.EngineConfig;
 import org.elasticsearch.index.engine.EngineException;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.test.ESIntegTestCase;
-
-import java.io.Closeable;
-import java.io.IOException;
-import java.lang.reflect.Constructor;
-import java.util.IdentityHashMap;
-import java.util.Random;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Support class to build MockEngines like {@link MockInternalEngine}
@@ -100,13 +100,13 @@ public final class MockEngineSupport {
         }
         mockContext = new MockContext(random, wrapReader, wrapper, settings);
         this.inFlightSearchers = new InFlightSearchers();
-        LuceneTestCase.closeAfterSuite(inFlightSearchers); // only one suite closeable per Engine
+        CrateLuceneTestCase.closeAfterSuite(inFlightSearchers); // only one suite closeable per Engine
         this.disableFlushOnClose = DISABLE_FLUSH_ON_CLOSE.get(settings);
     }
 
     enum CloseAction {
         FLUSH_AND_CLOSE,
-        CLOSE;
+        CLOSE
     }
 
 

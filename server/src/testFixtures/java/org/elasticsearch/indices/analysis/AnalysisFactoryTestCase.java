@@ -19,14 +19,9 @@
 
 package org.elasticsearch.indices.analysis;
 
-import org.apache.lucene.analysis.TokenFilterFactory;
-import org.apache.lucene.analysis.TokenizerFactory;
-import org.elasticsearch.index.analysis.HunspellTokenFilterFactory;
-import org.elasticsearch.index.analysis.ShingleTokenFilterFactory;
-import org.elasticsearch.index.analysis.StandardTokenizerFactory;
-import org.elasticsearch.index.analysis.StopTokenFilterFactory;
-import org.elasticsearch.plugins.AnalysisPlugin;
-import org.elasticsearch.test.ESTestCase;
+import static java.util.Collections.emptyMap;
+import static java.util.Map.entry;
+import static org.junit.Assert.assertTrue;
 
 import java.util.HashMap;
 import java.util.Locale;
@@ -38,8 +33,14 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import static java.util.Collections.emptyMap;
-import static java.util.Map.entry;
+import org.apache.lucene.analysis.TokenFilterFactory;
+import org.apache.lucene.analysis.TokenizerFactory;
+import org.elasticsearch.index.analysis.HunspellTokenFilterFactory;
+import org.elasticsearch.index.analysis.ShingleTokenFilterFactory;
+import org.elasticsearch.index.analysis.StandardTokenizerFactory;
+import org.elasticsearch.index.analysis.StopTokenFilterFactory;
+import org.elasticsearch.plugins.AnalysisPlugin;
+import org.elasticsearch.test.ESTestCase;
 
 /**
  * Alerts us if new analysis components are added to Lucene, so we don't miss them.

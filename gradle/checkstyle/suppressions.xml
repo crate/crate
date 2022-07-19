@@ -30,6 +30,7 @@
     <suppress files=".*[/\\]test[/\\]java[/\\]org[\\/]elasticsearch[/\\].*java" checks="."/>
     <suppress files=".*[/\\]test[/\\]java[/\\]org[\\/]apache[/\\]lucene[/\\].*java" checks="."/>
     <suppress files=".*[/\\]testFixtures[/\\]java[/\\]org[\\/]elasticsearch[/\\].*java" checks="."/>
+    <suppress files=".*[/\\]testFixtures[/\\]java[/\\]org[/\\]apache[\\/]lucene[/\\].*java" checks="."/>
     <suppress files=".*[/\\]test[/\\]java[/\\]io[/\\]crate[/\\]common[/\\]OctalTest.java" checks="IllegalTokenText"/>
     <suppress
             files=".*[/\\]test[/\\]java[/\\]io[/\\]crate[/\\]expression[/\\]scalar[/\\]string[/\\]EncodeDecodeFunctionTest.java"

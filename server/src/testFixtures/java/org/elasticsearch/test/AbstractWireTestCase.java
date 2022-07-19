@@ -19,13 +19,16 @@
 
 package org.elasticsearch.test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotSame;
+
+import java.io.IOException;
+import java.util.Collections;
+
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.NamedWriteable;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.io.stream.Writeable;
-
-import java.io.IOException;
-import java.util.Collections;
 
 public abstract class AbstractWireTestCase<T> extends ESTestCase {
 

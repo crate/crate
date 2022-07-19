@@ -38,6 +38,10 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.hamcrest.Matchers.startsWith;
 import static org.hamcrest.core.IsEqual.equalTo;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.lang.annotation.Annotation;
@@ -66,7 +70,7 @@ import java.util.function.BooleanSupplier;
 import javax.annotation.Nullable;
 
 import org.apache.logging.log4j.Logger;
-import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.tests.util.CrateLuceneTestCase;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
@@ -185,7 +189,7 @@ import io.crate.testing.SQLTransportExecutor;
  * <li> - a random seed used to initialize the index random context.
  * </ul>
  */
-@LuceneTestCase.SuppressFileSystems("ExtrasFS") // doesn't work with potential multi data path from test cluster yet
+@CrateLuceneTestCase.SuppressFileSystems("ExtrasFS") // doesn't work with potential multi data path from test cluster yet
 public abstract class ESIntegTestCase extends ESTestCase {
 
     /** node names of the corresponding clusters will start with these prefixes */
@@ -246,7 +250,7 @@ public abstract class ESIntegTestCase extends ESTestCase {
     }
 
     protected final void beforeInternal() throws Exception {
-        final Scope currentClusterScope = getCurrentClusterScope();
+        Scope currentClusterScope = getCurrentClusterScope();
         Callable<Void> setup = () -> {
             cluster().beforeTest(random());
             cluster().wipe(excludeTemplates());
@@ -348,8 +352,8 @@ public abstract class ESIntegTestCase extends ESTestCase {
         }
         switch (random.nextInt(4)) {
             case 3:
-                final int maxThreadCount = RandomNumbers.randomIntBetween(random, 1, 4);
-                final int maxMergeCount = RandomNumbers.randomIntBetween(random, maxThreadCount, maxThreadCount + 4);
+                int maxThreadCount = RandomNumbers.randomIntBetween(random, 1, 4);
+                int maxMergeCount = RandomNumbers.randomIntBetween(random, maxThreadCount, maxThreadCount + 4);
                 builder.put(MergeSchedulerConfig.MAX_MERGE_COUNT_SETTING.getKey(), maxMergeCount);
                 builder.put(MergeSchedulerConfig.MAX_THREAD_COUNT_SETTING.getKey(), maxThreadCount);
                 break;
@@ -380,12 +384,12 @@ public abstract class ESIntegTestCase extends ESTestCase {
         return builder;
     }
 
-    private TestCluster buildWithPrivateContext(final Scope scope, final long seed) throws Exception {
+    private TestCluster buildWithPrivateContext(Scope scope, long seed) throws Exception {
         return RandomizedContext.current().runWithPrivateRandomness(seed, () -> buildTestCluster(scope, seed));
     }
 
     private TestCluster buildAndPutCluster(Scope currentClusterScope, long seed) throws Exception {
-        final Class<?> clazz = this.getClass();
+        Class<?> clazz = this.getClass();
         TestCluster testCluster = clusters.remove(clazz); // remove this cluster first
         clearClusters(); // all leftovers are gone by now... this is really just a double safety if we miss something somewhere
         switch (currentClusterScope) {
@@ -553,7 +557,7 @@ public abstract class ESIntegTestCase extends ESTestCase {
         }
         // 30% of the time
         if (randomInt(9) < 3) {
-            final String dataPath = randomAlphaOfLength(10);
+            String dataPath = randomAlphaOfLength(10);
             logger.info("using custom data_path for index: [{}]", dataPath);
             builder.put(IndexMetadata.SETTING_DATA_PATH, dataPath);
         }
@@ -768,15 +772,17 @@ public abstract class ESIntegTestCase extends ESTestCase {
     /**
      * Waits until at least a give number of document is visible for searchers
      *
-     * @param numDocs number of documents to wait for
-     * @param indexer a {@link org.elasticsearch.test.BackgroundIndexer}. It will be first checked for documents indexed.
-     *                This saves on unneeded searches.
+     * @param numDocs     number of documents to wait for
+     * @param indexer     a {@link org.elasticsearch.test.BackgroundIndexer}. It will be first checked for documents indexed.
+     *                    This saves on unneeded searches.
      * @param sqlExecutor a {@link io.crate.testing.SQLTransportExecutor}. It will be used to query for the amount of
      *                    documents indexed.
      */
-    public void waitForDocs(final long numDocs, final BackgroundIndexer indexer, SQLTransportExecutor sqlExecutor) throws Exception {
+    public void waitForDocs(long numDocs,
+                            BackgroundIndexer indexer,
+                            SQLTransportExecutor sqlExecutor) throws Exception {
         // indexing threads can wait for up to ~1m before retrying when they first try to index into a shard which is not STARTED.
-        final long maxWaitTimeMs = Math.max(90 * 1000, 200 * numDocs);
+        long maxWaitTimeMs = Math.max(90 * 1000, 200 * numDocs);
 
         assertBusy(
             () -> {
@@ -839,27 +845,33 @@ public abstract class ESIntegTestCase extends ESTestCase {
                 ClusterState localClusterState = client.admin().cluster().prepareState().all().setLocal(true).get().getState();
                 byte[] localClusterStateBytes = ClusterState.Builder.toBytes(localClusterState);
                 // remove local node reference
-                localClusterState = ClusterState.Builder.fromBytes(localClusterStateBytes, null, namedWriteableRegistry);
-                final Map<String, Object> localStateMap = convertToMap(localClusterState);
-                final int localClusterStateSize = ClusterState.Builder.toBytes(localClusterState).length;
+                localClusterState = ClusterState.Builder.fromBytes(localClusterStateBytes,
+                                                                   null,
+                                                                   namedWriteableRegistry);
+                Map<String, Object> localStateMap = convertToMap(localClusterState);
+                int localClusterStateSize = ClusterState.Builder.toBytes(localClusterState).length;
                 // Check that the non-master node has the same version of the cluster state as the master and
                 // that the master node matches the master (otherwise there is no requirement for the cluster state to match)
                 if (masterClusterState.version() == localClusterState.version()
-                        && masterId.equals(localClusterState.nodes().getMasterNodeId())) {
+                    && masterId.equals(localClusterState.nodes().getMasterNodeId())) {
                     try {
-                        assertEquals("cluster state UUID does not match", masterClusterState.stateUUID(), localClusterState.stateUUID());
+                        assertEquals("cluster state UUID does not match",
+                                     masterClusterState.stateUUID(),
+                                     localClusterState.stateUUID());
                         // We cannot compare serialization bytes since serialization order of maps is not guaranteed
                         // but we can compare serialization sizes - they should be the same
-                        assertEquals("cluster state size does not match", masterClusterStateSize, localClusterStateSize);
+                        assertEquals("cluster state size does not match",
+                                     masterClusterStateSize,
+                                     localClusterStateSize);
                         // Compare JSON serialization
                         assertNull(
-                                "cluster state JSON serialization does not match",
-                                differenceBetweenMapsIgnoringArrayOrder(masterStateMap, localStateMap));
-                    } catch (final AssertionError error) {
+                            "cluster state JSON serialization does not match",
+                            differenceBetweenMapsIgnoringArrayOrder(masterStateMap, localStateMap));
+                    } catch (AssertionError error) {
                         logger.error(
-                                "Cluster state from master:\n{}\nLocal cluster state:\n{}",
-                                masterClusterState.toString(),
-                                localClusterState.toString());
+                            "Cluster state from master:\n{}\nLocal cluster state:\n{}",
+                            masterClusterState.toString(),
+                            localClusterState.toString());
                         throw error;
                     }
                 }
@@ -1114,8 +1126,8 @@ public abstract class ESIntegTestCase extends ESTestCase {
         return Collections.emptyList();
     }
 
-    protected TestCluster buildTestCluster(Scope scope, long seed) throws IOException {
-        final String nodePrefix;
+    protected TestCluster buildTestCluster(Scope scope, long seed) {
+        String nodePrefix;
         switch (scope) {
             case TEST:
                 nodePrefix = TEST_CLUSTER_NODE_PREFIX;
@@ -1139,7 +1151,7 @@ public abstract class ESIntegTestCase extends ESTestCase {
             maxNumDataNodes = getMaxNumDataNodes();
         }
         Collection<Class<? extends Plugin>> mockPlugins = getMockPlugins();
-        final NodeConfigurationSource nodeConfigurationSource = getNodeConfigSource();
+        NodeConfigurationSource nodeConfigurationSource = getNodeConfigSource();
         return new InternalTestCluster(
             seed,
             createTempDir(),
@@ -1193,7 +1205,7 @@ public abstract class ESIntegTestCase extends ESTestCase {
 
     /** Return the mock plugins the cluster should use */
     protected Collection<Class<? extends Plugin>> getMockPlugins() {
-        final ArrayList<Class<? extends Plugin>> mocks = new ArrayList<>();
+        ArrayList<Class<? extends Plugin>> mocks = new ArrayList<>();
         if (MOCK_MODULES_ENABLED && randomBoolean()) { // sometimes run without those completely
             if (randomBoolean()) {
                 mocks.add(MockFSIndexStore.TestPlugin.class);
@@ -1313,7 +1325,7 @@ public abstract class ESIntegTestCase extends ESTestCase {
 
     private static void initializeSuiteScope() throws Exception {
         Class<?> targetClass = getTestClass();
-        /**
+        /*
          * Note we create these test class instance via reflection
          * since JUnit creates a new instance per test and that is also
          * the reason why INSTANCE is static since this entire method

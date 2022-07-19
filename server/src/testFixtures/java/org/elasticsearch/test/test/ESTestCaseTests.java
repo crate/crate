@@ -19,14 +19,15 @@
 
 package org.elasticsearch.test.test;
 
-import junit.framework.AssertionFailedError;
-
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentParser;
-import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.test.ESTestCase;
-import org.elasticsearch.test.RandomObjects;
+import static org.assertj.core.api.Assertions.fail;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -40,9 +41,14 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.not;
+import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.XContentParser;
+import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.test.ESTestCase;
+import org.elasticsearch.test.RandomObjects;
+
+import junit.framework.AssertionFailedError;
 
 public class ESTestCaseTests extends ESTestCase {
 
@@ -121,7 +127,7 @@ public class ESTestCaseTests extends ESTestCase {
             }
             builder.endObject();
             BytesReference bytes = BytesReference.bytes(builder);
-            final LinkedHashMap<String, Object> initialMap;
+            LinkedHashMap<String, Object> initialMap;
             try (XContentParser parser = createParser(xContentType.xContent(), bytes)) {
                 initialMap = (LinkedHashMap<String, Object>)parser.mapOrdered();
             }

@@ -19,12 +19,8 @@
 package org.elasticsearch.test;
 
 import static org.apache.lucene.tests.util.TestUtil.nextInt;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.common.util.CollectionUtils.arrayAsArrayList;
-import static org.hamcrest.Matchers.anyOf;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasItem;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -53,17 +49,6 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import com.carrotsearch.randomizedtesting.RandomizedTest;
-import com.carrotsearch.randomizedtesting.annotations.Listeners;
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakLingering;
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope.Scope;
-import com.carrotsearch.randomizedtesting.annotations.TimeoutSuite;
-import com.carrotsearch.randomizedtesting.generators.RandomNumbers;
-import com.carrotsearch.randomizedtesting.generators.RandomPicks;
-import com.carrotsearch.randomizedtesting.generators.RandomStrings;
-import com.carrotsearch.randomizedtesting.rules.TestRuleAdapter;
-
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -76,8 +61,8 @@ import org.apache.logging.log4j.core.layout.PatternLayout;
 import org.apache.logging.log4j.status.StatusConsoleListener;
 import org.apache.logging.log4j.status.StatusData;
 import org.apache.logging.log4j.status.StatusLogger;
-import org.apache.lucene.tests.util.LuceneTestCase;
-import org.apache.lucene.tests.util.LuceneTestCase.SuppressCodecs;
+import org.apache.lucene.tests.util.CrateLuceneTestCase;
+import org.apache.lucene.tests.util.CrateLuceneTestCase.SuppressCodecs;
 import org.apache.lucene.tests.util.TestRuleMarkFailure;
 import org.apache.lucene.tests.util.TimeUnits;
 import org.elasticsearch.Version;
@@ -126,7 +111,6 @@ import org.elasticsearch.test.junit.listeners.LoggingListener;
 import org.elasticsearch.test.junit.listeners.ReproduceInfoPrinter;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.Netty4Plugin;
-import org.hamcrest.Matchers;
 import org.joda.time.DateTimeZone;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -136,6 +120,17 @@ import org.junit.Rule;
 import org.junit.internal.AssumptionViolatedException;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.RuleChain;
+
+import com.carrotsearch.randomizedtesting.RandomizedTest;
+import com.carrotsearch.randomizedtesting.annotations.Listeners;
+import com.carrotsearch.randomizedtesting.annotations.ThreadLeakLingering;
+import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
+import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope.Scope;
+import com.carrotsearch.randomizedtesting.annotations.TimeoutSuite;
+import com.carrotsearch.randomizedtesting.generators.RandomNumbers;
+import com.carrotsearch.randomizedtesting.generators.RandomPicks;
+import com.carrotsearch.randomizedtesting.generators.RandomStrings;
+import com.carrotsearch.randomizedtesting.rules.TestRuleAdapter;
 
 import io.crate.common.SuppressForbidden;
 
@@ -149,7 +144,7 @@ import io.crate.common.SuppressForbidden;
 @ThreadLeakScope(Scope.SUITE)
 @ThreadLeakLingering(linger = 5000) // 5 sec lingering
 @TimeoutSuite(millis = 20 * TimeUnits.MINUTE)
-@LuceneTestCase.SuppressSysoutChecks(bugUrl = "we log a lot on purpose")
+@CrateLuceneTestCase.SuppressSysoutChecks(bugUrl = "we log a lot on purpose")
 // we suppress pretty much all the lucene codecs for now, except asserting
 // assertingcodec is the winner for a codec here: it finds bugs and gives clear exceptions.
 @SuppressCodecs({
@@ -157,8 +152,8 @@ import io.crate.common.SuppressForbidden;
         "TestBloomFilteredLucenePostings", "MockRandom", "BlockTreeOrds", "LuceneFixedGap",
         "LuceneVarGapFixedInterval", "LuceneVarGapDocFreqInterval", "Lucene50"
 })
-@LuceneTestCase.SuppressReproduceLine
-public abstract class ESTestCase extends LuceneTestCase {
+@CrateLuceneTestCase.SuppressReproduceLine
+public abstract class ESTestCase extends CrateLuceneTestCase {
 
     protected static final List<String> JODA_TIMEZONE_IDS;
     protected static final List<String> JAVA_TIMEZONE_IDS;
@@ -362,23 +357,14 @@ public abstract class ESTestCase extends LuceneTestCase {
 
     private void ensureNoWarnings() {
         try {
-            assertThat(
-                DeprecationLogger.getRecentWarnings(),
-                anyOf(
-                    Matchers.emptyIterable(),
+            assertThat(DeprecationLogger.getRecentWarnings())
+                .satisfiesAnyOf(
                     // As long as these settings are deprecated but still used in
                     // tests we need to exclude them from the warning here.
-                    hasItem(
-                        containsString(IndexSettings.INDEX_SOFT_DELETES_SETTING.getKey())
-                    ),
-                    hasItem(
-                        containsString(IndexSettings.INDEX_TRANSLOG_RETENTION_AGE_SETTING.getKey())
-                    ),
-                    hasItem(
-                        containsString(IndexSettings.INDEX_TRANSLOG_RETENTION_SIZE_SETTING.getKey())
-                    )
-                )
-            );
+                    l -> assertThat(l).isEmpty(),
+                    l -> assertThat(l).satisfies(s -> s.contains(IndexSettings.INDEX_SOFT_DELETES_SETTING.getKey())),
+                    l -> assertThat(l).satisfies(s -> s.contains(IndexSettings.INDEX_TRANSLOG_RETENTION_AGE_SETTING.getKey())),
+                    l -> assertThat(l).satisfies(s -> s.contains(IndexSettings.INDEX_TRANSLOG_RETENTION_SIZE_SETTING.getKey())));
         } finally {
             DeprecationLogger.resetWarnings();
         }
@@ -390,28 +376,28 @@ public abstract class ESTestCase extends LuceneTestCase {
      * @param settings the settings that are expected to be deprecated
      * @param warnings other expected general deprecation warnings
      */
-    protected final void assertSettingDeprecationsAndWarnings(final Setting<?>[] settings, final String... warnings) {
-        assertSettingDeprecationsAndWarnings(Arrays.stream(settings).map(Setting::getKey).toArray(String[]::new), warnings);
+    protected final void assertSettingDeprecationsAndWarnings(Setting<?>[] settings, String... warnings) {
+        assertSettingDeprecationsAndWarnings(Arrays.stream(settings).map(Setting::getKey).toArray(String[]::new),
+                                             warnings);
     }
 
-    protected final void assertSettingDeprecationsAndWarnings(final String[] settings, final String... warnings) {
+    protected final void assertSettingDeprecationsAndWarnings(String[] settings, String... warnings) {
         assertWarnings(
             Stream.concat(
                 Arrays
                     .stream(settings)
-                    .map(k -> "[" + k + "] setting was deprecated in CrateDB and will be removed in a future release! " +
-                                        "See the breaking changes documentation for the next major version."),
-                    Arrays.stream(warnings)
+                    .map(k -> "[" + k +
+                              "] setting was deprecated in CrateDB and will be removed in a future release! " +
+                              "See the breaking changes documentation for the next major version."),
+                Arrays.stream(warnings)
             ).toArray(String[]::new)
         );
     }
 
     protected final void assertWarnings(String... expectedWarnings) {
         try {
-            assertThat(
-                DeprecationLogger.getRecentWarnings(),
-                Matchers.contains(expectedWarnings)
-            );
+            assertThat(DeprecationLogger.getRecentWarnings())
+                .containsExactly(expectedWarnings);
         } finally {
             DeprecationLogger.resetWarnings();
         }
@@ -443,14 +429,14 @@ public abstract class ESTestCase extends LuceneTestCase {
         MockBigArrays.ensureAllArraysAreReleased();
 
         // ensure no one changed the status logger level on us
-        assertThat(StatusLogger.getLogger().getLevel(), equalTo(Level.WARN));
+        assertThat(StatusLogger.getLogger().getLevel()).isEqualTo(Level.WARN);
         synchronized (statusData) {
             try {
                 // ensure that there are no status logger messages which would indicate a problem with our Log4j usage; we map the
                 // StatusData instances to Strings as otherwise their toString output is useless
                 assertThat(
-                    statusData.stream().map(status -> status.getMessage().getFormattedMessage()).collect(Collectors.toList()),
-                    empty());
+                    statusData.stream().map(status -> status.getMessage().getFormattedMessage()).collect(Collectors.toList()))
+                    .isEmpty();
             } finally {
                 // we clear the list so that status data from other tests do not interfere with tests within the same JVM
                 statusData.clear();
@@ -458,7 +444,7 @@ public abstract class ESTestCase extends LuceneTestCase {
         }
         synchronized (nettyLoggedLeaks) {
             try {
-                assertThat(nettyLoggedLeaks, empty());
+                assertThat(nettyLoggedLeaks).isEmpty();
             } finally {
                 nettyLoggedLeaks.clear();
             }
@@ -478,7 +464,7 @@ public abstract class ESTestCase extends LuceneTestCase {
 
     public final void ensureCheckIndexPassed() {
         if (checkIndexFailures.isEmpty() == false) {
-            final AssertionError e = new AssertionError("at least one shard failed CheckIndex");
+            AssertionError e = new AssertionError("at least one shard failed CheckIndex");
             for (Exception failure : checkIndexFailures) {
                 e.addSuppressed(failure);
             }
@@ -806,8 +792,8 @@ public abstract class ESTestCase extends LuceneTestCase {
 
     /** Returns a random number of temporary paths. */
     public String[] tmpPaths() {
-        final int numPaths = nextInt(random(), 1, 3);
-        final String[] absPaths = new String[numPaths];
+        int numPaths = nextInt(random(), 1, 3);
+        String[] absPaths = new String[numPaths];
         for (int i = 0; i < numPaths; i++) {
             absPaths[i] = createTempDir().toAbsolutePath().toString();
         }
@@ -1013,37 +999,43 @@ public abstract class ESTestCase extends LuceneTestCase {
     /**
      * The {@link NamedWriteableRegistry} to use for this test. Subclasses should override and use liberally.
      */
-    protected NamedWriteableRegistry writableRegistry() {
+    protected static NamedWriteableRegistry writableRegistry() {
         return new NamedWriteableRegistry(ClusterModule.getNamedWriteables());
     }
 
-    /** Returns the suite failure marker: internal use only! */
+    /**
+     * Returns the suite failure marker: internal use only!
+     */
     public static TestRuleMarkFailure getSuiteFailureMarker() {
         return suiteFailureMarker;
     }
 
-    /** Compares two stack traces, ignoring module (which is not yet serialized) */
-    public static void assertArrayEquals(StackTraceElement expected[], StackTraceElement actual[]) {
-        assertEquals(expected.length, actual.length);
+    /**
+     * Compares two stack traces, ignoring module (which is not yet serialized)
+     */
+    public static void assertStacktraceArrayEquals(StackTraceElement expected[], StackTraceElement actual[]) {
+        assertThat(actual.length).isEqualTo(expected.length);
         for (int i = 0; i < expected.length; i++) {
-            assertEquals(expected[i], actual[i]);
+            assertStacktraceEquals(expected[i], actual[i]);
         }
     }
 
-    /** Compares two stack trace elements, ignoring module (which is not yet serialized) */
-    public static void assertEquals(StackTraceElement expected, StackTraceElement actual) {
-        assertEquals(expected.getClassName(), actual.getClassName());
-        assertEquals(expected.getMethodName(), actual.getMethodName());
-        assertEquals(expected.getFileName(), actual.getFileName());
-        assertEquals(expected.getLineNumber(), actual.getLineNumber());
-        assertEquals(expected.isNativeMethod(), actual.isNativeMethod());
+    /**
+     * Compares two stack trace elements, ignoring module (which is not yet serialized)
+     */
+    public static void assertStacktraceEquals(StackTraceElement expected, StackTraceElement actual) {
+        assertThat(actual.getClassName()).isEqualTo(expected.getClassName());
+        assertThat(actual.getMethodName()).isEqualTo(expected.getMethodName());
+        assertThat(actual.getFileName()).isEqualTo(expected.getFileName());
+        assertThat(actual.getLineNumber()).isEqualTo(expected.getLineNumber());
+        assertThat(actual.isNativeMethod()).isEqualTo(expected.isNativeMethod());
     }
 
     /**
      * Creates an TestAnalysis with all the default analyzers configured.
      */
     public static TestAnalysis createTestAnalysis(Index index, Settings settings, AnalysisPlugin... analysisPlugins)
-            throws IOException {
+        throws IOException {
         Settings nodeSettings = Settings.builder().put(Environment.PATH_HOME_SETTING.getKey(), createTempDir()).build();
         return createTestAnalysis(index, nodeSettings, settings, analysisPlugins);
     }
@@ -1125,8 +1117,8 @@ public abstract class ESTestCase extends LuceneTestCase {
         // Ephemeral ports on Linux start at 32768 so we modulo to make sure that we don't exceed that.
         // This is safe as long as we have fewer than 224 Gradle workers running in parallel
         // See also: https://github.com/elastic/elasticsearch/issues/44134
-        final String workerId = System.getProperty(ESTestCase.TEST_WORKER_SYS_PROPERTY);
-        final int startAt = workerId == null ? 0 : Math.floorMod(Long.valueOf(workerId), 223);
+        String workerId = System.getProperty(ESTestCase.TEST_WORKER_SYS_PROPERTY);
+        int startAt = workerId == null ? 0 : Math.floorMod(Long.valueOf(workerId), 223);
         assert startAt >= 0 : "Unexpected test worker Id, resulting port range would be negative";
         return 10300 + (startAt * 100);
     }
