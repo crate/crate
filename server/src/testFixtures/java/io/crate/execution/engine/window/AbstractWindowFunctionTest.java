@@ -23,7 +23,7 @@ package io.crate.execution.engine.window;
 
 import static io.crate.data.SentinelRow.SENTINEL;
 import static io.crate.execution.engine.sort.Comparators.createComparator;
-import static org.hamcrest.Matchers.instanceOf;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.lang.reflect.Array;
 import java.util.Arrays;
@@ -118,7 +118,7 @@ public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServic
         performInputSanityChecks(inputRows);
 
         Symbol normalizedFunctionSymbol = sqlExpressions.normalize(sqlExpressions.asSymbol(functionExpression));
-        assertThat(normalizedFunctionSymbol, instanceOf(io.crate.expression.symbol.WindowFunction.class));
+        assertThat(normalizedFunctionSymbol).isInstanceOf(io.crate.expression.symbol.WindowFunction.class);
 
         var windowFunctionSymbol = (io.crate.expression.symbol.WindowFunction) normalizedFunctionSymbol;
         ReferenceResolver<InputCollectExpression> referenceResolver =
@@ -181,7 +181,7 @@ public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServic
         } catch (ExecutionException e) {
             throw e.getCause();
         }
-        assertThat((T) actualResult, expectedValue);
+        assertThat((T) actualResult).satisfies(expectedValue::matches);
     }
 
     private static void ensureInputRowsHaveCorrectType(List<Symbol> sourceSymbols, Object[][] inputRows) {

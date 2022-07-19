@@ -105,6 +105,9 @@ import static org.elasticsearch.index.translog.Translog.UNSET_AUTO_GENERATED_TIM
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
 
 /**
  * A base class for unit tests that need to create and shutdown {@link IndexShard} instances easily,

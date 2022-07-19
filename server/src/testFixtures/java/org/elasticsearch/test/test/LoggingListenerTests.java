@@ -19,6 +19,11 @@
 
 package org.elasticsearch.test.test;
 
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.junit.Assert.assertThat;
+
+import java.lang.reflect.Method;
+
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -27,10 +32,6 @@ import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.elasticsearch.test.junit.listeners.LoggingListener;
 import org.junit.runner.Description;
 import org.junit.runner.Result;
-
-import java.lang.reflect.Method;
-
-import static org.hamcrest.CoreMatchers.equalTo;
 
 public class LoggingListenerTests extends ESTestCase {
 

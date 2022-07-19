@@ -19,12 +19,15 @@
 
 package org.elasticsearch.test.disruption;
 
-import org.elasticsearch.test.ESTestCase;
-import org.elasticsearch.test.disruption.NetworkDisruption.Bridge;
-import org.elasticsearch.test.disruption.NetworkDisruption.TwoPartitions;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.util.HashSet;
 import java.util.Set;
+
+import org.elasticsearch.test.ESTestCase;
+import org.elasticsearch.test.disruption.NetworkDisruption.Bridge;
+import org.elasticsearch.test.disruption.NetworkDisruption.TwoPartitions;
 
 public class NetworkDisruptionTests extends ESTestCase {
 
