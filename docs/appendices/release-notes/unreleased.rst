@@ -67,4 +67,5 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
-None
+- Fixed a ``NullPointerException`` when using a ``IS NULL`` expression on an
+  object column that just had a child column added.

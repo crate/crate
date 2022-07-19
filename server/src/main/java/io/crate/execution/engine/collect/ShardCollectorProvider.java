@@ -60,6 +60,7 @@ import io.crate.metadata.shard.ShardReferenceResolver;
 
 public abstract class ShardCollectorProvider {
 
+    protected final Schemas schemas;
     private final ProjectorFactory projectorFactory;
     private final ShardRowContext shardRowContext;
     protected final IndexShard indexShard;
@@ -76,6 +77,7 @@ public abstract class ShardCollectorProvider {
                            IndexShard indexShard,
                            ShardRowContext shardRowContext,
                            Map<String, FileOutputFactory> fileOutputFactoryMap) {
+        this.schemas = schemas;
         this.indexShard = indexShard;
         this.shardRowContext = shardRowContext;
         shardNormalizer = new EvaluatingNormalizer(
