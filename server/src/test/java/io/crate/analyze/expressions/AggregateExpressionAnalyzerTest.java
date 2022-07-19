@@ -21,18 +21,20 @@
 
 package io.crate.analyze.expressions;
 
-import io.crate.expression.symbol.Function;
-import io.crate.expression.symbol.SelectSymbol;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.SQLExecutor;
-import org.junit.Before;
-import org.junit.Test;
-
 import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.SymbolMatchers.isReference;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.instanceOf;
+import static org.junit.Assert.assertThat;
+
+import org.junit.Before;
+import org.junit.Test;
+
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.SelectSymbol;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
 
 public class AggregateExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 

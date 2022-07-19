@@ -21,17 +21,10 @@
 
 package io.crate.execution.engine.fetch;
 
-import com.carrotsearch.hppc.IntContainer;
-import com.carrotsearch.hppc.IntHashSet;
-import com.carrotsearch.hppc.IntObjectHashMap;
-import com.carrotsearch.hppc.IntObjectMap;
-import io.crate.Streamer;
-import io.crate.breaker.ConcurrentRamAccounting;
-import io.crate.breaker.RamAccounting;
-import io.crate.data.RowN;
-import io.crate.execution.engine.distribution.StreamBucket;
-import org.elasticsearch.test.ESTestCase;
-import io.crate.types.DataTypes;
+import static io.crate.testing.TestingHelpers.isRow;
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
+
 import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.breaker.MemoryCircuitBreaker;
@@ -39,11 +32,21 @@ import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
+import org.elasticsearch.test.ESTestCase;
 import org.junit.Before;
 import org.junit.Test;
 
-import static io.crate.testing.TestingHelpers.isRow;
-import static org.hamcrest.CoreMatchers.is;
+import com.carrotsearch.hppc.IntContainer;
+import com.carrotsearch.hppc.IntHashSet;
+import com.carrotsearch.hppc.IntObjectHashMap;
+import com.carrotsearch.hppc.IntObjectMap;
+
+import io.crate.Streamer;
+import io.crate.breaker.ConcurrentRamAccounting;
+import io.crate.breaker.RamAccounting;
+import io.crate.data.RowN;
+import io.crate.execution.engine.distribution.StreamBucket;
+import io.crate.types.DataTypes;
 
 public class NodeFetchResponseTest extends ESTestCase {
 

@@ -21,13 +21,13 @@
 
 package io.crate.execution.jobs.kill;
 
-import org.hamcrest.Matchers;
-import org.junit.Test;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
 
 import java.util.Arrays;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import org.hamcrest.Matchers;
+import org.junit.Test;
 
 public class KillResponseTest {
 

@@ -21,14 +21,15 @@
 
 package io.crate.execution.engine.fetch;
 
-import com.carrotsearch.hppc.IntArrayList;
-import com.carrotsearch.randomizedtesting.RandomizedRunner;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-
 import static org.elasticsearch.test.ESTestCase.randomIntBetween;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+
+import org.junit.Test;
+import org.junit.runner.RunWith;
+
+import com.carrotsearch.hppc.IntArrayList;
+import com.carrotsearch.randomizedtesting.RandomizedRunner;
 
 @RunWith(RandomizedRunner.class)
 public class FetchCollectorTest {

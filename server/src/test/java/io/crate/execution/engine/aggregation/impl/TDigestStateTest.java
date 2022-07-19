@@ -21,12 +21,13 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
-import io.crate.Streamer;
+import static org.junit.Assert.assertEquals;
+
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
+import io.crate.Streamer;
 
 public class TDigestStateTest {
 

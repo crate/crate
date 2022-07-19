@@ -21,6 +21,16 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+
+import java.math.BigDecimal;
+import java.util.List;
+
+import org.elasticsearch.Version;
+import org.junit.Test;
+
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.FunctionImplementation;
@@ -29,15 +39,7 @@ import io.crate.metadata.functions.Signature;
 import io.crate.operation.aggregation.AggregationTestCase;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-
 import io.crate.types.NumericType;
-import org.elasticsearch.Version;
-import org.junit.Test;
-
-import java.math.BigDecimal;
-import java.util.List;
-
-import static org.hamcrest.Matchers.is;
 
 public class SumAggregationTest extends AggregationTestCase {
 

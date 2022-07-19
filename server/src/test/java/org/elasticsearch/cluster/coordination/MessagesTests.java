@@ -18,15 +18,15 @@
  */
 package org.elasticsearch.cluster.coordination;
 
+import java.util.Optional;
+import java.util.Set;
+
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.EqualsHashCodeTestUtils;
 import org.elasticsearch.test.EqualsHashCodeTestUtils.CopyFunction;
-
-import java.util.Optional;
-import java.util.Set;
 
 public class MessagesTests extends ESTestCase {
 

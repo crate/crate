@@ -21,11 +21,6 @@
 
 package io.crate.integrationtests;
 
-import io.crate.exceptions.VersioningValidationException;
-import org.junit.Test;
-
-import java.io.IOException;
-
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
@@ -34,6 +29,14 @@ import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+
+import java.io.IOException;
+
+import org.junit.Test;
+
+import io.crate.exceptions.VersioningValidationException;
 
 public class VersionHandlingIntegrationTest extends SQLIntegrationTestCase {
 

@@ -21,18 +21,23 @@
 
 package io.crate.analyze;
 
-import io.crate.data.RowN;
-import io.crate.exceptions.ColumnUnknownException;
-import io.crate.metadata.FulltextAnalyzerResolver;
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.RelationName;
-import io.crate.planner.PlannerContext;
-import io.crate.planner.node.ddl.AlterTablePlan;
-import io.crate.planner.node.ddl.CreateTablePlan;
-import io.crate.planner.operators.SubQueryResults;
-import io.crate.sql.parser.ParsingException;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.SQLExecutor;
+import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.ANALYZER;
+import static io.crate.testing.TestingHelpers.mapToSortedString;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.hasKey;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+
+import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
@@ -46,18 +51,18 @@ import org.elasticsearch.test.ClusterServiceUtils;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.IOException;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-
-import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.ANALYZER;
-import static io.crate.testing.TestingHelpers.mapToSortedString;
-import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.hasKey;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
+import io.crate.data.RowN;
+import io.crate.exceptions.ColumnUnknownException;
+import io.crate.metadata.FulltextAnalyzerResolver;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
+import io.crate.planner.PlannerContext;
+import io.crate.planner.node.ddl.AlterTablePlan;
+import io.crate.planner.node.ddl.CreateTablePlan;
+import io.crate.planner.operators.SubQueryResults;
+import io.crate.sql.parser.ParsingException;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
 
 public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 

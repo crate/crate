@@ -19,6 +19,18 @@
 
 package org.elasticsearch.transport;
 
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.core.IsInstanceOf.instanceOf;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
+import java.io.IOException;
+import java.io.StreamCorruptedException;
+import java.net.InetSocketAddress;
+import java.util.Collections;
+
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
@@ -30,14 +42,6 @@ import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.threadpool.TestThreadPool;
 import org.hamcrest.Matcher;
-
-import java.io.IOException;
-import java.io.StreamCorruptedException;
-import java.net.InetSocketAddress;
-import java.util.Collections;
-
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.core.IsInstanceOf.instanceOf;
 
 public class TcpTransportTest extends ESTestCase {
 

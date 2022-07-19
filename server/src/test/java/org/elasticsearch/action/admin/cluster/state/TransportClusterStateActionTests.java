@@ -25,6 +25,7 @@ import static org.elasticsearch.action.admin.cluster.state.TransportClusterState
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertThat;
 
 import java.util.List;
 

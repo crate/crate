@@ -21,9 +21,13 @@
 
 package io.crate.expression.reference.doc;
 
-import io.crate.exceptions.ArrayViaDocValuesUnsupportedException;
-import io.crate.execution.engine.fetch.ReaderContext;
-import io.crate.expression.reference.doc.lucene.IpColumnReference;
+import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
+
+import java.io.IOException;
+import java.net.InetAddress;
+
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.InetAddressPoint;
@@ -39,11 +43,9 @@ import org.elasticsearch.common.network.InetAddresses;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
-import java.io.IOException;
-import java.net.InetAddress;
-
-import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.core.Is.is;
+import io.crate.exceptions.ArrayViaDocValuesUnsupportedException;
+import io.crate.execution.engine.fetch.ReaderContext;
+import io.crate.expression.reference.doc.lucene.IpColumnReference;
 
 public class IpColumnReferenceTest extends DocLevelExpressionsTest {
 

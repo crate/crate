@@ -21,17 +21,18 @@
 
 package io.crate.replication.logical.action;
 
-import io.crate.metadata.RelationName;
-import io.crate.replication.logical.metadata.ConnectionInfo;
-import io.crate.replication.logical.metadata.Subscription;
-import org.elasticsearch.common.settings.Settings;
-import org.junit.Test;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
 import java.util.List;
 import java.util.Map;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import org.elasticsearch.common.settings.Settings;
+import org.junit.Test;
+
+import io.crate.metadata.RelationName;
+import io.crate.replication.logical.metadata.ConnectionInfo;
+import io.crate.replication.logical.metadata.Subscription;
 
 public class UpdateSubscriptionActionTest {
 

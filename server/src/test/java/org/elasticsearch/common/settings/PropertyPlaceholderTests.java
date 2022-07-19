@@ -21,13 +21,16 @@
 
 package org.elasticsearch.common.settings;
 
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
+
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
-
-import static org.hamcrest.Matchers.is;
 
 public class PropertyPlaceholderTests extends ESTestCase {
 

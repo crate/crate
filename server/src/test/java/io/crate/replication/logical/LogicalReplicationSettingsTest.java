@@ -21,7 +21,13 @@
 
 package io.crate.replication.logical;
 
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_CHANGE_BATCH_SIZE;
+import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_READ_POLL_DURATION;
+import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_RECOVERY_CHUNK_SIZE;
+import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_RECOVERY_MAX_CONCURRENT_FILE_CHUNKS;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Settings;
@@ -30,11 +36,7 @@ import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.test.ClusterServiceUtils;
 import org.junit.Test;
 
-import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_CHANGE_BATCH_SIZE;
-import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_READ_POLL_DURATION;
-import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_RECOVERY_CHUNK_SIZE;
-import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_RECOVERY_MAX_CONCURRENT_FILE_CHUNKS;
-import static org.hamcrest.Matchers.is;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 
 public class LogicalReplicationSettingsTest extends CrateDummyClusterServiceUnitTest {
 

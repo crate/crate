@@ -21,9 +21,9 @@
 
 package io.crate.protocols.postgres.types;
 
-import org.junit.Test;
-
 import java.nio.charset.StandardCharsets;
+
+import org.junit.Test;
 
 public class IntegerTypeTest extends BasePGTypeTest<Integer> {
 

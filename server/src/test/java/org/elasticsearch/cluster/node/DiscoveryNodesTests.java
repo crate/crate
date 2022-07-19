@@ -19,10 +19,16 @@
 
 package org.elasticsearch.cluster.node;
 
-import com.carrotsearch.randomizedtesting.generators.RandomPicks;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.transport.TransportAddress;
-import org.elasticsearch.test.ESTestCase;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -38,11 +44,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.nullValue;
+import org.elasticsearch.Version;
+import org.elasticsearch.common.transport.TransportAddress;
+import org.elasticsearch.test.ESTestCase;
+
+import com.carrotsearch.randomizedtesting.generators.RandomPicks;
 
 public class DiscoveryNodesTests extends ESTestCase {
 

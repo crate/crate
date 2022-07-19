@@ -21,16 +21,9 @@
 
 package io.crate.execution.engine.window;
 
-import com.carrotsearch.randomizedtesting.annotations.Repeat;
-import io.crate.common.collections.Lists2;
-import io.crate.data.Input;
-import io.crate.data.Row;
-import io.crate.execution.engine.collect.CollectExpression;
-import io.crate.execution.engine.sort.OrderingByPosition;
-import io.crate.metadata.functions.Signature;
-import org.elasticsearch.test.ESTestCase;
-import org.hamcrest.Matchers;
-import org.junit.Test;
+import static io.crate.execution.engine.window.WindowFunctionBatchIterator.sortAndComputeWindowFunctions;
+import static org.hamcrest.Matchers.contains;
+import static org.junit.Assert.assertThat;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -39,8 +32,18 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import static io.crate.execution.engine.window.WindowFunctionBatchIterator.sortAndComputeWindowFunctions;
-import static org.hamcrest.Matchers.contains;
+import org.elasticsearch.test.ESTestCase;
+import org.hamcrest.Matchers;
+import org.junit.Test;
+
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
+
+import io.crate.common.collections.Lists2;
+import io.crate.data.Input;
+import io.crate.data.Row;
+import io.crate.execution.engine.collect.CollectExpression;
+import io.crate.execution.engine.sort.OrderingByPosition;
+import io.crate.metadata.functions.Signature;
 
 public class WindowFunctionBatchIteratorTest extends ESTestCase {
 

@@ -19,11 +19,12 @@
 
 package org.elasticsearch.index.seqno;
 
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.common.Randomness;
-import org.elasticsearch.common.util.concurrent.AbstractRunnable;
-import org.elasticsearch.test.ESTestCase;
-import org.junit.Before;
+import static org.elasticsearch.index.seqno.LocalCheckpointTracker.BIT_SET_SIZE;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.isOneOf;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -36,9 +37,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import static org.elasticsearch.index.seqno.LocalCheckpointTracker.BIT_SET_SIZE;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.isOneOf;
+import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.common.Randomness;
+import org.elasticsearch.common.util.concurrent.AbstractRunnable;
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Before;
 
 public class LocalCheckpointTrackerTests extends ESTestCase {
 

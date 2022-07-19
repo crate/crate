@@ -21,10 +21,26 @@
 
 package io.crate.integrationtests;
 
-import io.crate.blob.BlobTransferStatus;
-import io.crate.blob.BlobTransferTarget;
-import io.crate.blob.v2.BlobAdminClient;
-import io.crate.test.utils.Blobs;
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
+
+import java.io.IOException;
+import java.lang.reflect.Field;
+import java.net.InetSocketAddress;
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+
 import org.apache.http.Header;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpDelete;
@@ -46,24 +62,10 @@ import org.elasticsearch.http.HttpServerTransport;
 import org.junit.After;
 import org.junit.Before;
 
-import java.io.IOException;
-import java.lang.reflect.Field;
-import java.net.InetSocketAddress;
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-
-import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.core.Is.is;
+import io.crate.blob.BlobTransferStatus;
+import io.crate.blob.BlobTransferTarget;
+import io.crate.blob.v2.BlobAdminClient;
+import io.crate.test.utils.Blobs;
 
 public abstract class BlobHttpIntegrationTest extends BlobIntegrationTestBase {
 

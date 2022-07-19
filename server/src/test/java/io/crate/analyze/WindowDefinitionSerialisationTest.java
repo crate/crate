@@ -21,19 +21,20 @@
 
 package io.crate.analyze;
 
-import io.crate.expression.symbol.Literal;
-import io.crate.sql.tree.FrameBound;
-import io.crate.sql.tree.WindowFrame;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.junit.Test;
-
-import java.io.IOException;
-
 import static java.util.Collections.singletonList;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
+
+import java.io.IOException;
+
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.junit.Test;
+
+import io.crate.expression.symbol.Literal;
+import io.crate.sql.tree.FrameBound;
+import io.crate.sql.tree.WindowFrame;
 
 public class WindowDefinitionSerialisationTest {
 

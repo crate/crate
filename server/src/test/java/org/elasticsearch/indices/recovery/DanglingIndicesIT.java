@@ -19,18 +19,21 @@
 
 package org.elasticsearch.indices.recovery;
 
-import io.crate.integrationtests.SQLIntegrationTestCase;
+import static org.elasticsearch.cluster.metadata.IndexGraveyard.SETTING_MAX_TOMBSTONES;
+import static org.elasticsearch.gateway.DanglingIndicesState.AUTO_IMPORT_DANGLING_INDICES_SETTING;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+
+import java.util.concurrent.TimeUnit;
+
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.elasticsearch.test.ESIntegTestCase.ClusterScope;
 import org.elasticsearch.test.InternalTestCluster;
 
-import java.util.concurrent.TimeUnit;
-
-import static org.elasticsearch.cluster.metadata.IndexGraveyard.SETTING_MAX_TOMBSTONES;
-import static org.elasticsearch.gateway.DanglingIndicesState.AUTO_IMPORT_DANGLING_INDICES_SETTING;
-import static org.hamcrest.Matchers.is;
+import io.crate.integrationtests.SQLIntegrationTestCase;
 
 @ClusterScope(numDataNodes = 0, scope = ESIntegTestCase.Scope.TEST)
 public class DanglingIndicesIT extends SQLIntegrationTestCase {

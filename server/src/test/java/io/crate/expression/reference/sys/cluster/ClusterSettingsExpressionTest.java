@@ -22,6 +22,8 @@
 package io.crate.expression.reference.sys.cluster;
 
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 import java.util.List;
 import java.util.concurrent.CountDownLatch;

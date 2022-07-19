@@ -21,12 +21,16 @@
 
 package io.crate.integrationtests;
 
-import io.crate.testing.SQLResponse;
-import org.junit.After;
-import org.junit.Test;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import org.junit.After;
+import org.junit.Test;
+
+import io.crate.testing.SQLResponse;
 
 public class SysJobsTest extends SQLIntegrationTestCase {
 

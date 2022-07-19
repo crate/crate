@@ -21,15 +21,17 @@
 
 package io.crate.user.scalar;
 
-import io.crate.user.User;
-import io.crate.expression.scalar.ScalarTestCase;
-import io.crate.expression.symbol.Symbol;
-import io.crate.testing.SqlExpressions;
+import static io.crate.testing.SymbolMatchers.isLiteral;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+
 import org.junit.Before;
 import org.junit.Test;
 
-import static io.crate.testing.SymbolMatchers.isLiteral;
-import static org.hamcrest.Matchers.is;
+import io.crate.expression.scalar.ScalarTestCase;
+import io.crate.expression.symbol.Symbol;
+import io.crate.testing.SqlExpressions;
+import io.crate.user.User;
 
 public class UserFunctionTest extends ScalarTestCase {
 

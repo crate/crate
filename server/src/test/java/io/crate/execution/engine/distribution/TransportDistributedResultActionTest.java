@@ -21,9 +21,26 @@
 
 package io.crate.execution.engine.distribution;
 
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
+
+import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.bulk.BackoffPolicy;
+import org.elasticsearch.transport.TransportService;
+import org.hamcrest.Matchers;
+import org.junit.Test;
+
 import io.crate.Streamer;
 import io.crate.action.FutureActionListener;
 import io.crate.breaker.RamAccounting;
+import io.crate.common.unit.TimeValue;
 import io.crate.exceptions.TaskMissing;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.execution.jobs.TasksService;
@@ -32,20 +49,6 @@ import io.crate.execution.jobs.kill.KillResponse;
 import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
 import io.crate.execution.support.Transports;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.bulk.BackoffPolicy;
-import io.crate.common.unit.TimeValue;
-import org.elasticsearch.transport.TransportService;
-import org.hamcrest.Matchers;
-import org.junit.Test;
-
-import java.util.UUID;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import static org.hamcrest.Matchers.is;
-import static org.mockito.Mockito.mock;
 
 public class TransportDistributedResultActionTest extends CrateDummyClusterServiceUnitTest {
 

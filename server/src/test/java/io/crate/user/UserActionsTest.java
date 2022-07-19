@@ -21,6 +21,18 @@
 
 package io.crate.user;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+
+import java.util.Map;
+
+import org.elasticsearch.common.settings.SecureString;
+import org.elasticsearch.test.ESTestCase;
+import org.hamcrest.Matchers;
+import org.junit.Test;
+
 import io.crate.data.Row;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
@@ -29,13 +41,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.sql.tree.GenericProperties;
-import org.elasticsearch.test.ESTestCase;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.settings.SecureString;
-import org.hamcrest.Matchers;
-import org.junit.Test;
-
-import java.util.Map;
 
 public class UserActionsTest extends ESTestCase {
 

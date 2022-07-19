@@ -21,12 +21,13 @@
 
 package io.crate.expression.scalar.arithmetic;
 
-import io.crate.exceptions.ConversionException;
-import io.crate.expression.scalar.ScalarTestCase;
-import org.junit.Test;
-
 import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
+
+import org.junit.Test;
+
+import io.crate.exceptions.ConversionException;
+import io.crate.expression.scalar.ScalarTestCase;
 
 public class Ignore3vlFunctionTest extends ScalarTestCase {
 

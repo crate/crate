@@ -21,26 +21,29 @@
 
 package io.crate.protocols.postgres;
 
+import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.Collections;
+
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
+
 import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.protocols.postgres.types.PGTypes;
-import org.elasticsearch.test.ESTestCase;
 import io.crate.types.DataTypes;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.embedded.EmbeddedChannel;
-import org.junit.Test;
-
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.Collections;
-
-import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
-import static org.hamcrest.core.Is.is;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class MessagesTest extends ESTestCase {
 

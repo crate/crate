@@ -21,12 +21,6 @@
 
 package io.crate.integrationtests;
 
-import io.crate.testing.SQLResponse;
-import io.crate.testing.TestingHelpers;
-import org.elasticsearch.test.ESIntegTestCase;
-import org.junit.After;
-import org.junit.Test;
-
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
@@ -35,6 +29,14 @@ import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED;
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
+
+import org.elasticsearch.test.ESIntegTestCase;
+import org.junit.After;
+import org.junit.Test;
+
+import io.crate.testing.SQLResponse;
+import io.crate.testing.TestingHelpers;
 
 @ESIntegTestCase.ClusterScope(minNumDataNodes = 2)
 public class UserManagementIntegrationTest extends BaseUsersIntegrationTest {

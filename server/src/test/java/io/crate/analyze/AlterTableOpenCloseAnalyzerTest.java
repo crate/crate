@@ -21,13 +21,14 @@
 
 package io.crate.analyze;
 
-import io.crate.exceptions.OperationOnInaccessibleRelationException;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.SQLExecutor;
+import java.io.IOException;
+
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.IOException;
+import io.crate.exceptions.OperationOnInaccessibleRelationException;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
 
 public class AlterTableOpenCloseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 

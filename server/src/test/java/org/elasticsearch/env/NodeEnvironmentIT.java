@@ -19,7 +19,13 @@
 
 package org.elasticsearch.env;
 
-import io.crate.integrationtests.SQLIntegrationTestCase;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.endsWith;
+import static org.hamcrest.Matchers.startsWith;
+import static org.junit.Assert.assertThat;
+
+import java.nio.file.Path;
+
 import org.elasticsearch.Version;
 import org.elasticsearch.common.CheckedConsumer;
 import org.elasticsearch.common.settings.Settings;
@@ -28,11 +34,7 @@ import org.elasticsearch.test.ESIntegTestCase;
 import org.elasticsearch.test.InternalTestCluster;
 import org.junit.Test;
 
-import java.nio.file.Path;
-
-import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.endsWith;
-import static org.hamcrest.Matchers.startsWith;
+import io.crate.integrationtests.SQLIntegrationTestCase;
 
 @ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.TEST, numDataNodes = 0)
 public class NodeEnvironmentIT extends SQLIntegrationTestCase {

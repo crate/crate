@@ -21,17 +21,18 @@
 
 package io.crate.integrationtests;
 
-import org.apache.lucene.tests.util.TestUtil;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.env.Environment;
-import org.elasticsearch.test.ESIntegTestCase;
-import org.junit.Test;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
 
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-import static org.hamcrest.core.Is.is;
+import org.apache.lucene.tests.util.TestUtil;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.env.Environment;
+import org.elasticsearch.test.ESIntegTestCase;
+import org.junit.Test;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 0, numClientNodes = 0)
 public class TablesNeedUpgradeSysCheckTest extends SQLIntegrationTestCase {

@@ -21,6 +21,20 @@
 
 package io.crate.execution.engine.sort;
 
+import static io.crate.testing.TestingHelpers.isRow;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
+
+import java.util.List;
+
+import org.apache.logging.log4j.LogManager;
+import org.elasticsearch.common.breaker.CircuitBreakingException;
+import org.elasticsearch.common.breaker.MemoryCircuitBreaker;
+import org.elasticsearch.common.unit.ByteSizeUnit;
+import org.elasticsearch.common.unit.ByteSizeValue;
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
+
 import io.crate.breaker.ConcurrentRamAccounting;
 import io.crate.breaker.RowAccounting;
 import io.crate.breaker.RowCellsAccountingWithEstimators;
@@ -31,21 +45,9 @@ import io.crate.data.Row;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.InputCollectExpression;
 import io.crate.expression.symbol.Literal;
-import org.elasticsearch.test.ESTestCase;
 import io.crate.testing.TestingBatchIterators;
 import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
-import org.apache.logging.log4j.LogManager;
-import org.elasticsearch.common.breaker.CircuitBreakingException;
-import org.elasticsearch.common.breaker.MemoryCircuitBreaker;
-import org.elasticsearch.common.unit.ByteSizeUnit;
-import org.elasticsearch.common.unit.ByteSizeValue;
-import org.junit.Test;
-
-import java.util.List;
-
-import static io.crate.testing.TestingHelpers.isRow;
-import static org.hamcrest.core.Is.is;
 
 public class SortingProjectorTest extends ESTestCase {
 

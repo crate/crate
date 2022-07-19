@@ -21,6 +21,9 @@
 
 package io.crate.metadata.blob;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+
 import java.util.Collections;
 
 import org.elasticsearch.Version;

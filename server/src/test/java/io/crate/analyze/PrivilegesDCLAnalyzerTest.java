@@ -21,20 +21,6 @@
 
 package io.crate.analyze;
 
-import io.crate.action.sql.SessionContext;
-import io.crate.user.Privilege;
-import io.crate.user.User;
-import io.crate.user.UserManager;
-import io.crate.exceptions.RelationUnknown;
-import io.crate.exceptions.UnsupportedFeatureException;
-import io.crate.metadata.RelationName;
-import io.crate.sql.parser.SqlParser;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.SQLExecutor;
-import io.crate.user.StubUserManager;
-import org.junit.Before;
-import org.junit.Test;
-
 import static io.crate.user.Privilege.Clazz.CLUSTER;
 import static io.crate.user.Privilege.Clazz.SCHEMA;
 import static io.crate.user.Privilege.Clazz.TABLE;
@@ -49,6 +35,22 @@ import static io.crate.user.Privilege.Type.DQL;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.junit.Assert.assertThat;
+
+import org.junit.Before;
+import org.junit.Test;
+
+import io.crate.action.sql.SessionContext;
+import io.crate.exceptions.RelationUnknown;
+import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.metadata.RelationName;
+import io.crate.sql.parser.SqlParser;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
+import io.crate.user.Privilege;
+import io.crate.user.StubUserManager;
+import io.crate.user.User;
+import io.crate.user.UserManager;
 
 public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 

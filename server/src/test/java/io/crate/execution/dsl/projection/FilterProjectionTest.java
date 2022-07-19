@@ -21,6 +21,8 @@
 
 package io.crate.execution.dsl.projection;
 
+import static org.junit.Assert.assertEquals;
+
 import java.util.Collections;
 import java.util.List;
 

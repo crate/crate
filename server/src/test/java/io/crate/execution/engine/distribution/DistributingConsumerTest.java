@@ -21,31 +21,13 @@
 
 package io.crate.execution.engine.distribution;
 
-import io.crate.Streamer;
-import io.crate.action.FutureActionListener;
-import io.crate.breaker.RamAccounting;
-import io.crate.data.CollectionBucket;
-import io.crate.data.Row;
-import io.crate.execution.engine.distribution.merge.PassThroughPagingIterator;
-import io.crate.execution.jobs.CumulativePageBucketReceiver;
-import io.crate.execution.jobs.DistResultRXTask;
-import io.crate.execution.jobs.PageBucketReceiver;
-import org.elasticsearch.test.ESTestCase;
-
-import io.crate.execution.support.NodeRequest;
-import io.crate.testing.BatchSimulatingIterator;
-import io.crate.testing.FailingBatchIterator;
-import io.crate.testing.TestingBatchIterators;
-import io.crate.testing.TestingHelpers;
-import io.crate.testing.TestingRowConsumer;
-import io.crate.types.DataTypes;
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.common.breaker.CircuitBreakingException;
-import org.hamcrest.Matchers;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.invocation.InvocationOnMock;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 import java.util.Collections;
 import java.util.List;
@@ -56,12 +38,31 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import static org.hamcrest.Matchers.is;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
+import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.common.breaker.CircuitBreakingException;
+import org.elasticsearch.test.ESTestCase;
+import org.hamcrest.Matchers;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.invocation.InvocationOnMock;
+
+import io.crate.Streamer;
+import io.crate.action.FutureActionListener;
+import io.crate.breaker.RamAccounting;
+import io.crate.data.CollectionBucket;
+import io.crate.data.Row;
+import io.crate.execution.engine.distribution.merge.PassThroughPagingIterator;
+import io.crate.execution.jobs.CumulativePageBucketReceiver;
+import io.crate.execution.jobs.DistResultRXTask;
+import io.crate.execution.jobs.PageBucketReceiver;
+import io.crate.execution.support.NodeRequest;
+import io.crate.testing.BatchSimulatingIterator;
+import io.crate.testing.FailingBatchIterator;
+import io.crate.testing.TestingBatchIterators;
+import io.crate.testing.TestingHelpers;
+import io.crate.testing.TestingRowConsumer;
+import io.crate.types.DataTypes;
 
 public class DistributingConsumerTest extends ESTestCase {
 

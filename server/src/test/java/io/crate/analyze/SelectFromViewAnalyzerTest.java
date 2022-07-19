@@ -21,19 +21,21 @@
 
 package io.crate.analyze;
 
-import io.crate.analyze.relations.AnalyzedView;
-import io.crate.metadata.RelationName;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.SQLExecutor;
-import org.hamcrest.Matchers;
-import org.junit.Before;
-import org.junit.Test;
-
 import static io.crate.testing.RelationMatchers.isDocTable;
 import static io.crate.testing.SymbolMatchers.isField;
 import static io.crate.testing.SymbolMatchers.isReference;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.instanceOf;
+import static org.junit.Assert.assertThat;
+
+import org.hamcrest.Matchers;
+import org.junit.Before;
+import org.junit.Test;
+
+import io.crate.analyze.relations.AnalyzedView;
+import io.crate.metadata.RelationName;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
 
 public class SelectFromViewAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 

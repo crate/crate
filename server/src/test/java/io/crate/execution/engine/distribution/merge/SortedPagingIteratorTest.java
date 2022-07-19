@@ -21,21 +21,23 @@
 
 package io.crate.execution.engine.distribution.merge;
 
-import io.crate.common.collections.Lists2;
-import io.crate.data.ArrayBucket;
-import io.crate.data.Bucket;
-import io.crate.data.Row;
-import io.crate.execution.engine.sort.OrderingByPosition;
-import org.elasticsearch.test.ESTestCase;
-import io.crate.testing.TestingHelpers;
-import org.junit.Test;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
 
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 
-import static org.hamcrest.core.Is.is;
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
+
+import io.crate.common.collections.Lists2;
+import io.crate.data.ArrayBucket;
+import io.crate.data.Bucket;
+import io.crate.data.Row;
+import io.crate.execution.engine.sort.OrderingByPosition;
+import io.crate.testing.TestingHelpers;
 
 public class SortedPagingIteratorTest extends ESTestCase {
 

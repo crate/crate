@@ -21,10 +21,12 @@
 
 package io.crate.integrationtests;
 
-import org.hamcrest.Matchers;
-import org.junit.Test;
+import static org.junit.Assert.assertThat;
 
 import java.util.List;
+
+import org.hamcrest.Matchers;
+import org.junit.Test;
 
 public class ArrayMapperITest extends SQLIntegrationTestCase {
 

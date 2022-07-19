@@ -21,17 +21,18 @@
 
 package io.crate.action.sql.parser;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 
-import org.elasticsearch.test.ESTestCase;
+import java.util.List;
+
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
-
-import java.util.List;
-
-import static org.hamcrest.CoreMatchers.is;
 
 public class SQLBulkArgsParseElementTest extends ESTestCase {
 

@@ -23,6 +23,8 @@ package io.crate.integrationtests;
 
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 import java.util.Iterator;
 

@@ -21,11 +21,12 @@
 
 package io.crate.expression.tablefunctions;
 
-import io.crate.metadata.Scalar;
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.junit.Test;
+
+import io.crate.metadata.Scalar;
 
 
 public class MatchesFunctionTest extends AbstractTableFunctionsTest {

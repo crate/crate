@@ -18,7 +18,13 @@
  */
 package org.elasticsearch.indices;
 
-import io.crate.integrationtests.SQLIntegrationTestCase;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Optional;
+
 import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexSettings;
@@ -30,11 +36,7 @@ import org.elasticsearch.plugins.EnginePlugin;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.ESIntegTestCase;
 
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Optional;
-
-import static org.hamcrest.Matchers.is;
+import io.crate.integrationtests.SQLIntegrationTestCase;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 1)
 public class IndexingMemoryControllerIT extends SQLIntegrationTestCase {

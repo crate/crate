@@ -21,12 +21,8 @@
 
 package io.crate.action.sql;
 
-import io.crate.data.Row;
-import io.crate.testing.BatchSimulatingIterator;
-import io.crate.testing.FailingBatchIterator;
-import io.crate.testing.TestingBatchIterators;
-import org.hamcrest.Matchers;
-import org.junit.Test;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,8 +30,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
+import org.hamcrest.Matchers;
+import org.junit.Test;
+
+import io.crate.data.Row;
+import io.crate.testing.BatchSimulatingIterator;
+import io.crate.testing.FailingBatchIterator;
+import io.crate.testing.TestingBatchIterators;
 
 public class RowConsumerToResultReceiverTest {
 

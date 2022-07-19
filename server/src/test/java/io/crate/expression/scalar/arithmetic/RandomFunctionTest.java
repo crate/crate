@@ -21,22 +21,24 @@
 
 package io.crate.expression.scalar.arithmetic;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.lessThan;
+import static org.hamcrest.Matchers.sameInstance;
+import static org.junit.Assert.assertThat;
+
+import java.util.Collections;
+
+import org.junit.Before;
+import org.junit.Test;
+
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.expression.symbol.Function;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.TransactionContext;
 import io.crate.types.DataTypes;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.util.Collections;
-
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.Matchers.lessThan;
-import static org.hamcrest.Matchers.sameInstance;
 
 
 public class RandomFunctionTest extends ScalarTestCase {

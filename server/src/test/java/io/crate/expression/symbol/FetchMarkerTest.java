@@ -21,18 +21,19 @@
 
 package io.crate.expression.symbol;
 
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.RelationName;
-import io.crate.types.DataTypes;
+import static io.crate.testing.SymbolMatchers.isReference;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+
+import java.util.List;
+
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
 
-import java.util.List;
-
-import static io.crate.testing.SymbolMatchers.isReference;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.RelationName;
+import io.crate.types.DataTypes;
 
 public class FetchMarkerTest {
 

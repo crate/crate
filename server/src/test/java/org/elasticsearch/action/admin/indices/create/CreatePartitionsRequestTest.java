@@ -21,15 +21,15 @@
 
 package org.elasticsearch.action.admin.indices.create;
 
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.junit.Test;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.is;
 
 import java.util.Arrays;
 import java.util.UUID;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.is;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.junit.Test;
 
 
 public class CreatePartitionsRequestTest {

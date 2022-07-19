@@ -22,6 +22,7 @@
 package io.crate.execution.dml.upsert;
 
 import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertThat;
 
 import java.util.List;
 import java.util.UUID;
@@ -38,12 +39,12 @@ import io.crate.common.unit.TimeValue;
 import io.crate.execution.dml.upsert.ShardUpsertRequest.DuplicateKeyAction;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.SimpleReference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.SearchPath;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.types.DataTypes;
 

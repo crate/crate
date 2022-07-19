@@ -18,13 +18,6 @@
  */
 package org.elasticsearch.cluster.coordination;
 
-import com.carrotsearch.hppc.LongObjectHashMap;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.apache.lucene.util.FixedBitSet;
-import org.elasticsearch.common.Strings;
-import io.crate.common.collections.Tuple;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -42,6 +35,15 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.Function;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.lucene.util.FixedBitSet;
+import org.elasticsearch.common.Strings;
+
+import com.carrotsearch.hppc.LongObjectHashMap;
+
+import io.crate.common.collections.Tuple;
 
 /**
  * Basic implementation of the Wing and Gong Graph Search Algorithm, following the descriptions in

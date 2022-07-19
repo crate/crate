@@ -21,11 +21,14 @@
 
 package io.crate.analyze;
 
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.SQLExecutor;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
+
+import org.junit.Test;
+
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
 
 public class CreateTableAsAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 

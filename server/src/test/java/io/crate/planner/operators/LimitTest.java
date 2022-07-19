@@ -21,7 +21,17 @@
 
 package io.crate.planner.operators;
 
+import static io.crate.planner.operators.LogicalPlannerTest.isPlan;
+import static org.hamcrest.Matchers.contains;
+import static org.junit.Assert.assertThat;
+
+import java.util.List;
+import java.util.Set;
+
+import org.junit.Test;
+
 import com.carrotsearch.randomizedtesting.RandomizedTest;
+
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.TableDefinitions;
 import io.crate.analyze.WhereClause;
@@ -36,13 +46,6 @@ import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.ProjectionMatchers;
 import io.crate.testing.SQLExecutor;
-import org.junit.Test;
-
-import java.util.List;
-import java.util.Set;
-
-import static io.crate.planner.operators.LogicalPlannerTest.isPlan;
-import static org.hamcrest.Matchers.contains;
 
 public class LimitTest extends CrateDummyClusterServiceUnitTest {
 

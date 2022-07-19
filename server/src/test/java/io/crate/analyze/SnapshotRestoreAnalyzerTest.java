@@ -21,6 +21,36 @@
 
 package io.crate.analyze;
 
+import static io.crate.analyze.RestoreSnapshotAnalyzer.METADATA_CUSTOM_TYPE_MAP;
+import static io.crate.analyze.TableDefinitions.TEST_DOC_LOCATIONS_TABLE_DEFINITION;
+import static io.crate.analyze.TableDefinitions.TEST_PARTITIONED_TABLE_DEFINITION;
+import static io.crate.analyze.TableDefinitions.TEST_PARTITIONED_TABLE_PARTITIONS;
+import static io.crate.analyze.TableDefinitions.USER_TABLE_DEFINITION;
+import static io.crate.testing.Asserts.assertThrowsMatches;
+import static org.hamcrest.Matchers.arrayContaining;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.hasEntry;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.collection.ArrayMatching.arrayContainingInAnyOrder;
+import static org.junit.Assert.assertThat;
+
+import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
+
+import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotRequest;
+import org.elasticsearch.cluster.ClusterName;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.RepositoriesMetadata;
+import org.elasticsearch.cluster.metadata.RepositoryMetadata;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.test.ClusterServiceUtils;
+import org.junit.Before;
+import org.junit.Test;
+
 import io.crate.data.Row;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.PartitionAlreadyExistsException;
@@ -39,34 +69,6 @@ import io.crate.planner.node.ddl.RestoreSnapshotPlan;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotRequest;
-import org.elasticsearch.cluster.ClusterName;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.metadata.RepositoriesMetadata;
-import org.elasticsearch.cluster.metadata.RepositoryMetadata;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.test.ClusterServiceUtils;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.io.IOException;
-import java.util.Collections;
-import java.util.List;
-
-import static io.crate.analyze.RestoreSnapshotAnalyzer.METADATA_CUSTOM_TYPE_MAP;
-import static io.crate.analyze.TableDefinitions.TEST_DOC_LOCATIONS_TABLE_DEFINITION;
-import static io.crate.analyze.TableDefinitions.TEST_PARTITIONED_TABLE_DEFINITION;
-import static io.crate.analyze.TableDefinitions.TEST_PARTITIONED_TABLE_PARTITIONS;
-import static io.crate.analyze.TableDefinitions.USER_TABLE_DEFINITION;
-import static io.crate.testing.Asserts.assertThrowsMatches;
-import static org.hamcrest.Matchers.arrayContaining;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.hasEntry;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.collection.ArrayMatching.arrayContainingInAnyOrder;
 
 public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 

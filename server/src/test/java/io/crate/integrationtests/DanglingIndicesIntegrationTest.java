@@ -21,11 +21,12 @@
 
 package io.crate.integrationtests;
 
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
+
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
-
-import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 1)
 public class DanglingIndicesIntegrationTest extends SQLIntegrationTestCase {

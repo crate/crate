@@ -21,11 +21,11 @@
 
 package io.crate.analyze;
 
-import org.elasticsearch.test.ESTestCase;
-import org.junit.Test;
-
 import java.util.HashMap;
 import java.util.Map;
+
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
 
 public class MatchOptionsAnalyzedStatementTest extends ESTestCase {
 

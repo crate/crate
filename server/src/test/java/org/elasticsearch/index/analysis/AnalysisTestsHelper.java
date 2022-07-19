@@ -19,6 +19,10 @@
 
 package org.elasticsearch.index.analysis;
 
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.Arrays;
+
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Settings;
@@ -28,10 +32,6 @@ import org.elasticsearch.indices.analysis.AnalysisModule;
 import org.elasticsearch.plugins.AnalysisPlugin;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.IndexSettingsModule;
-
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.Arrays;
 
 public class AnalysisTestsHelper {
 

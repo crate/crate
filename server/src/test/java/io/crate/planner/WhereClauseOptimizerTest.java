@@ -21,6 +21,17 @@
 
 package io.crate.planner;
 
+import static io.crate.testing.SymbolMatchers.isLiteral;
+import static io.crate.testing.TestingHelpers.isDocKey;
+import static java.util.Collections.singletonList;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+
+import org.junit.Before;
+import org.junit.Test;
+
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.expression.eval.EvaluatingNormalizer;
@@ -29,15 +40,6 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.junit.Before;
-import org.junit.Test;
-
-import static io.crate.testing.SymbolMatchers.isLiteral;
-import static io.crate.testing.TestingHelpers.isDocKey;
-import static java.util.Collections.singletonList;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.is;
 
 public class WhereClauseOptimizerTest extends CrateDummyClusterServiceUnitTest {
 

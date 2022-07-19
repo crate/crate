@@ -21,17 +21,19 @@
 
 package io.crate.expression.scalar.geo;
 
+import static io.crate.expression.scalar.geo.AreaFunction.getArea;
+import static io.crate.testing.SymbolMatchers.isLiteral;
+import static org.junit.Assert.assertEquals;
+
+import java.util.Map;
+
+import org.junit.Test;
+import org.locationtech.spatial4j.shape.Shape;
+
 import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.expression.symbol.Literal;
 import io.crate.geo.GeoJSONUtils;
 import io.crate.types.DataTypes;
-import org.junit.Test;
-import org.locationtech.spatial4j.shape.Shape;
-
-import java.util.Map;
-
-import static io.crate.expression.scalar.geo.AreaFunction.getArea;
-import static io.crate.testing.SymbolMatchers.isLiteral;
 
 /**
  * Tests for {@link AreaFunction}.

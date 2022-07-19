@@ -21,15 +21,17 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
-import io.crate.expression.symbol.Literal;
-import io.crate.operation.aggregation.AggregationTestCase;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+
+import java.util.List;
+
 import org.elasticsearch.Version;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
-import java.util.List;
-
-import static org.hamcrest.Matchers.is;
+import io.crate.expression.symbol.Literal;
+import io.crate.operation.aggregation.AggregationTestCase;
 
 public class StringAggTest extends AggregationTestCase {
 

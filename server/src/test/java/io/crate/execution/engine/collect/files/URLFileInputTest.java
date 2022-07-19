@@ -21,13 +21,13 @@
 
 package io.crate.execution.engine.collect.files;
 
-import org.elasticsearch.test.ESTestCase;
-import org.junit.Test;
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Path;
+
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
 
 public class URLFileInputTest extends ESTestCase {
 

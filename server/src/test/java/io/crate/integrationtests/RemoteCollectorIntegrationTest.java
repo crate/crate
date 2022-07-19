@@ -22,6 +22,7 @@
 package io.crate.integrationtests;
 
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;

@@ -21,15 +21,17 @@
 
 package io.crate.window;
 
-import io.crate.integrationtests.SQLIntegrationTestCase;
-import org.elasticsearch.plugins.Plugin;
-import org.junit.Test;
+import static io.crate.testing.TestingHelpers.printedTable;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
 import java.util.ArrayList;
 import java.util.Collection;
 
-import static io.crate.testing.TestingHelpers.printedTable;
-import static org.hamcrest.Matchers.is;
+import org.elasticsearch.plugins.Plugin;
+import org.junit.Test;
+
+import io.crate.integrationtests.SQLIntegrationTestCase;
 
 public class NthValueFunctionIntegrationTest extends SQLIntegrationTestCase {
 

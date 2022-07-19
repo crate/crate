@@ -21,18 +21,19 @@
 
 package io.crate.metadata.cluster;
 
-import io.crate.Constants;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
-import org.elasticsearch.common.Strings;
-import io.crate.common.collections.MapBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
-import org.junit.Test;
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
 
 import java.util.List;
 import java.util.Map;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
+import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.xcontent.XContentFactory;
+import org.junit.Test;
+
+import io.crate.Constants;
+import io.crate.common.collections.MapBuilder;
 
 public class DDLClusterStateHelpersTest {
 

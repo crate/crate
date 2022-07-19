@@ -21,10 +21,11 @@
 
 package io.crate.expression.scalar.conditional;
 
+import org.junit.Test;
+
 import io.crate.exceptions.ConversionException;
 import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.expression.symbol.Literal;
-import org.junit.Test;
 
 public class ConditionalFunctionTest extends ScalarTestCase {
 

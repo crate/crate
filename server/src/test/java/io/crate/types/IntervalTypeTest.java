@@ -21,13 +21,13 @@
 
 package io.crate.types;
 
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.hamcrest.Matchers;
 import org.joda.time.Period;
 import org.junit.Test;
-
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
 public class IntervalTypeTest {
 

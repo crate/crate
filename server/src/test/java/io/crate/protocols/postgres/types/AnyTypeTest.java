@@ -21,10 +21,12 @@
 
 package io.crate.protocols.postgres.types;
 
-import org.hamcrest.Matchers;
-import org.junit.Test;
+import static org.junit.Assert.assertThat;
 
 import java.nio.charset.StandardCharsets;
+
+import org.hamcrest.Matchers;
+import org.junit.Test;
 
 public class AnyTypeTest extends BasePGTypeTest<Integer> {
 

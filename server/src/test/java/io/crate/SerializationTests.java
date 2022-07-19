@@ -21,16 +21,19 @@
 
 package io.crate;
 
-import io.crate.blob.PutChunkReplicaRequest;
-import org.elasticsearch.test.ESTestCase;
+import static org.junit.Assert.assertEquals;
+
+import java.util.UUID;
+
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
-import java.util.UUID;
+import io.crate.blob.PutChunkReplicaRequest;
 
 public class SerializationTests extends ESTestCase {
 

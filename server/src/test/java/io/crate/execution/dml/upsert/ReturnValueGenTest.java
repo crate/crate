@@ -21,6 +21,14 @@
 
 package io.crate.execution.dml.upsert;
 
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
+
+import java.io.IOException;
+import java.util.Map;
+
+import org.junit.Test;
+
 import io.crate.analyze.AnalyzedUpdateStatement;
 import io.crate.expression.reference.Doc;
 import io.crate.expression.symbol.Symbol;
@@ -29,12 +37,6 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.junit.Test;
-
-import java.io.IOException;
-import java.util.Map;
-
-import static org.hamcrest.core.Is.is;
 
 public class ReturnValueGenTest extends CrateDummyClusterServiceUnitTest {
 

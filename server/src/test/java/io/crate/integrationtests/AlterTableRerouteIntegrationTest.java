@@ -21,11 +21,13 @@
 
 package io.crate.integrationtests;
 
-import io.crate.testing.UseRandomizedSchema;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
+
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
 
-import static org.hamcrest.core.Is.is;
+import io.crate.testing.UseRandomizedSchema;
 
 // ensure that only data nodes are picked for rerouting
 @ESIntegTestCase.ClusterScope(supportsDedicatedMasters = false, numDataNodes = 2, numClientNodes = 0)

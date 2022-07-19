@@ -21,7 +21,6 @@
 
 package org.elasticsearch.common.settings;
 
-
 public class SettingsUtil {
 
     public static void resetDeprecationLogger() {

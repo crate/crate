@@ -26,6 +26,7 @@ import static io.crate.integrationtests.CopyIntegrationTest.tmpFileWithLines;
 import static io.crate.testing.Asserts.assertThrowsMatches;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThan;
+import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.nio.file.Files;

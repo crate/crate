@@ -22,6 +22,7 @@
 package io.crate.execution.dml.upsert;
 
 import static org.hamcrest.Matchers.contains;
+import static org.junit.Assert.assertThat;
 
 import java.util.Collections;
 import java.util.List;

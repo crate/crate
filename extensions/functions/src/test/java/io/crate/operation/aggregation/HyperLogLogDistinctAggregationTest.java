@@ -23,6 +23,8 @@ package io.crate.operation.aggregation;
 
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 
 import java.util.List;
 import java.util.function.Function;

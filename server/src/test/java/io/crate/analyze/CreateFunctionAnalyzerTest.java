@@ -21,19 +21,21 @@
 
 package io.crate.analyze;
 
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+
+import org.junit.Before;
+import org.junit.Test;
+
 import io.crate.action.sql.SessionContext;
-import io.crate.user.User;
 import io.crate.expression.symbol.Literal;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
-import org.junit.Before;
-import org.junit.Test;
-
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
+import io.crate.user.User;
 
 public class CreateFunctionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 

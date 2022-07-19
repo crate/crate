@@ -18,10 +18,10 @@
  */
 package org.elasticsearch.cluster.coordination;
 
+import java.util.function.Supplier;
+
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.service.ClusterApplier;
-
-import java.util.function.Supplier;
 
 public class NoOpClusterApplier implements ClusterApplier {
     @Override

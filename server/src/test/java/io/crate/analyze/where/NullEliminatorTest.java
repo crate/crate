@@ -22,6 +22,7 @@
 package io.crate.analyze.where;
 
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
 import java.util.function.Function;
 

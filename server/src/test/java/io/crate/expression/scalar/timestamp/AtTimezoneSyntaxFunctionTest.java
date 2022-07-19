@@ -21,12 +21,14 @@
 
 package io.crate.expression.scalar.timestamp;
 
+import static org.junit.Assert.assertEquals;
+
+import org.junit.Test;
+
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.FunctionCall;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.StringLiteral;
-import org.junit.Test;
-import static org.junit.Assert.assertEquals;
 
 public class AtTimezoneSyntaxFunctionTest {
 

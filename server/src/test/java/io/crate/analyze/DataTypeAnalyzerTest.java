@@ -21,15 +21,16 @@
 
 package io.crate.analyze;
 
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+
+import org.junit.Test;
+
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Cast;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.junit.Test;
-
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
 public class DataTypeAnalyzerTest {
 

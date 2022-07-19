@@ -21,15 +21,16 @@
 
 package io.crate.expression.scalar;
 
-import io.crate.expression.symbol.Literal;
-import io.crate.types.ArrayType;
-import io.crate.types.DataTypes;
-import org.junit.Test;
+import static io.crate.testing.SymbolMatchers.isFunction;
+import static io.crate.testing.SymbolMatchers.isLiteral;
 
 import java.util.Arrays;
 
-import static io.crate.testing.SymbolMatchers.isFunction;
-import static io.crate.testing.SymbolMatchers.isLiteral;
+import org.junit.Test;
+
+import io.crate.expression.symbol.Literal;
+import io.crate.types.ArrayType;
+import io.crate.types.DataTypes;
 
 public class ArrayCatFunctionTest extends ScalarTestCase {
 

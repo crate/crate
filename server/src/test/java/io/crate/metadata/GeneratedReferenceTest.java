@@ -21,6 +21,19 @@
 
 package io.crate.metadata;
 
+import static io.crate.testing.T3.T1;
+import static io.crate.testing.T3.T1_DEFINITION;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+
+import java.util.Collections;
+import java.util.List;
+
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.junit.Before;
+import org.junit.Test;
+
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.doc.DocTableInfo;
@@ -28,17 +41,6 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.SqlExpressions;
 import io.crate.types.StringType;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.util.Collections;
-import java.util.List;
-
-import static io.crate.testing.T3.T1_DEFINITION;
-import static io.crate.testing.T3.T1;
-import static org.hamcrest.Matchers.is;
 
 public class GeneratedReferenceTest extends CrateDummyClusterServiceUnitTest {
 

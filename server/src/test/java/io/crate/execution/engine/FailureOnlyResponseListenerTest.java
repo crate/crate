@@ -21,13 +21,16 @@
 
 package io.crate.execution.engine;
 
-import io.crate.exceptions.JobKilledException;
+import static org.junit.Assert.assertThat;
+
+import java.util.Collections;
+import java.util.concurrent.TimeUnit;
+
 import org.elasticsearch.test.ESTestCase;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
-import java.util.Collections;
-import java.util.concurrent.TimeUnit;
+import io.crate.exceptions.JobKilledException;
 
 public class FailureOnlyResponseListenerTest extends ESTestCase {
 

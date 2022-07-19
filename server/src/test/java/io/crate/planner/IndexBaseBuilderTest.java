@@ -21,14 +21,16 @@
 
 package io.crate.planner;
 
-import com.carrotsearch.hppc.IntArrayList;
-import io.crate.planner.fetch.IndexBaseBuilder;
-import org.junit.Test;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 import java.util.TreeMap;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
+import org.junit.Test;
+
+import com.carrotsearch.hppc.IntArrayList;
+
+import io.crate.planner.fetch.IndexBaseBuilder;
 
 public class IndexBaseBuilderTest {
 

@@ -21,20 +21,22 @@
 
 package io.crate.expression.symbol;
 
-import io.crate.expression.scalar.cast.ImplicitCastFunction;
+import static io.crate.testing.SymbolMatchers.isFunction;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+
+import java.util.List;
+
 import org.elasticsearch.test.ESTestCase;
-import io.crate.types.ArrayType;
-import io.crate.types.BooleanType;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
 import org.joda.time.Period;
 import org.junit.Test;
 import org.locationtech.spatial4j.shape.Point;
 
-import java.util.List;
-
-import static io.crate.testing.SymbolMatchers.isFunction;
-import static org.hamcrest.Matchers.is;
+import io.crate.expression.scalar.cast.ImplicitCastFunction;
+import io.crate.types.ArrayType;
+import io.crate.types.BooleanType;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
 public class LiteralTest extends ESTestCase {
 
