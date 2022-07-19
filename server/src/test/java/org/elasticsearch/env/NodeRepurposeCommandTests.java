@@ -18,7 +18,21 @@
  */
 package org.elasticsearch.env;
 
-import joptsimple.OptionSet;
+import static org.elasticsearch.env.NodeRepurposeCommand.NO_CLEANUP;
+import static org.elasticsearch.env.NodeRepurposeCommand.NO_DATA_TO_CLEAN_UP_FOUND;
+import static org.elasticsearch.env.NodeRepurposeCommand.NO_SHARD_DATA_TO_CLEAN_UP_FOUND;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.stream.Stream;
+
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.Version;
 import org.elasticsearch.cli.MockTerminal;
@@ -40,18 +54,7 @@ import org.elasticsearch.test.ESTestCase;
 import org.hamcrest.Matcher;
 import org.junit.Before;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Arrays;
-import java.util.stream.Stream;
-
-import static org.elasticsearch.env.NodeRepurposeCommand.NO_CLEANUP;
-import static org.elasticsearch.env.NodeRepurposeCommand.NO_DATA_TO_CLEAN_UP_FOUND;
-import static org.elasticsearch.env.NodeRepurposeCommand.NO_SHARD_DATA_TO_CLEAN_UP_FOUND;
-import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.not;
+import joptsimple.OptionSet;
 
 public class NodeRepurposeCommandTests extends ESTestCase {
 

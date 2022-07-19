@@ -21,14 +21,16 @@
 
 package io.crate.lucene;
 
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.QueryTester;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+
 import org.apache.lucene.search.ScoreMode;
 import org.elasticsearch.Version;
 import org.junit.Test;
 
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.is;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.QueryTester;
 
 
 public class GenericFunctionQueryTest extends CrateDummyClusterServiceUnitTest {

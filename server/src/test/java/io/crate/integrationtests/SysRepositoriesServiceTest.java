@@ -21,10 +21,12 @@
 
 package io.crate.integrationtests;
 
-import io.crate.testing.UseJdbc;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
-import io.crate.types.StringType;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+
+import java.io.File;
+import java.util.Map;
+
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Before;
@@ -32,10 +34,10 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import java.io.File;
-import java.util.Map;
-
-import static org.hamcrest.Matchers.is;
+import io.crate.testing.UseJdbc;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
+import io.crate.types.StringType;
 
 @ESIntegTestCase.ClusterScope()
 @UseJdbc(0) // missing column types

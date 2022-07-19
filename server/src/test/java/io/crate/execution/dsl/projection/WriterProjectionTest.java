@@ -21,19 +21,22 @@
 
 package io.crate.execution.dsl.projection;
 
+import static org.junit.Assert.assertEquals;
+
+import java.util.List;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
+
+import io.crate.common.collections.MapBuilder;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.test.ESTestCase;
-import io.crate.common.collections.MapBuilder;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.junit.Test;
-
-import java.util.List;
 
 public class WriterProjectionTest extends ESTestCase {
 

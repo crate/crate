@@ -19,7 +19,20 @@
 
 package org.elasticsearch.transport;
 
-import io.crate.common.unit.TimeValue;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+
+import java.io.IOException;
+import java.util.Collections;
+import java.util.concurrent.TimeUnit;
+
 import org.elasticsearch.Version;
 import org.elasticsearch.action.support.PlainActionFuture;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -30,14 +43,7 @@ import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.threadpool.TestThreadPool;
 import org.junit.Test;
 
-import java.io.IOException;
-import java.util.Collections;
-import java.util.concurrent.TimeUnit;
-
-import static org.hamcrest.Matchers.containsString;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
+import io.crate.common.unit.TimeValue;
 
 public class TransportHandshakerTests extends ESTestCase {
 

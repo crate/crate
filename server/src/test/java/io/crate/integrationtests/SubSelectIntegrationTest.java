@@ -30,6 +30,8 @@ import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
 
 import java.util.Arrays;
 import java.util.Collections;

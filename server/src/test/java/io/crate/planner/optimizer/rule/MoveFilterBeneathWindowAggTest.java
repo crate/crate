@@ -22,6 +22,17 @@
 
 package io.crate.planner.optimizer.rule;
 
+import static io.crate.planner.operators.LogicalPlannerTest.isPlan;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertThat;
+
+import java.util.List;
+
+import org.hamcrest.Matchers;
+import org.junit.Before;
+import org.junit.Test;
+
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.WindowFunction;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -33,15 +44,6 @@ import io.crate.planner.optimizer.matcher.Match;
 import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.hamcrest.Matchers;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.util.List;
-
-import static io.crate.planner.operators.LogicalPlannerTest.isPlan;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
 
 public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnitTest {
 

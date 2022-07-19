@@ -21,12 +21,13 @@
 
 package io.crate.planner.distribution;
 
-import org.elasticsearch.test.ESTestCase;
+import static org.hamcrest.core.IsEqual.equalTo;
+import static org.junit.Assert.assertThat;
+
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
-
-import static org.hamcrest.core.IsEqual.equalTo;
 
 public class DistributionInfoTest extends ESTestCase {
 

@@ -22,6 +22,8 @@
 
 package io.crate.expression.predicate;
 
+import static org.junit.Assert.assertThat;
+
 import org.elasticsearch.Version;
 import org.hamcrest.Matchers;
 import org.junit.Test;

@@ -24,6 +24,7 @@ package io.crate.user;
 import static io.crate.user.User.CRATE_USER;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.junit.Assert.assertThat;
 
 import java.util.Set;
 

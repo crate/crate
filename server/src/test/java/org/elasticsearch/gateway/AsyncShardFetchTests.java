@@ -18,6 +18,19 @@
  */
 package org.elasticsearch.gateway;
 
+import static java.util.Collections.emptySet;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.sameInstance;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
+import java.util.Collections;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.FailedNodeException;
@@ -31,16 +44,6 @@ import org.elasticsearch.threadpool.TestThreadPool;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.After;
 import org.junit.Before;
-
-import java.util.Collections;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import static java.util.Collections.emptySet;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.sameInstance;
 
 public class AsyncShardFetchTests extends ESTestCase {
     private final DiscoveryNode node1 = new DiscoveryNode("node1", buildNewFakeTransportAddress(), Collections.emptyMap(),

@@ -18,29 +18,6 @@
  */
 package org.elasticsearch.cluster.coordination;
 
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.Version;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.cluster.node.DiscoveryNodeRole;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.discovery.DiscoveryModule;
-import org.elasticsearch.node.Node;
-import org.elasticsearch.test.ESTestCase;
-import org.elasticsearch.test.transport.MockTransport;
-import org.elasticsearch.transport.TransportRequest;
-import org.elasticsearch.transport.TransportService;
-import org.junit.Before;
-
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.emptySet;
@@ -61,6 +38,34 @@ import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.startsWith;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.Version;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.node.DiscoveryNodeRole;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.discovery.DiscoveryModule;
+import org.elasticsearch.node.Node;
+import org.elasticsearch.test.ESTestCase;
+import org.elasticsearch.test.transport.MockTransport;
+import org.elasticsearch.transport.TransportRequest;
+import org.elasticsearch.transport.TransportService;
+import org.junit.Before;
 
 public class ClusterBootstrapServiceTests extends ESTestCase {
 

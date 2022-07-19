@@ -21,16 +21,18 @@
 
 package io.crate.protocols.postgres.types;
 
-import com.carrotsearch.randomizedtesting.annotations.Name;
-import com.carrotsearch.randomizedtesting.annotations.ParametersFactory;
-import org.junit.Test;
+import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Locale;
 
-import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
-import static org.hamcrest.Matchers.is;
+import org.junit.Test;
+
+import com.carrotsearch.randomizedtesting.annotations.Name;
+import com.carrotsearch.randomizedtesting.annotations.ParametersFactory;
 
 public class TimestampTypeStringDecodeTest extends BasePGTypeTest<Long> {
 

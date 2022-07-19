@@ -26,6 +26,8 @@ import static java.net.InetAddress.getByName;
 import static java.util.Arrays.asList;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 
 import java.net.UnknownHostException;

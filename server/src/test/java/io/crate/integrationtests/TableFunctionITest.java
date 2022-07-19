@@ -25,6 +25,7 @@ import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
 
 import java.util.Arrays;
 import java.util.Comparator;

@@ -18,8 +18,14 @@
  */
 package org.elasticsearch.indices.state;
 
-import io.crate.execution.ddl.tables.TransportCloseTable;
-import io.crate.integrationtests.SQLIntegrationTestCase;
+import static java.util.Collections.emptySet;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.Assert.assertThat;
+
+import java.util.List;
+
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeUnit;
@@ -28,12 +34,8 @@ import org.elasticsearch.index.IndexSettings;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
-import java.util.List;
-
-import static java.util.Collections.emptySet;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
+import io.crate.execution.ddl.tables.TransportCloseTable;
+import io.crate.integrationtests.SQLIntegrationTestCase;
 
 public class CloseIndexIT extends SQLIntegrationTestCase {
 

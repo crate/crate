@@ -21,11 +21,12 @@
 
 package io.crate.analyze.copy;
 
-import org.elasticsearch.test.ESTestCase;
-import org.junit.Test;
-
 import static io.crate.testing.DiscoveryNodes.newNode;
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
+
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
 
 public class NodeFiltersTest extends ESTestCase {
 

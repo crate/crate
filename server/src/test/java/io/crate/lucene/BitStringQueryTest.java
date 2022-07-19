@@ -23,6 +23,8 @@ package io.crate.lucene;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertThrows;
 
 import java.io.IOException;
 import java.util.List;

@@ -21,11 +21,8 @@
 
 package io.crate.execution.engine.export;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import io.crate.metadata.ColumnIdent;
-import org.elasticsearch.test.ESTestCase;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.junit.Test;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
 
 import java.io.FileOutputStream;
 import java.io.OutputStream;
@@ -34,7 +31,13 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.hamcrest.core.Is.is;
+import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
+
+import com.fasterxml.jackson.core.JsonGenerator;
+
+import io.crate.metadata.ColumnIdent;
 
 public class FileWriterCountCollectorTest extends ESTestCase {
 

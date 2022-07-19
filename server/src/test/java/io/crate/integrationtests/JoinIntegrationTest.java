@@ -31,6 +31,7 @@ import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
 
 import java.util.Arrays;
 import java.util.Collections;

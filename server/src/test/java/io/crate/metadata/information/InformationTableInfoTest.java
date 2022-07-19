@@ -21,6 +21,8 @@
 
 package io.crate.metadata.information;
 
+import static org.junit.Assert.assertThat;
+
 import java.util.Locale;
 
 import org.junit.Before;

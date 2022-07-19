@@ -21,19 +21,20 @@
 
 package io.crate.execution.engine.join;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.IsInstanceOf.instanceOf;
+
+import java.util.Collections;
+
+import org.elasticsearch.common.breaker.NoopCircuitBreaker;
+import org.junit.Test;
+
 import io.crate.breaker.RamAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.data.join.CrossJoinBlockNLBatchIterator;
 import io.crate.data.join.CrossJoinNLBatchIterator;
 import io.crate.planner.node.dql.join.JoinType;
-import org.elasticsearch.common.breaker.NoopCircuitBreaker;
-import org.junit.Test;
-
-import java.util.Collections;
-
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.IsInstanceOf.instanceOf;
 
 public class NestedLoopOperationTest {
 

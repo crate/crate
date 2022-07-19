@@ -21,16 +21,18 @@
 
 package io.crate.analyze;
 
+import static io.crate.testing.SymbolMatchers.isReference;
+import static org.hamcrest.Matchers.contains;
+import static org.junit.Assert.assertThat;
+
+import org.junit.Before;
+import org.junit.Test;
+
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.SymbolMatchers;
 import io.crate.types.DataTypes;
-import org.junit.Before;
-import org.junit.Test;
-
-import static io.crate.testing.SymbolMatchers.isReference;
-import static org.hamcrest.Matchers.contains;
 
 public class ValuesAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 

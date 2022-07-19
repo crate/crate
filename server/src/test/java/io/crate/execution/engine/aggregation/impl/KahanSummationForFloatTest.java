@@ -21,9 +21,12 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
+import static org.junit.Assert.assertEquals;
+
+import org.junit.Test;
+
 import io.crate.execution.engine.aggregation.impl.util.KahanSummationForFloat;
 import io.crate.operation.aggregation.AggregationTestCase;
-import org.junit.Test;
 
 public class KahanSummationForFloatTest extends AggregationTestCase {
 

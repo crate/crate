@@ -21,30 +21,6 @@
 
 package io.crate.integrationtests;
 
-import io.crate.Constants;
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.RelationName;
-import io.crate.sql.tree.ColumnPolicy;
-import io.crate.testing.TestingHelpers;
-import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
-import org.elasticsearch.cluster.metadata.MappingMetadata;
-import io.crate.common.collections.Tuple;
-import org.elasticsearch.common.compress.CompressedXContent;
-import org.elasticsearch.common.xcontent.XContentHelper;
-import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.test.ESIntegTestCase;
-import org.hamcrest.Matchers;
-import org.junit.Test;
-
-import java.io.IOException;
-import java.net.URISyntaxException;
-import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-
 import static io.crate.metadata.table.ColumnPolicies.decodeMappingValue;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_COLUMN;
@@ -56,6 +32,34 @@ import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+
+import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
+import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
+import org.elasticsearch.cluster.metadata.MappingMetadata;
+import org.elasticsearch.common.compress.CompressedXContent;
+import org.elasticsearch.common.xcontent.XContentHelper;
+import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.test.ESIntegTestCase;
+import org.hamcrest.Matchers;
+import org.junit.Test;
+
+import io.crate.Constants;
+import io.crate.common.collections.Tuple;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
+import io.crate.sql.tree.ColumnPolicy;
+import io.crate.testing.TestingHelpers;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 1)
 public class ColumnPolicyIntegrationTest extends SQLIntegrationTestCase {

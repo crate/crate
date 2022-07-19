@@ -25,14 +25,15 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
 
 import java.util.List;
-
-import com.carrotsearch.randomizedtesting.RandomizedTest;
 
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
+
+import com.carrotsearch.randomizedtesting.RandomizedTest;
 
 import io.crate.analyze.TableDefinitions;
 import io.crate.execution.dsl.projection.EvalProjection;

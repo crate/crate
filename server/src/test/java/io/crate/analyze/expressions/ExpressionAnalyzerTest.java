@@ -21,7 +21,6 @@
 
 package io.crate.analyze.expressions;
 
-
 import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.SymbolMatchers.isReference;
@@ -33,6 +32,7 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.sameInstance;
+import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.util.Collections;

@@ -21,13 +21,17 @@
 
 package io.crate.analyze;
 
-import io.crate.data.RowN;
-import io.crate.metadata.FulltextAnalyzerResolver;
-import io.crate.planner.PlannerContext;
-import io.crate.planner.node.ddl.CreateAnalyzerPlan;
-import io.crate.planner.operators.SubQueryResults;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.SQLExecutor;
+import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.ANALYZER;
+import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.CHAR_FILTER;
+import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.TOKENIZER;
+import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.TOKEN_FILTER;
+import static io.crate.testing.SettingMatcher.hasEntry;
+import static org.hamcrest.Matchers.allOf;
+import static org.junit.Assert.assertThat;
+
+import java.io.IOException;
+import java.util.List;
+
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.elasticsearch.analysis.common.CommonAnalysisPlugin;
 import org.elasticsearch.common.Randomness;
@@ -35,16 +39,13 @@ import org.elasticsearch.common.settings.Settings;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.IOException;
-import java.util.List;
-
-
-import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.ANALYZER;
-import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.CHAR_FILTER;
-import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.TOKENIZER;
-import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.TOKEN_FILTER;
-import static io.crate.testing.SettingMatcher.hasEntry;
-import static org.hamcrest.Matchers.allOf;
+import io.crate.data.RowN;
+import io.crate.metadata.FulltextAnalyzerResolver;
+import io.crate.planner.PlannerContext;
+import io.crate.planner.node.ddl.CreateAnalyzerPlan;
+import io.crate.planner.operators.SubQueryResults;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
 
 public class CreateAnalyzerAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 

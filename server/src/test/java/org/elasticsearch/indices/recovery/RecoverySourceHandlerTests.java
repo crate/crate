@@ -26,6 +26,12 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
@@ -68,8 +74,8 @@ import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.IOContext;
-import org.apache.lucene.tests.index.RandomIndexWriter;
 import org.apache.lucene.tests.store.BaseDirectoryWrapper;
+import org.apache.lucene.tests.index.CrateRandomIndexWriter;
 import org.apache.lucene.util.SetOnce;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.Version;
@@ -157,7 +163,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
         final StartRecoveryRequest request = getStartRecoveryRequest();
         Store store = newStore(createTempDir());
         Directory dir = store.directory();
-        RandomIndexWriter writer = new RandomIndexWriter(random(), dir, newIndexWriterConfig());
+        CrateRandomIndexWriter writer = new CrateRandomIndexWriter(random(), dir, newIndexWriterConfig());
         int numDocs = randomIntBetween(10, 100);
         for (int i = 0; i < numDocs; i++) {
             Document document = new Document();
@@ -421,7 +427,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
         Store store = newStore(tempDir, false);
         AtomicBoolean failedEngine = new AtomicBoolean(false);
         Directory dir = store.directory();
-        RandomIndexWriter writer = new RandomIndexWriter(random(), dir, newIndexWriterConfig());
+        CrateRandomIndexWriter writer = new CrateRandomIndexWriter(random(), dir, newIndexWriterConfig());
         int numDocs = randomIntBetween(10, 100);
         for (int i = 0; i < numDocs; i++) {
             Document document = new Document();
@@ -487,7 +493,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
         Store store = newStore(tempDir, false);
         AtomicBoolean failedEngine = new AtomicBoolean(false);
         Directory dir = store.directory();
-        RandomIndexWriter writer = new RandomIndexWriter(random(), dir, newIndexWriterConfig());
+        CrateRandomIndexWriter writer = new CrateRandomIndexWriter(random(), dir, newIndexWriterConfig());
         int numDocs = randomIntBetween(10, 100);
         for (int i = 0; i < numDocs; i++) {
             Document document = new Document();
@@ -763,7 +769,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
         IndexShard shard = mock(IndexShard.class);
         when(shard.store()).thenReturn(store);
         Directory dir = store.directory();
-        RandomIndexWriter writer = new RandomIndexWriter(random(), dir, newIndexWriterConfig());
+        CrateRandomIndexWriter writer = new CrateRandomIndexWriter(random(), dir, newIndexWriterConfig());
         int numDocs = randomIntBetween(10, 100);
         for (int i = 0; i < numDocs; i++) {
             Document document = new Document();

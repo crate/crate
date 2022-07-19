@@ -21,13 +21,14 @@
 
 package io.crate.integrationtests;
 
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.junit.Test;
-
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
+
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.junit.Test;
 
 public class ResizeShardsITest extends SQLIntegrationTestCase {
 

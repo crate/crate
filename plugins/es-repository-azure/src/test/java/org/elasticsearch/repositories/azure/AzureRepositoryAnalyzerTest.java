@@ -1,6 +1,7 @@
 package org.elasticsearch.repositories.azure;
 
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
 import java.util.Collections;
 import java.util.Map;

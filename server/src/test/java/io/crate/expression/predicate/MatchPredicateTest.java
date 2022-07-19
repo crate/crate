@@ -21,11 +21,13 @@
 
 package io.crate.expression.predicate;
 
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
+
 import org.elasticsearch.test.ESTestCase;
-import io.crate.types.DataTypes;
 import org.junit.Test;
 
-import static org.hamcrest.core.Is.is;
+import io.crate.types.DataTypes;
 
 public class MatchPredicateTest extends ESTestCase {
 

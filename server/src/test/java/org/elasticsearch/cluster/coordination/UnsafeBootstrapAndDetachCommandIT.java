@@ -22,10 +22,21 @@
 
 package org.elasticsearch.cluster.coordination;
 
-import io.crate.integrationtests.SQLIntegrationTestCase;
-import io.crate.testing.UseJdbc;
-import joptsimple.OptionSet;
-import org.apache.lucene.tests.util.LuceneTestCase;
+import static org.elasticsearch.indices.recovery.RecoverySettings.INDICES_RECOVERY_MAX_BYTES_PER_SEC_SETTING;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+
+import org.apache.lucene.tests.util.CrateLuceneTestCase;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.cli.MockTerminal;
 import org.elasticsearch.cluster.ClusterState;
@@ -42,15 +53,9 @@ import org.elasticsearch.test.ESIntegTestCase;
 import org.elasticsearch.test.InternalTestCluster;
 import org.junit.Test;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-
-import static org.elasticsearch.indices.recovery.RecoverySettings.INDICES_RECOVERY_MAX_BYTES_PER_SEC_SETTING;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
+import io.crate.integrationtests.SQLIntegrationTestCase;
+import io.crate.testing.UseJdbc;
+import joptsimple.OptionSet;
 
 @ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.TEST, numDataNodes = 0, autoManageMasterNodes = false)
 public class UnsafeBootstrapAndDetachCommandIT extends SQLIntegrationTestCase {
@@ -100,7 +105,7 @@ public class UnsafeBootstrapAndDetachCommandIT extends SQLIntegrationTestCase {
         return detachCluster(environment, false);
     }
 
-    private void expectThrows(LuceneTestCase.ThrowingRunnable runnable, String message) {
+    private void expectThrows(CrateLuceneTestCase.ThrowingRunnable runnable, String message) {
         ElasticsearchException ex = expectThrows(ElasticsearchException.class, runnable);
         assertThat(ex.getMessage(), containsString(message));
     }

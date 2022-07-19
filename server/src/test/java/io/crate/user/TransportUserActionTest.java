@@ -21,19 +21,21 @@
 
 package io.crate.user;
 
-import io.crate.user.metadata.UserDefinitions;
-import io.crate.user.metadata.UsersMetadata;
-import io.crate.user.metadata.UsersPrivilegesMetadata;
-import org.elasticsearch.test.ESTestCase;
-import org.elasticsearch.cluster.metadata.Metadata;
-import org.junit.Test;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
 
 import java.util.Collections;
 import java.util.List;
 
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.core.Is.is;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
+
+import io.crate.user.metadata.UserDefinitions;
+import io.crate.user.metadata.UsersMetadata;
+import io.crate.user.metadata.UsersPrivilegesMetadata;
 
 public class TransportUserActionTest extends ESTestCase {
 

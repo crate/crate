@@ -18,6 +18,15 @@
  */
 package org.elasticsearch.cluster.coordination;
 
+import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+
+import java.io.IOException;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+
 import org.elasticsearch.cluster.coordination.CoordinationMetadata.VotingConfigExclusion;
 import org.elasticsearch.cluster.coordination.CoordinationMetadata.VotingConfiguration;
 import org.elasticsearch.common.bytes.BytesReference;
@@ -29,13 +38,6 @@ import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.EqualsHashCodeTestUtils;
 import org.elasticsearch.test.EqualsHashCodeTestUtils.CopyFunction;
-
-import java.io.IOException;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
-
-import static org.hamcrest.Matchers.equalTo;
 
 public class CoordinationMetadataTests extends ESTestCase {
 

@@ -18,16 +18,17 @@
  */
 package org.elasticsearch.cluster.routing.allocation;
 
-import org.elasticsearch.test.ESTestCase;
-import org.junit.Test;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertThat;
 
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.not;
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
 
 public class AllocationServiceTests extends ESTestCase {
 

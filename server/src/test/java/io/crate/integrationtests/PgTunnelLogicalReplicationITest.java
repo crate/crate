@@ -22,6 +22,7 @@
 package io.crate.integrationtests;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
 
 import java.net.InetSocketAddress;
 import java.nio.file.Files;

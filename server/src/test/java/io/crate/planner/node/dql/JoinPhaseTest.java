@@ -21,6 +21,20 @@
 
 package io.crate.planner.node.dql;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Before;
+import org.junit.Test;
+
 import io.crate.execution.dsl.phases.HashJoinPhase;
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.phases.NestedLoopPhase;
@@ -32,20 +46,8 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.join.JoinType;
-import org.elasticsearch.test.ESTestCase;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
-
-import static org.hamcrest.CoreMatchers.is;
 
 public class JoinPhaseTest extends ESTestCase {
 

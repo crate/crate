@@ -21,6 +21,17 @@
 
 package io.crate.planner.node.management;
 
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+import static org.mockito.Mockito.mock;
+
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.transport.TransportService;
+import org.junit.Test;
+
 import io.crate.action.FutureActionListener;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.execution.jobs.TasksService;
@@ -30,15 +41,6 @@ import io.crate.execution.jobs.kill.TransportKillAllNodeAction;
 import io.crate.execution.support.ActionExecutor;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.TestingRowConsumer;
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.transport.TransportService;
-import org.junit.Test;
-
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import static org.hamcrest.Matchers.is;
-import static org.mockito.Mockito.mock;
 
 public class KillPlanTest extends CrateDummyClusterServiceUnitTest {
 

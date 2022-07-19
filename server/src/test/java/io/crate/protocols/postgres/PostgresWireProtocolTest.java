@@ -24,6 +24,8 @@ package io.crate.protocols.postgres;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.isOneOf;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyChar;
 import static org.mockito.ArgumentMatchers.anyString;

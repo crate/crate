@@ -21,14 +21,11 @@
 
 package io.crate.metadata.settings.session;
 
-import io.crate.action.sql.SessionContext;
-import io.crate.analyze.SymbolEvaluator;
-import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.NodeContext;
-import io.crate.planner.optimizer.LoadedRules;
-import org.junit.Test;
+import static io.crate.testing.TestingHelpers.createNodeContext;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -36,11 +33,15 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import static io.crate.testing.TestingHelpers.createNodeContext;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.fail;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import org.junit.Test;
+
+import io.crate.action.sql.SessionContext;
+import io.crate.analyze.SymbolEvaluator;
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.NodeContext;
+import io.crate.planner.optimizer.LoadedRules;
 
 public class SessionSettingRegistryTest {
 

@@ -21,6 +21,23 @@
 
 package io.crate.rest;
 
+import static org.elasticsearch.common.network.NetworkModule.HTTP_DEFAULT_TYPE_SETTING;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
+
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.URI;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Locale;
+
 import org.apache.http.Header;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -37,22 +54,6 @@ import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.elasticsearch.transport.Netty4Plugin;
 import org.junit.Before;
-
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.URI;
-import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Locale;
-
-import static org.elasticsearch.common.network.NetworkModule.HTTP_DEFAULT_TYPE_SETTING;
-import static org.hamcrest.core.Is.is;
 
 public abstract class AdminUIHttpIntegrationTest extends ESIntegTestCase {
 

@@ -22,15 +22,16 @@
 package io.crate.execution.engine.fetch;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
 
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.junit.Test;
+
 import com.carrotsearch.hppc.IntHashSet;
 import com.carrotsearch.hppc.IntObjectHashMap;
-
-import org.junit.Test;
 
 import io.crate.breaker.BlockBasedRamAccounting;
 import io.crate.breaker.EstimateCellsSize;

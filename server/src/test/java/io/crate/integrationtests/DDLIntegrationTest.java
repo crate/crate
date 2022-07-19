@@ -35,6 +35,8 @@ import static io.netty.handler.codec.rtsp.RtspResponseStatuses.INTERNAL_SERVER_E
 import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 
 import java.util.ArrayList;
 import java.util.Arrays;

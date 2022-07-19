@@ -21,13 +21,14 @@
 
 package io.crate.expression.scalar.arithmetic;
 
+import java.util.List;
+
+import org.junit.Test;
+
 import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.SearchPath;
 import io.crate.types.DataTypes;
-import org.junit.Test;
-
-import java.util.List;
 
 public class AddFunctionTest extends ScalarTestCase {
 

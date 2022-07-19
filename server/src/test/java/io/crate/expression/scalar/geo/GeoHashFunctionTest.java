@@ -21,12 +21,13 @@
 
 package io.crate.expression.scalar.geo;
 
-import io.crate.expression.symbol.Literal;
-import io.crate.expression.scalar.ScalarTestCase;
-import io.crate.types.DataTypes;
+import static io.crate.testing.SymbolMatchers.isLiteral;
+
 import org.junit.Test;
 
-import static io.crate.testing.SymbolMatchers.isLiteral;
+import io.crate.expression.scalar.ScalarTestCase;
+import io.crate.expression.symbol.Literal;
+import io.crate.types.DataTypes;
 
 public class GeoHashFunctionTest extends ScalarTestCase {
 

@@ -21,14 +21,10 @@
 
 package io.crate.execution.jobs;
 
-import io.crate.user.User;
-import io.crate.execution.engine.collect.stats.JobsLogs;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
-import javax.annotation.Nonnull;
 import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Locale;
@@ -38,8 +34,15 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.is;
+import javax.annotation.Nonnull;
+
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+
+import io.crate.execution.engine.collect.stats.JobsLogs;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.user.User;
 
 public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
 

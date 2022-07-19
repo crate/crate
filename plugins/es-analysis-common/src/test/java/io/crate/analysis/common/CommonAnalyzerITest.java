@@ -20,6 +20,8 @@
 package io.crate.analysis.common;
 
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 
 import java.util.ArrayList;
 import java.util.Collection;

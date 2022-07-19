@@ -21,6 +21,18 @@
 
 package io.crate.analyze.relations;
 
+import static io.crate.testing.TestingHelpers.isSQL;
+import static org.hamcrest.core.Is.is;
+import static org.hamcrest.core.IsNull.notNullValue;
+import static org.hamcrest.core.IsNull.nullValue;
+import static org.junit.Assert.assertThat;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+import org.junit.Test;
+
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.expression.symbol.Literal;
@@ -31,16 +43,6 @@ import io.crate.sql.tree.SortItem;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.SymbolMatchers;
-import org.junit.Test;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
-import static io.crate.testing.TestingHelpers.isSQL;
-import static org.hamcrest.core.Is.is;
-import static org.hamcrest.core.IsNull.notNullValue;
-import static org.hamcrest.core.IsNull.nullValue;
 
 public class OrderByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 

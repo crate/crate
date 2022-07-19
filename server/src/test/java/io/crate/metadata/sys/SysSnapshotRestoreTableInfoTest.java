@@ -21,7 +21,12 @@
 
 package io.crate.metadata.sys;
 
-import io.crate.expression.reference.sys.snapshot.SysSnapshotRestoreInProgress;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+
+import java.util.List;
+import java.util.UUID;
+
 import org.elasticsearch.cluster.RestoreInProgress;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.index.shard.ShardId;
@@ -29,11 +34,7 @@ import org.elasticsearch.snapshots.Snapshot;
 import org.elasticsearch.snapshots.SnapshotId;
 import org.junit.Test;
 
-import java.util.List;
-import java.util.UUID;
-
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
+import io.crate.expression.reference.sys.snapshot.SysSnapshotRestoreInProgress;
 
 public class SysSnapshotRestoreTableInfoTest {
 

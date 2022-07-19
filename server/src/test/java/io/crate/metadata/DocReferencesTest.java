@@ -21,10 +21,11 @@
 
 package io.crate.metadata;
 
-import io.crate.types.DataTypes;
+import static org.junit.Assert.assertEquals;
+
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
+import io.crate.types.DataTypes;
 
 public class DocReferencesTest {
 

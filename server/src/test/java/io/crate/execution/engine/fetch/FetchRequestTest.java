@@ -27,12 +27,12 @@ import static org.mockito.Mockito.mock;
 
 import java.util.UUID;
 
-import com.carrotsearch.hppc.IntArrayList;
-import com.carrotsearch.hppc.IntObjectHashMap;
-
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
+
+import com.carrotsearch.hppc.IntArrayList;
+import com.carrotsearch.hppc.IntObjectHashMap;
 
 import io.crate.breaker.RamAccounting;
 

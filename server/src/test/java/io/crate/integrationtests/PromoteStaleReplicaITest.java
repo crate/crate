@@ -21,16 +21,16 @@
 
 package io.crate.integrationtests;
 
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.node.Node;
-import org.elasticsearch.test.ESIntegTestCase;
-import org.junit.Test;
-
-
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.elasticsearch.env.Environment.PATH_DATA_SETTING;
 import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
+
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.node.Node;
+import org.elasticsearch.test.ESIntegTestCase;
+import org.junit.Test;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 0, numClientNodes = 0)
 public class PromoteStaleReplicaITest extends SQLIntegrationTestCase {

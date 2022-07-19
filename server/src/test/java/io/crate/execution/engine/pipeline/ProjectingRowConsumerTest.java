@@ -24,6 +24,7 @@ package io.crate.execution.engine.pipeline;
 import static io.crate.data.SentinelRow.SENTINEL;
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 
 import java.util.ArrayList;

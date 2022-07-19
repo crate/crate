@@ -23,6 +23,8 @@ package io.crate.integrationtests;
 
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.List;

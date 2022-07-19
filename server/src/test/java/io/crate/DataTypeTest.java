@@ -21,15 +21,10 @@
 
 package io.crate;
 
-import io.crate.types.ObjectType;
-import org.elasticsearch.test.ESTestCase;
-import io.crate.types.ArrayType;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.hamcrest.Matchers;
-import org.junit.Test;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -37,7 +32,16 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.hamcrest.Matchers.is;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.test.ESTestCase;
+import org.hamcrest.Matchers;
+import org.junit.Test;
+
+import io.crate.types.ArrayType;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 
 public class DataTypeTest extends ESTestCase {
 

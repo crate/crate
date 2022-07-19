@@ -21,6 +21,22 @@
 
 package io.crate.planner;
 
+import static io.crate.testing.ProjectionMatchers.isTopN;
+import static io.crate.testing.SymbolMatchers.isFunction;
+import static io.crate.testing.SymbolMatchers.isLiteral;
+import static io.crate.testing.SymbolMatchers.isReference;
+import static io.crate.testing.TestingHelpers.isSQL;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+
+import java.util.List;
+
+import org.hamcrest.Matchers;
+import org.junit.Before;
+import org.junit.Test;
+
 import io.crate.execution.dsl.phases.CollectPhase;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.projection.AggregationProjection;
@@ -37,20 +53,6 @@ import io.crate.planner.node.dql.join.Join;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
-import org.hamcrest.Matchers;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.util.List;
-
-import static io.crate.testing.ProjectionMatchers.isTopN;
-import static io.crate.testing.SymbolMatchers.isFunction;
-import static io.crate.testing.SymbolMatchers.isLiteral;
-import static io.crate.testing.SymbolMatchers.isReference;
-import static io.crate.testing.TestingHelpers.isSQL;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
 
 public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
 

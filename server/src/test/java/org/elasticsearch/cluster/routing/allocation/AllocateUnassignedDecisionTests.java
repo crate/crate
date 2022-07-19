@@ -19,12 +19,17 @@
 
 package org.elasticsearch.cluster.routing.allocation;
 
-import org.elasticsearch.Version;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.cluster.routing.UnassignedInfo.AllocationStatus;
-import org.elasticsearch.cluster.routing.allocation.decider.Decision;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.test.ESTestCase;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.emptyMap;
+import static java.util.Collections.emptySet;
+import static org.hamcrest.Matchers.startsWith;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -32,10 +37,12 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static java.util.Collections.emptyList;
-import static java.util.Collections.emptyMap;
-import static java.util.Collections.emptySet;
-import static org.hamcrest.Matchers.startsWith;
+import org.elasticsearch.Version;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.routing.UnassignedInfo.AllocationStatus;
+import org.elasticsearch.cluster.routing.allocation.decider.Decision;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.test.ESTestCase;
 
 /**
  * Unit tests for the {@link AllocateUnassignedDecision} class.

@@ -21,18 +21,6 @@
 
 package io.crate.integrationtests;
 
-import io.crate.exceptions.VersioningValidationException;
-import io.crate.testing.TestingHelpers;
-import io.crate.testing.UseJdbc;
-import io.crate.common.collections.MapBuilder;
-import org.hamcrest.Matchers;
-import org.hamcrest.core.IsNull;
-import org.junit.Test;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
@@ -44,6 +32,22 @@ import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsNot.not;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.hamcrest.Matchers;
+import org.hamcrest.core.IsNull;
+import org.junit.Test;
+
+import io.crate.common.collections.MapBuilder;
+import io.crate.exceptions.VersioningValidationException;
+import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseJdbc;
 
 public class UpdateIntegrationTest extends SQLIntegrationTestCase {
 

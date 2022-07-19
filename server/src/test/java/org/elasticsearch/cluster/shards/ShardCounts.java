@@ -19,10 +19,10 @@
 
 package org.elasticsearch.cluster.shards;
 
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
+
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Assert;
-
-import static org.hamcrest.Matchers.lessThanOrEqualTo;
 
 public class ShardCounts {
     private final int shardsPerNode;

@@ -21,11 +21,12 @@
 
 package io.crate.analyze;
 
-import org.elasticsearch.test.ESTestCase;
-import org.elasticsearch.common.settings.Settings;
-import org.junit.Test;
-
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
 
 public class NumberOfReplicasTest extends ESTestCase {
 

@@ -22,6 +22,8 @@
 package io.crate.execution.engine;
 
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertThrows;
 
 import java.io.IOException;
 import java.util.List;

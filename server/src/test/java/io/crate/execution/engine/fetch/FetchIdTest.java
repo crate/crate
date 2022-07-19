@@ -21,12 +21,13 @@
 
 package io.crate.execution.engine.fetch;
 
-import org.elasticsearch.test.ESTestCase;
-import org.junit.Test;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
 
 import java.util.stream.LongStream;
 
-import static org.hamcrest.core.Is.is;
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
 
 public class FetchIdTest extends ESTestCase {
 

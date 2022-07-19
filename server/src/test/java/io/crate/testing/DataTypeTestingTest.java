@@ -22,8 +22,9 @@
 package io.crate.testing;
 
 import org.elasticsearch.test.ESTestCase;
-import io.crate.types.DataType;
 import org.junit.Test;
+
+import io.crate.types.DataType;
 
 public class DataTypeTestingTest extends ESTestCase {
 

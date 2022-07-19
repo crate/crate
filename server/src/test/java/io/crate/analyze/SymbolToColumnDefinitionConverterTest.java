@@ -28,6 +28,7 @@ import static io.crate.testing.NodeMatchers.isObjectColumnType;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.util.List;

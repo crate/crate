@@ -21,16 +21,8 @@
 
 package io.crate.protocols.postgres;
 
-import io.crate.integrationtests.SQLIntegrationTestCase;
-import io.crate.protocols.ssl.SslSettings;
-import io.crate.testing.SQLResponse;
-import io.crate.testing.UseJdbc;
-import io.netty.handler.ssl.util.SelfSignedCertificate;
-import org.elasticsearch.common.CheckedConsumer;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.test.ESIntegTestCase;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -39,6 +31,18 @@ import java.security.KeyStore;
 import java.security.cert.Certificate;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
+
+import org.elasticsearch.common.CheckedConsumer;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.test.ESIntegTestCase;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
+import io.crate.integrationtests.SQLIntegrationTestCase;
+import io.crate.protocols.ssl.SslSettings;
+import io.crate.testing.SQLResponse;
+import io.crate.testing.UseJdbc;
+import io.netty.handler.ssl.util.SelfSignedCertificate;
 
 
 @UseJdbc(value = 1)

@@ -21,13 +21,15 @@
 
 package io.crate.metadata;
 
-import io.crate.blob.v2.BlobIndex;
-import org.elasticsearch.test.ESTestCase;
-import org.junit.Test;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
 
 import java.util.List;
 
-import static org.hamcrest.core.Is.is;
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
+
+import io.crate.blob.v2.BlobIndex;
 
 public class RelationNameTest extends ESTestCase {
 

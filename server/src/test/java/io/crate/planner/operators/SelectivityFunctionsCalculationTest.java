@@ -21,6 +21,8 @@
 
 package io.crate.planner.operators;
 
+import static org.junit.Assert.assertThat;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;

@@ -21,6 +21,29 @@
 
 package io.crate.execution.engine.collect;
 
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
+
+import java.lang.reflect.Method;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.stream.StreamSupport;
+
+import org.elasticsearch.client.ElasticsearchClient;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.CheckedRunnable;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
+import org.elasticsearch.test.ESIntegTestCase;
+import org.junit.Test;
+
 import io.crate.analyze.WhereClause;
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.blob.v2.BlobShard;
@@ -33,25 +56,6 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.distribution.DistributionInfo;
-import org.elasticsearch.client.ElasticsearchClient;
-import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.CheckedRunnable;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
-import org.elasticsearch.test.ESIntegTestCase;
-import org.junit.Test;
-
-import java.lang.reflect.Method;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.stream.StreamSupport;
-
-import static org.hamcrest.Matchers.is;
-import static org.mockito.Mockito.mock;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 0, supportsDedicatedMasters = false)
 public class BlobShardCollectorProviderTest extends SQLHttpIntegrationTest {

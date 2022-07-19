@@ -21,7 +21,11 @@
  */
 package org.elasticsearch.cluster.coordination;
 
-import joptsimple.OptionSet;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertThat;
+
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.cli.MockTerminal;
 import org.elasticsearch.cli.UserException;
@@ -31,9 +35,7 @@ import org.elasticsearch.env.Environment;
 import org.elasticsearch.env.TestEnvironment;
 import org.elasticsearch.test.ESIntegTestCase;
 
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.not;
+import joptsimple.OptionSet;
 
 @ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.TEST, numDataNodes = 0, autoManageMasterNodes = false)
 public class RemoveSettingsCommandIT extends ESIntegTestCase {

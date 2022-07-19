@@ -21,10 +21,11 @@
 
 package io.crate.user;
 
-import io.crate.exceptions.MissingPrivilegeException;
-import io.crate.metadata.Schemas;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
+
+import io.crate.exceptions.MissingPrivilegeException;
+import io.crate.metadata.Schemas;
 
 public class PrivilegesTest extends ESTestCase {
 

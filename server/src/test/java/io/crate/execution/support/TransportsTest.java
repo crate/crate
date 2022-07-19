@@ -21,7 +21,11 @@
 
 package io.crate.execution.support;
 
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.transport.ConnectTransportException;
 import org.elasticsearch.transport.NodeNotConnectedException;
@@ -30,10 +34,7 @@ import org.elasticsearch.transport.TransportResponseHandler;
 import org.elasticsearch.transport.TransportService;
 import org.junit.Test;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 
 public class TransportsTest extends CrateDummyClusterServiceUnitTest {
 

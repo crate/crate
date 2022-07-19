@@ -24,6 +24,7 @@ package io.crate.planner;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 
 import java.util.Collections;

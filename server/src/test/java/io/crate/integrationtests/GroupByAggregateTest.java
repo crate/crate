@@ -27,6 +27,11 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.closeTo;
 import static org.hamcrest.Matchers.isIn;
 import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 import java.util.Arrays;
 

@@ -21,12 +21,13 @@
 
 package io.crate.integrationtests;
 
+import static org.junit.Assert.assertEquals;
+
+import java.nio.file.Paths;
+
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
-
-
-import java.nio.file.Paths;
 
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 1)

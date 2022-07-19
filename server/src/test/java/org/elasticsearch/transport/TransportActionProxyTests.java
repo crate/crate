@@ -21,8 +21,14 @@
 
 package org.elasticsearch.transport;
 
-import io.crate.common.io.IOUtils;
-import io.crate.netty.NettyBootstrap;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
+import java.io.IOException;
+import java.util.concurrent.CountDownLatch;
 
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ExceptionsHelper;
@@ -37,8 +43,8 @@ import org.elasticsearch.threadpool.TestThreadPool;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Before;
 
-import java.io.IOException;
-import java.util.concurrent.CountDownLatch;
+import io.crate.common.io.IOUtils;
+import io.crate.netty.NettyBootstrap;
 
 public class TransportActionProxyTests extends ESTestCase {
     protected ThreadPool threadPool;

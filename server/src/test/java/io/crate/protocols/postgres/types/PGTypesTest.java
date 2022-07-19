@@ -26,6 +26,7 @@ import static io.crate.types.DataTypes.GEO_SHAPE;
 import static io.crate.types.DataTypes.PRIMITIVE_TYPES;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;

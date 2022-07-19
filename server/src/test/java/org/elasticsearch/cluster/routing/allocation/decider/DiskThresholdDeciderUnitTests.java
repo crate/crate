@@ -24,6 +24,9 @@ package org.elasticsearch.cluster.routing.allocation.decider;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.emptySet;
 import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 import java.util.Collections;
 import java.util.HashSet;

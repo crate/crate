@@ -21,22 +21,25 @@
 
 package io.crate.copy.s3;
 
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.ObjectListing;
-import com.amazonaws.services.s3.model.S3ObjectSummary;
-import io.crate.copy.s3.common.S3ClientHelper;
-import io.crate.copy.s3.common.S3URI;
-import org.elasticsearch.test.ESTestCase;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.net.URI;
 import java.util.LinkedList;
 import java.util.List;
 
-import static org.hamcrest.Matchers.is;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import org.elasticsearch.test.ESTestCase;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.model.ObjectListing;
+import com.amazonaws.services.s3.model.S3ObjectSummary;
+
+import io.crate.copy.s3.common.S3ClientHelper;
+import io.crate.copy.s3.common.S3URI;
 
 
 public class S3FileInputTest extends ESTestCase {

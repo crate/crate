@@ -21,12 +21,6 @@
 
 package io.crate.integrationtests;
 
-import io.crate.testing.TestingHelpers;
-import org.elasticsearch.test.ESIntegTestCase;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
-
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
@@ -35,6 +29,14 @@ import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
+
+import org.elasticsearch.test.ESIntegTestCase;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+
+import io.crate.testing.TestingHelpers;
 
 @ESIntegTestCase.ClusterScope(minNumDataNodes = 2)
 public class OptimizeTableIntegrationTest extends SQLHttpIntegrationTest {

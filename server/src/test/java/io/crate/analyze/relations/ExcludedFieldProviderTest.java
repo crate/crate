@@ -21,6 +21,12 @@
 
 package io.crate.analyze.relations;
 
+import static io.crate.testing.SymbolMatchers.isField;
+import static io.crate.testing.SymbolMatchers.isLiteral;
+import static org.junit.Assert.assertThat;
+
+import org.junit.Test;
+
 import io.crate.analyze.ValuesResolver;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.ScopedSymbol;
@@ -29,11 +35,6 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.types.DataTypes;
-import org.junit.Test;
-
-import static io.crate.testing.SymbolMatchers.isField;
-import static io.crate.testing.SymbolMatchers.isLiteral;
-import static org.junit.Assert.assertThat;
 
 public class ExcludedFieldProviderTest {
 

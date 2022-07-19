@@ -28,6 +28,7 @@ import static io.crate.testing.T3.T1;
 import static io.crate.testing.T3.T1_DEFINITION;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertThat;
 
 import java.util.Collections;
 import java.util.List;

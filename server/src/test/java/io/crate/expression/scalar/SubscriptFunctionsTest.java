@@ -23,14 +23,15 @@ package io.crate.expression.scalar;
 
 import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
+import static org.junit.Assert.assertThat;
 
 import java.util.List;
 
+import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import io.crate.data.Row1;
 import io.crate.expression.symbol.Literal;
-import org.elasticsearch.test.ESTestCase;
 import io.crate.types.DataTypes;
 import io.crate.types.RowType;
 

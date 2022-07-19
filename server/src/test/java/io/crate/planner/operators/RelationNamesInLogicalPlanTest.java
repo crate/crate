@@ -22,6 +22,7 @@
 package io.crate.planner.operators;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.junit.Assert.assertThat;
 
 import java.util.List;
 

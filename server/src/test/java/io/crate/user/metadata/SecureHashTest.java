@@ -21,13 +21,18 @@
 
 package io.crate.user.metadata;
 
-import org.elasticsearch.test.ESTestCase;
-import io.crate.user.SecureHash;
-import org.elasticsearch.common.settings.SecureString;
-import org.junit.Test;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
+
+import org.elasticsearch.common.settings.SecureString;
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
+
+import io.crate.user.SecureHash;
 
 public class SecureHashTest extends ESTestCase {
 

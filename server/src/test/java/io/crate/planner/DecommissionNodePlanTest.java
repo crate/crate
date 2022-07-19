@@ -21,10 +21,12 @@
 
 package io.crate.planner;
 
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+
 import org.junit.Test;
 
-import static org.hamcrest.Matchers.is;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 
 public class DecommissionNodePlanTest extends CrateDummyClusterServiceUnitTest {
 

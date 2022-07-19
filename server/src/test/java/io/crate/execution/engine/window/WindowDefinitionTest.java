@@ -27,6 +27,7 @@ import static io.crate.sql.tree.FrameBound.Type.UNBOUNDED_PRECEDING;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
+import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.util.List;

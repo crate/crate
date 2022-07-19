@@ -33,6 +33,10 @@ import static org.hamcrest.Matchers.emptyOrNullString;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.fail;
 
 import java.sql.Array;
 import java.sql.BatchUpdateException;

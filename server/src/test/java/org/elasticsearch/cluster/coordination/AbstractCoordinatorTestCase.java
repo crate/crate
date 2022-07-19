@@ -25,10 +25,10 @@ import static java.util.Collections.singleton;
 import static org.elasticsearch.cluster.coordination.AbstractCoordinatorTestCase.Cluster.DEFAULT_DELAY_VARIABILITY;
 import static org.elasticsearch.cluster.coordination.ClusterBootstrapService.BOOTSTRAP_PLACEHOLDER_PREFIX;
 import static org.elasticsearch.cluster.coordination.CoordinationStateTestCluster.clusterState;
-import static org.elasticsearch.cluster.coordination.Coordinator.PUBLISH_TIMEOUT_SETTING;
 import static org.elasticsearch.cluster.coordination.Coordinator.Mode.CANDIDATE;
 import static org.elasticsearch.cluster.coordination.Coordinator.Mode.FOLLOWER;
 import static org.elasticsearch.cluster.coordination.Coordinator.Mode.LEADER;
+import static org.elasticsearch.cluster.coordination.Coordinator.PUBLISH_TIMEOUT_SETTING;
 import static org.elasticsearch.cluster.coordination.ElectionSchedulerFactory.ELECTION_BACK_OFF_TIME_SETTING;
 import static org.elasticsearch.cluster.coordination.ElectionSchedulerFactory.ELECTION_DURATION_SETTING;
 import static org.elasticsearch.cluster.coordination.ElectionSchedulerFactory.ELECTION_INITIAL_TIMEOUT_SETTING;
@@ -54,6 +54,11 @@ import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.sameInstance;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -81,8 +86,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
-
-import com.carrotsearch.randomizedtesting.RandomizedContext;
 
 import org.apache.logging.log4j.CloseableThreadContext;
 import org.apache.logging.log4j.LogManager;
@@ -141,6 +144,8 @@ import org.hamcrest.Matcher;
 import org.hamcrest.core.IsCollectionContaining;
 import org.junit.After;
 import org.junit.Before;
+
+import com.carrotsearch.randomizedtesting.RandomizedContext;
 
 import io.crate.common.collections.Tuple;
 import io.crate.common.unit.TimeValue;

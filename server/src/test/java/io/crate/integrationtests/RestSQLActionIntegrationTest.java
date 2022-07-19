@@ -21,11 +21,12 @@
 
 package io.crate.integrationtests;
 
-
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.StringStartsWith.startsWith;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 

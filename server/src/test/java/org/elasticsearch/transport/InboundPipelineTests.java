@@ -19,9 +19,23 @@
 
 package org.elasticsearch.transport;
 
-import io.crate.common.collections.Tuple;
-import io.crate.common.io.Streams;
-import io.crate.common.unit.TimeValue;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BiConsumer;
+import java.util.function.LongSupplier;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
+
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
@@ -35,17 +49,9 @@ import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.common.util.PageCacheRecycler;
 import org.elasticsearch.test.ESTestCase;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.BiConsumer;
-import java.util.function.LongSupplier;
-import java.util.function.Predicate;
-import java.util.function.Supplier;
-
-import static org.hamcrest.Matchers.instanceOf;
+import io.crate.common.collections.Tuple;
+import io.crate.common.io.Streams;
+import io.crate.common.unit.TimeValue;
 
 public class InboundPipelineTests extends ESTestCase {
 

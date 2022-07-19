@@ -25,6 +25,7 @@ import static io.crate.integrationtests.disruption.discovery.AbstractDisruptionT
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.elasticsearch.test.ESIntegTestCase.ensureStableCluster;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;

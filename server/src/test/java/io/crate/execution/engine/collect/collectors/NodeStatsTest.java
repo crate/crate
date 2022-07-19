@@ -24,6 +24,7 @@ package io.crate.execution.engine.collect.collectors;
 import static io.crate.testing.DiscoveryNodes.newNode;
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;

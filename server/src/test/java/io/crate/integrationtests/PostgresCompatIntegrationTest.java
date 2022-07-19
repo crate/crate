@@ -21,14 +21,16 @@
 
 package io.crate.integrationtests;
 
-import io.crate.testing.SQLResponse;
-import io.crate.testing.UseJdbc;
-import org.junit.Test;
-import org.postgresql.util.PSQLException;
+import static io.crate.testing.Asserts.assertThrowsMatches;
+import static org.junit.Assert.assertTrue;
 
 import java.sql.PreparedStatement;
 
-import static io.crate.testing.Asserts.assertThrowsMatches;
+import org.junit.Test;
+import org.postgresql.util.PSQLException;
+
+import io.crate.testing.SQLResponse;
+import io.crate.testing.UseJdbc;
 
 @UseJdbc(value = 1)
 public class PostgresCompatIntegrationTest extends SQLIntegrationTestCase {

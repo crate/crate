@@ -21,14 +21,15 @@
 
 package io.crate.expression.scalar.string;
 
-import io.crate.expression.scalar.ScalarTestCase;
-import io.crate.expression.symbol.Literal;
-import io.crate.types.DataTypes;
+import static io.crate.testing.SymbolMatchers.isLiteral;
+import static org.hamcrest.Matchers.not;
+
 import org.hamcrest.core.IsSame;
 import org.junit.Test;
 
-import static io.crate.testing.SymbolMatchers.isLiteral;
-import static org.hamcrest.Matchers.not;
+import io.crate.expression.scalar.ScalarTestCase;
+import io.crate.expression.symbol.Literal;
+import io.crate.types.DataTypes;
 
 public class TrimFunctionTest extends ScalarTestCase {
 

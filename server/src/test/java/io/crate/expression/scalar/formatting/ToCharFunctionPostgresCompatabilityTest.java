@@ -21,8 +21,9 @@
 
 package io.crate.expression.scalar.formatting;
 
-import io.crate.expression.scalar.ScalarTestCase;
 import org.junit.Test;
+
+import io.crate.expression.scalar.ScalarTestCase;
 
 
 public class ToCharFunctionPostgresCompatabilityTest extends ScalarTestCase {

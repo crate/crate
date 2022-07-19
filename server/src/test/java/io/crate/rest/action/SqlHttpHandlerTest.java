@@ -33,7 +33,6 @@ import static org.mockito.Mockito.when;
 
 import java.util.List;
 
-
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.http.netty4.cors.Netty4CorsConfigBuilder;

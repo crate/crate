@@ -21,10 +21,20 @@
 
 package io.crate.planner.statement;
 
+import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import org.junit.Before;
+import org.junit.Test;
+
 import io.crate.action.sql.SessionContext;
 import io.crate.auth.AccessControl;
-import io.crate.user.User;
-import io.crate.user.UserManager;
 import io.crate.data.Row;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.NoopPlan;
@@ -33,16 +43,8 @@ import io.crate.planner.operators.SubQueryResults;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.TestingRowConsumer;
-import org.junit.Before;
-import org.junit.Test;
-
-import static org.hamcrest.CoreMatchers.not;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import io.crate.user.User;
+import io.crate.user.UserManager;
 
 public class SetSessionAuthorizationPlanTest extends CrateDummyClusterServiceUnitTest {
 

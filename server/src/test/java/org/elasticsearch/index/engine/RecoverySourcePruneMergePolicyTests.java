@@ -19,6 +19,16 @@
 
 package org.elasticsearch.index.engine;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+
+import java.io.IOException;
+import java.util.Collections;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.NumericDocValuesField;
@@ -42,14 +52,9 @@ import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.store.Directory;
-import org.apache.lucene.util.InfoStream;
 import org.apache.lucene.tests.util.NullInfoStream;
+import org.apache.lucene.util.InfoStream;
 import org.elasticsearch.test.ESTestCase;
-
-import java.io.IOException;
-import java.util.Collections;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 public class RecoverySourcePruneMergePolicyTests extends ESTestCase {
 

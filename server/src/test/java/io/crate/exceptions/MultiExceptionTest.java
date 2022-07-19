@@ -21,16 +21,17 @@
 
 package io.crate.exceptions;
 
-import org.elasticsearch.test.ESTestCase;
-import org.junit.Test;
-
-import java.util.ArrayList;
-import java.util.List;
-
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertThat;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
 
 public class MultiExceptionTest extends ESTestCase {
 

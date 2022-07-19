@@ -18,20 +18,18 @@
  */
 package org.elasticsearch.env;
 
-import io.crate.common.io.IOUtils;
-import org.apache.lucene.index.SegmentInfos;
-import org.apache.lucene.tests.util.LuceneTestCase;
-import org.elasticsearch.common.io.PathUtils;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.concurrent.AbstractRunnable;
-import io.crate.common.collections.Sets;
-import org.elasticsearch.gateway.MetadataStateFormat;
-import org.elasticsearch.index.Index;
-import org.elasticsearch.index.IndexSettings;
-import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.node.Node;
-import org.elasticsearch.test.ESTestCase;
-import org.elasticsearch.test.IndexSettingsModule;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.Matchers.arrayWithSize;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.startsWith;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -46,14 +44,23 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.Matchers.arrayWithSize;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.startsWith;
+import org.apache.lucene.index.SegmentInfos;
+import org.apache.lucene.tests.util.CrateLuceneTestCase;
+import org.elasticsearch.common.io.PathUtils;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.util.concurrent.AbstractRunnable;
+import org.elasticsearch.gateway.MetadataStateFormat;
+import org.elasticsearch.index.Index;
+import org.elasticsearch.index.IndexSettings;
+import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.node.Node;
+import org.elasticsearch.test.ESTestCase;
+import org.elasticsearch.test.IndexSettingsModule;
 
-@LuceneTestCase.SuppressFileSystems("ExtrasFS") // TODO: fix test to allow extras
+import io.crate.common.collections.Sets;
+import io.crate.common.io.IOUtils;
+
+@CrateLuceneTestCase.SuppressFileSystems("ExtrasFS") // TODO: fix test to allow extras
 public class NodeEnvironmentTests extends ESTestCase {
     private final IndexSettings idxSettings = IndexSettingsModule.newIndexSettings("foo", Settings.EMPTY);
 

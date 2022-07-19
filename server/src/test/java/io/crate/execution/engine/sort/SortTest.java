@@ -21,11 +21,8 @@
 
 package io.crate.execution.engine.sort;
 
-import com.carrotsearch.randomizedtesting.annotations.Repeat;
-import org.elasticsearch.test.ESTestCase;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -33,7 +30,12 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import static org.hamcrest.Matchers.is;
+import org.elasticsearch.test.ESTestCase;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
 
 public class SortTest extends ESTestCase {
 

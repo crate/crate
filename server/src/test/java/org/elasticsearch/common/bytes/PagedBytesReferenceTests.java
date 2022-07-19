@@ -19,11 +19,19 @@
 
 package org.elasticsearch.common.bytes;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThat;
+
+import java.io.IOException;
+
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.util.ByteArray;
 import org.hamcrest.Matchers;
-
-import java.io.IOException;
 
 public class PagedBytesReferenceTests extends AbstractBytesReferenceTestCase {
 

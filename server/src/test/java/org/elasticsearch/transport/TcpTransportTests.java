@@ -19,6 +19,24 @@
 
 package org.elasticsearch.transport;
 
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.core.IsInstanceOf.instanceOf;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
+import java.io.IOException;
+import java.io.StreamCorruptedException;
+import java.net.BindException;
+import java.net.InetSocketAddress;
+import java.nio.channels.CancelledKeyException;
+import java.nio.channels.ClosedChannelException;
+import java.util.Collections;
+import java.util.concurrent.TimeUnit;
+
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.ElasticsearchException;
@@ -41,19 +59,6 @@ import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.elasticsearch.threadpool.TestThreadPool;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.hamcrest.Matcher;
-
-import java.io.IOException;
-import java.io.StreamCorruptedException;
-import java.net.BindException;
-import java.net.InetSocketAddress;
-import java.nio.channels.CancelledKeyException;
-import java.nio.channels.ClosedChannelException;
-import java.util.Collections;
-import java.util.concurrent.TimeUnit;
-
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.core.IsInstanceOf.instanceOf;
 
 /** Unit tests for {@link TcpTransport} */
 public class TcpTransportTests extends ESTestCase {

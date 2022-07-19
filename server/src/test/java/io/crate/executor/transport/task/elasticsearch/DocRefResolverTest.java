@@ -23,6 +23,7 @@ package io.crate.executor.transport.task.elasticsearch;
 
 import static io.crate.testing.TestingHelpers.refInfo;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
 import java.util.ArrayList;
 import java.util.Collections;

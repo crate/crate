@@ -24,17 +24,18 @@ package io.crate.metadata.settings;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
 import java.util.Map;
 
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.Metadata;
-import io.crate.common.collections.MapBuilder;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.gateway.GatewayService;
 import org.junit.Test;
 
+import io.crate.common.collections.MapBuilder;
 import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 

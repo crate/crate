@@ -23,6 +23,7 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
 import java.util.ArrayList;
 import java.util.Collection;

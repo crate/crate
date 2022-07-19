@@ -21,8 +21,15 @@
 
 package io.crate.metadata;
 
-import io.crate.Constants;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import static org.hamcrest.Matchers.hasEntry;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+
+import java.util.Iterator;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -30,13 +37,8 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
-import java.util.Iterator;
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
-
-import static org.hamcrest.Matchers.hasEntry;
-import static org.hamcrest.Matchers.is;
+import io.crate.Constants;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 
 public class PartitionInfosTest extends CrateDummyClusterServiceUnitTest {
 

@@ -21,16 +21,17 @@
 
 package io.crate.integrationtests;
 
-import io.crate.common.Hex;
-import io.crate.test.utils.Blobs;
+import java.io.IOException;
+import java.net.InetSocketAddress;
+
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 
-import java.io.IOException;
-import java.net.InetSocketAddress;
+import io.crate.common.Hex;
+import io.crate.test.utils.Blobs;
 
 class BlobHttpClient {
 
