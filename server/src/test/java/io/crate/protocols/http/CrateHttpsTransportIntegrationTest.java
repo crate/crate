@@ -21,9 +21,18 @@
 
 package io.crate.protocols.http;
 
-import io.crate.integrationtests.SQLHttpIntegrationTest;
-import io.crate.protocols.ssl.SslSettings;
-import io.crate.testing.UseJdbc;
+import static io.crate.protocols.ssl.SslContextProviderTest.getAbsoluteFilePathFromClassPath;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.isEmptyOrNullString;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+
+import java.io.File;
+import java.io.IOException;
+
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.util.EntityUtils;
@@ -33,15 +42,9 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import java.io.File;
-import java.io.IOException;
-
-import static io.crate.protocols.ssl.SslContextProviderTest.getAbsoluteFilePathFromClassPath;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.isEmptyOrNullString;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.nullValue;
+import io.crate.integrationtests.SQLHttpIntegrationTest;
+import io.crate.protocols.ssl.SslSettings;
+import io.crate.testing.UseJdbc;
 
 
 @UseJdbc(value = 0)

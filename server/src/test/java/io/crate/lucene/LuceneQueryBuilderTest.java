@@ -21,10 +21,8 @@
 
 package io.crate.lucene;
 
-import io.crate.expression.symbol.Symbol;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.IndexVersionCreated;
-import io.crate.testing.QueryTester;
+import java.lang.reflect.Method;
+
 import org.apache.lucene.search.Query;
 import org.elasticsearch.Version;
 import org.junit.After;
@@ -32,7 +30,10 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.rules.TestName;
 
-import java.lang.reflect.Method;
+import io.crate.expression.symbol.Symbol;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.IndexVersionCreated;
+import io.crate.testing.QueryTester;
 
 public abstract class LuceneQueryBuilderTest extends CrateDummyClusterServiceUnitTest {
 

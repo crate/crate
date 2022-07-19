@@ -21,11 +21,8 @@
 
 package io.crate.blob;
 
-import io.crate.common.Hex;
-import io.crate.test.utils.Blobs;
-import org.junit.ClassRule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 import java.io.File;
 import java.io.IOException;
@@ -36,8 +33,12 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
+import org.junit.ClassRule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+
+import io.crate.common.Hex;
+import io.crate.test.utils.Blobs;
 
 public class BlobContainerTest {
 

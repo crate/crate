@@ -21,21 +21,14 @@
 
 package io.crate.node;
 
-import io.crate.action.sql.SQLOperations;
-import io.crate.action.sql.Session;
-import org.elasticsearch.test.ESTestCase;
-import io.crate.testing.SQLResponse;
-import io.crate.testing.SQLTransportExecutor;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.env.Environment;
-import org.elasticsearch.node.InternalSettingsPreparer;
-import org.hamcrest.Matchers;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
-import org.yaml.snakeyaml.Yaml;
+import static org.elasticsearch.env.Environment.PATH_DATA_SETTING;
+import static org.elasticsearch.env.Environment.PATH_HOME_SETTING;
+import static org.elasticsearch.env.Environment.PATH_LOGS_SETTING;
+import static org.hamcrest.Matchers.arrayContaining;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -48,12 +41,22 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import static org.elasticsearch.env.Environment.PATH_DATA_SETTING;
-import static org.elasticsearch.env.Environment.PATH_HOME_SETTING;
-import static org.elasticsearch.env.Environment.PATH_LOGS_SETTING;
-import static org.hamcrest.Matchers.arrayContaining;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.is;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.env.Environment;
+import org.elasticsearch.node.InternalSettingsPreparer;
+import org.elasticsearch.test.ESTestCase;
+import org.hamcrest.Matchers;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+import org.yaml.snakeyaml.Yaml;
+
+import io.crate.action.sql.SQLOperations;
+import io.crate.action.sql.Session;
+import io.crate.testing.SQLResponse;
+import io.crate.testing.SQLTransportExecutor;
 
 public class NodeSettingsTest extends ESTestCase {
 

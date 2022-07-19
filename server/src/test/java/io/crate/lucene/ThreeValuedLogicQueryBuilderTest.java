@@ -22,6 +22,7 @@
 package io.crate.lucene;
 
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
 import org.apache.lucene.search.Query;
 import org.junit.Test;

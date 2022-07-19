@@ -21,16 +21,19 @@
 
 package io.crate.integrationtests;
 
-import io.crate.execution.jobs.RootTask;
-import io.crate.execution.jobs.TasksService;
-import org.junit.Test;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 import java.lang.reflect.Field;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import static org.hamcrest.core.Is.is;
+import org.junit.Test;
+
+import io.crate.execution.jobs.RootTask;
+import io.crate.execution.jobs.TasksService;
 
 public class TasksServiceIntegrationTest extends SQLIntegrationTestCase {
 

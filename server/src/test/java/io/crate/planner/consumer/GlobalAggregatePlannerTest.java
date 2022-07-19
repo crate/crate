@@ -21,6 +21,20 @@
 
 package io.crate.planner.consumer;
 
+import static io.crate.testing.SymbolMatchers.isAggregation;
+import static io.crate.testing.SymbolMatchers.isInputColumn;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.junit.Assert.assertThat;
+
+import java.util.List;
+import java.util.UUID;
+
+import org.hamcrest.Matchers;
+import org.junit.Before;
+import org.junit.Test;
+
 import io.crate.analyze.TableDefinitions;
 import io.crate.data.Row1;
 import io.crate.execution.dsl.projection.AggregationProjection;
@@ -32,18 +46,6 @@ import io.crate.planner.node.dql.Collect;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
-import org.hamcrest.Matchers;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.util.List;
-import java.util.UUID;
-
-import static io.crate.testing.SymbolMatchers.isAggregation;
-import static io.crate.testing.SymbolMatchers.isInputColumn;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.instanceOf;
 
 public class GlobalAggregatePlannerTest extends CrateDummyClusterServiceUnitTest {
 

@@ -21,20 +21,21 @@
 
 package io.crate.expression.scalar;
 
-import io.crate.expression.symbol.Literal;
-import io.crate.types.ArrayType;
-import io.crate.types.DataTypes;
-import org.hamcrest.Matchers;
-import org.hamcrest.core.IsSame;
-import org.junit.Test;
+import static io.crate.testing.SymbolMatchers.isLiteral;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import static io.crate.testing.SymbolMatchers.isLiteral;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
+import org.hamcrest.Matchers;
+import org.hamcrest.core.IsSame;
+import org.junit.Test;
+
+import io.crate.expression.symbol.Literal;
+import io.crate.types.ArrayType;
+import io.crate.types.DataTypes;
 
 public class ArrayDifferenceFunctionTest extends ScalarTestCase {
 

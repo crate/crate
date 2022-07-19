@@ -18,6 +18,16 @@
  */
 package org.elasticsearch.action.admin.cluster.configuration;
 
+import static java.util.Collections.emptyMap;
+import static java.util.Collections.emptySet;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertThat;
+
+import java.io.IOException;
+import java.util.Set;
+
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
@@ -27,17 +37,9 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodeRole;
 import org.elasticsearch.cluster.node.DiscoveryNodes.Builder;
-import io.crate.common.unit.TimeValue;
 import org.elasticsearch.test.ESTestCase;
 
-import java.io.IOException;
-import java.util.Set;
-
-import static java.util.Collections.emptyMap;
-import static java.util.Collections.emptySet;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.equalTo;
+import io.crate.common.unit.TimeValue;
 
 public class AddVotingConfigExclusionsRequestTests extends ESTestCase {
     public void testSerialization() throws IOException {

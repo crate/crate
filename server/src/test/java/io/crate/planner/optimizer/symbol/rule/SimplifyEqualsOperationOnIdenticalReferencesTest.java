@@ -21,6 +21,15 @@
 
 package io.crate.planner.optimizer.symbol.rule;
 
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+
+import java.util.List;
+
+import org.junit.Test;
+
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.exceptions.ConversionException;
 import io.crate.expression.operator.EqOperator;
@@ -33,24 +42,16 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.SimpleReference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.SimpleReference;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Match;
 import io.crate.planner.optimizer.symbol.FunctionSymbolResolver;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
-import org.junit.Test;
-
-import java.util.List;
-
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 
 public class SimplifyEqualsOperationOnIdenticalReferencesTest {

@@ -21,18 +21,6 @@
 
 package io.crate.analyze;
 
-import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.expression.operator.EqOperator;
-import io.crate.expression.symbol.MatchPredicate;
-import io.crate.expression.symbol.SelectSymbol;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.SQLExecutor;
-import org.hamcrest.Matchers;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.io.IOException;
-
 import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.SymbolMatchers.isReference;
@@ -40,6 +28,20 @@ import static io.crate.testing.TestingHelpers.isSQL;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+
+import java.io.IOException;
+
+import org.hamcrest.Matchers;
+import org.junit.Before;
+import org.junit.Test;
+
+import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.expression.operator.EqOperator;
+import io.crate.expression.symbol.MatchPredicate;
+import io.crate.expression.symbol.SelectSymbol;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
 
 public class SingleRowSubselectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 

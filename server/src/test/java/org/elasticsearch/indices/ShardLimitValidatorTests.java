@@ -20,6 +20,9 @@
 package org.elasticsearch.indices;
 
 import static org.elasticsearch.cluster.shards.ShardCounts.forDataNodeCount;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 

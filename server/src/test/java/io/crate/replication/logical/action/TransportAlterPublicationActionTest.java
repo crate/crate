@@ -21,21 +21,24 @@
 
 package io.crate.replication.logical.action;
 
-import io.crate.exceptions.RelationUnknown;
-import io.crate.metadata.RelationName;
-import io.crate.replication.logical.metadata.Publication;
-import io.crate.sql.tree.AlterPublication;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertThrows;
+
+import java.util.List;
+
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.junit.Test;
 
-import java.util.List;
-
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.not;
+import io.crate.exceptions.RelationUnknown;
+import io.crate.metadata.RelationName;
+import io.crate.replication.logical.metadata.Publication;
+import io.crate.sql.tree.AlterPublication;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 
 public class TransportAlterPublicationActionTest extends CrateDummyClusterServiceUnitTest {
 

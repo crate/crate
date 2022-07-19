@@ -21,7 +21,21 @@
 
 package io.crate.execution.engine.distribution;
 
+import static org.hamcrest.Matchers.instanceOf;
+import static org.junit.Assert.assertThat;
+import static org.mockito.Mockito.mock;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+
+import org.elasticsearch.node.Node;
+import org.junit.Before;
+import org.junit.Test;
+
 import com.carrotsearch.hppc.IntArrayList;
+
 import io.crate.analyze.WhereClause;
 import io.crate.breaker.RamAccounting;
 import io.crate.data.Paging;
@@ -34,18 +48,6 @@ import io.crate.metadata.RowGranularity;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.LongType;
-
-import org.elasticsearch.node.Node;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-
-import static org.hamcrest.Matchers.instanceOf;
-import static org.mockito.Mockito.mock;
 
 public class DistributingConsumerFactoryTest extends CrateDummyClusterServiceUnitTest {
 

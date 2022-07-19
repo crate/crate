@@ -22,6 +22,7 @@
 package io.crate.interval;
 
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
 
 import org.elasticsearch.test.ESTestCase;
 import org.joda.time.Period;

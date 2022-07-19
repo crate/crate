@@ -21,16 +21,18 @@
 
 package io.crate.analyze;
 
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+
+import org.junit.Before;
+import org.junit.Test;
+
 import io.crate.data.RowN;
 import io.crate.planner.DecommissionNodePlan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.junit.Before;
-import org.junit.Test;
-
-import static org.hamcrest.Matchers.is;
 
 public class DecommissionNodeAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 

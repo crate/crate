@@ -21,10 +21,12 @@
 
 package org.elasticsearch.index.translog;
 
-import io.crate.integrationtests.SQLIntegrationTestCase;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+
 import org.elasticsearch.test.ESIntegTestCase;
 
-import static org.hamcrest.Matchers.is;
+import io.crate.integrationtests.SQLIntegrationTestCase;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2)
 public class TranslogHistoryTest extends SQLIntegrationTestCase {

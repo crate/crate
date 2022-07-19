@@ -18,15 +18,19 @@
  */
 package org.elasticsearch.cluster.coordination;
 
-import org.elasticsearch.cluster.coordination.LinearizabilityChecker.History;
-import org.elasticsearch.cluster.coordination.LinearizabilityChecker.KeyedSpec;
-import org.elasticsearch.cluster.coordination.LinearizabilityChecker.SequentialSpec;
-import io.crate.common.collections.Tuple;
-import org.elasticsearch.test.ESTestCase;
+import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 import java.util.Optional;
 
-import static org.hamcrest.Matchers.equalTo;
+import org.elasticsearch.cluster.coordination.LinearizabilityChecker.History;
+import org.elasticsearch.cluster.coordination.LinearizabilityChecker.KeyedSpec;
+import org.elasticsearch.cluster.coordination.LinearizabilityChecker.SequentialSpec;
+import org.elasticsearch.test.ESTestCase;
+
+import io.crate.common.collections.Tuple;
 
 public class LinearizabilityCheckerTests extends ESTestCase {
 

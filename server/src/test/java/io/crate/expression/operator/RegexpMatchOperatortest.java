@@ -21,12 +21,13 @@
 
 package io.crate.expression.operator;
 
+import static org.hamcrest.Matchers.is;
+
+import org.junit.Test;
+
 import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.expression.symbol.Literal;
 import io.crate.types.DataTypes;
-import org.junit.Test;
-
-import static org.hamcrest.Matchers.is;
 
 public class RegexpMatchOperatortest extends ScalarTestCase {
 

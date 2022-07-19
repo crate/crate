@@ -21,7 +21,20 @@
 
 package io.crate.planner.consumer;
 
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+
+import java.io.IOException;
+import java.util.List;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.junit.Before;
+import org.junit.Test;
+
 import com.carrotsearch.randomizedtesting.RandomizedTest;
+
 import io.crate.analyze.TableDefinitions;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
@@ -29,16 +42,6 @@ import io.crate.planner.Merge;
 import io.crate.planner.node.dql.Collect;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.elasticsearch.Version;
-import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.io.IOException;
-import java.util.List;
-
-import static org.hamcrest.Matchers.is;
 
 public class InsertFromSubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
 

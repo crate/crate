@@ -22,6 +22,7 @@
 package io.crate.analyze;
 
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;

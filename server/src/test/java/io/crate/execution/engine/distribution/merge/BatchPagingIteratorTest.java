@@ -21,18 +21,9 @@
 
 package io.crate.execution.engine.distribution.merge;
 
-import io.crate.concurrent.KillableCompletionStage;
-import io.crate.data.BatchIterator;
-import io.crate.data.Row;
-import io.crate.data.RowN;
-import io.crate.testing.BatchIteratorTester;
-import io.crate.testing.BatchSimulatingIterator;
-import io.crate.testing.RowGenerator;
-import io.crate.testing.TestingBatchIterators;
-import org.hamcrest.Matchers;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import static java.util.Collections.singleton;
+import static java.util.Collections.singletonList;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -45,9 +36,19 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import static java.util.Collections.singleton;
-import static java.util.Collections.singletonList;
-import static org.hamcrest.MatcherAssert.assertThat;
+import org.hamcrest.Matchers;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+
+import io.crate.concurrent.KillableCompletionStage;
+import io.crate.data.BatchIterator;
+import io.crate.data.Row;
+import io.crate.data.RowN;
+import io.crate.testing.BatchIteratorTester;
+import io.crate.testing.BatchSimulatingIterator;
+import io.crate.testing.RowGenerator;
+import io.crate.testing.TestingBatchIterators;
 
 public class BatchPagingIteratorTest {
 

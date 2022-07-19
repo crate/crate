@@ -21,15 +21,16 @@
 
 package io.crate.expression.scalar.arithmetic;
 
-import io.crate.expression.scalar.ScalarTestCase;
-import io.crate.expression.symbol.Literal;
-import io.crate.types.DataTypes;
-import org.junit.Test;
-
 import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.is;
+
+import org.junit.Test;
+
+import io.crate.expression.scalar.ScalarTestCase;
+import io.crate.expression.symbol.Literal;
+import io.crate.types.DataTypes;
 
 public class TrigonometricFunctionsTest extends ScalarTestCase {
 

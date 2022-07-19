@@ -21,7 +21,14 @@
 
 package io.crate.replication.logical.metadata;
 
-import io.crate.metadata.RelationName;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.core.IsNull.nullValue;
+import static org.junit.Assert.assertThat;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -35,12 +42,7 @@ import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.core.IsNull.nullValue;
+import io.crate.metadata.RelationName;
 
 public class SubscriptionsMetadataTest extends ESTestCase {
 

@@ -21,6 +21,8 @@
 
 package io.crate.planner.consumer;
 
+import static org.junit.Assert.assertArrayEquals;
+
 import java.util.List;
 
 import org.elasticsearch.test.ESTestCase;

@@ -21,13 +21,15 @@
 
 package io.crate.analyze;
 
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+
+import org.junit.Test;
+
 import io.crate.exceptions.RelationsUnknown;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.junit.Test;
-
-import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.is;
 
 public class DropViewAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 

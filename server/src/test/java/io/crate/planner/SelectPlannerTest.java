@@ -35,6 +35,10 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -44,11 +48,11 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import com.carrotsearch.hppc.IntIndexedContainer;
-import com.carrotsearch.randomizedtesting.RandomizedTest;
-
 import org.hamcrest.Matchers;
 import org.junit.Test;
+
+import com.carrotsearch.hppc.IntIndexedContainer;
+import com.carrotsearch.randomizedtesting.RandomizedTest;
 
 import io.crate.analyze.TableDefinitions;
 import io.crate.data.RowN;

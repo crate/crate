@@ -21,13 +21,9 @@
 
 package io.crate;
 
-import io.crate.blob.BlobContainer;
-import io.crate.blob.DigestBlob;
-import org.elasticsearch.test.ESTestCase;
-import org.elasticsearch.common.bytes.BytesArray;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -36,7 +32,14 @@ import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 import java.util.UUID;
 
-import static org.hamcrest.Matchers.is;
+import org.elasticsearch.common.bytes.BytesArray;
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+
+import io.crate.blob.BlobContainer;
+import io.crate.blob.DigestBlob;
 
 public class DigestBlobTests extends ESTestCase {
 

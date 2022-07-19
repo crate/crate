@@ -21,14 +21,16 @@
 
 package io.crate.integrationtests;
 
-import io.crate.testing.SQLResponse;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
+
+import java.nio.file.Paths;
+
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import java.nio.file.Paths;
-
-import static org.hamcrest.core.Is.is;
+import io.crate.testing.SQLResponse;
 
 /**
  * In ElasticSearch a routing value of '' is treated as if there is no routing

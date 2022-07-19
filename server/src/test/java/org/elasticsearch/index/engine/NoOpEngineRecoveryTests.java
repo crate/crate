@@ -18,18 +18,19 @@
  */
 package org.elasticsearch.index.engine;
 
+import static org.elasticsearch.cluster.routing.ShardRoutingHelper.initWithSameId;
+import static org.junit.Assert.assertEquals;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Optional;
+
 import org.elasticsearch.cluster.routing.RecoverySource.ExistingStoreRecoverySource;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.IndexShardTestCase;
 import org.junit.Test;
-
-import java.io.IOException;
-import java.util.List;
-import java.util.Optional;
-
-import static org.elasticsearch.cluster.routing.ShardRoutingHelper.initWithSameId;
 
 public class NoOpEngineRecoveryTests extends IndexShardTestCase {
 

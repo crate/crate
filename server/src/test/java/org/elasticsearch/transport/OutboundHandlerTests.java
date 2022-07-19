@@ -19,9 +19,24 @@
 
 package org.elasticsearch.transport;
 
-import io.crate.common.collections.Tuple;
-import io.crate.common.io.Streams;
-import io.crate.common.unit.TimeValue;
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.LongSupplier;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
+
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
@@ -42,17 +57,9 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.LongSupplier;
-import java.util.function.Predicate;
-import java.util.function.Supplier;
-
-import static org.hamcrest.CoreMatchers.instanceOf;
+import io.crate.common.collections.Tuple;
+import io.crate.common.io.Streams;
+import io.crate.common.unit.TimeValue;
 
 public class OutboundHandlerTests extends ESTestCase {
 

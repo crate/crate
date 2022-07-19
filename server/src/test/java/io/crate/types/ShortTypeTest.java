@@ -21,13 +21,14 @@
 
 package io.crate.types;
 
-import org.elasticsearch.test.ESTestCase;
-import org.junit.Test;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
 import java.math.BigDecimal;
 import java.util.Map;
 
-import static org.hamcrest.Matchers.is;
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
 
 
 public class ShortTypeTest extends ESTestCase {

@@ -21,19 +21,21 @@
 
 package io.crate.analyze;
 
+import static io.crate.testing.TestingHelpers.isSQL;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.Assert.assertThat;
+
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
+
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.ArrayLiteral;
 import io.crate.sql.tree.Cast;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.SubscriptExpression;
 import io.crate.sql.tree.TryCast;
-import org.elasticsearch.test.ESTestCase;
-import org.junit.Test;
-
-import static io.crate.testing.TestingHelpers.isSQL;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
 
 
 public class SubscriptValidatorTest extends ESTestCase {

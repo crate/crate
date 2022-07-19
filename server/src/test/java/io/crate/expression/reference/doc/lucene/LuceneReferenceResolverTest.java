@@ -22,6 +22,7 @@
 package io.crate.expression.reference.doc.lucene;
 
 import static org.hamcrest.Matchers.instanceOf;
+import static org.junit.Assert.assertThat;
 
 import java.util.List;
 

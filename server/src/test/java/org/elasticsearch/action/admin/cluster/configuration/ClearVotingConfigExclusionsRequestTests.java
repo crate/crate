@@ -18,12 +18,14 @@
  */
 package org.elasticsearch.action.admin.cluster.configuration;
 
-import io.crate.common.unit.TimeValue;
-import org.elasticsearch.test.ESTestCase;
+import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 
-import static org.hamcrest.Matchers.equalTo;
+import org.elasticsearch.test.ESTestCase;
+
+import io.crate.common.unit.TimeValue;
 
 public class ClearVotingConfigExclusionsRequestTests extends ESTestCase {
     public void testSerialization() throws IOException {

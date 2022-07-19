@@ -19,6 +19,12 @@
 
 package org.elasticsearch.index.analysis;
 
+import static org.junit.Assert.assertEquals;
+
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Settings;
@@ -27,10 +33,6 @@ import org.elasticsearch.indices.analysis.AnalysisFactoryTestCase;
 import org.elasticsearch.plugin.analysis.AnalysisPhoneticPlugin;
 import org.elasticsearch.test.IndexSettingsModule;
 import org.junit.Test;
-
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 
 public class AnalysisPhoneticFactoryTests extends AnalysisFactoryTestCase {
 

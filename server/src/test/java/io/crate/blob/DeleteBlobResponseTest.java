@@ -21,12 +21,13 @@
 
 package io.crate.blob;
 
-import org.elasticsearch.test.ESTestCase;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+
 import org.elasticsearch.action.support.replication.ReplicationResponse;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
-
-import static org.hamcrest.Matchers.is;
 
 public class DeleteBlobResponseTest extends ESTestCase {
 

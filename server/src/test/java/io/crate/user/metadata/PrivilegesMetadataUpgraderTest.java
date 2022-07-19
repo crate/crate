@@ -22,12 +22,11 @@
 
 package io.crate.user.metadata;
 
-import io.crate.user.Privilege;
-import org.elasticsearch.test.ESTestCase;
-import org.elasticsearch.cluster.metadata.Metadata;
-import io.crate.common.collections.MapBuilder;
-import org.elasticsearch.common.settings.Settings;
-import org.junit.Test;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.Assert.assertThat;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -35,10 +34,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.notNullValue;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
+
+import io.crate.common.collections.MapBuilder;
+import io.crate.user.Privilege;
 
 public class PrivilegesMetadataUpgraderTest extends ESTestCase {
 

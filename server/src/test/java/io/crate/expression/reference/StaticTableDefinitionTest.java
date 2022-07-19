@@ -21,12 +21,11 @@
 
 package io.crate.expression.reference;
 
-import io.crate.user.User;
-import io.crate.expression.reference.sys.job.JobContext;
-import io.crate.metadata.SearchPath;
-import io.crate.metadata.TransactionContext;
-import io.crate.metadata.settings.SessionSettings;
-import org.junit.Test;
+import static io.crate.user.User.CRATE_USER;
+import static java.util.Collections.emptyList;
+import static java.util.concurrent.CompletableFuture.completedFuture;
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
 
 import java.util.List;
 import java.util.Map;
@@ -34,11 +33,13 @@ import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.StreamSupport;
 
-import static io.crate.user.User.CRATE_USER;
-import static java.util.Collections.emptyList;
-import static java.util.concurrent.CompletableFuture.completedFuture;
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import org.junit.Test;
+
+import io.crate.expression.reference.sys.job.JobContext;
+import io.crate.metadata.SearchPath;
+import io.crate.metadata.TransactionContext;
+import io.crate.metadata.settings.SessionSettings;
+import io.crate.user.User;
 
 public class StaticTableDefinitionTest {
 

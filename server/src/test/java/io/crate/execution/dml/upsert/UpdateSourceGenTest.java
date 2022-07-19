@@ -21,6 +21,20 @@
 
 package io.crate.execution.dml.upsert;
 
+import static java.util.Collections.emptyMap;
+import static java.util.Collections.singletonMap;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+
+import java.io.IOException;
+import java.util.Collections;
+import java.util.Map;
+
+import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.xcontent.XContentFactory;
+import org.junit.Test;
+
 import io.crate.analyze.AnalyzedUpdateStatement;
 import io.crate.expression.reference.Doc;
 import io.crate.expression.symbol.Assignments;
@@ -33,18 +47,6 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.xcontent.XContentFactory;
-import org.junit.Test;
-
-import java.io.IOException;
-import java.util.Collections;
-import java.util.Map;
-
-import static java.util.Collections.emptyMap;
-import static java.util.Collections.singletonMap;
-import static org.hamcrest.Matchers.is;
 
 public class UpdateSourceGenTest extends CrateDummyClusterServiceUnitTest {
 

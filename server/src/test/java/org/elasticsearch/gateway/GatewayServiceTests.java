@@ -19,7 +19,17 @@
 
 package org.elasticsearch.gateway;
 
-import io.crate.common.unit.TimeValue;
+import static org.elasticsearch.gateway.GatewayService.STATE_NOT_RECOVERED_BLOCK;
+import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.Matchers.hasItem;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThat;
+
+import java.util.Arrays;
+import java.util.HashSet;
+
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
@@ -47,12 +57,7 @@ import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Arrays;
-import java.util.HashSet;
-
-import static org.elasticsearch.gateway.GatewayService.STATE_NOT_RECOVERED_BLOCK;
-import static org.hamcrest.CoreMatchers.not;
-import static org.hamcrest.Matchers.hasItem;
+import io.crate.common.unit.TimeValue;
 
 public class GatewayServiceTests extends ESTestCase {
 

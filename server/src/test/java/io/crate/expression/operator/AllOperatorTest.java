@@ -21,8 +21,9 @@
 
 package io.crate.expression.operator;
 
-import io.crate.expression.scalar.ScalarTestCase;
 import org.junit.Test;
+
+import io.crate.expression.scalar.ScalarTestCase;
 
 public class AllOperatorTest extends ScalarTestCase {
 

@@ -21,23 +21,27 @@
 
 package io.crate.analyze;
 
-import io.crate.user.User;
-import io.crate.exceptions.InvalidRelationName;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.Schemas;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.SQLExecutor;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.io.IOException;
-import java.util.Locale;
-
 import static io.crate.testing.SymbolMatchers.isAlias;
 import static io.crate.testing.SymbolMatchers.isReference;
 import static io.crate.testing.TestingHelpers.isSQL;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
+import java.io.IOException;
+import java.util.Locale;
+
+import org.junit.Before;
+import org.junit.Test;
+
+import io.crate.exceptions.InvalidRelationName;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.Schemas;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
+import io.crate.user.User;
 
 public class CreateViewAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 

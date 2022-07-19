@@ -21,23 +21,26 @@
 
 package io.crate.execution.engine.distribution;
 
-import io.crate.Streamer;
-import io.crate.breaker.RamAccounting;
-import io.crate.data.RowN;
-import org.elasticsearch.test.ESTestCase;
-import io.crate.types.DataTypes;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.junit.Test;
-
-import java.util.UUID;
-
 import static io.crate.testing.TestingHelpers.isNullRow;
 import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+
+import java.util.UUID;
+
+import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
+
+import io.crate.Streamer;
+import io.crate.breaker.RamAccounting;
+import io.crate.data.RowN;
+import io.crate.types.DataTypes;
 
 public class DistributedResultRequestTest extends ESTestCase {
 

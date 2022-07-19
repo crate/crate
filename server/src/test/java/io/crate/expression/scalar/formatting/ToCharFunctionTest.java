@@ -21,11 +21,12 @@
 
 package io.crate.expression.scalar.formatting;
 
-import io.crate.expression.scalar.ScalarTestCase;
+import static org.hamcrest.Matchers.not;
+
 import org.hamcrest.core.IsSame;
 import org.junit.Test;
 
-import static org.hamcrest.Matchers.not;
+import io.crate.expression.scalar.ScalarTestCase;
 
 
 public class ToCharFunctionTest extends ScalarTestCase {

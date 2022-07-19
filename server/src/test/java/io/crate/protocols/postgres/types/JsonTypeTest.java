@@ -21,10 +21,11 @@
 
 package io.crate.protocols.postgres.types;
 
-import io.crate.common.collections.MapBuilder;
+import java.util.Map;
+
 import org.junit.Test;
 
-import java.util.Map;
+import io.crate.common.collections.MapBuilder;
 
 public class JsonTypeTest extends BasePGTypeTest<Map<String, Object>> {
 

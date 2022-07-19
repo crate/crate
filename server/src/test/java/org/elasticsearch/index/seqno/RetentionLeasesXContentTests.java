@@ -19,12 +19,12 @@
 
 package org.elasticsearch.index.seqno;
 
-import org.elasticsearch.common.xcontent.XContentParser;
-import org.elasticsearch.test.AbstractXContentTestCase;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+
+import org.elasticsearch.common.xcontent.XContentParser;
+import org.elasticsearch.test.AbstractXContentTestCase;
 
 public class RetentionLeasesXContentTests extends AbstractXContentTestCase<RetentionLeases> {
 

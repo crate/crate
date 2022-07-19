@@ -21,6 +21,17 @@
 
 package io.crate.replication.logical.analyze;
 
+import static io.crate.testing.Asserts.assertThrowsMatches;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertThrows;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.common.settings.Setting;
+import org.hamcrest.Matchers;
+import org.junit.Test;
+
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.exceptions.InvalidArgumentException;
@@ -35,15 +46,6 @@ import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.user.User;
-
-import org.elasticsearch.Version;
-import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.common.settings.Setting;
-import org.hamcrest.Matchers;
-import org.junit.Test;
-
-import static io.crate.testing.Asserts.assertThrowsMatches;
-import static org.hamcrest.core.Is.is;
 
 public class LogicalReplicationAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 

@@ -21,14 +21,14 @@
 
 package io.crate.statistics;
 
-import org.junit.Test;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
 import java.lang.reflect.Field;
 import java.util.Random;
 
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import org.junit.Test;
 
 public class ReservoirTest {
 

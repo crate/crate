@@ -21,22 +21,12 @@
 
 package io.crate.execution.engine.collect;
 
-import io.crate.analyze.CopyFromParserProperties;
-import io.crate.data.BatchIterator;
-import io.crate.data.CollectionBucket;
-import io.crate.data.Row;
-import io.crate.execution.dsl.phases.FileUriCollectPhase;
-import io.crate.execution.engine.collect.sources.FileCollectSource;
-import io.crate.expression.symbol.Literal;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.TestingRowConsumer;
-import io.crate.types.DataTypes;
-import org.elasticsearch.common.settings.Settings;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import static io.crate.testing.TestingHelpers.createNodeContext;
+import static io.crate.testing.TestingHelpers.createReference;
+import static io.crate.testing.TestingHelpers.isRow;
+import static org.hamcrest.Matchers.contains;
+import static org.junit.Assert.assertThat;
+import static org.mockito.Mockito.mock;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -49,11 +39,23 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import static io.crate.testing.TestingHelpers.createNodeContext;
-import static io.crate.testing.TestingHelpers.createReference;
-import static io.crate.testing.TestingHelpers.isRow;
-import static org.hamcrest.Matchers.contains;
-import static org.mockito.Mockito.mock;
+import org.elasticsearch.common.settings.Settings;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+
+import io.crate.analyze.CopyFromParserProperties;
+import io.crate.data.BatchIterator;
+import io.crate.data.CollectionBucket;
+import io.crate.data.Row;
+import io.crate.execution.dsl.phases.FileUriCollectPhase;
+import io.crate.execution.engine.collect.sources.FileCollectSource;
+import io.crate.expression.symbol.Literal;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.TestingRowConsumer;
+import io.crate.types.DataTypes;
 
 
 public class MapSideDataCollectOperationTest extends CrateDummyClusterServiceUnitTest {

@@ -23,6 +23,7 @@ package io.crate.protocols.ssl;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
+import static org.junit.Assert.assertThat;
 
 import java.nio.file.Files;
 import java.nio.file.Path;

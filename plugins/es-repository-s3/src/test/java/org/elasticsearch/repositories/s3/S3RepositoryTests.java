@@ -21,7 +21,8 @@
 
 package org.elasticsearch.repositories.s3;
 
-import com.amazonaws.services.s3.AbstractAmazonS3;
+import static org.junit.Assert.assertEquals;
+
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeUnit;
@@ -33,6 +34,8 @@ import org.elasticsearch.test.ESTestCase;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+
+import com.amazonaws.services.s3.AbstractAmazonS3;
 
 
 public class S3RepositoryTests extends ESTestCase {

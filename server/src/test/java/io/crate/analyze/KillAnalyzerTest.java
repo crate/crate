@@ -21,20 +21,22 @@
 
 package io.crate.analyze;
 
+import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
+
+import java.util.Locale;
+import java.util.UUID;
+
+import org.junit.Before;
+import org.junit.Test;
+
 import io.crate.data.RowN;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.node.management.KillPlan;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.util.Locale;
-import java.util.UUID;
-
-import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.core.Is.is;
 
 public class KillAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 

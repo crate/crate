@@ -21,8 +21,16 @@
 
 package org.elasticsearch.action.admin.indices.create;
 
-import io.crate.exceptions.SQLExceptions;
-import io.crate.integrationtests.SQLIntegrationTestCase;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.ClusterState;
@@ -36,13 +44,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.jupiter.api.Assertions;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
-
-import static org.hamcrest.Matchers.is;
+import io.crate.exceptions.SQLExceptions;
+import io.crate.integrationtests.SQLIntegrationTestCase;
 
 public class TransportCreatePartitionsActionTest extends SQLIntegrationTestCase {
 

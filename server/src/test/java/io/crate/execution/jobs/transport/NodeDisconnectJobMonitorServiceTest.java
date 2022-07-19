@@ -23,6 +23,7 @@ package io.crate.execution.jobs.transport;
 
 import static io.crate.testing.DiscoveryNodes.newNode;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 
 import java.util.Arrays;

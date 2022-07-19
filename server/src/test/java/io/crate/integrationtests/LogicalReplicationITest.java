@@ -25,6 +25,10 @@ import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.contains;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;

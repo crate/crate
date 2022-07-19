@@ -19,6 +19,8 @@
 
 package org.elasticsearch.action.support.replication;
 
+import static org.junit.Assert.assertTrue;
+
 import java.util.Collections;
 
 import org.elasticsearch.action.ActionListener;

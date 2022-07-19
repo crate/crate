@@ -27,6 +27,8 @@ import static io.crate.testing.SQLErrorMatcher.isPGError;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 import java.net.InetSocketAddress;
 import java.sql.Connection;

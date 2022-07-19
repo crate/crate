@@ -26,6 +26,9 @@ import static io.crate.planner.Plan.StatementType.UNDEFINED;
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 import java.lang.reflect.Field;
 import java.util.Collections;

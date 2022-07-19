@@ -21,12 +21,13 @@
 
 package io.crate.integrationtests;
 
+import static io.crate.testing.TestingHelpers.printedTable;
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
+
 import org.junit.Test;
 
 import io.crate.testing.TestingHelpers;
-
-import static io.crate.testing.TestingHelpers.printedTable;
-import static org.hamcrest.CoreMatchers.is;
 
 public class AggregateExpressionIntegrationTest extends SQLIntegrationTestCase {
 

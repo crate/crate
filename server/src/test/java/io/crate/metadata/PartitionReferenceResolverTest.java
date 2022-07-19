@@ -21,14 +21,17 @@
 
 package io.crate.metadata;
 
-import org.elasticsearch.test.ESTestCase;
-import io.crate.testing.TestingHelpers;
-import io.crate.types.DataTypes;
-import org.junit.Test;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 import java.util.List;
 
-import static org.hamcrest.Matchers.containsString;
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
+
+import io.crate.testing.TestingHelpers;
+import io.crate.types.DataTypes;
 
 public class PartitionReferenceResolverTest extends ESTestCase {
 

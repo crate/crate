@@ -21,19 +21,20 @@
 
 package io.crate.execution.engine.pipeline;
 
-import io.crate.data.CollectionBucket;
-import io.crate.data.Input;
-import io.crate.data.Row;
-import io.crate.data.RowN;
-import io.crate.expression.symbol.Literal;
-import org.junit.Test;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import org.junit.Test;
+
+import io.crate.data.CollectionBucket;
+import io.crate.data.Input;
+import io.crate.data.Row;
+import io.crate.data.RowN;
+import io.crate.expression.symbol.Literal;
 
 public class TableFunctionApplierTest {
 

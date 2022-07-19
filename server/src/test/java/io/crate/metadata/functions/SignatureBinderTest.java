@@ -26,9 +26,6 @@ import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariableOfAnyType;
 import static io.crate.types.TypeSignature.parseTypeSignature;
 import static java.lang.String.format;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.nullValue;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -37,6 +34,7 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
+import org.assertj.core.api.Assertions;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
@@ -64,19 +62,19 @@ public class SignatureBinderTest extends ESTestCase {
             .argumentTypes(parseTypeSignature("T"))
             .build();
 
-        assertThat(function)
+        assertThatSignature(function)
             .boundTo("bigint")
             .produces(new BoundVariables(Map.of("T", type("bigint"))));
 
-        assertThat(function)
+        assertThatSignature(function)
             .boundTo("text")
             .produces(new BoundVariables(Map.of("T", type("text"))));
 
-        assertThat(function)
+        assertThatSignature(function)
             .boundTo("text", "bigint")
             .fails();
 
-        assertThat(function)
+        assertThatSignature(function)
             .boundTo("array(bigint)")
             .produces(new BoundVariables(Map.of("T", type("array(bigint)"))));
     }
@@ -88,7 +86,7 @@ public class SignatureBinderTest extends ESTestCase {
             .argumentTypes(parseTypeSignature("array(boolean)"))
             .build();
 
-        assertThat(function)
+        assertThatSignature(function)
             .boundTo("undefined")
             .withCoercion()
             .succeeds();
@@ -102,7 +100,7 @@ public class SignatureBinderTest extends ESTestCase {
             .typeVariableConstraints(List.of(typeVariable("T")))
             .build();
 
-        assertThat(function)
+        assertThatSignature(function)
             .boundTo("undefined", "bigint")
             .withCoercion()
             .produces(new BoundVariables(Map.of("T", type("bigint"))));
@@ -116,11 +114,11 @@ public class SignatureBinderTest extends ESTestCase {
             .typeVariableConstraints(List.of(typeVariable("T")))
             .build();
 
-        assertThat(function)
+        assertThatSignature(function)
             .boundTo("undefined")
             .fails();
 
-        assertThat(function)
+        assertThatSignature(function)
             .withCoercion()
             .boundTo("undefined")
             .succeeds();
@@ -134,7 +132,7 @@ public class SignatureBinderTest extends ESTestCase {
             .typeVariableConstraints(List.of(typeVariable("T")))
             .build();
 
-        assertThat(function)
+        assertThatSignature(function)
             .boundTo("undefined")
             .withCoercion()
             .produces(new BoundVariables(Map.of("T", type("undefined"))));
@@ -147,7 +145,7 @@ public class SignatureBinderTest extends ESTestCase {
             .argumentTypes(parseTypeSignature("double precision"), parseTypeSignature("double precision"))
             .build();
 
-        assertThat(function)
+        assertThatSignature(function)
             .boundTo("double precision", "bigint")
             .withCoercion()
             .succeeds();
@@ -160,11 +158,11 @@ public class SignatureBinderTest extends ESTestCase {
             .argumentTypes(parseTypeSignature("bigint"), parseTypeSignature("bigint"))
             .build();
 
-        assertThat(function)
+        assertThatSignature(function)
             .boundTo("bigint", "bigint", "bigint")
             .fails();
 
-        assertThat(function)
+        assertThatSignature(function)
             .boundTo("bigint")
             .fails();
     }
@@ -177,12 +175,12 @@ public class SignatureBinderTest extends ESTestCase {
             .typeVariableConstraints(List.of(typeVariable("T")))
             .build();
 
-        assertThat(getFunction)
+        assertThatSignature(getFunction)
             .boundTo("array(bigint)")
             .produces(new BoundVariables(
                 Map.of("T", type("bigint"))));
 
-        assertThat(getFunction)
+        assertThatSignature(getFunction)
             .boundTo("bigint")
             .withCoercion()
             .fails();
@@ -193,12 +191,12 @@ public class SignatureBinderTest extends ESTestCase {
             .typeVariableConstraints(List.of(typeVariable("T")))
             .build();
 
-        assertThat(containsFunction)
+        assertThatSignature(containsFunction)
             .boundTo("array(bigint)", "bigint")
             .produces(new BoundVariables(
                 Map.of("T", type("bigint"))));
 
-        assertThat(containsFunction)
+        assertThatSignature(containsFunction)
             .boundTo("array(bigint)", "geo_point")
             .withCoercion()
             .fails();
@@ -209,7 +207,7 @@ public class SignatureBinderTest extends ESTestCase {
             .typeVariableConstraints(List.of(typeVariable("T1"), typeVariable("T2")))
             .build();
 
-        assertThat(castFunction)
+        assertThatSignature(castFunction)
             .boundTo("array(undefined)", "array(bigint)")
             .withCoercion()
             .produces(new BoundVariables(
@@ -224,13 +222,13 @@ public class SignatureBinderTest extends ESTestCase {
             .typeVariableConstraints(List.of(typeVariable("T")))
             .build();
 
-        assertThat(fooFunction)
+        assertThatSignature(fooFunction)
             .boundTo("array(bigint)", "array(bigint)")
             .produces(new BoundVariables(
                 Map.of("T", type("bigint"))
             ));
 
-        assertThat(fooFunction)
+        assertThatSignature(fooFunction)
             .boundTo("array(bigint)", "array(geo_point)")
             .withCoercion()
             .fails();
@@ -244,7 +242,7 @@ public class SignatureBinderTest extends ESTestCase {
             .typeVariableConstraints(List.of(typeVariable("K"), typeVariable("V")))
             .build();
 
-        assertThat(getValueFunction)
+        assertThatSignature(getValueFunction)
             .boundTo(
                 ObjectType.builder()
                     .setInnerType("V", DataTypes.LONG).build(),
@@ -255,7 +253,7 @@ public class SignatureBinderTest extends ESTestCase {
                     "V", type("bigint"))
             ));
 
-        assertThat(getValueFunction)
+        assertThatSignature(getValueFunction)
             .boundTo(
                 ObjectType.builder()
                     .setInnerType("V", DataTypes.LONG).build(),
@@ -272,12 +270,12 @@ public class SignatureBinderTest extends ESTestCase {
             .typeVariableConstraints(List.of(typeVariable("T")))
             .build();
 
-        assertThat(signature)
+        assertThatSignature(signature)
             .boundTo(new RowType(List.of(DataTypes.LONG)))
             .produces(new BoundVariables(
                 Map.of("T", type("bigint"))));
 
-        assertThat(signature)
+        assertThatSignature(signature)
             .boundTo("bigint")
             .withCoercion()
             .fails();
@@ -291,7 +289,7 @@ public class SignatureBinderTest extends ESTestCase {
             .typeVariableConstraints(List.of(typeVariable("E")))
             .build();
 
-        assertThat(signature)
+        assertThatSignature(signature)
             .boundTo(StringType.of(1), StringType.of(2))
             .produces(new BoundVariables(
                 Map.of("E", type(StringType.of(2).getTypeSignature().toString()))));
@@ -305,7 +303,7 @@ public class SignatureBinderTest extends ESTestCase {
             .typeVariableConstraints(List.of(typeVariable("E")))
             .build();
 
-        assertThat(signature)
+        assertThatSignature(signature)
             .boundTo(CharacterType.of(1), CharacterType.of(2))
             .produces(new BoundVariables(
                 Map.of("E", type(CharacterType.of(2).getTypeSignature().toString()))));
@@ -319,7 +317,7 @@ public class SignatureBinderTest extends ESTestCase {
             .typeVariableConstraints(List.of(typeVariable("T")))
             .build();
 
-        assertThat(signature)
+        assertThatSignature(signature)
             .boundTo("bigint")
             .produces(new BoundVariables(
                 Map.of("T", type("bigint"))));
@@ -334,25 +332,25 @@ public class SignatureBinderTest extends ESTestCase {
             .variableArityGroup(List.of(parseTypeSignature("text"), parseTypeSignature("V")))
             .build();
 
-        assertThat(mapFunction)
+        assertThatSignature(mapFunction)
             .boundTo("text", "integer")
             .produces(new BoundVariables(
                 Map.of(
                     "V", type("integer"))
             ));
 
-        assertThat(mapFunction)
+        assertThatSignature(mapFunction)
             .boundTo("text", "integer", "text", "integer")
             .produces(new BoundVariables(
                 Map.of(
                     "V", type("integer"))
             ));
 
-        assertThat(mapFunction)
+        assertThatSignature(mapFunction)
             .boundTo("text")
             .fails();
 
-        assertThat(mapFunction)
+        assertThatSignature(mapFunction)
             .boundTo("text", "integer", "text")
             .fails();
     }
@@ -366,7 +364,7 @@ public class SignatureBinderTest extends ESTestCase {
             .setVariableArity(true)
             .build();
 
-        assertThat(fooFunction)
+        assertThatSignature(fooFunction)
             .boundTo("text", "integer")
             .produces(new BoundVariables(
                 Map.of(
@@ -374,7 +372,7 @@ public class SignatureBinderTest extends ESTestCase {
                 )
             ));
 
-        assertThat(fooFunction)
+        assertThatSignature(fooFunction)
             .boundTo("text", "integer", "text", "geo_point")
             .produces(new BoundVariables(
                 Map.of(
@@ -395,7 +393,7 @@ public class SignatureBinderTest extends ESTestCase {
             .build();
 
         // arity 1
-        assertThat(signature)
+        assertThatSignature(signature)
             .boundTo("array(text)")
             .produces(new BoundVariables(
                 Map.of(
@@ -403,7 +401,7 @@ public class SignatureBinderTest extends ESTestCase {
                 )
             ));
         // arity 2
-        assertThat(signature)
+        assertThatSignature(signature)
             .boundTo("array(text)", "array(integer)")
             .produces(new BoundVariables(
                 Map.of(
@@ -423,7 +421,7 @@ public class SignatureBinderTest extends ESTestCase {
             .build();
 
         // arity 1
-        assertThat(signature)
+        assertThatSignature(signature)
             .boundTo("array(array(text))")
             .produces(new BoundVariables(
                 Map.of(
@@ -431,7 +429,7 @@ public class SignatureBinderTest extends ESTestCase {
                 )
             ));
         // arity 2
-        assertThat(signature)
+        assertThatSignature(signature)
             .boundTo("array(array(text))", "array(array(long))")
             .produces(new BoundVariables(
                 Map.of(
@@ -450,29 +448,29 @@ public class SignatureBinderTest extends ESTestCase {
             .setVariableArity(true)
             .build();
 
-        assertThat(variableArityFunction)
+        assertThatSignature(variableArityFunction)
             .boundTo("bigint")
             .produces(new BoundVariables(
                 Map.of("T", type("bigint"))
             ));
 
-        assertThat(variableArityFunction)
+        assertThatSignature(variableArityFunction)
             .boundTo("text")
             .produces(new BoundVariables(
                 Map.of("T", type("text"))
             ));
 
-        assertThat(variableArityFunction)
+        assertThatSignature(variableArityFunction)
             .boundTo("bigint", "bigint")
             .produces(new BoundVariables(
                 Map.of("T", type("bigint"))
             ));
 
-        assertThat(variableArityFunction)
+        assertThatSignature(variableArityFunction)
             .boundTo(Collections.emptyList())
             .fails();
 
-        assertThat(variableArityFunction)
+        assertThatSignature(variableArityFunction)
             .boundTo("bigint", "geo_point")
             .withCoercion()
             .fails();
@@ -486,28 +484,28 @@ public class SignatureBinderTest extends ESTestCase {
             .typeVariableConstraints(List.of(typeVariable("T")))
             .build();
 
-        assertThat(function)
+        assertThatSignature(function)
             .boundTo("double precision", "double precision")
             .withCoercion()
             .produces(new BoundVariables(
                 Map.of("T", type("double"))
             ));
 
-        assertThat(function)
+        assertThatSignature(function)
             .boundTo("bigint", "bigint")
             .withCoercion()
             .produces(new BoundVariables(
                 Map.of("T", type("bigint"))
             ));
 
-        assertThat(function)
+        assertThatSignature(function)
             .boundTo("text", "bigint")
             .withCoercion()
             .produces(new BoundVariables(
                 Map.of("T", type("text"))
             ));
 
-        assertThat(function)
+        assertThatSignature(function)
             .boundTo("bigint", "geo_point")
             .withCoercion()
             .fails();
@@ -521,20 +519,20 @@ public class SignatureBinderTest extends ESTestCase {
             .typeVariableConstraints(List.of(typeVariable("T")))
             .build();
 
-        assertThat(foo)
+        assertThatSignature(foo)
             .boundTo("undefined", "undefined")
             .produces(new BoundVariables(
                 Map.of("T", type("undefined"))
             ));
 
-        assertThat(foo)
+        assertThatSignature(foo)
             .boundTo("undefined", "bigint")
             .withCoercion()
             .produces(new BoundVariables(
                 Map.of("T", type("bigint"))
             ));
 
-        assertThat(foo)
+        assertThatSignature(foo)
             .boundTo("geo_point", "bigint")
             .withCoercion()
             .fails();
@@ -545,7 +543,7 @@ public class SignatureBinderTest extends ESTestCase {
         return typeSignature.createType();
     }
 
-    private BindSignatureAssertion assertThat(Signature function) {
+    private BindSignatureAssertion assertThatSignature(Signature function) {
         return new BindSignatureAssertion(function);
     }
 
@@ -592,22 +590,22 @@ public class SignatureBinderTest extends ESTestCase {
         }
 
         public void succeeds() {
-            assertThat(bindVariables(), notNullValue());
+            Assertions.assertThat(bindVariables()).isNotNull();
         }
 
         public void fails() {
-            assertThat(bindVariables(), nullValue());
+            Assertions.assertThat(bindVariables()).isNull();
         }
 
         public void produces(BoundVariables expected) {
             BoundVariables actual = bindVariables();
-            assertThat(actual, is(expected));
+            Assertions.assertThat(actual).isEqualTo(expected);
         }
 
         @Nullable
         private BoundVariables bindVariables() {
             var coercionType = allowCoercion ? SignatureBinder.CoercionType.FULL : SignatureBinder.CoercionType.NONE;
-            assertNotNull(argumentTypes);
+            Assertions.assertThat(argumentTypes).isNotNull();
             SignatureBinder signatureBinder = new SignatureBinder(function, coercionType);
             return signatureBinder.bindVariables(argumentTypes);
         }

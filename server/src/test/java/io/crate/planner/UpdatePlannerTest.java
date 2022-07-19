@@ -31,12 +31,11 @@ import static java.util.Collections.singletonList;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-
-import com.carrotsearch.randomizedtesting.RandomizedTest;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -44,6 +43,8 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
+
+import com.carrotsearch.randomizedtesting.RandomizedTest;
 
 import io.crate.analyze.TableDefinitions;
 import io.crate.data.Row;

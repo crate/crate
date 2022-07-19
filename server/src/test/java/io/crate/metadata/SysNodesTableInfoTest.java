@@ -21,6 +21,16 @@
 
 package io.crate.metadata;
 
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
+
+import java.util.List;
+
+import org.elasticsearch.Version;
+import org.hamcrest.Matchers;
+import org.junit.Test;
+
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.expression.reference.ReferenceResolver;
 import io.crate.expression.reference.StaticTableReferenceResolver;
@@ -32,13 +42,6 @@ import io.crate.testing.SQLExecutor;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
-import org.elasticsearch.Version;
-import org.hamcrest.Matchers;
-import org.junit.Test;
-
-import java.util.List;
-
-import static org.hamcrest.core.Is.is;
 
 public class SysNodesTableInfoTest extends CrateDummyClusterServiceUnitTest {
 

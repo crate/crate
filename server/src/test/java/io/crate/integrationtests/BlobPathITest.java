@@ -21,13 +21,13 @@
 
 package io.crate.integrationtests;
 
-import io.crate.blob.v2.BlobAdminClient;
-import io.crate.blob.v2.BlobIndicesService;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.http.HttpServerTransport;
-import org.elasticsearch.test.ESIntegTestCase;
-import org.hamcrest.Matchers;
-import org.junit.Test;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_REPLICAS;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_SHARDS;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.lessThan;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -39,11 +39,14 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_REPLICAS;
-import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_SHARDS;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.lessThan;
-import static org.hamcrest.core.Is.is;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.http.HttpServerTransport;
+import org.elasticsearch.test.ESIntegTestCase;
+import org.hamcrest.Matchers;
+import org.junit.Test;
+
+import io.crate.blob.v2.BlobAdminClient;
+import io.crate.blob.v2.BlobIndicesService;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 0, numClientNodes = 0)
 @WindowsIncompatible

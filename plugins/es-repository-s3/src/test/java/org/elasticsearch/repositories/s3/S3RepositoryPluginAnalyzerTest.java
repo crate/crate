@@ -22,6 +22,7 @@
 package org.elasticsearch.repositories.s3;
 
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
 import java.util.Collections;
 import java.util.HashMap;

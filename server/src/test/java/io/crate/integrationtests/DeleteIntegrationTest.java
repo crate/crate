@@ -21,13 +21,15 @@
 
 package io.crate.integrationtests;
 
-import io.crate.execution.dsl.projection.AbstractIndexWriterProjection;
-import io.crate.testing.UseJdbc;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 
-import io.crate.common.unit.TimeValue;
 import org.junit.Test;
 
-import static org.hamcrest.core.Is.is;
+import io.crate.common.unit.TimeValue;
+import io.crate.execution.dsl.projection.AbstractIndexWriterProjection;
+import io.crate.testing.UseJdbc;
 
 public class DeleteIntegrationTest extends SQLIntegrationTestCase {
 

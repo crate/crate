@@ -19,15 +19,9 @@
 
 package org.elasticsearch.index.engine;
 
-import io.crate.common.io.IOUtils;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.IndexSettings;
-import org.elasticsearch.index.mapper.MapperService;
-import org.elasticsearch.index.mapper.ParsedDocument;
-import org.elasticsearch.index.translog.SnapshotMatchers;
-import org.elasticsearch.index.translog.Translog;
-import org.elasticsearch.test.IndexSettingsModule;
-import org.junit.Before;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -38,8 +32,16 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.equalTo;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.IndexSettings;
+import org.elasticsearch.index.mapper.MapperService;
+import org.elasticsearch.index.mapper.ParsedDocument;
+import org.elasticsearch.index.translog.SnapshotMatchers;
+import org.elasticsearch.index.translog.Translog;
+import org.elasticsearch.test.IndexSettingsModule;
+import org.junit.Before;
+
+import io.crate.common.io.IOUtils;
 
 public class LuceneChangesSnapshotTests extends EngineTestCase {
     private MapperService mapperService;

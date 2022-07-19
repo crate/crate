@@ -21,15 +21,17 @@
 
 package io.crate.planner.operators;
 
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+
+import org.junit.Before;
+import org.junit.Test;
+
 import io.crate.expression.symbol.Symbol;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
-import org.junit.Before;
-import org.junit.Test;
-
-import static org.hamcrest.Matchers.is;
 
 public class EquiJoinDetectorTest extends CrateDummyClusterServiceUnitTest {
 

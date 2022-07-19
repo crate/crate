@@ -21,14 +21,16 @@
 
 package io.crate.planner;
 
-import io.crate.metadata.RelationName;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.SQLExecutor;
-import org.junit.Test;
+import static io.crate.planner.operators.LogicalPlannerTest.isPlan;
+import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 
-import static io.crate.planner.operators.LogicalPlannerTest.isPlan;
+import org.junit.Test;
+
+import io.crate.metadata.RelationName;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
 
 public class ViewPlannerTest extends CrateDummyClusterServiceUnitTest {
 

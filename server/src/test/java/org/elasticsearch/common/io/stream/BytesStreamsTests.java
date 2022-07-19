@@ -27,6 +27,11 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
 
 import java.io.EOFException;
 import java.io.IOException;
@@ -887,6 +892,6 @@ public class BytesStreamsTests extends ESTestCase {
         Exception newEx = in.readException();
         assertThat(newEx, instanceOf(IOException.class));
         assertThat(newEx.getMessage(), equalTo("disk broken"));
-        assertArrayEquals(newEx.getStackTrace(), rootEx.getStackTrace());
+        ESTestCase.assertStacktraceArrayEquals(newEx.getStackTrace(), rootEx.getStackTrace());
     }
 }

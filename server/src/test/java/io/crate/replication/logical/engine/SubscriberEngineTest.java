@@ -21,17 +21,18 @@
 
 package io.crate.replication.logical.engine;
 
-import io.crate.exceptions.UnsupportedFeatureException;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import static io.crate.testing.Asserts.assertThrowsMatches;
+import static org.elasticsearch.index.engine.EngineTestCase.newUid;
+import static org.elasticsearch.index.seqno.SequenceNumbers.UNASSIGNED_SEQ_NO;
+
 import org.elasticsearch.common.lucene.uid.Versions;
 import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.engine.InternalEngineTests;
 import org.junit.Test;
 
-import static io.crate.testing.Asserts.assertThrowsMatches;
-import static org.elasticsearch.index.engine.EngineTestCase.newUid;
-import static org.elasticsearch.index.seqno.SequenceNumbers.UNASSIGNED_SEQ_NO;
+import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 
 public class SubscriberEngineTest extends CrateDummyClusterServiceUnitTest {
 

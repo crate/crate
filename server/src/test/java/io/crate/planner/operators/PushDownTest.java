@@ -21,18 +21,20 @@
 
 package io.crate.planner.operators;
 
+import static io.crate.planner.operators.LogicalPlannerTest.isPlan;
+import static org.junit.Assert.assertThat;
+
+import java.io.IOException;
+
+import org.junit.Before;
+import org.junit.Test;
+
 import io.crate.analyze.TableDefinitions;
 import io.crate.planner.node.dql.CountPlan;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.SymbolMatchers;
 import io.crate.testing.T3;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.io.IOException;
-
-import static io.crate.planner.operators.LogicalPlannerTest.isPlan;
 
 public class PushDownTest extends CrateDummyClusterServiceUnitTest {
 

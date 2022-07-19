@@ -24,6 +24,7 @@ package io.crate.expression.operator;
 import static io.crate.expression.operator.LikeOperators.DEFAULT_ESCAPE;
 import static io.crate.expression.operator.LikeOperators.patternToRegex;
 import static io.crate.testing.SymbolMatchers.isLiteral;
+import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 

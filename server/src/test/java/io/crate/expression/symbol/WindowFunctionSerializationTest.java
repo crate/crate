@@ -22,6 +22,18 @@
 
 package io.crate.expression.symbol;
 
+import static java.util.Collections.singletonList;
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
+
+import java.io.IOException;
+import java.util.List;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.common.inject.ModulesBuilder;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.junit.Test;
+
 import io.crate.analyze.WindowDefinition;
 import io.crate.execution.engine.aggregation.impl.AggregationImplModule;
 import io.crate.execution.engine.aggregation.impl.SumAggregation;
@@ -30,17 +42,6 @@ import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.inject.ModulesBuilder;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.junit.Test;
-
-import java.io.IOException;
-import java.util.List;
-
-import static java.util.Collections.singletonList;
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
 
 public class WindowFunctionSerializationTest {
 

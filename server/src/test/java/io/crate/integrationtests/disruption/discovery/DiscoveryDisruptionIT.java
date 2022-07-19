@@ -21,7 +21,13 @@
 
 package io.crate.integrationtests.disruption.discovery;
 
-import io.crate.integrationtests.SQLIntegrationTestCase;
+import static io.crate.metadata.IndexParts.toIndexName;
+import static org.junit.Assert.fail;
+
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.concurrent.CountDownLatch;
 
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.cluster.ClusterState;
@@ -41,12 +47,7 @@ import org.elasticsearch.transport.Transport;
 import org.elasticsearch.transport.TransportService;
 import org.junit.Test;
 
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.concurrent.CountDownLatch;
-
-import static io.crate.metadata.IndexParts.toIndexName;
+import io.crate.integrationtests.SQLIntegrationTestCase;
 
 /**
  * Tests for discovery during disruptions.

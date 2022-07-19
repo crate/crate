@@ -21,19 +21,23 @@
 
 package io.crate.metadata.sys;
 
-import io.crate.integrationtests.SQLIntegrationTestCase;
-import io.crate.testing.TestingHelpers;
-import io.crate.testing.UseJdbc;
-import io.crate.types.ArrayType;
-import org.elasticsearch.test.ESIntegTestCase;
-import org.junit.Before;
-import org.junit.Test;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.startsWith;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
 
 import java.util.List;
 import java.util.Map;
 
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.startsWith;
+import org.elasticsearch.test.ESIntegTestCase;
+import org.junit.Before;
+import org.junit.Test;
+
+import io.crate.integrationtests.SQLIntegrationTestCase;
+import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseJdbc;
+import io.crate.types.ArrayType;
 
 @UseJdbc(0)
 @ESIntegTestCase.ClusterScope(numDataNodes = 1)

@@ -21,15 +21,16 @@
 
 package io.crate.execution.engine.distribution.merge;
 
-import org.elasticsearch.test.ESTestCase;
-import org.junit.Test;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.core.Is.is;
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
 
 public class PassThroughPagingIteratorTest extends ESTestCase {
 

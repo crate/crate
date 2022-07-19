@@ -21,15 +21,17 @@
 
 package io.crate.execution.engine.sort;
 
-import io.crate.common.collections.Ordering;
-import org.elasticsearch.test.ESTestCase;
-import org.hamcrest.Matchers;
-import org.junit.Test;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
 
 import java.util.Arrays;
 import java.util.Comparator;
 
-import static org.hamcrest.core.Is.is;
+import org.elasticsearch.test.ESTestCase;
+import org.hamcrest.Matchers;
+import org.junit.Test;
+
+import io.crate.common.collections.Ordering;
 
 public class OrderingByPositionTest extends ESTestCase {
 

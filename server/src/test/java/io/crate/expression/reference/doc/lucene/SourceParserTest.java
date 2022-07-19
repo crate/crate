@@ -21,8 +21,8 @@
 
 package io.crate.expression.reference.doc.lucene;
 
-
 import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
 
 import java.util.List;
 import java.util.Map;

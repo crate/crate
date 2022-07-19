@@ -39,6 +39,7 @@
     <suppress files=".*[/\\]test[/\\]java[/\\].*.java" checks="VariableDeclarationUsageDistance"/>
     <suppress files=".*[/\\]test[/\\]java[/\\].*.java" checks="CommentsIndentation"/>
     <suppress files=".*[/\\]test[/\\]java[/\\].*.java" checks="EmptyCatchBlock"/>
+    <suppress files=".*[/\\]testFixtures[/\\]java[/\\].*.java" checks="EmptyCatchBlock"/>
     <suppress files=".*[/\\]test[/\\]java[/\\].*.java" checks="AvoidEscapedUnicodeCharacters"/>
     <suppress files=".*[/\\]test[/\\]java[/\\].*.java" checks="EmptyBlock"/>
     <suppress files=".*[/\\]test[/\\]java[/\\].*.java" checks="ConstantName"/>

@@ -21,21 +21,23 @@
 
 package io.crate.execution.engine.pipeline;
 
+import static io.crate.data.SentinelRow.SENTINEL;
+import static org.hamcrest.Matchers.emptyIterable;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+
+import java.util.stream.StreamSupport;
+
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
+
 import io.crate.data.BatchIterator;
 import io.crate.data.Bucket;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Projector;
 import io.crate.data.Row;
-import org.elasticsearch.test.ESTestCase;
 import io.crate.testing.TestingBatchIterators;
 import io.crate.testing.TestingRowConsumer;
-import org.junit.Test;
-
-import java.util.stream.StreamSupport;
-
-import static io.crate.data.SentinelRow.SENTINEL;
-import static org.hamcrest.Matchers.emptyIterable;
-import static org.hamcrest.Matchers.is;
 
 public class SimpleTopNProjectorTest extends ESTestCase {
 

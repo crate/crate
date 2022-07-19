@@ -21,6 +21,14 @@
 
 package io.crate.analyze;
 
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+
+import java.util.Collections;
+
+import org.hamcrest.Matchers;
+import org.junit.Test;
+
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
@@ -28,12 +36,6 @@ import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.hamcrest.Matchers;
-import org.junit.Test;
-
-import java.util.Collections;
-
-import static org.hamcrest.Matchers.is;
 
 public class PartitionPropertiesAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 

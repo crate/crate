@@ -21,19 +21,6 @@
 
 package io.crate.integrationtests;
 
-import io.crate.testing.SQLResponse;
-import io.crate.testing.UseJdbc;
-import org.apache.lucene.util.Constants;
-import org.elasticsearch.Version;
-import org.elasticsearch.env.NodeEnvironment;
-import org.elasticsearch.test.ESIntegTestCase;
-import org.hamcrest.Matchers;
-import org.junit.Test;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.equalTo;
@@ -47,6 +34,22 @@ import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.lucene.util.Constants;
+import org.elasticsearch.Version;
+import org.elasticsearch.env.NodeEnvironment;
+import org.elasticsearch.test.ESIntegTestCase;
+import org.hamcrest.Matchers;
+import org.junit.Test;
+
+import io.crate.testing.SQLResponse;
+import io.crate.testing.UseJdbc;
 
 @ESIntegTestCase.ClusterScope(numClientNodes = 0, numDataNodes = 2, supportsDedicatedMasters = false)
 public class NodeStatsTest extends SQLIntegrationTestCase {

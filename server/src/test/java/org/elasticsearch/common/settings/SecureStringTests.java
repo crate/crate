@@ -21,14 +21,19 @@
 
 package org.elasticsearch.common.settings;
 
-import org.elasticsearch.test.ESTestCase;
-import org.junit.Test;
-
-import java.util.Arrays;
-
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.sameInstance;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
+
+import java.util.Arrays;
+
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
 
 public class SecureStringTests extends ESTestCase {
 

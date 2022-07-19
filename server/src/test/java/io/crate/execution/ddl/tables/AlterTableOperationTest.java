@@ -21,23 +21,24 @@
 
 package io.crate.execution.ddl.tables;
 
-import io.crate.metadata.RelationName;
-import io.crate.replication.logical.metadata.Publication;
-import org.elasticsearch.test.ESTestCase;
-import org.elasticsearch.Version;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.common.settings.Settings;
-import org.junit.Test;
-
-import java.util.List;
-import java.util.Map;
-
 import static io.crate.testing.Asserts.assertThrowsMatches;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_BLOCKS_WRITE;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_REPLICAS;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_SHARDS;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_VERSION_CREATED;
 import static org.elasticsearch.common.settings.IndexScopedSettings.DEFAULT_SCOPED_SETTINGS;
+
+import java.util.List;
+import java.util.Map;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
+
+import io.crate.metadata.RelationName;
+import io.crate.replication.logical.metadata.Publication;
 
 public class AlterTableOperationTest extends ESTestCase {
 

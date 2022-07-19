@@ -21,6 +21,8 @@
 
 package io.crate.planner;
 
+import static org.junit.Assert.assertThat;
+
 import org.hamcrest.Matchers;
 import org.junit.Test;
 

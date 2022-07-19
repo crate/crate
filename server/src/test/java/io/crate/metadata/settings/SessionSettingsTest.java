@@ -21,17 +21,17 @@
 
 package io.crate.metadata.settings;
 
-
-import io.crate.metadata.SearchPath;
-import io.crate.planner.optimizer.rule.MergeFilters;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
 import java.util.Set;
 
-import static org.junit.Assert.assertEquals;
+import org.elasticsearch.Version;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.junit.Test;
+
+import io.crate.metadata.SearchPath;
+import io.crate.planner.optimizer.rule.MergeFilters;
 
 public class SessionSettingsTest {
 

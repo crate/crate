@@ -25,6 +25,7 @@ import static io.crate.execution.engine.collect.NestableCollectExpression.consta
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.junit.Assert.assertThat;
 
 import java.util.Collections;
 import java.util.HashMap;

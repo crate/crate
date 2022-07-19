@@ -21,22 +21,23 @@
 
 package io.crate.planner.node.ddl;
 
-import io.crate.analyze.BoundRestoreSnapshot;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.Schemas;
-import org.elasticsearch.snapshots.SnapshotId;
-import org.elasticsearch.snapshots.SnapshotInfo;
-import org.junit.Test;
+import static io.crate.metadata.PartitionName.templateName;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.is;
 
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-import static io.crate.metadata.PartitionName.templateName;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.containsInAnyOrder;
+import org.elasticsearch.snapshots.SnapshotId;
+import org.elasticsearch.snapshots.SnapshotInfo;
+import org.junit.Test;
+
+import io.crate.analyze.BoundRestoreSnapshot;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.Schemas;
 
 public class RestoreSnapshotPlanTest {
 

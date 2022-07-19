@@ -22,6 +22,7 @@
 package io.crate.integrationtests;
 
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
 
 import java.io.File;
 import java.nio.file.Paths;

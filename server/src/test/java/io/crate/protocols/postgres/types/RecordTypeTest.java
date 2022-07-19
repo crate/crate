@@ -21,6 +21,8 @@
 
 package io.crate.protocols.postgres.types;
 
+import static org.junit.Assert.assertThat;
+
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 

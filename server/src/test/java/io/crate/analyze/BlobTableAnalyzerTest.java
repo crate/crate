@@ -21,6 +21,18 @@
 
 package io.crate.analyze;
 
+import static io.crate.planner.node.ddl.AlterTablePlan.getTableParameter;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+
+import java.io.IOException;
+import java.util.function.Function;
+
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.common.settings.Settings;
+import org.junit.Before;
+import org.junit.Test;
+
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.data.Row;
 import io.crate.data.RowN;
@@ -37,16 +49,6 @@ import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.AlterTable;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.common.settings.Settings;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.io.IOException;
-import java.util.function.Function;
-
-import static io.crate.planner.node.ddl.AlterTablePlan.getTableParameter;
-import static org.hamcrest.Matchers.is;
 
 public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 

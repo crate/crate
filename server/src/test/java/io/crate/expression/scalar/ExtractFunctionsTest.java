@@ -21,9 +21,10 @@
 
 package io.crate.expression.scalar;
 
+import org.junit.Test;
+
 import io.crate.expression.symbol.Literal;
 import io.crate.types.DataTypes;
-import org.junit.Test;
 
 public class ExtractFunctionsTest extends ScalarTestCase {
 

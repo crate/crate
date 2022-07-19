@@ -21,10 +21,11 @@
 
 package io.crate.expression.scalar;
 
-import io.crate.expression.symbol.Literal;
+import static io.crate.testing.SymbolMatchers.isLiteral;
+
 import org.junit.Test;
 
-import static io.crate.testing.SymbolMatchers.isLiteral;
+import io.crate.expression.symbol.Literal;
 
 
 public class FormatFunctionTest extends ScalarTestCase {

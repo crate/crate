@@ -21,12 +21,6 @@
 
 package io.crate.integrationtests;
 
-import org.hamcrest.Matchers;
-import org.junit.Test;
-
-import java.util.List;
-import java.util.Locale;
-
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
@@ -35,6 +29,14 @@ import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
+
+import java.util.List;
+import java.util.Locale;
+
+import org.hamcrest.Matchers;
+import org.junit.Test;
 
 public class ArithmeticIntegrationTest extends SQLIntegrationTestCase {
 

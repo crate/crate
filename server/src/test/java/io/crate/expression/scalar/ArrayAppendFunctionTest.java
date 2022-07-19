@@ -21,13 +21,13 @@
 
 package io.crate.expression.scalar;
 
-import org.junit.Test;
+import static io.crate.testing.SymbolMatchers.isFunction;
+import static io.crate.testing.SymbolMatchers.isLiteral;
 
 import java.util.Arrays;
 import java.util.List;
 
-import static io.crate.testing.SymbolMatchers.isFunction;
-import static io.crate.testing.SymbolMatchers.isLiteral;
+import org.junit.Test;
 
 public class ArrayAppendFunctionTest extends ScalarTestCase {
 

@@ -21,9 +21,10 @@
 
 package io.crate.expression.scalar.arithmetic;
 
+import org.junit.Test;
+
 import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.expression.symbol.Literal;
-import org.junit.Test;
 
 public class ArithmeticOverflowTest extends ScalarTestCase {
 

@@ -24,6 +24,7 @@ package io.crate.execution.dml.upsert;
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;

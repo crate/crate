@@ -21,21 +21,22 @@
 
 package io.crate.integrationtests;
 
-import io.crate.action.sql.SQLOperations;
-import io.crate.exceptions.VersioningValidationException;
-import io.crate.testing.SQLTransportExecutor;
-import org.elasticsearch.client.Client;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.test.ESIntegTestCase;
-import org.junit.Test;
-
-import javax.annotation.Nullable;
-
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static org.hamcrest.Matchers.containsString;
+
+import javax.annotation.Nullable;
+
+import org.elasticsearch.client.Client;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.test.ESIntegTestCase;
+import org.junit.Test;
+
+import io.crate.action.sql.SQLOperations;
+import io.crate.exceptions.VersioningValidationException;
+import io.crate.testing.SQLTransportExecutor;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 1, supportsDedicatedMasters = false)
 public class JobIntegrationTest extends SQLIntegrationTestCase {

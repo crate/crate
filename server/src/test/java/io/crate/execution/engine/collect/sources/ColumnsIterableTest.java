@@ -21,24 +21,26 @@
 
 package io.crate.execution.engine.collect.sources;
 
-import io.crate.expression.reference.information.ColumnContext;
-import io.crate.metadata.RelationInfo;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.SQLExecutor;
-import org.hamcrest.Matchers;
-import org.junit.Before;
-import org.junit.Test;
+import static io.crate.testing.T3.T1;
+import static io.crate.testing.T3.T1_DEFINITION;
+import static io.crate.testing.T3.T4;
+import static io.crate.testing.T3.T4_DEFINITION;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import static io.crate.testing.T3.T1;
-import static io.crate.testing.T3.T1_DEFINITION;
-import static io.crate.testing.T3.T4;
-import static io.crate.testing.T3.T4_DEFINITION;
-import static org.hamcrest.Matchers.is;
+import org.hamcrest.Matchers;
+import org.junit.Before;
+import org.junit.Test;
+
+import io.crate.expression.reference.information.ColumnContext;
+import io.crate.metadata.RelationInfo;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
 
 public class ColumnsIterableTest extends CrateDummyClusterServiceUnitTest {
 

@@ -22,6 +22,7 @@
 package io.crate.metadata;
 
 import static org.hamcrest.Matchers.contains;
+import static org.junit.Assert.assertThat;
 
 import java.util.List;
 import java.util.Map;

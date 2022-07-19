@@ -21,19 +21,20 @@
 
 package io.crate.metadata.functions;
 
-import io.crate.metadata.FunctionType;
-import io.crate.types.DataTypes;
-import io.crate.types.ObjectType;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.junit.Test;
-
-import java.util.List;
-
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 import static io.crate.types.TypeSignature.parseTypeSignature;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+
+import java.util.List;
+
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.junit.Test;
+
+import io.crate.metadata.FunctionType;
+import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 
 public class SignatureTest {
 

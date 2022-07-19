@@ -21,18 +21,19 @@
 
 package io.crate.execution.engine.distribution;
 
-import io.crate.Streamer;
-import io.crate.breaker.RamAccounting;
-import io.crate.data.Row1;
-import io.crate.types.DataTypes;
-import org.junit.Before;
-import org.junit.Test;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import org.junit.Before;
+import org.junit.Test;
+
+import io.crate.Streamer;
+import io.crate.breaker.RamAccounting;
+import io.crate.data.Row1;
+import io.crate.types.DataTypes;
 
 public class MultiBucketBuilderTest {
 

@@ -21,6 +21,7 @@ package io.crate.integrationtests.disruption.discovery;
 
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.nio.channels.FileChannel;

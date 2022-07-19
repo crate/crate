@@ -21,16 +21,18 @@
 
 package io.crate.execution.engine.distribution;
 
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
+
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
+
 import io.crate.Streamer;
 import io.crate.breaker.RamAccounting;
 import io.crate.data.Bucket;
 import io.crate.data.Row1;
-import org.elasticsearch.test.ESTestCase;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
-import org.junit.Test;
-
-import static org.hamcrest.core.Is.is;
 
 public class ModuloBucketBuilderTest extends ESTestCase {
 

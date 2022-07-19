@@ -21,6 +21,20 @@
 
 package io.crate.analyze;
 
+import static io.crate.analyze.OptimizeTableSettings.FLUSH;
+import static io.crate.analyze.OptimizeTableSettings.MAX_NUM_SEGMENTS;
+import static io.crate.analyze.OptimizeTableSettings.ONLY_EXPUNGE_DELETES;
+import static io.crate.analyze.OptimizeTableSettings.UPGRADE_SEGMENTS;
+import static org.hamcrest.CoreMatchers.hasItems;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+
+import java.io.IOException;
+
+import org.junit.Before;
+import org.junit.Test;
+
 import io.crate.data.RowN;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationUnknown;
@@ -29,18 +43,6 @@ import io.crate.planner.node.ddl.OptimizeTablePlan;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.io.IOException;
-
-import static io.crate.analyze.OptimizeTableSettings.FLUSH;
-import static io.crate.analyze.OptimizeTableSettings.MAX_NUM_SEGMENTS;
-import static io.crate.analyze.OptimizeTableSettings.ONLY_EXPUNGE_DELETES;
-import static io.crate.analyze.OptimizeTableSettings.UPGRADE_SEGMENTS;
-import static org.hamcrest.CoreMatchers.hasItems;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.is;
 
 public class OptimizeTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 

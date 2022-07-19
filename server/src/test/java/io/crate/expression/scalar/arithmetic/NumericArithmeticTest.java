@@ -21,10 +21,11 @@
 
 package io.crate.expression.scalar.arithmetic;
 
-import io.crate.expression.scalar.ScalarTestCase;
+import java.math.BigDecimal;
+
 import org.junit.Test;
 
-import java.math.BigDecimal;
+import io.crate.expression.scalar.ScalarTestCase;
 
 public class NumericArithmeticTest extends ScalarTestCase {
 

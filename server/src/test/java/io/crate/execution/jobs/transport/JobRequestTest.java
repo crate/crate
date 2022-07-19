@@ -21,16 +21,17 @@
 
 package io.crate.execution.jobs.transport;
 
-import io.crate.metadata.SearchPath;
-import io.crate.metadata.settings.SessionSettings;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.junit.Test;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
 import java.util.Collections;
 import java.util.UUID;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.junit.Test;
+
+import io.crate.metadata.SearchPath;
+import io.crate.metadata.settings.SessionSettings;
 
 public class JobRequestTest {
 
