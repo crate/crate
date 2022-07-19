@@ -26,30 +26,13 @@ import static io.crate.lucene.LuceneQueryBuilder.genericFunctionFilter;
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 import static io.crate.types.TypeSignature.parseTypeSignature;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.function.IntPredicate;
-import java.util.function.IntUnaryOperator;
 
-import org.apache.lucene.index.DocValues;
-import org.apache.lucene.index.LeafReader;
-import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.SortedNumericDocValues;
-import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
-import org.apache.lucene.search.ConstantScoreScorer;
-import org.apache.lucene.search.ConstantScoreWeight;
-import org.apache.lucene.search.DocIdSetIterator;
-import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
-import org.apache.lucene.search.ScoreMode;
-import org.apache.lucene.search.Scorer;
-import org.apache.lucene.search.TwoPhaseIterator;
-import org.apache.lucene.search.Weight;
 import org.elasticsearch.common.lucene.search.Queries;
-import org.elasticsearch.index.fielddata.FieldData;
-import org.elasticsearch.index.fielddata.SortedBinaryDocValues;
 
 import io.crate.data.Input;
 import io.crate.expression.operator.EqOperator;
@@ -63,27 +46,15 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.lucene.LuceneQueryBuilder.Context;
-import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.ArrayType;
-import io.crate.types.BooleanType;
-import io.crate.types.ByteType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.DoubleType;
-import io.crate.types.FloatType;
-import io.crate.types.GeoPointType;
-import io.crate.types.IntegerType;
-import io.crate.types.IpType;
-import io.crate.types.LongType;
 import io.crate.types.ObjectType;
-import io.crate.types.ShortType;
-import io.crate.types.StringType;
-import io.crate.types.TimestampType;
 
 public class ArrayUpperFunction extends Scalar<Integer, Object> {
 
@@ -233,7 +204,7 @@ public class ArrayUpperFunction extends Scalar<Integer, Object> {
                 if (cmpVal == 0) {
                     return IsNullPredicate.refExistsQuery(arrayRef, context);
                 } else if (cmpVal == 1) {
-                    return numTermsPerDocQuery(arrayRef, valueCountIsMatch);
+                    return NumTermsPerDocQuery.forRef(arrayRef, valueCountIsMatch);
                 } else {
                     return genericFunctionFilter(parent, context);
                 }
@@ -263,7 +234,7 @@ public class ArrayUpperFunction extends Scalar<Integer, Object> {
         query.setMinimumNumberShouldMatch(1);
         return query
             .add(
-                numTermsPerDocQuery(arrayRef, valueCountIsMatch),
+                NumTermsPerDocQuery.forRef(arrayRef, valueCountIsMatch),
                 BooleanClause.Occur.SHOULD
             )
             .add(genericFunctionFilter(parent, context), BooleanClause.Occur.SHOULD)
@@ -276,19 +247,11 @@ public class ArrayUpperFunction extends Scalar<Integer, Object> {
                                                  IntPredicate valueCountIsMatch) {
         return new BooleanQuery.Builder()
             .add(
-                numTermsPerDocQuery(arrayRef, valueCountIsMatch),
+                NumTermsPerDocQuery.forRef(arrayRef, valueCountIsMatch),
                 BooleanClause.Occur.MUST
             )
             .add(genericFunctionFilter(parent, context), BooleanClause.Occur.FILTER)
             .build();
-    }
-
-    private static NumTermsPerDocQuery numTermsPerDocQuery(Reference arrayRef, IntPredicate valueCountIsMatch) {
-        return new NumTermsPerDocQuery(
-            arrayRef.column().fqn(),
-            leafReaderContext -> getNumTermsPerDocFunction(leafReaderContext.reader(), arrayRef),
-            valueCountIsMatch
-        );
     }
 
     private static IntPredicate predicateForFunction(String cmpFuncName, int cmpValue) {
@@ -310,171 +273,6 @@ public class ArrayUpperFunction extends Scalar<Integer, Object> {
 
             default:
                 throw new IllegalArgumentException("Unknown comparison function: " + cmpFuncName);
-        }
-    }
-
-    private static IntUnaryOperator getNumTermsPerDocFunction(LeafReader reader, Reference ref) {
-        DataType<?> elementType = ArrayType.unnest(ref.valueType());
-        switch (elementType.id()) {
-            case BooleanType.ID:
-            case ByteType.ID:
-            case ShortType.ID:
-            case IntegerType.ID:
-            case LongType.ID:
-            case TimestampType.ID_WITH_TZ:
-            case TimestampType.ID_WITHOUT_TZ:
-            case FloatType.ID:
-            case DoubleType.ID:
-            case GeoPointType.ID:
-                return numValuesPerDocForSortedNumeric(reader, ref.column());
-
-            case StringType.ID:
-                return numValuesPerDocForString(reader, ref.column());
-
-            case IpType.ID:
-                return numValuesPerDocForIP(reader, ref.column());
-
-            default:
-                throw new UnsupportedOperationException("NYI: " + elementType);
-        }
-    }
-
-    private static IntUnaryOperator numValuesPerDocForIP(LeafReader reader, ColumnIdent column) {
-        SortedSetDocValues docValues;
-        try {
-            docValues = reader.getSortedSetDocValues(column.fqn());
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        return doc -> {
-            try {
-                if (docValues.advanceExact(doc)) {
-                    int c = 1;
-                    while (docValues.nextOrd() != SortedSetDocValues.NO_MORE_ORDS) {
-                        c++;
-                    }
-                    return c;
-                }
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-            return 0;
-        };
-    }
-
-    private static IntUnaryOperator numValuesPerDocForString(LeafReader reader, ColumnIdent column) {
-        SortedBinaryDocValues docValues;
-        try {
-            docValues = FieldData.toString(DocValues.getSortedSet(reader, column.fqn()));
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        return doc -> {
-            try {
-                return docValues.advanceExact(doc) ? docValues.docValueCount() : 0;
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        };
-    }
-
-    private static IntUnaryOperator numValuesPerDocForSortedNumeric(LeafReader reader, ColumnIdent column) {
-        final SortedNumericDocValues sortedNumeric;
-        try {
-            sortedNumeric = DocValues.getSortedNumeric(reader, column.fqn());
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        return doc -> {
-            try {
-                return sortedNumeric.advanceExact(doc) ? sortedNumeric.docValueCount() : 0;
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        };
-    }
-
-    static class NumTermsPerDocQuery extends Query {
-
-        private final String column;
-        private final java.util.function.Function<LeafReaderContext, IntUnaryOperator> numTermsPerDocFactory;
-        private final IntPredicate matches;
-
-        NumTermsPerDocQuery(String column,
-                            java.util.function.Function<LeafReaderContext, IntUnaryOperator> numTermsPerDocFactory,
-                            IntPredicate matches) {
-            this.column = column;
-            this.numTermsPerDocFactory = numTermsPerDocFactory;
-            this.matches = matches;
-        }
-
-        @Override
-        public Weight createWeight(IndexSearcher searcher, ScoreMode scoreMode, float boost) throws IOException {
-            return new ConstantScoreWeight(this, boost) {
-                @Override
-                public boolean isCacheable(LeafReaderContext ctx) {
-                    return false;
-                }
-
-                @Override
-                public Scorer scorer(LeafReaderContext context) {
-                    return new ConstantScoreScorer(
-                        this,
-                        0f,
-                        scoreMode,
-                        new NumTermsPerDocTwoPhaseIterator(context.reader(), numTermsPerDocFactory.apply(context), matches));
-                }
-            };
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-
-            NumTermsPerDocQuery that = (NumTermsPerDocQuery) o;
-
-            if (!numTermsPerDocFactory.equals(that.numTermsPerDocFactory)) return false;
-            return matches.equals(that.matches);
-        }
-
-        @Override
-        public int hashCode() {
-            int result = numTermsPerDocFactory.hashCode();
-            result = 31 * result + matches.hashCode();
-            return result;
-        }
-
-        @Override
-        public String toString(String field) {
-            return "NumTermsPerDoc: " + column;
-        }
-    }
-
-    private static class NumTermsPerDocTwoPhaseIterator extends TwoPhaseIterator {
-
-        private final IntUnaryOperator numTermsOfDoc;
-        private final IntPredicate matches;
-
-        NumTermsPerDocTwoPhaseIterator(LeafReader reader,
-                                       IntUnaryOperator numTermsOfDoc,
-                                       IntPredicate matches) {
-            super(DocIdSetIterator.all(reader.maxDoc()));
-            this.numTermsOfDoc = numTermsOfDoc;
-            this.matches = matches;
-        }
-
-        @Override
-        public boolean matches() {
-            int doc = approximation.docID();
-            return matches.test(numTermsOfDoc.applyAsInt(doc));
-        }
-
-        @Override
-        public float matchCost() {
-            // This is an arbitrary number;
-            // It's less than what is used in GenericFunctionQuery to indicate that this check should be cheaper
-            return 2;
         }
     }
 }
