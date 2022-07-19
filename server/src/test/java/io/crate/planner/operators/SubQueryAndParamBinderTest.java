@@ -21,13 +21,14 @@
 
 package io.crate.planner.operators;
 
-import io.crate.data.Row;
-import io.crate.expression.symbol.Symbol;
+import java.util.Map;
+
 import org.elasticsearch.test.ESTestCase;
-import io.crate.testing.SqlExpressions;
 import org.junit.Test;
 
-import java.util.Map;
+import io.crate.data.Row;
+import io.crate.expression.symbol.Symbol;
+import io.crate.testing.SqlExpressions;
 
 public class SubQueryAndParamBinderTest extends ESTestCase {
 

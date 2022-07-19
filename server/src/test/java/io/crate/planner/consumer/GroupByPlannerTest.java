@@ -31,15 +31,17 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.util.List;
 
-import com.carrotsearch.randomizedtesting.RandomizedTest;
-
 import org.hamcrest.Matchers;
 import org.hamcrest.core.Is;
 import org.junit.Test;
+
+import com.carrotsearch.randomizedtesting.RandomizedTest;
 
 import io.crate.analyze.TableDefinitions;
 import io.crate.execution.dsl.phases.CollectPhase;

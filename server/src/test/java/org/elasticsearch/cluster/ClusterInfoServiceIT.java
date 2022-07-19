@@ -22,8 +22,9 @@ package org.elasticsearch.cluster;
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertAcked;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-
-import com.carrotsearch.hppc.cursors.ObjectCursor;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
 
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -41,6 +42,8 @@ import org.elasticsearch.test.ESIntegTestCase;
 import org.elasticsearch.test.InternalTestCluster;
 import org.hamcrest.Matchers;
 import org.junit.Test;
+
+import com.carrotsearch.hppc.cursors.ObjectCursor;
 
 import io.crate.common.unit.TimeValue;
 import io.crate.integrationtests.SQLIntegrationTestCase;

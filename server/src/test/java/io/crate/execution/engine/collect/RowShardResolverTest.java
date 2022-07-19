@@ -23,6 +23,9 @@ package io.crate.execution.engine.collect;
 
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
 
 import java.util.List;
 

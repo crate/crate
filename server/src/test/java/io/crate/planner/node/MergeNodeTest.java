@@ -21,6 +21,21 @@
 
 package io.crate.planner.node;
 
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
+
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.projection.GroupProjection;
 import io.crate.execution.dsl.projection.Projection;
@@ -33,19 +48,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.RowGranularity;
 import io.crate.planner.distribution.DistributionInfo;
-import org.elasticsearch.test.ESTestCase;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.junit.Test;
-
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
-
-import static org.hamcrest.core.Is.is;
 
 public class MergeNodeTest extends ESTestCase {
 

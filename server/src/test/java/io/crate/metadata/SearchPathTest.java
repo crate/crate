@@ -21,17 +21,18 @@
 
 package io.crate.metadata;
 
-import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.junit.Test;
-
-import java.io.IOException;
-import java.util.Iterator;
-
 import static io.crate.metadata.SearchPath.pathWithPGCatalogAndDoc;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
+
+import java.io.IOException;
+import java.util.Iterator;
+
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.junit.Test;
+
+import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 
 public class SearchPathTest {
 

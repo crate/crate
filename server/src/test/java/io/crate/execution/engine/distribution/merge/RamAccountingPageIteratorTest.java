@@ -21,6 +21,22 @@
 
 package io.crate.execution.engine.distribution.merge;
 
+import static org.hamcrest.Matchers.instanceOf;
+import static org.junit.Assert.assertThat;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
+import org.apache.logging.log4j.LogManager;
+import org.elasticsearch.common.breaker.CircuitBreakingException;
+import org.elasticsearch.common.breaker.MemoryCircuitBreaker;
+import org.elasticsearch.common.unit.ByteSizeUnit;
+import org.elasticsearch.common.unit.ByteSizeValue;
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
+
 import io.crate.analyze.OrderBy;
 import io.crate.breaker.ConcurrentRamAccounting;
 import io.crate.breaker.RamAccounting;
@@ -30,22 +46,8 @@ import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.expression.symbol.Literal;
 import io.crate.planner.PositionalOrderBy;
-import org.elasticsearch.test.ESTestCase;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
-import org.apache.logging.log4j.LogManager;
-import org.elasticsearch.common.breaker.CircuitBreakingException;
-import org.elasticsearch.common.breaker.MemoryCircuitBreaker;
-import org.elasticsearch.common.unit.ByteSizeUnit;
-import org.elasticsearch.common.unit.ByteSizeValue;
-import org.junit.Test;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-
-import static org.hamcrest.Matchers.instanceOf;
 
 public class RamAccountingPageIteratorTest extends ESTestCase {
 

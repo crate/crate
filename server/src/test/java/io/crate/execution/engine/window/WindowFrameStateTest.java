@@ -21,13 +21,13 @@
 
 package io.crate.execution.engine.window;
 
-import org.junit.Test;
-
-import java.util.List;
-
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertThat;
+
+import java.util.List;
+
+import org.junit.Test;
 
 public class WindowFrameStateTest {
 

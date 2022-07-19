@@ -21,15 +21,17 @@
 
 package io.crate.expression.scalar;
 
-import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.Symbol;
-import io.crate.types.DataTypes;
-import org.junit.Test;
+import static io.crate.testing.SymbolMatchers.isLiteral;
+import static org.junit.Assert.assertThat;
 
 import java.util.Locale;
 import java.util.Map;
 
-import static io.crate.testing.SymbolMatchers.isLiteral;
+import org.junit.Test;
+
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
+import io.crate.types.DataTypes;
 
 
 public class DateFormatFunctionTest extends ScalarTestCase {

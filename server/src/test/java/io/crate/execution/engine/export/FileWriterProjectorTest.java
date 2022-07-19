@@ -21,18 +21,8 @@
 
 package io.crate.execution.engine.export;
 
-import io.crate.data.BatchIterator;
-import io.crate.data.InMemoryBatchIterator;
-import io.crate.exceptions.UnhandledServerException;
-import io.crate.execution.dsl.projection.WriterProjection;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.test.ESTestCase;
-import io.crate.testing.RowGenerator;
-import io.crate.testing.TestingHelpers;
-import io.crate.testing.TestingRowConsumer;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import static io.crate.data.SentinelRow.SENTINEL;
+import static org.junit.Assert.assertEquals;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -46,7 +36,19 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import static io.crate.data.SentinelRow.SENTINEL;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+
+import io.crate.data.BatchIterator;
+import io.crate.data.InMemoryBatchIterator;
+import io.crate.exceptions.UnhandledServerException;
+import io.crate.execution.dsl.projection.WriterProjection;
+import io.crate.testing.RowGenerator;
+import io.crate.testing.TestingHelpers;
+import io.crate.testing.TestingRowConsumer;
 
 public class FileWriterProjectorTest extends ESTestCase {
 

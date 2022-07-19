@@ -21,13 +21,14 @@
 
 package io.crate.execution.engine.window;
 
-import io.crate.metadata.ColumnIdent;
-import org.junit.Test;
+import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
+import static org.hamcrest.Matchers.contains;
 
 import java.util.List;
 
-import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
-import static org.hamcrest.Matchers.contains;
+import org.junit.Test;
+
+import io.crate.metadata.ColumnIdent;
 
 public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
 

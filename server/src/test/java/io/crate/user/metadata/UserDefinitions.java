@@ -21,14 +21,15 @@
 
 package io.crate.user.metadata;
 
-import io.crate.user.SecureHash;
-import org.elasticsearch.common.settings.SecureString;
+import static org.junit.Assert.assertNotNull;
 
 import java.security.GeneralSecurityException;
 import java.util.Collections;
 import java.util.Map;
 
-import static org.junit.Assert.assertNotNull;
+import org.elasticsearch.common.settings.SecureString;
+
+import io.crate.user.SecureHash;
 
 public final class UserDefinitions {
 

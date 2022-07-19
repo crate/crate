@@ -19,6 +19,8 @@
 
 package org.elasticsearch.index.engine;
 
+import static org.junit.Assert.assertEquals;
+
 import org.apache.lucene.tests.util.RamUsageTester;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.test.ESTestCase;

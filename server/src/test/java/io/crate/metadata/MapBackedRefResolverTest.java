@@ -21,17 +21,18 @@
 
 package io.crate.metadata;
 
-import io.crate.expression.NestableInput;
-import io.crate.expression.reference.ReferenceResolver;
-import io.crate.types.DataTypes;
-import org.hamcrest.Matchers;
-import org.junit.Test;
+import static org.junit.Assert.assertThat;
+import static org.mockito.Mockito.mock;
 
 import java.util.Arrays;
 import java.util.Collections;
 
-import static org.junit.Assert.assertThat;
-import static org.mockito.Mockito.mock;
+import org.hamcrest.Matchers;
+import org.junit.Test;
+
+import io.crate.expression.NestableInput;
+import io.crate.expression.reference.ReferenceResolver;
+import io.crate.types.DataTypes;
 
 public class MapBackedRefResolverTest {
 

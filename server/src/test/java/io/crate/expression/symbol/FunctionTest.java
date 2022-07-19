@@ -21,26 +21,28 @@
 
 package io.crate.expression.symbol;
 
-import io.crate.metadata.Scalar;
-import io.crate.metadata.functions.Signature;
-import org.elasticsearch.test.ESTestCase;
-import io.crate.testing.TestingHelpers;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.junit.Test;
-
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Set;
-
 import static com.carrotsearch.randomizedtesting.RandomizedTest.randomAsciiLettersOfLength;
 import static io.crate.testing.TestingHelpers.createReference;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertThat;
+
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Set;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
+
+import io.crate.metadata.Scalar;
+import io.crate.metadata.functions.Signature;
+import io.crate.testing.TestingHelpers;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
 public class FunctionTest extends ESTestCase {
 

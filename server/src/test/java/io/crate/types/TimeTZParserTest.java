@@ -21,11 +21,13 @@
 
 package io.crate.types;
 
+import static io.crate.types.TimeTZParser.parse;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
-
-import static org.hamcrest.Matchers.is;
-import static io.crate.types.TimeTZParser.parse;
 
 
 public class TimeTZParserTest extends ESTestCase {

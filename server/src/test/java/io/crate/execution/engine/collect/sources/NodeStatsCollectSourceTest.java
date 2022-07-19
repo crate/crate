@@ -21,17 +21,9 @@
 
 package io.crate.execution.engine.collect.sources;
 
-import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.TableRelation;
-import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.sys.SysNodesTableInfo;
-import io.crate.metadata.table.TableInfo;
-import org.elasticsearch.test.ESTestCase;
-import io.crate.testing.SqlExpressions;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.junit.Before;
-import org.junit.Test;
+import static io.crate.testing.DiscoveryNodes.newNode;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -39,8 +31,18 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
-import static io.crate.testing.DiscoveryNodes.newNode;
-import static org.hamcrest.Matchers.is;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Before;
+import org.junit.Test;
+
+import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.TableRelation;
+import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.sys.SysNodesTableInfo;
+import io.crate.metadata.table.TableInfo;
+import io.crate.testing.SqlExpressions;
 
 public class NodeStatsCollectSourceTest extends ESTestCase {
 

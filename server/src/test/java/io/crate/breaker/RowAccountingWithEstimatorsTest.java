@@ -21,18 +21,19 @@
 
 package io.crate.breaker;
 
-import org.elasticsearch.test.ESTestCase;
-import io.crate.testing.RowGenerator;
-import io.crate.types.DataTypes;
+import java.util.Collections;
+import java.util.stream.IntStream;
+
 import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.breaker.MemoryCircuitBreaker;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
+import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
-import java.util.Collections;
-import java.util.stream.IntStream;
+import io.crate.testing.RowGenerator;
+import io.crate.types.DataTypes;
 
 public class RowAccountingWithEstimatorsTest extends ESTestCase {
 

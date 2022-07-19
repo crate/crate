@@ -19,6 +19,13 @@
 
 package org.elasticsearch.cluster;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.elasticsearch.cluster.SnapshotsInProgress.Entry;
 import org.elasticsearch.cluster.SnapshotsInProgress.ShardSnapshotStatus;
 import org.elasticsearch.cluster.SnapshotsInProgress.ShardState;
@@ -29,10 +36,6 @@ import org.elasticsearch.repositories.IndexId;
 import org.elasticsearch.snapshots.Snapshot;
 import org.elasticsearch.snapshots.SnapshotId;
 import org.elasticsearch.test.ESTestCase;
-
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Unit tests for the {@link SnapshotsInProgress} class and its inner classes.

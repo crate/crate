@@ -19,6 +19,10 @@
 
 package org.elasticsearch.snapshots;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.elasticsearch.cluster.ClusterModule;
 import org.elasticsearch.cluster.ClusterState.Custom;
 import org.elasticsearch.cluster.Diff;
@@ -33,10 +37,6 @@ import org.elasticsearch.index.Index;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.repositories.IndexId;
 import org.elasticsearch.test.AbstractDiffableWireSerializationTestCase;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
 
 public class SnapshotsInProgressSerializationTests extends AbstractDiffableWireSerializationTestCase<Custom> {
 

@@ -21,6 +21,15 @@
 
 package io.crate.integrationtests;
 
+import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.testing.Asserts.assertThrowsMatches;
+import static io.crate.testing.SQLErrorMatcher.isSQLError;
+import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+
+import java.util.Locale;
+
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.core.Is;
@@ -28,14 +37,6 @@ import org.junit.After;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-
-import java.util.Locale;
-
-import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
-import static io.crate.testing.Asserts.assertThrowsMatches;
-import static io.crate.testing.SQLErrorMatcher.isSQLError;
-import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static org.hamcrest.Matchers.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 1)
 public class TableBlocksIntegrationTest extends SQLIntegrationTestCase {

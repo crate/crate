@@ -21,13 +21,12 @@
 
 package io.crate.metadata.upgrade;
 
-import io.crate.Constants;
-import io.crate.metadata.PartitionName;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
-import org.elasticsearch.common.compress.CompressedXContent;
-import org.elasticsearch.common.settings.Settings;
-import org.hamcrest.Matchers;
-import org.junit.Test;
+import static io.crate.metadata.upgrade.IndexTemplateUpgrader.TEMPLATE_NAME;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_SHARDS;
+import static org.elasticsearch.common.settings.AbstractScopedSettings.ARCHIVED_SETTINGS_PREFIX;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.is;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -35,12 +34,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static io.crate.metadata.upgrade.IndexTemplateUpgrader.TEMPLATE_NAME;
-import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_SHARDS;
-import static org.elasticsearch.common.settings.AbstractScopedSettings.ARCHIVED_SETTINGS_PREFIX;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.is;
+import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
+import org.elasticsearch.common.compress.CompressedXContent;
+import org.elasticsearch.common.settings.Settings;
+import org.hamcrest.Matchers;
+import org.junit.Test;
+
+import io.crate.Constants;
+import io.crate.metadata.PartitionName;
 
 public class IndexTemplateUpgraderTest {
 

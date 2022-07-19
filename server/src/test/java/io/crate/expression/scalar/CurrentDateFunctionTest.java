@@ -21,14 +21,15 @@
 
 package io.crate.expression.scalar;
 
-import io.crate.metadata.SystemClock;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.ZoneOffset;
+import io.crate.metadata.SystemClock;
 
 
 public class CurrentDateFunctionTest extends ScalarTestCase {

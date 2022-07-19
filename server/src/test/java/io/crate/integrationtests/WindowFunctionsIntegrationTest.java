@@ -21,10 +21,11 @@
 
 package io.crate.integrationtests;
 
-import org.junit.Test;
-
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+
+import org.junit.Test;
 
 public class WindowFunctionsIntegrationTest extends SQLIntegrationTestCase {
 

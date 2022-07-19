@@ -21,17 +21,18 @@
 
 package io.crate.auth.user;
 
-import io.crate.user.Privilege;
-import io.crate.user.UserPrivileges;
-
-import org.elasticsearch.test.ESTestCase;
-import org.junit.Test;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
 
-import static org.hamcrest.Matchers.is;
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
+
+import io.crate.user.Privilege;
+import io.crate.user.UserPrivileges;
 
 public class UserPrivilegesTest extends ESTestCase {
 

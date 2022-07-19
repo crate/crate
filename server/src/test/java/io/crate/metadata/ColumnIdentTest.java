@@ -21,17 +21,18 @@
 
 package io.crate.metadata;
 
-import io.crate.exceptions.InvalidColumnNameException;
-import io.crate.metadata.doc.DocSysColumns;
-import org.hamcrest.Matchers;
-import org.junit.Test;
+import static junit.framework.TestCase.assertTrue;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 import java.util.Arrays;
 import java.util.Collections;
 
-import static junit.framework.TestCase.assertTrue;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
+import org.hamcrest.Matchers;
+import org.junit.Test;
+
+import io.crate.exceptions.InvalidColumnNameException;
+import io.crate.metadata.doc.DocSysColumns;
 
 public class ColumnIdentTest {
 

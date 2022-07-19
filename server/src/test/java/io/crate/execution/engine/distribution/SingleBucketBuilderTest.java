@@ -21,28 +21,31 @@
 
 package io.crate.execution.engine.distribution;
 
-import io.crate.Streamer;
-import io.crate.breaker.RamAccounting;
-import io.crate.data.BatchIterator;
-import io.crate.data.Bucket;
-import io.crate.data.Row;
-import org.elasticsearch.test.ESTestCase;
-import io.crate.testing.BatchSimulatingIterator;
-import io.crate.testing.FailingBatchIterator;
-import io.crate.testing.TestingBatchIterators;
-import io.crate.testing.TestingHelpers;
-import io.crate.types.DataTypes;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
+import org.elasticsearch.test.ESTestCase;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+
+import io.crate.Streamer;
+import io.crate.breaker.RamAccounting;
+import io.crate.data.BatchIterator;
+import io.crate.data.Bucket;
+import io.crate.data.Row;
+import io.crate.testing.BatchSimulatingIterator;
+import io.crate.testing.FailingBatchIterator;
+import io.crate.testing.TestingBatchIterators;
+import io.crate.testing.TestingHelpers;
+import io.crate.types.DataTypes;
 
 @SuppressWarnings("ConstantConditions")
 public class SingleBucketBuilderTest extends ESTestCase {

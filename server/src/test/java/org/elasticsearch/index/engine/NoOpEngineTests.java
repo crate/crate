@@ -21,6 +21,9 @@ package org.elasticsearch.index.engine;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -28,7 +31,6 @@ import java.nio.file.Path;
 import java.util.Collections;
 import java.util.concurrent.atomic.AtomicLong;
 
-import io.crate.common.unit.TimeValue;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.NoMergePolicy;
@@ -51,6 +53,7 @@ import org.elasticsearch.test.IndexSettingsModule;
 import org.junit.Test;
 
 import io.crate.common.io.IOUtils;
+import io.crate.common.unit.TimeValue;
 
 public class NoOpEngineTests extends EngineTestCase {
     private static final IndexSettings INDEX_SETTINGS = IndexSettingsModule.newIndexSettings("index", Settings.EMPTY);

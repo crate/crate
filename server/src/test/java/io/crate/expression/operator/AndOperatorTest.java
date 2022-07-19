@@ -21,16 +21,18 @@
 
 package io.crate.expression.operator;
 
-import io.crate.expression.scalar.ScalarTestCase;
-import io.crate.expression.symbol.Symbol;
-import org.junit.Test;
-
-import java.util.List;
-
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.SymbolMatchers.isReference;
 import static io.crate.testing.TestingHelpers.isSQL;
 import static org.hamcrest.Matchers.contains;
+import static org.junit.Assert.assertThat;
+
+import java.util.List;
+
+import org.junit.Test;
+
+import io.crate.expression.scalar.ScalarTestCase;
+import io.crate.expression.symbol.Symbol;
 
 public class AndOperatorTest extends ScalarTestCase {
 

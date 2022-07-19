@@ -22,6 +22,7 @@
 package io.crate.types;
 
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
 import java.math.BigDecimal;
 import java.util.Map;

@@ -21,8 +21,13 @@
 
 package io.crate.protocols.postgres;
 
-import io.crate.action.sql.BaseResultReceiver;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.sameInstance;
+import static org.junit.Assert.assertThat;
+
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateUpdateTask;
 import org.elasticsearch.index.IndexNotFoundException;
@@ -30,11 +35,8 @@ import org.elasticsearch.transport.ConnectTransportException;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
-import java.util.UUID;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.sameInstance;
+import io.crate.action.sql.BaseResultReceiver;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 
 
 public class RetryOnFailureResultReceiverTest extends CrateDummyClusterServiceUnitTest {

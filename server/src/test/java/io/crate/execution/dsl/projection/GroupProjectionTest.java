@@ -21,22 +21,25 @@
 
 package io.crate.execution.dsl.projection;
 
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+
+import java.util.Collections;
+import java.util.List;
+
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
+
 import io.crate.execution.engine.aggregation.impl.CountAggregation;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.Aggregation;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RowGranularity;
-import org.elasticsearch.test.ESTestCase;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.junit.Test;
-
-import java.util.Collections;
-import java.util.List;
-
-import static org.hamcrest.core.Is.is;
 
 public class GroupProjectionTest extends ESTestCase {
 

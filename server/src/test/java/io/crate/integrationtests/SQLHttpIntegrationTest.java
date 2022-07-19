@@ -21,9 +21,15 @@
 
 package io.crate.integrationtests;
 
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
-import io.crate.common.Hex;
-import io.crate.test.utils.Blobs;
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.util.Locale;
+
+import javax.annotation.Nullable;
+
 import org.apache.http.Header;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
@@ -33,16 +39,12 @@ import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
-import javax.annotation.Nullable;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.http.HttpServerTransport;
 import org.junit.Before;
 
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.util.Locale;
-
-import static org.hamcrest.Matchers.is;
+import io.crate.common.Hex;
+import io.crate.test.utils.Blobs;
 
 public abstract class SQLHttpIntegrationTest extends SQLIntegrationTestCase {
 

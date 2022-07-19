@@ -21,20 +21,21 @@
 
 package io.crate.expression.scalar;
 
-import io.crate.exceptions.ConversionException;
-import io.crate.expression.symbol.Literal;
-import io.crate.types.ArrayType;
-import io.crate.types.DataTypes;
-import org.hamcrest.Matchers;
-import org.junit.Test;
+import static io.crate.testing.SymbolMatchers.isFunction;
+import static io.crate.testing.SymbolMatchers.isLiteral;
+import static org.hamcrest.Matchers.is;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import static io.crate.testing.SymbolMatchers.isFunction;
-import static io.crate.testing.SymbolMatchers.isLiteral;
-import static org.hamcrest.Matchers.is;
+import org.hamcrest.Matchers;
+import org.junit.Test;
+
+import io.crate.exceptions.ConversionException;
+import io.crate.expression.symbol.Literal;
+import io.crate.types.ArrayType;
+import io.crate.types.DataTypes;
 
 public class ArrayUniqueFunctionTest extends ScalarTestCase {
 

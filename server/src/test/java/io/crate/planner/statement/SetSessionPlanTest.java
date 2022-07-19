@@ -21,11 +21,10 @@
 
 package io.crate.planner.statement;
 
+import static io.crate.planner.statement.SetSessionPlan.validateSetting;
+
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
-
-
-import static io.crate.planner.statement.SetSessionPlan.validateSetting;
 
 public class SetSessionPlanTest extends ESTestCase {
 

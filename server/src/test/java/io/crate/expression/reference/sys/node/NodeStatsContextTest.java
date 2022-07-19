@@ -21,8 +21,15 @@
 
 package io.crate.expression.reference.sys.node;
 
-import io.crate.monitor.ExtendedNodeInfo;
-import org.elasticsearch.test.ESTestCase;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.util.concurrent.TimeUnit;
+
 import org.elasticsearch.Build;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
@@ -33,18 +40,14 @@ import org.elasticsearch.monitor.jvm.JvmStats;
 import org.elasticsearch.monitor.os.DummyOsInfo;
 import org.elasticsearch.monitor.os.OsProbe;
 import org.elasticsearch.monitor.process.ProcessProbe;
+import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.threadpool.TestThreadPool;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.util.concurrent.TimeUnit;
-
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
+import io.crate.monitor.ExtendedNodeInfo;
 
 public class NodeStatsContextTest extends ESTestCase {
 

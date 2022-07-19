@@ -21,25 +21,26 @@
 
 package io.crate.execution.dsl.phases;
 
-
-import com.fasterxml.jackson.dataformat.csv.CsvSchema;
-import io.crate.analyze.CopyFromParserProperties;
-import io.crate.expression.symbol.Literal;
-import io.crate.types.DataTypes;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.settings.Settings;
-import org.junit.Test;
+import static io.crate.testing.TestingHelpers.createReference;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.Is.is;
 
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
-import static io.crate.testing.TestingHelpers.createReference;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
+import org.elasticsearch.Version;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.settings.Settings;
+import org.junit.Test;
+
+import com.fasterxml.jackson.dataformat.csv.CsvSchema;
+
+import io.crate.analyze.CopyFromParserProperties;
+import io.crate.expression.symbol.Literal;
+import io.crate.types.DataTypes;
 
 public class FileUriCollectPhaseTest {
 

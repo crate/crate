@@ -21,12 +21,14 @@
 
 package io.crate.analyze;
 
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.SQLExecutor;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
+
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.hamcrest.core.Is.is;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
 
 public class IsWriteOperationTest extends CrateDummyClusterServiceUnitTest {
 

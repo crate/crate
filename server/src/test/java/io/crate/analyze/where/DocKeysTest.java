@@ -21,20 +21,22 @@
 
 package io.crate.analyze.where;
 
+import static io.crate.testing.TestingHelpers.createNodeContext;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
+
+import java.util.List;
+import java.util.Optional;
+
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
+
 import io.crate.data.Row;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.planner.operators.SubQueryResults;
-import org.elasticsearch.test.ESTestCase;
-import org.junit.Test;
-
-import java.util.List;
-import java.util.Optional;
-
-import static io.crate.testing.TestingHelpers.createNodeContext;
-import static org.hamcrest.core.Is.is;
 
 public class DocKeysTest extends ESTestCase {
 

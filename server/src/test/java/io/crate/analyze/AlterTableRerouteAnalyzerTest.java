@@ -21,13 +21,14 @@
 
 package io.crate.analyze;
 
-import io.crate.data.RowN;
-import io.crate.exceptions.OperationOnInaccessibleRelationException;
-import io.crate.planner.PlannerContext;
-import io.crate.planner.node.management.AlterTableReroutePlan;
-import io.crate.planner.operators.SubQueryResults;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.SQLExecutor;
+import static io.crate.testing.Asserts.assertThrowsMatches;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+
+import java.io.IOException;
+import java.util.Map;
+import java.util.Set;
+
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
@@ -38,12 +39,13 @@ import org.elasticsearch.cluster.routing.allocation.command.MoveAllocationComman
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.IOException;
-import java.util.Map;
-import java.util.Set;
-
-import static io.crate.testing.Asserts.assertThrowsMatches;
-import static org.hamcrest.Matchers.is;
+import io.crate.data.RowN;
+import io.crate.exceptions.OperationOnInaccessibleRelationException;
+import io.crate.planner.PlannerContext;
+import io.crate.planner.node.management.AlterTableReroutePlan;
+import io.crate.planner.operators.SubQueryResults;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
 
 public class AlterTableRerouteAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 

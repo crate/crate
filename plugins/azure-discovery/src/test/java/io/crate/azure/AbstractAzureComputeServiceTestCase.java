@@ -21,6 +21,8 @@
 
 package io.crate.azure;
 
+import static org.junit.Assert.assertThat;
+
 import io.crate.azure.management.AzureComputeService.Discovery;
 import io.crate.azure.management.AzureComputeService.Management;
 import org.elasticsearch.common.settings.Settings;

@@ -27,6 +27,7 @@ import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_VERSION_C
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 

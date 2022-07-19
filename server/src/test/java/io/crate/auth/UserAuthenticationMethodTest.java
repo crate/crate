@@ -22,6 +22,7 @@
 package io.crate.auth;
 
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
 
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;

@@ -18,17 +18,18 @@
  */
 package org.elasticsearch.transport;
 
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.sameInstance;
+import static org.junit.Assert.assertThat;
+
+import java.util.concurrent.Phaser;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.apache.lucene.util.SetOnce;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.tasks.TaskId;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
-
-import java.util.concurrent.Phaser;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.sameInstance;
 
 public class TransportRequestDeduplicatorTests extends ESTestCase {
 

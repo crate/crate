@@ -21,8 +21,8 @@
 
 package io.crate.blob;
 
-import org.elasticsearch.test.ESTestCase;
-import org.junit.Test;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -34,7 +34,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
-import static org.hamcrest.Matchers.is;
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
 
 public class BlobCoordinatorTest extends ESTestCase {
 

@@ -18,8 +18,15 @@
  */
 package org.elasticsearch.env;
 
-import joptsimple.OptionParser;
-import joptsimple.OptionSet;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+
+import java.io.IOException;
+import java.nio.file.Path;
+
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.Version;
 import org.elasticsearch.cli.MockTerminal;
@@ -35,12 +42,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.IOException;
-import java.nio.file.Path;
-
-import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.equalTo;
+import joptsimple.OptionParser;
+import joptsimple.OptionSet;
 
 public class OverrideNodeVersionCommandTests extends ESTestCase {
 

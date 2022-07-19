@@ -21,9 +21,14 @@
 
 package io.crate.license;
 
-import com.carrotsearch.randomizedtesting.RandomizedRunner;
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
-import io.crate.metadata.CustomMetadataUpgraderLoader;
+import static org.elasticsearch.gateway.GatewayMetaStateTests.randomMetadata;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.core.Is.is;
+
+import java.util.EnumSet;
+import java.util.List;
+
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Settings;
@@ -34,13 +39,10 @@ import org.elasticsearch.test.TestCustomMetadata;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import java.util.EnumSet;
-import java.util.List;
+import com.carrotsearch.randomizedtesting.RandomizedRunner;
+import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 
-import static org.elasticsearch.gateway.GatewayMetaStateTests.randomMetadata;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.core.Is.is;
+import io.crate.metadata.CustomMetadataUpgraderLoader;
 
 
 @RunWith(RandomizedRunner.class)

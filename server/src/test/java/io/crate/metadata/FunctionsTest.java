@@ -25,6 +25,7 @@ import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 import static io.crate.types.TypeSignature.parseTypeSignature;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
 import java.util.ArrayList;
 import java.util.Collections;

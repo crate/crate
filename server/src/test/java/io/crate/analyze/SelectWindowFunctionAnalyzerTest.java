@@ -21,6 +21,21 @@
 
 package io.crate.analyze;
 
+import static io.crate.testing.SymbolMatchers.isReference;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.core.Is.is;
+import static org.hamcrest.core.IsNot.not;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertThrows;
+
+import java.util.List;
+
+import org.junit.Before;
+import org.junit.Test;
+
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.Symbol;
@@ -29,17 +44,6 @@ import io.crate.sql.tree.FrameBound;
 import io.crate.sql.tree.WindowFrame;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.util.List;
-
-import static io.crate.testing.SymbolMatchers.isReference;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.core.Is.is;
-import static org.hamcrest.core.IsNot.not;
 
 public class SelectWindowFunctionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 

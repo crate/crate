@@ -19,17 +19,21 @@
 
 package org.elasticsearch.cluster.routing;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
+import java.io.IOException;
+
 import org.elasticsearch.Version;
 import org.elasticsearch.common.UUIDs;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.repositories.IndexId;
-import org.elasticsearch.snapshots.SnapshotId;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.snapshots.Snapshot;
+import org.elasticsearch.snapshots.SnapshotId;
 import org.elasticsearch.test.ESTestCase;
-
-import java.io.IOException;
 
 public class ShardRoutingTests extends ESTestCase {
 

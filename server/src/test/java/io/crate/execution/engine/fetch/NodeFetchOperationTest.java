@@ -21,11 +21,8 @@
 
 package io.crate.execution.engine.fetch;
 
-import io.crate.execution.engine.collect.stats.JobsLogs;
-import io.crate.execution.jobs.TasksService;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import org.elasticsearch.common.breaker.NoopCircuitBreaker;
-import org.junit.Test;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
 
 import java.util.UUID;
 import java.util.concurrent.Executors;
@@ -33,7 +30,12 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.StreamSupport;
 
-import static org.hamcrest.core.Is.is;
+import org.elasticsearch.common.breaker.NoopCircuitBreaker;
+import org.junit.Test;
+
+import io.crate.execution.engine.collect.stats.JobsLogs;
+import io.crate.execution.jobs.TasksService;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 
 public class NodeFetchOperationTest extends CrateDummyClusterServiceUnitTest {
 

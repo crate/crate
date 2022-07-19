@@ -19,7 +19,11 @@
 
 package org.elasticsearch.gateway;
 
-import io.crate.common.collections.Tuple;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.io.IOException;
+
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.Manifest;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -35,10 +39,7 @@ import org.elasticsearch.plugins.MetadataUpgrader;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import java.io.IOException;
-
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import io.crate.common.collections.Tuple;
 
 /**
  * {@link GatewayMetaState} constructor accepts a lot of arguments.

@@ -21,11 +21,14 @@
 
 package io.crate.integrationtests;
 
-import io.crate.testing.TestingHelpers;
-import io.crate.testing.UseRandomizedSchema;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
+
 import org.junit.Test;
 
-import static org.hamcrest.Matchers.is;
+import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseRandomizedSchema;
 
 public class CustomSchemaIntegrationTest extends SQLIntegrationTestCase {
 

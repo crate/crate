@@ -21,13 +21,14 @@
 
 package io.crate.expression.scalar.systeminformation;
 
+import java.util.List;
+
+import org.junit.Test;
+
 import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.metadata.FunctionProvider;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.OidHash;
-import org.junit.Test;
-
-import java.util.List;
 
 public class PgFunctionIsVisibleFunctionTest extends ScalarTestCase {
 

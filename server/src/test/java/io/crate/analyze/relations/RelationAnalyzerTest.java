@@ -23,6 +23,7 @@ package io.crate.analyze.relations;
 
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.util.List;

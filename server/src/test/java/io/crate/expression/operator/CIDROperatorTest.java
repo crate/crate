@@ -21,9 +21,10 @@
 
 package io.crate.expression.operator;
 
+import org.junit.Test;
+
 import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.expression.symbol.Literal;
-import org.junit.Test;
 
 public class CIDROperatorTest extends ScalarTestCase {
 

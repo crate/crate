@@ -21,8 +21,23 @@
 
 package io.crate.planner;
 
+import static io.crate.planner.operators.LogicalPlannerTest.isPlan;
+import static io.crate.testing.SymbolMatchers.isFunction;
+import static io.crate.testing.SymbolMatchers.isReference;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+
+import java.io.IOException;
+import java.util.List;
+
+import org.junit.Before;
+import org.junit.Test;
 
 import com.carrotsearch.randomizedtesting.RandomizedTest;
+
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.projection.EvalProjection;
@@ -33,18 +48,6 @@ import io.crate.planner.node.dql.Collect;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.io.IOException;
-import java.util.List;
-
-import static io.crate.planner.operators.LogicalPlannerTest.isPlan;
-import static io.crate.testing.SymbolMatchers.isFunction;
-import static io.crate.testing.SymbolMatchers.isReference;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
 
 public class GroupByScalarPlannerTest extends CrateDummyClusterServiceUnitTest {
 

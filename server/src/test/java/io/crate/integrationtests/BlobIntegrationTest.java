@@ -21,19 +21,14 @@
 
 package io.crate.integrationtests;
 
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
-import io.crate.blob.v2.BlobIndicesService;
-import io.crate.blob.v2.BlobShard;
-import org.apache.http.Header;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.message.BasicHeader;
-import org.apache.http.util.EntityUtils;
-import org.elasticsearch.index.IndexNotFoundException;
-import org.elasticsearch.index.shard.ShardNotFoundException;
-import org.elasticsearch.test.ESIntegTestCase;
-import org.junit.Test;
-
-import javax.annotation.Nullable;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -49,11 +44,19 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
+import javax.annotation.Nullable;
+
+import org.apache.http.Header;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.message.BasicHeader;
+import org.apache.http.util.EntityUtils;
+import org.elasticsearch.index.IndexNotFoundException;
+import org.elasticsearch.index.shard.ShardNotFoundException;
+import org.elasticsearch.test.ESIntegTestCase;
+import org.junit.Test;
+
+import io.crate.blob.v2.BlobIndicesService;
+import io.crate.blob.v2.BlobShard;
 
 @ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.SUITE, numDataNodes = 2)
 @WindowsIncompatible

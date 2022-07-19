@@ -21,9 +21,14 @@
 
 package io.crate.execution.support;
 
-import io.crate.exceptions.MultiException;
-import io.crate.exceptions.SQLExceptions;
-import org.junit.Test;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
@@ -34,14 +39,10 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
-import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import org.junit.Test;
+
+import io.crate.exceptions.MultiException;
+import io.crate.exceptions.SQLExceptions;
 
 public class ChainableActionsTest {
 

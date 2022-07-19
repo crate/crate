@@ -21,17 +21,18 @@
 
 package io.crate.integrationtests;
 
+import static io.crate.testing.TestingHelpers.printedTable;
+import static org.hamcrest.Matchers.arrayContaining;
+import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+
 import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.testing.UseJdbc;
-
-import static io.crate.testing.TestingHelpers.printedTable;
-import static org.hamcrest.Matchers.arrayContaining;
-import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
-import static org.hamcrest.Matchers.is;
 
 @ESIntegTestCase.ClusterScope(minNumDataNodes = 1)
 public class UnionIntegrationTest extends SQLIntegrationTestCase {

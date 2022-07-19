@@ -21,14 +21,17 @@
 
 package io.crate.expression.reference.doc;
 
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.QueryTester;
+import static org.junit.Assert.assertThat;
+
+import java.util.List;
+import java.util.stream.IntStream;
+
 import org.elasticsearch.Version;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
-import java.util.List;
-import java.util.stream.IntStream;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.QueryTester;
 
 public class IntegerColumnReferenceTest extends CrateDummyClusterServiceUnitTest {
 

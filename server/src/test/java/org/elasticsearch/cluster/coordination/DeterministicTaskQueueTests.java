@@ -19,19 +19,6 @@
 
 package org.elasticsearch.cluster.coordination;
 
-import org.elasticsearch.common.settings.Settings;
-import io.crate.common.unit.TimeValue;
-import org.elasticsearch.test.ESTestCase;
-import org.elasticsearch.threadpool.Scheduler;
-import org.elasticsearch.threadpool.ThreadPool;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import static org.elasticsearch.node.Node.NODE_NAME_SETTING;
 import static org.elasticsearch.threadpool.ThreadPool.Names.GENERIC;
 import static org.hamcrest.Matchers.contains;
@@ -43,6 +30,23 @@ import static org.hamcrest.Matchers.isOneOf;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.test.ESTestCase;
+import org.elasticsearch.threadpool.Scheduler;
+import org.elasticsearch.threadpool.ThreadPool;
+
+import io.crate.common.unit.TimeValue;
 
 public class DeterministicTaskQueueTests extends ESTestCase {
 

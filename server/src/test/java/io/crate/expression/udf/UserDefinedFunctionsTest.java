@@ -21,27 +21,29 @@
 
 package io.crate.expression.udf;
 
-import io.crate.analyze.FunctionArgumentDefinition;
-import io.crate.analyze.TableDefinitions;
-import io.crate.analyze.relations.DocTableRelation;
-import io.crate.metadata.FunctionProvider;
-import io.crate.metadata.FunctionName;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.doc.DocTableInfo;
-import io.crate.testing.SQLExecutor;
-import io.crate.testing.SqlExpressions;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
-import org.junit.Before;
-import org.junit.Test;
+import static io.crate.testing.SymbolMatchers.isLiteral;
+import static java.util.stream.Collectors.toList;
+import static org.junit.Assert.assertThat;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static io.crate.testing.SymbolMatchers.isLiteral;
-import static java.util.stream.Collectors.toList;
+import org.junit.Before;
+import org.junit.Test;
+
+import io.crate.analyze.FunctionArgumentDefinition;
+import io.crate.analyze.TableDefinitions;
+import io.crate.analyze.relations.DocTableRelation;
+import io.crate.metadata.FunctionName;
+import io.crate.metadata.FunctionProvider;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.doc.DocTableInfo;
+import io.crate.testing.SQLExecutor;
+import io.crate.testing.SqlExpressions;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
 public class UserDefinedFunctionsTest extends UdfUnitTest {
 

@@ -19,10 +19,16 @@
 
 package org.elasticsearch.index.analysis;
 
-import org.apache.lucene.tests.analysis.BaseTokenStreamTestCase;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.junit.Assert.assertThat;
+
+import java.io.IOException;
+import java.io.StringReader;
+
 import org.apache.lucene.analysis.Tokenizer;
 import org.apache.lucene.analysis.core.WhitespaceTokenizer;
 import org.apache.lucene.analysis.phonetic.DaitchMokotoffSoundexFilter;
+import org.apache.lucene.tests.analysis.BaseTokenStreamTestCase;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Settings;
@@ -31,11 +37,6 @@ import org.elasticsearch.plugin.analysis.AnalysisPhoneticPlugin;
 import org.elasticsearch.test.ESTestCase;
 import org.hamcrest.MatcherAssert;
 import org.junit.Before;
-
-import java.io.IOException;
-import java.io.StringReader;
-
-import static org.hamcrest.Matchers.instanceOf;
 
 public class SimplePhoneticAnalysisTests extends ESTestCase {
 

@@ -21,12 +21,16 @@
 
 package io.crate.integrationtests;
 
-import io.crate.testing.SQLResponse;
-import org.hamcrest.Matchers;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
+
+import org.hamcrest.Matchers;
+import org.junit.Test;
+
+import io.crate.testing.SQLResponse;
 
 public class InformationSchemaQueryTest extends SQLIntegrationTestCase {
 

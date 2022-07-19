@@ -21,6 +21,21 @@
 
 package io.crate.protocols;
 
+import static io.crate.protocols.postgres.PGErrorStatus.AMBIGUOUS_ALIAS;
+import static io.crate.protocols.postgres.PGErrorStatus.AMBIGUOUS_COLUMN;
+import static io.crate.protocols.postgres.PGErrorStatus.INVALID_SCHEMA_NAME;
+import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_FUNCTION;
+import static io.crate.testing.TestingHelpers.createReference;
+import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+
+import java.util.List;
+
+import org.hamcrest.Matcher;
+import org.junit.Test;
+
 import io.crate.auth.AccessControl;
 import io.crate.exceptions.AmbiguousColumnAliasException;
 import io.crate.exceptions.AmbiguousColumnException;
@@ -33,20 +48,6 @@ import io.crate.protocols.postgres.PGErrorStatus;
 import io.crate.rest.action.HttpError;
 import io.crate.types.DataTypes;
 import io.netty.handler.codec.http.HttpResponseStatus;
-import org.hamcrest.Matcher;
-import org.junit.Test;
-
-import java.util.List;
-
-import static io.crate.protocols.postgres.PGErrorStatus.AMBIGUOUS_ALIAS;
-import static io.crate.protocols.postgres.PGErrorStatus.AMBIGUOUS_COLUMN;
-import static io.crate.protocols.postgres.PGErrorStatus.INVALID_SCHEMA_NAME;
-import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_FUNCTION;
-import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
-import static io.crate.testing.TestingHelpers.createReference;
 
 public class ErrorMappingTest {
 

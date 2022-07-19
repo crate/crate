@@ -21,17 +21,19 @@
 
 package io.crate.breaker;
 
-import org.elasticsearch.test.ESTestCase;
-import io.crate.types.ArrayType;
-import io.crate.types.DataTypes;
-import io.crate.types.Regproc;
-import org.apache.lucene.util.RamUsageEstimator;
-import org.junit.Test;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
 import java.math.BigDecimal;
 import java.util.List;
 
-import static org.hamcrest.Matchers.is;
+import org.apache.lucene.util.RamUsageEstimator;
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
+
+import io.crate.types.ArrayType;
+import io.crate.types.DataTypes;
+import io.crate.types.Regproc;
 
 public class SizeEstimatorTest extends ESTestCase {
 

@@ -32,6 +32,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
 
 import org.junit.After;
 import org.junit.Before;

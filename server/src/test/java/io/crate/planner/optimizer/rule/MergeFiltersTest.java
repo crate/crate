@@ -21,6 +21,16 @@
 
 package io.crate.planner.optimizer.rule;
 
+import static io.crate.testing.TestingHelpers.isSQL;
+import static org.junit.Assert.assertThat;
+
+import java.util.Collections;
+import java.util.Map;
+
+import org.hamcrest.Matchers;
+import org.junit.Before;
+import org.junit.Test;
+
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
@@ -34,14 +44,6 @@ import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
-import org.hamcrest.Matchers;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.util.Collections;
-import java.util.Map;
-
-import static io.crate.testing.TestingHelpers.isSQL;
 
 public class MergeFiltersTest extends CrateDummyClusterServiceUnitTest {
 

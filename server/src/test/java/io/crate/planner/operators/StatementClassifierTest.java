@@ -21,18 +21,20 @@
 
 package io.crate.planner.operators;
 
-import io.crate.planner.Plan;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.SQLExecutor;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.io.IOException;
-
 import static io.crate.analyze.TableDefinitions.USER_TABLE_DEFINITION;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+
+import java.io.IOException;
+
+import org.junit.Before;
+import org.junit.Test;
+
+import io.crate.planner.Plan;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
 
 public class StatementClassifierTest extends CrateDummyClusterServiceUnitTest {
 

@@ -24,6 +24,9 @@ package io.crate.expression.udf;
 import static io.crate.expression.udf.UserDefinedFunctionMetadata.argumentTypesFrom;
 import static io.crate.expression.udf.UserDefinedFunctionMetadata.specificName;
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.List;

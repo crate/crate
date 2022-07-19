@@ -21,6 +21,18 @@
 
 package io.crate.planner.node.ddl;
 
+import static io.crate.planner.node.ddl.ResetSettingsPlan.buildSettingsFrom;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
+
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.data.Row;
 import io.crate.expression.symbol.Literal;
@@ -31,16 +43,6 @@ import io.crate.metadata.SearchPath;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.planner.operators.SubQueryResults;
-import org.elasticsearch.test.ESTestCase;
-import org.elasticsearch.common.settings.Settings;
-import org.junit.Test;
-
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Function;
-
-import static io.crate.planner.node.ddl.ResetSettingsPlan.buildSettingsFrom;
-import static org.hamcrest.Matchers.is;
 
 public class ResetSettingsPlanTest extends ESTestCase {
 

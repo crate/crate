@@ -19,6 +19,26 @@
 
 package org.elasticsearch.cluster;
 
+import static io.crate.common.unit.TimeValue.timeValueMillis;
+import static org.elasticsearch.cluster.NodeConnectionsService.CLUSTER_NODE_RECONNECT_INTERVAL_SETTING;
+import static org.elasticsearch.common.settings.Settings.builder;
+import static org.elasticsearch.common.util.concurrent.ConcurrentCollections.newConcurrentMap;
+import static org.elasticsearch.node.Node.NODE_NAME_SETTING;
+import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Predicate;
+
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.ElasticsearchTimeoutException;
@@ -53,24 +73,6 @@ import org.elasticsearch.transport.TransportService;
 import org.elasticsearch.transport.TransportStats;
 import org.junit.After;
 import org.junit.Before;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.CyclicBarrier;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Predicate;
-
-import static io.crate.common.unit.TimeValue.timeValueMillis;
-import static org.elasticsearch.cluster.NodeConnectionsService.CLUSTER_NODE_RECONNECT_INTERVAL_SETTING;
-import static org.elasticsearch.common.settings.Settings.builder;
-import static org.elasticsearch.common.util.concurrent.ConcurrentCollections.newConcurrentMap;
-import static org.elasticsearch.node.Node.NODE_NAME_SETTING;
-import static org.hamcrest.Matchers.equalTo;
 
 public class NodeConnectionsServiceTests extends ESTestCase {
 

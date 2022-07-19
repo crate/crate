@@ -19,6 +19,27 @@
 
 package org.elasticsearch.snapshots.mockstore;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertArrayEquals;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.NoSuchFileException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+import javax.annotation.Nullable;
+
 import org.apache.lucene.codecs.CodecUtil;
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -35,25 +56,6 @@ import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.repositories.blobstore.BlobStoreRepository;
 import org.elasticsearch.snapshots.SnapshotInfo;
 import org.elasticsearch.test.ESTestCase;
-
-import javax.annotation.Nullable;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.NoSuchFileException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.equalTo;
 
 /**
  * Mock Repository that allows testing the eventually consistent behaviour of AWS S3 as documented in the
@@ -348,7 +350,7 @@ public class MockEventuallyConsistentRepository extends BlobStoreRepository {
                         }
                     } else {
                         if (hasConsistentContent) {
-                            ESTestCase.assertArrayEquals("Tried to overwrite blob [" + blobName + "]", relevantActions.get(0).data, data);
+                            assertArrayEquals("Tried to overwrite blob [" + blobName + "]", relevantActions.get(0).data, data);
                             return; // No need to add a write for this since we didn't change content
                         }
                     }

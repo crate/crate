@@ -25,6 +25,8 @@ import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATIO
 import static org.elasticsearch.discovery.DiscoveryModule.DISCOVERY_SEED_PROVIDERS_SETTING;
 import static org.elasticsearch.discovery.SettingsBasedSeedHostsProvider.DISCOVERY_SEED_HOSTS_SETTING;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.lang.annotation.Annotation;

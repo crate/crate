@@ -22,6 +22,7 @@
 package io.crate.replication.logical.action;
 
 import static org.hamcrest.Matchers.contains;
+import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 

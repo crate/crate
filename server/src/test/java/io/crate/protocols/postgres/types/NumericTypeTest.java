@@ -21,15 +21,17 @@
 
 package io.crate.protocols.postgres.types;
 
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
-import org.junit.Test;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.util.ArrayList;
 
-import static org.hamcrest.Matchers.is;
+import org.junit.Test;
+
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 
 public class NumericTypeTest extends BasePGTypeTest<BigDecimal> {
 

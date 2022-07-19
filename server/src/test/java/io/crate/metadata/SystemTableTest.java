@@ -21,16 +21,17 @@
 
 package io.crate.metadata;
 
-import io.crate.types.ArrayType;
-import io.crate.types.DataTypes;
-import org.hamcrest.Matchers;
-import org.junit.Test;
+import static io.crate.testing.SymbolMatchers.isReference;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.util.List;
 import java.util.Map;
 
-import static io.crate.testing.SymbolMatchers.isReference;
-import static org.hamcrest.MatcherAssert.assertThat;
+import org.hamcrest.Matchers;
+import org.junit.Test;
+
+import io.crate.types.ArrayType;
+import io.crate.types.DataTypes;
 
 public class SystemTableTest {
 

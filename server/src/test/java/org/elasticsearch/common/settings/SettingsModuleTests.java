@@ -21,11 +21,14 @@
 
 package org.elasticsearch.common.settings;
 
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
+
 import org.elasticsearch.common.inject.ModuleTestCase;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.junit.Test;
-
-import static org.hamcrest.Matchers.containsString;
 
 public class SettingsModuleTests extends ModuleTestCase {
 

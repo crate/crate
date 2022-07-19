@@ -21,6 +21,8 @@
 
 package io.crate.execution.engine.indexing;
 
+import static org.junit.Assert.assertThat;
+
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;

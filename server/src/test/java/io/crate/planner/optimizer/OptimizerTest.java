@@ -21,17 +21,18 @@
 
 package io.crate.planner.optimizer;
 
-import io.crate.metadata.SearchPath;
-import io.crate.metadata.settings.SessionSettings;
-import io.crate.planner.optimizer.rule.MergeFilters;
-import io.crate.planner.optimizer.rule.MoveFilterBeneathHashJoin;
-import org.junit.Test;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 import java.util.List;
 import java.util.Set;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
+import org.junit.Test;
+
+import io.crate.metadata.SearchPath;
+import io.crate.metadata.settings.SessionSettings;
+import io.crate.planner.optimizer.rule.MergeFilters;
+import io.crate.planner.optimizer.rule.MoveFilterBeneathHashJoin;
 
 public class OptimizerTest {
 

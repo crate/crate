@@ -21,15 +21,17 @@
 
 package io.crate.analyze;
 
+import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
+
+import org.junit.Before;
+import org.junit.Test;
+
 import io.crate.sql.tree.DeallocateStatement;
 import io.crate.sql.tree.ParameterExpression;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.junit.Before;
-import org.junit.Test;
-
-import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.core.Is.is;
 
 public class DeallocateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 

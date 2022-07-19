@@ -33,6 +33,7 @@ import java.util.Arrays;
 import java.util.Collection;
 
 import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.Assert.assertThat;
 
 @ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.TEST, numDataNodes = 0, numClientNodes = 0)
 public class AzureSimpleTests extends AbstractAzureComputeServiceTestCase {

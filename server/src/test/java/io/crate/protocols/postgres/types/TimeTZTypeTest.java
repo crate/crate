@@ -21,14 +21,16 @@
 
 package io.crate.protocols.postgres.types;
 
-import io.crate.types.TimeTZ;
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
-import org.junit.Test;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
 import java.nio.charset.StandardCharsets;
 
-import static org.hamcrest.Matchers.is;
+import org.junit.Test;
+
+import io.crate.types.TimeTZ;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 
 
 public class TimeTZTypeTest extends BasePGTypeTest<Long> {

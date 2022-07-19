@@ -21,10 +21,14 @@
 
 package io.crate.integrationtests;
 
-import io.crate.common.unit.TimeValue;
-import io.crate.execution.engine.collect.stats.JobsLogService;
-import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
-import io.crate.udc.service.UDCService;
+import static org.elasticsearch.indices.recovery.RecoverySettings.INDICES_RECOVERY_MAX_BYTES_PER_SEC_SETTING;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+
+import java.lang.reflect.Field;
+import java.util.List;
+import java.util.Map;
+
 import org.elasticsearch.cluster.ClusterInfoService;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
@@ -35,12 +39,10 @@ import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.After;
 import org.junit.Test;
 
-import java.lang.reflect.Field;
-import java.util.List;
-import java.util.Map;
-
-import static org.elasticsearch.indices.recovery.RecoverySettings.INDICES_RECOVERY_MAX_BYTES_PER_SEC_SETTING;
-import static org.hamcrest.Matchers.is;
+import io.crate.common.unit.TimeValue;
+import io.crate.execution.engine.collect.stats.JobsLogService;
+import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
+import io.crate.udc.service.UDCService;
 
 @ESIntegTestCase.ClusterScope
 public class SysClusterSettingsTest extends SQLIntegrationTestCase {

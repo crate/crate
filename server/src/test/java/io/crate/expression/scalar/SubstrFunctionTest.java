@@ -23,6 +23,7 @@ package io.crate.expression.scalar;
 
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
 
 import org.junit.Test;
 

@@ -22,11 +22,13 @@
 
 package io.crate.statistics;
 
+import static org.junit.Assert.assertThat;
+
 import java.util.Map;
 
+import org.elasticsearch.test.ESTestCase;
 import org.hamcrest.Matchers;
 import org.junit.Test;
-import org.elasticsearch.test.ESTestCase;
 
 public class StatsTest extends ESTestCase {
 

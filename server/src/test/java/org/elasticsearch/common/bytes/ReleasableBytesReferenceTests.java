@@ -19,16 +19,17 @@
 
 package org.elasticsearch.common.bytes;
 
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.io.stream.ReleasableBytesStreamOutput;
-import org.elasticsearch.common.util.ByteArray;
-import org.hamcrest.Matchers;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.hamcrest.CoreMatchers.equalTo;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.ReleasableBytesStreamOutput;
+import org.elasticsearch.common.util.ByteArray;
+import org.hamcrest.Matchers;
 
 public class ReleasableBytesReferenceTests extends AbstractBytesReferenceTestCase {
 

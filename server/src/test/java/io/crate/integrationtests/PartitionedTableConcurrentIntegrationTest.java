@@ -24,6 +24,7 @@ package io.crate.integrationtests;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.randomAsciiLettersOfLength;
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
 
 import java.util.ArrayList;
 import java.util.Collections;

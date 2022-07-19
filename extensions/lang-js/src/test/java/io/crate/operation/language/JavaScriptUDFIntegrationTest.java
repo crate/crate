@@ -21,22 +21,24 @@
 
 package io.crate.operation.language;
 
-import io.crate.integrationtests.SQLIntegrationTestCase;
-import io.crate.module.JavaScriptLanguageModule;
-import io.crate.testing.TestingHelpers;
-import io.crate.types.ArrayType;
-import io.crate.types.DataTypes;
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-
-import static org.hamcrest.CoreMatchers.is;
+import io.crate.integrationtests.SQLIntegrationTestCase;
+import io.crate.module.JavaScriptLanguageModule;
+import io.crate.testing.TestingHelpers;
+import io.crate.types.ArrayType;
+import io.crate.types.DataTypes;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0)
 public class JavaScriptUDFIntegrationTest extends SQLIntegrationTestCase {

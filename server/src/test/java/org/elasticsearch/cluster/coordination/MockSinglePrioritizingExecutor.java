@@ -18,10 +18,10 @@
  */
 package org.elasticsearch.cluster.coordination;
 
+import java.util.concurrent.TimeUnit;
+
 import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.common.util.concurrent.PrioritizedEsThreadPoolExecutor;
-
-import java.util.concurrent.TimeUnit;
 
 /**
  * Mock single threaded {@link PrioritizedEsThreadPoolExecutor} based on {@link DeterministicTaskQueue},

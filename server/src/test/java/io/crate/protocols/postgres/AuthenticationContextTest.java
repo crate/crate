@@ -22,6 +22,7 @@
 package io.crate.protocols.postgres;
 
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
 
 import java.net.InetAddress;
 import java.util.List;

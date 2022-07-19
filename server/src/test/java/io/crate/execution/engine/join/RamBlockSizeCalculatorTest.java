@@ -21,13 +21,13 @@
 
 package io.crate.execution.engine.join;
 
-import org.elasticsearch.common.breaker.CircuitBreaker;
-import org.junit.Test;
-
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+
+import org.elasticsearch.common.breaker.CircuitBreaker;
+import org.junit.Test;
 
 public class RamBlockSizeCalculatorTest {
 

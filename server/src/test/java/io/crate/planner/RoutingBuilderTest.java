@@ -21,7 +21,19 @@
 
 package io.crate.planner;
 
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+
+import java.util.Collections;
+import java.util.List;
+
+import org.elasticsearch.common.Randomness;
+import org.hamcrest.CoreMatchers;
+import org.junit.Before;
+import org.junit.Test;
+
 import com.carrotsearch.hppc.IntSet;
+
 import io.crate.analyze.WhereClause;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.symbol.Function;
@@ -33,15 +45,6 @@ import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.table.TableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.elasticsearch.common.Randomness;
-import org.hamcrest.CoreMatchers;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.util.Collections;
-import java.util.List;
-
-import static org.hamcrest.Matchers.is;
 
 public class RoutingBuilderTest extends CrateDummyClusterServiceUnitTest {
 

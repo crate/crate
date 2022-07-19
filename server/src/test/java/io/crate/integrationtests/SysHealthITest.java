@@ -21,13 +21,14 @@
 
 package io.crate.integrationtests;
 
-import org.elasticsearch.test.ESIntegTestCase;
-import org.junit.Test;
+import static io.crate.testing.TestingHelpers.printedTable;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 
-import static io.crate.testing.TestingHelpers.printedTable;
-import static org.hamcrest.Matchers.is;
+import org.elasticsearch.test.ESIntegTestCase;
+import org.junit.Test;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2)
 public class SysHealthITest extends SQLIntegrationTestCase {

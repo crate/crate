@@ -21,6 +21,20 @@
 
 package io.crate.analyze;
 
+import static io.crate.testing.SymbolMatchers.isFunction;
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.hamcrest.Matchers;
+import org.junit.Before;
+import org.junit.Test;
+
 import io.crate.common.collections.MapBuilder;
 import io.crate.exceptions.ConversionException;
 import io.crate.expression.symbol.Literal;
@@ -34,18 +48,6 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 import io.crate.types.UndefinedType;
-import org.hamcrest.Matchers;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import static io.crate.testing.SymbolMatchers.isFunction;
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.is;
 
 public class CompoundLiteralTest extends CrateDummyClusterServiceUnitTest {
 

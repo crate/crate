@@ -22,6 +22,7 @@
 package io.crate.analyze.expressions;
 
 import static io.crate.testing.SymbolMatchers.isLiteral;
+import static org.junit.Assert.assertThat;
 
 import org.joda.time.Period;
 import org.junit.Before;

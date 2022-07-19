@@ -21,15 +21,15 @@
 
 package io.crate.expression.reference;
 
-import org.hamcrest.Matchers;
-import org.junit.Test;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
-import static org.hamcrest.MatcherAssert.assertThat;
+import org.hamcrest.Matchers;
+import org.junit.Test;
 
 public class MapLookupByPathExpressionTest {
 

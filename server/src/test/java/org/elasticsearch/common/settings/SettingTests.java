@@ -20,19 +20,22 @@
  */
 package org.elasticsearch.common.settings;
 
-import io.crate.common.collections.Tuple;
-import org.elasticsearch.Version;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.common.settings.AbstractScopedSettings.SettingUpdater;
-import org.elasticsearch.common.settings.Setting.Property;
-import org.elasticsearch.common.unit.ByteSizeUnit;
-import org.elasticsearch.common.unit.ByteSizeValue;
-import io.crate.common.unit.TimeValue;
-import io.crate.types.DataTypes;
-
-import org.elasticsearch.monitor.jvm.JvmInfo;
-import org.elasticsearch.test.ESTestCase;
-import org.junit.Test;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.hasToString;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -47,12 +50,19 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.hasToString;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
+import org.elasticsearch.Version;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.common.settings.AbstractScopedSettings.SettingUpdater;
+import org.elasticsearch.common.settings.Setting.Property;
+import org.elasticsearch.common.unit.ByteSizeUnit;
+import org.elasticsearch.common.unit.ByteSizeValue;
+import org.elasticsearch.monitor.jvm.JvmInfo;
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
+
+import io.crate.common.collections.Tuple;
+import io.crate.common.unit.TimeValue;
+import io.crate.types.DataTypes;
 
 public class SettingTests extends ESTestCase {
 

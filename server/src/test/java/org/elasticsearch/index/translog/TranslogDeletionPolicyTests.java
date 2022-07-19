@@ -21,6 +21,7 @@ package org.elasticsearch.index.translog;
 
 import static java.lang.Math.min;
 import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.nio.channels.FileChannel;

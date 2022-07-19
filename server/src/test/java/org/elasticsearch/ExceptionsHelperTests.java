@@ -22,6 +22,9 @@ package org.elasticsearch;
 import static org.elasticsearch.ExceptionsHelper.maybeError;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.nullValue;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.Optional;

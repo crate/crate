@@ -21,7 +21,13 @@
 
 package io.crate.metadata.view;
 
-import org.elasticsearch.test.ESTestCase;
+import static org.hamcrest.core.IsNull.nullValue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+
+import java.io.IOException;
+import java.util.Map;
+
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -31,12 +37,8 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
+import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
-
-import java.io.IOException;
-import java.util.Map;
-
-import static org.hamcrest.core.IsNull.nullValue;
 
 public class ViewsMetadataTest extends ESTestCase {
 

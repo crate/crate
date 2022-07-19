@@ -21,19 +21,21 @@
 
 package io.crate.analyze.relations;
 
+import static io.crate.testing.TestingHelpers.isSQL;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
+
+import java.util.Map;
+import java.util.Set;
+
+import org.junit.Before;
+import org.junit.Test;
+
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RelationName;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.util.Map;
-import java.util.Set;
-
-import static io.crate.testing.TestingHelpers.isSQL;
-import static org.hamcrest.core.Is.is;
 
 
 public class QuerySplitterTest extends CrateDummyClusterServiceUnitTest {

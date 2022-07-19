@@ -28,6 +28,7 @@ import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERR
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
 
 import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matchers;

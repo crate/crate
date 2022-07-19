@@ -21,16 +21,17 @@
 
 package io.crate.execution.engine.export;
 
-import org.elasticsearch.test.ESTestCase;
-import org.junit.Test;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.junit.Assert.assertThat;
+import static org.mockito.Mockito.mock;
 
 import java.io.BufferedOutputStream;
 import java.io.OutputStream;
 import java.nio.file.Path;
 import java.util.concurrent.Executor;
 
-import static org.hamcrest.Matchers.instanceOf;
-import static org.mockito.Mockito.mock;
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
 
 public class LocalFsFileOutputTest extends ESTestCase {
 

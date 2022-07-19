@@ -21,6 +21,30 @@
 
 package io.crate.execution.jobs;
 
+import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
+
 import io.crate.Streamer;
 import io.crate.breaker.RamAccounting;
 import io.crate.common.collections.Iterables;
@@ -33,28 +57,8 @@ import io.crate.execution.engine.distribution.merge.KeyIterable;
 import io.crate.execution.engine.distribution.merge.PagingIterator;
 import io.crate.execution.engine.distribution.merge.PassThroughPagingIterator;
 import io.crate.execution.engine.distribution.merge.SortedPagingIterator;
-import org.elasticsearch.test.ESTestCase;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.TestingRowConsumer;
-import org.junit.Test;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Iterator;
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-
-import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 
 public class DistResultRXTaskTest extends ESTestCase {
 

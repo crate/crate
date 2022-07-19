@@ -21,15 +21,15 @@
 
 package io.crate.integrationtests;
 
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
-import org.junit.Test;
-
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 import static org.hamcrest.Matchers.is;
+
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
+import org.junit.Test;
 
 public class GroupByAggregateBreakerTest extends SQLIntegrationTestCase {
 

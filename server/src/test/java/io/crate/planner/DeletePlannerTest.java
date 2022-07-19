@@ -21,6 +21,23 @@
 
 package io.crate.planner;
 
+import static io.crate.testing.Asserts.assertThrowsMatches;
+import static io.crate.testing.TestingHelpers.isDocKey;
+import static java.util.Collections.singletonList;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
+
+import org.hamcrest.Matchers;
+import org.junit.Before;
+import org.junit.Test;
+
 import io.crate.analyze.TableDefinitions;
 import io.crate.data.Row;
 import io.crate.exceptions.VersioningValidationException;
@@ -35,21 +52,6 @@ import io.crate.planner.node.dml.DeleteById;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.hamcrest.Matchers;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.io.IOException;
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
-
-import static io.crate.testing.Asserts.assertThrowsMatches;
-import static io.crate.testing.TestingHelpers.isDocKey;
-import static java.util.Collections.singletonList;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
 
 public class DeletePlannerTest extends CrateDummyClusterServiceUnitTest {
 

@@ -21,11 +21,12 @@
 
 package io.crate.expression.scalar.timestamp;
 
-import io.crate.expression.scalar.ScalarTestCase;
-import io.crate.metadata.SystemClock;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+
+import io.crate.expression.scalar.ScalarTestCase;
+import io.crate.metadata.SystemClock;
 
 public class NowFunctionTest extends ScalarTestCase {
 

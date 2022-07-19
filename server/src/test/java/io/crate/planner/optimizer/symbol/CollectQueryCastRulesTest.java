@@ -23,6 +23,7 @@ package io.crate.planner.optimizer.symbol;
 
 import static java.util.Collections.emptyMap;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
 import java.util.Collections;
 import java.util.List;

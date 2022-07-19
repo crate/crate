@@ -21,16 +21,11 @@
 
 package io.crate.metadata;
 
-import com.carrotsearch.hppc.IntArrayList;
-import com.carrotsearch.hppc.IntIndexedContainer;
-import org.elasticsearch.cluster.node.DiscoveryNodeRole;
-import org.elasticsearch.test.ESTestCase;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.cluster.node.DiscoveryNodes;
-import org.elasticsearch.common.Randomness;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.junit.Test;
+import static org.hamcrest.Matchers.anyOf;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -38,10 +33,17 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
-import static org.hamcrest.Matchers.anyOf;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.node.DiscoveryNodeRole;
+import org.elasticsearch.cluster.node.DiscoveryNodes;
+import org.elasticsearch.common.Randomness;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
+
+import com.carrotsearch.hppc.IntArrayList;
+import com.carrotsearch.hppc.IntIndexedContainer;
 
 public class RoutingTest extends ESTestCase {
 

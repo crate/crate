@@ -21,14 +21,16 @@
 
 package io.crate.integrationtests;
 
-import io.crate.protocols.postgres.PGErrorStatus;
-import io.netty.handler.codec.http.HttpResponseStatus;
-import org.junit.Test;
-
 import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
+
+import org.junit.Test;
+
+import io.crate.protocols.postgres.PGErrorStatus;
+import io.netty.handler.codec.http.HttpResponseStatus;
 
 public class RegexpIntegrationTest extends SQLIntegrationTestCase {
 

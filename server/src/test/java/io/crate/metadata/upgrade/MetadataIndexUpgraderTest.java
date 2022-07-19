@@ -21,9 +21,12 @@
 
 package io.crate.metadata.upgrade;
 
-import io.crate.Constants;
-import io.crate.metadata.RelationName;
-import org.elasticsearch.test.ESTestCase;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.core.IsNull.nullValue;
+import static org.junit.Assert.assertThat;
+
+import java.io.IOException;
+
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
@@ -32,14 +35,13 @@ import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.VersionUtils;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
-import java.io.IOException;
-
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.core.IsNull.nullValue;
+import io.crate.Constants;
+import io.crate.metadata.RelationName;
 
 public class MetadataIndexUpgraderTest extends ESTestCase {
 
