@@ -18,15 +18,17 @@
  */
 package org.elasticsearch.test.test;
 
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
+
+import java.io.IOException;
+
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.elasticsearch.test.ESIntegTestCase.ClusterScope;
 import org.elasticsearch.test.InternalTestCluster;
-
-import java.io.IOException;
-
-import static org.hamcrest.Matchers.lessThanOrEqualTo;
 
 @ClusterScope(scope = ESIntegTestCase.Scope.TEST, numDataNodes = 0)
 public class InternalTestClusterIT extends ESIntegTestCase {

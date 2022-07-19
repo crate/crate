@@ -19,14 +19,20 @@
 
 package org.elasticsearch.test.store;
 
-import com.carrotsearch.randomizedtesting.generators.RandomPicks;
+import java.io.Closeable;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.Random;
+
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.index.CheckIndex;
-import org.apache.lucene.tests.store.BaseDirectoryWrapper;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.LockObtainFailedException;
+import org.apache.lucene.tests.store.BaseDirectoryWrapper;
 import org.apache.lucene.tests.store.MockDirectoryWrapper;
-import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.tests.util.CrateLuceneTestCase;
 import org.apache.lucene.tests.util.TestRuleMarkFailure;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
@@ -45,12 +51,7 @@ import org.elasticsearch.test.ESIntegTestCase;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Assert;
 
-import java.io.Closeable;
-import java.io.IOException;
-import java.io.PrintStream;
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.Random;
+import com.carrotsearch.randomizedtesting.generators.RandomPicks;
 
 public class MockFSDirectoryFactory implements IndexStorePlugin.DirectoryFactory {
 
@@ -125,7 +126,7 @@ public class MockFSDirectoryFactory implements IndexStorePlugin.DirectoryFactory
         // TODO: make this test robust to virus scanner
         w.setAssertNoDeleteOpenFile(false);
         w.setUseSlowOpenClosers(false);
-        LuceneTestCase.closeAfterSuite(new CloseableDirectory(w));
+        CrateLuceneTestCase.closeAfterSuite(new CloseableDirectory(w));
         return w;
     }
 
