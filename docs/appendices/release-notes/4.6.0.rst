@@ -31,8 +31,7 @@ Released on 2021-07-13.
 Deprecations
 ============
 
-- Deprecated the :ref:`node.max_local_storage_nodes
-  <node.max_local_storage_nodes>` setting.
+- Deprecated the ``node.max_local_storage_nodes`` setting.
 
 
 Changes
