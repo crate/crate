@@ -204,7 +204,7 @@ public class ArrayUpperFunction extends Scalar<Integer, Object> {
                 if (cmpVal == 0) {
                     return IsNullPredicate.refExistsQuery(arrayRef, context);
                 } else if (cmpVal == 1) {
-                    return NumTermsPerDocQuery.forArray(arrayRef, valueCountIsMatch);
+                    return NumTermsPerDocQuery.forRef(arrayRef, valueCountIsMatch);
                 } else {
                     return genericFunctionFilter(parent, context);
                 }
@@ -234,7 +234,7 @@ public class ArrayUpperFunction extends Scalar<Integer, Object> {
         query.setMinimumNumberShouldMatch(1);
         return query
             .add(
-                NumTermsPerDocQuery.forArray(arrayRef, valueCountIsMatch),
+                NumTermsPerDocQuery.forRef(arrayRef, valueCountIsMatch),
                 BooleanClause.Occur.SHOULD
             )
             .add(genericFunctionFilter(parent, context), BooleanClause.Occur.SHOULD)
@@ -247,7 +247,7 @@ public class ArrayUpperFunction extends Scalar<Integer, Object> {
                                                  IntPredicate valueCountIsMatch) {
         return new BooleanQuery.Builder()
             .add(
-                NumTermsPerDocQuery.forArray(arrayRef, valueCountIsMatch),
+                NumTermsPerDocQuery.forRef(arrayRef, valueCountIsMatch),
                 BooleanClause.Occur.MUST
             )
             .add(genericFunctionFilter(parent, context), BooleanClause.Occur.FILTER)
