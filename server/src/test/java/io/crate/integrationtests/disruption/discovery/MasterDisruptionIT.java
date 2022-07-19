@@ -259,7 +259,7 @@ public class MasterDisruptionIT extends AbstractDisruptionTestCase {
         internalCluster.startNodes(3,
                                    Settings.builder()
                                        .put(SchemaUpdateClient.INDICES_MAPPING_DYNAMIC_TIMEOUT_SETTING.getKey(),
-                                            "1ms")
+                                            "500ms")
                                        .build()
         );
         ensureStableCluster(3);
