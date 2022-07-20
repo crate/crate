@@ -137,7 +137,6 @@ public class CSVLineParser {
     private void reset() throws IOException {
         reusableJsonBuilder.out().reset();
         reusableJsonBuilder.rowItems().clear();
-        reusableJsonBuilder.jsonBuilder().startObject();
     }
 
     /**
@@ -147,6 +146,7 @@ public class CSVLineParser {
      */
     private byte[] getByteArray() throws IOException {
         int notNullCounter = 0;
+        reusableJsonBuilder.jsonBuilder().startObject();
         for (int i = 0; i < columnNamesArray.length; i++) {
             var key = columnNamesArray[i];
             if (key != null) {
