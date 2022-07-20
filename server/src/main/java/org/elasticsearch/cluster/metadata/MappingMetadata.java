@@ -51,7 +51,7 @@ public class MappingMetadata extends AbstractDiffable<MappingMetadata> {
 
     public MappingMetadata(CompressedXContent mapping) throws IOException {
         this.source = mapping;
-        Map<String, Object> mappingMap = XContentHelper.convertToMap(mapping.compressedReference(), true).v2();
+        Map<String, Object> mappingMap = XContentHelper.convertToMap(mapping.compressedReference(), true).map();
         if (mappingMap.size() != 1) {
             throw new IllegalStateException("Can't derive type from mapping, no root type: " + mapping.string());
         }
@@ -86,7 +86,7 @@ public class MappingMetadata extends AbstractDiffable<MappingMetadata> {
      */
     @SuppressWarnings("unchecked")
     public Map<String, Object> sourceAsMap() throws ElasticsearchParseException {
-        Map<String, Object> mapping = XContentHelper.convertToMap(source.compressedReference(), true).v2();
+        Map<String, Object> mapping = XContentHelper.convertToMap(source.compressedReference(), true).map();
         if (mapping.size() == 1 && mapping.containsKey(type())) {
             // the type name is the root value, reduce it
             mapping = (Map<String, Object>) mapping.get(type());

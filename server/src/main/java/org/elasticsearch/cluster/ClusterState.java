@@ -438,7 +438,7 @@ public class ClusterState implements ToXContentFragment, Diffable<ClusterState> 
 
                 builder.startObject("mappings");
                 for (ObjectObjectCursor<String, CompressedXContent> cursor1 : templateMetadata.mappings()) {
-                    Map<String, Object> mapping = XContentHelper.convertToMap(new BytesArray(cursor1.value.uncompressed()), false).v2();
+                    Map<String, Object> mapping = XContentHelper.convertToMap(new BytesArray(cursor1.value.uncompressed()), false).map();
                     if (mapping.size() == 1 && mapping.containsKey(cursor1.key)) {
                         // the type name is the root value, reduce it
                         mapping = (Map<String, Object>) mapping.get(cursor1.key);
@@ -468,7 +468,7 @@ public class ClusterState implements ToXContentFragment, Diffable<ClusterState> 
                 MappingMetadata mmd = indexMetadata.mapping();
                 if (mmd != null) {
                     Map<String, Object> mapping = XContentHelper
-                            .convertToMap(new BytesArray(mmd.source().uncompressed()), false).v2();
+                            .convertToMap(new BytesArray(mmd.source().uncompressed()), false).map();
                     if (mapping.size() == 1 && mapping.containsKey(mmd.type())) {
                         // the type name is the root value, reduce it
                         mapping = (Map<String, Object>) mapping.get(mmd.type());
