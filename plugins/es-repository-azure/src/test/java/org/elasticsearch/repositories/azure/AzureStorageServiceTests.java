@@ -19,12 +19,14 @@
 
 package org.elasticsearch.repositories.azure;
 
-import com.microsoft.azure.storage.RetryExponentialRetry;
-import com.microsoft.azure.storage.blob.CloudBlobClient;
-import com.microsoft.azure.storage.core.Base64;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.settings.SettingsException;
-import org.elasticsearch.test.ESTestCase;
+import static org.elasticsearch.repositories.azure.AzureStorageService.blobNameFromUri;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -34,12 +36,13 @@ import java.net.URISyntaxException;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 
-import static org.elasticsearch.repositories.azure.AzureStorageService.blobNameFromUri;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.nullValue;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.settings.SettingsException;
+import org.elasticsearch.test.ESTestCase;
+
+import com.microsoft.azure.storage.RetryExponentialRetry;
+import com.microsoft.azure.storage.blob.CloudBlobClient;
+import com.microsoft.azure.storage.core.Base64;
 
 public class AzureStorageServiceTests extends ESTestCase {
 

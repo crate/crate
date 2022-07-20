@@ -21,11 +21,12 @@
 
 package io.crate.expression.scalar.systeminformation;
 
-import io.crate.expression.scalar.ScalarTestCase;
-import io.crate.testing.SqlExpressions;
+import static io.crate.testing.SymbolMatchers.isLiteral;
+
 import org.junit.Test;
 
-import static io.crate.testing.SymbolMatchers.isLiteral;
+import io.crate.expression.scalar.ScalarTestCase;
+import io.crate.testing.SqlExpressions;
 
 
 public class CurrentSchemaFunctionTest extends ScalarTestCase {

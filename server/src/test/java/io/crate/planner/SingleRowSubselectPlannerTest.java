@@ -21,17 +21,19 @@
 
 package io.crate.planner;
 
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.junit.Assert.assertThat;
+
+import java.io.IOException;
+
+import org.junit.Before;
+import org.junit.Test;
+
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.RootRelationBoundary;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.io.IOException;
-
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.instanceOf;
 
 public class SingleRowSubselectPlannerTest extends CrateDummyClusterServiceUnitTest {
 

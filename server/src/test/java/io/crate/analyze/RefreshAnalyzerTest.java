@@ -21,6 +21,18 @@
 
 package io.crate.analyze;
 
+import static io.crate.testing.SymbolMatchers.isLiteral;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Set;
+
+import org.junit.Before;
+import org.junit.Test;
+
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.expression.symbol.Symbol;
@@ -28,16 +40,6 @@ import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.Table;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.io.IOException;
-import java.util.List;
-import java.util.Set;
-
-import static io.crate.testing.SymbolMatchers.isLiteral;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.contains;
 
 public class RefreshAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 

@@ -21,17 +21,19 @@
 
 package io.crate.operation.collect.files;
 
-import com.fasterxml.jackson.dataformat.csv.CsvSchema;
-import io.crate.analyze.CopyFromParserProperties;
-import org.junit.Before;
-import org.junit.Test;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
+import org.junit.Before;
+import org.junit.Test;
+
+import com.fasterxml.jackson.dataformat.csv.CsvSchema;
+
+import io.crate.analyze.CopyFromParserProperties;
 
 public class CSVLineParserTest {
 

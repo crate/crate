@@ -21,18 +21,19 @@
 
 package io.crate.expression.scalar.timestamp;
 
-import io.crate.expression.scalar.ScalarTestCase;
-import io.crate.expression.symbol.Literal;
-import io.crate.metadata.SystemClock;
-import io.crate.types.TimeTZ;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import static org.hamcrest.Matchers.instanceOf;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 
-import static org.hamcrest.Matchers.instanceOf;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+
+import io.crate.expression.scalar.ScalarTestCase;
+import io.crate.expression.symbol.Literal;
+import io.crate.metadata.SystemClock;
+import io.crate.types.TimeTZ;
 
 public class CurrentTimeFunctionTest extends ScalarTestCase {
 

@@ -21,16 +21,17 @@
 
 package io.crate.expression;
 
-import io.crate.metadata.ColumnIdent;
-import io.crate.types.DataTypes;
-import org.junit.Test;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
 import java.util.Collections;
 import java.util.Map;
 import java.util.function.Function;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import org.junit.Test;
+
+import io.crate.metadata.ColumnIdent;
+import io.crate.types.DataTypes;
 
 public class ValueExtractorsTest {
 

@@ -21,11 +21,13 @@
 
 package io.crate.expression.tablefunctions;
 
-import io.crate.testing.TestingHelpers;
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
+
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
-import static org.hamcrest.CoreMatchers.is;
+import io.crate.testing.TestingHelpers;
 
 public class PgExpandArrayTest extends AbstractTableFunctionsTest {
 

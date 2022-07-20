@@ -18,12 +18,15 @@
  */
 package org.elasticsearch.cluster.coordination;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.util.concurrent.PrioritizedEsThreadPoolExecutor;
 import org.elasticsearch.common.util.concurrent.PrioritizedRunnable;
 import org.elasticsearch.test.ESTestCase;
-
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public class MockSinglePrioritizingExecutorTests extends ESTestCase {
 

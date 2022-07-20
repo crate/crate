@@ -19,8 +19,24 @@
 
 package org.elasticsearch.indices.recovery;
 
-import io.crate.common.io.IOUtils;
-import io.crate.common.unit.TimeValue;
+import java.io.Closeable;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Deque;
+import java.util.List;
+import java.util.Locale;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
+import java.util.function.IntSupplier;
+import java.util.stream.StreamSupport;
+
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.index.CorruptIndexException;
@@ -35,9 +51,7 @@ import org.apache.lucene.util.SetOnce;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.ActionRunnable;
 import org.elasticsearch.action.StepListener;
-import org.elasticsearch.action.support.PlainActionFuture;
 import org.elasticsearch.action.support.ThreadedActionListener;
 import org.elasticsearch.action.support.replication.ReplicationResponse;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
@@ -70,23 +84,8 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.RemoteTransportException;
 import org.elasticsearch.transport.Transports;
 
-import java.io.Closeable;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Deque;
-import java.util.List;
-import java.util.Locale;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentLinkedDeque;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Consumer;
-import java.util.function.IntSupplier;
-import java.util.stream.StreamSupport;
+import io.crate.common.io.IOUtils;
+import io.crate.common.unit.TimeValue;
 
 /**
  * RecoverySourceHandler handles the three phases of shard recovery, which is
@@ -424,13 +423,8 @@ public class RecoverySourceHandler {
     private Releasable acquireStore(Store store) {
         store.incRef();
         return Releasables.releaseOnce(() -> {
-            final PlainActionFuture<Void> future = new PlainActionFuture<>();
             assert threadPool.generic().isShutdown() == false;
-            // TODO: We shouldn't use the generic thread pool here as we already execute this from the generic pool.
-            //       While practically unlikely at a min pool size of 128 we could technically block the whole pool by waiting on futures
-            //       below and thus make it impossible for the store release to execute which in turn would block the futures forever
-            threadPool.generic().execute(ActionRunnable.run(future, store::decRef));
-            FutureUtils.get(future);
+            threadPool.generic().execute(store::decRef);
         });
     }
 

@@ -22,6 +22,7 @@
 package io.crate.expression.symbol;
 
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
 import java.util.List;
 

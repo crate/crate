@@ -21,14 +21,15 @@
 
 package io.crate.expression.scalar.arithmetic;
 
-import io.crate.expression.scalar.ScalarTestCase;
-import io.crate.expression.symbol.Literal;
-import org.junit.Test;
+import static io.crate.testing.SymbolMatchers.isFunction;
+import static org.hamcrest.Matchers.nullValue;
 
 import java.math.BigDecimal;
 
-import static io.crate.testing.SymbolMatchers.isFunction;
-import static org.hamcrest.Matchers.nullValue;
+import org.junit.Test;
+
+import io.crate.expression.scalar.ScalarTestCase;
+import io.crate.expression.symbol.Literal;
 
 
 public class NegateFunctionsTest extends ScalarTestCase {

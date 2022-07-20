@@ -21,8 +21,15 @@
 
 package io.crate.expression.reference.sys.check.node;
 
-import io.crate.expression.reference.sys.check.SysCheck;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
@@ -39,7 +46,6 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
-import io.crate.common.unit.TimeValue;
 import org.elasticsearch.gateway.GatewayService;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.indices.ShardLimitValidator;
@@ -47,13 +53,9 @@ import org.elasticsearch.node.NodeService;
 import org.junit.Test;
 import org.mockito.Answers;
 
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-
-import static org.hamcrest.core.Is.is;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import io.crate.common.unit.TimeValue;
+import io.crate.expression.reference.sys.check.SysCheck;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 
 public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
 

@@ -21,17 +21,19 @@
 
 package io.crate.lucene;
 
-import io.crate.lucene.match.CrateRegexQuery;
+import static io.crate.expression.operator.LikeOperators.convertSqlLikeToLuceneWildcard;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.WildcardQuery;
 import org.junit.Test;
 
-import static io.crate.expression.operator.LikeOperators.convertSqlLikeToLuceneWildcard;
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
+import io.crate.lucene.match.CrateRegexQuery;
 
 public class LikeQueryBuilderTest extends LuceneQueryBuilderTest {
 

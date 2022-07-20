@@ -21,12 +21,8 @@
 
 package io.crate.integrationtests;
 
-import io.crate.user.Privilege;
-import io.crate.user.UserManager;
-import io.crate.testing.TestingHelpers;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -34,7 +30,13 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import static org.hamcrest.core.Is.is;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+
+import io.crate.testing.TestingHelpers;
+import io.crate.user.Privilege;
+import io.crate.user.UserManager;
 
 public class SysPrivilegesIntegrationTest extends BaseUsersIntegrationTest {
 

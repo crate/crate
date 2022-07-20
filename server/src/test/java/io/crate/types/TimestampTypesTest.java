@@ -21,13 +21,13 @@
 
 package io.crate.types;
 
-import org.junit.Test;
-
-import java.util.Map;
-
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import java.util.Map;
+
+import org.junit.Test;
 
 public class TimestampTypesTest {
 

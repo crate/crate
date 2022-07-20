@@ -21,6 +21,12 @@
 
 package io.crate.planner.node.ddl;
 
+import static java.util.Collections.singletonList;
+import static org.junit.Assert.assertThat;
+
+import org.hamcrest.Matchers;
+import org.junit.Test;
+
 import io.crate.analyze.TableDefinitions;
 import io.crate.data.RowN;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -30,10 +36,6 @@ import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.hamcrest.Matchers;
-import org.junit.Test;
-
-import static java.util.Collections.singletonList;
 
 public class DeletePartitionsTest extends CrateDummyClusterServiceUnitTest {
 

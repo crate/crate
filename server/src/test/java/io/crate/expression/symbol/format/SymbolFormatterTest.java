@@ -21,18 +21,20 @@
 
 package io.crate.expression.symbol.format;
 
-import io.crate.expression.symbol.Function;
-import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.Symbols;
-import io.crate.metadata.functions.Signature;
-import org.elasticsearch.test.ESTestCase;
-import io.crate.types.DataTypes;
-import org.junit.Test;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
 import java.util.IllegalFormatConversionException;
 import java.util.List;
 
-import static org.hamcrest.Matchers.is;
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
+
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbols;
+import io.crate.metadata.functions.Signature;
+import io.crate.types.DataTypes;
 
 public class SymbolFormatterTest extends ESTestCase {
 

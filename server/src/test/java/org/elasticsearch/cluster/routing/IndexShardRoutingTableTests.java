@@ -19,13 +19,16 @@
 
 package org.elasticsearch.cluster.routing;
 
-import org.elasticsearch.index.Index;
-import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.test.ESTestCase;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+
+import org.elasticsearch.index.Index;
+import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.test.ESTestCase;
 
 public class IndexShardRoutingTableTests extends ESTestCase {
     public void testEqualsAttributesKey() {

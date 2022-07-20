@@ -21,12 +21,17 @@
 
 package io.crate.protocols.http;
 
-import io.crate.netty.NettyBootstrap;
-import io.crate.netty.channel.PipelineRegistry;
-import io.crate.protocols.ssl.SslContextProvider;
-import io.crate.protocols.ssl.SslSettings;
-import io.netty.channel.embedded.EmbeddedChannel;
-import io.netty.handler.ssl.SslHandler;
+import static io.crate.protocols.ssl.SslContextProviderTest.getAbsoluteFilePathFromClassPath;
+import static org.elasticsearch.env.Environment.PATH_HOME_SETTING;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.junit.Assert.assertThat;
+import static org.mockito.Mockito.mock;
+
+import java.io.File;
+import java.io.IOException;
+import java.net.InetAddress;
+import java.util.Collections;
+
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.common.network.InetAddresses;
 import org.elasticsearch.common.network.NetworkService;
@@ -39,15 +44,12 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import java.io.File;
-import java.io.IOException;
-import java.net.InetAddress;
-import java.util.Collections;
-
-import static io.crate.protocols.ssl.SslContextProviderTest.getAbsoluteFilePathFromClassPath;
-import static org.elasticsearch.env.Environment.PATH_HOME_SETTING;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.mockito.Mockito.mock;
+import io.crate.netty.NettyBootstrap;
+import io.crate.netty.channel.PipelineRegistry;
+import io.crate.protocols.ssl.SslContextProvider;
+import io.crate.protocols.ssl.SslSettings;
+import io.netty.channel.embedded.EmbeddedChannel;
+import io.netty.handler.ssl.SslHandler;
 
 public class CrateHttpsTransportTest extends ESTestCase {
 

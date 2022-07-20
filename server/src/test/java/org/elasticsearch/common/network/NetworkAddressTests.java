@@ -19,14 +19,16 @@
 
 package org.elasticsearch.common.network;
 
-import org.elasticsearch.common.transport.PortsRange;
-import org.elasticsearch.test.ESTestCase;
+import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
 import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.Random;
+
+import org.elasticsearch.common.transport.PortsRange;
+import org.elasticsearch.test.ESTestCase;
 
 /**
  * Tests for network address formatting. Please avoid using any methods that cause DNS lookups!

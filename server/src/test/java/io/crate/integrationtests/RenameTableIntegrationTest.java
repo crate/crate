@@ -21,11 +21,13 @@
 
 package io.crate.integrationtests;
 
-import io.crate.testing.TestingHelpers;
-import org.junit.Test;
-
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+
+import org.junit.Test;
+
+import io.crate.testing.TestingHelpers;
 
 public class RenameTableIntegrationTest extends SQLIntegrationTestCase {
 

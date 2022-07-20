@@ -21,16 +21,18 @@
 
 package io.crate.integrationtests;
 
-import io.crate.data.CollectionBucket;
-import io.crate.execution.engine.sort.OrderingByPosition;
-import io.crate.testing.TestingHelpers;
-import org.junit.Before;
-import org.junit.Test;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
 
 import java.util.Arrays;
 import java.util.List;
 
-import static org.hamcrest.core.Is.is;
+import org.junit.Before;
+import org.junit.Test;
+
+import io.crate.data.CollectionBucket;
+import io.crate.execution.engine.sort.OrderingByPosition;
+import io.crate.testing.TestingHelpers;
 
 public class JoinGroupByIntegrationTests extends SQLIntegrationTestCase {
 

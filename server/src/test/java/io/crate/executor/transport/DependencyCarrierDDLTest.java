@@ -21,6 +21,20 @@
 
 package io.crate.executor.transport;
 
+import static io.crate.testing.TestingHelpers.isRow;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+import static org.mockito.Mockito.mock;
+
+import java.util.List;
+
+import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+
 import io.crate.data.Bucket;
 import io.crate.data.Row;
 import io.crate.data.Row1;
@@ -34,18 +48,6 @@ import io.crate.planner.node.ddl.UpdateSettingsPlan;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.Assignment;
 import io.crate.testing.TestingRowConsumer;
-
-import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.util.List;
-
-import static io.crate.testing.TestingHelpers.isRow;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.is;
-import static org.mockito.Mockito.mock;
 
 public class DependencyCarrierDDLTest extends SQLIntegrationTestCase {
 

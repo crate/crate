@@ -24,6 +24,7 @@ package io.crate.execution.engine.collect.files;
 import static io.crate.testing.TestingHelpers.createReference;
 import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
 import java.io.BufferedWriter;
 import java.io.File;

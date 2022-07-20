@@ -21,19 +21,20 @@
 
 package io.crate.protocols.postgres;
 
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+
+import java.util.Collections;
+
+import org.junit.Test;
+import org.mockito.Answers;
+
 import io.crate.auth.AccessControl;
 import io.crate.data.Row1;
 import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.types.DataTypes;
 import io.netty.channel.Channel;
-import org.junit.Test;
-import org.mockito.Answers;
-
-import java.util.Collections;
-
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 
 public class ResultSetReceiverTest {
 

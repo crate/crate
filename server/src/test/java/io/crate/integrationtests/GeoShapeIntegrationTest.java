@@ -21,19 +21,22 @@
 
 package io.crate.integrationtests;
 
-import io.crate.testing.TestingHelpers;
-import io.crate.testing.UseRandomizedSchema;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.util.List;
-import java.util.Map;
-
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.startsWith;
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+
+import java.util.List;
+import java.util.Map;
+
+import org.junit.Before;
+import org.junit.Test;
+
+import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseRandomizedSchema;
 
 public class GeoShapeIntegrationTest extends SQLIntegrationTestCase {
 

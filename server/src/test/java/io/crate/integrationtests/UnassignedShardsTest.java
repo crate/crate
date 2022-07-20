@@ -21,11 +21,13 @@
 
 package io.crate.integrationtests;
 
-import io.crate.testing.TestingHelpers;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
 
-import static org.hamcrest.Matchers.is;
+import io.crate.testing.TestingHelpers;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 1)
 public class UnassignedShardsTest extends SQLIntegrationTestCase {

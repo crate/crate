@@ -21,24 +21,27 @@
 
 package org.elasticsearch.repositories.azure;
 
-import com.sun.net.httpserver.HttpServer;
-import io.crate.integrationtests.SQLIntegrationTestCase;
-import org.elasticsearch.common.network.InetAddresses;
-import org.elasticsearch.plugins.Plugin;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.testing.Asserts.assertThrowsMatches;
+import static io.crate.testing.SQLErrorMatcher.isSQLError;
+import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Collection;
 
-import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
-import static io.crate.testing.Asserts.assertThrowsMatches;
-import static io.crate.testing.SQLErrorMatcher.isSQLError;
-import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
-import static org.hamcrest.Matchers.is;
+import org.elasticsearch.common.network.InetAddresses;
+import org.elasticsearch.plugins.Plugin;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+
+import com.sun.net.httpserver.HttpServer;
+
+import io.crate.integrationtests.SQLIntegrationTestCase;
 
 public class AzureSnapshotIntegrationTest extends SQLIntegrationTestCase {
 
@@ -54,6 +57,7 @@ public class AzureSnapshotIntegrationTest extends SQLIntegrationTestCase {
         return plugins;
     }
 
+    @Override
     @Before
     public void setUp() throws Exception {
         super.setUp();
@@ -63,6 +67,7 @@ public class AzureSnapshotIntegrationTest extends SQLIntegrationTestCase {
         httpServer.start();
     }
 
+    @Override
     @After
     public void tearDown() throws Exception {
         httpServer.stop(1);

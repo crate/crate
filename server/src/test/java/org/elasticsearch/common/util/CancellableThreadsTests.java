@@ -20,19 +20,22 @@
  */
 package org.elasticsearch.common.util;
 
-import org.elasticsearch.common.util.CancellableThreads.IOInterruptable;
-import org.elasticsearch.common.util.CancellableThreads.Interruptable;
-import org.elasticsearch.test.ESTestCase;
-import org.hamcrest.Matchers;
-import org.junit.Test;
+import static org.elasticsearch.common.util.CancellableThreads.ExecutionCancelledException;
+import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.elasticsearch.common.util.CancellableThreads.ExecutionCancelledException;
-import static org.hamcrest.Matchers.equalTo;
+import org.elasticsearch.common.util.CancellableThreads.IOInterruptable;
+import org.elasticsearch.common.util.CancellableThreads.Interruptable;
+import org.elasticsearch.test.ESTestCase;
+import org.hamcrest.Matchers;
+import org.junit.Test;
 
 public class CancellableThreadsTests extends ESTestCase {
 

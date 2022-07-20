@@ -21,12 +21,13 @@
 
 package io.crate.expression.scalar.arithmetic;
 
-import io.crate.expression.scalar.ScalarTestCase;
-import io.crate.types.DataTypes;
-import org.junit.Test;
-
 import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
+
+import org.junit.Test;
+
+import io.crate.expression.scalar.ScalarTestCase;
+import io.crate.types.DataTypes;
 
 public class FloorFunctionTest extends ScalarTestCase {
 

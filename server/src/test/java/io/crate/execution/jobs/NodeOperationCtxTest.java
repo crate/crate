@@ -21,22 +21,25 @@
 
 package io.crate.execution.jobs;
 
-import com.carrotsearch.hppc.IntArrayList;
-import io.crate.execution.dsl.phases.ExecutionPhase;
-import io.crate.execution.dsl.phases.NodeOperation;
-import io.crate.planner.distribution.DistributionInfo;
-import org.elasticsearch.test.ESTestCase;
-import io.crate.testing.StubPhases;
-import org.junit.Test;
-
-import java.util.List;
-
 import static io.crate.execution.jobs.JobSetup.NodeOperationCtx;
 import static io.crate.planner.distribution.DistributionInfo.DEFAULT_BROADCAST;
 import static io.crate.testing.StubPhases.newPhase;
 import static java.util.Collections.singletonList;
 import static java.util.stream.StreamSupport.stream;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+
+import java.util.List;
+
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
+
+import com.carrotsearch.hppc.IntArrayList;
+
+import io.crate.execution.dsl.phases.ExecutionPhase;
+import io.crate.execution.dsl.phases.NodeOperation;
+import io.crate.planner.distribution.DistributionInfo;
+import io.crate.testing.StubPhases;
 
 public class NodeOperationCtxTest extends ESTestCase {
 

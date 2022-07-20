@@ -21,6 +21,27 @@
 
 package io.crate.metadata.doc;
 
+import static io.crate.metadata.SearchPath.pathWithPGCatalogAndDoc;
+import static io.crate.metadata.doc.DocSchemaInfo.getTablesAffectedByPublicationsChange;
+import static io.crate.testing.TestingHelpers.createNodeContext;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.junit.Assert.assertThat;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Nullable;
+import javax.script.ScriptException;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.Index;
+import org.hamcrest.Matchers;
+import org.junit.Before;
+import org.junit.Test;
+
 import io.crate.common.collections.Lists2;
 import io.crate.data.Input;
 import io.crate.expression.udf.UDFLanguage;
@@ -39,26 +60,6 @@ import io.crate.replication.logical.metadata.PublicationsMetadata;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.DataTypes;
-
-import org.elasticsearch.Version;
-import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.Index;
-import org.hamcrest.Matchers;
-import org.junit.Before;
-import org.junit.Test;
-
-import javax.annotation.Nullable;
-import javax.script.ScriptException;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import static io.crate.metadata.doc.DocSchemaInfo.getTablesAffectedByPublicationsChange;
-import static io.crate.testing.TestingHelpers.createNodeContext;
-import static io.crate.metadata.SearchPath.pathWithPGCatalogAndDoc;
-import static org.hamcrest.Matchers.containsInAnyOrder;
 
 public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
 

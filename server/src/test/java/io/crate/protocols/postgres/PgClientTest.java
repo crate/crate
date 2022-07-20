@@ -23,6 +23,7 @@ package io.crate.protocols.postgres;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.sameInstance;
+import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -31,8 +32,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
-
-import com.carrotsearch.randomizedtesting.annotations.Repeat;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -49,6 +48,8 @@ import org.elasticsearch.transport.netty4.Netty4Transport;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Test;
+
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
 
 import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;

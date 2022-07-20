@@ -21,11 +21,12 @@
 
 package io.crate.memory;
 
-import io.netty.buffer.ByteBuf;
-import org.junit.Test;
-
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
+
+import org.junit.Test;
+
+import io.netty.buffer.ByteBuf;
 
 public class OffHeapMemoryManagerTest {
 

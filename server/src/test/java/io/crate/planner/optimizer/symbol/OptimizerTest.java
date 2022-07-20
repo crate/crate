@@ -21,10 +21,11 @@
 
 package io.crate.planner.optimizer.symbol;
 
+import static org.junit.Assert.assertThat;
 
-import io.crate.expression.operator.GtOperator;
 import org.junit.Test;
 
+import io.crate.expression.operator.GtOperator;
 import io.crate.expression.symbol.Symbol;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;

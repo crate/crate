@@ -21,6 +21,12 @@
 
 package org.elasticsearch.indices.recovery;
 
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertThat;
+import static org.mockito.Mockito.mock;
+
+import java.io.IOException;
+
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.seqno.SequenceNumbers;
@@ -30,11 +36,6 @@ import org.elasticsearch.index.store.Store;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.transport.TransportService;
 import org.junit.Test;
-
-import java.io.IOException;
-
-import static org.hamcrest.Matchers.containsString;
-import static org.mockito.Mockito.mock;
 
 public class PeerRecoverySourceServiceTests extends IndexShardTestCase {
 

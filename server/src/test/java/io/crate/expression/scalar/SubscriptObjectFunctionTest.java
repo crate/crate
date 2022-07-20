@@ -21,14 +21,15 @@
 
 package io.crate.expression.scalar;
 
-import io.crate.exceptions.ColumnUnknownException;
-import io.crate.expression.symbol.Literal;
-import io.crate.testing.Asserts;
-import org.junit.Test;
+import static io.crate.testing.SymbolMatchers.isLiteral;
 
 import java.util.Map;
 
-import static io.crate.testing.SymbolMatchers.isLiteral;
+import org.junit.Test;
+
+import io.crate.exceptions.ColumnUnknownException;
+import io.crate.expression.symbol.Literal;
+import io.crate.testing.Asserts;
 
 public class SubscriptObjectFunctionTest extends ScalarTestCase {
 

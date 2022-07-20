@@ -21,15 +21,16 @@
 
 package io.crate.metadata.sys;
 
-import io.crate.planner.Plan;
-import io.crate.planner.operators.StatementClassifier;
-import org.junit.Test;
-
-import java.util.concurrent.TimeUnit;
-
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
+
+import java.util.concurrent.TimeUnit;
+
+import org.junit.Test;
+
+import io.crate.planner.Plan;
+import io.crate.planner.operators.StatementClassifier;
 
 public class ClassifiedMetricsTest {
 

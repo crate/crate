@@ -19,13 +19,14 @@
 
 package org.elasticsearch.cluster.node;
 
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.test.ESTestCase;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasToString;
+import static org.junit.Assert.assertThat;
 
 import java.util.Set;
 
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.hasToString;
+import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.test.ESTestCase;
 
 public class DiscoveryNodeRoleTests extends ESTestCase {
 

@@ -21,10 +21,11 @@
 
 package io.crate.integrationtests;
 
-import io.crate.testing.SQLResponse;
+import java.util.Locale;
+
 import org.junit.Test;
 
-import java.util.Locale;
+import io.crate.testing.SQLResponse;
 
 public class CrateSettingsIntegrationTest extends SQLIntegrationTestCase {
 

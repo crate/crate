@@ -21,16 +21,19 @@
 
 package io.crate.integrationtests;
 
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+
+import java.util.Map;
+
+import org.hamcrest.Matchers;
+import org.junit.Test;
+
 import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.exceptions.SQLParseException;
 import io.crate.testing.UseJdbc;
-import org.hamcrest.Matchers;
-import org.junit.Test;
-
-import java.util.Map;
-
-import static org.hamcrest.core.Is.is;
 
 public class CreateTableAsIntegrationTest extends SQLIntegrationTestCase {
 

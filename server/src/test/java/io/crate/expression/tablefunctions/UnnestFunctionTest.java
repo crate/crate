@@ -22,6 +22,7 @@
 package io.crate.expression.tablefunctions;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
 
 import java.util.List;
 

@@ -21,12 +21,14 @@
 
 package io.crate.expression.tablefunctions;
 
-import io.crate.data.Row;
-import org.junit.Test;
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
 
 import java.util.stream.StreamSupport;
 
-import static org.hamcrest.CoreMatchers.is;
+import org.junit.Test;
+
+import io.crate.data.Row;
 
 
 public class EmptyRowTableFunctionTest extends AbstractTableFunctionsTest {

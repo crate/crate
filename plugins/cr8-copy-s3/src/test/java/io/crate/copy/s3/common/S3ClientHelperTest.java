@@ -21,12 +21,15 @@
 
 package io.crate.copy.s3.common;
 
-import com.amazonaws.http.IdleConnectionReaper;
+import static org.junit.Assert.assertNotNull;
+
+import java.net.URI;
+
 import org.elasticsearch.test.ESTestCase;
 import org.junit.After;
 import org.junit.Test;
 
-import java.net.URI;
+import com.amazonaws.http.IdleConnectionReaper;
 
 
 public class S3ClientHelperTest extends ESTestCase {

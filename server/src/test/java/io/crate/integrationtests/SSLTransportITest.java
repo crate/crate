@@ -22,6 +22,7 @@
 package io.crate.integrationtests;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -34,10 +35,10 @@ import org.elasticsearch.transport.Transport;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import io.crate.test.utils.ConnectionTest;
-import io.crate.test.utils.ConnectionTest.ProbeResult;
 import io.crate.protocols.ssl.SslContextProvider;
 import io.crate.protocols.ssl.SslSettings;
+import io.crate.test.utils.ConnectionTest;
+import io.crate.test.utils.ConnectionTest.ProbeResult;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2, supportsDedicatedMasters = false, numClientNodes = 0)
 public class SSLTransportITest extends SQLIntegrationTestCase {

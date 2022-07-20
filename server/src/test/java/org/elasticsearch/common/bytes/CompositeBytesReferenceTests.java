@@ -18,16 +18,21 @@
  */
 package org.elasticsearch.common.bytes;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.BytesRefBuilder;
 import org.apache.lucene.util.BytesRefIterator;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.ReleasableBytesStreamOutput;
 import org.hamcrest.Matchers;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 
 public class CompositeBytesReferenceTests extends AbstractBytesReferenceTestCase {
 

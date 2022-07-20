@@ -18,15 +18,18 @@
  */
 package org.elasticsearch.common.inject;
 
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
+import java.lang.annotation.Annotation;
+import java.util.List;
+import java.util.function.Predicate;
+
 import org.elasticsearch.common.inject.spi.Element;
 import org.elasticsearch.common.inject.spi.Elements;
 import org.elasticsearch.common.inject.spi.InstanceBinding;
 import org.elasticsearch.common.inject.spi.ProviderInstanceBinding;
 import org.elasticsearch.test.ESTestCase;
-
-import java.lang.annotation.Annotation;
-import java.util.List;
-import java.util.function.Predicate;
 
 /**
  * Base testcase for testing {@link Module} implementations.

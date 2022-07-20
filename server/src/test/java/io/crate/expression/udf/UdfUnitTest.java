@@ -21,6 +21,13 @@
 
 package io.crate.expression.udf;
 
+import static io.crate.testing.TestingHelpers.createNodeContext;
+
+import javax.annotation.Nullable;
+import javax.script.ScriptException;
+
+import org.junit.Before;
+
 import io.crate.data.Input;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
@@ -28,12 +35,6 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfoFactory;
 import io.crate.metadata.functions.Signature;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import org.junit.Before;
-
-import javax.annotation.Nullable;
-import javax.script.ScriptException;
-
-import static io.crate.testing.TestingHelpers.createNodeContext;
 
 public abstract class UdfUnitTest extends CrateDummyClusterServiceUnitTest {
 

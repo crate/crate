@@ -21,20 +21,22 @@
 
 package io.crate.auth;
 
-import io.crate.action.sql.SessionContext;
-import io.crate.analyze.ParamTypeHints;
-import io.crate.user.Privilege;
-import io.crate.user.User;
-import io.crate.user.UserLookupService;
-import io.crate.user.UserManager;
-import io.crate.user.UserManagerService;
-import io.crate.exceptions.UnauthorizedException;
-import io.crate.execution.engine.collect.sources.SysTableRegistry;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.cluster.DDLClusterStateService;
-import io.crate.sql.parser.SqlParser;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.SQLExecutor;
+import static io.crate.user.Privilege.Type.READ_WRITE_DEFINE;
+import static io.crate.user.User.CRATE_USER;
+import static java.util.Collections.singletonList;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+import static org.mockito.Mockito.mock;
+
+import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Set;
+
+import javax.annotation.Nullable;
+
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.RepositoriesMetadata;
@@ -47,19 +49,20 @@ import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Set;
-
-import static io.crate.user.Privilege.Type.READ_WRITE_DEFINE;
-import static io.crate.user.User.CRATE_USER;
-import static java.util.Collections.singletonList;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.is;
-import static org.mockito.Mockito.mock;
+import io.crate.action.sql.SessionContext;
+import io.crate.analyze.ParamTypeHints;
+import io.crate.exceptions.UnauthorizedException;
+import io.crate.execution.engine.collect.sources.SysTableRegistry;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.cluster.DDLClusterStateService;
+import io.crate.sql.parser.SqlParser;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
+import io.crate.user.Privilege;
+import io.crate.user.User;
+import io.crate.user.UserLookupService;
+import io.crate.user.UserManager;
+import io.crate.user.UserManagerService;
 
 public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTest {
 

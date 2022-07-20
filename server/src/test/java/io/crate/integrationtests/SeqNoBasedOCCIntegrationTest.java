@@ -21,6 +21,8 @@
 
 package io.crate.integrationtests;
 
+import static org.junit.Assert.assertEquals;
+
 import org.junit.Test;
 
 

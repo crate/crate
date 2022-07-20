@@ -21,17 +21,19 @@
 
 package io.crate.analyze;
 
-import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.Symbol;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.SQLExecutor;
+import static org.hamcrest.Matchers.contains;
+import static org.junit.Assert.assertThat;
+
+import java.util.Set;
+
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Set;
-
-import static org.hamcrest.Matchers.contains;
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
 
 public class ResetAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 

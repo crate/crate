@@ -22,6 +22,7 @@
 package io.crate.planner.optimizer.rule;
 
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
 import java.util.Collections;
 import java.util.Map;

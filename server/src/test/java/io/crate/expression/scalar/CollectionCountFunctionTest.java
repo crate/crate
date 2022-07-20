@@ -21,12 +21,13 @@
 
 package io.crate.expression.scalar;
 
+import java.util.List;
+
+import org.junit.Test;
+
 import io.crate.expression.symbol.Literal;
 import io.crate.types.ArrayType;
 import io.crate.types.LongType;
-import org.junit.Test;
-
-import java.util.List;
 
 public class CollectionCountFunctionTest extends ScalarTestCase {
 

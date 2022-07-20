@@ -21,15 +21,17 @@
 
 package io.crate.protocols.postgres.types;
 
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
-import org.junit.Test;
-
-import java.time.format.DateTimeParseException;
-
 import static io.crate.testing.Asserts.assertThrowsMatches;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+
+import java.time.format.DateTimeParseException;
+
+import org.junit.Test;
+
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 
 public class DateTypeTest extends BasePGTypeTest<Long> {
 

@@ -21,14 +21,16 @@
 
 package io.crate.analyze;
 
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.SqlExpressions;
-import io.crate.testing.T3;
+import static io.crate.testing.SymbolMatchers.isLiteral;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
+
 import org.junit.Before;
 import org.junit.Test;
 
-import static io.crate.testing.SymbolMatchers.isLiteral;
-import static org.hamcrest.core.Is.is;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SqlExpressions;
+import io.crate.testing.T3;
 
 public class WhereClauseTest extends CrateDummyClusterServiceUnitTest {
 

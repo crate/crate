@@ -21,15 +21,17 @@
 
 package io.crate.planner.operators;
 
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+
+import java.util.Map;
+
+import org.junit.Test;
+
 import io.crate.expression.symbol.AliasSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.junit.Test;
-
-import java.util.Map;
-
-import static org.hamcrest.Matchers.is;
 
 public class MapBackedSymbolReplacerTest extends CrateDummyClusterServiceUnitTest {
 

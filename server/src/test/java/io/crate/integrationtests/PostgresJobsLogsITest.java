@@ -21,15 +21,11 @@
 
 package io.crate.integrationtests;
 
-import io.crate.testing.UseHashJoins;
-import io.crate.testing.UseJdbc;
-import io.crate.testing.UseRandomizedSchema;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.test.ESIntegTestCase;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.postgresql.util.PSQLException;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -40,7 +36,16 @@ import java.util.Properties;
 import java.util.UUID;
 import java.util.stream.IntStream;
 
-import static org.hamcrest.core.Is.is;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.test.ESIntegTestCase;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.postgresql.util.PSQLException;
+
+import io.crate.testing.UseHashJoins;
+import io.crate.testing.UseJdbc;
+import io.crate.testing.UseRandomizedSchema;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 0, supportsDedicatedMasters = false)
 @UseJdbc(1)

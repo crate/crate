@@ -21,18 +21,20 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.oneOf;
+import static org.junit.Assert.assertThat;
+
+import java.util.List;
+
+import org.junit.Test;
+
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.functions.Signature;
 import io.crate.operation.aggregation.AggregationTestCase;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.junit.Test;
-
-import java.util.List;
-
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.oneOf;
 
 public class ArbitraryAggregationTest extends AggregationTestCase {
 

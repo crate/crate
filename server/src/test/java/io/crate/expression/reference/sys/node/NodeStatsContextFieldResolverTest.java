@@ -21,12 +21,22 @@
 
 package io.crate.expression.reference.sys.node;
 
-import io.crate.execution.engine.collect.NestableCollectExpression;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.expressions.RowCollectExpressionFactory;
-import io.crate.metadata.sys.SysNodesTableInfo;
-import io.crate.monitor.ExtendedNodeInfo;
-import io.crate.protocols.ConnectionStats;
+import static io.crate.testing.DiscoveryNodes.newNode;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.junit.Assert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.io.IOException;
+import java.net.Inet4Address;
+import java.net.UnknownHostException;
+import java.util.Collections;
+import java.util.Set;
+
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.http.HttpStats;
@@ -37,21 +47,12 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.IOException;
-import java.net.Inet4Address;
-import java.net.UnknownHostException;
-import java.util.Collections;
-import java.util.Set;
-
-import static io.crate.testing.DiscoveryNodes.newNode;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.hamcrest.CoreMatchers.nullValue;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.junit.Assert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import io.crate.execution.engine.collect.NestableCollectExpression;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.expressions.RowCollectExpressionFactory;
+import io.crate.metadata.sys.SysNodesTableInfo;
+import io.crate.monitor.ExtendedNodeInfo;
+import io.crate.protocols.ConnectionStats;
 
 public class NodeStatsContextFieldResolverTest {
 

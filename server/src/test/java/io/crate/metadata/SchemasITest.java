@@ -21,19 +21,12 @@
 
 package io.crate.metadata;
 
-import com.carrotsearch.hppc.IntIndexedContainer;
-import io.crate.action.sql.SessionContext;
-import io.crate.analyze.WhereClause;
-import io.crate.expression.symbol.Symbol;
-import io.crate.integrationtests.SQLIntegrationTestCase;
-import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.table.TableInfo;
-import io.crate.sql.tree.CheckConstraint;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.Randomness;
-import org.elasticsearch.test.ESIntegTestCase;
-import org.junit.Before;
-import org.junit.Test;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.isOneOf;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -41,9 +34,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.isOneOf;
-import static org.hamcrest.core.Is.is;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.Randomness;
+import org.elasticsearch.test.ESIntegTestCase;
+import org.junit.Before;
+import org.junit.Test;
+
+import com.carrotsearch.hppc.IntIndexedContainer;
+
+import io.crate.action.sql.SessionContext;
+import io.crate.analyze.WhereClause;
+import io.crate.expression.symbol.Symbol;
+import io.crate.integrationtests.SQLIntegrationTestCase;
+import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.table.TableInfo;
+import io.crate.sql.tree.CheckConstraint;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0, supportsDedicatedMasters = false)
 public class SchemasITest extends SQLIntegrationTestCase {

@@ -21,14 +21,15 @@
 
 package io.crate.expression.scalar.timestamp;
 
-import io.crate.expression.symbol.Literal;
-import io.crate.expression.scalar.ScalarTestCase;
-import io.crate.metadata.SystemClock;
+import static org.hamcrest.Matchers.instanceOf;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.hamcrest.Matchers.instanceOf;
+import io.crate.expression.scalar.ScalarTestCase;
+import io.crate.expression.symbol.Literal;
+import io.crate.metadata.SystemClock;
 
 public class CurrentTimestampFunctionTest extends ScalarTestCase {
 

@@ -21,18 +21,20 @@
 
 package io.crate.analyze;
 
-import io.crate.planner.PlannerContext;
-import io.crate.planner.node.ddl.AlterTableDropCheckConstraintPlan;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.SQLExecutor;
-import org.junit.Before;
-import org.junit.Test;
+import static io.crate.testing.TestingHelpers.mapToSortedString;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.util.Map;
 
-import static io.crate.testing.TestingHelpers.mapToSortedString;
-import static org.hamcrest.Matchers.is;
+import org.junit.Before;
+import org.junit.Test;
+
+import io.crate.planner.PlannerContext;
+import io.crate.planner.node.ddl.AlterTableDropCheckConstraintPlan;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
 
 public class AlterTableDropCheckConstraintAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 

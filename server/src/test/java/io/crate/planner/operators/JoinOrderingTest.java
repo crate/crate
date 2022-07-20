@@ -21,10 +21,9 @@
 
 package io.crate.planner.operators;
 
-import com.carrotsearch.hppc.ObjectIntHashMap;
-import io.crate.metadata.RelationName;
-import io.crate.testing.T3;
-import org.junit.Test;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -33,9 +32,12 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import org.junit.Test;
+
+import com.carrotsearch.hppc.ObjectIntHashMap;
+
+import io.crate.metadata.RelationName;
+import io.crate.testing.T3;
 
 public class JoinOrderingTest {
 

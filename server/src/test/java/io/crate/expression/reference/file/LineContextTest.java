@@ -21,10 +21,15 @@
 
 package io.crate.expression.reference.file;
 
-import io.crate.metadata.ColumnIdent;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+
+import java.nio.charset.StandardCharsets;
+
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
-import java.nio.charset.StandardCharsets;
+
+import io.crate.metadata.ColumnIdent;
 
 public class LineContextTest extends ESTestCase {
     @Test

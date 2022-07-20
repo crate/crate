@@ -21,12 +21,14 @@
 
 package io.crate.protocols.postgres.types;
 
-import io.crate.protocols.postgres.FormatCodes;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+
 import org.elasticsearch.test.ESTestCase;
+
+import io.crate.protocols.postgres.FormatCodes;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
-
-import static org.hamcrest.Matchers.is;
 
 public abstract class BasePGTypeTest<T> extends ESTestCase {
 

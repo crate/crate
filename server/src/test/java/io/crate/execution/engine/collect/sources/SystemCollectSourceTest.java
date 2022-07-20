@@ -21,26 +21,9 @@
 
 package io.crate.execution.engine.collect.sources;
 
-import io.crate.analyze.OrderBy;
-import io.crate.analyze.WhereClause;
-import io.crate.data.Row;
-import io.crate.execution.dsl.phases.RoutedCollectPhase;
-import io.crate.expression.reference.StaticTableReferenceResolver;
-import io.crate.integrationtests.SQLIntegrationTestCase;
-import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.SimpleReference;
-import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.Routing;
-import io.crate.metadata.RowGranularity;
-import io.crate.metadata.shard.unassigned.UnassignedShard;
-import io.crate.metadata.sys.SysShardsTableInfo;
-import io.crate.planner.distribution.DistributionInfo;
-import io.crate.types.DataTypes;
-import org.elasticsearch.cluster.routing.ShardRoutingState;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.test.ESIntegTestCase;
-import org.junit.Test;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+import static org.mockito.Mockito.mock;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -49,8 +32,27 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.StreamSupport;
 
-import static org.hamcrest.Matchers.is;
-import static org.mockito.Mockito.mock;
+import org.elasticsearch.cluster.routing.ShardRoutingState;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.test.ESIntegTestCase;
+import org.junit.Test;
+
+import io.crate.analyze.OrderBy;
+import io.crate.analyze.WhereClause;
+import io.crate.data.Row;
+import io.crate.execution.dsl.phases.RoutedCollectPhase;
+import io.crate.expression.reference.StaticTableReferenceResolver;
+import io.crate.integrationtests.SQLIntegrationTestCase;
+import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.Routing;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.SimpleReference;
+import io.crate.metadata.shard.unassigned.UnassignedShard;
+import io.crate.metadata.sys.SysShardsTableInfo;
+import io.crate.planner.distribution.DistributionInfo;
+import io.crate.types.DataTypes;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 1, supportsDedicatedMasters = false)
 public class SystemCollectSourceTest extends SQLIntegrationTestCase {
