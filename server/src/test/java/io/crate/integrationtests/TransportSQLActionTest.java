@@ -2014,11 +2014,19 @@ public class TransportSQLActionTest extends SQLIntegrationTestCase {
             execute("refresh table tbl");
 
             var resp1 = execute("select _doc['x'], x, _raw FROM tbl where x = ?", new Object[] { val1 });
-            assertThat(
-                "inserted value must match selected value for type " + type,
-                ((DataType) type).compare(resp1.rows()[0][1], val1),
-                is(0)
-            );
+            Object x = resp1.rows()[0][1];
+            boolean hasPrecisionChange = false;
+            if (val1 instanceof Map<?, ?> map) {
+                Object x1 = map.get("x");
+                hasPrecisionChange = x1 instanceof Map<?, ?> innerMap && innerMap.containsKey("coordinates");
+            }
+            if (!hasPrecisionChange) {
+                assertThat(
+                    "inserted value must match selected value for type " + type + ": val=" + val1 + " response=" + x,
+                    ((DataType) type).compare(x, val1),
+                    is(0)
+                );
+            }
 
             var resp2 = execute("select _doc['x'], x, _raw FROM tbl where id = ?", new Object[] { 1 });
             assertThat(
