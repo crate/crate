@@ -21,17 +21,20 @@
 
 package io.crate.discovery;
 
-import org.elasticsearch.test.ESTestCase;
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.ByteBufUtil;
-import io.netty.buffer.Unpooled;
-import io.netty.handler.codec.dns.DefaultDnsRawRecord;
-import io.netty.handler.codec.dns.DefaultDnsRecordEncoder;
-import io.netty.handler.codec.dns.DnsRecord;
-import io.netty.handler.codec.dns.DnsRecordType;
+import static org.hamcrest.Matchers.anyOf;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+
 import org.elasticsearch.Version;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
+import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.transport.MockTransportService;
 import org.elasticsearch.threadpool.TestThreadPool;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -41,14 +44,13 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-
-import static org.hamcrest.Matchers.anyOf;
-import static org.hamcrest.Matchers.is;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufUtil;
+import io.netty.buffer.Unpooled;
+import io.netty.handler.codec.dns.DefaultDnsRawRecord;
+import io.netty.handler.codec.dns.DefaultDnsRecordEncoder;
+import io.netty.handler.codec.dns.DnsRecord;
+import io.netty.handler.codec.dns.DnsRecordType;
 
 public class SrvUnicastHostsProviderTest extends ESTestCase {
 

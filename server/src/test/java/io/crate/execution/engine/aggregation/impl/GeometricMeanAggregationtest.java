@@ -21,6 +21,16 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
+import static org.junit.Assert.assertThat;
+
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import org.junit.Test;
+
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.SearchPath;
@@ -28,14 +38,6 @@ import io.crate.metadata.functions.Signature;
 import io.crate.operation.aggregation.AggregationTestCase;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.junit.Test;
-
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.nullValue;
 
 public class GeometricMeanAggregationtest extends AggregationTestCase {
 

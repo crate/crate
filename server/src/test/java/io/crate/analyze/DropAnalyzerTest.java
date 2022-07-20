@@ -21,9 +21,14 @@
 
 package io.crate.analyze;
 
-import io.crate.planner.node.ddl.DropAnalyzerPlan;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.SQLExecutor;
+import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.ANALYZER;
+import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.CHAR_FILTER;
+import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.TOKENIZER;
+import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.TOKEN_FILTER;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertThat;
+
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -32,12 +37,9 @@ import org.elasticsearch.test.ClusterServiceUtils;
 import org.junit.Before;
 import org.junit.Test;
 
-import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.ANALYZER;
-import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.CHAR_FILTER;
-import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.TOKENIZER;
-import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.TOKEN_FILTER;
-import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.nullValue;
+import io.crate.planner.node.ddl.DropAnalyzerPlan;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
 
 public class DropAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 

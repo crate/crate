@@ -21,18 +21,12 @@
 
 package io.crate.protocols.http;
 
-import io.crate.integrationtests.SQLHttpIntegrationTest;
-import io.crate.protocols.ssl.SslSettings;
-import io.crate.testing.UseJdbc;
-import io.netty.handler.ssl.util.SelfSignedCertificate;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.util.EntityUtils;
-import org.elasticsearch.common.CheckedConsumer;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.test.ESIntegTestCase;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -42,9 +36,19 @@ import java.security.cert.Certificate;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.nullValue;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.util.EntityUtils;
+import org.elasticsearch.common.CheckedConsumer;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.test.ESIntegTestCase;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
+import io.crate.integrationtests.SQLHttpIntegrationTest;
+import io.crate.protocols.ssl.SslSettings;
+import io.crate.testing.UseJdbc;
+import io.netty.handler.ssl.util.SelfSignedCertificate;
 
 @UseJdbc(value = 0)
 @ESIntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 0, supportsDedicatedMasters = false)

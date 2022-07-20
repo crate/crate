@@ -21,6 +21,17 @@
 
 package io.crate.planner.selectivity;
 
+import static org.junit.Assert.assertThat;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+
+import org.hamcrest.Matchers;
+import org.junit.Test;
+
 import io.crate.common.collections.Lists2;
 import io.crate.data.Row1;
 import io.crate.expression.symbol.Symbol;
@@ -31,14 +42,6 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
 import io.crate.types.DataTypes;
-import org.hamcrest.Matchers;
-import org.junit.Test;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 public class SelectivityFunctionsTest extends CrateDummyClusterServiceUnitTest {
 

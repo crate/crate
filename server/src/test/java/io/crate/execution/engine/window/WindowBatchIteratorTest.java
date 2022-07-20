@@ -21,6 +21,26 @@
 
 package io.crate.execution.engine.window;
 
+import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
+import static io.crate.common.collections.Tuple.tuple;
+import static io.crate.execution.engine.window.WindowFunctionBatchIterator.sortAndComputeWindowFunctions;
+import static java.util.stream.Collectors.toList;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.is;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.IntStream;
+import java.util.stream.StreamSupport;
+
+import org.elasticsearch.common.breaker.NoopCircuitBreaker;
+import org.junit.Test;
+
 import io.crate.breaker.ConcurrentRamAccounting;
 import io.crate.breaker.RamAccounting;
 import io.crate.breaker.RowAccountingWithEstimators;
@@ -38,25 +58,6 @@ import io.crate.testing.BatchSimulatingIterator;
 import io.crate.testing.TestingBatchIterators;
 import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.breaker.NoopCircuitBreaker;
-import org.junit.Test;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.IntStream;
-import java.util.stream.StreamSupport;
-
-import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
-import static io.crate.common.collections.Tuple.tuple;
-import static io.crate.execution.engine.window.WindowFunctionBatchIterator.sortAndComputeWindowFunctions;
-import static java.util.stream.Collectors.toList;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.is;
 
 public class WindowBatchIteratorTest {
 

@@ -25,12 +25,12 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import java.util.Map;
+
 import org.junit.Test;
 
 import io.crate.data.Row;
 import io.crate.testing.TestingHelpers;
-
-import java.util.Map;
 
 public class UpsertResultsTest {
 

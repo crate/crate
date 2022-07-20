@@ -21,15 +21,17 @@
 
 package io.crate.integrationtests;
 
-import io.crate.execution.engine.collect.stats.JobsLogService;
-import io.crate.metadata.sys.MetricsView;
-import io.crate.planner.Plan;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
+
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.hamcrest.core.Is.is;
+import io.crate.execution.engine.collect.stats.JobsLogService;
+import io.crate.metadata.sys.MetricsView;
+import io.crate.planner.Plan;
 
 public class MetricsITest extends SQLIntegrationTestCase {
 

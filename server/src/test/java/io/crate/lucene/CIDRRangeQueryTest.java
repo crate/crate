@@ -21,11 +21,14 @@
 
 package io.crate.lucene;
 
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.QueryTester;
+import static org.junit.Assert.assertThat;
+
 import org.elasticsearch.Version;
 import org.hamcrest.Matchers;
 import org.junit.Test;
+
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.QueryTester;
 
 public class CIDRRangeQueryTest extends CrateDummyClusterServiceUnitTest {
 

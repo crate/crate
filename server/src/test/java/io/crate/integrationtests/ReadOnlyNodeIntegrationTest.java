@@ -21,11 +21,16 @@
 
 package io.crate.integrationtests;
 
+import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.testing.Asserts.assertThrowsMatches;
+import static io.crate.testing.SQLErrorMatcher.isSQLError;
+import static io.netty.handler.codec.http.HttpResponseStatus.FORBIDDEN;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
-import io.crate.action.sql.SQLOperations;
-import io.crate.testing.SQLResponse;
-import io.crate.testing.SQLTransportExecutor;
-import io.crate.testing.UseRandomizedSchema;
+import javax.annotation.Nullable;
+
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
@@ -34,14 +39,10 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import javax.annotation.Nullable;
-
-import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
-import static io.crate.testing.Asserts.assertThrowsMatches;
-import static io.crate.testing.SQLErrorMatcher.isSQLError;
-import static io.netty.handler.codec.http.HttpResponseStatus.FORBIDDEN;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.is;
+import io.crate.action.sql.SQLOperations;
+import io.crate.testing.SQLResponse;
+import io.crate.testing.SQLTransportExecutor;
+import io.crate.testing.UseRandomizedSchema;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 1)
 @UseRandomizedSchema(random = false)

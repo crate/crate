@@ -18,6 +18,10 @@
  */
 package org.elasticsearch.cluster.health;
 
+import static org.junit.Assert.assertEquals;
+
+import java.util.Collections;
+
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
@@ -29,8 +33,6 @@ import org.elasticsearch.cluster.node.DiscoveryNodeRole;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
-
-import java.util.Collections;
 
 public class ClusterHealthAllocationTests extends ESAllocationTestCase {
 

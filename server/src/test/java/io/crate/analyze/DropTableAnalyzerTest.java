@@ -21,6 +21,17 @@
 
 package io.crate.analyze;
 
+import static io.crate.analyze.TableDefinitions.USER_TABLE_IDENT;
+import static java.util.Locale.ENGLISH;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+
+import java.io.IOException;
+
+import org.hamcrest.Matchers;
+import org.junit.Before;
+import org.junit.Test;
+
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.SchemaUnknownException;
@@ -28,15 +39,6 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.hamcrest.Matchers;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.io.IOException;
-
-import static io.crate.analyze.TableDefinitions.USER_TABLE_IDENT;
-import static java.util.Locale.ENGLISH;
-import static org.hamcrest.Matchers.is;
 
 public class DropTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 

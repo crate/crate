@@ -21,13 +21,14 @@
 
 package io.crate.replication.logical.plan;
 
+import static io.crate.testing.Asserts.assertThrowsMatches;
+
+import org.junit.Test;
+
 import io.crate.exceptions.InvalidArgumentException;
 import io.crate.planner.PlannerContext;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.junit.Test;
-
-import static io.crate.testing.Asserts.assertThrowsMatches;
 
 public class CreateSubscriptionPlanTest extends CrateDummyClusterServiceUnitTest {
 

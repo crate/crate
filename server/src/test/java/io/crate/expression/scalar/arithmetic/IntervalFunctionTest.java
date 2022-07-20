@@ -23,10 +23,11 @@ package io.crate.expression.scalar.arithmetic;
 
 import static io.crate.testing.Asserts.assertThrowsMatches;
 
-import io.crate.expression.scalar.ScalarTestCase;
 import org.hamcrest.Matchers;
 import org.joda.time.Period;
 import org.junit.Test;
+
+import io.crate.expression.scalar.ScalarTestCase;
 
 public class IntervalFunctionTest extends ScalarTestCase {
 

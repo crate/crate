@@ -21,6 +21,19 @@
 
 package io.crate.execution.engine.join;
 
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.util.Objects;
+import java.util.function.Predicate;
+import java.util.function.ToIntFunction;
+
+import org.elasticsearch.common.breaker.CircuitBreaker;
+import org.junit.Test;
+import org.mockito.Mockito;
+
 import io.crate.breaker.RowAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
@@ -28,18 +41,6 @@ import io.crate.data.join.CombinedRow;
 import io.crate.testing.BatchSimulatingIterator;
 import io.crate.testing.TestingBatchIterators;
 import io.crate.testing.TestingRowConsumer;
-import org.elasticsearch.common.breaker.CircuitBreaker;
-import org.junit.Test;
-import org.mockito.Mockito;
-
-import java.util.Objects;
-import java.util.function.Predicate;
-import java.util.function.ToIntFunction;
-
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 public class HashInnerJoinBatchIteratorMemoryTest {
 

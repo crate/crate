@@ -25,6 +25,7 @@ import static io.crate.planner.node.ddl.UpdateSettingsPlan.buildSettingsFrom;
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
 import java.util.List;
 import java.util.Map;

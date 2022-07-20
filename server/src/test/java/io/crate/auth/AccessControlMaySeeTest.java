@@ -24,6 +24,7 @@ package io.crate.auth;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
 
 import java.util.ArrayList;
 import java.util.List;

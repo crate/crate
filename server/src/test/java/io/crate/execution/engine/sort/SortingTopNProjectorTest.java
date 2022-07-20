@@ -23,6 +23,7 @@ package io.crate.execution.engine.sort;
 
 import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
 
 import java.util.Comparator;
 import java.util.List;

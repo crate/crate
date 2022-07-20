@@ -19,12 +19,6 @@
 
 package org.elasticsearch.common.util;
 
-import org.apache.lucene.tests.util.LuceneTestCase;
-import org.elasticsearch.common.recycler.Recycler.V;
-import org.elasticsearch.common.settings.Settings;
-import io.crate.common.collections.Sets;
-import org.elasticsearch.test.ESTestCase;
-
 import java.lang.reflect.Array;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -33,6 +27,13 @@ import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+
+import org.apache.lucene.tests.util.CrateLuceneTestCase;
+import org.elasticsearch.common.recycler.Recycler.V;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.test.ESTestCase;
+
+import io.crate.common.collections.Sets;
 
 public class MockPageCacheRecycler extends PageCacheRecycler {
 
@@ -73,7 +74,7 @@ public class MockPageCacheRecycler extends PageCacheRecycler {
     }
 
     private <T> V<T> wrap(final V<T> v) {
-        ACQUIRED_PAGES.put(v, new Throwable("Unreleased Page from test: " + LuceneTestCase.getTestClass().getName()));
+        ACQUIRED_PAGES.put(v, new Throwable("Unreleased Page from test: " + CrateLuceneTestCase.getTestClass().getName()));
         return new V<T>() {
 
             @Override

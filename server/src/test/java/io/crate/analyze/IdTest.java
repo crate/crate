@@ -21,16 +21,18 @@
 
 package io.crate.analyze;
 
-import io.crate.metadata.ColumnIdent;
-import org.elasticsearch.test.ESTestCase;
-import org.hamcrest.Matchers;
-import org.junit.Test;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.NoSuchElementException;
 
-import static org.hamcrest.core.Is.is;
+import org.elasticsearch.test.ESTestCase;
+import org.hamcrest.Matchers;
+import org.junit.Test;
+
+import io.crate.metadata.ColumnIdent;
 
 public class IdTest extends ESTestCase {
 

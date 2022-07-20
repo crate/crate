@@ -21,6 +21,18 @@
 
 package io.crate.execution.engine.pipeline;
 
+import static io.crate.testing.TestingHelpers.createNodeContext;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
+
+import java.util.Collections;
+import java.util.List;
+
+import org.elasticsearch.test.ESTestCase;
+import org.hamcrest.Matchers;
+import org.junit.Before;
+import org.junit.Test;
+
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.Row1;
@@ -34,17 +46,7 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
-import org.elasticsearch.test.ESTestCase;
 import io.crate.types.DataTypes;
-import org.hamcrest.Matchers;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.util.Collections;
-import java.util.List;
-
-import static io.crate.testing.TestingHelpers.createNodeContext;
-import static org.hamcrest.core.Is.is;
 
 public class MapRowUsingInputsTest extends ESTestCase {
 

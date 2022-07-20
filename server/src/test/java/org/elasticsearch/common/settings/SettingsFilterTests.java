@@ -20,6 +20,9 @@
  */
 package org.elasticsearch.common.settings;
 
+import java.util.Arrays;
+import java.util.function.Consumer;
+
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -28,9 +31,6 @@ import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.MockLogAppender;
 import org.junit.Test;
-
-import java.util.Arrays;
-import java.util.function.Consumer;
 
 public class SettingsFilterTests extends ESTestCase {
 

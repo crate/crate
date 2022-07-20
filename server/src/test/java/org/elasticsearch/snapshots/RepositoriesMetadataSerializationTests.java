@@ -19,6 +19,13 @@
 
 package org.elasticsearch.snapshots;
 
+import static org.junit.Assert.assertEquals;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+
 import org.elasticsearch.cluster.ClusterModule;
 import org.elasticsearch.cluster.Diff;
 import org.elasticsearch.cluster.metadata.Metadata.Custom;
@@ -29,11 +36,6 @@ import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.test.AbstractDiffableSerializationTestCase;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
 
 public class RepositoriesMetadataSerializationTests extends AbstractDiffableSerializationTestCase<Custom> {
 

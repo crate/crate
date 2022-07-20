@@ -21,7 +21,23 @@
 
 package io.crate.execution.jobs;
 
+import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.util.Collections;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
+
 import com.carrotsearch.hppc.IntIndexedContainer;
+
 import io.crate.exceptions.JobKilledException;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.execution.dsl.phases.CountPhase;
@@ -33,20 +49,7 @@ import io.crate.metadata.Routing;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.test.CauseMatcher;
-import org.elasticsearch.test.ESTestCase;
 import io.crate.testing.TestingRowConsumer;
-import org.junit.Test;
-
-import java.util.Collections;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 public class CountTaskTest extends ESTestCase {
 

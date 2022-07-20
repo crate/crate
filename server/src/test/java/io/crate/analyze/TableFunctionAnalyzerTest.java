@@ -23,6 +23,7 @@ package io.crate.analyze;
 
 import static io.crate.testing.SymbolMatchers.isField;
 import static io.crate.testing.SymbolMatchers.isReference;
+import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 

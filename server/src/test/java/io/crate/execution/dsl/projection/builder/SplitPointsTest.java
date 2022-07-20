@@ -21,20 +21,22 @@
 
 package io.crate.execution.dsl.projection.builder;
 
-import io.crate.analyze.QueriedSelectRelation;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.SQLExecutor;
-import io.crate.testing.T3;
-import org.hamcrest.Matchers;
-import org.junit.Before;
-import org.junit.Test;
-
 import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.SymbolMatchers.isReference;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+
+import org.hamcrest.Matchers;
+import org.junit.Before;
+import org.junit.Test;
+
+import io.crate.analyze.QueriedSelectRelation;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
+import io.crate.testing.T3;
 
 public class SplitPointsTest extends CrateDummyClusterServiceUnitTest {
 

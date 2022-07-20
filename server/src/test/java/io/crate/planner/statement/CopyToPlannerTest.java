@@ -24,16 +24,17 @@ package io.crate.planner.statement;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import com.carrotsearch.randomizedtesting.RandomizedTest;
-
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Before;
 import org.junit.Test;
+
+import com.carrotsearch.randomizedtesting.RandomizedTest;
 
 import io.crate.analyze.TableDefinitions;
 import io.crate.data.Row;

@@ -21,15 +21,17 @@
 
 package io.crate.expression.tablefunctions;
 
-import io.crate.data.Row;
-import io.crate.data.RowN;
-import org.junit.Test;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
-import static org.hamcrest.Matchers.is;
+import org.junit.Test;
+
+import io.crate.data.Row;
+import io.crate.data.RowN;
 
 public class PgGetKeywordsFunctionTest extends AbstractTableFunctionsTest {
 

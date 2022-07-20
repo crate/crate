@@ -21,14 +21,16 @@
 
 package io.crate.replication.logical.metadata;
 
-import io.crate.exceptions.InvalidArgumentException;
+import static io.crate.testing.Asserts.assertThrowsMatches;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
-import static io.crate.testing.Asserts.assertThrowsMatches;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.is;
+import io.crate.exceptions.InvalidArgumentException;
 
 public class ConnectionInfoTest extends ESTestCase {
 

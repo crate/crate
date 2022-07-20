@@ -19,11 +19,11 @@
 
 package org.elasticsearch.common.breaker;
 
+import java.util.concurrent.atomic.AtomicLong;
+
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
-
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * MemoryCircuitBreaker is a circuit breaker that breaks once a

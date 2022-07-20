@@ -19,17 +19,18 @@
 
 package org.elasticsearch.test.hamcrest;
 
+import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertToXContentEquivalent;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertThat;
+
+import java.io.IOException;
+
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.RandomObjects;
-
-import java.io.IOException;
-
-import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertToXContentEquivalent;
-import static org.hamcrest.Matchers.containsString;
 
 public class ElasticsearchAssertionsTests extends ESTestCase {
 

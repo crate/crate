@@ -23,6 +23,7 @@ package io.crate.planner.operators;
 
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertThat;
 
 import java.util.List;
 import java.util.Set;

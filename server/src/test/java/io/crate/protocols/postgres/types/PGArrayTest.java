@@ -21,18 +21,20 @@
 
 package io.crate.protocols.postgres.types;
 
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
-import org.hamcrest.Matchers;
-import org.junit.Test;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.core.Is.is;
+import org.hamcrest.Matchers;
+import org.junit.Test;
+
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 
 public class PGArrayTest extends BasePGTypeTest<PGArray> {
 

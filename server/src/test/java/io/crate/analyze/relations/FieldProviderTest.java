@@ -21,6 +21,16 @@
 
 package io.crate.analyze.relations;
 
+import static io.crate.testing.SymbolMatchers.isField;
+import static org.junit.Assert.assertThat;
+
+import java.util.Arrays;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
+
 import io.crate.exceptions.AmbiguousColumnException;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.RelationUnknown;
@@ -29,15 +39,7 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
-import org.elasticsearch.test.ESTestCase;
 import io.crate.testing.DummyRelation;
-import org.junit.Test;
-
-import java.util.Arrays;
-import java.util.Map;
-import java.util.stream.Collectors;
-
-import static io.crate.testing.SymbolMatchers.isField;
 
 public class FieldProviderTest extends ESTestCase {
 

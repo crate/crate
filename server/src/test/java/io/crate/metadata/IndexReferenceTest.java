@@ -22,6 +22,7 @@
 package io.crate.metadata;
 
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
 
 import java.util.List;
 

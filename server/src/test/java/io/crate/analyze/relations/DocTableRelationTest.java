@@ -21,13 +21,14 @@
 
 package io.crate.analyze.relations;
 
+import org.junit.Test;
+
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.junit.Test;
 
 
 public class DocTableRelationTest extends CrateDummyClusterServiceUnitTest {

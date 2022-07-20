@@ -21,11 +21,13 @@
 
 package io.crate.integrationtests;
 
-import io.crate.testing.TestingHelpers;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+
 import org.hamcrest.core.Is;
 import org.junit.Test;
 
-import static org.hamcrest.Matchers.is;
+import io.crate.testing.TestingHelpers;
 
 public class OrderByITest extends SQLIntegrationTestCase {
 

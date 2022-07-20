@@ -19,7 +19,12 @@
 
 package org.elasticsearch.repositories.azure;
 
-import com.microsoft.azure.storage.LocationMode;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+import static org.mockito.Mockito.mock;
+
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeUnit;
@@ -29,9 +34,7 @@ import org.elasticsearch.env.Environment;
 import org.elasticsearch.repositories.blobstore.BlobStoreTestUtil;
 import org.elasticsearch.test.ESTestCase;
 
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
-import static org.mockito.Mockito.mock;
+import com.microsoft.azure.storage.LocationMode;
 
 public class AzureRepositorySettingsTests extends ESTestCase {
 

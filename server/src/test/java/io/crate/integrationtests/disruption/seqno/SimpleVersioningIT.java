@@ -20,6 +20,7 @@
 package io.crate.integrationtests.disruption.seqno;
 
 import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertThat;
 
 import org.junit.Test;
 

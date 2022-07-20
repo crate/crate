@@ -22,6 +22,9 @@ package org.elasticsearch.cluster;
 import static io.crate.testing.SQLTransportExecutor.REQUEST_TIMEOUT;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThat;
 
 import java.util.ArrayList;
 import java.util.List;

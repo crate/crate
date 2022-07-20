@@ -21,12 +21,14 @@
 
 package io.crate.planner.operators;
 
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.SQLExecutor;
+import static io.crate.planner.operators.LogicalPlannerTest.isPlan;
+import static org.junit.Assert.assertThat;
+
 import org.junit.Before;
 import org.junit.Test;
 
-import static io.crate.planner.operators.LogicalPlannerTest.isPlan;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
 
 public class SelectDistinctLogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
 

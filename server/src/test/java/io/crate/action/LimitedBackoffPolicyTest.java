@@ -21,14 +21,18 @@
 
 package io.crate.action;
 
-import org.elasticsearch.test.ESTestCase;
-import org.elasticsearch.action.bulk.BackoffPolicy;
-import io.crate.common.unit.TimeValue;
-import org.hamcrest.Matchers;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;
+
+import org.elasticsearch.action.bulk.BackoffPolicy;
+import org.elasticsearch.test.ESTestCase;
+import org.hamcrest.Matchers;
+import org.junit.Test;
+
+import io.crate.common.unit.TimeValue;
 
 
 public class LimitedBackoffPolicyTest extends ESTestCase {

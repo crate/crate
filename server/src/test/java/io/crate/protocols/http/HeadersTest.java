@@ -21,15 +21,16 @@
 
 package io.crate.protocols.http;
 
-import io.crate.common.collections.Tuple;
-import org.elasticsearch.common.settings.SecureString;
-import org.junit.Test;
-
 import static io.crate.protocols.http.Headers.extractCredentialsFromHttpBasicAuthHeader;
 import static io.crate.protocols.http.Headers.isAcceptJson;
 import static io.crate.protocols.http.Headers.isBrowser;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
+
+import org.elasticsearch.common.settings.SecureString;
+import org.junit.Test;
+
+import io.crate.common.collections.Tuple;
 
 public class HeadersTest {
 

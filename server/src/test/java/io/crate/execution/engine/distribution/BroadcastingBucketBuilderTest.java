@@ -21,15 +21,16 @@
 
 package io.crate.execution.engine.distribution;
 
+import static org.junit.Assert.assertThat;
+
+import org.hamcrest.Matchers;
+import org.junit.Test;
+
 import io.crate.Streamer;
 import io.crate.breaker.RamAccounting;
 import io.crate.data.Bucket;
 import io.crate.data.Row1;
 import io.crate.types.DataTypes;
-import org.hamcrest.Matchers;
-import org.junit.Test;
-
-import static org.junit.Assert.assertThat;
 
 public class BroadcastingBucketBuilderTest {
 

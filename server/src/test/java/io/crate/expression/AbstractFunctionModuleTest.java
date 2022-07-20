@@ -21,11 +21,12 @@
 
 package io.crate.expression;
 
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
+
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.functions.Signature;
-import org.elasticsearch.test.ESTestCase;
 import io.crate.types.DataTypes;
-import org.junit.Test;
 
 public class AbstractFunctionModuleTest extends ESTestCase {
 

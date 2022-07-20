@@ -29,6 +29,7 @@ import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -45,13 +46,13 @@ import javax.net.ssl.KeyManager;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 
-import io.crate.auth.Protocol;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESTestCase;
 import org.hamcrest.Matchers;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import io.crate.auth.Protocol;
 import io.netty.handler.ssl.SslContext;
 
 public class SslContextProviderTest extends ESTestCase {

@@ -22,30 +22,31 @@
 
 package io.crate.execution.dsl.projection;
 
-import io.crate.expression.symbol.InputColumn;
-import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.IndexType;
-import io.crate.metadata.SimpleReference;
-import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.RowGranularity;
-import io.crate.sql.tree.ColumnPolicy;
-import io.crate.types.ArrayType;
-import io.crate.types.DataTypes;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import io.crate.expression.symbol.InputColumn;
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.IndexType;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.SimpleReference;
+import io.crate.sql.tree.ColumnPolicy;
+import io.crate.types.ArrayType;
+import io.crate.types.DataTypes;
 
 public class SourceIndexWriterProjectionSerializationTest {
 

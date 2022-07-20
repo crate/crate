@@ -19,18 +19,20 @@
 
 package org.elasticsearch.common.bytes;
 
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.sameInstance;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertThat;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.MockBigArrays;
 import org.elasticsearch.common.util.MockPageCacheRecycler;
 import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
 import org.elasticsearch.test.ESTestCase;
-
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.sameInstance;
 
 public class RecyclingBytesStreamOutputTests extends ESTestCase {
 

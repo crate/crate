@@ -21,21 +21,23 @@
 
 package io.crate.planner.operators;
 
+import static io.crate.planner.operators.LogicalPlannerTest.isPlan;
+import static io.crate.testing.SymbolMatchers.isReference;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.Assert.assertThat;
+
+import org.hamcrest.Matchers;
+import org.junit.Before;
+import org.junit.Test;
+
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WindowDefinition;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.WindowFunction;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.hamcrest.Matchers;
-import org.junit.Before;
-import org.junit.Test;
-
-import static io.crate.planner.operators.LogicalPlannerTest.isPlan;
-import static io.crate.testing.SymbolMatchers.isReference;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.notNullValue;
 
 public class WindowAggTest extends CrateDummyClusterServiceUnitTest {
 

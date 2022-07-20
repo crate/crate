@@ -18,8 +18,12 @@
  */
 package org.elasticsearch.test.disruption;
 
-import javax.annotation.Nullable;
-import org.elasticsearch.test.ESTestCase;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 import java.lang.management.ThreadInfo;
 import java.util.ArrayList;
@@ -32,9 +36,9 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Pattern;
 
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.greaterThan;
+import javax.annotation.Nullable;
+
+import org.elasticsearch.test.ESTestCase;
 
 public class LongGCDisruptionTests extends ESTestCase {
 
@@ -56,7 +60,7 @@ public class LongGCDisruptionTests extends ESTestCase {
         LongGCDisruption disruption = new LongGCDisruption(random(), nodeName) {
             @Override
             protected Pattern[] getUnsafeClasses() {
-                return new Pattern[]{
+                return new Pattern[] {
                     Pattern.compile(LockedExecutor.class.getSimpleName())
                 };
             }
@@ -66,16 +70,16 @@ public class LongGCDisruptionTests extends ESTestCase {
                 return 100;
             }
         };
-        final AtomicBoolean stop = new AtomicBoolean();
-        final CountDownLatch underLock = new CountDownLatch(1);
-        final CountDownLatch pauseUnderLock = new CountDownLatch(1);
-        final LockedExecutor lockedExecutor = new LockedExecutor();
-        final AtomicLong ops = new AtomicLong();
-        final Thread[] threads = new Thread[10];
+        AtomicBoolean stop = new AtomicBoolean();
+        CountDownLatch underLock = new CountDownLatch(1);
+        CountDownLatch pauseUnderLock = new CountDownLatch(1);
+        LockedExecutor lockedExecutor = new LockedExecutor();
+        AtomicLong ops = new AtomicLong();
+        Thread[] threads = new Thread[10];
         try {
             for (int i = 0; i < 10; i++) {
                 // at least one locked and one none lock thread
-                final boolean lockedExec = (i < 9 && randomBoolean()) || i == 0;
+                boolean lockedExec = (i < 9 && randomBoolean()) || i == 0;
                 threads[i] = new Thread(() -> {
                     while (stop.get() == false) {
                         if (lockedExec) {
@@ -103,7 +107,7 @@ public class LongGCDisruptionTests extends ESTestCase {
         } finally {
             stop.set(true);
             pauseUnderLock.countDown();
-            for (final Thread thread : threads) {
+            for (Thread thread : threads) {
                 thread.join();
             }
         }
@@ -118,15 +122,15 @@ public class LongGCDisruptionTests extends ESTestCase {
         LongGCDisruption disruption = new LongGCDisruption(random(), nodeName) {
             @Override
             protected Pattern[] getUnsafeClasses() {
-                return new Pattern[]{
+                return new Pattern[] {
                     Pattern.compile(LockedExecutor.class.getSimpleName())
                 };
             }
         };
-        final AtomicBoolean stop = new AtomicBoolean();
-        final LockedExecutor lockedExecutor = new LockedExecutor();
-        final AtomicLong ops = new AtomicLong();
-        final Thread[] threads = new Thread[5];
+        AtomicBoolean stop = new AtomicBoolean();
+        LockedExecutor lockedExecutor = new LockedExecutor();
+        AtomicLong ops = new AtomicLong();
+        Thread[] threads = new Thread[5];
         try {
             for (int i = 0; i < threads.length; i++) {
                 threads[i] = new Thread(() -> {
@@ -155,7 +159,7 @@ public class LongGCDisruptionTests extends ESTestCase {
             assertBusy(() -> assertThat(ops.get(), greaterThan(first)));
         } finally {
             stop.set(true);
-            for (final Thread thread : threads) {
+            for (Thread thread : threads) {
                 thread.join();
             }
         }
@@ -186,16 +190,16 @@ public class LongGCDisruptionTests extends ESTestCase {
         if (disruption.isBlockDetectionSupported() == false) {
             return;
         }
-        final AtomicBoolean stop = new AtomicBoolean();
-        final CountDownLatch underLock = new CountDownLatch(1);
-        final CountDownLatch pauseUnderLock = new CountDownLatch(1);
-        final LockedExecutor lockedExecutor = new LockedExecutor();
-        final AtomicLong ops = new AtomicLong();
-        final List<Thread> threads = new ArrayList<>();
+        AtomicBoolean stop = new AtomicBoolean();
+        CountDownLatch underLock = new CountDownLatch(1);
+        CountDownLatch pauseUnderLock = new CountDownLatch(1);
+        LockedExecutor lockedExecutor = new LockedExecutor();
+        AtomicLong ops = new AtomicLong();
+        List<Thread> threads = new ArrayList<>();
         try {
             for (int i = 0; i < 5; i++) {
                 // at least one locked and one none lock thread
-                final boolean lockedExec = (i < 4 && randomBoolean()) || i == 0;
+                boolean lockedExec = (i < 4 && randomBoolean()) || i == 0;
                 Thread thread = new Thread(() -> {
                     while (stop.get() == false) {
                         if (lockedExec) {
@@ -221,7 +225,7 @@ public class LongGCDisruptionTests extends ESTestCase {
 
             for (int i = 0; i < 5; i++) {
                 // at least one locked and one none lock thread
-                final boolean lockedExec = (i < 4 && randomBoolean()) || i == 0;
+                boolean lockedExec = (i < 4 && randomBoolean()) || i == 0;
                 Thread thread = new Thread(() -> {
                     while (stop.get() == false) {
                         if (lockedExec) {
@@ -251,7 +255,7 @@ public class LongGCDisruptionTests extends ESTestCase {
         } finally {
             stop.set(true);
             pauseUnderLock.countDown();
-            for (final Thread thread : threads) {
+            for (Thread thread : threads) {
                 thread.join();
             }
         }

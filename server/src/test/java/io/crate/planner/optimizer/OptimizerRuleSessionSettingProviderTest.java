@@ -21,8 +21,19 @@
 
 package io.crate.planner.optimizer;
 
+import static io.crate.analyze.SymbolEvaluator.evaluateWithoutParams;
+import static io.crate.testing.TestingHelpers.createNodeContext;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.is;
+
+import java.util.List;
+import java.util.Set;
+import java.util.function.Function;
+
+import org.junit.Test;
+
 import io.crate.action.sql.SessionContext;
-import io.crate.user.User;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -30,17 +41,7 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.planner.optimizer.rule.MergeFilters;
-import org.junit.Test;
-
-import java.util.List;
-import java.util.Set;
-import java.util.function.Function;
-
-import static io.crate.analyze.SymbolEvaluator.evaluateWithoutParams;
-import static io.crate.testing.TestingHelpers.createNodeContext;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.is;
+import io.crate.user.User;
 
 public class OptimizerRuleSessionSettingProviderTest {
 

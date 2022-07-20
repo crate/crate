@@ -21,11 +21,11 @@
 
 package io.crate.execution.engine.window;
 
-import org.junit.Test;
+import static org.hamcrest.Matchers.anything;
 
 import java.util.List;
 
-import static org.hamcrest.Matchers.anything;
+import org.junit.Test;
 
 
 public class WindowFunctionsTestingFrameworkTest extends AbstractWindowFunctionTest {

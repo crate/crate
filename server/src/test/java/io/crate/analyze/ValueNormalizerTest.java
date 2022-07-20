@@ -24,6 +24,7 @@ package io.crate.analyze;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
 import java.util.HashMap;
 import java.util.Map;

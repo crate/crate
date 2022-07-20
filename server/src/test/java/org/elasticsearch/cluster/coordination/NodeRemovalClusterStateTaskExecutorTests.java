@@ -20,6 +20,8 @@
 package org.elasticsearch.cluster.coordination;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;

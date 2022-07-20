@@ -21,16 +21,19 @@
 
 package io.crate.execution.engine.fetch;
 
-import com.carrotsearch.hppc.IntArrayList;
-import com.carrotsearch.hppc.IntContainer;
-import com.carrotsearch.hppc.IntObjectHashMap;
-import io.crate.breaker.BlockBasedRamAccounting;
-import io.crate.breaker.RamAccounting;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
+import com.carrotsearch.hppc.IntArrayList;
+import com.carrotsearch.hppc.IntContainer;
+import com.carrotsearch.hppc.IntObjectHashMap;
+
+import io.crate.breaker.BlockBasedRamAccounting;
+import io.crate.breaker.RamAccounting;
 
 public class TransportFetchOperationTest extends ESTestCase {
 

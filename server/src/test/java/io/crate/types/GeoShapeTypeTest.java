@@ -21,24 +21,26 @@
 
 package io.crate.types;
 
-import io.crate.geo.GeoJSONUtils;
-import io.crate.geo.GeoJSONUtilsTest;
-import org.elasticsearch.test.ESTestCase;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.xcontent.DeprecationHandler;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
-import org.junit.Test;
-import org.locationtech.spatial4j.shape.Shape;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.nullValue;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.xcontent.DeprecationHandler;
+import org.elasticsearch.common.xcontent.NamedXContentRegistry;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
+import org.locationtech.spatial4j.shape.Shape;
+
+import io.crate.geo.GeoJSONUtils;
+import io.crate.geo.GeoJSONUtilsTest;
 
 public class GeoShapeTypeTest extends ESTestCase {
 

@@ -21,8 +21,9 @@
 
 package io.crate.expression.reference.doc;
 
-import io.crate.execution.engine.fetch.ReaderContext;
-import io.crate.expression.reference.doc.lucene.LongColumnReference;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
+
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.NumericDocValuesField;
@@ -34,7 +35,8 @@ import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
 import org.junit.Test;
 
-import static org.hamcrest.core.Is.is;
+import io.crate.execution.engine.fetch.ReaderContext;
+import io.crate.expression.reference.doc.lucene.LongColumnReference;
 
 public class LongColumnReferenceTest extends DocLevelExpressionsTest {
 

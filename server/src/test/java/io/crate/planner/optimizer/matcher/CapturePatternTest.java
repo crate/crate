@@ -21,14 +21,15 @@
 
 package io.crate.planner.optimizer.matcher;
 
-import io.crate.expression.symbol.Literal;
-import io.crate.planner.operators.Filter;
-import io.crate.planner.operators.LogicalPlan;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.mockito.Mockito.mock;
+
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.mockito.Mockito.mock;
+import io.crate.expression.symbol.Literal;
+import io.crate.planner.operators.Filter;
+import io.crate.planner.operators.LogicalPlan;
 
 public class CapturePatternTest {
 

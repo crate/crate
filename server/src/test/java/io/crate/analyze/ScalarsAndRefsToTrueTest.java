@@ -21,19 +21,21 @@
 
 package io.crate.analyze;
 
-import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.RelationName;
-import org.elasticsearch.test.ESTestCase;
-import io.crate.testing.DummyRelation;
-import io.crate.testing.SqlExpressions;
-import io.crate.types.DataTypes;
-import org.junit.Before;
-import org.junit.Test;
+import static io.crate.testing.SymbolMatchers.isLiteral;
+import static org.junit.Assert.assertThat;
 
 import java.util.Map;
 
-import static io.crate.testing.SymbolMatchers.isLiteral;
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Before;
+import org.junit.Test;
+
+import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.RelationName;
+import io.crate.testing.DummyRelation;
+import io.crate.testing.SqlExpressions;
+import io.crate.types.DataTypes;
 
 
 public class ScalarsAndRefsToTrueTest extends ESTestCase {

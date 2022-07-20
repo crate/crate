@@ -21,18 +21,19 @@
 
 package io.crate.expression.scalar;
 
+import static io.crate.testing.SymbolMatchers.isFunction;
+import static io.crate.testing.SymbolMatchers.isLiteral;
+
+import java.util.List;
+
+import org.hamcrest.Matchers;
+import org.junit.Test;
+
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ConversionException;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.testing.Asserts;
-import org.hamcrest.Matchers;
-import org.junit.Test;
-
-import java.util.List;
-
-import static io.crate.testing.SymbolMatchers.isFunction;
-import static io.crate.testing.SymbolMatchers.isLiteral;
 
 
 public class SubscriptFunctionTest extends ScalarTestCase {

@@ -21,12 +21,13 @@
 
 package io.crate.expression.operator;
 
-import io.crate.expression.symbol.Literal;
-import io.crate.expression.scalar.ScalarTestCase;
-import org.junit.Test;
-
 import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
+
+import org.junit.Test;
+
+import io.crate.expression.scalar.ScalarTestCase;
+import io.crate.expression.symbol.Literal;
 
 public class CmpOperatorTest extends ScalarTestCase {
 

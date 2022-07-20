@@ -21,13 +21,13 @@
 
 package io.crate.breaker;
 
-import org.apache.lucene.util.RamUsageEstimator;
-import org.junit.Test;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
 import java.util.Map;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import org.apache.lucene.util.RamUsageEstimator;
+import org.junit.Test;
 
 public class MapSizeEstimatorTest {
 

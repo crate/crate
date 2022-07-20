@@ -21,15 +21,15 @@
 
 package io.crate.blob.v2;
 
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
-import org.hamcrest.Matchers;
-import org.junit.Test;
+import static org.junit.Assert.assertThat;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-import static org.junit.Assert.assertThat;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.hamcrest.Matchers;
+import org.junit.Test;
 
 public class BlobIndexTest {
 

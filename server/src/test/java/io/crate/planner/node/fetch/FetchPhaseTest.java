@@ -21,17 +21,8 @@
 
 package io.crate.planner.node.fetch;
 
-import io.crate.execution.dsl.phases.FetchPhase;
-import io.crate.metadata.SimpleReference;
-import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.RowGranularity;
-import io.crate.metadata.Schemas;
-import io.crate.execution.dsl.phases.ExecutionPhases;
-import io.crate.types.DataTypes;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.junit.Test;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -39,8 +30,18 @@ import java.util.List;
 import java.util.Set;
 import java.util.TreeMap;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.junit.Test;
+
+import io.crate.execution.dsl.phases.ExecutionPhases;
+import io.crate.execution.dsl.phases.FetchPhase;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.Schemas;
+import io.crate.metadata.SimpleReference;
+import io.crate.types.DataTypes;
 
 public class FetchPhaseTest {
 

@@ -37,6 +37,14 @@ import static org.hamcrest.Matchers.isIn;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.Closeable;
 import java.io.EOFException;
@@ -85,8 +93,6 @@ import java.util.stream.IntStream;
 import java.util.stream.LongStream;
 import java.util.stream.Stream;
 
-import com.carrotsearch.randomizedtesting.generators.RandomPicks;
-
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.backward_codecs.store.EndiannessReverserUtil;
 import org.apache.lucene.codecs.CodecUtil;
@@ -94,14 +100,14 @@ import org.apache.lucene.document.Field;
 import org.apache.lucene.document.NumericDocValuesField;
 import org.apache.lucene.document.TextField;
 import org.apache.lucene.index.Term;
-import org.apache.lucene.tests.mockfile.FilterFileChannel;
-import org.apache.lucene.tests.mockfile.FilterFileSystemProvider;
 import org.apache.lucene.store.AlreadyClosedException;
 import org.apache.lucene.store.ByteArrayDataOutput;
 import org.apache.lucene.store.DataOutput;
+import org.apache.lucene.tests.mockfile.FilterFileChannel;
+import org.apache.lucene.tests.mockfile.FilterFileSystemProvider;
 import org.apache.lucene.tests.store.MockDirectoryWrapper;
+import org.apache.lucene.tests.util.CrateLuceneTestCase;
 import org.apache.lucene.tests.util.LineFileDocs;
-import org.apache.lucene.tests.util.LuceneTestCase;
 import org.elasticsearch.Assertions;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -141,10 +147,12 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.carrotsearch.randomizedtesting.generators.RandomPicks;
+
 import io.crate.common.collections.Tuple;
 import io.crate.common.io.IOUtils;
 
-@LuceneTestCase.SuppressFileSystems("ExtrasFS")
+@CrateLuceneTestCase.SuppressFileSystems("ExtrasFS")
 public class TranslogTests extends ESTestCase {
 
     protected final ShardId shardId = new ShardId("index", "_na_", 1);

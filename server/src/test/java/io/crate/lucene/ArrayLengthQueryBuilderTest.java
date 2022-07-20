@@ -21,10 +21,11 @@
 
 package io.crate.lucene;
 
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
+
 import org.apache.lucene.search.Query;
 import org.junit.Test;
-
-import static org.hamcrest.core.Is.is;
 
 public class ArrayLengthQueryBuilderTest extends LuceneQueryBuilderTest {
 

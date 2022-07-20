@@ -19,12 +19,13 @@
 
 package org.elasticsearch.index.translog;
 
-import com.carrotsearch.randomizedtesting.generators.RandomNumbers;
-import com.carrotsearch.randomizedtesting.generators.RandomPicks;
-import org.apache.logging.log4j.Logger;
-import org.apache.lucene.tests.util.LuceneTestCase;
-
-import io.crate.common.io.IOUtils;
+import static org.elasticsearch.index.translog.Translog.CHECKPOINT_FILE_NAME;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.core.Is.is;
+import static org.hamcrest.core.IsNot.not;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -43,13 +44,13 @@ import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static org.elasticsearch.index.translog.Translog.CHECKPOINT_FILE_NAME;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.core.Is.is;
-import static org.hamcrest.core.IsNot.not;
+import org.apache.logging.log4j.Logger;
+import org.apache.lucene.tests.util.CrateLuceneTestCase;
+
+import com.carrotsearch.randomizedtesting.generators.RandomNumbers;
+import com.carrotsearch.randomizedtesting.generators.RandomPicks;
+
+import io.crate.common.io.IOUtils;
 
 /**
  * Helpers for testing translog.
@@ -85,12 +86,12 @@ public class TestTranslog {
             final Path checkpointPath = translogDir.resolve(CHECKPOINT_FILE_NAME);
             final Checkpoint checkpoint = Checkpoint.read(checkpointPath);
             unnecessaryCheckpointCopyPath = translogDir.resolve(Translog.getCommitCheckpointFileName(checkpoint.generation));
-            if (LuceneTestCase.rarely(random) && Files.exists(unnecessaryCheckpointCopyPath) == false) {
+            if (CrateLuceneTestCase.rarely(random) && Files.exists(unnecessaryCheckpointCopyPath) == false) {
                 // if we crashed while rolling a generation then we might have copied `translog.ckp` to its numbered generation file but
                 // have not yet written a new `translog.ckp`. During recovery we must also verify that this file is intact, so it's ok to
                 // corrupt this file too (either by writing the wrong information, correctly formatted, or by properly corrupting it)
                 final Checkpoint checkpointCopy;
-                if (LuceneTestCase.usually(random)) {
+                if (CrateLuceneTestCase.usually(random)) {
                     checkpointCopy = checkpoint;
                 } else {
                     long newTranslogGeneration = checkpoint.generation + random.nextInt(2);

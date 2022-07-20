@@ -21,8 +21,14 @@
 
 package io.crate.user.metadata;
 
-import org.elasticsearch.test.ESTestCase;
-import io.crate.user.SecureHash;
+import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+
+import java.io.IOException;
+import java.util.HashMap;
+
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -32,13 +38,10 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
+import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
-import java.io.IOException;
-import java.util.HashMap;
-
-import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.core.Is.is;
+import io.crate.user.SecureHash;
 
 public class UsersMetadataTest extends ESTestCase {
 

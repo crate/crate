@@ -21,6 +21,18 @@
 
 package io.crate.expression.reference.sys.check.cluster;
 
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
+
 import io.crate.expression.reference.sys.check.SysCheck.Severity;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
@@ -28,16 +40,6 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.SchemaInfo;
-import org.elasticsearch.test.ESTestCase;
-import org.junit.Test;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
-import static org.hamcrest.core.Is.is;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class SysChecksTest extends ESTestCase {
 

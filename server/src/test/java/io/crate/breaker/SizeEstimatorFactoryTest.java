@@ -21,19 +21,19 @@
 
 package io.crate.breaker;
 
-import io.crate.data.RowN;
-import io.crate.types.ArrayType;
-import io.crate.types.DataTypes;
-import io.crate.types.RowType;
-
-import org.junit.Test;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
 import java.util.Collections;
 import java.util.List;
 
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import org.junit.Test;
+
+import io.crate.data.RowN;
+import io.crate.types.ArrayType;
+import io.crate.types.DataTypes;
+import io.crate.types.RowType;
 
 public class SizeEstimatorFactoryTest {
 

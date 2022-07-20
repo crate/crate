@@ -19,14 +19,18 @@
 
 package org.elasticsearch.index.engine;
 
-import com.carrotsearch.hppc.LongArrayList;
-import org.apache.lucene.index.IndexCommit;
-import org.apache.lucene.store.Directory;
-import org.elasticsearch.index.seqno.RetentionLeases;
-import org.elasticsearch.index.seqno.SequenceNumbers;
-import org.elasticsearch.index.translog.Translog;
-import org.elasticsearch.index.translog.TranslogDeletionPolicy;
-import org.elasticsearch.test.ESTestCase;
+import static org.elasticsearch.index.seqno.SequenceNumbers.NO_OPS_PERFORMED;
+import static org.elasticsearch.index.translog.TranslogDeletionPolicies.createTranslogDeletionPolicy;
+import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -37,15 +41,15 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
-import static org.elasticsearch.index.seqno.SequenceNumbers.NO_OPS_PERFORMED;
-import static org.elasticsearch.index.translog.TranslogDeletionPolicies.createTranslogDeletionPolicy;
-import static org.hamcrest.Matchers.equalTo;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import org.apache.lucene.index.IndexCommit;
+import org.apache.lucene.store.Directory;
+import org.elasticsearch.index.seqno.RetentionLeases;
+import org.elasticsearch.index.seqno.SequenceNumbers;
+import org.elasticsearch.index.translog.Translog;
+import org.elasticsearch.index.translog.TranslogDeletionPolicy;
+import org.elasticsearch.test.ESTestCase;
+
+import com.carrotsearch.hppc.LongArrayList;
 
 public class CombinedDeletionPolicyTests extends ESTestCase {
 

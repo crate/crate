@@ -21,13 +21,15 @@
 
 package io.crate.expression.scalar;
 
-import io.crate.types.DataTypes;
-import org.junit.Test;
+import static io.crate.testing.SymbolMatchers.isLiteral;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.junit.Assert.assertThat;
 
 import java.util.List;
 
-import static io.crate.testing.SymbolMatchers.isLiteral;
-import static org.hamcrest.Matchers.instanceOf;
+import org.junit.Test;
+
+import io.crate.types.DataTypes;
 
 public class ConcatFunctionTest extends ScalarTestCase {
 

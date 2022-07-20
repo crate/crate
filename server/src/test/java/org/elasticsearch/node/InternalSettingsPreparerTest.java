@@ -21,6 +21,13 @@
 
 package org.elasticsearch.node;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.endsWith;
+import static org.hamcrest.Matchers.is;
+
+import java.nio.file.Path;
+import java.util.HashMap;
 
 import org.elasticsearch.common.io.PathUtils;
 import org.elasticsearch.common.settings.Settings;
@@ -29,14 +36,6 @@ import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-
-import java.nio.file.Path;
-import java.util.HashMap;
-
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.endsWith;
-import static org.hamcrest.Matchers.is;
 
 public class InternalSettingsPreparerTest {
 

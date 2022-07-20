@@ -21,25 +21,27 @@
 
 package io.crate.analyze;
 
-import io.crate.sql.tree.ClusteredBy;
-import io.crate.sql.tree.QualifiedName;
-import io.crate.sql.tree.QualifiedNameReference;
-import org.elasticsearch.test.ESTestCase;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.util.Locale;
+import java.util.Optional;
+
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
+import org.elasticsearch.test.ESTestCase;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import java.util.Locale;
-import java.util.Optional;
-
-import static org.hamcrest.Matchers.is;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import io.crate.sql.tree.ClusteredBy;
+import io.crate.sql.tree.QualifiedName;
+import io.crate.sql.tree.QualifiedNameReference;
 
 public class NumberOfShardsTest extends ESTestCase {
 

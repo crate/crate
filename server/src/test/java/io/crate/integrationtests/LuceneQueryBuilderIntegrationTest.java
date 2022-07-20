@@ -21,23 +21,26 @@
 
 package io.crate.integrationtests;
 
-import com.carrotsearch.randomizedtesting.annotations.Seed;
-import io.crate.testing.DataTypeTesting;
-import io.crate.types.DataType;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.search.SearchModule;
-import org.elasticsearch.test.ESIntegTestCase;
-import org.junit.Test;
-
-import java.util.List;
-import java.util.function.Supplier;
-
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
 import static io.crate.testing.DataTypeTesting.randomType;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
+
+import java.util.List;
+import java.util.function.Supplier;
+
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.search.SearchModule;
+import org.elasticsearch.test.ESIntegTestCase;
+import org.junit.Test;
+
+import com.carrotsearch.randomizedtesting.annotations.Seed;
+
+import io.crate.testing.DataTypeTesting;
+import io.crate.types.DataType;
 
 @ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.TEST)
 @Seed("54904E791E52DEFD")

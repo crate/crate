@@ -19,9 +19,9 @@
 
 package org.elasticsearch.common.io;
 
-import org.apache.lucene.tests.util.LuceneTestCase;
-
 import java.nio.file.FileSystem;
+
+import org.apache.lucene.tests.util.CrateLuceneTestCase;
 
 /**
  * Exposes some package private stuff in PathUtils for framework purposes only!
@@ -30,7 +30,7 @@ public class PathUtilsForTesting {
 
     /** Sets a new default filesystem for testing */
     public static void setup() {
-        installMock(LuceneTestCase.createTempDir().getFileSystem());
+        installMock(CrateLuceneTestCase.createTempDir().getFileSystem());
     }
 
     /** Installs a mock filesystem for testing */

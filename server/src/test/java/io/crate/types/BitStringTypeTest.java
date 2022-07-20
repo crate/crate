@@ -22,6 +22,7 @@
 package io.crate.types;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
 
 import java.util.function.Supplier;
 

@@ -21,15 +21,14 @@
 
 package io.crate.execution.ddl;
 
-import io.crate.Constants;
-import io.crate.analyze.BoundAddColumn;
-import io.crate.data.Row;
-import io.crate.metadata.IndexMappings;
-import io.crate.planner.PlannerContext;
-import io.crate.planner.node.ddl.AlterTableAddColumnPlan;
-import io.crate.planner.operators.SubQueryResults;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.SQLExecutor;
+import static io.crate.metadata.PartitionName.templateName;
+import static java.util.Collections.singletonMap;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
+
+import java.util.Arrays;
+import java.util.HashMap;
+
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -39,12 +38,15 @@ import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
-import java.util.Arrays;
-import java.util.HashMap;
-
-import static io.crate.metadata.PartitionName.templateName;
-import static java.util.Collections.singletonMap;
-import static org.hamcrest.core.Is.is;
+import io.crate.Constants;
+import io.crate.analyze.BoundAddColumn;
+import io.crate.data.Row;
+import io.crate.metadata.IndexMappings;
+import io.crate.planner.PlannerContext;
+import io.crate.planner.node.ddl.AlterTableAddColumnPlan;
+import io.crate.planner.operators.SubQueryResults;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
 
 public class TransportSchemaUpdateActionTest extends CrateDummyClusterServiceUnitTest {
 

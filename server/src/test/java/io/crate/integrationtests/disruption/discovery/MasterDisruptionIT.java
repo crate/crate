@@ -24,6 +24,9 @@ package io.crate.integrationtests.disruption.discovery;
 import static io.crate.metadata.IndexParts.toIndexName;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.HashSet;

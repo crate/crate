@@ -23,6 +23,7 @@ package io.crate.planner.consumer;
 
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
 import java.util.Map;
 import java.util.Set;

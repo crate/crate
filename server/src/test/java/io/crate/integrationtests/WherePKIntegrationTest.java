@@ -21,17 +21,19 @@
 
 package io.crate.integrationtests;
 
-import io.crate.testing.TestingHelpers;
-import io.crate.common.collections.MapBuilder;
-import org.hamcrest.Matchers;
-import org.junit.Test;
-import org.locationtech.spatial4j.shape.Point;
+import static org.hamcrest.Matchers.arrayContaining;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
 
 import java.util.Arrays;
 import java.util.List;
 
-import static org.hamcrest.Matchers.arrayContaining;
-import static org.hamcrest.core.Is.is;
+import org.hamcrest.Matchers;
+import org.junit.Test;
+import org.locationtech.spatial4j.shape.Point;
+
+import io.crate.common.collections.MapBuilder;
+import io.crate.testing.TestingHelpers;
 
 public class WherePKIntegrationTest extends SQLIntegrationTestCase {
 

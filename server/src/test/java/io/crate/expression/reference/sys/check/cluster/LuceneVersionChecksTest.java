@@ -21,10 +21,11 @@
 
 package io.crate.expression.reference.sys.check.cluster;
 
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
-
-import static org.hamcrest.Matchers.is;
 
 public class LuceneVersionChecksTest extends ESTestCase {
 

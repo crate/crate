@@ -25,13 +25,13 @@ import java.util.Map;
 
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.repositories.fs.FsRepository;
+import org.elasticsearch.test.ESTestCase;
 import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.analyze.repositories.RepositoryParamValidator;
 import io.crate.analyze.repositories.TypeSettings;
 import io.crate.sql.tree.GenericProperties;
-import org.elasticsearch.test.ESTestCase;
 
 public class RepositoryParamValidatorTest extends ESTestCase {
 

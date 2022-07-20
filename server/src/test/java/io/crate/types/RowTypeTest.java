@@ -21,17 +21,19 @@
 
 package io.crate.types;
 
-import io.crate.data.RowN;
-import org.elasticsearch.test.ESTestCase;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.hamcrest.Matchers;
-import org.junit.Test;
-
-import java.util.List;
-
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+
+import java.util.List;
+
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.test.ESTestCase;
+import org.hamcrest.Matchers;
+import org.junit.Test;
+
+import io.crate.data.RowN;
 
 public class RowTypeTest extends ESTestCase {
 

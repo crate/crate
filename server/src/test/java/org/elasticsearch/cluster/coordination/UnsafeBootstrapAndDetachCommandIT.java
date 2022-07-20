@@ -26,13 +26,17 @@ import static org.elasticsearch.indices.recovery.RecoverySettings.INDICES_RECOVE
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.tests.util.CrateLuceneTestCase;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.cli.MockTerminal;
@@ -102,7 +106,7 @@ public class UnsafeBootstrapAndDetachCommandIT extends SQLIntegrationTestCase {
         return detachCluster(environment, false);
     }
 
-    private void expectThrows(LuceneTestCase.ThrowingRunnable runnable, String message) {
+    private void expectThrows(CrateLuceneTestCase.ThrowingRunnable runnable, String message) {
         ElasticsearchException ex = expectThrows(ElasticsearchException.class, runnable);
         assertThat(ex.getMessage(), containsString(message));
     }

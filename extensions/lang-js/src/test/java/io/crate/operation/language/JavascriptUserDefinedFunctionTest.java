@@ -21,25 +21,15 @@
 
 package io.crate.operation.language;
 
-import io.crate.analyze.FunctionArgumentDefinition;
-import io.crate.expression.scalar.ScalarTestCase;
-import io.crate.expression.symbol.Literal;
-import io.crate.expression.udf.UserDefinedFunctionMetadata;
-import io.crate.expression.udf.UserDefinedFunctionService;
-import io.crate.metadata.FunctionProvider;
-import io.crate.metadata.FunctionName;
-import io.crate.metadata.Schemas;
-import io.crate.metadata.doc.DocTableInfoFactory;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
-import org.locationtech.spatial4j.shape.impl.PointImpl;
+import static io.crate.testing.SymbolMatchers.isLiteral;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.endsWith;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.startsWith;
+import static org.junit.Assert.assertThat;
+import static org.mockito.Mockito.mock;
 
-import javax.script.ScriptException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -47,13 +37,26 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static io.crate.testing.SymbolMatchers.isLiteral;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.endsWith;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.Matchers.startsWith;
-import static org.mockito.Mockito.mock;
+import javax.script.ScriptException;
+
+import org.elasticsearch.cluster.service.ClusterService;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
+import org.locationtech.spatial4j.shape.impl.PointImpl;
+
+import io.crate.analyze.FunctionArgumentDefinition;
+import io.crate.expression.scalar.ScalarTestCase;
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.udf.UserDefinedFunctionMetadata;
+import io.crate.expression.udf.UserDefinedFunctionService;
+import io.crate.metadata.FunctionName;
+import io.crate.metadata.FunctionProvider;
+import io.crate.metadata.Schemas;
+import io.crate.metadata.doc.DocTableInfoFactory;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
 public class JavascriptUserDefinedFunctionTest extends ScalarTestCase {
 
