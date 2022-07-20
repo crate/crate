@@ -65,7 +65,9 @@ public class FileReadingIteratorTest extends ESTestCase {
     private static final String JSON_AS_MAP_FIRST_LINE = "{\"name\": \"Arthur\", \"id\": 4, \"details\": {\"age\": 38}}";
     private static final String JSON_AS_MAP_SECOND_LINE = "{\"id\": 5, \"name\": \"Trillian\", \"details\": {\"age\": 33}}";
     private static final String CSV_AS_MAP_FIRST_LINE = "{\"name\":\"Arthur\",\"id\":\"4\",\"age\":\"38\"}";
-    private static final String CSV_AS_MAP_SECOND_LINE = "{\"name\":\"Trillian\",\"id\":\"5\",\"age\":\"33\"}";
+    private static final String CSV_AS_MAP_SECOND_LINE = " {\"name\":\"Trillian\",\"id\":\"5\",\"age\":\"33\"}";
+    // Extra space because we reuse JsonGenerator and on second time it thinks it's not root and adds space.
+    // See https://github.com/elastic/elasticsearch/blob/master/server/src/test/java/org/elasticsearch/common/xcontent/builder/XContentBuilderTests.java#L90
     private static final TransactionContext TXN_CTX = CoordinatorTxnCtx.systemTransactionContext();
 
     private InputFactory inputFactory;
