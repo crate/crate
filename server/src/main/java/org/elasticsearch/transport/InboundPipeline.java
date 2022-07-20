@@ -69,8 +69,8 @@ public class InboundPipeline implements Releasable {
     @Override
     public void close() {
         isClosed = true;
-        Releasables.closeWhileHandlingException(decoder, aggregator);
-        Releasables.closeWhileHandlingException(pending);
+        Releasables.closeIgnoringException(decoder, aggregator);
+        Releasables.closeIgnoringException(pending);
         pending.clear();
     }
 
@@ -163,7 +163,7 @@ public class InboundPipeline implements Releasable {
                 bytesReferences[index] = pendingReference.retain();
                 ++index;
             }
-            final Releasable releasable = () -> Releasables.closeWhileHandlingException(bytesReferences);
+            final Releasable releasable = () -> Releasables.closeIgnoringException(bytesReferences);
             return new ReleasableBytesReference(CompositeBytesReference.of(bytesReferences), releasable);
         }
     }
