@@ -28,6 +28,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
+import javax.annotation.Nullable;
 import java.util.List;
 
 import static io.crate.expression.scalar.array.ArrayArgumentValidators.ensureInnerTypeIsNotUndefined;
@@ -73,22 +74,42 @@ class ArrayLowerFunction extends Scalar<Integer, Object> {
     public Integer evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input[] args) {
         @SuppressWarnings("unchecked")
         List<Object> values = (List<Object>) args[0].value();
-        Object dimension1Indexed = args[1].value();
-        if (values == null || values.isEmpty() || dimension1Indexed == null) {
+        Object dimensionArg = args[1].value();
+        if (values == null || values.isEmpty() || dimensionArg == null) {
             return null;
         }
+        int dimension = (int) dimensionArg;
+        if (dimension <= 0) {
+            return null;
+        }
+        return lowerBound(values, dimension, 1);
+    }
 
-        // sql dimensions are 1 indexed
-        int dimension = (int) dimension1Indexed - 1;
-
-        try {
-            Object dimensionValue = values.get(dimension);
-            if (dimensionValue instanceof List) {
-                List dimensionArray = (List) dimensionValue;
-                return dimensionArray.size() > 0 ? 1 : null;
+    /**
+     * Recursively traverses all sub-arrays up to requestedDimension.
+     * If arrayOrItem is not a List we reached the last possible dimension.
+     * @param requestedDimension original dimension provided in array_upper. Guaranteed to be > 0 before the first call.
+     * @param currentDimension <= requestedDimension on initial and further calls.
+     */
+    static final Integer lowerBound(@Nullable Object arrayOrItem, int requestedDimension, int currentDimension) {
+        if (arrayOrItem instanceof List dimensionArray) {
+            // instanceof is null safe
+            if (currentDimension == requestedDimension) {
+                return dimensionArray.isEmpty() ? null : 1;
+            } else {
+                for (Object object: dimensionArray) {
+                    Integer lower = lowerBound(object, requestedDimension, currentDimension + 1);
+                    if (lower == null) {
+                        // Either dimension doesn't exist on some further levels or it has empty arrays, so answer is null, let's propagate it upstairs.
+                        return null;
+                    }
+                }
+                // Requested dimension exists and has no empty arrays or nulls so lower bound is 1.
+                return 1;
             }
-            return 1;
-        } catch (IndexOutOfBoundsException e) {
+        } else {
+            // We are on the last dimension (array with regular non-array items)
+            // but requested dimension size is not yet resolved and thus doesn't exist.
             return null;
         }
     }

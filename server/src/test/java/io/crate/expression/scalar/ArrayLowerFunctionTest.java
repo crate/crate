@@ -31,6 +31,35 @@ public class ArrayLowerFunctionTest extends ScalarTestCase {
     }
 
     @Test
+    public void test_not_null_but_invalid_dimension() {
+        assertEvaluate("array_lower([1], 0)", null);
+        assertEvaluate("array_lower([1], -1)", null);
+    }
+
+    @Test
+    public void test_at_least_one_empty_or_null_on_dimension_returns_null() {
+        assertEvaluate("array_lower([[1, 4], [3], []], 2)", null);
+        assertEvaluate("array_lower([[1, 4], null, [1, 2]], 2)", null);
+    }
+
+    @Test
+    public void test_3d_array_with_mixed_sizes_within_dimension() {
+        // arr[3][2-3][2-3]
+        // This test shows that we have to traverse all arrays on each dimension.
+        // Second 2D consists of 2 long 1D arrays and third 2D array consists of 3 empty arrays, so lower bound
+        // Also testing null on each dimension.
+        String array =
+            "[null," +           // first 2D array is null
+                "[null, [null, 1, 1]], " + // second 2D array's first row is null
+                "[[], [], []]]";
+
+        assertEvaluate("array_lower(" + array + ", 1)", 1);
+        assertEvaluate("array_lower(" + array + ", 2)", null); // because of first null 2D array.
+        assertEvaluate("array_lower(" + array + ", 3)", null);
+        assertEvaluate("array_lower(" + array + ", 4)", null);
+    }
+
+    @Test
     public void testSingleDimensionArrayValidDimension() {
         assertEvaluate("array_lower([4, 5], 1)", 1);
     }
