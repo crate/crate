@@ -229,7 +229,7 @@ public class FileReadingIteratorTest extends ESTestCase {
 
         List<Object[]> expectedResult = Arrays.asList(
             new Object[]{CSV_AS_MAP_FIRST_LINE},
-            new Object[]{CSV_AS_MAP_SECOND_LINE});
+            new Object[]{CSV_AS_MAP_SECOND_LINE.trim()}); // here we start with the new reader, so will be root and no trailing space.
         BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier);
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }

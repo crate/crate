@@ -61,7 +61,9 @@ public class LineProcessorTest {
         Reader reader = new StringReader("some/string");
         bufferedReader = new BufferedReader(reader);
 
-        subjectUnderTest.readFirstLine(uri, JSON, bufferedReader, null); // ReusableJsonBuilder is used only for converting csv line to json
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        FileReadingIterator.ReusableJsonBuilder reusableJsonBuilder = new FileReadingIterator.ReusableJsonBuilder(new XContentBuilder(JsonXContent.JSON_XCONTENT, out), out, new ArrayList());
+        subjectUnderTest.readFirstLine(uri, JSON, bufferedReader, reusableJsonBuilder); // Extension is .csv, so CSVLineParser will be used, we need to pass not null object
 
         assertThat(bufferedReader.readLine(), is(nullValue()));
     }
