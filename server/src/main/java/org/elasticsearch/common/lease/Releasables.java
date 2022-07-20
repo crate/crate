@@ -48,31 +48,17 @@ public enum Releasables {
 
     /** Release the provided {@link Releasable}s. */
     public static void close(Releasable... releasables) {
-        close(Arrays.asList(releasables));
+        close(Arrays.asList(releasables), false);
     }
 
     /** Release the provided {@link Releasable}s, ignoring exceptions. */
-    public static void closeWhileHandlingException(Iterable<? extends Releasable> releasables) {
+    public static void closeIgnoringException(Iterable<? extends Releasable> releasables) {
         close(releasables, true);
     }
 
     /** Release the provided {@link Releasable}s, ignoring exceptions. */
-    public static void closeWhileHandlingException(Releasable... releasables) {
-        closeWhileHandlingException(Arrays.asList(releasables));
-    }
-
-    /** Release the provided {@link Releasable}s, ignoring exceptions if <code>success</code> is {@code false}. */
-    public static void close(boolean success, Iterable<Releasable> releasables) {
-        if (success) {
-            close(releasables);
-        } else {
-            closeWhileHandlingException(releasables);
-        }
-    }
-
-    /** Release the provided {@link Releasable}s, ignoring exceptions if <code>success</code> is {@code false}. */
-    public static void close(boolean success, Releasable... releasables) {
-        close(success, Arrays.asList(releasables));
+    public static void closeIgnoringException(Releasable... releasables) {
+        close(Arrays.asList(releasables), true);
     }
 
     /** Wrap several releasables into a single one. This is typically useful for use with try-with-resources: for example let's assume

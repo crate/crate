@@ -505,7 +505,7 @@ public abstract class Engine implements Closeable {
         try {
             docIdAndVersion = VersionsAndSeqNoResolver.loadDocIdAndVersion(searcher.getIndexReader(), get.uid(), true);
         } catch (Exception e) {
-            Releasables.closeWhileHandlingException(searcher);
+            Releasables.closeIgnoringException(searcher);
             //TODO: A better exception goes here
             throw new EngineException(shardId, "Couldn't resolve version", e);
         }

@@ -308,7 +308,7 @@ public class BigArrays {
             success = true;
         } finally {
             if (!success) {
-                Releasables.closeWhileHandlingException(array);
+                Releasables.closeIgnoringException(array);
             }
         }
         return array;

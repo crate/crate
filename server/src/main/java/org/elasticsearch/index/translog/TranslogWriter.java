@@ -551,7 +551,7 @@ public class TranslogWriter extends BaseTranslogReader implements Closeable {
     public final void close() throws IOException {
         if (closed.compareAndSet(false, true)) {
             synchronized (this) {
-                Releasables.closeWhileHandlingException(buffer);
+                Releasables.closeIgnoringException(buffer);
                 buffer = null;
                 bufferedBytes = 0;
             }
