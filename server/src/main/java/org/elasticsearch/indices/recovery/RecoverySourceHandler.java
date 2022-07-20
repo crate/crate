@@ -523,11 +523,13 @@ public class RecoverySourceHandler {
                 phase1Files.addAll(diff.different);
                 phase1Files.addAll(diff.missing);
                 for (StoreFileMetadata md : phase1Files) {
-                    if (request.metadataSnapshot().asMap().containsKey(md.name())) {
-                        logger.trace("recovery [phase1]: recovering [{}], exists in local store, but is different: remote [{}], local [{}]",
-                            md.name(), request.metadataSnapshot().asMap().get(md.name()), md);
-                    } else {
-                        logger.trace("recovery [phase1]: recovering [{}], does not exist in remote", md.name());
+                    if (logger.isTraceEnabled()) {
+                        if (request.metadataSnapshot().asMap().containsKey(md.name())) {
+                            logger.trace("recovery [phase1]: recovering [{}], exists in local store, but is different: remote [{}], local [{}]",
+                                md.name(), request.metadataSnapshot().asMap().get(md.name()), md);
+                        } else {
+                            logger.trace("recovery [phase1]: recovering [{}], does not exist in remote", md.name());
+                        }
                     }
                     phase1FileNames.add(md.name());
                     phase1FileSizes.add(md.length());
