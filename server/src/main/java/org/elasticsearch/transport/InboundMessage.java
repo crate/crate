@@ -103,6 +103,6 @@ public class InboundMessage implements Releasable {
     @Override
     public void close() {
         IOUtils.closeWhileHandlingException(streamInput);
-        Releasables.closeWhileHandlingException(content, breakerRelease);
+        Releasables.closeIgnoringException(content, breakerRelease);
     }
 }

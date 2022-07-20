@@ -422,13 +422,13 @@ public abstract class TransportReplicationAction<
                         .execute();
                 }
             } catch (Exception e) {
-                Releasables.closeWhileHandlingException(primaryShardReference); // release shard operation lock before responding to caller
+                Releasables.closeIgnoringException(primaryShardReference); // release shard operation lock before responding to caller
                 onFailure(e);
             }
         }
 
         private void handleException(PrimaryShardReference primaryShardReference, Exception e) {
-            Releasables.closeWhileHandlingException(primaryShardReference); // release shard operation lock before responding to caller
+            Releasables.closeIgnoringException(primaryShardReference); // release shard operation lock before responding to caller
             onFailure(e);
         }
 
@@ -561,13 +561,13 @@ public abstract class TransportReplicationAction<
                         }
                         onCompletionListener.onResponse(response);
                     }, e -> {
-                            Releasables.closeWhileHandlingException(releasable); // release shard operation lock before responding to caller
+                            Releasables.closeIgnoringException(releasable); // release shard operation lock before responding to caller
                             this.responseWithFailure(e);
                         }
                     )
                 );
             } catch (final Exception e) {
-                Releasables.closeWhileHandlingException(releasable); // release shard operation lock before responding to caller
+                Releasables.closeIgnoringException(releasable); // release shard operation lock before responding to caller
                 AsyncReplicaAction.this.onFailure(e);
             }
         }

@@ -86,7 +86,7 @@ public final class Netty4MessageChannelHandler extends ChannelDuplexHandler {
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        Releasables.closeWhileHandlingException(pipeline);
+        Releasables.closeIgnoringException(pipeline);
         super.channelInactive(ctx);
     }
 }
