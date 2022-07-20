@@ -354,7 +354,7 @@ public class PutIndexTemplateRequest extends MasterNodeRequest<PutIndexTemplateR
      * The template source definition.
      */
     public PutIndexTemplateRequest source(BytesReference source, XContentType xContentType) {
-        return source(XContentHelper.convertToMap(source, true, xContentType).v2());
+        return source(XContentHelper.convertToMap(source, true, xContentType).map());
     }
 
     public Set<Alias> aliases() {

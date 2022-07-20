@@ -344,7 +344,7 @@ public class IndexTemplateMetadata extends AbstractDiffable<IndexTemplateMetadat
                 builder.startObject("mappings");
                 for (ObjectObjectCursor<String, CompressedXContent> cursor : indexTemplateMetadata.mappings()) {
                     byte[] mappingSource = cursor.value.uncompressed();
-                    Map<String, Object> mapping = XContentHelper.convertToMap(new BytesArray(mappingSource), true).v2();
+                    Map<String, Object> mapping = XContentHelper.convertToMap(new BytesArray(mappingSource), true).map();
                     if (mapping.size() == 1 && mapping.containsKey(cursor.key)) {
                         // the type name is the root value, reduce it
                         mapping = (Map<String, Object>) mapping.get(cursor.key);
@@ -357,7 +357,7 @@ public class IndexTemplateMetadata extends AbstractDiffable<IndexTemplateMetadat
                 builder.startArray("mappings");
                 for (ObjectObjectCursor<String, CompressedXContent> cursor : indexTemplateMetadata.mappings()) {
                     byte[] data = cursor.value.uncompressed();
-                    builder.map(XContentHelper.convertToMap(new BytesArray(data), true).v2());
+                    builder.map(XContentHelper.convertToMap(new BytesArray(data), true).map());
                 }
                 builder.endArray();
             }

@@ -412,7 +412,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata>, To
         if (fieldPredicate == MapperPlugin.NOOP_FIELD_PREDICATE) {
             return mappingMetadata;
         }
-        Map<String, Object> sourceAsMap = XContentHelper.convertToMap(mappingMetadata.source().compressedReference(), true).v2();
+        Map<String, Object> sourceAsMap = XContentHelper.convertToMap(mappingMetadata.source().compressedReference(), true).map();
         Map<String, Object> mapping;
         if (sourceAsMap.size() == 1 && sourceAsMap.containsKey(mappingMetadata.type())) {
             mapping = (Map<String, Object>) sourceAsMap.get(mappingMetadata.type());

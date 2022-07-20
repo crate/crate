@@ -49,6 +49,7 @@ import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResp
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.common.compress.CompressedXContent;
+import org.elasticsearch.common.xcontent.ParsedXContent;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.test.ESIntegTestCase;
@@ -56,7 +57,6 @@ import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.Constants;
-import io.crate.common.collections.Tuple;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.sql.tree.ColumnPolicy;
@@ -390,10 +390,10 @@ public class ColumnPolicyIntegrationTest extends SQLIntegrationTestCase {
         IndexTemplateMetadata template = response.getIndexTemplates().get(0);
         CompressedXContent mappingStr = template.mappings().get(Constants.DEFAULT_MAPPING_TYPE);
         assertThat(mappingStr, is(notNullValue()));
-        Tuple<XContentType, Map<String, Object>> typeAndMap =
+        ParsedXContent typeAndMap =
             XContentHelper.convertToMap(mappingStr.compressedReference(), false, XContentType.JSON);
         @SuppressWarnings("unchecked")
-        Map<String, Object> mapping = (Map<String, Object>) typeAndMap.v2().get(Constants.DEFAULT_MAPPING_TYPE);
+        Map<String, Object> mapping = (Map<String, Object>) typeAndMap.map().get(Constants.DEFAULT_MAPPING_TYPE);
         assertThat(decodeMappingValue(mapping.get("dynamic")), is(ColumnPolicy.STRICT));
 
         execute("insert into numbers (num, odd, prime) values (?, ?, ?)",
@@ -429,9 +429,9 @@ public class ColumnPolicyIntegrationTest extends SQLIntegrationTestCase {
         IndexTemplateMetadata template = response.getIndexTemplates().get(0);
         CompressedXContent mappingStr = template.mappings().get(Constants.DEFAULT_MAPPING_TYPE);
         assertThat(mappingStr, is(notNullValue()));
-        Tuple<XContentType, Map<String, Object>> typeAndMap = XContentHelper.convertToMap(mappingStr.compressedReference(), false);
+        ParsedXContent typeAndMap = XContentHelper.convertToMap(mappingStr.compressedReference(), false);
         @SuppressWarnings("unchecked")
-        Map<String, Object> mapping = (Map<String, Object>) typeAndMap.v2().get(Constants.DEFAULT_MAPPING_TYPE);
+        Map<String, Object> mapping = (Map<String, Object>) typeAndMap.map().get(Constants.DEFAULT_MAPPING_TYPE);
         assertThat(decodeMappingValue(mapping.get("dynamic")), is(ColumnPolicy.STRICT));
 
         execute("insert into numbers (num, odd, prime) values (?, ?, ?)",
@@ -466,9 +466,9 @@ public class ColumnPolicyIntegrationTest extends SQLIntegrationTestCase {
         IndexTemplateMetadata template = templateResponse.getIndexTemplates().get(0);
         CompressedXContent mappingStr = template.mappings().get(Constants.DEFAULT_MAPPING_TYPE);
         assertThat(mappingStr, is(notNullValue()));
-        Tuple<XContentType, Map<String, Object>> typeAndMap = XContentHelper.convertToMap(mappingStr.compressedReference(), false);
+        ParsedXContent typeAndMap = XContentHelper.convertToMap(mappingStr.compressedReference(), false);
         @SuppressWarnings("unchecked")
-        Map<String, Object> mapping = (Map<String, Object>) typeAndMap.v2().get(Constants.DEFAULT_MAPPING_TYPE);
+        Map<String, Object> mapping = (Map<String, Object>) typeAndMap.map().get(Constants.DEFAULT_MAPPING_TYPE);
         assertThat(String.valueOf(mapping.get("dynamic")), is("true"));
 
         execute("insert into numbers (num, odd, prime) values (?, ?, ?)",
@@ -591,10 +591,10 @@ public class ColumnPolicyIntegrationTest extends SQLIntegrationTestCase {
         IndexTemplateMetadata template = response.getIndexTemplates().get(0);
         CompressedXContent mappingStr = template.mappings().get(Constants.DEFAULT_MAPPING_TYPE);
         assertThat(mappingStr, is(notNullValue()));
-        Tuple<XContentType, Map<String, Object>> typeAndMap =
+        ParsedXContent typeAndMap =
             XContentHelper.convertToMap(mappingStr.compressedReference(), false, XContentType.JSON);
         @SuppressWarnings("unchecked")
-        Map<String, Object> mapping = (Map<String, Object>) typeAndMap.v2().get(Constants.DEFAULT_MAPPING_TYPE);
+        Map<String, Object> mapping = (Map<String, Object>) typeAndMap.map().get(Constants.DEFAULT_MAPPING_TYPE);
         assertThat(decodeMappingValue(mapping.get("dynamic")), is(ColumnPolicy.DYNAMIC));
 
         execute("insert into dynamic_table (id, score, new_col) values (?, ?, ?)",
