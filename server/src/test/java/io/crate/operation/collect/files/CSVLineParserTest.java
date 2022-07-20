@@ -21,28 +21,41 @@
 
 package io.crate.operation.collect.files;
 
+import com.fasterxml.jackson.dataformat.csv.CsvSchema;
+import io.crate.analyze.CopyFromParserProperties;
+import io.crate.execution.engine.collect.files.FileReadingIterator;
+import io.crate.execution.engine.collect.files.FileReadingIterator.ReusableJsonBuilder;
+import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
-
-import org.junit.Before;
-import org.junit.Test;
-
-import com.fasterxml.jackson.dataformat.csv.CsvSchema;
-
-import io.crate.analyze.CopyFromParserProperties;
 
 public class CSVLineParserTest {
 
+    private ReusableJsonBuilder reusableJsonBuilder;
     private CSVLineParser csvParser;
     private byte[] result;
 
     @Before
-    public void setup() {
-        csvParser = new CSVLineParser(CopyFromParserProperties.DEFAULT, List.of("Code", "Country", "City"));
+    public void setup() throws IOException {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        reusableJsonBuilder =
+            new FileReadingIterator.ReusableJsonBuilder(new XContentBuilder(JsonXContent.JSON_XCONTENT, out), out, new ArrayList());
+        csvParser = new CSVLineParser(CopyFromParserProperties.DEFAULT, List.of("Code", "Country", "City"), reusableJsonBuilder);
+    }
+
+    @After
+    public void cleanUp() throws IOException {
+        reusableJsonBuilder.close();
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -114,7 +127,7 @@ public class CSVLineParserTest {
         String header = "Code,\"Coun, try\"\n";
         csvParser = new CSVLineParser(
             new CopyFromParserProperties(true, true, CsvSchema.DEFAULT_COLUMN_SEPARATOR),
-            List.of("Code", "Coun, try", "City"));
+            List.of("Code", "Coun, try", "City"), reusableJsonBuilder);
         csvParser.parseHeader(header);
         result = csvParser.parse("GER,Germany\n", 0);
 
@@ -126,7 +139,7 @@ public class CSVLineParserTest {
         String header = "Code,Country,City\n";
         csvParser = new CSVLineParser(
             new CopyFromParserProperties(true, true, CsvSchema.DEFAULT_COLUMN_SEPARATOR),
-                                          List.of("Code", "Country", "City"));
+                                          List.of("Code", "Country", "City"), reusableJsonBuilder);
         csvParser.parseHeader(header);
         result = csvParser.parse("GER,,\"\"\n", 0);
 
@@ -141,7 +154,7 @@ public class CSVLineParserTest {
         String header = "Code|Country|City\n";
         csvParser = new CSVLineParser(
             new CopyFromParserProperties(true, true, '|'),
-                                          List.of("Code", "Country", "City"));
+                                          List.of("Code", "Country", "City"), reusableJsonBuilder);
         csvParser.parseHeader(header);
         result = csvParser.parse("GER|Germany|Berlin\n", 0);
 
@@ -201,7 +214,7 @@ public class CSVLineParserTest {
         String header = "Code,Country\n";
         csvParser = new CSVLineParser(
             new CopyFromParserProperties(true, true,CsvSchema.DEFAULT_COLUMN_SEPARATOR),
-            List.of("Code", "Country", "City"));
+            List.of("Code", "Country", "City"), reusableJsonBuilder);
 
         csvParser.parseHeader(header);
         result = csvParser.parse("GER,Germany\n", 0);
@@ -214,7 +227,7 @@ public class CSVLineParserTest {
         String header = "Code,Country,City\n";
         csvParser = new CSVLineParser(
             new CopyFromParserProperties(true, true,CsvSchema.DEFAULT_COLUMN_SEPARATOR),
-                                          List.of("Code", "Country"));
+                                          List.of("Code", "Country"), reusableJsonBuilder);
         csvParser.parseHeader(header);
         result = csvParser.parse("GER,Germany,Berlin\n", 0);
 
@@ -225,7 +238,7 @@ public class CSVLineParserTest {
     public void parse_targetColumnsSameCsvValuesNoHeader_thenParseAsIs() throws IOException {
         csvParser = new CSVLineParser(
             new CopyFromParserProperties(true, false, CsvSchema.DEFAULT_COLUMN_SEPARATOR),
-            List.of("Code", "Country", "City"));
+            List.of("Code", "Country", "City"), reusableJsonBuilder);
         csvParser.parseWithoutHeader("GER,Germany,Berlin\n", 0);
     }
 
@@ -233,7 +246,7 @@ public class CSVLineParserTest {
     public void parse_targetColumnsMoreThanCsvValuesNoHeader_thenThrowException() throws IOException {
         csvParser = new CSVLineParser(
             new CopyFromParserProperties(true, false, CsvSchema.DEFAULT_COLUMN_SEPARATOR),
-            List.of("Code", "Country", "City"));
+            List.of("Code", "Country", "City"), reusableJsonBuilder);
         csvParser.parseWithoutHeader("GER,Germany\n", 0);
     }
 
@@ -241,7 +254,7 @@ public class CSVLineParserTest {
     public void parse_targetColumnsLessThanCsvValuesNoHeader_thenDropExtraCsvValues() throws IOException {
         csvParser = new CSVLineParser(
             new CopyFromParserProperties(true, false, CsvSchema.DEFAULT_COLUMN_SEPARATOR),
-            List.of("Code", "Country"));
+            List.of("Code", "Country"), reusableJsonBuilder);
         result = csvParser.parseWithoutHeader("GER,Germany,Berlin\n", 0);
         assertThat(new String(result, StandardCharsets.UTF_8), is("{\"Code\":\"GER\",\"Country\":\"Germany\"}"));
     }
@@ -251,7 +264,7 @@ public class CSVLineParserTest {
         String header = "Code,Country,City\n";
         csvParser = new CSVLineParser(
             new CopyFromParserProperties(true, true, CsvSchema.DEFAULT_COLUMN_SEPARATOR),
-            List.of("City", "Code"));
+            List.of("City", "Code"), reusableJsonBuilder);
         csvParser.parseHeader(header);
         result = csvParser.parse("GER,Germany,Berlin\n", 0);
         assertThat(new String(result, StandardCharsets.UTF_8), is("{\"Code\":\"GER\",\"City\":\"Berlin\"}"));
@@ -262,7 +275,7 @@ public class CSVLineParserTest {
         String header = "Code,Country,City\n";
         csvParser = new CSVLineParser(
             new CopyFromParserProperties(true, true, CsvSchema.DEFAULT_COLUMN_SEPARATOR),
-            List.of());
+            List.of(), reusableJsonBuilder);
         csvParser.parseHeader(header);
         result = csvParser.parse("GER,Germany,Berlin\n", 0);
         assertThat(new String(result, StandardCharsets.UTF_8), is("{\"Code\":\"GER\",\"Country\":\"Germany\",\"City\":\"Berlin\"}"));

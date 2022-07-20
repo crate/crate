@@ -22,6 +22,7 @@
 package io.crate.execution.engine.collect.files;
 
 import io.crate.analyze.CopyFromParserProperties;
+import io.crate.execution.engine.collect.files.FileReadingIterator.ReusableJsonBuilder;
 import io.crate.execution.dsl.phases.FileUriCollectPhase.InputFormat;
 import io.crate.expression.reference.file.LineContext;
 
@@ -50,8 +51,8 @@ public final class LineProcessor {
         lineContext.currentUri(currentUri);
     }
 
-    void readFirstLine(URI currentUri, InputFormat inputFormat, BufferedReader currentReader) throws IOException {
-        lineParser.readFirstLine(currentUri, inputFormat, currentReader);
+    void readFirstLine(URI currentUri, InputFormat inputFormat, BufferedReader currentReader, ReusableJsonBuilder reusableJsonBuilder) throws IOException {
+        lineParser.readFirstLine(currentUri, inputFormat, currentReader, reusableJsonBuilder);
     }
 
     public void process(String line) throws IOException {

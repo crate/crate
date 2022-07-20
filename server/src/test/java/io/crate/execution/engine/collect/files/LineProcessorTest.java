@@ -28,13 +28,17 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
 import java.util.List;
 
+import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -57,7 +61,7 @@ public class LineProcessorTest {
         Reader reader = new StringReader("some/string");
         bufferedReader = new BufferedReader(reader);
 
-        subjectUnderTest.readFirstLine(uri, JSON, bufferedReader);
+        subjectUnderTest.readFirstLine(uri, JSON, bufferedReader, null); // ReusableJsonBuilder is used only for converting csv line to json
 
         assertThat(bufferedReader.readLine(), is(nullValue()));
     }
@@ -67,8 +71,11 @@ public class LineProcessorTest {
         uri = new URI("file.any");
         Reader reader = new StringReader("some/string");
         bufferedReader = new BufferedReader(reader);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        FileReadingIterator.ReusableJsonBuilder reusableJsonBuilder = new FileReadingIterator.ReusableJsonBuilder(new XContentBuilder(JsonXContent.JSON_XCONTENT, out), out, new ArrayList());
 
-        subjectUnderTest.readFirstLine(uri, CSV, bufferedReader);
+
+        subjectUnderTest.readFirstLine(uri, CSV, bufferedReader, reusableJsonBuilder);
 
         assertThat(bufferedReader.readLine(), is(nullValue()));
     }
@@ -79,7 +86,7 @@ public class LineProcessorTest {
         Reader reader = new StringReader("some/string");
         bufferedReader = new BufferedReader(reader);
 
-        subjectUnderTest.readFirstLine(uri, JSON, bufferedReader);
+        subjectUnderTest.readFirstLine(uri, JSON, bufferedReader, null); // ReusableJsonBuilder is used only for converting csv line to json
 
         assertThat(bufferedReader.readLine(), is("some/string"));
     }
@@ -90,7 +97,7 @@ public class LineProcessorTest {
         Reader reader = new StringReader("some/string");
         bufferedReader = new BufferedReader(reader);
 
-        subjectUnderTest.readFirstLine(uri, JSON, bufferedReader);
+        subjectUnderTest.readFirstLine(uri, JSON, bufferedReader, null); // ReusableJsonBuilder is used only for converting csv line to json
 
         assertThat(bufferedReader.readLine(), is("some/string"));
     }

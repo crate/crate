@@ -22,6 +22,7 @@
 package io.crate.execution.engine.collect.files;
 
 import io.crate.analyze.CopyFromParserProperties;
+import io.crate.execution.engine.collect.files.FileReadingIterator.ReusableJsonBuilder;
 import io.crate.execution.dsl.phases.FileUriCollectPhase;
 import io.crate.operation.collect.files.CSVLineParser;
 
@@ -51,9 +52,10 @@ public class LineParser {
 
     public void readFirstLine(URI currentUri,
                               FileUriCollectPhase.InputFormat inputFormat,
-                              BufferedReader currentReader) throws IOException {
+                              BufferedReader currentReader,
+                              ReusableJsonBuilder reusableJsonBuilder) throws IOException {
         if (isInputCsv(inputFormat, currentUri)) {
-            csvLineParser = new CSVLineParser(parserProperties, targetColumns);
+            csvLineParser = new CSVLineParser(parserProperties, targetColumns, reusableJsonBuilder);
             if (parserProperties.fileHeader()) {
                 csvLineParser.parseHeader(currentReader.readLine());
             }

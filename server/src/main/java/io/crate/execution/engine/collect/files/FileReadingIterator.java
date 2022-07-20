@@ -24,6 +24,8 @@ package io.crate.execution.engine.collect.files;
 import static io.crate.exceptions.Exceptions.rethrowUnchecked;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -31,6 +33,7 @@ import java.net.SocketTimeoutException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
@@ -55,6 +58,8 @@ import io.crate.data.Row;
 import io.crate.exceptions.Exceptions;
 import io.crate.execution.dsl.phases.FileUriCollectPhase;
 import io.crate.expression.InputRow;
+import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
 
 public class FileReadingIterator implements BatchIterator<Row> {
 
@@ -108,6 +113,7 @@ public class FileReadingIterator implements BatchIterator<Row> {
     private Iterator<URI> currentInputUriIterator = null;
     private URI currentUri;
     private BufferedReader currentReader = null;
+    private ReusableJsonBuilder reusableJsonBuilder = null;
     private long currentLineNumber;
     private final Row row;
     private LineProcessor lineProcessor;
@@ -137,6 +143,18 @@ public class FileReadingIterator implements BatchIterator<Row> {
         this.parserProperties = parserProperties;
         this.inputFormat = inputFormat;
         initCollectorState();
+    }
+
+    /**
+     * Helper class to hold all reusable objects needed for parsing CSV line.
+     * @param out is passed to jsonBuilder and can be accessed via jsonBuilder.getOutputStream() but passed explicitly
+     * to avoid casting on out.reset() and out.toByteArray()
+     */
+    public record ReusableJsonBuilder(XContentBuilder jsonBuilder, ByteArrayOutputStream out, ArrayList rowItems) implements Closeable {
+        @Override
+        public void close() {
+            jsonBuilder.close(); // Also closes 'out';
+        }
     }
 
     @Override
@@ -227,8 +245,10 @@ public class FileReadingIterator implements BatchIterator<Row> {
         lineProcessor.startWithUri(uri);
         InputStream stream = fileInput.getStream(uri);
         currentReader = createBufferedReader(stream);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        reusableJsonBuilder = new ReusableJsonBuilder(new XContentBuilder(JsonXContent.JSON_XCONTENT, out), out, new ArrayList());
         currentLineNumber = 0;
-        lineProcessor.readFirstLine(currentUri, inputFormat, currentReader);
+        lineProcessor.readFirstLine(currentUri, inputFormat, currentReader, reusableJsonBuilder);
     }
 
     private void closeCurrentReader() {
@@ -239,6 +259,16 @@ public class FileReadingIterator implements BatchIterator<Row> {
                 LOGGER.error("Unable to close reader for " + currentUri, e);
             }
             currentReader = null;
+        }
+
+        // Also close reusable objects, they are not needed anymore.
+        if (reusableJsonBuilder != null) {
+            try {
+                reusableJsonBuilder.close();
+            } catch (IllegalStateException e) { // Underlying XContentBuilder.close throws IllegalStateException
+                LOGGER.error("Unable to close reusableJsonBuilder for " + currentUri, e);
+            }
+            reusableJsonBuilder = null;
         }
     }
 

@@ -27,10 +27,7 @@ import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvParser;
 import io.crate.analyze.CopyFromParserProperties;
 
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
-
-import java.io.ByteArrayOutputStream;
+import io.crate.execution.engine.collect.files.FileReadingIterator.ReusableJsonBuilder;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -40,13 +37,13 @@ import java.util.Locale;
 
 public class CSVLineParser {
 
-    private final ByteArrayOutputStream out = new ByteArrayOutputStream();
+    private final ReusableJsonBuilder reusableJsonBuilder;
     private final ArrayList<String> headerKeyList = new ArrayList<>();
     private String[] columnNamesArray;
     private final List<String> targetColumns;
     private final ObjectReader csvReader;
 
-    public CSVLineParser(CopyFromParserProperties properties, List<String> columns) {
+    public CSVLineParser(CopyFromParserProperties properties, List<String> columns, ReusableJsonBuilder reusableRowBuilder) {
         targetColumns = columns;
         if (!properties.fileHeader()) {
             columnNamesArray = new String[targetColumns.size()];
@@ -65,6 +62,13 @@ public class CSVLineParser {
         csvReader = mapper
             .readerWithTypedSchemaFor(Object.class)
             .with(csvSchema);
+
+        // We re-use XContentBuilder per line via startObject ... add fields ... flush
+        // but we cannot immediately set parsed value to a json field.
+        // In case parsing fails in the middle we will end up with "dirty" XContentBuilder which we cannot rollback.
+        // We first gather values into ArrayList with adjusted once capacity and start making json object only when we know that line was parsed without errors.
+        this.reusableJsonBuilder = reusableRowBuilder;
+        this.reusableJsonBuilder.rowItems().ensureCapacity(targetColumns.size());
     }
 
     public void parseHeader(String header) throws IOException {
@@ -85,9 +89,8 @@ public class CSVLineParser {
     }
 
     public byte[] parse(String row, long rowNumber) throws IOException {
+        reset();
         MappingIterator<Object> iterator = csvReader.readValues(row.getBytes(StandardCharsets.UTF_8));
-        out.reset();
-        XContentBuilder jsonBuilder = new XContentBuilder(JsonXContent.JSON_XCONTENT, out).startObject();
         int i = 0, j = 0;
         while (iterator.hasNext()) {
             if (i >= headerKeyList.size()) {
@@ -101,18 +104,16 @@ public class CSVLineParser {
             var value = iterator.next();
             i++;
             if (key != null) {
-                jsonBuilder.field(key, value);
+                reusableJsonBuilder.rowItems().add(value);
                 j++;
             }
         }
-        jsonBuilder.endObject().close();
-        return out.toByteArray();
+        return getByteArray();
     }
 
     public byte[] parseWithoutHeader(String row, long rowNumber) throws IOException {
         MappingIterator<String> iterator = csvReader.readValues(row.getBytes(StandardCharsets.UTF_8));
-        out.reset();
-        XContentBuilder jsonBuilder = new XContentBuilder(JsonXContent.JSON_XCONTENT, out).startObject();
+        reset();
         int i = 0;
         while (iterator.hasNext()) {
             if (i >= columnNamesArray.length) {
@@ -122,7 +123,7 @@ public class CSVLineParser {
             var value = iterator.next();
             i++;
             if (key != null) {
-                jsonBuilder.field(key, value);
+                reusableJsonBuilder.rowItems().add(value);
             }
         }
         if (columnNamesArray.length > i) {
@@ -130,7 +131,30 @@ public class CSVLineParser {
                                                "encountered %d at line %d. This is not allowed when there " +
                                                "is no header provided)",columnNamesArray.length, i, rowNumber));
         }
-        jsonBuilder.endObject().close();
-        return out.toByteArray();
+        return getByteArray();
+    }
+
+    private void reset() throws IOException {
+        reusableJsonBuilder.out().reset();
+        reusableJsonBuilder.rowItems().clear();
+        reusableJsonBuilder.jsonBuilder().startObject();
+    }
+
+    /**
+     * ReusableJsonBuilder.rowItems().get(i) corresponds to columnNamesArray[i-th not-null]
+     * We can also store 2 lists (key-value) in reusableJsonBuilder but as we anyway have to iterate over
+     * reusableJsonBuilder.rowItems() which in most cases has same size with columnNamesArray we can resolve it on the fly.
+     */
+    private byte[] getByteArray() throws IOException {
+        int notNullCounter = 0;
+        for (int i = 0; i < columnNamesArray.length; i++) {
+            var key = columnNamesArray[i];
+            if (key != null) {
+                reusableJsonBuilder.jsonBuilder().field(key, reusableJsonBuilder.rowItems().get(notNullCounter));
+                notNullCounter++;
+            }
+        }
+        reusableJsonBuilder.jsonBuilder().endObject().flush();
+        return reusableJsonBuilder.out().toByteArray();
     }
 }
