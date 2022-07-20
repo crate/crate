@@ -94,13 +94,6 @@ public class MappingMetadata extends AbstractDiffable<MappingMetadata> {
         return mapping;
     }
 
-    /**
-     * Converts the serialized compressed form of the mappings into a parsed map.
-     */
-    public Map<String, Object> getSourceAsMap() throws ElasticsearchParseException {
-        return sourceAsMap();
-    }
-
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeString(type());

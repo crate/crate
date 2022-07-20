@@ -1640,7 +1640,7 @@ public class PartitionedTableIntegrationTest extends SQLIntegrationTestCase {
                 new RelationName(sqlExecutor.getCurrentSchema(), "dynamic_table"),
                 Collections.singletonList("10.0")).asIndexName())
             .mapping();
-        Map<String, Object> metaMap = (Map) partitionMetadata.getSourceAsMap().get("_meta");
+        Map<String, Object> metaMap = (Map) partitionMetadata.sourceAsMap().get("_meta");
         assertThat(String.valueOf(metaMap.get("partitioned_by")), Matchers.is("[[score, double]]"));
         execute("alter table dynamic_table set (column_policy= 'dynamic')");
         waitNoPendingTasksOnAll();
@@ -1649,7 +1649,7 @@ public class PartitionedTableIntegrationTest extends SQLIntegrationTestCase {
                 new RelationName(sqlExecutor.getCurrentSchema(), "dynamic_table"),
                 Collections.singletonList("10.0")).asIndexName())
             .mapping();
-        metaMap = (Map) partitionMetadata.getSourceAsMap().get("_meta");
+        metaMap = (Map) partitionMetadata.sourceAsMap().get("_meta");
         assertThat(String.valueOf(metaMap.get("partitioned_by")), Matchers.is("[[score, double]]"));
     }
 

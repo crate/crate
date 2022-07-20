@@ -66,7 +66,7 @@ public class MetadataIndexUpgrader implements UnaryOperator<IndexMetadata> {
         if (mappingMetadata == null) { // blobs have no mappingMetadata
             return null;
         }
-        Map<String, Object> oldMapping = mappingMetadata.getSourceAsMap();
+        Map<String, Object> oldMapping = mappingMetadata.sourceAsMap();
         LinkedHashMap<String, Object> newMapping = new LinkedHashMap<>(oldMapping.size());
         for (Map.Entry<String, Object> entry : oldMapping.entrySet()) {
             String fieldName = entry.getKey();

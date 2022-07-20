@@ -77,11 +77,11 @@ public class ColumnPolicyIntegrationTest extends SQLIntegrationTestCase {
     }
 
     private Map<String, Object> getSourceMap(String index) throws IOException {
-        return getMappingMetadata(getFqn(index)).getSourceAsMap();
+        return getMappingMetadata(getFqn(index)).sourceAsMap();
     }
 
     private Map<String, Object> getSourceMap(String schema, String index) throws IOException {
-        return getMappingMetadata(getFqn(schema, index)).getSourceAsMap();
+        return getMappingMetadata(getFqn(schema, index)).sourceAsMap();
     }
 
     @Test
