@@ -146,8 +146,10 @@ public class CSVLineParser {
      */
     private byte[] getByteArray() throws IOException {
         int notNullCounter = 0;
+        // Even if there are not items in the row, we need to start/emd object to create an empty json {}
+        // Verified by parse_givenEmptyRow_thenParsesToEmptyJson
         reusableJsonBuilder.jsonBuilder().startObject();
-        for (int i = 0; i < columnNamesArray.length; i++) {
+        for (int i = 0; i < columnNamesArray.length && notNullCounter < reusableJsonBuilder.rowItems().size(); i++) {
             var key = columnNamesArray[i];
             if (key != null) {
                 reusableJsonBuilder.jsonBuilder().field(key, reusableJsonBuilder.rowItems().get(notNullCounter));
