@@ -28,12 +28,12 @@ import java.util.Comparator;
 import java.util.Map;
 import java.util.Objects;
 
-public class MapComparator implements Comparator<Map> {
+@SuppressWarnings({"rawtypes", "unchecked"})
+public final class MapComparator implements Comparator<Map> {
 
     private static final MapComparator INSTANCE = new MapComparator();
 
-    private MapComparator() {
-    }
+    private MapComparator() {}
 
     public static MapComparator getInstance() {
         return INSTANCE;
@@ -60,18 +60,22 @@ public class MapComparator implements Comparator<Map> {
                 if (otherValue == null) {
                     return -1;
                 }
+                DataType leftType = DataTypes.guessType(thisValue);
+                int cmp;
                 if (!thisValue.getClass().equals(otherValue.getClass())) {
-                    DataType leftType = DataTypes.guessType(thisValue);
-                    int cmp = leftType.compare(
+                    cmp = leftType.compare(
                         thisValue,
                         leftType.implicitCast(otherValue)
                     );
-                    if (cmp == 0) {
-                        continue;
-                    }
-                    return cmp;
+                } else if (leftType == DataTypes.UNTYPED_OBJECT) {
+                    cmp = compareMaps((Map) thisValue, (Map) otherValue);
+                } else {
+                    cmp = leftType.compare(thisValue, otherValue);
                 }
-                return 1;
+                if (cmp == 0) {
+                    continue;
+                }
+                return cmp;
             }
         }
         return 0;
