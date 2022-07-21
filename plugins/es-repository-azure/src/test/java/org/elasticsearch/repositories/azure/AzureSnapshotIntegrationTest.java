@@ -25,8 +25,8 @@ import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -75,9 +75,9 @@ public class AzureSnapshotIntegrationTest extends SQLIntegrationTestCase {
     }
 
     @Test
-    public void create_azure_snapshot_and_restore_it() throws Exception {
+    public void create_azure_snapshot_and_restore_it() {
         execute("CREATE TABLE t1 (x int)");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rowCount()).isEqualTo(1L);
 
         var numberOfDocs = randomLongBetween(0, 10);
         for (int i = 0; i < numberOfDocs; i++) {
@@ -90,7 +90,7 @@ public class AzureSnapshotIntegrationTest extends SQLIntegrationTestCase {
                 "account = 'devstoreaccount1', " +
                 "key = 'ZGV2c3RvcmVhY2NvdW50MQ==', " +
                 "endpoint_suffix = 'ignored;DefaultEndpointsProtocol=http;BlobEndpoint=" + httpServerUrl() + "')");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rowCount()).isEqualTo(1L);
 
         execute("CREATE SNAPSHOT r1.s1 ALL WITH (wait_for_completion = true)");
 
@@ -100,14 +100,14 @@ public class AzureSnapshotIntegrationTest extends SQLIntegrationTestCase {
         execute("REFRESH TABLE t1");
 
         execute("SELECT COUNT(*) FROM t1");
-        assertThat(response.rows()[0][0], is(numberOfDocs));
+        assertThat(response.rows()[0][0]).isEqualTo(numberOfDocs);
 
         execute("DROP SNAPSHOT r1.s1");
-        handler.blobs().keySet().forEach(x -> assertThat(x.endsWith("dat"), is(false)));
+        handler.blobs().keySet().forEach(x -> assertThat(x.endsWith("dat")).isFalse());
     }
 
     @Test
-    public void test_invalid_settings_to_create_azure_repository() throws Throwable {
+    public void test_invalid_settings_to_create_azure_repository() {
         assertThrowsMatches(() -> execute(
             "CREATE REPOSITORY r1 TYPE AZURE WITH (container = 'invalid', " +
             "account = 'devstoreaccount1', " +

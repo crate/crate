@@ -21,38 +21,32 @@
 
 package io.crate.common;
 
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.nio.charset.StandardCharsets;
 
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import org.junit.Test;
 
 public class OctalTest {
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     @Test
     public void testOnlyPrintableCharacters() {
         final byte[] expected = {97, 98, 99, 100};
-        assertThat(Octal.decode("abcd"), is(expected));
+        assertThat(Octal.decode("abcd")).isEqualTo(expected);
     }
 
     @Test
     public void testValidEncodedString() {
         final byte[] expected = {48, 49, 50, 92, 51, 52, 53, 0, 1};
-        assertThat(Octal.decode("012\\\\345\\000\\001"), is(expected));
+        assertThat(Octal.decode("012\\\\345\\000\\001")).isEqualTo(expected);
     }
 
     @Test
     public void testIncompleteEscapeSequence() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage(containsString("Invalid escape sequence at index 3"));
-        Octal.decode("abc\\");
+        assertThatThrownBy(() -> Octal.decode("abc\\"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageStartingWith("Invalid escape sequence at index 3");
     }
 
     /**
@@ -60,29 +54,29 @@ public class OctalTest {
      */
     @Test
     public void testInvalidOctalNumber1() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage(containsString("Invalid escape sequence at index 0"));
-        Octal.decode("\\00");
+        assertThatThrownBy(() -> Octal.decode("\\00"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageStartingWith("Invalid escape sequence at index 0");
     }
 
     @Test
     public void testInvalidOctalNumber2() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Illegal octal character 8 at index 3");
-        Octal.decode("\\008");
+        assertThatThrownBy(() -> Octal.decode("\\008"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Illegal octal character 8 at index 3");
     }
 
     @Test
     public void testEscapes() {
         // backslashes
-        assertThat(Octal.decode("\\\\ \\134"), is(new byte[]{92, 32, 92}));
+        assertThat(Octal.decode("\\\\ \\134")).isEqualTo(new byte[] {92, 32, 92});
         // single quotes
-        assertThat(Octal.decode("' \\047"), is(new byte[]{39, 32, 39}));
+        assertThat(Octal.decode("' \\047")).isEqualTo(new byte[] {39, 32, 39});
     }
 
     @Test
     public void testEncode() {
-        assertThat(Octal.encode("a\bb\\c".getBytes(StandardCharsets.UTF_8)), is("a\\010b\\\\c"));
+        assertThat(Octal.encode("a\bb\\c".getBytes(StandardCharsets.UTF_8))).isEqualTo("a\\010b\\\\c");
     }
 
 }

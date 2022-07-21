@@ -21,6 +21,8 @@
 
 package io.crate.window;
 
+import static org.hamcrest.Matchers.contains;
+
 import io.crate.execution.engine.window.AbstractWindowFunctionTest;
 import io.crate.metadata.ColumnIdent;
 import io.crate.module.ExtraFunctionsModule;
@@ -28,8 +30,6 @@ import io.crate.testing.Asserts;
 import org.junit.Test;
 
 import java.util.List;
-
-import static org.hamcrest.Matchers.contains;
 
 
 public class NthValueFunctionsTest extends AbstractWindowFunctionTest {
@@ -154,7 +154,7 @@ public class NthValueFunctionsTest extends AbstractWindowFunctionTest {
     }
 
     @Test
-    public void testFirstValueWithNullPositionReturnsNull() throws Throwable {
+    public void testFirstValueWithNullPositionReturnsNull() {
         Asserts.assertThrowsMatches(
             () -> assertEvaluate("first_value(x,null) over(order by y)",
                                  contains(new Object[] {null, null, null, null}),
@@ -171,7 +171,7 @@ public class NthValueFunctionsTest extends AbstractWindowFunctionTest {
     }
 
     @Test
-    public void testLastValueWithNullPositionReturnsNull() throws Throwable {
+    public void testLastValueWithNullPositionReturnsNull() {
         Asserts.assertThrowsMatches(
             () -> assertEvaluate("last_value(x,null) over(order by y)",
                                  contains(new Object[] {null, null, null, null}),

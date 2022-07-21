@@ -26,269 +26,268 @@ import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.IntegerLiteral;
 import org.junit.Test;
 
-import static io.crate.sql.testing.Asserts.assertThrowsMatches;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class LiteralsTest {
 
     @Test
-    public void testEscape() throws Exception {
-        assertThat(Literals.escapeStringLiteral(""), is(""));
-        assertThat(Literals.escapeStringLiteral("foobar"), is("foobar"));
-        assertThat(Literals.escapeStringLiteral("'"), is("''"));
-        assertThat(Literals.escapeStringLiteral("''"), is("''''"));
-        assertThat(Literals.escapeStringLiteral("'fooBar'"), is("''fooBar''"));
+    public void testEscape() {
+        assertThat(Literals.escapeStringLiteral("")).isEqualTo("");
+        assertThat(Literals.escapeStringLiteral("foobar")).isEqualTo("foobar");
+        assertThat(Literals.escapeStringLiteral("'")).isEqualTo("''");
+        assertThat(Literals.escapeStringLiteral("''")).isEqualTo("''''");
+        assertThat(Literals.escapeStringLiteral("'fooBar'")).isEqualTo("''fooBar''");
     }
 
     @Test
-    public void testQuote() throws Exception {
-        assertThat(Literals.quoteStringLiteral(""), is("''"));
-        assertThat(Literals.quoteStringLiteral("foobar"), is("'foobar'"));
-        assertThat(Literals.quoteStringLiteral("'"), is("''''"));
-        assertThat(Literals.quoteStringLiteral("''"), is("''''''"));
-        assertThat(Literals.quoteStringLiteral("'fooBar'"), is("'''fooBar'''"));
+    public void testQuote() {
+        assertThat(Literals.quoteStringLiteral("")).isEqualTo("''");
+        assertThat(Literals.quoteStringLiteral("foobar")).isEqualTo("'foobar'");
+        assertThat(Literals.quoteStringLiteral("'")).isEqualTo("''''");
+        assertThat(Literals.quoteStringLiteral("''")).isEqualTo("''''''");
+        assertThat(Literals.quoteStringLiteral("'fooBar'")).isEqualTo("'''fooBar'''");
     }
 
     @Test
-    public void testThatNoEscapedCharsAreNotReplaced() throws Exception {
-        assertThat(Literals.replaceEscapedChars(""), is(""));
-        assertThat(Literals.replaceEscapedChars("Hello World"), is("Hello World"));
+    public void testThatNoEscapedCharsAreNotReplaced() {
+        assertThat(Literals.replaceEscapedChars("")).isEqualTo("");
+        assertThat(Literals.replaceEscapedChars("Hello World")).isEqualTo("Hello World");
     }
 
     // Single escaped chars supported
 
     @Test
-    public void testThatEscapedTabLiteralIsReplaced() throws Exception {
-        assertThat(Literals.replaceEscapedChars("\\t"), is("\t"));
+    public void testThatEscapedTabLiteralIsReplaced() {
+        assertThat(Literals.replaceEscapedChars("\\t")).isEqualTo("\t");
     }
 
     @Test
-    public void testThatEscapedTabInMiddleOfLiteralIsReplaced() throws Exception {
-        assertThat(Literals.replaceEscapedChars("Hello\\tWorld"), is("Hello\tWorld"));
+    public void testThatEscapedTabInMiddleOfLiteralIsReplaced() {
+        assertThat(Literals.replaceEscapedChars("Hello\\tWorld")).isEqualTo("Hello\tWorld");
     }
 
     @Test
-    public void testThatEscapedTabAtBeginningOfLiteralIsReplaced() throws Exception {
-        assertThat(Literals.replaceEscapedChars("\\tHelloWorld"), is("\tHelloWorld"));
+    public void testThatEscapedTabAtBeginningOfLiteralIsReplaced() {
+        assertThat(Literals.replaceEscapedChars("\\tHelloWorld")).isEqualTo("\tHelloWorld");
     }
 
     @Test
-    public void testThatEscapedTabAtEndOfLiteralIsReplaced() throws Exception {
-        assertThat(Literals.replaceEscapedChars("HelloWorld\\t"), is("HelloWorld\t"));
+    public void testThatEscapedTabAtEndOfLiteralIsReplaced() {
+        assertThat(Literals.replaceEscapedChars("HelloWorld\\t")).isEqualTo("HelloWorld\t");
     }
 
     @Test
-    public void testThatEscapedBackspaceInTheMiddleOfLiteralIsReplaced() throws Exception {
-        assertThat(Literals.replaceEscapedChars("Hello\\bWorld"), is("Hello\bWorld"));
+    public void testThatEscapedBackspaceInTheMiddleOfLiteralIsReplaced() {
+        assertThat(Literals.replaceEscapedChars("Hello\\bWorld")).isEqualTo("Hello\bWorld");
     }
 
     @Test
-    public void testThatEscapedFormFeedInTheMiddleOfLiteralIsReplaced() throws Exception {
-        assertThat(Literals.replaceEscapedChars("Hello\\fWorld"), is("Hello\fWorld"));
+    public void testThatEscapedFormFeedInTheMiddleOfLiteralIsReplaced() {
+        assertThat(Literals.replaceEscapedChars("Hello\\fWorld")).isEqualTo("Hello\fWorld");
     }
 
     @Test
-    public void testThatEscapedNewLineInTheMiddleOfLiteralIsReplaced() throws Exception {
-        assertThat(Literals.replaceEscapedChars("Hello\\nWorld"), is("Hello\nWorld"));
+    public void testThatEscapedNewLineInTheMiddleOfLiteralIsReplaced() {
+        assertThat(Literals.replaceEscapedChars("Hello\\nWorld")).isEqualTo("Hello\nWorld");
     }
 
     @Test
-    public void testThatCarriageReturnInTheMiddleOfLiteralIsReplaced() throws Exception {
-        assertThat(Literals.replaceEscapedChars("Hello\\rWorld"), is("Hello\rWorld"));
+    public void testThatCarriageReturnInTheMiddleOfLiteralIsReplaced() {
+        assertThat(Literals.replaceEscapedChars("Hello\\rWorld")).isEqualTo("Hello\rWorld");
     }
 
     @Test
-    public void testThatMultipleConsecutiveSingleEscapedCharsAreReplaced() throws Exception {
-        assertThat(Literals.replaceEscapedChars("\\t\\n\\f"), is("\t\n\f"));
+    public void testThatMultipleConsecutiveSingleEscapedCharsAreReplaced() {
+        assertThat(Literals.replaceEscapedChars("\\t\\n\\f")).isEqualTo("\t\n\f");
     }
 
     // Invalid escaped literals
 
     @Test
-    public void testThatCharEscapeWithoutAnySequenceIsNotReplaced() throws Exception {
-        assertThat(Literals.replaceEscapedChars("\\"), is("\\"));
+    public void testThatCharEscapeWithoutAnySequenceIsNotReplaced() {
+        assertThat(Literals.replaceEscapedChars("\\")).isEqualTo("\\");
     }
 
     @Test
-    public void testThatEscapedBackslashCharIsReplacedAndNotConsideredAsEscapeChar() throws Exception {
-        assertThat(Literals.replaceEscapedChars("\\\\141"), is("\\141"));
+    public void testThatEscapedBackslashCharIsReplacedAndNotConsideredAsEscapeChar() {
+        assertThat(Literals.replaceEscapedChars("\\\\141")).isEqualTo("\\141");
     }
 
     @Test
-    public void testThatEscapedQuoteCharIsReplaced() throws Exception {
-        assertThat(Literals.replaceEscapedChars("\\'141"), is("'141"));
+    public void testThatEscapedQuoteCharIsReplaced() {
+        assertThat(Literals.replaceEscapedChars("\\'141")).isEqualTo("'141");
     }
 
     @Test
-    public void testThatInvalidEscapeSequenceIsNotReplaced() throws Exception {
-        assertThat(Literals.replaceEscapedChars("\\s"), is("\\s"));
+    public void testThatInvalidEscapeSequenceIsNotReplaced() {
+        assertThat(Literals.replaceEscapedChars("\\s")).isEqualTo("\\s");
     }
 
     @Test
-    public void testThatInvalidEscapeSequenceAtBeginningOfLiteralIsNotReplaced() throws Exception {
-        assertThat(Literals.replaceEscapedChars("\\shello"), is("\\shello"));
+    public void testThatInvalidEscapeSequenceAtBeginningOfLiteralIsNotReplaced() {
+        assertThat(Literals.replaceEscapedChars("\\shello")).isEqualTo("\\shello");
     }
 
     @Test
-    public void testThatInvalidEscapeSequenceAtEndOfLiteralIsNotReplaced() throws Exception {
-        assertThat(Literals.replaceEscapedChars("hello\\s"), is("hello\\s"));
+    public void testThatInvalidEscapeSequenceAtEndOfLiteralIsNotReplaced() {
+        assertThat(Literals.replaceEscapedChars("hello\\s")).isEqualTo("hello\\s");
     }
 
     // Octal Byte Values
 
     @Test
-    public void testThatEscapedOctalValueLiteralIsReplaced() throws Exception {
-        assertThat(Literals.replaceEscapedChars("\\141"), is("a"));
+    public void testThatEscapedOctalValueLiteralIsReplaced() {
+        assertThat(Literals.replaceEscapedChars("\\141")).isEqualTo("a");
     }
 
     @Test
-    public void testThatMultipleConsecutiveEscapedOctalValuesAreReplaced() throws Exception {
-        assertThat(Literals.replaceEscapedChars("\\141\\141\\141"), is("aaa"));
+    public void testThatMultipleConsecutiveEscapedOctalValuesAreReplaced() {
+        assertThat(Literals.replaceEscapedChars("\\141\\141\\141")).isEqualTo("aaa");
     }
 
     @Test
-    public void testThatDigitFollowingEscapedOctalValueIsNotReplaced() throws Exception {
-        assertThat(Literals.replaceEscapedChars("\\1411"), is("a1"));
+    public void testThatDigitFollowingEscapedOctalValueIsNotReplaced() {
+        assertThat(Literals.replaceEscapedChars("\\1411")).isEqualTo("a1");
     }
 
     @Test
-    public void testThatSingleDigitEscapedOctalValueIsReplaced() throws Exception {
-        assertThat(Literals.replaceEscapedChars("\\0"), is("\u0000"));
+    public void testThatSingleDigitEscapedOctalValueIsReplaced() {
+        assertThat(Literals.replaceEscapedChars("\\0")).isEqualTo("\u0000");
     }
 
     @Test
-    public void testThatDoubleDigitEscapedOctalValueIsReplaced() throws Exception {
-        assertThat(Literals.replaceEscapedChars("\\07"), is("\u0007"));
+    public void testThatDoubleDigitEscapedOctalValueIsReplaced() {
+        assertThat(Literals.replaceEscapedChars("\\07")).isEqualTo("\u0007");
     }
 
     // Hexadecimal Byte Values
 
     @Test
-    public void testThatEscapedHexValueLiteralIsReplaced() throws Exception {
-        assertThat(Literals.replaceEscapedChars("\\x61"), is("a"));
+    public void testThatEscapedHexValueLiteralIsReplaced() {
+        assertThat(Literals.replaceEscapedChars("\\x61")).isEqualTo("a");
     }
 
     @Test
-    public void testThatMultipleConsecutiveEscapedHexValueLiteralAreReplaced() throws Exception {
-        assertThat(Literals.replaceEscapedChars("\\x61\\x61\\x61"), is("aaa"));
+    public void testThatMultipleConsecutiveEscapedHexValueLiteralAreReplaced() {
+        assertThat(Literals.replaceEscapedChars("\\x61\\x61\\x61")).isEqualTo("aaa");
     }
 
     @Test
-    public void testThatMultipleNonConsecutiveEscapedHexValueLiteralAreReplaced() throws Exception {
-        assertThat(Literals.replaceEscapedChars("\\x61 \\x61"), is("a a"));
+    public void testThatMultipleNonConsecutiveEscapedHexValueLiteralAreReplaced() {
+        assertThat(Literals.replaceEscapedChars("\\x61 \\x61")).isEqualTo("a a");
     }
 
     @Test
-    public void testThatDigitsFollowingEscapedHexValueLiteralAreNotReplaced() throws Exception {
-        assertThat(Literals.replaceEscapedChars("\\x610000"), is("a0000"));
+    public void testThatDigitsFollowingEscapedHexValueLiteralAreNotReplaced() {
+        assertThat(Literals.replaceEscapedChars("\\x610000")).isEqualTo("a0000");
     }
 
     @Test
-    public void testThatSingleDigitEscapedHexValueLiteralIsReplaced() throws Exception {
-        assertThat(Literals.replaceEscapedChars("\\xDg0000"), is("\rg0000"));
+    public void testThatSingleDigitEscapedHexValueLiteralIsReplaced() {
+        assertThat(Literals.replaceEscapedChars("\\xDg0000")).isEqualTo("\rg0000");
     }
 
     @Test
-    public void testThatEscapedHexValueInTheMiddleOfTheLiteralAreReplacedIsReplaced() throws Exception {
-        assertThat(Literals.replaceEscapedChars("What \\x61 wonderful world"),
-            is("What a wonderful world"));
+    public void testThatEscapedHexValueInTheMiddleOfTheLiteralAreReplacedIsReplaced() {
+        assertThat(Literals.replaceEscapedChars("What \\x61 wonderful world"))
+            .isEqualTo("What a wonderful world");
     }
 
     @Test
-    public void testThatInvalidEscapedHexLiteralsAreNotReplaced() throws Exception {
-        assertThat(Literals.replaceEscapedChars("\\x\\x"), is("xx"));
+    public void testThatInvalidEscapedHexLiteralsAreNotReplaced() {
+        assertThat(Literals.replaceEscapedChars("\\x\\x")).isEqualTo("xx");
     }
 
     // 16-bit Unicode Character Values
 
     @Test
-    public void testThatEscaped16BitUnicodeCharsAreReplaced() throws Exception {
-        assertThat(Literals.replaceEscapedChars("\\u0061"), is("a"));
+    public void testThatEscaped16BitUnicodeCharsAreReplaced() {
+        assertThat(Literals.replaceEscapedChars("\\u0061")).isEqualTo("a");
     }
 
     @Test
-    public void testThatMultipleConsecutiveEscaped16BitUnicodeCharsAreReplaced() throws Exception {
-        assertThat(Literals.replaceEscapedChars("\\u0061\\u0061\\u0061"), is("aaa"));
+    public void testThatMultipleConsecutiveEscaped16BitUnicodeCharsAreReplaced() {
+        assertThat(Literals.replaceEscapedChars("\\u0061\\u0061\\u0061")).isEqualTo("aaa");
     }
 
     @Test
-    public void testThatMultipleNonConsecutiveEscaped16BitUnicodeCharsAreReplaced() throws Exception {
-        assertThat(Literals.replaceEscapedChars("\\u0061 \\u0061"), is("a a"));
+    public void testThatMultipleNonConsecutiveEscaped16BitUnicodeCharsAreReplaced() {
+        assertThat(Literals.replaceEscapedChars("\\u0061 \\u0061")).isEqualTo("a a");
     }
 
     @Test
-    public void testThatDigitsFollowingEscaped16BitUnicodeCharsAreNotReplaced() throws Exception {
-        assertThat(Literals.replaceEscapedChars("\\u00610000"), is("a0000"));
+    public void testThatDigitsFollowingEscaped16BitUnicodeCharsAreNotReplaced() {
+        assertThat(Literals.replaceEscapedChars("\\u00610000")).isEqualTo("a0000");
     }
 
     @Test
-    public void testThatEscaped16BitUnicodeCharsInTheMiddleOfTheLiteralAreReplaced() throws Exception {
-        assertThat(Literals.replaceEscapedChars("What \\u0061 wonderful world"),
-            is("What a wonderful world"));
+    public void testThatEscaped16BitUnicodeCharsInTheMiddleOfTheLiteralAreReplaced() {
+        assertThat(Literals.replaceEscapedChars("What \\u0061 wonderful world"))
+            .isEqualTo("What a wonderful world");
     }
 
     @Test
-    public void testThatInvalidLengthEscapedUnicode16SequenceThrowsException() throws Exception {
-        assertThrowsMatches(
-            () -> Literals.replaceEscapedChars("\\u006"),
-            IllegalArgumentException.class,
-            Literals.ESCAPED_UNICODE_ERROR);
+    public void testThatInvalidLengthEscapedUnicode16SequenceThrowsException() {
+        assertThatThrownBy(
+            () -> Literals.replaceEscapedChars("\\u006"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage(Literals.ESCAPED_UNICODE_ERROR);
     }
 
     @Test
-    public void testThatInvalidHexEscapedUnicode16SequenceThrowsException() throws Exception {
-        assertThrowsMatches(
-            () -> Literals.replaceEscapedChars("\\u006G"),
-            IllegalArgumentException.class,
-            Literals.ESCAPED_UNICODE_ERROR);
+    public void testThatInvalidHexEscapedUnicode16SequenceThrowsException() {
+        assertThatThrownBy(
+            () -> Literals.replaceEscapedChars("\\u006G"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage(Literals.ESCAPED_UNICODE_ERROR);
     }
 
     @Test
-    public void testThatEscaped32BitUnicodeCharsAreReplaced() throws Exception {
-        assertThat(Literals.replaceEscapedChars("\\U00000061"), is("a"));
+    public void testThatEscaped32BitUnicodeCharsAreReplaced() {
+        assertThat(Literals.replaceEscapedChars("\\U00000061")).isEqualTo("a");
     }
 
     @Test
-    public void testThatMultipleConsecutiveEscaped32BitUnicodeCharsAreReplaced() throws Exception {
-        assertThat(Literals.replaceEscapedChars("\\U00000061\\U00000061\\U00000061"), is("aaa"));
+    public void testThatMultipleConsecutiveEscaped32BitUnicodeCharsAreReplaced() {
+        assertThat(Literals.replaceEscapedChars("\\U00000061\\U00000061\\U00000061")).isEqualTo("aaa");
     }
 
     @Test
-    public void testThatMultipleNonConsecutiveEscaped32BitUnicodeCharsAreReplaced() throws Exception {
-        assertThat(Literals.replaceEscapedChars("\\U00000061 \\U00000061"), is("a a"));
+    public void testThatMultipleNonConsecutiveEscaped32BitUnicodeCharsAreReplaced() {
+        assertThat(Literals.replaceEscapedChars("\\U00000061 \\U00000061")).isEqualTo("a a");
     }
 
     @Test
-    public void testThatDigitsFollowingEscaped32BitUnicodeCharsAreNotReplaced() throws Exception {
-        assertThat(Literals.replaceEscapedChars("\\U000000610000"), is("a0000"));
+    public void testThatDigitsFollowingEscaped32BitUnicodeCharsAreNotReplaced() {
+        assertThat(Literals.replaceEscapedChars("\\U000000610000")).isEqualTo("a0000");
     }
 
     @Test
-    public void testThatEscaped32BitUnicodeCharsInTheMiddleOfTheLiteralAreReplaced() throws Exception {
-        assertThat(Literals.replaceEscapedChars("What \\U00000061 wonderful world"),
-            is("What a wonderful world"));
+    public void testThatEscaped32BitUnicodeCharsInTheMiddleOfTheLiteralAreReplaced() {
+        assertThat(Literals.replaceEscapedChars("What \\U00000061 wonderful world"))
+            .isEqualTo("What a wonderful world");
     }
 
     @Test
-    public void testThatInvalidLengthEscapedUnicode32SequenceThrowsException() throws Exception {
-        assertThrowsMatches(
-            () -> Literals.replaceEscapedChars("\\U0061"),
-            IllegalArgumentException.class,
-            Literals.ESCAPED_UNICODE_ERROR);
+    public void testThatInvalidLengthEscapedUnicode32SequenceThrowsException() {
+        assertThatThrownBy(
+            () -> Literals.replaceEscapedChars("\\U0061"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage(Literals.ESCAPED_UNICODE_ERROR);
     }
 
     @Test
-    public void testThatInvalidHexEscapedUnicode32SequenceThrowsException() throws Exception {
-        assertThrowsMatches(
-            () -> Literals.replaceEscapedChars("\\U0000006G"),
-            IllegalArgumentException.class,
-            Literals.ESCAPED_UNICODE_ERROR);
+    public void testThatInvalidHexEscapedUnicode32SequenceThrowsException() {
+        assertThatThrownBy(
+            () -> Literals.replaceEscapedChars("\\U0000006G"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage(Literals.ESCAPED_UNICODE_ERROR);
     }
 
     @Test
     public void test_integer_literal() {
         var literal = SqlParser.createExpression("2147483647");
-        assertThat(literal, is(new IntegerLiteral(Integer.MAX_VALUE)));
+        assertThat(literal).isEqualTo(new IntegerLiteral(Integer.MAX_VALUE));
     }
 }

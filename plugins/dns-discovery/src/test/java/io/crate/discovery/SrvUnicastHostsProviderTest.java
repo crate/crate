@@ -21,9 +21,8 @@
 
 package io.crate.discovery;
 
-import static org.hamcrest.Matchers.anyOf;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.anyOf;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -31,6 +30,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import org.assertj.core.api.Condition;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
@@ -39,7 +39,6 @@ import org.elasticsearch.test.transport.MockTransportService;
 import org.elasticsearch.threadpool.TestThreadPool;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
-import org.hamcrest.core.AnyOf;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -56,12 +55,14 @@ public class SrvUnicastHostsProviderTest extends ESTestCase {
 
     private ThreadPool threadPool;
     private SrvUnicastHostsProvider srvUnicastHostsProvider;
-    private AnyOf<String> isLocalHost;
+    private Condition<String> isLocalHost;
 
     @Before
     public void mockTransportService() throws Exception {
         String localHostName = InetAddress.getLocalHost().getCanonicalHostName();
-        isLocalHost = anyOf(is(localHostName), is("localhost"));
+        isLocalHost = anyOf(
+            new Condition<>(localHostName::equals, ""),
+            new Condition<>("localhost"::equals, ""));
         threadPool = new TestThreadPool("dummy", Settings.EMPTY);
         TransportService transportService = MockTransportService.createNewService(
             Settings.EMPTY, Version.CURRENT, threadPool, null);
@@ -83,8 +84,8 @@ public class SrvUnicastHostsProviderTest extends ESTestCase {
             .put(SrvUnicastHostsProvider.DISCOVERY_SRV_RESOLVER.getKey(), "127.0.0.1")
             .build();
         InetSocketAddress address = srvUnicastHostsProvider.parseResolverAddress(settings);
-        assertThat(address.getHostName(), isLocalHost);
-        assertThat(address.getPort(), is(53));
+        assertThat(address.getHostName()).satisfies(isLocalHost);
+        assertThat(address.getPort()).isEqualTo(53);
     }
 
     @Test
@@ -93,8 +94,8 @@ public class SrvUnicastHostsProviderTest extends ESTestCase {
             .put(SrvUnicastHostsProvider.DISCOVERY_SRV_RESOLVER.getKey(), "127.0.0.1:1234")
             .build();
         InetSocketAddress address = srvUnicastHostsProvider.parseResolverAddress(settings);
-        assertThat(address.getHostName(), isLocalHost);
-        assertThat(address.getPort(), is(1234));
+        assertThat(address.getHostName()).satisfies(isLocalHost);
+        assertThat(address.getPort()).isEqualTo(1234);
     }
 
     @Test
@@ -103,8 +104,8 @@ public class SrvUnicastHostsProviderTest extends ESTestCase {
             .put(SrvUnicastHostsProvider.DISCOVERY_SRV_RESOLVER.getKey(), "127.0.0.1:1234567")
             .build();
         InetSocketAddress address = srvUnicastHostsProvider.parseResolverAddress(settings);
-        assertThat(address.getHostName(), isLocalHost);
-        assertThat(address.getPort(), is(53));
+        assertThat(address.getHostName()).satisfies(isLocalHost);
+        assertThat(address.getPort()).isEqualTo(53);
     }
 
     @Test
@@ -113,8 +114,8 @@ public class SrvUnicastHostsProviderTest extends ESTestCase {
             .put(SrvUnicastHostsProvider.DISCOVERY_SRV_RESOLVER.getKey(), "127.0.0.1:foo")
             .build();
         InetSocketAddress address = srvUnicastHostsProvider.parseResolverAddress(settings);
-        assertThat(address.getHostName(), isLocalHost);
-        assertThat(address.getPort(), is(53));
+        assertThat(address.getHostName()).satisfies(isLocalHost);
+        assertThat(address.getPort()).isEqualTo(53);
     }
 
     @Test
@@ -127,8 +128,8 @@ public class SrvUnicastHostsProviderTest extends ESTestCase {
         DnsRecord record = new DefaultDnsRawRecord("_myprotocol._tcp.crate.io.", DnsRecordType.SRV, 30, buf);
 
         List<TransportAddress> addresses = srvUnicastHostsProvider.parseRecords(Collections.singletonList(record));
-        assertThat(addresses.get(0).getAddress(), is("127.0.0.1"));
-        assertThat(addresses.get(0).getPort(), is(993));
+        assertThat(addresses.get(0).getAddress()).isEqualTo("127.0.0.1");
+        assertThat(addresses.get(0).getPort()).isEqualTo(993);
     }
 
     /**

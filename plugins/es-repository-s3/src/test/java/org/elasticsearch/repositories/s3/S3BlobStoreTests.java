@@ -21,8 +21,8 @@
 
 package org.elasticsearch.repositories.s3;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Locale;
 import java.util.concurrent.ConcurrentHashMap;
@@ -34,18 +34,13 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.repositories.ESBlobStoreTestCase;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.CannedAccessControlList;
 import com.amazonaws.services.s3.model.StorageClass;
 
 public class S3BlobStoreTests extends ESBlobStoreTestCase {
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     @Override
     protected BlobStore newBlobStore() {
@@ -59,60 +54,63 @@ public class S3BlobStoreTests extends ESBlobStoreTestCase {
                 "log-delivery-write", "bucket-owner-read", "bucket-owner-full-control"};
 
         //empty acl
-        assertThat(S3BlobStore.initCannedACL(null), equalTo(CannedAccessControlList.Private));
-        assertThat(S3BlobStore.initCannedACL(""), equalTo(CannedAccessControlList.Private));
+        assertThat(S3BlobStore.initCannedACL(null)).isEqualTo(CannedAccessControlList.Private);
+        assertThat(S3BlobStore.initCannedACL("")).isEqualTo(CannedAccessControlList.Private);
 
         // it should init cannedACL correctly
         for (String aclString : aclList) {
             CannedAccessControlList acl = S3BlobStore.initCannedACL(aclString);
-            assertThat(acl.toString(), equalTo(aclString));
+            assertThat(acl.toString()).isEqualTo(aclString);
         }
 
         // it should accept all aws cannedACLs
         for (CannedAccessControlList awsList : CannedAccessControlList.values()) {
             CannedAccessControlList acl = S3BlobStore.initCannedACL(awsList.toString());
-            assertThat(acl, equalTo(awsList));
+            assertThat(acl).isEqualTo(awsList);
         }
     }
 
     @Test
     public void testInvalidCannedACL() {
-        expectedException.expect(BlobStoreException.class);
-        expectedException.expectMessage("cannedACL is not valid: [test_invalid]");
-        S3BlobStore.initCannedACL("test_invalid");
+        assertThatThrownBy(
+            () -> S3BlobStore.initCannedACL("test_invalid"))
+            .isInstanceOf(BlobStoreException.class)
+            .hasMessage("cannedACL is not valid: [test_invalid]");
     }
 
     @Test
     public void testInitStorageClass() {
         // it should default to `standard`
-        assertThat(S3BlobStore.initStorageClass(null), equalTo(StorageClass.Standard));
-        assertThat(S3BlobStore.initStorageClass(""), equalTo(StorageClass.Standard));
+        assertThat(S3BlobStore.initStorageClass(null)).isEqualTo(StorageClass.Standard);
+        assertThat(S3BlobStore.initStorageClass("")).isEqualTo(StorageClass.Standard);
 
         // it should accept [standard, standard_ia, reduced_redundancy]
-        assertThat(S3BlobStore.initStorageClass("standard"), equalTo(StorageClass.Standard));
-        assertThat(S3BlobStore.initStorageClass("standard_ia"), equalTo(StorageClass.StandardInfrequentAccess));
-        assertThat(S3BlobStore.initStorageClass("reduced_redundancy"), equalTo(StorageClass.ReducedRedundancy));
+        assertThat(S3BlobStore.initStorageClass("standard")).isEqualTo(StorageClass.Standard);
+        assertThat(S3BlobStore.initStorageClass("standard_ia")).isEqualTo(StorageClass.StandardInfrequentAccess);
+        assertThat(S3BlobStore.initStorageClass("reduced_redundancy")).isEqualTo(StorageClass.ReducedRedundancy);
     }
 
     @Test
     public void testCaseInsensitiveStorageClass() {
-        assertThat(S3BlobStore.initStorageClass("sTandaRd"), equalTo(StorageClass.Standard));
-        assertThat(S3BlobStore.initStorageClass("sTandaRd_Ia"), equalTo(StorageClass.StandardInfrequentAccess));
-        assertThat(S3BlobStore.initStorageClass("reduCED_redundancy"), equalTo(StorageClass.ReducedRedundancy));
+        assertThat(S3BlobStore.initStorageClass("sTandaRd")).isEqualTo(StorageClass.Standard);
+        assertThat(S3BlobStore.initStorageClass("sTandaRd_Ia")).isEqualTo(StorageClass.StandardInfrequentAccess);
+        assertThat(S3BlobStore.initStorageClass("reduCED_redundancy")).isEqualTo(StorageClass.ReducedRedundancy);
     }
 
     @Test
     public void testInvalidStorageClass() {
-        expectedException.expect(BlobStoreException.class);
-        expectedException.expectMessage("`whatever` is not a valid S3 Storage Class.");
-        S3BlobStore.initStorageClass("whatever");
+        assertThatThrownBy(
+            () -> S3BlobStore.initStorageClass("whatever"))
+            .isInstanceOf(BlobStoreException.class)
+            .hasMessage("`whatever` is not a valid S3 Storage Class.");
     }
 
     @Test
     public void testRejectGlacierStorageClass() {
-        expectedException.expect(BlobStoreException.class);
-        expectedException.expectMessage("Glacier storage class is not supported");
-        S3BlobStore.initStorageClass("glacier");
+        assertThatThrownBy(
+            () -> S3BlobStore.initStorageClass("glacier"))
+            .isInstanceOf(BlobStoreException.class)
+            .hasMessage("Glacier storage class is not supported");
     }
 
     /**

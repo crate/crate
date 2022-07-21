@@ -21,12 +21,11 @@
 
 package io.crate.breaker;
 
-import org.junit.Test;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.concurrent.atomic.AtomicLong;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import org.junit.Test;
 
 public class BlockBasedRamAccountingTest {
 
@@ -36,8 +35,8 @@ public class BlockBasedRamAccountingTest {
         var ramAccounting = new BlockBasedRamAccounting(requestedBytes::addAndGet, 4096);
 
         ramAccounting.addBytes(40);
-        assertThat(ramAccounting.totalBytes(), is(40L));
-        assertThat(requestedBytes.get(), is((long) 4096));
+        assertThat(ramAccounting.totalBytes()).isEqualTo(40L);
+        assertThat(requestedBytes.get()).isEqualTo(4096L);
     }
 
     @Test
@@ -47,9 +46,9 @@ public class BlockBasedRamAccountingTest {
 
         ramAccounting.addBytes(40);
         ramAccounting.addBytes(40);
-        assertThat(requestedBytes.get(), is((long) 2048));
+        assertThat(requestedBytes.get()).isEqualTo(2048L);
         ramAccounting.release();
-        assertThat(requestedBytes.get(), is(0L));
+        assertThat(requestedBytes.get()).isEqualTo(0L);
     }
 
     @Test
@@ -58,6 +57,6 @@ public class BlockBasedRamAccountingTest {
         var ramAccounting = new BlockBasedRamAccounting(accountedBytes::addAndGet, 200);
 
         ramAccounting.addBytes(5432);
-        assertThat(accountedBytes.get(), is(5432L));
+        assertThat(accountedBytes.get()).isEqualTo(5432L);
     }
 }

@@ -21,38 +21,36 @@
 
 package io.crate.concurrent;
 
-import org.hamcrest.Matchers;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import org.junit.Test;
 
 public class CompletableFuturesTest {
 
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
-
     @Test
-    public void testAllAsListFailurePropagation() throws Exception {
+    public void testAllAsListFailurePropagation() {
         CompletableFuture<Integer> f1 = new CompletableFuture<>();
         CompletableFuture<Integer> f2 = new CompletableFuture<>();
         CompletableFuture<List<Integer>> all = CompletableFutures.allAsList(Arrays.asList(f1, f2));
 
         f1.completeExceptionally(new IllegalStateException("dummy"));
-        assertThat("future must wait for all subFutures", all.isDone(), is(false));
+        assertThat(all.isDone())
+            .as("future must wait for all subFutures")
+            .isFalse();
 
         f2.complete(2);
-        expectedException.expectCause(Matchers.instanceOf(IllegalStateException.class));
-        all.get(10, TimeUnit.SECONDS);
+        assertThatThrownBy(() -> all.get(10, TimeUnit.SECONDS))
+            .isInstanceOf(ExecutionException.class)
+            .hasCauseInstanceOf(IllegalStateException.class);
     }
 
     @Test
@@ -64,15 +62,15 @@ public class CompletableFuturesTest {
         f1.complete(10);
         f2.complete(20);
 
-        assertThat(all.get(10, TimeUnit.SECONDS), Matchers.contains(10, 20));
+        assertThat(all.get(10, TimeUnit.SECONDS)).containsExactly(10, 20);
     }
 
     @Test
-    public void testSupplyAsyncReturnsFailedFutureOnException() throws Exception {
+    public void testSupplyAsyncReturnsFailedFutureOnException() {
         Executor rejectingExecutor = command -> {
             throw new RejectedExecutionException("rejected");
         };
         CompletableFuture<Object> future = CompletableFutures.supplyAsync(() -> null, rejectingExecutor);
-        assertThat(future.isCompletedExceptionally(), is(true));
+        assertThat(future.isCompletedExceptionally()).isTrue();
     }
 }

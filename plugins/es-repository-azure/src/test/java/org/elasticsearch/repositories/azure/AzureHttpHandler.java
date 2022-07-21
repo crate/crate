@@ -20,16 +20,6 @@
  */
 package org.elasticsearch.repositories.azure;
 
-import com.sun.net.httpserver.Headers;
-import com.sun.net.httpserver.HttpExchange;
-import com.sun.net.httpserver.HttpHandler;
-import io.netty.handler.codec.http.QueryStringDecoder;
-import org.elasticsearch.common.bytes.BytesArray;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.io.Streams;
-import org.elasticsearch.common.regex.Regex;
-import org.elasticsearch.rest.RestStatus;
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -44,7 +34,18 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
+
+import org.elasticsearch.common.bytes.BytesArray;
+import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.io.Streams;
+import org.elasticsearch.common.regex.Regex;
+import org.elasticsearch.rest.RestStatus;
+
+import com.sun.net.httpserver.Headers;
+import com.sun.net.httpserver.HttpExchange;
+import com.sun.net.httpserver.HttpHandler;
+
+import io.netty.handler.codec.http.QueryStringDecoder;
 
 /**
  * Minimal HTTP handler that acts as an Azure compliant server
@@ -67,7 +68,7 @@ public class AzureHttpHandler implements HttpHandler {
             int read = exchange.getRequestBody().read();
             assert read == -1 : "Request body should have been empty but saw [" + read + "]";
         }
-        try {
+        try (exchange) {
             if (Regex.simpleMatch("PUT /" + container + "/*blockid=*", request)) {
                 // Put Block (https://docs.microsoft.com/en-us/rest/api/storageservices/put-block)
                 final Map<String, String> params = decodeQueryString(exchange.getRequestURI().toString());
@@ -82,8 +83,7 @@ public class AzureHttpHandler implements HttpHandler {
                                                                                     StandardCharsets.UTF_8));
                 final List<String> blockIds = Arrays.stream(blockList.split("<Latest>"))
                     .filter(line -> line.contains("</Latest>"))
-                    .map(line -> line.substring(0, line.indexOf("</Latest>")))
-                    .collect(Collectors.toList());
+                    .map(line -> line.substring(0, line.indexOf("</Latest>"))).toList();
 
                 final ByteArrayOutputStream blob = new ByteArrayOutputStream();
                 for (String blockId : blockIds) {
@@ -176,7 +176,8 @@ public class AzureHttpHandler implements HttpHandler {
                         }
                     }
                     list.append("<Blob><Name>").append(blobPath).append("</Name>");
-                    list.append("<Properties><Content-Length>").append(blob.getValue().length()).append("</Content-Length>");
+                    list.append("<Properties><Content-Length>").append(blob.getValue().length()).append(
+                        "</Content-Length>");
                     list.append("<BlobType>BlockBlob</BlobType></Properties></Blob>");
                 }
                 if (blobPrefixes.isEmpty() == false) {
@@ -194,8 +195,6 @@ public class AzureHttpHandler implements HttpHandler {
             } else {
                 sendError(exchange, RestStatus.BAD_REQUEST);
             }
-        } finally {
-            exchange.close();
         }
     }
 
@@ -240,19 +239,14 @@ public class AzureHttpHandler implements HttpHandler {
     // See https://docs.microsoft.com/en-us/rest/api/storageservices/common-rest-api-error-codes
     private static String toAzureErrorCode(final RestStatus status) {
         assert status.getStatus() >= 400;
-        switch (status) {
-            case BAD_REQUEST:
-                return "InvalidMetadata";
-            case NOT_FOUND:
-                return "BlobNotFound";
-            case INTERNAL_SERVER_ERROR:
-                return "InternalError";
-            case SERVICE_UNAVAILABLE:
-                return "ServerBusy";
-            case CONFLICT:
-                return "BlobAlreadyExists";
-            default:
-                throw new IllegalArgumentException("Error code [" + status.getStatus() + "] is not mapped to an existing Azure code");
-        }
+        return switch (status) {
+            case BAD_REQUEST -> "InvalidMetadata";
+            case NOT_FOUND -> "BlobNotFound";
+            case INTERNAL_SERVER_ERROR -> "InternalError";
+            case SERVICE_UNAVAILABLE -> "ServerBusy";
+            case CONFLICT -> "BlobAlreadyExists";
+            default -> throw new IllegalArgumentException(
+                "Error code [" + status.getStatus() + "] is not mapped to an existing Azure code");
+        };
     }
 }

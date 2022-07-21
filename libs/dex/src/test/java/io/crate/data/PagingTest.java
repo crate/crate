@@ -21,28 +21,27 @@
 
 package io.crate.data;
 
-import org.junit.Test;
+import static org.assertj.core.api.Assertions.assertThat;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import org.junit.Test;
 
 public class PagingTest {
 
     @Test
-    public void testGetNodePageSize() throws Exception {
+    public void testGetNodePageSize() {
         double weight = 1.0d / 8.0d;
         int pageSize = Paging.getWeightedPageSize(10_000, weight);
-        assertThat(pageSize, is(1875));
+        assertThat(pageSize).isEqualTo(1875);
     }
 
     @Test
-    public void testSmallLimitWithManyExecutionNodes() throws Exception {
+    public void testSmallLimitWithManyExecutionNodes() {
         int pageSize = Paging.getWeightedPageSize(10, 1.0 / 20.0);
-        assertThat(pageSize, is(10));
+        assertThat(pageSize).isEqualTo(10);
     }
 
     @Test
-    public void testSmallLimitIsUnchanged() throws Exception {
-        assertThat(Paging.getWeightedPageSize(10, 1.0d / 4), is(10));
+    public void testSmallLimitIsUnchanged() {
+        assertThat(Paging.getWeightedPageSize(10, 1.0d / 4)).isEqualTo(10);
     }
 }

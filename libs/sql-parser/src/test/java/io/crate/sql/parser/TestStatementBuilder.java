@@ -22,24 +22,16 @@
 package io.crate.sql.parser;
 
 import static io.crate.sql.parser.TreeAssertions.assertFormattedSql;
-import static io.crate.sql.testing.Asserts.assertThrowsMatches;
 import static java.lang.String.format;
-import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.hamcrest.CoreMatchers.nullValue;
-import static org.hamcrest.core.Is.is;
-import static org.hamcrest.core.IsInstanceOf.instanceOf;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.hamcrest.CoreMatchers;
-import org.hamcrest.Matchers;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.Test;
 
 import io.crate.sql.Literals;
@@ -105,25 +97,22 @@ public class TestStatementBuilder {
     @Test
     public void testMultipleStatements() {
         List<Statement> statements = SqlParser.createStatements("BEGIN; END;");
-        assertThat(statements, Matchers.contains(
-            instanceOf(BeginStatement.class),
-            instanceOf(CommitStatement.class)
-        ));
+        assertThat(statements).hasSize(2);
+        assertThat(statements.get(0)).isInstanceOf(BeginStatement.class);
+        assertThat(statements.get(1)).isInstanceOf(CommitStatement.class);
 
         statements = SqlParser.createStatements("BEGIN; END");
-        assertThat(statements, Matchers.contains(
-            instanceOf(BeginStatement.class),
-            instanceOf(CommitStatement.class)
-        ));
+        assertThat(statements).hasSize(2);
+        assertThat(statements.get(0)).isInstanceOf(BeginStatement.class);
+        assertThat(statements.get(1)).isInstanceOf(CommitStatement.class);
 
         statements = SqlParser.createStatements("BEGIN");
-        assertThat(statements, Matchers.contains(
-            instanceOf(BeginStatement.class)
-        ));
+        assertThat(statements).hasSize(1);
+        assertThat(statements.get(0)).isInstanceOf(BeginStatement.class);
+
         statements = SqlParser.createStatements("SET extra_float_digits = 3");
-        assertThat(statements, Matchers.contains(
-            instanceOf(SetStatement.class)
-        ));
+        assertThat(statements).hasSize(1);
+        assertThat(statements.get(0)).isInstanceOf(SetStatement.class);
     }
 
     @Test
@@ -139,7 +128,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testSetTransaction() throws Exception {
+    public void testSetTransaction() {
         printStatement("SET TRANSACTION ISOLATION LEVEL SERIALIZABLE");
         printStatement("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ");
         printStatement("SET TRANSACTION ISOLATION LEVEL READ COMMITTED");
@@ -157,7 +146,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void test_discard_statement_parsing() throws Exception {
+    public void test_discard_statement_parsing() {
         printStatement("DISCARD ALL");
         printStatement("DISCARD PLANS");
         printStatement("DISCARD SEQUENCES");
@@ -236,18 +225,18 @@ public class TestStatementBuilder {
 
     @Test
     public void test_duplicates_in_window_definitions() {
-        assertThrowsMatches(
-            () -> printStatement("SELECT x FROM t WINDOW w AS (), w as ()"),
-            IllegalArgumentException.class,
-            "Window w is already defined");
+        assertThatThrownBy(
+            () -> printStatement("SELECT x FROM t WINDOW w AS (), w as ()"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Window w is already defined");
     }
 
     @Test
     public void test_circular_references_in_window_definitions() {
-        assertThrowsMatches(
-            () -> printStatement("SELECT x FROM t WINDOW w AS (ww), ww as (w), www as ()"),
-            IllegalArgumentException.class,
-            "Window ww does not exist");
+        assertThatThrownBy(
+            () -> printStatement("SELECT x FROM t WINDOW w AS (ww), ww as (w), www as ()"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Window ww does not exist");
     }
 
     @Test
@@ -266,10 +255,10 @@ public class TestStatementBuilder {
 
     @Test
     public void testNullNotAllowedAsArgToExtractField() {
-        assertThrowsMatches(
-            () -> printStatement("select extract(null from x)"),
-            ParsingException.class,
-            "line 1:16: no viable alternative at input 'select extract(null'");
+        assertThatThrownBy(
+            () -> printStatement("select extract(null from x)"))
+            .isInstanceOf(ParsingException.class)
+            .hasMessage("line 1:16: no viable alternative at input 'select extract(null'");
     }
 
     @Test
@@ -304,10 +293,10 @@ public class TestStatementBuilder {
 
     @Test
     public void test_decommission_node_id_is_missing() {
-        assertThrowsMatches(
-            () -> printStatement("ALTER CLUSTER DECOMMISSION'"),
-            ParsingException.class,
-            "line 1:27: mismatched input ''' expecting {'(', '[', '[]', '{', '$', '?', ");
+        assertThatThrownBy(
+            () -> printStatement("ALTER CLUSTER DECOMMISSION'"))
+            .isInstanceOf(ParsingException.class)
+            .hasMessageStartingWith("line 1:27: mismatched input ''' expecting {'(', '[', '[]', '{', '$', '?', ");
     }
 
     @Test
@@ -462,14 +451,14 @@ public class TestStatementBuilder {
 
     @Test
     public void testKillJob() {
-        KillStatement stmt = (KillStatement) SqlParser.createStatement("KILL $1");
-        assertThat(stmt.jobId(), is(notNullValue()));
+        KillStatement<?> stmt = (KillStatement<?>) SqlParser.createStatement("KILL $1");
+        assertThat(stmt.jobId()).isNotNull();
     }
 
     @Test
     public void testKillAll() {
         Statement stmt = SqlParser.createStatement("KILL ALL");
-        assertThat(stmt, is(new KillStatement(null)));
+        assertThat(stmt).isEqualTo(new KillStatement<>(null));
     }
 
     @Test
@@ -483,24 +472,24 @@ public class TestStatementBuilder {
 
     @Test
     public void testDeallocateWithoutParamThrowsParsingException() {
-        assertThrowsMatches(
-            () -> printStatement("deallocate"),
-            ParsingException.class,
-            "line 1:11: mismatched input '<EOF>'");
+        assertThatThrownBy(
+            () -> printStatement("deallocate"))
+            .isInstanceOf(ParsingException.class)
+            .hasMessageStartingWith("line 1:11: mismatched input '<EOF>'");
     }
 
     @Test
     public void testDeallocate() {
         DeallocateStatement stmt = (DeallocateStatement) SqlParser.createStatement("DEALLOCATE test_prep_stmt");
-        assertThat(stmt.preparedStmt().toString(), is("'test_prep_stmt'"));
+        assertThat(stmt.preparedStmt().toString()).isEqualTo("'test_prep_stmt'");
         stmt = (DeallocateStatement) SqlParser.createStatement("DEALLOCATE 'test_prep_stmt'");
-        assertThat(stmt.preparedStmt().toString(), is("'test_prep_stmt'"));
+        assertThat(stmt.preparedStmt().toString()).isEqualTo("'test_prep_stmt'");
     }
 
     @Test
     public void testDeallocateAll() {
         Statement stmt = SqlParser.createStatement("DEALLOCATE ALL");
-        assertTrue(stmt.equals(new DeallocateStatement()));
+        assertThat(stmt.equals(new DeallocateStatement())).isTrue();
     }
 
     @Test
@@ -530,10 +519,10 @@ public class TestStatementBuilder {
 
     @Test
     public void testSetSessionInvalidSetting() {
-        assertThrowsMatches(
-            () -> printStatement("set session 'some_setting' TO 1, ON"),
-            ParsingException.class,
-            "line 1:13: no viable alternative at input 'set session 'some_setting''");
+        assertThatThrownBy(
+            () -> printStatement("set session 'some_setting' TO 1, ON"))
+            .isInstanceOf(ParsingException.class)
+            .hasMessage("line 1:13: no viable alternative at input 'set session 'some_setting''");
     }
 
     @Test
@@ -551,46 +540,46 @@ public class TestStatementBuilder {
 
     @Test
     public void testSetLicenseInputWithoutQuotesThrowsParsingException() {
-        assertThrowsMatches(
-            () -> printStatement("set license LICENSE_KEY"),
-            ParsingException.class,
-            "line 1:13: no viable alternative at input 'set license LICENSE_KEY'");
+        assertThatThrownBy(
+            () -> printStatement("set license LICENSE_KEY"))
+            .isInstanceOf(ParsingException.class)
+            .hasMessage("line 1:13: no viable alternative at input 'set license LICENSE_KEY'");
     }
 
     @Test
     public void testSetLicenseWithoutParamThrowsParsingException() {
-        assertThrowsMatches(
-            () -> printStatement("set license"),
-            ParsingException.class,
-            "line 1:12: no viable alternative at input 'set license'");
+        assertThatThrownBy(
+            () -> printStatement("set license"))
+            .isInstanceOf(ParsingException.class)
+            .hasMessage("line 1:12: no viable alternative at input 'set license'");
     }
 
     @Test
     public void testSetLicenseLikeAnExpressionThrowsParsingException() {
-        assertThrowsMatches(
-            () -> printStatement("set license key='LICENSE_KEY'"),
-            ParsingException.class,
-            "line 1:13: no viable alternative at input 'set license key'");
+        assertThatThrownBy(
+            () -> printStatement("set license key='LICENSE_KEY'"))
+            .isInstanceOf(ParsingException.class)
+            .hasMessage("line 1:13: no viable alternative at input 'set license key'");
     }
 
     @Test
     public void testSetLicenseMultipleInputThrowsParsingException() {
-        assertThrowsMatches(
-            () -> printStatement("set license 'LICENSE_KEY' 'LICENSE_KEY2'"),
-            ParsingException.class,
-            "line 1:27: extraneous input ''LICENSE_KEY2'' expecting {<EOF>, ';'}");
+        assertThatThrownBy(
+            () -> printStatement("set license 'LICENSE_KEY' 'LICENSE_KEY2'"))
+            .isInstanceOf(ParsingException.class)
+            .hasMessage("line 1:27: extraneous input ''LICENSE_KEY2'' expecting {<EOF>, ';'}");
     }
 
     @Test
     public void testSetLicense() {
-        SetStatement<?> stmt = (SetStatement) SqlParser.createStatement("set license 'LICENSE_KEY'");
-        assertThat(stmt.scope(), is(SetStatement.Scope.LICENSE));
-        assertThat(stmt.settingType(), is(SetStatement.SettingType.PERSISTENT));
-        assertThat(stmt.assignments().size(), is(1));
+        SetStatement<?> stmt = (SetStatement<?>) SqlParser.createStatement("set license 'LICENSE_KEY'");
+        assertThat(stmt.scope()).isEqualTo(SetStatement.Scope.LICENSE);
+        assertThat(stmt.settingType()).isEqualTo(SetStatement.SettingType.PERSISTENT);
+        assertThat(stmt.assignments()).hasSize(1);
 
         Assignment<?> assignment = stmt.assignments().get(0);
-        assertThat(assignment.expressions().size(), is(1));
-        assertThat(assignment.expressions().get(0).toString(), is("'LICENSE_KEY'"));
+        assertThat(assignment.expressions()).hasSize(1);
+        assertThat(assignment.expressions().get(0).toString()).isEqualTo("'LICENSE_KEY'");
     }
 
     @Test
@@ -688,10 +677,11 @@ public class TestStatementBuilder {
 
     @Test
     public void testCreateTableColumnTypeOrGeneratedExpressionAreDefined() {
-        assertThrowsMatches(
-            () -> printStatement("create table test (col1)"),
-            IllegalArgumentException.class,
-            "Column [col1]: data type needs to be provided or column should be defined as a generated expression");
+        assertThatThrownBy(
+            () -> printStatement("create table test (col1)"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Column [col1]: data type needs to be provided or " +
+                        "column should be defined as a generated expression");
     }
 
     @Test
@@ -702,19 +692,19 @@ public class TestStatementBuilder {
 
     @Test
     public void testCreateTableBothDefaultAndGeneratedExpressionsNotAllowed() {
-        assertThrowsMatches(
-            () -> printStatement("create table test (col1 int default random() as 1+1)"),
-            IllegalArgumentException.class,
-            "Column [col1]: the default and generated expressions are mutually exclusive");
+        assertThatThrownBy(
+            () -> printStatement("create table test (col1 int default random() as 1+1)"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Column [col1]: the default and generated expressions are mutually exclusive");
     }
 
     @Test
     public void testCreateTableOptionsMultipleTimesNotAllowed() {
-        assertThrowsMatches(
+        assertThatThrownBy(
             () -> printStatement(
-                "create table test (col1 int, col2 timestamp with time zone) partitioned by (col1) partitioned by (col2)"),
-            ParsingException.class,
-            "line 1:83: mismatched input 'partitioned' expecting {<EOF>, ';'}");
+                "create table test (col1 int, col2 timestamp with time zone) partitioned by (col1) partitioned by (col2)"))
+            .isInstanceOf(ParsingException.class)
+            .hasMessage("line 1:83: mismatched input 'partitioned' expecting {<EOF>, ';'}");
     }
 
     @Test
@@ -919,13 +909,13 @@ public class TestStatementBuilder {
 
     @Test
     public void testCreateFunctionStmtBuilderWithIncorrectFunctionName() {
-        assertThrowsMatches(
+        assertThatThrownBy(
             () -> printStatement("create function foo.bar.a() " +
                              "returns object " +
-                             "language sql as 'select 1'"),
-            IllegalArgumentException.class,
-            "The function name is not correct! name [foo.bar.a] does not conform the [[schema_name .] " +
-                "function_name] format.");
+                             "language sql as 'select 1'"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("The function name is not correct! name [foo.bar.a] " +
+                "does not conform the [[schema_name .] function_name] format.");
     }
 
     @Test
@@ -1021,10 +1011,10 @@ public class TestStatementBuilder {
 
     @Test
     public void testThatEscapedStringLiteralContainingDoubleBackSlashAndSingleQuoteThrowsException() {
-        assertThrowsMatches(
-            () -> printStatement("select e'aa\\\\\'bb' as col1"),
-            IllegalArgumentException.class,
-            "Invalid Escaped String Literal");
+        assertThatThrownBy(
+            () -> printStatement("select e'aa\\\\\'bb' as col1"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Invalid Escaped String Literal aa\\\\'bb");
     }
 
     @Test
@@ -1126,18 +1116,18 @@ public class TestStatementBuilder {
 
     @Test
     public void testArrayConstructorSubSelectBuilderNoParenthesisThrowsParsingException() {
-        assertThrowsMatches(
-            () -> printStatement("select array from f2"),
-            ParsingException.class,
-            "line 1:14: no viable alternative at input 'select array from'");
+        assertThatThrownBy(
+            () -> printStatement("select array from f2"))
+            .isInstanceOf(ParsingException.class)
+            .hasMessage("line 1:14: no viable alternative at input 'select array from'");
     }
 
     @Test
     public void testArrayConstructorSubSelectBuilderNoSubQueryThrowsParsingException() {
-        assertThrowsMatches(
-            () -> printStatement("select array() as array1 from f2"),
-            ParsingException.class,
-            "line 1:14: no viable alternative at input 'select array()'");
+        assertThatThrownBy(
+            () -> printStatement("select array() as array1 from f2"))
+            .isInstanceOf(ParsingException.class)
+            .hasMessage("line 1:14: no viable alternative at input 'select array()'");
     }
 
     @Test
@@ -1195,11 +1185,12 @@ public class TestStatementBuilder {
         printStatement("insert into t (a, b, c) values (1, 2), (3, 4) on conflict (c) do update set a = excluded.a + 1, b = 4");
         printStatement("insert into t (a, b, c) values (1, 2), (3, 4) on conflict (c) do update set a = excluded.a + 1, b = excluded.b - 2");
 
+        @SuppressWarnings("unchecked")
         Insert<Expression> insert = (Insert<Expression>) SqlParser.createStatement(
                 "insert into test_generated_column (id, ts) values (?, ?) on conflict (id) do update set ts = ?");
         Assignment<Expression> onDuplicateAssignment = insert.duplicateKeyContext().getAssignments().get(0);
-        assertThat(onDuplicateAssignment.expression(), instanceOf(ParameterExpression.class));
-        assertThat(onDuplicateAssignment.expressions().get(0).toString(), is("$3"));
+        assertThat(onDuplicateAssignment.expression()).isInstanceOf(ParameterExpression.class);
+        assertThat(onDuplicateAssignment.expressions().get(0).toString()).isEqualTo("$3");
 
         // insert from query
         printStatement("insert into foo (id, name) select id, name from bar order by id");
@@ -1254,15 +1245,15 @@ public class TestStatementBuilder {
         printStatement("CREATE REPOSITORY \"myRepo\" TYPE \"fs\"");
         printStatement("CREATE REPOSITORY \"myRepo\" TYPE \"fs\" with (location='/mount/backups/my_backup', compress=True)");
         Statement statement = SqlParser.createStatement("CREATE REPOSITORY my_repo type s3 with (location='/mount/backups/my_backup')");
-        assertThat(statement.toString(), is("CreateRepository{" +
+        assertThat(statement.toString()).isEqualTo("CreateRepository{" +
                                             "repository=my_repo, " +
                                             "type=s3, " +
-                                            "properties={location='/mount/backups/my_backup'}}"));
+                                            "properties={location='/mount/backups/my_backup'}}");
 
         printStatement("DROP REPOSITORY my_repo");
         statement = SqlParser.createStatement("DROP REPOSITORY \"myRepo\"");
-        assertThat(statement.toString(), is("DropRepository{" +
-                                            "repository=myRepo}"));
+        assertThat(statement.toString()).isEqualTo("DropRepository{" +
+                                            "repository=myRepo}");
     }
 
     @Test
@@ -1273,19 +1264,19 @@ public class TestStatementBuilder {
         printStatement("CREATE SNAPSHOT my_repo.my_snapshot ALL with (wait_for_completion=True)");
         Statement statement = SqlParser.createStatement(
             "CREATE SNAPSHOT my_repo.my_snapshot TABLE authors PARTITION (year=2015, year=2014), books");
-        assertThat(statement.toString(), is("CreateSnapshot{" +
+        assertThat(statement.toString()).isEqualTo("CreateSnapshot{" +
                                             "name=my_repo.my_snapshot, " +
                                             "properties={}, " +
                                             "tables=[Table{only=false, authors, partitionProperties=[" +
                                             "Assignment{column=\"year\", expressions=[2015]}, " +
                                             "Assignment{column=\"year\", expressions=[2014]}]}, " +
-                                            "Table{only=false, books, partitionProperties=[]}]}"));
+                                            "Table{only=false, books, partitionProperties=[]}]}");
     }
 
     @Test
     public void testDropSnapshotStmtBuilder() {
         Statement statement = SqlParser.createStatement("DROP SNAPSHOT my_repo.my_snapshot");
-        assertThat(statement.toString(), is("DropSnapshot{name=my_repo.my_snapshot}"));
+        assertThat(statement.toString()).isEqualTo("DropSnapshot{name=my_repo.my_snapshot}");
     }
 
     @Test
@@ -1299,19 +1290,19 @@ public class TestStatementBuilder {
             "RESTORE SNAPSHOT my_repo.my_snapshot " +
             "TABLE authors PARTITION (year=2015, year=2014), books " +
             "WITH (wait_for_completion=True)");
-        assertThat(statement.toString(), is("RestoreSnapshot{" +
+        assertThat(statement.toString()).isEqualTo("RestoreSnapshot{" +
                                             "name=my_repo.my_snapshot, " +
                                             "properties={wait_for_completion=true}, " +
                                             "tables=[" +
                                             "Table{only=false, authors, partitionProperties=[" + "" +
                                             "Assignment{column=\"year\", expressions=[2015]}, " +
                                             "Assignment{column=\"year\", expressions=[2014]}]}, " +
-                                            "Table{only=false, books, partitionProperties=[]}]}"));
+                                            "Table{only=false, books, partitionProperties=[]}]}");
         statement = SqlParser.createStatement("RESTORE SNAPSHOT my_repo.my_snapshot ALL");
-        assertThat(statement.toString(), is("RestoreSnapshot{" +
+        assertThat(statement.toString()).isEqualTo("RestoreSnapshot{" +
                                             "name=my_repo.my_snapshot, " +
                                             "properties={}, " +
-                                            "tables=[]}"));
+                                            "tables=[]}");
     }
 
     @Test
@@ -1366,33 +1357,33 @@ public class TestStatementBuilder {
     @Test
     public void testSubscriptExpression() {
         Expression expression = SqlParser.createExpression("a['sub']");
-        assertThat(expression, instanceOf(SubscriptExpression.class));
+        assertThat(expression).isInstanceOf(SubscriptExpression.class);
         SubscriptExpression subscript = (SubscriptExpression) expression;
-        assertThat(subscript.index(), instanceOf(StringLiteral.class));
-        assertThat(((StringLiteral) subscript.index()).getValue(), is("sub"));
+        assertThat(subscript.index()).isInstanceOf(StringLiteral.class);
+        assertThat(((StringLiteral) subscript.index()).getValue()).isEqualTo("sub");
 
-        assertThat(subscript.base(), instanceOf(QualifiedNameReference.class));
+        assertThat(subscript.base()).isInstanceOf(QualifiedNameReference.class);
 
         expression = SqlParser.createExpression("[1,2,3][1]");
-        assertThat(expression, instanceOf(SubscriptExpression.class));
+        assertThat(expression).isInstanceOf(SubscriptExpression.class);
         subscript = (SubscriptExpression) expression;
-        assertThat(subscript.index(), instanceOf(IntegerLiteral.class));
-        assertThat(((IntegerLiteral) subscript.index()).getValue(), is(1));
-        assertThat(subscript.base(), instanceOf(ArrayLiteral.class));
+        assertThat(subscript.index()).isInstanceOf(IntegerLiteral.class);
+        assertThat(((IntegerLiteral) subscript.index()).getValue()).isEqualTo(1);
+        assertThat(subscript.base()).isInstanceOf(ArrayLiteral.class);
     }
 
     @Test
     public void testSafeSubscriptExpression() {
         MatchPredicate matchPredicate = (MatchPredicate) SqlParser.createExpression("match (a['1']['2'], 'abc')");
-        assertThat(matchPredicate.idents().get(0).columnIdent().toString(), is("\"a\"['1']['2']"));
+        assertThat(matchPredicate.idents().get(0).columnIdent().toString()).isEqualTo("\"a\"['1']['2']");
 
         matchPredicate = (MatchPredicate) SqlParser.createExpression("match (a['1']['2']['4'], 'abc')");
-        assertThat(matchPredicate.idents().get(0).columnIdent().toString(), is("\"a\"['1']['2']['4']"));
+        assertThat(matchPredicate.idents().get(0).columnIdent().toString()).isEqualTo("\"a\"['1']['2']['4']");
 
-        assertThrowsMatches(
-            () -> SqlParser.createExpression("match ([1]['1']['2'], 'abc')"),
-            ParsingException.class,
-            "line 1:8: mismatched input '[' expecting {'('");
+        assertThatThrownBy(
+            () -> SqlParser.createExpression("match ([1]['1']['2'], 'abc')"))
+            .isInstanceOf(ParsingException.class)
+            .hasMessageStartingWith("line 1:8: mismatched input '[' expecting {'('");
     }
 
     @Test
@@ -1400,77 +1391,77 @@ public class TestStatementBuilder {
         Expression expression = SqlParser.createExpression("\"firstName\" = 'myName'");
         QualifiedNameReference nameRef = (QualifiedNameReference) ((ComparisonExpression) expression).getLeft();
         StringLiteral myName = (StringLiteral) ((ComparisonExpression) expression).getRight();
-        assertThat(nameRef.getName().getSuffix(), is("firstName"));
-        assertThat(myName.getValue(), is("myName"));
+        assertThat(nameRef.getName().getSuffix()).isEqualTo("firstName");
+        assertThat(myName.getValue()).isEqualTo("myName");
 
         expression = SqlParser.createExpression("FIRSTNAME = 'myName'");
         nameRef = (QualifiedNameReference) ((ComparisonExpression) expression).getLeft();
-        assertThat(nameRef.getName().getSuffix(), is("firstname"));
+        assertThat(nameRef.getName().getSuffix()).isEqualTo("firstname");
 
         expression = SqlParser.createExpression("ABS(1)");
         QualifiedName functionName = ((FunctionCall) expression).getName();
-        assertThat(functionName.getSuffix(), is("abs"));
+        assertThat(functionName.getSuffix()).isEqualTo("abs");
     }
 
     @Test
     public void testArrayComparison() {
         Expression anyExpression = SqlParser.createExpression("1 = ANY (arrayColumnRef)");
-        assertThat(anyExpression, instanceOf(ArrayComparisonExpression.class));
+        assertThat(anyExpression).isInstanceOf(ArrayComparisonExpression.class);
         ArrayComparisonExpression arrayComparisonExpression = (ArrayComparisonExpression) anyExpression;
-        assertThat(arrayComparisonExpression.quantifier(), is(ArrayComparisonExpression.Quantifier.ANY));
-        assertThat(arrayComparisonExpression.getLeft(), instanceOf(IntegerLiteral.class));
-        assertThat(arrayComparisonExpression.getRight(), instanceOf(QualifiedNameReference.class));
+        assertThat(arrayComparisonExpression.quantifier()).isEqualTo(ArrayComparisonExpression.Quantifier.ANY);
+        assertThat(arrayComparisonExpression.getLeft()).isInstanceOf(IntegerLiteral.class);
+        assertThat(arrayComparisonExpression.getRight()).isInstanceOf(QualifiedNameReference.class);
 
         Expression someExpression = SqlParser.createExpression("1 = SOME (arrayColumnRef)");
-        assertThat(someExpression, instanceOf(ArrayComparisonExpression.class));
+        assertThat(someExpression).isInstanceOf(ArrayComparisonExpression.class);
         ArrayComparisonExpression someArrayComparison = (ArrayComparisonExpression) someExpression;
-        assertThat(someArrayComparison.quantifier(), is(ArrayComparisonExpression.Quantifier.ANY));
-        assertThat(someArrayComparison.getLeft(), instanceOf(IntegerLiteral.class));
-        assertThat(someArrayComparison.getRight(), instanceOf(QualifiedNameReference.class));
+        assertThat(someArrayComparison.quantifier()).isEqualTo(ArrayComparisonExpression.Quantifier.ANY);
+        assertThat(someArrayComparison.getLeft()).isInstanceOf(IntegerLiteral.class);
+        assertThat(someArrayComparison.getRight()).isInstanceOf(QualifiedNameReference.class);
 
         Expression allExpression = SqlParser.createExpression("'StringValue' = ALL (arrayColumnRef)");
-        assertThat(allExpression, instanceOf(ArrayComparisonExpression.class));
+        assertThat(allExpression).isInstanceOf(ArrayComparisonExpression.class);
         ArrayComparisonExpression allArrayComparison = (ArrayComparisonExpression) allExpression;
-        assertThat(allArrayComparison.quantifier(), is(ArrayComparisonExpression.Quantifier.ALL));
-        assertThat(allArrayComparison.getLeft(), instanceOf(StringLiteral.class));
-        assertThat(allArrayComparison.getRight(), instanceOf(QualifiedNameReference.class));
+        assertThat(allArrayComparison.quantifier()).isEqualTo(ArrayComparisonExpression.Quantifier.ALL);
+        assertThat(allArrayComparison.getLeft()).isInstanceOf(StringLiteral.class);
+        assertThat(allArrayComparison.getRight()).isInstanceOf(QualifiedNameReference.class);
     }
 
     @Test
     public void testArrayComparisonSubSelect() {
         Expression anyExpression = SqlParser.createExpression("1 = ANY ((SELECT 5))");
-        assertThat(anyExpression, instanceOf(ArrayComparisonExpression.class));
+        assertThat(anyExpression).isInstanceOf(ArrayComparisonExpression.class);
         ArrayComparisonExpression arrayComparisonExpression = (ArrayComparisonExpression) anyExpression;
-        assertThat(arrayComparisonExpression.quantifier(), is(ArrayComparisonExpression.Quantifier.ANY));
-        assertThat(arrayComparisonExpression.getLeft(), instanceOf(IntegerLiteral.class));
-        assertThat(arrayComparisonExpression.getRight(), instanceOf(SubqueryExpression.class));
+        assertThat(arrayComparisonExpression.quantifier()).isEqualTo(ArrayComparisonExpression.Quantifier.ANY);
+        assertThat(arrayComparisonExpression.getLeft()).isInstanceOf(IntegerLiteral.class);
+        assertThat(arrayComparisonExpression.getRight()).isInstanceOf(SubqueryExpression.class);
 
         // It's possible to omit the parenthesis
         anyExpression = SqlParser.createExpression("1 = ANY (SELECT 5)");
-        assertThat(anyExpression, instanceOf(ArrayComparisonExpression.class));
+        assertThat(anyExpression).isInstanceOf(ArrayComparisonExpression.class);
         arrayComparisonExpression = (ArrayComparisonExpression) anyExpression;
-        assertThat(arrayComparisonExpression.quantifier(), is(ArrayComparisonExpression.Quantifier.ANY));
-        assertThat(arrayComparisonExpression.getLeft(), instanceOf(IntegerLiteral.class));
-        assertThat(arrayComparisonExpression.getRight(), instanceOf(SubqueryExpression.class));
+        assertThat(arrayComparisonExpression.quantifier()).isEqualTo(ArrayComparisonExpression.Quantifier.ANY);
+        assertThat(arrayComparisonExpression.getLeft()).isInstanceOf(IntegerLiteral.class);
+        assertThat(arrayComparisonExpression.getRight()).isInstanceOf(SubqueryExpression.class);
     }
 
     @Test
     public void testArrayLikeExpression() {
         Expression expression = SqlParser.createExpression("'books%' LIKE ANY(race['interests'])");
-        assertThat(expression, instanceOf(ArrayLikePredicate.class));
+        assertThat(expression).isInstanceOf(ArrayLikePredicate.class);
         ArrayLikePredicate arrayLikePredicate = (ArrayLikePredicate) expression;
-        assertThat(arrayLikePredicate.inverse(), is(false));
-        assertThat(arrayLikePredicate.getEscape(), is(nullValue()));
-        assertThat(arrayLikePredicate.getPattern().toString(), is("'books%'"));
-        assertThat(arrayLikePredicate.getValue().toString(), is("\"race\"['interests']"));
+        assertThat(arrayLikePredicate.inverse()).isFalse();
+        assertThat(arrayLikePredicate.getEscape()).isNull();
+        assertThat(arrayLikePredicate.getPattern().toString()).isEqualTo("'books%'");
+        assertThat(arrayLikePredicate.getValue().toString()).isEqualTo("\"race\"['interests']");
 
         expression = SqlParser.createExpression("'b%' NOT LIKE ANY(race)");
-        assertThat(expression, instanceOf(ArrayLikePredicate.class));
+        assertThat(expression).isInstanceOf(ArrayLikePredicate.class);
         arrayLikePredicate = (ArrayLikePredicate) expression;
-        assertThat(arrayLikePredicate.inverse(), is(true));
-        assertThat(arrayLikePredicate.getEscape(), is(nullValue()));
-        assertThat(arrayLikePredicate.getPattern().toString(), is("'b%'"));
-        assertThat(arrayLikePredicate.getValue().toString(), is("\"race\""));
+        assertThat(arrayLikePredicate.inverse()).isTrue();
+        assertThat(arrayLikePredicate.getEscape()).isNull();
+        assertThat(arrayLikePredicate.getPattern().toString()).isEqualTo("'b%'");
+        assertThat(arrayLikePredicate.getValue().toString()).isEqualTo("\"race\"");
     }
 
     @Test
@@ -1486,7 +1477,7 @@ public class TestStatementBuilder {
         };
         for (String s : testString) {
             Expression expr = SqlParser.createExpression(Literals.quoteStringLiteral(s));
-            assertThat(((StringLiteral) expr).getValue(), is(s));
+            assertThat(((StringLiteral) expr).getValue()).isEqualTo(s);
         }
     }
 
@@ -1496,29 +1487,32 @@ public class TestStatementBuilder {
         String expectedValue = "this is a triple-a:aaa";
         Expression expr = SqlParser.createExpression(Literals.quoteEscapedStringLiteral(input));
         EscapedCharStringLiteral escapedCharStringLiteral = (EscapedCharStringLiteral) expr;
-        assertThat(escapedCharStringLiteral.getRawValue(), is(input));
-        assertThat(escapedCharStringLiteral.getValue(), is(expectedValue));
+        assertThat(escapedCharStringLiteral.getRawValue()).isEqualTo(input);
+        assertThat(escapedCharStringLiteral.getValue()).isEqualTo(expectedValue);
     }
 
     @Test
     public void testObjectLiteral() {
         Expression emptyObjectLiteral = SqlParser.createExpression("{}");
-        assertThat(emptyObjectLiteral, instanceOf(ObjectLiteral.class));
-        assertThat(((ObjectLiteral) emptyObjectLiteral).values().size(), is(0));
+        assertThat(emptyObjectLiteral)
+            .isInstanceOf(ObjectLiteral.class)
+            .extracting(ol -> ((ObjectLiteral) ol).values())
+            .asInstanceOf(InstanceOfAssertFactories.MAP)
+            .isEmpty();
 
         ObjectLiteral objectLiteral = (ObjectLiteral) SqlParser.createExpression("{a=1, aa=-1, b='str', c=[], d={}}");
-        assertThat(objectLiteral.values().size(), is(5));
-        assertThat(objectLiteral.values().get("a"), instanceOf(IntegerLiteral.class));
-        assertThat(objectLiteral.values().get("aa"), instanceOf(NegativeExpression.class));
-        assertThat(objectLiteral.values().get("b"), instanceOf(StringLiteral.class));
-        assertThat(objectLiteral.values().get("c"), instanceOf(ArrayLiteral.class));
-        assertThat(objectLiteral.values().get("d"), instanceOf(ObjectLiteral.class));
+        assertThat(objectLiteral.values()).hasSize(5);
+        assertThat(objectLiteral.values().get("a")).isInstanceOf(IntegerLiteral.class);
+        assertThat(objectLiteral.values().get("aa")).isInstanceOf(NegativeExpression.class);
+        assertThat(objectLiteral.values().get("b")).isInstanceOf(StringLiteral.class);
+        assertThat(objectLiteral.values().get("c")).isInstanceOf(ArrayLiteral.class);
+        assertThat(objectLiteral.values().get("d")).isInstanceOf(ObjectLiteral.class);
 
         ObjectLiteral quotedObjectLiteral = (ObjectLiteral) SqlParser.createExpression("{\"AbC\"=123}");
-        assertThat(quotedObjectLiteral.values().size(), is(1));
-        assertThat(quotedObjectLiteral.values().get("AbC"), instanceOf(IntegerLiteral.class));
-        assertThat(quotedObjectLiteral.values().get("abc"), CoreMatchers.nullValue());
-        assertThat(quotedObjectLiteral.values().get("ABC"), CoreMatchers.nullValue());
+        assertThat(quotedObjectLiteral.values()).hasSize(1);
+        assertThat(quotedObjectLiteral.values().get("AbC")).isInstanceOf(IntegerLiteral.class);
+        assertThat(quotedObjectLiteral.values().get("abc")).isNull();
+        assertThat(quotedObjectLiteral.values().get("ABC")).isNull();
 
         SqlParser.createExpression("{a=func('abc')}");
         SqlParser.createExpression("{b=identifier}");
@@ -1529,19 +1523,19 @@ public class TestStatementBuilder {
     @Test
     public void testArrayLiteral() {
         ArrayLiteral emptyArrayLiteral = (ArrayLiteral) SqlParser.createExpression("[]");
-        assertThat(emptyArrayLiteral.values().size(), is(0));
+        assertThat(emptyArrayLiteral.values()).isEmpty();
 
         ArrayLiteral singleArrayLiteral = (ArrayLiteral) SqlParser.createExpression("[1]");
-        assertThat(singleArrayLiteral.values().size(), is(1));
-        assertThat(singleArrayLiteral.values().get(0), instanceOf(IntegerLiteral.class));
+        assertThat(singleArrayLiteral.values()).hasSize(1);
+        assertThat(singleArrayLiteral.values().get(0)).isInstanceOf(IntegerLiteral.class);
 
         ArrayLiteral multipleArrayLiteral = (ArrayLiteral) SqlParser.createExpression(
             "['str', -12.56, {}, ['another', 'array']]");
-        assertThat(multipleArrayLiteral.values().size(), is(4));
-        assertThat(multipleArrayLiteral.values().get(0), instanceOf(StringLiteral.class));
-        assertThat(multipleArrayLiteral.values().get(1), instanceOf(NegativeExpression.class));
-        assertThat(multipleArrayLiteral.values().get(2), instanceOf(ObjectLiteral.class));
-        assertThat(multipleArrayLiteral.values().get(3), instanceOf(ArrayLiteral.class));
+        assertThat(multipleArrayLiteral.values()).hasSize(4);
+        assertThat(multipleArrayLiteral.values().get(0)).isInstanceOf(StringLiteral.class);
+        assertThat(multipleArrayLiteral.values().get(1)).isInstanceOf(NegativeExpression.class);
+        assertThat(multipleArrayLiteral.values().get(2)).isInstanceOf(ObjectLiteral.class);
+        assertThat(multipleArrayLiteral.values().get(3)).isInstanceOf(ArrayLiteral.class);
     }
 
     @Test
@@ -1554,32 +1548,37 @@ public class TestStatementBuilder {
         inExpression.accept(new DefaultTraversalVisitor<>() {
             @Override
             public Object visitParameterExpression(ParameterExpression node, Object context) {
-                assertEquals(counter.incrementAndGet(), node.position());
+                assertThat(node.position()).isEqualTo(counter.incrementAndGet());
                 return super.visitParameterExpression(node, context);
             }
         }, null);
 
-        assertEquals(3, counter.get());
+        assertThat(counter.get()).isEqualTo(3);
         counter.set(0);
 
         Expression andExpression = SqlParser.createExpression("a = ? and b = ? and c = $3");
         andExpression.accept(new DefaultTraversalVisitor<>() {
             @Override
             public Object visitParameterExpression(ParameterExpression node, Object context) {
-                assertEquals(counter.incrementAndGet(), node.position());
+                assertThat(node.position()).isEqualTo(counter.incrementAndGet());
                 return super.visitParameterExpression(node, context);
             }
         }, null);
-        assertEquals(3, counter.get());
+        assertThat(counter.get()).isEqualTo(3);
     }
 
     @Test
     public void testShowCreateTable() {
         Statement stmt = SqlParser.createStatement("SHOW CREATE TABLE foo");
-        assertTrue(stmt instanceof ShowCreateTable);
-        assertEquals(((ShowCreateTable) stmt).table().getName().toString(), "foo");
+        assertThat(stmt)
+            .isInstanceOf(ShowCreateTable.class)
+            .extracting(s -> ((ShowCreateTable<?>) s).table().getName().toString())
+            .isEqualTo("foo");
         stmt = SqlParser.createStatement("SHOW CREATE TABLE my_schema.foo");
-        assertEquals(((ShowCreateTable) stmt).table().getName().toString(), "my_schema.foo");
+        assertThat(stmt)
+            .isInstanceOf(ShowCreateTable.class)
+            .extracting(s -> ((ShowCreateTable<?>) s).table().getName().toString())
+            .isEqualTo("my_schema.foo");
     }
 
     @Test
@@ -1645,19 +1644,20 @@ public class TestStatementBuilder {
 
     @Test
     public void testAlterTableAddColumnTypeOrGeneratedExpressionAreDefined() {
-        assertThrowsMatches(
-            () -> printStatement("alter table t add column col2"),
-            IllegalArgumentException.class,
-            "Column [\"col2\"]: data type needs to be provided or column should be defined as a generated expression");
+        assertThatThrownBy(
+            () -> printStatement("alter table t add column col2"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Column [\"col2\"]: data type needs to be provided or column " +
+                        "should be defined as a generated expression");
     }
 
 
     @Test
     public void testAddColumnWithDefaultExpressionIsNotSupported() {
-        assertThrowsMatches(
-            () -> printStatement("mismatched input 'default'"),
-            ParsingException.class,
-            "line 1:1: mismatched input 'mismatched' expecting {'");
+        assertThatThrownBy(
+            () -> printStatement("mismatched input 'default'"))
+            .isInstanceOf(ParsingException.class)
+            .hasMessageStartingWith("line 1:1: mismatched input 'mismatched' expecting {'");
     }
 
 
@@ -1694,10 +1694,10 @@ public class TestStatementBuilder {
 
     @Test
     public void testAlterUserWithMissingProperties() {
-        assertThrowsMatches(
-            () -> printStatement("alter user crate"),
-            ParsingException.class,
-            "line 1:17: mismatched input '<EOF>' expecting 'SET'");
+        assertThatThrownBy(
+            () -> printStatement("alter user crate"))
+            .isInstanceOf(ParsingException.class)
+            .hasMessage("line 1:17: mismatched input '<EOF>' expecting 'SET'");
     }
 
     @Test
@@ -1945,18 +1945,21 @@ public class TestStatementBuilder {
             sql = sql.replaceAll(format(":%s", i + 1), String.valueOf(values[i]));
         }
 
-        assertFalse("Not all bind parameters were replaced: " + sql, sql.matches("(?s).*:[0-9].*"));
+        assertThat(sql.matches("(?s).*:[0-9].*"))
+            .as("Not all bind parameters were replaced: " + sql)
+            .isFalse();
 
         sql = fixTpchQuery(sql);
         printStatement(sql);
     }
 
     private static String readResource(String name) throws IOException {
-        var inputStream = TestStatementBuilder.class.getClassLoader().getResourceAsStream(name);
-        if (inputStream == null) {
-            throw new IOException("'" + name + "' resource is not found");
+        try (var inputStream = TestStatementBuilder.class.getClassLoader().getResourceAsStream(name)) {
+            if (inputStream == null) {
+                throw new IOException("'" + name + "' resource is not found");
+            }
+            return new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
         }
-        return new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
     }
 
     private static String fixTpchQuery(String s) {

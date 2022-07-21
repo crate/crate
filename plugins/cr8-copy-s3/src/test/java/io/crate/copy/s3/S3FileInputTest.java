@@ -21,8 +21,7 @@
 
 package io.crate.copy.s3;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -47,24 +46,23 @@ public class S3FileInputTest extends ESTestCase {
     private static S3FileInput s3FileInput;
     private static List<S3ObjectSummary> listObjectSummaries;
 
-    private static ObjectListing objectListing = mock(ObjectListing.class);
-    private static S3ClientHelper clientBuilder = mock(S3ClientHelper.class);
-    private static AmazonS3 amazonS3 = mock(AmazonS3.class);
+    private static final ObjectListing OBJECT_LISTING = mock(ObjectListing.class);
+    private static final S3ClientHelper CLIENT_BUILDER = mock(S3ClientHelper.class);
+    private static final AmazonS3 S_3 = mock(AmazonS3.class);
 
     private static final String BUCKET_NAME = "fakeBucket";
     private static final String PREFIX = "prefix/";
-    private static S3URI preGlobUri;
-    private static String protocolSetting = "http";
+    private static final String PROTOCOL = "http";
 
 
     @BeforeClass
     public static void setUpClass() throws Exception {
         var globbedUri = new URI("s3://fakeBucket/prefix/*");
-        preGlobUri = S3URI.toS3URI((new URI("s3://fakeBucket/prefix/")));
-        s3FileInput = new S3FileInput(clientBuilder, globbedUri, protocolSetting);
+        S3URI preGlobUri = S3URI.toS3URI((new URI("s3://fakeBucket/prefix/")));
+        s3FileInput = new S3FileInput(CLIENT_BUILDER, globbedUri, PROTOCOL);
 
-        when(amazonS3.listObjects(BUCKET_NAME, PREFIX)).thenReturn(objectListing);
-        when(clientBuilder.client(preGlobUri, protocolSetting)).thenReturn(amazonS3);
+        when(S_3.listObjects(BUCKET_NAME, PREFIX)).thenReturn(OBJECT_LISTING);
+        when(CLIENT_BUILDER.client(preGlobUri, PROTOCOL)).thenReturn(S_3);
     }
 
     @Test
@@ -75,22 +73,22 @@ public class S3FileInputTest extends ESTestCase {
         listObjectSummaries = objectSummaries();
         listObjectSummaries.add(path);
 
-        when(objectListing.getObjectSummaries()).thenReturn(listObjectSummaries);
+        when(OBJECT_LISTING.getObjectSummaries()).thenReturn(listObjectSummaries);
 
         List<URI> uris = s3FileInput.expandUri();
-        assertThat(uris.size(), is(2));
-        assertThat(uris.get(0).toString(), is("s3:///fakeBucket/prefix/test1.json.gz"));
-        assertThat(uris.get(1).toString(), is("s3:///fakeBucket/prefix/test2.json.gz"));
+        assertThat(uris).hasSize(2);
+        assertThat(uris.get(0).toString()).isEqualTo("s3:///fakeBucket/prefix/test1.json.gz");
+        assertThat(uris.get(1).toString()).isEqualTo("s3:///fakeBucket/prefix/test2.json.gz");
     }
 
     @Test
     public void testListListUrlsWithCorrectKeys() throws Exception {
-        when(objectListing.getObjectSummaries()).thenReturn(objectSummaries());
+        when(OBJECT_LISTING.getObjectSummaries()).thenReturn(objectSummaries());
 
         List<URI> uris = s3FileInput.expandUri();
-        assertThat(uris.size(), is(2));
-        assertThat(uris.get(0).toString(), is("s3:///fakeBucket/prefix/test1.json.gz"));
-        assertThat(uris.get(1).toString(), is("s3:///fakeBucket/prefix/test2.json.gz"));
+        assertThat(uris).hasSize(2);
+        assertThat(uris.get(0).toString()).isEqualTo("s3:///fakeBucket/prefix/test1.json.gz");
+        assertThat(uris.get(1).toString()).isEqualTo("s3:///fakeBucket/prefix/test2.json.gz");
     }
 
     private List<S3ObjectSummary> objectSummaries() {
@@ -123,7 +121,7 @@ public class S3FileInputTest extends ESTestCase {
             .map(URI::create)
             .map(u -> S3FileInput.toPreGlobUri(S3URI.toS3URI(u)).toString())
             .toList();
-        assertThat(preGlobURIs, is(List.of(
+        assertThat(preGlobURIs).isEqualTo(List.of(
             "s3:///fakeBucket3/",
             "s3:///fakeBucket3/",
             "s3:///fakeBucket3/prefix/",
@@ -131,6 +129,6 @@ public class S3FileInputTest extends ESTestCase {
             "s3://minio:minio@play.min.io:9000/myBucket/myKey/",
             "s3://play.min.io:9000/myBucket/myKey/",
             "s3://minio:minio@/myBucket/myKey/"
-        )));
+        ));
     }
 }

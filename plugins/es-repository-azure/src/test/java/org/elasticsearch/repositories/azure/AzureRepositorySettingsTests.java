@@ -19,10 +19,8 @@
 
 package org.elasticsearch.repositories.azure;
 
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
@@ -46,84 +44,86 @@ public class AzureRepositorySettingsTests extends ESTestCase {
             .build();
         final AzureRepository azureRepository = new AzureRepository(new RepositoryMetadata("foo", "azure", internalSettings),
             NamedXContentRegistry.EMPTY, mock(AzureStorageService.class), BlobStoreTestUtil.mockClusterService());
-        assertThat(azureRepository.getBlobStore(), is(nullValue()));
+        assertThat(azureRepository.getBlobStore()).isNull();
         return azureRepository;
     }
 
     public void testReadonlyDefault() {
-        assertThat(azureRepository(Settings.EMPTY).isReadOnly(), is(false));
+        assertThat(azureRepository(Settings.EMPTY).isReadOnly()).isFalse();
     }
 
     public void testReadonlyDefaultAndReadonlyOn() {
-        assertThat(azureRepository(Settings.builder()
-            .put("readonly", true)
-            .build()).isReadOnly(), is(true));
+        assertThat(azureRepository(Settings.builder().put("readonly", true).build()).isReadOnly())
+            .isTrue();
     }
 
     public void testReadonlyWithPrimaryOnly() {
         assertThat(azureRepository(Settings.builder()
             .put(AzureRepository.Repository.LOCATION_MODE_SETTING.getKey(), LocationMode.PRIMARY_ONLY.name())
-            .build()).isReadOnly(), is(false));
+            .build()).isReadOnly()).isFalse();
     }
 
     public void testReadonlyWithPrimaryOnlyAndReadonlyOn() {
         assertThat(azureRepository(Settings.builder()
             .put(AzureRepository.Repository.LOCATION_MODE_SETTING.getKey(), LocationMode.PRIMARY_ONLY.name())
             .put("readonly", true)
-            .build()).isReadOnly(), is(true));
+            .build()).isReadOnly()).isTrue();
     }
 
     public void testReadonlyWithSecondaryOnlyAndReadonlyOn() {
         assertThat(azureRepository(Settings.builder()
             .put(AzureRepository.Repository.LOCATION_MODE_SETTING.getKey(), LocationMode.SECONDARY_ONLY.name())
             .put("readonly", true)
-            .build()).isReadOnly(), is(true));
+            .build()).isReadOnly()).isTrue();
     }
 
     public void testReadonlyWithSecondaryOnlyAndReadonlyOff() {
         assertThat(azureRepository(Settings.builder()
             .put(AzureRepository.Repository.LOCATION_MODE_SETTING.getKey(), LocationMode.SECONDARY_ONLY.name())
             .put("readonly", false)
-            .build()).isReadOnly(), is(false));
+            .build()).isReadOnly()).isFalse();
     }
 
     public void testReadonlyWithPrimaryAndSecondaryOnlyAndReadonlyOn() {
         assertThat(azureRepository(Settings.builder()
             .put(AzureRepository.Repository.LOCATION_MODE_SETTING.getKey(), LocationMode.PRIMARY_THEN_SECONDARY.name())
             .put("readonly", true)
-            .build()).isReadOnly(), is(true));
+            .build()).isReadOnly()).isTrue();
     }
 
     public void testReadonlyWithPrimaryAndSecondaryOnlyAndReadonlyOff() {
         assertThat(azureRepository(Settings.builder()
             .put(AzureRepository.Repository.LOCATION_MODE_SETTING.getKey(), LocationMode.PRIMARY_THEN_SECONDARY.name())
             .put("readonly", false)
-            .build()).isReadOnly(), is(false));
+            .build()).isReadOnly()).isFalse();
     }
 
     public void testChunkSize() {
         // default chunk size
         AzureRepository azureRepository = azureRepository(Settings.EMPTY);
-        assertEquals(AzureStorageService.MAX_CHUNK_SIZE, azureRepository.chunkSize());
+        assertThat(azureRepository.chunkSize()).isEqualTo(AzureStorageService.MAX_CHUNK_SIZE);
 
         // chunk size in settings
         int size = randomIntBetween(1, 256);
         azureRepository = azureRepository(Settings.builder().put("chunk_size", size + "mb").build());
-        assertEquals(new ByteSizeValue(size, ByteSizeUnit.MB), azureRepository.chunkSize());
+        assertThat(azureRepository.chunkSize()).isEqualTo(new ByteSizeValue(size, ByteSizeUnit.MB));
 
         // zero bytes is not allowed
-        IllegalArgumentException e = expectThrows(IllegalArgumentException.class, () ->
-            azureRepository(Settings.builder().put("chunk_size", "0").build()));
-        assertEquals("failed to parse value [0] for setting [chunk_size], must be >= [1b]", e.getMessage());
+        assertThatThrownBy(
+            () -> azureRepository(Settings.builder().put("chunk_size", "0").build()))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("failed to parse value [0] for setting [chunk_size], must be >= [1b]");
 
         // negative bytes not allowed
-        e = expectThrows(IllegalArgumentException.class, () ->
-            azureRepository(Settings.builder().put("chunk_size", "-1").build()));
-        assertEquals("failed to parse value [-1] for setting [chunk_size], must be >= [1b]", e.getMessage());
+        assertThatThrownBy(
+            () -> azureRepository(Settings.builder().put("chunk_size", "-1").build()))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("failed to parse value [-1] for setting [chunk_size], must be >= [1b]");
 
         // greater than max chunk size not allowed
-        e = expectThrows(IllegalArgumentException.class, () ->
-            azureRepository(Settings.builder().put("chunk_size", "257mb").build()));
-        assertEquals("failed to parse value [257mb] for setting [chunk_size], must be <= [256mb]", e.getMessage());
+        assertThatThrownBy(
+            () -> azureRepository(Settings.builder().put("chunk_size", "257mb").build()))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("failed to parse value [257mb] for setting [chunk_size], must be <= [256mb]");
     }
 }

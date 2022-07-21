@@ -22,8 +22,7 @@
 package io.crate.copy.s3;
 
 import static io.crate.testing.TestingHelpers.createReference;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -33,10 +32,8 @@ import static org.mockito.Mockito.when;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.net.SocketTimeoutException;
-import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -71,8 +68,6 @@ import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.dsl.phases.FileUriCollectPhase;
-import io.crate.execution.engine.collect.files.FileInput;
-import io.crate.execution.engine.collect.files.FileInputFactory;
 import io.crate.execution.engine.collect.files.FileReadingIterator;
 import io.crate.execution.engine.collect.files.LineCollectorExpression;
 import io.crate.expression.InputFactory;
@@ -94,8 +89,7 @@ public class S3FileReadingCollectorTest extends ESTestCase {
     private static File tmpFileGz;
     private static File tmpFileEmptyLine;
     private InputFactory inputFactory;
-    private Input<String> sourceUriFailureInput;
-    private TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
+    private final TransactionContext TXN_CTX = CoordinatorTxnCtx.systemTransactionContext();
 
     @BeforeClass
     public static void setUpClass() throws Exception {
@@ -125,16 +119,16 @@ public class S3FileReadingCollectorTest extends ESTestCase {
     }
 
     @Before
-    public void prepare() throws Exception {
+    public void prepare() {
         NodeContext nodeCtx = new NodeContext(new Functions(Map.of()), null);
         inputFactory = new InputFactory(nodeCtx);
     }
 
     @AfterClass
-    public static void tearDownClass() throws Exception {
-        assertThat(tmpFile.delete(), is(true));
-        assertThat(tmpFileGz.delete(), is(true));
-        assertThat(tmpFileEmptyLine.delete(), is(true));
+    public static void tearDownClass() {
+        assertThat(tmpFile.delete()).isTrue();
+        assertThat(tmpFileGz.delete()).isTrue();
+        assertThat(tmpFileEmptyLine.delete()).isTrue();
     }
 
     @Test
@@ -161,8 +155,8 @@ public class S3FileReadingCollectorTest extends ESTestCase {
                                                  inputStream,
                                                  false);
         Bucket rows = consumer.getBucket();
-        assertThat(rows.size(), is(2));
-        assertThat(TestingHelpers.printedTable(rows), is("foo\nbar\n"));
+        assertThat(rows).hasSize(2);
+        assertThat(TestingHelpers.printedTable(rows)).isEqualTo("foo\nbar\n");
     }
 
     private TestingRowConsumer getObjects(String fileUri) throws Throwable {
@@ -184,7 +178,7 @@ public class S3FileReadingCollectorTest extends ESTestCase {
     private TestingRowConsumer getObjects(Collection<String> fileUris,
                                           String compression,
                                           S3ObjectInputStream s3InputStream,
-                                          boolean collectSourceUriFailure) throws Throwable {
+                                          boolean collectSourceUriFailure) {
         TestingRowConsumer consumer = new TestingRowConsumer();
         getObjects(fileUris, compression, s3InputStream, consumer, collectSourceUriFailure);
         return consumer;
@@ -194,7 +188,7 @@ public class S3FileReadingCollectorTest extends ESTestCase {
                             String compression,
                             final S3ObjectInputStream s3InputStream,
                             RowConsumer consumer,
-                            boolean collectSourceUriFailure) throws Throwable {
+                            boolean collectSourceUriFailure) {
         BatchIterator<Row> iterator = createBatchIterator(fileUris,
                                                           compression,
                                                           s3InputStream,
@@ -207,14 +201,14 @@ public class S3FileReadingCollectorTest extends ESTestCase {
                                                    final S3ObjectInputStream s3InputStream,
                                                    boolean collectSourceUriFailure) {
         InputFactory.Context<LineCollectorExpression<?>> ctx =
-            inputFactory.ctxForRefs(txnCtx, FileLineReferenceResolver::getImplementation);
+            inputFactory.ctxForRefs(TXN_CTX, FileLineReferenceResolver::getImplementation);
         List<Input<?>> inputs = new ArrayList<>(2);
         Reference raw = createReference(SourceLineExpression.COLUMN_NAME, DataTypes.STRING);
         inputs.add(ctx.add(raw));
         if (collectSourceUriFailure) {
             Reference sourceUriFailure = createReference(SourceUriFailureExpression.COLUMN_NAME, DataTypes.STRING);
             //noinspection unchecked
-            sourceUriFailureInput = (Input<String>) ctx.add(sourceUriFailure);
+            Input<String> sourceUriFailureInput = (Input<String>) ctx.add(sourceUriFailure);
             inputs.add(sourceUriFailureInput);
         }
         return FileReadingIterator.newInstance(
@@ -224,28 +218,23 @@ public class S3FileReadingCollectorTest extends ESTestCase {
             compression,
             Map.of(
                 S3FileInputFactory.NAME,
-                new FileInputFactory() {
+                (uri, withClauseOptions) -> new S3FileInput(new S3ClientHelper() {
                     @Override
-                    public FileInput create(URI uri, Settings withClauseOptions) throws IOException {
-                        return new S3FileInput(new S3ClientHelper() {
-                            @Override
-                            protected AmazonS3 initClient(String accessKey, String secretKey, String endpoint, String protocol) throws IOException {
-                                AmazonS3 client = mock(AmazonS3Client.class);
-                                ObjectListing objectListing = mock(ObjectListing.class);
-                                S3ObjectSummary summary = mock(S3ObjectSummary.class);
-                                S3Object s3Object = mock(S3Object.class);
-                                when(client.listObjects(anyString(), anyString())).thenReturn(objectListing);
-                                when(objectListing.getObjectSummaries()).thenReturn(Collections.singletonList(summary));
-                                when(summary.getKey()).thenReturn("foo");
-                                when(client.getObject("fakebucket", "foo")).thenReturn(s3Object);
-                                when(s3Object.getObjectContent()).thenReturn(s3InputStream);
-                                when(client.listNextBatchOfObjects(any(ObjectListing.class))).thenReturn(objectListing);
-                                when(objectListing.isTruncated()).thenReturn(false);
-                                return client;
-                            }
-                        }, uri, "https");
+                    protected AmazonS3 initClient(String accessKey, String secretKey, String endpoint, String protocol) {
+                        AmazonS3 client = mock(AmazonS3Client.class);
+                        ObjectListing objectListing = mock(ObjectListing.class);
+                        S3ObjectSummary summary = mock(S3ObjectSummary.class);
+                        S3Object s3Object = mock(S3Object.class);
+                        when(client.listObjects(anyString(), anyString())).thenReturn(objectListing);
+                        when(objectListing.getObjectSummaries()).thenReturn(Collections.singletonList(summary));
+                        when(summary.getKey()).thenReturn("foo");
+                        when(client.getObject("fakebucket", "foo")).thenReturn(s3Object);
+                        when(s3Object.getObjectContent()).thenReturn(s3InputStream);
+                        when(client.listNextBatchOfObjects(any(ObjectListing.class))).thenReturn(objectListing);
+                        when(objectListing.isTruncated()).thenReturn(false);
+                        return client;
                     }
-                }),
+                }, uri, "https")),
             false,
             1,
             0,
@@ -255,16 +244,10 @@ public class S3FileReadingCollectorTest extends ESTestCase {
             Settings.EMPTY);
     }
 
-    private static class WriteBufferAnswer implements Answer<Integer> {
-
-        private byte[] bytes;
-
-        public WriteBufferAnswer(byte[] bytes) {
-            this.bytes = bytes;
-        }
+    private record WriteBufferAnswer(byte[] bytes) implements Answer<Integer> {
 
         @Override
-        public Integer answer(InvocationOnMock invocation) throws Throwable {
+        public Integer answer(InvocationOnMock invocation) {
             byte[] buffer = (byte[]) invocation.getArguments()[0];
             System.arraycopy(bytes, 0, buffer, 0, bytes.length);
             return bytes.length;

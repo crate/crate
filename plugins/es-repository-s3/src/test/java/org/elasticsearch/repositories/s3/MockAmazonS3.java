@@ -19,6 +19,19 @@
 
 package org.elasticsearch.repositories.s3;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.ConcurrentMap;
+
+import org.elasticsearch.common.Strings;
+
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.SdkClientException;
 import com.amazonaws.services.s3.AbstractAmazonS3;
@@ -35,25 +48,10 @@ import com.amazonaws.services.s3.model.PutObjectResult;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectInputStream;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
-import org.elasticsearch.common.Strings;
 
 import io.crate.common.io.Streams;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.concurrent.ConcurrentMap;
-
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.nullValue;
-
-    class MockAmazonS3 extends AbstractAmazonS3 {
+class MockAmazonS3 extends AbstractAmazonS3 {
 
     private final ConcurrentMap<String, byte[]> blobs;
     private final String bucket;
@@ -75,17 +73,22 @@ import static org.hamcrest.Matchers.nullValue;
 
     @Override
     public boolean doesObjectExist(final String bucketName, final String objectName) throws SdkClientException {
-        assertThat(bucketName, equalTo(bucket));
+        assertThat(bucketName).isEqualTo(bucket);
         return blobs.containsKey(objectName);
     }
 
     @Override
     public PutObjectResult putObject(final PutObjectRequest request) throws AmazonClientException {
-        assertThat(request.getBucketName(), equalTo(bucket));
-        assertThat(request.getMetadata().getSSEAlgorithm(), serverSideEncryption ? equalTo("AES256") : nullValue());
-        assertThat(request.getCannedAcl(), notNullValue());
-        assertThat(request.getCannedAcl().toString(), cannedACL != null ? equalTo(cannedACL) : equalTo("private"));
-        assertThat(request.getStorageClass(), storageClass != null ? equalTo(storageClass) : equalTo("STANDARD"));
+        assertThat(request.getBucketName()).isEqualTo(bucket);
+        if (serverSideEncryption) {
+            assertThat(request.getMetadata().getSSEAlgorithm()).isEqualTo("AES256");
+        } else {
+            assertThat(request.getMetadata().getSSEAlgorithm()).isNull();
+        }
+        assertThat(request.getCannedAcl()).isNotNull();
+        assertThat(request.getCannedAcl().toString()).isEqualTo(Objects.requireNonNullElse(cannedACL, "private"));
+
+        assertThat(request.getStorageClass()).isEqualTo(Objects.requireNonNullElse(storageClass, "STANDARD"));
 
 
         final String blobName = request.getKey();
@@ -101,7 +104,7 @@ import static org.hamcrest.Matchers.nullValue;
 
     @Override
     public S3Object getObject(final GetObjectRequest request) throws AmazonClientException {
-        assertThat(request.getBucketName(), equalTo(bucket));
+        assertThat(request.getBucketName()).isEqualTo(bucket);
 
         final String blobName = request.getKey();
         final byte[] content = blobs.get(blobName);
@@ -124,7 +127,7 @@ import static org.hamcrest.Matchers.nullValue;
 
     @Override
     public ObjectListing listObjects(final ListObjectsRequest request) throws AmazonClientException {
-        assertThat(request.getBucketName(), equalTo(bucket));
+        assertThat(request.getBucketName()).isEqualTo(bucket);
 
         final ObjectListing listing = new ObjectListing();
         listing.setBucketName(request.getBucketName());
@@ -144,7 +147,7 @@ import static org.hamcrest.Matchers.nullValue;
 
     @Override
     public void deleteObject(final DeleteObjectRequest request) throws AmazonClientException {
-        assertThat(request.getBucketName(), equalTo(bucket));
+        assertThat(request.getBucketName()).isEqualTo(bucket);
         blobs.remove(request.getKey());
     }
 
@@ -155,7 +158,7 @@ import static org.hamcrest.Matchers.nullValue;
 
     @Override
     public DeleteObjectsResult deleteObjects(DeleteObjectsRequest request) throws SdkClientException {
-        assertThat(request.getBucketName(), equalTo(bucket));
+        assertThat(request.getBucketName()).isEqualTo(bucket);
 
         final List<DeleteObjectsResult.DeletedObject> deletions = new ArrayList<>();
         for (DeleteObjectsRequest.KeyVersion key : request.getKeys()) {

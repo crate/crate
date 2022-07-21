@@ -21,16 +21,12 @@
 
 package org.elasticsearch.repositories.s3;
 
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.text.IsEmptyString.emptyString;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESTestCase;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.Protocol;
@@ -39,23 +35,20 @@ import com.amazonaws.auth.BasicSessionCredentials;
 
 public class S3ClientSettingsTests extends ESTestCase {
 
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
-
     @Test
     public void testThereIsADefaultClientByDefault() {
         final S3ClientSettings settings = S3ClientSettings.getClientSettings(Settings.EMPTY);
 
-        assertThat(settings.credentials, nullValue());
-        assertThat(settings.endpoint, is(emptyString()));
-        assertThat(settings.protocol, is(Protocol.HTTPS));
-        assertThat(settings.proxyHost, is(emptyString()));
-        assertThat(settings.proxyPort, is(80));
-        assertThat(settings.proxyUsername, is(emptyString()));
-        assertThat(settings.proxyPassword, is(emptyString()));
-        assertThat(settings.readTimeoutMillis, is(ClientConfiguration.DEFAULT_SOCKET_TIMEOUT));
-        assertThat(settings.maxRetries, is(ClientConfiguration.DEFAULT_RETRY_POLICY.getMaxErrorRetry()));
-        assertThat(settings.throttleRetries, is(ClientConfiguration.DEFAULT_THROTTLE_RETRIES));
+        assertThat(settings.credentials).isNull();
+        assertThat(settings.endpoint).isEmpty();
+        assertThat(settings.protocol).isEqualTo(Protocol.HTTPS);
+        assertThat(settings.proxyHost).isEmpty();
+        assertThat(settings.proxyPort).isEqualTo(80);
+        assertThat(settings.proxyUsername).isEmpty();
+        assertThat(settings.proxyPassword).isEmpty();
+        assertThat(settings.readTimeoutMillis).isEqualTo(ClientConfiguration.DEFAULT_SOCKET_TIMEOUT);
+        assertThat(settings.maxRetries).isEqualTo(ClientConfiguration.DEFAULT_RETRY_POLICY.getMaxErrorRetry());
+        assertThat(settings.throttleRetries).isEqualTo(ClientConfiguration.DEFAULT_THROTTLE_RETRIES);
     }
 
     @Test
@@ -64,37 +57,40 @@ public class S3ClientSettingsTests extends ESTestCase {
             Settings.builder()
                 .put("max_retries", 10)
                 .build());
-        assertThat(settings.maxRetries, is(10));
+        assertThat(settings.maxRetries).isEqualTo(10);
     }
 
     @Test
     public void testRejectionOfLoneAccessKey() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Missing secret key for s3 client");
-        S3ClientSettings.getClientSettings(
-            Settings.builder()
-                .put("access_key", "aws_key")
-                .build());
+        assertThatThrownBy(
+            () -> S3ClientSettings.getClientSettings(
+                Settings.builder()
+                    .put("access_key", "aws_key")
+                    .build()))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Missing secret key for s3 client");
     }
 
     @Test
     public void testRejectionOfLoneSecretKey() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Missing access key for s3 client");
-        S3ClientSettings.getClientSettings(
-            Settings.builder()
-                .put("secret_key", "aws_key")
-                .build());
+        assertThatThrownBy(
+            () -> S3ClientSettings.getClientSettings(
+                Settings.builder()
+                    .put("secret_key", "aws_key")
+                    .build()))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Missing access key for s3 client");
     }
 
     @Test
     public void testRejectionOfLoneSessionToken() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Missing access key and secret key for s3 client");
-        S3ClientSettings.getClientSettings(
-            Settings.builder()
-                .put("session_token", "aws_key")
-                .build());
+        assertThatThrownBy(
+            () -> S3ClientSettings.getClientSettings(
+                Settings.builder()
+                    .put("session_token", "aws_key")
+                    .build()))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Missing access key and secret key for s3 client");
     }
 
     @Test
@@ -105,8 +101,8 @@ public class S3ClientSettingsTests extends ESTestCase {
                 .put("secret_key", "secret_key")
                 .build());
         BasicAWSCredentials credentials = (BasicAWSCredentials) settings.credentials;
-        assertThat(credentials.getAWSAccessKeyId(), is("access_key"));
-        assertThat(credentials.getAWSSecretKey(), is("secret_key"));
+        assertThat(credentials.getAWSAccessKeyId()).isEqualTo("access_key");
+        assertThat(credentials.getAWSSecretKey()).isEqualTo("secret_key");
     }
 
     @Test
@@ -118,8 +114,8 @@ public class S3ClientSettingsTests extends ESTestCase {
                 .put("session_token", "session_token")
                 .build());
         BasicSessionCredentials credentials = (BasicSessionCredentials) settings.credentials;
-        assertThat(credentials.getAWSAccessKeyId(), is("access_key"));
-        assertThat(credentials.getAWSSecretKey(), is("secret_key"));
-        assertThat(credentials.getSessionToken(), is("session_token"));
+        assertThat(credentials.getAWSAccessKeyId()).isEqualTo("access_key");
+        assertThat(credentials.getAWSSecretKey()).isEqualTo("secret_key");
+        assertThat(credentials.getSessionToken()).isEqualTo("session_token");
     }
 }
