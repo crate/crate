@@ -77,7 +77,8 @@ public class FileReadingIterator implements BatchIterator<Row> {
                                                  List<String> targetColumns,
                                                  CopyFromParserProperties parserProperties,
                                                  FileUriCollectPhase.InputFormat inputFormat,
-                                                 Settings withClauseOptions) {
+                                                 Settings withClauseOptions,
+                                                 boolean reuse) {
         return new FileReadingIterator(
             fileUris,
             inputs,
@@ -90,7 +91,9 @@ public class FileReadingIterator implements BatchIterator<Row> {
             targetColumns,
             parserProperties,
             inputFormat,
-            withClauseOptions);
+            withClauseOptions,
+            reuse);
+
     }
 
 
@@ -114,6 +117,7 @@ public class FileReadingIterator implements BatchIterator<Row> {
     private URI currentUri;
     private BufferedReader currentReader = null;
     private ReusableJsonBuilder reusableJsonBuilder = null;
+    private final boolean reuse;
     private long currentLineNumber;
     private final Row row;
     private LineProcessor lineProcessor;
@@ -130,7 +134,8 @@ public class FileReadingIterator implements BatchIterator<Row> {
                         List<String> targetColumns,
                         CopyFromParserProperties parserProperties,
                         FileUriCollectPhase.InputFormat inputFormat,
-                        Settings withClauseOptions) {
+                        Settings withClauseOptions,
+                        boolean reuse) {
         this.compressed = compression != null && compression.equalsIgnoreCase("gzip");
         this.row = new InputRow(inputs);
         this.fileInputFactories = fileInputFactories;
@@ -143,6 +148,7 @@ public class FileReadingIterator implements BatchIterator<Row> {
         this.parserProperties = parserProperties;
         this.inputFormat = inputFormat;
         initCollectorState();
+        this.reuse = reuse;
     }
 
     /**
@@ -248,7 +254,7 @@ public class FileReadingIterator implements BatchIterator<Row> {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         reusableJsonBuilder = new ReusableJsonBuilder(new XContentBuilder(JsonXContent.JSON_XCONTENT, out), out, new ArrayList());
         currentLineNumber = 0;
-        lineProcessor.readFirstLine(currentUri, inputFormat, currentReader, reusableJsonBuilder);
+        lineProcessor.readFirstLine(currentUri, inputFormat, currentReader, reuse ? reusableJsonBuilder : null);
     }
 
     private void closeCurrentReader() {

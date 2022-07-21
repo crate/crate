@@ -135,7 +135,7 @@ public class CsvReaderBenchmark {
     }
 
     @Benchmark()
-    public void measureFileReadingIteratorForCSV(Blackhole blackhole) {
+    public void measureFileReadingIteratorForCSVReuseTrue(Blackhole blackhole) {
         Reference raw = createReference("_raw", DataTypes.STRING);
         InputFactory.Context<LineCollectorExpression<?>> ctx = inputFactory.ctxForRefs(txnCtx, FileLineReferenceResolver::getImplementation);
 
@@ -153,7 +153,35 @@ public class CsvReaderBenchmark {
             List.of("id", "name"),
             CopyFromParserProperties.DEFAULT,
             CSV,
-            Settings.EMPTY);
+            Settings.EMPTY,
+            true);
+
+        while (batchIterator.moveNext()) {
+            blackhole.consume(batchIterator.currentElement().get(0));
+        }
+    }
+
+    @Benchmark()
+    public void measureFileReadingIteratorForCSVReuseFalse(Blackhole blackhole) {
+        Reference raw = createReference("_raw", DataTypes.STRING);
+        InputFactory.Context<LineCollectorExpression<?>> ctx = inputFactory.ctxForRefs(txnCtx, FileLineReferenceResolver::getImplementation);
+
+        List<Input<?>> inputs = Collections.singletonList(ctx.add(raw));
+        BatchIterator<Row> batchIterator = FileReadingIterator.newInstance(
+            Collections.singletonList(fileUri),
+            inputs,
+            ctx.expressions(),
+            null,
+            Map.of(
+                LocalFsFileInputFactory.NAME, new LocalFsFileInputFactory()),
+            false,
+            1,
+            0,
+            List.of("id", "name"),
+            CopyFromParserProperties.DEFAULT,
+            CSV,
+            Settings.EMPTY,
+            false);
 
         while (batchIterator.moveNext()) {
             blackhole.consume(batchIterator.currentElement().get(0));

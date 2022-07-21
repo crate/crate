@@ -205,7 +205,8 @@ public class FileReadingIteratorTest extends ESTestCase {
                 List.of("name", "id", "age"),
                 CopyFromParserProperties.DEFAULT,
                 JSON,
-                Settings.EMPTY
+                Settings.EMPTY,
+                true
             ) {
 
                 @Override
@@ -254,6 +255,7 @@ public class FileReadingIteratorTest extends ESTestCase {
             List.of("name", "id", "age"),
             CopyFromParserProperties.DEFAULT,
             format,
-            Settings.EMPTY);
+            Settings.EMPTY,
+            true);
     }
 }

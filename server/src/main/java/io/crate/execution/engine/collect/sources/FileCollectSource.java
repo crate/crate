@@ -90,7 +90,8 @@ public class FileCollectSource implements CollectSource {
             fileUriCollectPhase.targetColumns(),
             fileUriCollectPhase.parserProperties(),
             fileUriCollectPhase.inputFormat(),
-            fileUriCollectPhase.withClauseOptions()
+            fileUriCollectPhase.withClauseOptions(),
+            true
         ));
     }
 

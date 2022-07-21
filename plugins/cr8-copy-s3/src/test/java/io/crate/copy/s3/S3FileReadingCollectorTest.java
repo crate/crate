@@ -252,7 +252,7 @@ public class S3FileReadingCollectorTest extends ESTestCase {
             List.of("id", "name", "details"),
             CopyFromParserProperties.DEFAULT,
             FileUriCollectPhase.InputFormat.JSON,
-            Settings.EMPTY);
+            Settings.EMPTY, true);
     }
 
     private static class WriteBufferAnswer implements Answer<Integer> {

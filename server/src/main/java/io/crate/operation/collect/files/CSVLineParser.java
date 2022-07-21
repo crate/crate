@@ -27,21 +27,34 @@ import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvParser;
 import io.crate.analyze.CopyFromParserProperties;
 
+import io.crate.common.TriConsumer;
 import io.crate.execution.engine.collect.files.FileReadingIterator.ReusableJsonBuilder;
+import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
+
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 public class CSVLineParser {
 
+    private final ByteArrayOutputStream out = new ByteArrayOutputStream();
     private final ReusableJsonBuilder reusableJsonBuilder;
     private final ArrayList<String> headerKeyList = new ArrayList<>();
     private String[] columnNamesArray;
     private final List<String> targetColumns;
     private final ObjectReader csvReader;
+
+    Runnable resetter;
+    Supplier<XContentBuilder> builderSupplier;
+    TriConsumer<XContentBuilder, String, Object> keyValueConsumer;
+    Function<XContentBuilder, byte[]> jsonToBytes;
 
     public CSVLineParser(CopyFromParserProperties properties, List<String> columns, ReusableJsonBuilder reusableRowBuilder) {
         targetColumns = columns;
@@ -63,12 +76,51 @@ public class CSVLineParser {
             .readerWithTypedSchemaFor(Object.class)
             .with(csvSchema);
 
-        // We re-use XContentBuilder per line via startObject ... add fields ... flush
-        // but we cannot immediately set parsed value to a json field.
-        // In case parsing fails in the middle we will end up with "dirty" XContentBuilder which we cannot rollback.
-        // We first gather values into ArrayList with adjusted once capacity and start making json object only when we know that line was parsed without errors.
-        this.reusableJsonBuilder = reusableRowBuilder;
-        this.reusableJsonBuilder.rowItems().ensureCapacity(targetColumns.size());
+        if (reusableRowBuilder != null) {
+            // We re-use XContentBuilder per line via startObject ... add fields ... flush
+            // but we cannot immediately set parsed value to a json field.
+            // In case parsing fails in the middle we will end up with "dirty" XContentBuilder which we cannot rollback.
+            // We first gather values into ArrayList with adjusted once capacity and start making json object only when we know that line was parsed without errors.
+            this.reusableJsonBuilder = reusableRowBuilder;
+            this.reusableJsonBuilder.rowItems().ensureCapacity(targetColumns.size());
+
+            resetter = () -> reset();
+            builderSupplier = () -> reusableRowBuilder.jsonBuilder();
+            keyValueConsumer = (jsonBuilder, key, value) -> reusableJsonBuilder.rowItems().add(value);
+            jsonToBytes = (jsonBuilder) -> {
+                try {
+                    return getByteArray();
+                } catch (IOException e) {
+                    return null;
+                }
+            };
+        } else {
+            // this blocks repeats previous edition for each of those 4 steps.
+            this.reusableJsonBuilder = null;
+            resetter = () -> out.reset();
+            builderSupplier = () -> {
+                try {
+                    return new XContentBuilder(JsonXContent.JSON_XCONTENT, out).startObject();
+                } catch (IOException e) {
+                    return null;
+                }
+            };
+            keyValueConsumer = (jsonBuilder, key, value) -> {
+                try {
+                    jsonBuilder.field(key, value);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            };
+            jsonToBytes = (jsonBuilder) -> {
+                try {
+                    jsonBuilder.endObject().close();
+                    return out.toByteArray();
+                } catch (IOException e) {
+                    return  null;
+                }
+            };
+        }
     }
 
     public void parseHeader(String header) throws IOException {
@@ -89,7 +141,8 @@ public class CSVLineParser {
     }
 
     public byte[] parse(String row, long rowNumber) throws IOException {
-        reset();
+        resetter.run(); //reset();
+        XContentBuilder contentBuilder = builderSupplier.get(); // Get existing (new edition) or create new one (old edition)
         MappingIterator<Object> iterator = csvReader.readValues(row.getBytes(StandardCharsets.UTF_8));
         int i = 0, j = 0;
         while (iterator.hasNext()) {
@@ -104,13 +157,14 @@ public class CSVLineParser {
             var value = iterator.next();
             i++;
             if (key != null) {
-                reusableJsonBuilder.rowItems().add(value);
+                keyValueConsumer.accept(contentBuilder, key, value); // reusableJsonBuilder.rowItems().add(value);
                 j++;
             }
         }
-        return getByteArray();
+        return jsonToBytes.apply(contentBuilder); //return getByteArray();
     }
 
+    // Not used in JMH benchmark
     public byte[] parseWithoutHeader(String row, long rowNumber) throws IOException {
         MappingIterator<String> iterator = csvReader.readValues(row.getBytes(StandardCharsets.UTF_8));
         reset();
@@ -134,7 +188,7 @@ public class CSVLineParser {
         return getByteArray();
     }
 
-    private void reset() throws IOException {
+    private void reset() {
         reusableJsonBuilder.out().reset();
         reusableJsonBuilder.rowItems().clear();
     }

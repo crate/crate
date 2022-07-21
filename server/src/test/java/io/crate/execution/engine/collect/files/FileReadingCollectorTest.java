@@ -249,7 +249,7 @@ public class FileReadingCollectorTest extends ESTestCase {
             List.of("a", "b"),
             CopyFromParserProperties.DEFAULT,
             FileUriCollectPhase.InputFormat.JSON,
-            Settings.EMPTY);
+            Settings.EMPTY, true);
     }
 
     private static class WriteBufferAnswer implements Answer<Integer> {
