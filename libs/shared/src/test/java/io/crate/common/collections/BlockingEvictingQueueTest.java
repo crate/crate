@@ -21,14 +21,13 @@
 
 package io.crate.common.collections;
 
-import org.junit.Test;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
+import org.junit.Test;
 
 public class BlockingEvictingQueueTest {
 
@@ -51,7 +50,7 @@ public class BlockingEvictingQueueTest {
         }
 
         latch.await();
-        assertThat(strings.size(), is(15_000));
+        assertThat(strings).hasSize(15_000);
         for (Thread thread : threads) {
             thread.join();
         }

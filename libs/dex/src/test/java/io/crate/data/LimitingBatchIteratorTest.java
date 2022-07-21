@@ -21,38 +21,39 @@
 
 package io.crate.data;
 
-import io.crate.testing.BatchIteratorTester;
-import io.crate.testing.BatchSimulatingIterator;
-import io.crate.testing.TestingBatchIterators;
-import org.junit.Test;
-
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import org.junit.Test;
+
+import io.crate.testing.BatchIteratorTester;
+import io.crate.testing.BatchSimulatingIterator;
+import io.crate.testing.TestingBatchIterators;
+
 public class LimitingBatchIteratorTest {
 
-    private int limit = 5;
-    private List<Object[]> expectedResult = IntStream.range(0, 10).limit(limit)
-        .mapToObj(l -> new Object[]{l}).collect(Collectors.toList());
+    private static final int LIMIT = 5;
+    private static final List<Object[]> EXPECTED_RESULT = IntStream.range(0, 10).limit(LIMIT)
+        .mapToObj(l -> new Object[] {l}).collect(Collectors.toList());
 
     @Test
     public void testLimitingBatchIterator() throws Exception {
         BatchIteratorTester tester = new BatchIteratorTester(
-            () -> LimitingBatchIterator.newInstance(TestingBatchIterators.range(0, 10), limit)
+            () -> LimitingBatchIterator.newInstance(TestingBatchIterators.range(0, 10), LIMIT)
         );
-        tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
+        tester.verifyResultAndEdgeCaseBehaviour(EXPECTED_RESULT);
     }
 
     @Test
     public void testLimitingBatchIteratorWithBatchedSource() throws Exception {
         BatchIteratorTester tester = new BatchIteratorTester(
             () -> {
-                BatchSimulatingIterator batchSimulatingIt = new BatchSimulatingIterator(
+                BatchSimulatingIterator<Row> batchSimulatingIt = new BatchSimulatingIterator<>(
                     TestingBatchIterators.range(0, 10), 2, 5, null);
-                return LimitingBatchIterator.newInstance(batchSimulatingIt, limit);
+                return LimitingBatchIterator.newInstance(batchSimulatingIt, LIMIT);
             }
         );
-        tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
+        tester.verifyResultAndEdgeCaseBehaviour(EXPECTED_RESULT);
     }
 }

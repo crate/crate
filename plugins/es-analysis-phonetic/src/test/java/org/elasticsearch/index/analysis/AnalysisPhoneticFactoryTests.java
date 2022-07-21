@@ -19,7 +19,7 @@
 
 package org.elasticsearch.index.analysis;
 
-import static org.junit.Assert.assertEquals;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -52,17 +52,20 @@ public class AnalysisPhoneticFactoryTests extends AnalysisFactoryTestCase {
     @Test
     public void testDisallowedWithSynonyms() throws IOException {
 
-        AnalysisPhoneticPlugin plugin = new AnalysisPhoneticPlugin();
+        TokenFilterFactory tff;
+        try (AnalysisPhoneticPlugin plugin = new AnalysisPhoneticPlugin()) {
 
-        Settings settings = Settings.builder()
-            .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
-            .put("path.home", createTempDir().toString())
-            .build();
-        IndexSettings idxSettings = IndexSettingsModule.newIndexSettings("index", settings);
+            Settings settings = Settings.builder()
+                .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
+                .put("path.home", createTempDir().toString())
+                .build();
+            IndexSettings idxSettings = IndexSettingsModule.newIndexSettings("index", settings);
 
-        TokenFilterFactory tff
-            = plugin.getTokenFilters().get("phonetic").get(idxSettings, null, "phonetic", settings);
-        IllegalArgumentException e = expectThrows(IllegalArgumentException.class, tff::getSynonymFilter);
-        assertEquals("Token filter [phonetic] cannot be used to parse synonyms", e.getMessage());
+            tff = plugin.getTokenFilters().get("phonetic").get(idxSettings, null, "phonetic", settings);
+
+            assertThatThrownBy(tff::getSynonymFilter)
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Token filter [phonetic] cannot be used to parse synonyms");
+        }
     }
 }

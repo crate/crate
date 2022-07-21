@@ -5,8 +5,8 @@ import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -48,7 +48,7 @@ public class URLRepositoryITest extends SQLIntegrationTestCase {
         defaultRepositoryLocation = TEMPORARY_FOLDER.newFolder();
         execute("CREATE REPOSITORY my_repo TYPE \"fs\" with (location=?, compress=True)",
             new Object[]{defaultRepositoryLocation.getAbsolutePath()});
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rowCount()).isEqualTo(1L);
     }
 
     @Test

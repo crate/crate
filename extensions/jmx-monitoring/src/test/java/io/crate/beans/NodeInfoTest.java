@@ -21,9 +21,15 @@
 
 package io.crate.beans;
 
-import com.carrotsearch.randomizedtesting.RandomizedRunner;
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
-import io.crate.common.collections.Tuple;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.elasticsearch.test.ESTestCase.buildNewFakeTransportAddress;
+import static org.elasticsearch.test.ESTestCase.settings;
+
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+
+import org.assertj.core.api.ThrowingConsumer;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
@@ -39,25 +45,14 @@ import org.elasticsearch.cluster.routing.TestShardRouting;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.shard.IndexShardState;
 import org.elasticsearch.index.shard.ShardId;
-
-import org.hamcrest.Matcher;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import com.carrotsearch.randomizedtesting.RandomizedRunner;
+import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-
-import static io.crate.testing.MoreMatchers.withFeature;
-import static org.elasticsearch.test.ESTestCase.buildNewFakeTransportAddress;
-import static org.elasticsearch.test.ESTestCase.settings;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
+import io.crate.common.collections.Tuple;
 
 @RunWith(RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
@@ -109,24 +104,22 @@ public class NodeInfoTest {
 
         var nodeInfo = new NodeInfo(() -> clusterState.nodes(nodes).build(), this::shardStateAndSizeProvider);
 
-        assertThat(nodeInfo.getNodeId(), is("node_1"));
-        assertThat(nodeInfo.getNodeName(), is("node_1"));
+        assertThat(nodeInfo.getNodeId()).isEqualTo("node_1");
+        assertThat(nodeInfo.getNodeName()).isEqualTo("node_1");
 
-        assertThat(nodeInfo.getClusterStateVersion(), is(1L));
+        assertThat(nodeInfo.getClusterStateVersion()).isEqualTo(1L);
         ShardStats shardStats = nodeInfo.getShardStats();
-        assertThat(shardStats.getPrimaries(), is(1));
-        assertThat(shardStats.getTotal(), is(3));
-        assertThat(shardStats.getReplicas(), is(2));
+        assertThat(shardStats.getPrimaries()).isEqualTo(1);
+        assertThat(shardStats.getTotal()).isEqualTo(3);
+        assertThat(shardStats.getReplicas()).isEqualTo(2);
         // Unassigned shards are counted on the master node
-        assertThat(shardStats.getUnassigned(), is(1));
+        assertThat(shardStats.getUnassigned()).isEqualTo(1);
 
-        assertThat(nodeInfo.getShardInfo(),
-                   containsInAnyOrder(
-                       isShardInfo(1, "test", "", "STARTED", "STARTED", 100),
-                       isShardInfo(2, "test", "", "STARTED", "STARTED", 100),
-                       isShardInfo(3, "test", "", "STARTED", "STARTED", 100)
-                   )
-        );
+        assertThat(nodeInfo.getShardInfo())
+            .satisfiesExactlyInAnyOrder(
+                isShardInfo(1, "test", "", "STARTED", "STARTED", 100),
+                isShardInfo(2, "test", "", "STARTED", "STARTED", 100),
+                isShardInfo(3, "test", "", "STARTED", "STARTED", 100));
     }
 
     @Test
@@ -141,13 +134,13 @@ public class NodeInfoTest {
 
         var nodeInfo = new NodeInfo(() -> clusterState.nodes(nodes).build(), this::shardStateAndSizeProvider);
 
-        assertThat(nodeInfo.getNodeId(), is("node_2"));
-        assertThat(nodeInfo.getNodeName(), is("node_2"));
+        assertThat(nodeInfo.getNodeId()).isEqualTo("node_2");
+        assertThat(nodeInfo.getNodeName()).isEqualTo("node_2");
         var shardStats = nodeInfo.getShardStats();
-        assertThat(shardStats.getPrimaries(), is(0));
-        assertThat(shardStats.getTotal(), is(0));
-        assertThat(shardStats.getReplicas(), is(0));
-        assertThat(shardStats.getUnassigned(), is(0));
+        assertThat(shardStats.getPrimaries()).isEqualTo(0);
+        assertThat(shardStats.getTotal()).isEqualTo(0);
+        assertThat(shardStats.getReplicas()).isEqualTo(0);
+        assertThat(shardStats.getUnassigned()).isEqualTo(0);
     }
 
     @Test
@@ -162,16 +155,16 @@ public class NodeInfoTest {
 
         var nodeInfo = new NodeInfo(() -> clusterState.nodes(nodes).build(), this::shardStateAndSizeProvider);
 
-        assertThat(nodeInfo.getNodeId(), is("node_2"));
-        assertThat(nodeInfo.getNodeName(), is("node_2"));
+        assertThat(nodeInfo.getNodeId()).isEqualTo("node_2");
+        assertThat(nodeInfo.getNodeName()).isEqualTo("node_2");
         var shardStats = nodeInfo.getShardStats();
-        assertThat(shardStats.getPrimaries(), is(0));
-        assertThat(shardStats.getTotal(), is(0));
-        assertThat(shardStats.getReplicas(), is(0));
+        assertThat(shardStats.getPrimaries()).isEqualTo(0);
+        assertThat(shardStats.getTotal()).isEqualTo(0);
+        assertThat(shardStats.getReplicas()).isEqualTo(0);
         // Unassigned shards are only counted on the master node
-        assertThat(shardStats.getUnassigned(), is(1));
+        assertThat(shardStats.getUnassigned()).isEqualTo(1);
 
-        assertThat(nodeInfo.getShardInfo().isEmpty(), is(true));
+        assertThat(nodeInfo.getShardInfo().isEmpty()).isEqualTo(true);
     }
 
     @Test
@@ -186,19 +179,17 @@ public class NodeInfoTest {
 
         var nodeInfo = new NodeInfo(() -> clusterState.nodes(nodes).build(), this::shardStateAndSizeProvider);
         var shardStats = nodeInfo.getShardStats();
-        assertThat(shardStats.getPrimaries(), is(1));
-        assertThat(shardStats.getTotal(), is(3));
-        assertThat(shardStats.getReplicas(), is(2));
+        assertThat(shardStats.getPrimaries()).isEqualTo(1);
+        assertThat(shardStats.getTotal()).isEqualTo(3);
+        assertThat(shardStats.getReplicas()).isEqualTo(2);
         // Unassigned shards are not counted on a data node
-        assertThat(shardStats.getUnassigned(), is(0));
+        assertThat(shardStats.getUnassigned()).isEqualTo(0);
 
-        assertThat(nodeInfo.getShardInfo(),
-                   containsInAnyOrder(
-                       isShardInfo(1, "test", "", "STARTED", "STARTED", 100),
-                       isShardInfo(2, "test", "", "STARTED", "STARTED", 100),
-                       isShardInfo(3, "test", "", "STARTED", "STARTED", 100)
-                   )
-        );
+        assertThat(nodeInfo.getShardInfo())
+            .satisfiesExactlyInAnyOrder(
+               isShardInfo(1, "test", "", "STARTED", "STARTED", 100),
+               isShardInfo(2, "test", "", "STARTED", "STARTED", 100),
+               isShardInfo(3, "test", "", "STARTED", "STARTED", 100));
     }
 
     @Test
@@ -237,17 +228,15 @@ public class NodeInfoTest {
 
         var nodeInfo = new NodeInfo(() -> cs.nodes(nodes).build(), this::shardStateAndSizeProvider);
         var shardStats = nodeInfo.getShardStats();
-        assertThat(shardStats.getPrimaries(), is(1));
-        assertThat(shardStats.getTotal(), is(3));
-        assertThat(shardStats.getReplicas(), is(2));
+        assertThat(shardStats.getPrimaries()).isEqualTo(1);
+        assertThat(shardStats.getTotal()).isEqualTo(3);
+        assertThat(shardStats.getReplicas()).isEqualTo(2);
 
-        assertThat(nodeInfo.getShardInfo(),
-                   containsInAnyOrder(
-                       isShardInfo(1, "test", "p1", "STARTED", "STARTED", 100),
-                       isShardInfo(2, "test", "p1", "STARTED", "STARTED", 100),
-                       isShardInfo(3, "test", "p1", "STARTED", "STARTED", 100)
-                   )
-        );
+        assertThat(nodeInfo.getShardInfo())
+            .satisfiesExactlyInAnyOrder(
+               isShardInfo(1, "test", "p1", "STARTED", "STARTED", 100),
+               isShardInfo(2, "test", "p1", "STARTED", "STARTED", 100),
+               isShardInfo(3, "test", "p1", "STARTED", "STARTED", 100));
 
     }
 
@@ -264,15 +253,13 @@ public class NodeInfoTest {
                                  Version.CURRENT);
     }
 
-    Matcher<ShardInfo> isShardInfo(int shardId, String table, String partitionIdent, String routingState, String state, long size) {
-        return allOf(
-            instanceOf(ShardInfo.class),
-            withFeature(x -> x.shardId, "", is(shardId)),
-            withFeature(x -> x.table, "", is(table)),
-            withFeature(x -> x.routingState, "", is(routingState)),
-            withFeature(x -> x.state, "", is(state)),
-            withFeature(x -> x.partitionIdent, "", is(partitionIdent)),
-            withFeature(x -> x.size, "", is(size))
-        );
+    ThrowingConsumer<ShardInfo> isShardInfo(int shardId, String table, String partitionIdent, String routingState, String state, long size) {
+        return s -> assertThat(s)
+            .satisfies(si -> assertThat(si.shardId).isEqualTo(shardId))
+            .satisfies(si -> assertThat(si.table).isEqualTo(table))
+            .satisfies(si -> assertThat(si.routingState).isEqualTo(routingState))
+            .satisfies(si -> assertThat(si.state).isEqualTo(state))
+            .satisfies(si -> assertThat(si.partitionIdent).isEqualTo(partitionIdent))
+            .satisfies(si -> assertThat(si.size).isEqualTo(size));
     }
 }

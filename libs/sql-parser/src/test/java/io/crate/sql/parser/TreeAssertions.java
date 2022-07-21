@@ -32,26 +32,24 @@ import java.util.List;
 import static io.crate.sql.SqlFormatter.formatSql;
 import static io.crate.sql.parser.SqlParser.createStatement;
 import static java.lang.String.format;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.assertj.core.api.Assertions.assertThat;
 
 final class TreeAssertions {
-    private TreeAssertions() {
-    }
+    private TreeAssertions() {}
 
     static void assertFormattedSql(Node expected) {
         String formatted = formatSql(expected);
 
         // verify round-trip of formatting already-formatted SQL
         Statement actual = parseFormatted(formatted, expected);
-        assertEquals(formatSql(actual), formatted);
+        assertThat(formatSql(actual)).isEqualTo(formatted);
 
         // compare parsed tree with parsed tree of formatted SQL
         if (!actual.equals(expected)) {
             // simplify finding the non-equal part of the tree
             assertListEquals(linearizeTree(actual), linearizeTree(expected));
         }
-        assertEquals(actual, expected);
+        assertThat(actual).isEqualTo(expected);
     }
 
     private static Statement parseFormatted(String sql, Node tree) {
@@ -75,12 +73,14 @@ final class TreeAssertions {
     }
 
     private static <T> void assertListEquals(List<T> actual, List<T> expected) {
-        if (actual.size() != expected.size()) {
-            fail(format(
-                "Lists not equal%nActual [%s]:%n    %s%nExpected [%s]:%n    %s",
-                actual.size(), Lists2.joinOn("\n    ", actual, Object::toString),
-                expected.size(), Lists2.joinOn("\n    ", expected, Object::toString)));
-        }
-        assertEquals(actual, expected);
+        assertThat(actual)
+            .as(
+                format(
+                    "Lists not equal%nActual [%s]:%n    %s%nExpected [%s]:%n    %s",
+                    actual.size(), Lists2.joinOn("\n    ", actual, Object::toString),
+                    expected.size(), Lists2.joinOn("\n    ", expected, Object::toString)))
+            .hasSize(expected.size());
+
+        assertThat(actual).isEqualTo(expected);
     }
 }

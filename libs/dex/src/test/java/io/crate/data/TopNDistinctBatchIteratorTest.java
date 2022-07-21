@@ -21,8 +21,7 @@
 
 package io.crate.data;
 
-import static org.hamcrest.Matchers.contains;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -40,7 +39,7 @@ public class TopNDistinctBatchIteratorTest {
         var topNDistinct = new TopNDistinctBatchIterator<>(source, 2, x -> x);
 
         List<Integer> integers = BatchIterators.collect(topNDistinct, Collectors.toList()).get(5, TimeUnit.SECONDS);
-        assertThat(integers, contains(1, 2));
+        assertThat(integers).containsExactly(1, 2);
     }
 
     @Test
@@ -49,7 +48,7 @@ public class TopNDistinctBatchIteratorTest {
         var topNDistinct = new TopNDistinctBatchIterator<>(source, 5, x -> x);
 
         List<Integer> integers = BatchIterators.collect(topNDistinct, Collectors.toList()).get(5, TimeUnit.SECONDS);
-        assertThat(integers, contains(1, 2, 3));
+        assertThat(integers).containsExactly(1, 2, 3);
     }
 
     @Test

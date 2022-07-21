@@ -44,7 +44,7 @@ public class S3RepositoryIntegrationTest extends SQLIntegrationTestCase {
     }
 
     @Test
-    public void test_unable_to_create_s3_repository() throws Throwable {
+    public void test_unable_to_create_s3_repository() {
         assertThrowsMatches(() -> execute(
             "create repository test123 type s3 with (bucket='bucket', endpoint='https://s3.region.amazonaws.com', " +
             "protocol='https', access_key='access',secret_key='secret', base_path='test123')"),

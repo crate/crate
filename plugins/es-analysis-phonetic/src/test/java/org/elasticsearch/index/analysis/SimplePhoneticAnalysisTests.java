@@ -19,8 +19,7 @@
 
 package org.elasticsearch.index.analysis;
 
-import static org.hamcrest.Matchers.instanceOf;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.io.StringReader;
@@ -35,7 +34,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.plugin.analysis.AnalysisPhoneticPlugin;
 import org.elasticsearch.test.ESTestCase;
-import org.hamcrest.MatcherAssert;
 import org.junit.Before;
 
 public class SimplePhoneticAnalysisTests extends ESTestCase {
@@ -51,9 +49,9 @@ public class SimplePhoneticAnalysisTests extends ESTestCase {
         this.analysis = createTestAnalysis(new Index("test", "_na_"), settings, new AnalysisPhoneticPlugin());
     }
 
-    public void testPhoneticTokenFilterFactory() throws IOException {
+    public void testPhoneticTokenFilterFactory() {
         TokenFilterFactory filterFactory = analysis.tokenFilter.get("phonetic");
-        MatcherAssert.assertThat(filterFactory, instanceOf(PhoneticTokenFilterFactory.class));
+        assertThat(filterFactory).isInstanceOf(PhoneticTokenFilterFactory.class);
     }
 
     public void testPhoneticTokenFilterBeiderMorseNoLanguage() throws IOException {
@@ -80,7 +78,8 @@ public class SimplePhoneticAnalysisTests extends ESTestCase {
         Tokenizer tokenizer = new WhitespaceTokenizer();
         tokenizer.setReader(new StringReader("chauptman"));
         String[] expected = new String[] { "473660", "573660" };
-        assertThat(filterFactory.create(tokenizer), instanceOf(DaitchMokotoffSoundexFilter.class));
+
+        assertThat(filterFactory.create(tokenizer)).isInstanceOf(DaitchMokotoffSoundexFilter.class);
         BaseTokenStreamTestCase.assertTokenStreamContents(filterFactory.create(tokenizer), expected);
     }
 

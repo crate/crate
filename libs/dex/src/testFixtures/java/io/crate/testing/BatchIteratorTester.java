@@ -21,13 +21,11 @@
 
 package io.crate.testing;
 
-import io.crate.data.BatchIterator;
-import io.crate.data.BatchIterators;
-import io.crate.data.Row;
-import io.crate.exceptions.Exceptions;
-import org.hamcrest.Matchers;
 
-import javax.annotation.Nullable;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.fail;
+
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -39,13 +37,12 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.fail;
+import javax.annotation.Nullable;
+
+import io.crate.data.BatchIterator;
+import io.crate.data.BatchIterators;
+import io.crate.data.Row;
+import io.crate.exceptions.Exceptions;
 
 /**
  * A class which can be used to verify that a {@link io.crate.data.BatchIterator} implements
@@ -60,7 +57,7 @@ public class BatchIteratorTester {
     }
 
     public void verifyResultAndEdgeCaseBehaviour(List<Object[]> expectedResult,
-                                                 @Nullable Consumer<BatchIterator> verifyAfterProperConsumption) throws Exception {
+                                                 @Nullable Consumer<BatchIterator<Row>> verifyAfterProperConsumption) throws Exception {
         BatchIterator<Row> firstBatchIterator = this.it.get();
         testProperConsumption(firstBatchIterator, expectedResult);
         if (verifyAfterProperConsumption != null) {
@@ -87,7 +84,7 @@ public class BatchIteratorTester {
             f.toCompletableFuture().get(5, TimeUnit.SECONDS);
         } catch (ExecutionException e) {
             Throwable cause = e.getCause();
-            assertThat(cause, is(kill));
+            assertThat(cause).isEqualTo(kill);
         }
     }
 
@@ -120,7 +117,7 @@ public class BatchIteratorTester {
 
     private void testMoveNextAfterMoveNextReturnedFalse(BatchIterator<Row> it) throws Exception {
         TestingRowConsumer.moveToEnd(it).toCompletableFuture().get(10, TimeUnit.SECONDS);
-        assertThat(it.moveNext(), is(false));
+        assertThat(it.moveNext()).isFalse();
         it.close();
     }
 
@@ -146,28 +143,32 @@ public class BatchIteratorTester {
         try {
             CompletableFuture<Object[]> firstRow = CompletableFuture.supplyAsync(() -> {
                 Row firstElement = getFirstElement(it);
-                assertThat("it should have at least two rows, first missing", firstElement, Matchers.notNullValue());
+                assertThat(firstElement)
+                    .as("it should have at least two rows, first missing")
+                    .isNotNull();
                 return firstElement.materialize();
             }, executor);
             CompletableFuture<Object[]> secondRow = firstRow.thenApplyAsync(row -> {
                 Row firstElement = getFirstElement(it);
-                assertThat("it should have at least two rows", firstElement, Matchers.notNullValue());
+                assertThat(firstElement)
+                    .as("it should have at least two rows")
+                    .isNotNull();
                 return firstElement.materialize();
             }, executor);
 
             Object[] firstItem = firstRow.get(10, TimeUnit.SECONDS);
             Object[] secondItem = secondRow.get(10, TimeUnit.SECONDS);
-            assertThat(expectedResult, hasItem(firstItem));
-            assertThat(expectedResult, hasItem(secondItem));
+            assertThat(expectedResult).contains(firstItem);
+            assertThat(expectedResult).contains(secondItem);
 
             // retrieve and check the remaining items
             TestingRowConsumer consumer = new TestingRowConsumer();
             consumer.accept(it, null);
             List<Object[]> result = consumer.getResult();
-            assertThat(result.size(), is(expectedResult.size() - 2));
+            assertThat(result).hasSize(expectedResult.size() - 2);
             result.add(firstItem);
             result.add(secondItem);
-            assertThat(expectedResult, containsInAnyOrder(result.toArray()));
+            assertThat(expectedResult).containsExactlyInAnyOrderElementsOf(result);
         } finally {
             executor.shutdownNow();
             executor.awaitTermination(5, TimeUnit.SECONDS);
@@ -203,7 +204,9 @@ public class BatchIteratorTester {
 
     private void testBehaviourAfterClose(BatchIterator<Row> it) {
         it.close();
-        assertThat("currentElement is not affected by close", it.currentElement(), is(it.currentElement()));
+        assertThat(it.currentElement())
+            .as("currentElement is not affected by close")
+            .isEqualTo(it.currentElement());
 
         expectFailure(it::moveNext, IllegalStateException.class, "moveNext must fail after close");
         expectFailure(it::moveToStart, IllegalStateException.class, "moveToStart must fail after close");
@@ -211,10 +214,11 @@ public class BatchIteratorTester {
 
     private void testBehaviourAfterKill(BatchIterator<Row> it) {
         it.kill(new InterruptedException("job killed"));
-        assertThat("currentElement is not affected by kill", it.currentElement(), is(it.currentElement()));
+        assertThat(it.currentElement())
+            .as("currentElement is not affected by kill")
+            .isEqualTo(it.currentElement());
 
         expectFailure(it::moveNext, InterruptedException.class, "moveNext must fail after kill");
-        expectFailure(it::moveToStart, InterruptedException.class, "moveToStart must fail after kill");
     }
 
     private void testProperConsumption(BatchIterator<Row> it, List<Object[]> expectedResult) throws Exception {
@@ -227,20 +231,15 @@ public class BatchIteratorTester {
 
     private static void checkResult(List<Object[]> expected, List<Object[]> actual) {
         if (expected.isEmpty()) {
-            assertThat(actual, empty());
+            assertThat(actual).isEmpty();
         } else {
-            assertThat(actual, containsInAnyOrder(expected.toArray()));
+            assertThat(actual).containsExactlyInAnyOrderElementsOf(expected);
         }
     }
 
     private static void expectFailure(Runnable runnable,
                                       Class<? extends Exception> expectedException,
                                       String reason) {
-        try {
-            runnable.run();
-            fail(reason);
-        } catch (Exception e) {
-            assertThat(e, instanceOf(expectedException));
-        }
+        assertThatThrownBy(runnable::run).as(reason).isInstanceOf(expectedException);
     }
 }

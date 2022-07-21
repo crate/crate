@@ -21,22 +21,21 @@
 
 package io.crate.common.collections;
 
-import static org.hamcrest.MatcherAssert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
-import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 
 public class RingBufferTest {
 
     @Test
-    public void test_ring_buffer_keeps_last_n_entries() throws Exception {
+    public void test_ring_buffer_keeps_last_n_entries() {
         var buf = new RingBuffer<Integer>(3);
         buf.add(1);
-        assertThat(buf, Matchers.contains(1));
+        assertThat(buf).containsExactly(1);
 
         buf.add(2);
         buf.add(3);
         buf.add(4);
-        assertThat(buf, Matchers.containsInAnyOrder(2, 3, 4));
+        assertThat(buf).containsExactly(4, 2, 3);
     }
 }

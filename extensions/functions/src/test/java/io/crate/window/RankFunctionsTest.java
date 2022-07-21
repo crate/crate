@@ -21,15 +21,16 @@
 
 package io.crate.window;
 
+import static org.hamcrest.Matchers.contains;
+
+import java.util.List;
+
+import org.junit.Test;
+
 import io.crate.execution.engine.window.AbstractWindowFunctionTest;
 import io.crate.metadata.ColumnIdent;
 import io.crate.module.ExtraFunctionsModule;
 import io.crate.testing.Asserts;
-import org.junit.Test;
-
-import java.util.List;
-
-import static org.hamcrest.Matchers.contains;
 
 
 public class RankFunctionsTest extends AbstractWindowFunctionTest {

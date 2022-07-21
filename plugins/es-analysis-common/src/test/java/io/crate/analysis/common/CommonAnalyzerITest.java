@@ -19,9 +19,7 @@
 
 package io.crate.analysis.common;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -43,7 +41,7 @@ public class CommonAnalyzerITest extends SQLIntegrationTestCase {
     }
 
     @Test
-    public void test_select_from_information_schema_with_custom_analyzer() throws Exception {
+    public void test_select_from_information_schema_with_custom_analyzer() {
         execute("create table quotes (" +
                 "id integer primary key, " +
                 "quote string index off, " +
@@ -54,21 +52,21 @@ public class CommonAnalyzerITest extends SQLIntegrationTestCase {
         execute("select table_name, number_of_shards, number_of_replicas, clustered_by from " +
                 "information_schema.tables " +
                 "where table_name='quotes'");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("quotes| 3| 0| id\n"));
+        assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo("quotes| 3| 0| id\n");
 
         execute("select * from information_schema.columns where table_name='quotes'");
-        assertEquals(3L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(3L);
 
         execute("select * from information_schema.table_constraints where table_schema = ? and table_name='quotes'",
             new Object[]{sqlExecutor.getCurrentSchema()});
-        assertEquals(2L, response.rowCount()); // 1 PK + 1 NOT NULL derived from the PK (not-null is a display=only constraint).
+        assertThat(response.rowCount()).isEqualTo(2L); // 1 PK + 1 NOT NULL derived from the PK (not-null is a display=only constraint).
 
         execute("select table_name from information_schema.columns where table_schema = ? and table_name='quotes' " +
                 "and column_name='__quote_info'", new Object[]{sqlExecutor.getCurrentSchema()});
-        assertEquals(1L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1L);
 
         execute("select * from information_schema.routines");
-        assertEquals(124L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(124L);
     }
 
     @Test
@@ -93,15 +91,17 @@ public class CommonAnalyzerITest extends SQLIntegrationTestCase {
                 "or routine_name = 'myotheranalyzer' " +
                 "and routine_type = 'ANALYZER' " +
                 "order by routine_name asc");
-        assertEquals(2L, response.rowCount());
-        assertThat(TestingHelpers.printedTable(response.rows()), is(
-            "myanalyzer| ANALYZER| {\"filter\":[\"myanalyzer_mytokenfilter\",\"kstem\"],\"tokenizer\":\"whitespace\",\"type\":\"custom\"}\n" +
-            "myotheranalyzer| ANALYZER| {\"stopwords\":[\"der\",\"die\",\"das\"],\"type\":\"german\"}\n"));
+        assertThat(response.rowCount()).isEqualTo(2L);
+        assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo(
+            """
+                myanalyzer| ANALYZER| {"filter":["myanalyzer_mytokenfilter","kstem"],"tokenizer":"whitespace","type":"custom"}
+                myotheranalyzer| ANALYZER| {"stopwords":["der","die","das"],"type":"german"}
+                """);
 
-        assertEquals("myanalyzer", response.rows()[0][0]);
-        assertEquals("ANALYZER", response.rows()[0][1]);
-        assertEquals("myotheranalyzer", response.rows()[1][0]);
-        assertEquals("ANALYZER", response.rows()[1][1]);
+        assertThat(response.rows()[0][0]).isEqualTo("myanalyzer");
+        assertThat(response.rows()[0][1]).isEqualTo("ANALYZER");
+        assertThat(response.rows()[1][0]).isEqualTo("myotheranalyzer");
+        assertThat(response.rows()[1][1]).isEqualTo("ANALYZER");
 
         execute("drop analyzer myanalyzer");
         execute("drop analyzer myotheranalyzer");

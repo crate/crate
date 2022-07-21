@@ -21,14 +21,10 @@
 
 package io.crate.node;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.env.Environment.PATH_DATA_SETTING;
 import static org.elasticsearch.env.Environment.PATH_HOME_SETTING;
 import static org.elasticsearch.env.Environment.PATH_LOGS_SETTING;
-import static org.hamcrest.Matchers.arrayContaining;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -45,7 +41,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.node.InternalSettingsPreparer;
 import org.elasticsearch.test.ESTestCase;
-import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -123,16 +118,15 @@ public class NodeSettingsTest extends ESTestCase {
                 new Object[0],
                 session)
                 .get(SQLTransportExecutor.REQUEST_TIMEOUT.millis(), TimeUnit.MILLISECONDS);
-            assertThat(response.rows()[0][0], is("crate"));
+            assertThat(response.rows()[0][0]).isEqualTo("crate");
         }
     }
 
     @Test
     public void testDefaultPaths() {
-        assertThat(PATH_DATA_SETTING.get(node.settings()), contains(
-            Matchers.endsWith("data")
-        ));
-        assertTrue(node.settings().get(PATH_LOGS_SETTING.getKey()).endsWith("logs"));
+        assertThat(PATH_DATA_SETTING.get(node.settings()))
+            .satisfiesExactly(s -> assertThat(s).endsWith("data"));
+        assertThat(node.settings().get(PATH_LOGS_SETTING.getKey())).endsWith("logs");
     }
 
     @Test
@@ -141,19 +135,19 @@ public class NodeSettingsTest extends ESTestCase {
             SQLResponse response = SQLTransportExecutor.execute(
                 "select * from unnest([1])", null, session)
                 .get(SQLTransportExecutor.REQUEST_TIMEOUT.millis(), TimeUnit.MILLISECONDS);
-            assertThat(response.cols(), arrayContaining("col1"));
+            assertThat(response.cols()).containsExactly("col1");
 
             response = SQLTransportExecutor.execute(
                 "select * from generate_series(1,4)", null, session)
                 .get(SQLTransportExecutor.REQUEST_TIMEOUT.millis(), TimeUnit.MILLISECONDS);
-            assertThat(response.cols(), arrayContaining("col1"));
+            assertThat(response.cols()).containsExactly("col1");
 
             response = SQLTransportExecutor.execute(
                 "select * from regexp_matches('alcatraz', 'traz')",
                 null,
                 session)
                 .get(SQLTransportExecutor.REQUEST_TIMEOUT.millis(), TimeUnit.MILLISECONDS);
-            assertThat(response.cols(), arrayContaining("groups"));
+            assertThat(response.cols()).containsExactly("groups");
         }
     }
 }

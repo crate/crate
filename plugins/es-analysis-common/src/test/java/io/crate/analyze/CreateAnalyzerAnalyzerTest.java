@@ -25,9 +25,8 @@ import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.ANALYZER;
 import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.CHAR_FILTER;
 import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.TOKENIZER;
 import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.TOKEN_FILTER;
-import static io.crate.testing.SettingMatcher.hasEntry;
-import static org.hamcrest.Matchers.allOf;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
 import java.util.List;
@@ -75,13 +74,9 @@ public class CreateAnalyzerAnalyzerTest extends CrateDummyClusterServiceUnitTest
     public void testCreateAnalyzerSimple() throws Exception {
         ClusterUpdateSettingsRequest request = analyze(
             "CREATE ANALYZER a1 (TOKENIZER lowercase)");
-        assertThat(
-            extractAnalyzerSettings("a1", request.persistentSettings()),
-            allOf(
-                hasEntry("index.analysis.analyzer.a1.tokenizer", "lowercase"),
-                hasEntry("index.analysis.analyzer.a1.type", "custom")
-            )
-        );
+        assertThat(extractAnalyzerSettings("a1", request.persistentSettings()))
+            .hasEntry("index.analysis.analyzer.a1.tokenizer", "lowercase")
+            .hasEntry("index.analysis.analyzer.a1.type", "custom");
     }
 
     @Test
@@ -94,24 +89,16 @@ public class CreateAnalyzerAnalyzerTest extends CrateDummyClusterServiceUnitTest
             "       \"token_chars\"=['letter', 'digits']" +
             "   )" +
             ")");
-        assertThat(
-            extractAnalyzerSettings("a2", request.persistentSettings()),
-            allOf(
-                hasEntry("index.analysis.analyzer.a2.tokenizer", "a2_tok2"),
-                hasEntry("index.analysis.analyzer.a2.type", "custom")
-            )
-        );
+        assertThat(extractAnalyzerSettings("a2", request.persistentSettings()))
+            .hasEntry("index.analysis.analyzer.a2.tokenizer", "a2_tok2")
+            .hasEntry("index.analysis.analyzer.a2.type", "custom");
 
         var tokenizerSettings = FulltextAnalyzerResolver.decodeSettings(
             request.persistentSettings().get(TOKENIZER.buildSettingName("a2_tok2")));
-        assertThat(
-            tokenizerSettings,
-            allOf(
-                hasEntry("index.analysis.tokenizer.a2_tok2.min_ngram", "2"),
-                hasEntry("index.analysis.tokenizer.a2_tok2.type", "ngram"),
-                hasEntry("index.analysis.tokenizer.a2_tok2.token_chars", "[letter, digits]")
-            )
-        );
+        assertThat(tokenizerSettings)
+            .hasEntry("index.analysis.tokenizer.a2_tok2.min_ngram", "2")
+            .hasEntry("index.analysis.tokenizer.a2_tok2.type", "ngram")
+            .hasEntry("index.analysis.tokenizer.a2_tok2.token_chars", "[letter, digits]");
     }
 
     @Test
@@ -128,23 +115,15 @@ public class CreateAnalyzerAnalyzerTest extends CrateDummyClusterServiceUnitTest
             "   )" +
             ")");
 
-        assertThat(
-            extractAnalyzerSettings("a3", request.persistentSettings()),
-            allOf(
-                hasEntry("index.analysis.analyzer.a3.tokenizer", "lowercase"),
-                hasEntry("index.analysis.analyzer.a3.char_filter", "[html_strip, a3_my_mapping]")
-            )
-        );
+        assertThat(extractAnalyzerSettings("a3", request.persistentSettings()))
+            .hasEntry("index.analysis.analyzer.a3.tokenizer", "lowercase")
+            .hasEntry("index.analysis.analyzer.a3.char_filter", "[html_strip, a3_my_mapping]");
 
         var charFiltersSettings = FulltextAnalyzerResolver.decodeSettings(
             request.persistentSettings().get(CHAR_FILTER.buildSettingName("a3_my_mapping")));
-        assertThat(
-            charFiltersSettings,
-            allOf(
-                hasEntry("index.analysis.char_filter.a3_my_mapping.mappings", "[ph=>f, ß=>ss, ö=>oe]"),
-                hasEntry("index.analysis.char_filter.a3_my_mapping.type", "mapping")
-            )
-        );
+        assertThat(charFiltersSettings)
+            .hasEntry("index.analysis.char_filter.a3_my_mapping.mappings", "[ph=>f, ß=>ss, ö=>oe]")
+            .hasEntry("index.analysis.char_filter.a3_my_mapping.type", "mapping");
     }
 
     @Test
@@ -161,23 +140,15 @@ public class CreateAnalyzerAnalyzerTest extends CrateDummyClusterServiceUnitTest
             "  )" +
             ")");
 
-        assertThat(
-            extractAnalyzerSettings("a11", request.persistentSettings()),
-            allOf(
-                hasEntry("index.analysis.analyzer.a11.tokenizer", "standard"),
-                hasEntry("index.analysis.analyzer.a11.filter", "[lowercase, a11_mystop]")
-            )
-        );
+        assertThat(extractAnalyzerSettings("a11", request.persistentSettings()))
+            .hasEntry("index.analysis.analyzer.a11.tokenizer", "standard")
+            .hasEntry("index.analysis.analyzer.a11.filter", "[lowercase, a11_mystop]");
 
         var tokenFiltersSettings = FulltextAnalyzerResolver.decodeSettings(
             request.persistentSettings().get(TOKEN_FILTER.buildSettingName("a11_mystop")));
-        assertThat(
-            tokenFiltersSettings,
-            allOf(
-                hasEntry("index.analysis.filter.a11_mystop.type", "stop"),
-                hasEntry("index.analysis.filter.a11_mystop.stopword", "[the, over]")
-            )
-        );
+        assertThat(tokenFiltersSettings)
+            .hasEntry("index.analysis.filter.a11_mystop.type", "stop")
+            .hasEntry("index.analysis.filter.a11_mystop.stopword", "[the, over]");
     }
 
     @Test
@@ -188,61 +159,61 @@ public class CreateAnalyzerAnalyzerTest extends CrateDummyClusterServiceUnitTest
             "   \"stop_words\"=['der', 'die', 'das']" +
             ")");
 
-        assertThat(
-            extractAnalyzerSettings("a4", request.persistentSettings()),
-            allOf(
-                hasEntry("index.analysis.analyzer.a4.stop_words", "[der, die, das]"),
-                hasEntry("index.analysis.analyzer.a4.type", "german")
-            )
-        );
+        assertThat(extractAnalyzerSettings("a4", request.persistentSettings()))
+            .hasEntry("index.analysis.analyzer.a4.stop_words", "[der, die, das]")
+            .hasEntry("index.analysis.analyzer.a4.type", "german");
     }
 
     @Test
-    public void createAnalyzerWithoutTokenizer() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Tokenizer missing from non-extended analyzer");
-        analyze(
-            "CREATE ANALYZER a6 (" +
-            "  TOKEN_FILTERS (" +
-            "    lowercase" +
-            "  )" +
-            ")");
+    public void createAnalyzerWithoutTokenizer() {
+        assertThatThrownBy(
+            () -> analyze(
+                "CREATE ANALYZER a6 (" +
+                "  TOKEN_FILTERS (" +
+                "    lowercase" +
+                "  )" +
+                ")"))
+            .isInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("Tokenizer missing from non-extended analyzer");
     }
 
     @Test
     public void overrideDefaultAnalyzer() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Overriding the default analyzer is forbidden");
-        analyze(
-            "CREATE ANALYZER \"default\" (" +
-            "  TOKENIZER whitespace" +
-            ")");
+        assertThatThrownBy(
+            () -> analyze(
+                "CREATE ANALYZER \"default\" (" +
+                "  TOKENIZER whitespace" +
+                ")"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Overriding the default analyzer is forbidden");
     }
 
     @Test
     public void overrideBuiltInAnalyzer() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot override builtin analyzer 'keyword'");
-        analyze(
-            "CREATE ANALYZER \"keyword\" (" +
-            "  CHAR_FILTERS (" +
-            "    html_strip" +
-            "  )," +
-            "  TOKENIZER standard" +
-            ")");
+        assertThatThrownBy(
+            () -> analyze("CREATE ANALYZER \"keyword\" (" +
+                          "  CHAR_FILTERS (" +
+                          "    html_strip" +
+                          "  )," +
+                          "  TOKENIZER standard" +
+                          ")"))
+
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Cannot override builtin analyzer 'keyword'");
     }
 
     @Test
-    public void missingParameterInCharFilter() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("CHAR_FILTER of type 'mapping' needs additional parameters");
-        analyze(
-            "CREATE ANALYZER my_mapping_analyzer (" +
-            "  CHAR_FILTERS (" +
-            "    \"mapping\"" +
-            "  )," +
-            "  TOKENIZER whitespace" +
-            ")");
+    public void missingParameterInCharFilter() {
+        assertThatThrownBy(
+            () -> analyze(
+                "CREATE ANALYZER my_mapping_analyzer (" +
+                "  CHAR_FILTERS (" +
+                "    \"mapping\"" +
+                "  )," +
+                "  TOKENIZER whitespace" +
+                ")"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("CHAR_FILTER of type 'mapping' needs additional parameters");
     }
 
     private static Settings extractAnalyzerSettings(String name, Settings persistentSettings) throws IOException {
