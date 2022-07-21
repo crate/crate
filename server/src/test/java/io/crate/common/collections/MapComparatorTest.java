@@ -21,6 +21,7 @@
 
 package io.crate.common.collections;
 
+import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
@@ -73,9 +74,9 @@ public class MapComparatorTest extends ESTestCase {
         assertThat(MapComparator.compareMaps(map1, map2), is(0));
         assertThat(MapComparator.compareMaps(map2, map1), is(0));
 
-        map2.put("str2", 5);
+        map1.put("str2", 5);
         assertThat(MapComparator.compareMaps(map1, map2), is(1));
-        assertThat(MapComparator.compareMaps(map2, map1), is(1));
+        assertThat(MapComparator.compareMaps(map2, map1), is(-1));
     }
 
     public void testCompareMapsWithValuesOfDifferentClass() {
@@ -95,6 +96,27 @@ public class MapComparatorTest extends ESTestCase {
         map1.put("str2", 5.0);
         assertThat(MapComparator.compareMaps(map1, map2), is(1));
         assertThat(MapComparator.compareMaps(map2, map1), is(-1));
+    }
+
+    public void testCompareMapsWithValuesOfDifferentClassNested() {
+        Map<String, Object> map1 = new HashMap<>() {{
+                put("str1", 1);
+                put("str2", Map.of("str3", Short.valueOf("1234")));
+            }};
+        Map<String, Object> map2 = new HashMap<>() {{
+                put("str1", 1);
+                put("str2", Map.of("str3", Short.valueOf("1234")));
+            }};
+        assertThat(MapComparator.compareMaps(map1, map2), is(0));
+        assertThat(MapComparator.compareMaps(map2, map1), is(0));
+
+        map1.put("str2", Map.of("str3", Long.valueOf("1234")));
+        assertThat(MapComparator.compareMaps(map1, map2), is(0));
+        assertThat(MapComparator.compareMaps(map2, map1), is(0));
+
+        map1.put("str2", Map.of("str3", 123.45));
+        assertThat(MapComparator.compareMaps(map1, map2), is(-1));
+        assertThat(MapComparator.compareMaps(map2, map1), greaterThan(1));
     }
 
     public void testCompareMapsWithStringAndBytesRef() {
