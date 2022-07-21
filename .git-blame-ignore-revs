@@ -2,3 +2,5 @@
 4d15525b3560a4754d725069dad1c43813ffbdd5
 # Add org.unit.Assert.xxx imports to test files
 da06dceeb3636650f6afcc6f37c54cd2c33ae275
+# Add migration to assertj assertions for all modules except :server
+274f3c7cd094578b9009027839bf10d23afcabd5
