@@ -21,19 +21,14 @@
 
 package org.elasticsearch.repositories.s3;
 
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.Protocol;
@@ -45,9 +40,6 @@ import io.crate.exceptions.InvalidArgumentException;
 public class AwsS3ServiceImplTests extends ESTestCase {
 
     private S3Service service;
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     @Before
     public void beforeTest() {
@@ -67,11 +59,11 @@ public class AwsS3ServiceImplTests extends ESTestCase {
             .build());
 
         var clientRef = service.client(metadata);
-        assertThat(clientRef.refCount(), is(2));
+        assertThat(clientRef.refCount()).isEqualTo(2);
         var newClientRef = service.client(metadata);
-        assertThat(newClientRef.refCount(), is(3));
+        assertThat(newClientRef.refCount()).isEqualTo(3);
 
-        assertThat(clientRef.client(), is(newClientRef.client()));
+        assertThat(clientRef.client()).isEqualTo(newClientRef.client());
 
         clientRef.client().shutdown();
         newClientRef.client().shutdown();
@@ -93,11 +85,11 @@ public class AwsS3ServiceImplTests extends ESTestCase {
         RepositoryMetadata newMetadata = new RepositoryMetadata("", "", newSettings);
 
         AmazonS3Reference clientRef = service.client(metadata);
-        assertThat(clientRef.refCount(), is(2));
+        assertThat(clientRef.refCount()).isEqualTo(2);
         AmazonS3Reference newClientRef = service.client(newMetadata);
-        assertThat(newClientRef.refCount(), is(2));
+        assertThat(newClientRef.refCount()).isEqualTo(2);
 
-        assertThat(clientRef.client(), is(not(newClientRef.client())));
+        assertThat(clientRef.client()).isNotEqualTo(newClientRef.client());
 
         clientRef.client().shutdown();
         newClientRef.client().shutdown();
@@ -113,17 +105,18 @@ public class AwsS3ServiceImplTests extends ESTestCase {
         final S3ClientSettings clientSettings = S3ClientSettings.getClientSettings(settings);
         // test default exists and is an Instance provider
         final AWSCredentialsProvider defaultCredentialsProvider = S3Service.buildCredentials(logger, clientSettings);
-        assertThat(defaultCredentialsProvider, instanceOf(AWSStaticCredentialsProvider.class));
-        assertThat(defaultCredentialsProvider.getCredentials().getAWSAccessKeyId(), is(awsAccessKey));
-        assertThat(defaultCredentialsProvider.getCredentials().getAWSSecretKey(), is(awsSecretKey));
+        assertThat(defaultCredentialsProvider).isInstanceOf(AWSStaticCredentialsProvider.class);
+        assertThat(defaultCredentialsProvider.getCredentials().getAWSAccessKeyId()).isEqualTo(awsAccessKey);
+        assertThat(defaultCredentialsProvider.getCredentials().getAWSSecretKey()).isEqualTo(awsSecretKey);
     }
 
     @Test
     public void test_no_credentials_are_not_provided() {
         final S3ClientSettings clientSettings = S3ClientSettings.getClientSettings(Settings.builder().build());
-        expectedException.expect(InvalidArgumentException.class);
-        expectedException.expectMessage(containsString("Cannot find required credentials to create a repository of type s3"));
-        S3Service.buildCredentials(logger, clientSettings);
+        assertThatThrownBy(() -> S3Service.buildCredentials(logger, clientSettings))
+            .isInstanceOf(InvalidArgumentException.class)
+            .hasMessageContaining("Cannot find required credentials to create a repository of type s3");
+
     }
 
     @Test
@@ -186,14 +179,14 @@ public class AwsS3ServiceImplTests extends ESTestCase {
         final S3ClientSettings clientSettings = S3ClientSettings.getClientSettings(settings);
         final ClientConfiguration configuration = S3Service.buildConfiguration(clientSettings);
 
-        assertThat(configuration.getResponseMetadataCacheSize(), is(0));
-        assertThat(configuration.getProtocol(), is(expectedProtocol));
-        assertThat(configuration.getProxyHost(), is(expectedProxyHost));
-        assertThat(configuration.getProxyPort(), is(expectedProxyPort));
-        assertThat(configuration.getProxyUsername(), is(expectedProxyUsername));
-        assertThat(configuration.getProxyPassword(), is(expectedProxyPassword));
-        assertThat(configuration.getMaxErrorRetry(), is(expectedMaxRetries));
-        assertThat(configuration.useThrottledRetries(), is(expectedUseThrottleRetries));
-        assertThat(configuration.getSocketTimeout(), is(expectedReadTimeout));
+        assertThat(configuration.getResponseMetadataCacheSize()).isEqualTo(0);
+        assertThat(configuration.getProtocol()).isEqualTo(expectedProtocol);
+        assertThat(configuration.getProxyHost()).isEqualTo(expectedProxyHost);
+        assertThat(configuration.getProxyPort()).isEqualTo(expectedProxyPort);
+        assertThat(configuration.getProxyUsername()).isEqualTo(expectedProxyUsername);
+        assertThat(configuration.getProxyPassword()).isEqualTo(expectedProxyPassword);
+        assertThat(configuration.getMaxErrorRetry()).isEqualTo(expectedMaxRetries);
+        assertThat(configuration.useThrottledRetries()).isEqualTo(expectedUseThrottleRetries);
+        assertThat(configuration.getSocketTimeout()).isEqualTo(expectedReadTimeout);
     }
 }

@@ -26,17 +26,12 @@ import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.CHAR_FILTER;
 import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.TOKENIZER;
 import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.TOKEN_FILTER;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
-import static io.crate.testing.SettingMatcher.hasEntry;
-import static io.crate.testing.SettingMatcher.hasKey;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.endsWith;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -109,22 +104,18 @@ public class FulltextAnalyzerResolverTest extends SQLIntegrationTestCase {
     }
 
     @Test
-    public void resolveSimpleAnalyzerSettings() throws Exception {
+    public void resolveSimpleAnalyzerSettings() {
         execute("CREATE ANALYZER a1 (tokenizer lowercase)");
         Settings fullAnalyzerSettings = fulltextAnalyzerResolver.resolveFullCustomAnalyzerSettings("a1");
-        assertThat(fullAnalyzerSettings.size(), is(2));
-        assertThat(
-            fullAnalyzerSettings,
-            hasEntry(ANALYZER.buildSettingChildName("a1", "type"), "custom")
-        );
-        assertThat(
-            fullAnalyzerSettings,
-            hasEntry(ANALYZER.buildSettingChildName("a1", TOKENIZER.getName()), "lowercase")
-        );
+        assertThat(fullAnalyzerSettings.size()).isEqualTo(2);
+        assertThat(fullAnalyzerSettings)
+            .hasEntry(ANALYZER.buildSettingChildName("a1", "type"), "custom");
+        assertThat(fullAnalyzerSettings)
+            .hasEntry(ANALYZER.buildSettingChildName("a1", TOKENIZER.getName()), "lowercase");
     }
 
     @Test
-    public void resolveAnalyzerWithCustomTokenizer() throws Exception {
+    public void resolveAnalyzerWithCustomTokenizer() {
         execute("CREATE ANALYZER a2" +
                 "(" +
                 "   tokenizer tok2 with (" +
@@ -134,26 +125,18 @@ public class FulltextAnalyzerResolverTest extends SQLIntegrationTestCase {
                 "   )" +
                 ")");
         Settings fullAnalyzerSettings = fulltextAnalyzerResolver.resolveFullCustomAnalyzerSettings("a2");
-        assertThat(
-            fullAnalyzerSettings,
-            hasEntry(ANALYZER.buildSettingChildName("a2", "type"), "custom")
-        );
-        assertThat(
-            fullAnalyzerSettings,
-            hasEntry(ANALYZER.buildSettingChildName("a2", TOKENIZER.getName()), "a2_tok2")
-        );
-        assertThat(
-            fullAnalyzerSettings,
-            allOf(
-                hasEntry(TOKENIZER.buildSettingChildName("a2_tok2", "type"), "ngram"),
-                hasEntry(TOKENIZER.buildSettingChildName("a2_tok2", "min_ngram"), "2"),
-                hasEntry(TOKENIZER.buildSettingChildName("a2_tok2", "token_chars"), "[letter, digits]")
-            )
-        );
+        assertThat(fullAnalyzerSettings)
+            .hasEntry(ANALYZER.buildSettingChildName("a2", "type"), "custom");
+        assertThat(fullAnalyzerSettings)
+            .hasEntry(ANALYZER.buildSettingChildName("a2", TOKENIZER.getName()), "a2_tok2");
+        assertThat(fullAnalyzerSettings)
+            .hasEntry(TOKENIZER.buildSettingChildName("a2_tok2", "type"), "ngram")
+            .hasEntry(TOKENIZER.buildSettingChildName("a2_tok2", "min_ngram"), "2")
+            .hasEntry(TOKENIZER.buildSettingChildName("a2_tok2", "token_chars"), "[letter, digits]");
     }
 
     @Test
-    public void resolveAnalyzerWithCharFilters() throws Exception {
+    public void resolveAnalyzerWithCharFilters() {
         execute("CREATE ANALYZER a3" +
                 "(" +
                 "   tokenizer lowercase," +
@@ -166,45 +149,34 @@ public class FulltextAnalyzerResolverTest extends SQLIntegrationTestCase {
                 "   )" +
                 ")");
         Settings fullAnalyzerSettings = fulltextAnalyzerResolver.resolveFullCustomAnalyzerSettings("a3");
+        assertThat(fullAnalyzerSettings)
+            .hasEntry(ANALYZER.buildSettingChildName("a3", "type"), "custom");
+        assertThat(fullAnalyzerSettings)
+            .hasEntry(ANALYZER.buildSettingChildName("a3", TOKENIZER.getName()), "lowercase");
         assertThat(
-            fullAnalyzerSettings,
-            hasEntry(ANALYZER.buildSettingChildName("a3", "type"), "custom")
-        );
+            fullAnalyzerSettings.getAsList(ANALYZER.buildSettingChildName("a3", CHAR_FILTER.getName())))
+            .containsExactlyInAnyOrder("html_strip", "a3_my_mapping");
+        assertThat(fullAnalyzerSettings)
+            .hasEntry(CHAR_FILTER.buildSettingChildName("a3_my_mapping","type"), "mapping");
         assertThat(
-            fullAnalyzerSettings,
-            hasEntry(ANALYZER.buildSettingChildName("a3", TOKENIZER.getName()), "lowercase")
-        );
-        assertThat(
-            fullAnalyzerSettings.getAsList(ANALYZER.buildSettingChildName("a3", CHAR_FILTER.getName())),
-            containsInAnyOrder("html_strip", "a3_my_mapping")
-        );
-        assertThat(
-            fullAnalyzerSettings,
-            hasEntry(CHAR_FILTER.buildSettingChildName("a3_my_mapping","type"), "mapping")
-        );
-        assertThat(
-            fullAnalyzerSettings.getAsList(CHAR_FILTER.buildSettingChildName("a3_my_mapping", "mappings")),
-            containsInAnyOrder("ph=>f", "ß=>ss", "ö=>oe")
-        );
+            fullAnalyzerSettings.getAsList(CHAR_FILTER.buildSettingChildName("a3_my_mapping", "mappings")))
+            .containsExactlyInAnyOrder("ph=>f", "ß=>ss", "ö=>oe");
         execute("CREATE TABLE t1(content " +
                 "string index using fulltext with (analyzer='a3'))");
     }
 
     @Test
-    public void resolveAnalyzerExtendingBuiltin() throws Exception {
+    public void resolveAnalyzerExtendingBuiltin() {
         execute("CREATE ANALYZER a4 EXTENDS " +
                 "german WITH (" +
                 "   \"stop_words\"=['der', 'die', 'das']" +
                 ")");
         Settings fullAnalyzerSettings = fulltextAnalyzerResolver.resolveFullCustomAnalyzerSettings("a4");
+        assertThat(fullAnalyzerSettings)
+            .hasEntry(ANALYZER.buildSettingChildName("a4", "type"), "german");
         assertThat(
-            fullAnalyzerSettings,
-            hasEntry(ANALYZER.buildSettingChildName("a4", "type"), "german")
-        );
-        assertThat(
-            fullAnalyzerSettings.getAsList(ANALYZER.buildSettingChildName("a4", "stop_words")),
-            containsInAnyOrder("der", "die", "das")
-        );
+            fullAnalyzerSettings.getAsList(ANALYZER.buildSettingChildName("a4", "stop_words")))
+            .containsExactlyInAnyOrder("der", "die", "das");
 
         // extend analyzer who extends builtin analyzer (chain can be longer than 1)
         execute("CREATE ANALYZER a4e EXTENDS " +
@@ -212,18 +184,15 @@ public class FulltextAnalyzerResolverTest extends SQLIntegrationTestCase {
                 "   \"stop_words\"=['der', 'die', 'das', 'wer', 'wie', 'was']" +
                 ")");
         fullAnalyzerSettings = fulltextAnalyzerResolver.resolveFullCustomAnalyzerSettings("a4e");
+        assertThat(fullAnalyzerSettings)
+            .hasEntry(ANALYZER.buildSettingChildName("a4e", "type"), "german");
         assertThat(
-            fullAnalyzerSettings,
-            hasEntry(ANALYZER.buildSettingChildName("a4e", "type"), "german")
-        );
-        assertThat(
-            fullAnalyzerSettings.getAsList(ANALYZER.buildSettingChildName("a4e", "stop_words")),
-            containsInAnyOrder("der", "die", "das", "wer", "wie", "was")
-        );
+            fullAnalyzerSettings.getAsList(ANALYZER.buildSettingChildName("a4e", "stop_words")))
+            .containsExactlyInAnyOrder("der", "die", "das", "wer", "wie", "was");
     }
 
     @Test
-    public void resolveAnalyzerBuiltinTokenFilter() throws Exception {
+    public void resolveAnalyzerBuiltinTokenFilter() {
         execute("CREATE ANALYZER builtin_filter (" +
                 "   tokenizer whitespace," +
                 "   token_filters (" +
@@ -233,17 +202,13 @@ public class FulltextAnalyzerResolverTest extends SQLIntegrationTestCase {
                 "   )" +
                 ")");
         Settings fullAnalyzerSettings = fulltextAnalyzerResolver.resolveFullCustomAnalyzerSettings("builtin_filter");
-        assertThat(
-            fullAnalyzerSettings,
-            allOf(
-                hasEntry(TOKEN_FILTER.buildSettingChildName("builtin_filter_ngram", "type"), "ngram"),
-                hasEntry(TOKEN_FILTER.buildSettingChildName("builtin_filter_ngram", "min_gram"), "1")
-            )
-        );
+        assertThat(fullAnalyzerSettings)
+            .hasEntry(TOKEN_FILTER.buildSettingChildName("builtin_filter_ngram", "type"), "ngram")
+            .hasEntry(TOKEN_FILTER.buildSettingChildName("builtin_filter_ngram", "min_gram"), "1");
     }
 
     @Test
-    public void resolveAnalyzerExtendingCustom() throws Exception {
+    public void resolveAnalyzerExtendingCustom() {
         execute("CREATE ANALYZER a5 (" +
                 "   tokenizer whitespace," +
                 "   token_filters (" +
@@ -255,25 +220,16 @@ public class FulltextAnalyzerResolverTest extends SQLIntegrationTestCase {
                 "   )" +
                 ")");
         Settings fullAnalyzerSettings = fulltextAnalyzerResolver.resolveFullCustomAnalyzerSettings("a5");
+        assertThat(fullAnalyzerSettings)
+            .hasEntry(ANALYZER.buildSettingChildName("a5", "type"), "custom");
+        assertThat(fullAnalyzerSettings)
+            .hasEntry(ANALYZER.buildSettingChildName("a5", TOKENIZER.getName()), "whitespace");
         assertThat(
-            fullAnalyzerSettings,
-            hasEntry(ANALYZER.buildSettingChildName("a5", "type"), "custom")
-        );
-        assertThat(
-            fullAnalyzerSettings,
-            hasEntry(ANALYZER.buildSettingChildName("a5", TOKENIZER.getName()), "whitespace")
-        );
-        assertThat(
-            fullAnalyzerSettings.getAsList(ANALYZER.buildSettingChildName("a5", TOKEN_FILTER.getName())),
-            containsInAnyOrder("lowercase", "a5_germanstemmer")
-        );
-        assertThat(
-            fullAnalyzerSettings,
-            allOf(
-                hasEntry(TOKEN_FILTER.buildSettingChildName("a5_germanstemmer", "type"), "stemmer"),
-                hasEntry(TOKEN_FILTER.buildSettingChildName("a5_germanstemmer", "language"), "german")
-            )
-        );
+            fullAnalyzerSettings.getAsList(ANALYZER.buildSettingChildName("a5", TOKEN_FILTER.getName())))
+            .containsExactlyInAnyOrder("lowercase", "a5_germanstemmer");
+        assertThat(fullAnalyzerSettings)
+            .hasEntry(TOKEN_FILTER.buildSettingChildName("a5_germanstemmer", "type"), "stemmer")
+            .hasEntry(TOKEN_FILTER.buildSettingChildName("a5_germanstemmer", "language"), "german");
 
         execute("CREATE ANALYZER a5e EXTENDS a5 (" +
                 "   tokenizer letter," +
@@ -287,48 +243,38 @@ public class FulltextAnalyzerResolverTest extends SQLIntegrationTestCase {
                 ")");
 
         fullAnalyzerSettings = fulltextAnalyzerResolver.resolveFullCustomAnalyzerSettings("a5e");
+        assertThat(fullAnalyzerSettings)
+            .hasEntry(ANALYZER.buildSettingChildName("a5e", "type"), "custom");
+        assertThat(fullAnalyzerSettings)
+            .hasEntry(ANALYZER.buildSettingChildName("a5e", TOKENIZER.getName()), "letter");
         assertThat(
-            fullAnalyzerSettings,
-            hasEntry(ANALYZER.buildSettingChildName("a5e", "type"), "custom")
-        );
+            fullAnalyzerSettings.getAsList(ANALYZER.buildSettingChildName("a5e", TOKEN_FILTER.getName())))
+            .containsExactlyInAnyOrder("lowercase", "a5_germanstemmer");
+        assertThat(fullAnalyzerSettings)
+            .hasEntry(TOKEN_FILTER.buildSettingChildName("a5_germanstemmer", "type"), "stemmer")
+            .hasEntry(TOKEN_FILTER.buildSettingChildName("a5_germanstemmer", "language"), "german");
         assertThat(
-            fullAnalyzerSettings,
-            hasEntry(ANALYZER.buildSettingChildName("a5e", TOKENIZER.getName()), "letter")
-        );
-        assertThat(
-            fullAnalyzerSettings.getAsList(ANALYZER.buildSettingChildName("a5e", TOKEN_FILTER.getName())),
-            containsInAnyOrder("lowercase", "a5_germanstemmer")
-        );
-        assertThat(
-            fullAnalyzerSettings,
-            allOf(
-                hasEntry(TOKEN_FILTER.buildSettingChildName("a5_germanstemmer", "type"), "stemmer"),
-                hasEntry(TOKEN_FILTER.buildSettingChildName("a5_germanstemmer", "language"), "german")
-            )
-        );
-        assertThat(
-            fullAnalyzerSettings.getAsList(ANALYZER.buildSettingChildName("a5e", CHAR_FILTER.getName())),
-            containsInAnyOrder("html_strip", "a5e_mymapping")
-        );
+            fullAnalyzerSettings.getAsList(ANALYZER.buildSettingChildName("a5e", CHAR_FILTER.getName())))
+            .containsExactlyInAnyOrder("html_strip", "a5e_mymapping");
     }
 
     @Test
-    public void testBuiltInAnalyzers() throws Exception {
+    public void testBuiltInAnalyzers() {
         List<String> analyzers = new ArrayList<>(fulltextAnalyzerResolver.getBuiltInAnalyzers());
         Collections.sort(analyzers);
-        assertThat(String.join(", ", analyzers),
-            is("arabic, armenian, basque, bengali, brazilian, bulgarian, catalan, chinese, cjk, " +
+        assertThat(String.join(", ", analyzers)).isEqualTo(
+            "arabic, armenian, basque, bengali, brazilian, bulgarian, catalan, chinese, cjk, " +
                "czech, danish, default, dutch, english, fingerprint, finnish, french, " +
                "galician, german, greek, hindi, hungarian, indonesian, irish, " +
                "italian, keyword, latvian, lithuanian, norwegian, pattern, persian, portuguese, " +
                "romanian, russian, simple, snowball, sorani, spanish, standard, " +
-               "standard_html_strip, stop, swedish, thai, turkish, whitespace"));
+               "standard_html_strip, stop, swedish, thai, turkish, whitespace");
     }
 
     @Test
-    public void testBuiltInTokenizers() throws Exception {
+    public void testBuiltInTokenizers() {
         List<String> tokenizers = new ArrayList<>(fulltextAnalyzerResolver.getBuiltInTokenizers());
-        assertThat(tokenizers, containsInAnyOrder(
+        assertThat(tokenizers).containsExactlyInAnyOrder(
             "PathHierarchy",
             "char_group",
             "classic",
@@ -345,34 +291,34 @@ public class FulltextAnalyzerResolverTest extends SQLIntegrationTestCase {
             "thai",
             "uax_url_email",
             "whitespace"
-        ));
+        );
     }
 
     @Test
-    public void testBuiltInTokenFilters() throws Exception {
+    public void testBuiltInTokenFilters() {
         List<String> tokenFilters = new ArrayList<>(fulltextAnalyzerResolver.getBuiltInTokenFilters());
         Collections.sort(tokenFilters);
-        assertThat(String.join(", ", tokenFilters),
-            is("apostrophe, arabic_normalization, arabic_stem, asciifolding, bengali_normalization, brazilian_stem, " +
-               "cjk_bigram, cjk_width, classic, common_grams, czech_stem, decimal_digit, delimited_payload, " +
-               "dictionary_decompounder, dutch_stem, " +
-               "edge_ngram, elision, fingerprint, flatten_graph, french_stem, german_normalization, " +
-               "german_stem, hindi_normalization, hunspell, " +
-               "hyphenation_decompounder, indic_normalization, keep, keep_types, " +
-               "keyword_marker, " +
-               "kstem, length, limit, lowercase, min_hash, multiplexer, ngram, pattern_capture, " +
-               "pattern_replace, persian_normalization, porter_stem, remove_duplicates, reverse, " +
-               "russian_stem, scandinavian_folding, scandinavian_normalization, serbian_normalization, " +
-               "shingle, snowball, sorani_normalization, standard, stemmer, stemmer_override, " +
-               "stop, synonym, trim, truncate, unique, uppercase, word_delimiter, word_delimiter_graph"));
+        assertThat(String.join(", ", tokenFilters))
+            .isEqualTo("apostrophe, arabic_normalization, arabic_stem, asciifolding, bengali_normalization, brazilian_stem, " +
+                "cjk_bigram, cjk_width, classic, common_grams, czech_stem, decimal_digit, delimited_payload, " +
+                "dictionary_decompounder, dutch_stem, " +
+                "edge_ngram, elision, fingerprint, flatten_graph, french_stem, german_normalization, " +
+                "german_stem, hindi_normalization, hunspell, " +
+                "hyphenation_decompounder, indic_normalization, keep, keep_types, " +
+                "keyword_marker, " +
+                "kstem, length, limit, lowercase, min_hash, multiplexer, ngram, pattern_capture, " +
+                "pattern_replace, persian_normalization, porter_stem, remove_duplicates, reverse, " +
+                "russian_stem, scandinavian_folding, scandinavian_normalization, serbian_normalization, " +
+                "shingle, snowball, sorani_normalization, standard, stemmer, stemmer_override, " +
+                "stop, synonym, trim, truncate, unique, uppercase, word_delimiter, word_delimiter_graph");
     }
 
     @Test
-    public void testBuiltInCharFilters() throws Exception {
+    public void testBuiltInCharFilters() {
         List<String> charFilters = new ArrayList<>(fulltextAnalyzerResolver.getBuiltInCharFilters());
         Collections.sort(charFilters);
-        assertThat(String.join(", ", charFilters),
-            is("html_strip, mapping, pattern_replace"));
+        assertThat(String.join(", ", charFilters))
+            .isEqualTo("html_strip, mapping, pattern_replace");
     }
 
     @Test
@@ -407,29 +353,21 @@ public class FulltextAnalyzerResolverTest extends SQLIntegrationTestCase {
                 ")");
         Settings settings = getPersistentClusterSettings();
 
-        assertThat(
-            settings,
-            allOf(
-                hasKey(ANALYZER.buildSettingName("a7")),
-                hasKey(TOKENIZER.buildSettingName("a7_mytok")),
-                hasKey(CHAR_FILTER.buildSettingName("a7_mypattern")),
-                hasKey(TOKEN_FILTER.buildSettingName("a7_myshingle")),
-                hasKey(TOKEN_FILTER.buildSettingName("a7_my_stemmer"))
-            )
-        );
+        assertThat(settings)
+            .hasKey(ANALYZER.buildSettingName("a7"))
+            .hasKey(TOKENIZER.buildSettingName("a7_mytok"))
+            .hasKey(CHAR_FILTER.buildSettingName("a7_mypattern"))
+            .hasKey(TOKEN_FILTER.buildSettingName("a7_myshingle"))
+            .hasKey(TOKEN_FILTER.buildSettingName("a7_my_stemmer"));
         Settings analyzerSettings = FulltextAnalyzerResolver.decodeSettings(settings.get(ANALYZER.buildSettingName("a7")));
         assertThat(
-            analyzerSettings.getAsList(ANALYZER.buildSettingChildName("a7", CHAR_FILTER.getName())),
-            containsInAnyOrder("a7_mypattern", "html_strip")
-        );
+            analyzerSettings.getAsList(ANALYZER.buildSettingChildName("a7", CHAR_FILTER.getName())))
+            .containsExactlyInAnyOrder("a7_mypattern", "html_strip");
         assertThat(
-            analyzerSettings.getAsList(ANALYZER.buildSettingChildName("a7", TOKEN_FILTER.getName())),
-            containsInAnyOrder("a7_myshingle", "lowercase", "a7_my_stemmer")
-        );
-        assertThat(
-            analyzerSettings,
-            hasEntry(ANALYZER.buildSettingChildName("a7", TOKENIZER.getName()), "a7_mytok")
-        );
+            analyzerSettings.getAsList(ANALYZER.buildSettingChildName("a7", TOKEN_FILTER.getName())))
+            .containsExactlyInAnyOrder("a7_myshingle", "lowercase", "a7_my_stemmer");
+        assertThat(analyzerSettings)
+            .hasEntry(ANALYZER.buildSettingChildName("a7", TOKENIZER.getName()), "a7_mytok");
         execute("CREATE ANALYZER a8 EXTENDS a7 (" +
                 "  token_filters (" +
                 "    lowercase," +
@@ -437,31 +375,20 @@ public class FulltextAnalyzerResolverTest extends SQLIntegrationTestCase {
                 "  )" +
                 ")");
         Settings extendedSettings = getPersistentClusterSettings();
-        assertThat(
-            extendedSettings,
-            allOf(
-                hasKey(ANALYZER.buildSettingName("a8")),
-                hasKey(TOKENIZER.buildSettingName("a7_mytok"))
-            )
-        );
+        assertThat(extendedSettings)
+            .hasKey(ANALYZER.buildSettingName("a8"))
+            .hasKey(TOKENIZER.buildSettingName("a7_mytok"));
         Settings extendedAnalyzerSettings = FulltextAnalyzerResolver.decodeSettings(extendedSettings.get(ANALYZER.buildSettingName("a8")));
+        assertThat(extendedAnalyzerSettings)
+            .hasEntry(ANALYZER.buildSettingChildName("a8", "type"), "custom");
+        assertThat(extendedAnalyzerSettings)
+            .hasEntry(ANALYZER.buildSettingChildName("a8", TOKENIZER.getName()), "a7_mytok");
         assertThat(
-            extendedAnalyzerSettings,
-            hasEntry(ANALYZER.buildSettingChildName("a8", "type"), "custom")
-        );
+            extendedAnalyzerSettings.getAsList(ANALYZER.buildSettingChildName("a8", TOKEN_FILTER.getName())))
+            .containsExactlyInAnyOrder("lowercase", "kstem");
         assertThat(
-            extendedAnalyzerSettings,
-            hasEntry(ANALYZER.buildSettingChildName("a8", TOKENIZER.getName()), "a7_mytok")
-        );
-        assertThat(
-            extendedAnalyzerSettings.getAsList(ANALYZER.buildSettingChildName("a8", TOKEN_FILTER.getName())),
-            containsInAnyOrder("lowercase", "kstem")
-        );
-        assertThat(
-            extendedAnalyzerSettings.getAsList(ANALYZER.buildSettingChildName("a8", CHAR_FILTER.getName())),
-            containsInAnyOrder("a7_mypattern", "html_strip")
-        );
-
+            extendedAnalyzerSettings.getAsList(ANALYZER.buildSettingChildName("a8", CHAR_FILTER.getName())))
+            .containsExactlyInAnyOrder("a7_mypattern", "html_strip");
     }
 
     @Test
@@ -486,7 +413,7 @@ public class FulltextAnalyzerResolverTest extends SQLIntegrationTestCase {
         Settings a10Settings = AnalyzerService.decodeSettings(settings.get("crate.analysis.custom.analyzer.a10"));
         assertThat(
                 a10Settings.getAsMap(),
-                hasEntry("index.analysis.analyzer.a10.tokenizer", "a9tok")
+                .hasFieldOrPropertyWithValue("index.analysis.analyzer.a10.tokenizer", "a9tok")
         );
         */
     }
@@ -504,13 +431,9 @@ public class FulltextAnalyzerResolverTest extends SQLIntegrationTestCase {
                 "  )" +
                 ")");
         Settings settings = getPersistentClusterSettings();
-        assertThat(
-            settings,
-            allOf(
-                hasKey(ANALYZER.buildSettingName("a11")),
-                hasKey(TOKEN_FILTER.buildSettingName("a11_mystop"))
-            )
-        );
+        assertThat(settings)
+            .hasKey(ANALYZER.buildSettingName("a11"))
+            .hasKey(TOKEN_FILTER.buildSettingName("a11_mystop"));
         Settings analyzerSettings = FulltextAnalyzerResolver.decodeSettings(settings.get(ANALYZER.buildSettingName("a11")));
         Settings tokenFilterSettings = FulltextAnalyzerResolver.decodeSettings(settings.get(TOKEN_FILTER.buildSettingName("a11_mystop")));
         Settings.Builder builder = Settings.builder();
@@ -531,8 +454,7 @@ public class FulltextAnalyzerResolverTest extends SQLIntegrationTestCase {
         });
         refresh();
         SQLResponse response = execute("select id from test where match(content, 'brown jump')");
-        assertEquals(1L, response.rowCount());
-        assertEquals(1, response.rows()[0][0]);
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat(response.rows()[0][0]).isEqualTo(1);
     }
-
 }

@@ -22,12 +22,9 @@
 package io.crate.operation.language;
 
 import static io.crate.testing.SymbolMatchers.isLiteral;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.endsWith;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.Matchers.startsWith;
-import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 
 import java.util.ArrayList;
@@ -128,11 +125,10 @@ public class JavascriptUserDefinedFunctionTest extends ScalarTestCase {
             JS,
             "function f(a) { return a[0]1*#?; }");
 
-        assertThat(
-            udfService.getLanguage(JS).validate(udfMeta),
-            containsString(
+        assertThat(udfService.getLanguage(JS).validate(udfMeta))
+            .contains(
                 "Invalid JavaScript in function 'doc.f(double precision)' AS 'function f(a) " +
-                "{ return a[0]1*#?; }': SyntaxError: f:1:27 Expected ; but found 1"));
+                "{ return a[0]1*#?; }': SyntaxError: f:1:27 Expected ; but found 1");
     }
 
     @Test
@@ -149,11 +145,11 @@ public class JavascriptUserDefinedFunctionTest extends ScalarTestCase {
         String javaVersion = System.getProperty("java.specification.version");
         try {
             if (Integer.parseInt(javaVersion) >= 9) {
-                assertThat(validation, is(nullValue()));
+                assertThat(validation).isNull();
             }
         } catch (NumberFormatException e) {
-            assertThat(validation, startsWith("Invalid JavaScript in function 'doc.f(double)'"));
-            assertThat(validation, endsWith("Failed generating bytecode for <eval>:1"));
+            assertThat(validation).startsWith("Invalid JavaScript in function 'doc.f(double)'");
+            assertThat(validation).endsWith("Failed generating bytecode for <eval>:1");
         }
     }
 
@@ -166,7 +162,7 @@ public class JavascriptUserDefinedFunctionTest extends ScalarTestCase {
             DataTypes.DOUBLE,
             JS,
             "function f(a) { return a[0]; }");
-        assertThat(udfService.getLanguage(JS).validate(udfMeta), is(nullValue()));
+        assertThat(udfService.getLanguage(JS).validate(udfMeta)).isNull();
     }
 
     @Test
@@ -270,11 +266,10 @@ public class JavascriptUserDefinedFunctionTest extends ScalarTestCase {
             JS,
             "function test() { return 1; }");
 
-        assertThat(
-            udfService.getLanguage(JS).validate(udfMeta),
-            containsString(
+        assertThat(udfService.getLanguage(JS).validate(udfMeta))
+            .contains(
                 "The name of the function signature 'f' doesn't " +
-                "match the function name in the function definition"));
+                "match the function name in the function definition");
     }
 
     @Test
@@ -309,14 +304,15 @@ public class JavascriptUserDefinedFunctionTest extends ScalarTestCase {
 
     @Test
     public void testAccessJavaClasses() throws Exception {
-        expectedException.expect(io.crate.exceptions.ScriptException.class);
-        expectedException.expectMessage(containsString("Java is not defined"));
         registerUserDefinedFunction(
             "f",
             DataTypes.LONG,
             List.of(DataTypes.LONG),
             "function f(x) { var File = Java.type(\"java.io.File\"); return x; }");
-        assertEvaluate("f(x)", 1L, Literal.of(1L));
+
+        assertThatThrownBy(() -> assertEvaluate("f(x)", 1L, Literal.of(1L)))
+            .isInstanceOf(io.crate.exceptions.ScriptException.class)
+            .hasMessageContaining("Java is not defined");
     }
 
     @Test

@@ -21,8 +21,8 @@
 
 package org.elasticsearch.repositories.s3;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -37,7 +37,6 @@ import org.elasticsearch.cluster.metadata.RepositoriesMetadata;
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ClusterServiceUtils;
-import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -126,9 +125,10 @@ public class S3RepositoryPluginAnalyzerTest extends CrateDummyClusterServiceUnit
 
     @Test
     public void testCreateS3RepoWithWrongSettings() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("setting 'wrong' not supported");
-        analyze(e, "CREATE REPOSITORY foo TYPE s3 WITH (wrong=true)");
+        assertThatThrownBy(
+            () -> analyze(e, "CREATE REPOSITORY foo TYPE s3 WITH (wrong=true)"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("setting 'wrong' not supported");
     }
 
     @Test
@@ -150,27 +150,23 @@ public class S3RepositoryPluginAnalyzerTest extends CrateDummyClusterServiceUnit
             "   use_throttle_retries=false," +
             "   readonly=false, " +
             "   canned_acl=false)");
-        assertThat(request.name(), is("foo"));
-        assertThat(request.type(), is("s3"));
-        assertThat(
-            request.settings().getAsStructuredMap(),
-            Matchers.allOf(
-                Matchers.hasEntry("access_key", "0xAFFE"),
-                Matchers.hasEntry("base_path", "/holz/"),
-                Matchers.hasEntry("bucket", "abc"),
-                Matchers.hasEntry("buffer_size", "5mb"),
-                Matchers.hasEntry("canned_acl", "false"),
-                Matchers.hasEntry("chunk_size", "12mb"),
-                Matchers.hasEntry("compress", "true"),
-                Matchers.hasEntry("endpoint", "www.example.com"),
-                Matchers.hasEntry("max_retries", "2"),
-                Matchers.hasEntry("use_throttle_retries", "false"),
-                Matchers.hasEntry("protocol", "http"),
-                Matchers.hasEntry("secret_key", "0xCAFEE"),
-                Matchers.hasEntry("server_side_encryption", "false"),
-                Matchers.hasEntry("readonly", "false")
-            )
-        );
+        assertThat(request.name()).isEqualTo("foo");
+        assertThat(request.type()).isEqualTo("s3");
+        assertThat(request.settings().getAsStructuredMap())
+            .hasFieldOrPropertyWithValue("access_key", "0xAFFE")
+                .hasFieldOrPropertyWithValue("base_path", "/holz/")
+                .hasFieldOrPropertyWithValue("bucket", "abc")
+                .hasFieldOrPropertyWithValue("buffer_size", "5mb")
+                .hasFieldOrPropertyWithValue("canned_acl", "false")
+                .hasFieldOrPropertyWithValue("chunk_size", "12mb")
+                .hasFieldOrPropertyWithValue("compress", "true")
+                .hasFieldOrPropertyWithValue("endpoint", "www.example.com")
+                .hasFieldOrPropertyWithValue("max_retries", "2")
+                .hasFieldOrPropertyWithValue("use_throttle_retries", "false")
+                .hasFieldOrPropertyWithValue("protocol", "http")
+                .hasFieldOrPropertyWithValue("secret_key", "0xCAFEE")
+                .hasFieldOrPropertyWithValue("server_side_encryption", "false")
+                .hasFieldOrPropertyWithValue("readonly", "false");
     }
 
     private static Settings toSettings(GenericProperties<Expression> genericProperties) {

@@ -21,28 +21,27 @@
 
 package io.crate.common;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.Test;
 
 public final class StringUtilsTest {
 
     @Test
-    public void test_split_str_by_dots() throws Exception {
+    public void test_split_str_by_dots() {
         var parts = StringUtils.splitToList('.', "a.b.c");
-        assertThat(parts, contains("a", "b", "c"));
+        assertThat(parts).containsExactly("a", "b", "c");
     }
 
     @Test
-    public void test_split_str_with_repeated_delim() throws Exception {
+    public void test_split_str_with_repeated_delim() {
         var parts = StringUtils.splitToList('.', "a..c");
-        assertThat(parts, contains("a", "", "c"));
+        assertThat(parts).containsExactly("a", "", "c");
     }
 
     @Test
-    public void test_split_empty_str() throws Exception {
+    public void test_split_empty_str() {
         var parts = StringUtils.splitToList('.', "");
-        assertThat(parts, contains(""));
+        assertThat(parts).containsExactly("");
     }
 }

@@ -33,10 +33,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static io.crate.beans.QueryStats.createMetricsMap;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class QueryStatsTest {
 
@@ -82,46 +79,46 @@ public class QueryStatsTest {
         }
         Map<StatementType, QueryStats.Metric> metricsByCommand = createMetricsMap(oneMetricForEachStatementType);
 
-        assertThat(metricsByCommand.size(), is(7));
-        assertThat(metricsByCommand.get(StatementType.SELECT), is(notNullValue()));
-        assertThat(metricsByCommand.get(StatementType.UPDATE), is(notNullValue()));
-        assertThat(metricsByCommand.get(StatementType.INSERT), is(notNullValue()));
-        assertThat(metricsByCommand.get(StatementType.DELETE), is(notNullValue()));
-        assertThat(metricsByCommand.get(StatementType.DDL), is(notNullValue()));
-        assertThat(metricsByCommand.get(StatementType.MANAGEMENT), is(notNullValue()));
-        assertThat(metricsByCommand.get(StatementType.COPY), is(notNullValue()));
+        assertThat(metricsByCommand).hasSize(7);
+        assertThat(metricsByCommand.get(StatementType.SELECT)).isNotNull();
+        assertThat(metricsByCommand.get(StatementType.UPDATE)).isNotNull();
+        assertThat(metricsByCommand.get(StatementType.INSERT)).isNotNull();
+        assertThat(metricsByCommand.get(StatementType.DELETE)).isNotNull();
+        assertThat(metricsByCommand.get(StatementType.DDL)).isNotNull();
+        assertThat(metricsByCommand.get(StatementType.MANAGEMENT)).isNotNull();
+        assertThat(metricsByCommand.get(StatementType.COPY)).isNotNull();
 
-        assertThat(metricsByCommand.get(StatementType.UNDEFINED), is(nullValue()));
+        assertThat(metricsByCommand.get(StatementType.UNDEFINED)).isNull();
     }
 
     @Test
     public void testCreateMetricsMap() {
         Map<StatementType, QueryStats.Metric> metricsByCommand = createMetricsMap(metrics);
-        assertThat(metricsByCommand.size(), is(6));
+        assertThat(metricsByCommand).hasSize(6);
 
-        assertThat(metricsByCommand.get(StatementType.SELECT).totalCount(), is(3L));
-        assertThat(metricsByCommand.get(StatementType.SELECT).failedCount(), is(1L));
-        assertThat(metricsByCommand.get(StatementType.SELECT).sumOfDurations(), is(90L));
+        assertThat(metricsByCommand.get(StatementType.SELECT).totalCount()).isEqualTo(3L);
+        assertThat(metricsByCommand.get(StatementType.SELECT).failedCount()).isEqualTo(1L);
+        assertThat(metricsByCommand.get(StatementType.SELECT).sumOfDurations()).isEqualTo(90L);
 
-        assertThat(metricsByCommand.get(StatementType.INSERT).totalCount(), is(1L));
-        assertThat(metricsByCommand.get(StatementType.INSERT).failedCount(), is(0L));
-        assertThat(metricsByCommand.get(StatementType.INSERT).sumOfDurations(), is(19L));
+        assertThat(metricsByCommand.get(StatementType.INSERT).totalCount()).isEqualTo(1L);
+        assertThat(metricsByCommand.get(StatementType.INSERT).failedCount()).isEqualTo(0L);
+        assertThat(metricsByCommand.get(StatementType.INSERT).sumOfDurations()).isEqualTo(19L);
 
-        assertThat(metricsByCommand.get(StatementType.UPDATE).totalCount(), is(1L));
-        assertThat(metricsByCommand.get(StatementType.UPDATE).failedCount(), is(0L));
-        assertThat(metricsByCommand.get(StatementType.UPDATE).sumOfDurations(), is(20L));
+        assertThat(metricsByCommand.get(StatementType.UPDATE).totalCount()).isEqualTo(1L);
+        assertThat(metricsByCommand.get(StatementType.UPDATE).failedCount()).isEqualTo(0L);
+        assertThat(metricsByCommand.get(StatementType.UPDATE).sumOfDurations()).isEqualTo(20L);
 
-        assertThat(metricsByCommand.get(StatementType.DELETE).totalCount(), is(2L));
-        assertThat(metricsByCommand.get(StatementType.DELETE).failedCount(), is(0L));
-        assertThat(metricsByCommand.get(StatementType.DELETE).sumOfDurations(), is(15L));
+        assertThat(metricsByCommand.get(StatementType.DELETE).totalCount()).isEqualTo(2L);
+        assertThat(metricsByCommand.get(StatementType.DELETE).failedCount()).isEqualTo(0L);
+        assertThat(metricsByCommand.get(StatementType.DELETE).sumOfDurations()).isEqualTo(15L);
 
-        assertThat(metricsByCommand.get(StatementType.DDL).totalCount(), is(1L));
-        assertThat(metricsByCommand.get(StatementType.DDL).failedCount(), is(0L));
-        assertThat(metricsByCommand.get(StatementType.DDL).sumOfDurations(), is(1L));
+        assertThat(metricsByCommand.get(StatementType.DDL).totalCount()).isEqualTo(1L);
+        assertThat(metricsByCommand.get(StatementType.DDL).failedCount()).isEqualTo(0L);
+        assertThat(metricsByCommand.get(StatementType.DDL).sumOfDurations()).isEqualTo(1L);
 
-        assertThat(metricsByCommand.get(StatementType.COPY).totalCount(), is(1L));
-        assertThat(metricsByCommand.get(StatementType.COPY).failedCount(), is(1L));
-        assertThat(metricsByCommand.get(StatementType.COPY).sumOfDurations(), is(0L));
+        assertThat(metricsByCommand.get(StatementType.COPY).totalCount()).isEqualTo(1L);
+        assertThat(metricsByCommand.get(StatementType.COPY).failedCount()).isEqualTo(1L);
+        assertThat(metricsByCommand.get(StatementType.COPY).sumOfDurations()).isEqualTo(0L);
     }
 
     @Test
@@ -131,9 +128,9 @@ public class QueryStatsTest {
             createMetric(new Classification(StatementType.SELECT, Set.of("lookup")), 55)
         );
         Map<StatementType, QueryStats.Metric> metricsByCommand = createMetricsMap(selectMetrics);
-        assertThat(metricsByCommand.size(), is(1));
+        assertThat(metricsByCommand).hasSize(1);
 
-        assertThat(metricsByCommand.get(StatementType.SELECT).totalCount(), is(2L));
-        assertThat(metricsByCommand.get(StatementType.SELECT).sumOfDurations(), is(90L));
+        assertThat(metricsByCommand.get(StatementType.SELECT).totalCount()).isEqualTo(2L);
+        assertThat(metricsByCommand.get(StatementType.SELECT).sumOfDurations()).isEqualTo(90L);
     }
 }

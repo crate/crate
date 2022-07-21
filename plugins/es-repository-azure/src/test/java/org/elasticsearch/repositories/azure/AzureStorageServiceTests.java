@@ -19,14 +19,9 @@
 
 package org.elasticsearch.repositories.azure;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.repositories.azure.AzureStorageService.blobNameFromUri;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -57,8 +52,8 @@ public class AzureStorageServiceTests extends ESTestCase {
             .put("endpoint_suffix", "my_endpoint_suffix").build();
         final AzureStorageService azureStorageService = storageServiceWithSettings(settings);
         final CloudBlobClient client = azureStorageService.client().v1();
-        assertThat(client.getEndpoint().toString(),
-                   equalTo("https://myaccount1.blob.my_endpoint_suffix"));
+        assertThat(client.getEndpoint().toString())
+            .isEqualTo("https://myaccount1.blob.my_endpoint_suffix");
     }
 
     public void testGetSelectedClientDefaultTimeout() {
@@ -67,20 +62,20 @@ public class AzureStorageServiceTests extends ESTestCase {
             .build();
         final AzureStorageService azureStorageService = storageServiceWithSettings(timeoutSettings);
         final CloudBlobClient client = azureStorageService.client().v1();
-        assertThat(client.getDefaultRequestOptions().getTimeoutIntervalInMs(), nullValue());
+        assertThat(client.getDefaultRequestOptions().getTimeoutIntervalInMs()).isNull();
     }
 
     public void testGetSelectedClientNoTimeout() {
         final AzureStorageService azureStorageService = storageServiceWithSettings(buildClientCredSettings());
         final CloudBlobClient client = azureStorageService.client().v1();
-        assertThat(client.getDefaultRequestOptions().getTimeoutIntervalInMs(), is(nullValue()));
+        assertThat(client.getDefaultRequestOptions().getTimeoutIntervalInMs()).isNull();
     }
 
     public void testGetSelectedClientBackoffPolicy() {
         final AzureStorageService azureStorageService = storageServiceWithSettings(buildClientCredSettings());
         final CloudBlobClient client = azureStorageService.client().v1();
-        assertThat(client.getDefaultRequestOptions().getRetryPolicyFactory(), is(notNullValue()));
-        assertThat(client.getDefaultRequestOptions().getRetryPolicyFactory(), instanceOf(RetryExponentialRetry.class));
+        assertThat(client.getDefaultRequestOptions().getRetryPolicyFactory()).isNotNull();
+        assertThat(client.getDefaultRequestOptions().getRetryPolicyFactory()).isInstanceOf(RetryExponentialRetry.class);
     }
 
     public void testGetSelectedClientBackoffPolicyNbRetries() {
@@ -91,8 +86,8 @@ public class AzureStorageServiceTests extends ESTestCase {
 
         final AzureStorageService azureStorageService = storageServiceWithSettings(timeoutSettings);
         final CloudBlobClient client = azureStorageService.client().v1();
-        assertThat(client.getDefaultRequestOptions().getRetryPolicyFactory(), is(notNullValue()));
-        assertThat(client.getDefaultRequestOptions().getRetryPolicyFactory(), instanceOf(RetryExponentialRetry.class));
+        assertThat(client.getDefaultRequestOptions().getRetryPolicyFactory()).isNotNull();
+        assertThat(client.getDefaultRequestOptions().getRetryPolicyFactory()).isInstanceOf(RetryExponentialRetry.class);
     }
 
     public void testNoProxy() {
@@ -100,7 +95,7 @@ public class AzureStorageServiceTests extends ESTestCase {
             .put(buildClientCredSettings())
             .build();
         final AzureStorageService mock = storageServiceWithSettings(settings);
-        assertThat(mock.storageSettings.getProxy(), nullValue());
+        assertThat(mock.storageSettings.getProxy()).isNull();
     }
 
     public void testProxyHttp() throws UnknownHostException {
@@ -113,9 +108,9 @@ public class AzureStorageServiceTests extends ESTestCase {
         final AzureStorageService mock = storageServiceWithSettings(settings);
         final Proxy defaultProxy = mock.storageSettings.getProxy();
 
-        assertThat(defaultProxy, notNullValue());
-        assertThat(defaultProxy.type(), is(Proxy.Type.HTTP));
-        assertThat(defaultProxy.address(), is(new InetSocketAddress(InetAddress.getByName("127.0.0.1"), 8080)));
+        assertThat(defaultProxy).isNotNull();
+        assertThat(defaultProxy.type()).isEqualTo(Proxy.Type.HTTP);
+        assertThat(defaultProxy.address()).isEqualTo(new InetSocketAddress(InetAddress.getByName("127.0.0.1"), 8080));
     }
 
     public void testMultipleProxies() throws UnknownHostException {
@@ -127,9 +122,9 @@ public class AzureStorageServiceTests extends ESTestCase {
             .build();
         final AzureStorageService mock = storageServiceWithSettings(settings);
         final Proxy proxy = mock.storageSettings.getProxy();
-        assertThat(proxy, notNullValue());
-        assertThat(proxy.type(), is(Proxy.Type.HTTP));
-        assertThat(proxy.address(), is(new InetSocketAddress(InetAddress.getByName("127.0.0.1"), 8080)));
+        assertThat(proxy).isNotNull();
+        assertThat(proxy.type()).isEqualTo(Proxy.Type.HTTP);
+        assertThat(proxy.address()).isEqualTo(new InetSocketAddress(InetAddress.getByName("127.0.0.1"), 8080));
     }
 
     public void testProxySocks() throws UnknownHostException {
@@ -141,9 +136,9 @@ public class AzureStorageServiceTests extends ESTestCase {
             .build();
         final AzureStorageService mock = storageServiceWithSettings(settings);
         final Proxy proxy = mock.storageSettings.getProxy();
-        assertThat(proxy, notNullValue());
-        assertThat(proxy.type(), is(Proxy.Type.SOCKS));
-        assertThat(proxy.address(), is(new InetSocketAddress(InetAddress.getByName("127.0.0.1"), 8080)));
+        assertThat(proxy).isNotNull();
+        assertThat(proxy.type()).isEqualTo(Proxy.Type.SOCKS);
+        assertThat(proxy.address()).isEqualTo(new InetSocketAddress(InetAddress.getByName("127.0.0.1"), 8080));
     }
 
     public void testProxyNoHost() {
@@ -152,8 +147,10 @@ public class AzureStorageServiceTests extends ESTestCase {
             .put("proxy_port", 8080)
             .put("proxy_type", randomFrom("socks", "http"))
             .build();
-        final SettingsException e = expectThrows(SettingsException.class, () -> storageServiceWithSettings(settings));
-        assertEquals("Azure Proxy type has been set but proxy host or port is not defined.", e.getMessage());
+        assertThatThrownBy(
+            () -> storageServiceWithSettings(settings))
+            .isInstanceOf(SettingsException.class)
+            .hasMessage("Azure Proxy type has been set but proxy host or port is not defined.");
     }
 
     public void testProxyNoPort() {
@@ -163,8 +160,10 @@ public class AzureStorageServiceTests extends ESTestCase {
             .put("proxy_type", randomFrom("socks", "http"))
             .build();
 
-        final SettingsException e = expectThrows(SettingsException.class, () -> storageServiceWithSettings(settings));
-        assertEquals("Azure Proxy type has been set but proxy host or port is not defined.", e.getMessage());
+        assertThatThrownBy(
+            () -> storageServiceWithSettings(settings))
+            .isInstanceOf(SettingsException.class)
+            .hasMessage("Azure Proxy type has been set but proxy host or port is not defined.");
     }
 
     public void testProxyNoType() {
@@ -174,8 +173,10 @@ public class AzureStorageServiceTests extends ESTestCase {
             .put("proxy_port", 8080)
             .build();
 
-        final SettingsException e = expectThrows(SettingsException.class, () -> storageServiceWithSettings(settings));
-        assertEquals("Azure Proxy port or host have been set but proxy type is not defined.", e.getMessage());
+        assertThatThrownBy(
+            () -> storageServiceWithSettings(settings))
+            .isInstanceOf(SettingsException.class)
+            .hasMessage("Azure Proxy port or host have been set but proxy type is not defined.");
     }
 
     public void testProxyWrongHost() {
@@ -186,20 +187,21 @@ public class AzureStorageServiceTests extends ESTestCase {
             .put("proxy_port", 8080)
             .build();
 
-        final SettingsException e = expectThrows(SettingsException.class,
-                                                 () -> storageServiceWithSettings(settings));
-        assertEquals("Azure proxy host is unknown.", e.getMessage());
+        assertThatThrownBy(
+            () -> storageServiceWithSettings(settings))
+            .isInstanceOf(SettingsException.class)
+            .hasMessage("Azure proxy host is unknown.");
     }
 
     public void testBlobNameFromUri() throws URISyntaxException {
         String name = blobNameFromUri(new URI("https://myservice.azure.net/container/path/to/myfile"));
-        assertThat(name, is("path/to/myfile"));
+        assertThat(name).isEqualTo("path/to/myfile");
         name = blobNameFromUri(new URI("http://myservice.azure.net/container/path/to/myfile"));
-        assertThat(name, is("path/to/myfile"));
+        assertThat(name).isEqualTo("path/to/myfile");
         name = blobNameFromUri(new URI("http://127.0.0.1/container/path/to/myfile"));
-        assertThat(name, is("path/to/myfile"));
+        assertThat(name).isEqualTo("path/to/myfile");
         name = blobNameFromUri(new URI("https://127.0.0.1/container/path/to/myfile"));
-        assertThat(name, is("path/to/myfile"));
+        assertThat(name).isEqualTo("path/to/myfile");
     }
 
     private static Settings buildClientCredSettings() {

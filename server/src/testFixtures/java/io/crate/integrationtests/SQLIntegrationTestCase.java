@@ -22,12 +22,8 @@
 package io.crate.integrationtests;
 
 import static io.crate.protocols.postgres.PostgresNetty.PSQL_PORT_SETTING;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.http.HttpTransportSettings.SETTING_HTTP_COMPRESSION;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.lang.annotation.Annotation;
@@ -47,6 +43,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 
@@ -76,8 +73,6 @@ import org.elasticsearch.tasks.TaskId;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.Netty4Plugin;
-import org.hamcrest.Matcher;
-import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -273,7 +268,7 @@ public abstract class SQLIntegrationTestCase extends ESIntegTestCase {
     }
 
     @After
-    public void resetPageSize() throws Exception {
+    public void resetPageSize() {
         Paging.PAGE_SIZE = ORIGINAL_PAGE_SIZE;
     }
 
@@ -300,23 +295,25 @@ public abstract class SQLIntegrationTestCase extends ESIntegTestCase {
                     try {
                         //noinspection unchecked
                         Map<UUID, RootTask> contexts = (Map<UUID, RootTask>) activeTasks.get(tasksService);
-                        assertThat(contexts.size(), is(0));
+                        assertThat(contexts).isEmpty();
                     } catch (IllegalAccessException e) {
                         throw new RuntimeException(e);
                     }
                 }
                 for (TransportShardUpsertAction action : internalCluster().getInstances(TransportShardUpsertAction.class)) {
                     try {
+                        @SuppressWarnings("unchecked")
                         ConcurrentHashMap<TaskId, KillableCallable<?>> operations = (ConcurrentHashMap<TaskId, KillableCallable<?>>) activeOperationsSb.get(action);
-                        assertThat(operations.size(), is(0));
+                        assertThat(operations).isEmpty();
                     } catch (IllegalAccessException e) {
                         throw new RuntimeException(e);
                     }
                 }
                 for (TransportShardDeleteAction action : internalCluster().getInstances(TransportShardDeleteAction.class)) {
                     try {
+                        @SuppressWarnings("unchecked")
                         ConcurrentHashMap<TaskId, KillableCallable<?>> operations = (ConcurrentHashMap<TaskId, KillableCallable<?>>) activeOperationsSb.get(action);
-                        assertThat(operations.size(), is(0));
+                        assertThat(operations).isEmpty();
                     } catch (IllegalAccessException e) {
                         throw new RuntimeException(e);
                     }
@@ -359,23 +356,21 @@ public abstract class SQLIntegrationTestCase extends ESIntegTestCase {
     public void ensureNoInflightRequestsLeft() throws Exception {
         assertBusy(() -> {
             for (var nodeLimits : internalCluster().getInstances(NodeLimits.class)) {
-                assertThat(nodeLimits.totalNumInflight(), is(0L));
+                assertThat(nodeLimits.totalNumInflight()).isEqualTo(0L);
             }
         });
     }
 
     @After
-    public void ensure_one_node_limit_instance_per_node() throws Exception {
+    public void ensure_one_node_limit_instance_per_node() {
         Iterable<NodeLimits> nodeLimitsInstances = internalCluster().getInstances(NodeLimits.class);
         int numInstances = 0;
         for (var nodeLimits : nodeLimitsInstances) {
             numInstances++;
         }
-        assertThat(
-            "There must only be as many NodeLimits instances as there are nodes in the cluster",
-            numInstances,
-            is(internalCluster().numNodes())
-        );
+        assertThat(numInstances)
+                .as("There must only be as many NodeLimits instances as there are nodes in the cluster")
+                .isEqualTo(internalCluster().numNodes());
     }
 
     public void waitUntilShardOperationsFinished() throws Exception {
@@ -384,7 +379,7 @@ public abstract class SQLIntegrationTestCase extends ESIntegTestCase {
             for (IndicesService indicesService : indexServices) {
                 for (IndexService indexService : indicesService) {
                     for (IndexShard indexShard : indexService) {
-                        assertThat(indexShard.getActiveOperationsCount(), equalTo(0));
+                        assertThat(indexShard.getActiveOperationsCount()).isEqualTo(0);
                     }
                 }
             }
@@ -396,7 +391,7 @@ public abstract class SQLIntegrationTestCase extends ESIntegTestCase {
             Iterable<ThreadPool> threadPools = internalCluster().getInstances(ThreadPool.class);
             for (ThreadPool threadPool : threadPools) {
                 ThreadPoolExecutor executor = (ThreadPoolExecutor) threadPool.executor(name);
-                assertThat(executor.getActiveCount(), is(0));
+                assertThat(executor.getActiveCount()).isEqualTo(0);
             }
         }, 5, TimeUnit.SECONDS);
     }
@@ -480,7 +475,7 @@ public abstract class SQLIntegrationTestCase extends ESIntegTestCase {
      */
     public void executeWith(List<List<String>> setSessionStatementsList,
                             String statement,
-                            Matcher<SQLResponse> matcher) {
+                            Consumer<SQLResponse> matcher) {
         for (List<String> setSessionStatements : setSessionStatementsList) {
             try (Session session = sqlExecutor.newSession()) {
 
@@ -489,11 +484,10 @@ public abstract class SQLIntegrationTestCase extends ESIntegTestCase {
                 }
 
                 SQLResponse resp = sqlExecutor.exec(statement, session);
-                assertThat(
-                    "The query:\n\t" + statement + "\nwith session statements: [" +
-                    String.join(", ", setSessionStatements) + "] must produce correct result",
-                    resp,
-                    matcher);
+                assertThat(resp)
+                    .as("The query:\n\t" + statement + "\nwith session statements: [" +
+                        String.join(", ", setSessionStatements) + "] must produce correct result")
+                    .satisfies(matcher);
             }
         }
     }
@@ -672,10 +666,10 @@ public abstract class SQLIntegrationTestCase extends ESIntegTestCase {
             Iterable<Schemas> referenceInfosIterable = internalCluster().getInstances(Schemas.class);
             for (Schemas schemas : referenceInfosIterable) {
                 TableInfo tableInfo = schemas.getTableInfo(relationName);
-                assertThat(tableInfo, Matchers.notNullValue());
+                assertThat(tableInfo).isNotNull();
                 for (String fieldName : fieldNames) {
                     ColumnIdent columnIdent = ColumnIdent.fromPath(fieldName);
-                    assertThat(tableInfo.getReference(columnIdent), Matchers.notNullValue());
+                    assertThat(tableInfo.getReference(columnIdent)).isNotNull();
                 }
             }
         }, 20L, TimeUnit.SECONDS);
@@ -691,8 +685,8 @@ public abstract class SQLIntegrationTestCase extends ESIntegTestCase {
                     name,
                     Lists2.map(argTypes, t -> Literal.of(t, null)),
                     searchPath);
-                assertThat(func, is(not(nullValue())));
-                assertThat(func.boundSignature().getArgumentDataTypes(), is(equalTo(argTypes)));
+                assertThat(func).isNotNull();
+                assertThat(func.boundSignature().getArgumentDataTypes()).isEqualTo(argTypes);
             }
         }, 20L, TimeUnit.SECONDS);
     }
@@ -709,10 +703,10 @@ public abstract class SQLIntegrationTestCase extends ESIntegTestCase {
                         // arguments will be returned. Therefore, we have to assert that
                         // the provided arguments do not match the arguments of the resolved
                         // function if the function was deleted.
-                        assertThat(func.boundSignature().getArgumentDataTypes(), not(equalTo(Symbols.typeView(arguments))));
+                        assertThat(func.boundSignature().getArgumentDataTypes()).isNotEqualTo(Symbols.typeView(arguments));
                     }
                 } catch (UnsupportedOperationException e) {
-                    assertThat(e.getMessage().startsWith("Unknown function"), is(true));
+                    assertThat(e.getMessage()).startsWith("Unknown function");
                 }
 
             }

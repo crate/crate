@@ -21,13 +21,9 @@
 
 package org.elasticsearch.repositories.s3;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.repositories.s3.S3BlobStoreTests.randomMockS3BlobStore;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
@@ -48,9 +44,7 @@ import org.elasticsearch.common.blobstore.BlobPath;
 import org.elasticsearch.common.blobstore.BlobStore;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.repositories.ESBlobStoreContainerTestCase;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.mockito.ArgumentCaptor;
 
 import com.amazonaws.AmazonClientException;
@@ -73,9 +67,6 @@ import io.crate.common.collections.Tuple;
 
 public class S3BlobStoreContainerTests extends ESBlobStoreContainerTestCase {
 
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
-
     @Override
     protected BlobStore newBlobStore() {
         return randomMockS3BlobStore();
@@ -87,27 +78,30 @@ public class S3BlobStoreContainerTests extends ESBlobStoreContainerTestCase {
     }
 
     @Test
-    public void testExecuteSingleUploadBlobSizeTooLarge() throws IOException {
+    public void testExecuteSingleUploadBlobSizeTooLarge() {
         final long blobSize = ByteSizeUnit.GB.toBytes(randomIntBetween(6, 10));
         final S3BlobStore blobStore = mock(S3BlobStore.class);
         final S3BlobContainer blobContainer = new S3BlobContainer(mock(BlobPath.class), blobStore);
 
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage(containsString("can't be larger than 5gb"));
-        blobContainer.executeSingleUpload(blobStore, randomAlphaOfLengthBetween(1, 10), null, blobSize);
+        assertThatThrownBy(
+            () -> blobContainer.executeSingleUpload(blobStore, randomAlphaOfLengthBetween(1, 10), null, blobSize))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageEndingWith("can't be larger than 5gb");
+
     }
 
     @Test
-    public void testExecuteSingleUploadBlobSizeLargerThanBufferSize() throws IOException {
+    public void testExecuteSingleUploadBlobSizeLargerThanBufferSize() {
         final S3BlobStore blobStore = mock(S3BlobStore.class);
         when(blobStore.bufferSizeInBytes()).thenReturn(ByteSizeUnit.MB.toBytes(1));
 
         final S3BlobContainer blobContainer = new S3BlobContainer(mock(BlobPath.class), blobStore);
         final String blobName = randomAlphaOfLengthBetween(1, 10);
 
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage(containsString("can't be larger than buffer size"));
-        blobContainer.executeSingleUpload(blobStore, blobName, new ByteArrayInputStream(new byte[0]), ByteSizeUnit.MB.toBytes(2));
+        assertThatThrownBy(
+            () -> blobContainer.executeSingleUpload(blobStore, blobName, new ByteArrayInputStream(new byte[0]), ByteSizeUnit.MB.toBytes(2)))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageEndingWith("can't be larger than buffer size");
     }
 
     @Test
@@ -151,37 +145,39 @@ public class S3BlobStoreContainerTests extends ESBlobStoreContainerTestCase {
         blobContainer.executeSingleUpload(blobStore, blobName, inputStream, blobSize);
 
         final PutObjectRequest request = argumentCaptor.getValue();
-        assertEquals(bucketName, request.getBucketName());
-        assertEquals(blobPath.buildAsString() + blobName, request.getKey());
-        assertEquals(inputStream, request.getInputStream());
-        assertEquals(blobSize, request.getMetadata().getContentLength());
-        assertEquals(storageClass.toString(), request.getStorageClass());
-        assertEquals(cannedAccessControlList, request.getCannedAcl());
+        assertThat(bucketName).isEqualTo(request.getBucketName());
+        assertThat(blobPath.buildAsString() + blobName).isEqualTo(request.getKey());
+        assertThat(inputStream).isEqualTo(request.getInputStream());
+        assertThat(blobSize).isEqualTo(request.getMetadata().getContentLength());
+        assertThat(storageClass.toString()).isEqualTo(request.getStorageClass());
+        assertThat(cannedAccessControlList).isEqualTo(request.getCannedAcl());
         if (serverSideEncryption) {
-            assertEquals(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION, request.getMetadata().getSSEAlgorithm());
+            assertThat(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION).isEqualTo(request.getMetadata().getSSEAlgorithm());
         }
     }
 
     @Test
-    public void testExecuteMultipartUploadBlobSizeTooLarge() throws IOException {
+    public void testExecuteMultipartUploadBlobSizeTooLarge() {
         final long blobSize = ByteSizeUnit.TB.toBytes(randomIntBetween(6, 10));
         final S3BlobStore blobStore = mock(S3BlobStore.class);
         final S3BlobContainer blobContainer = new S3BlobContainer(mock(BlobPath.class), blobStore);
 
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage(containsString("can't be larger than 5tb"));
-        blobContainer.executeMultipartUpload(blobStore, randomAlphaOfLengthBetween(1, 10), null, blobSize);
+        assertThatThrownBy(
+            () -> blobContainer.executeMultipartUpload(blobStore, randomAlphaOfLengthBetween(1, 10), null, blobSize))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageEndingWith("can't be larger than 5tb");
     }
 
     @Test
-    public void testExecuteMultipartUploadBlobSizeTooSmall() throws IOException {
+    public void testExecuteMultipartUploadBlobSizeTooSmall() {
         final long blobSize = ByteSizeUnit.MB.toBytes(randomIntBetween(1, 4));
         final S3BlobStore blobStore = mock(S3BlobStore.class);
         final S3BlobContainer blobContainer = new S3BlobContainer(mock(BlobPath.class), blobStore);
 
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage(containsString("can't be smaller than 5mb"));
-        blobContainer.executeMultipartUpload(blobStore, randomAlphaOfLengthBetween(1, 10), null, blobSize);
+        assertThatThrownBy(
+            () -> blobContainer.executeMultipartUpload(blobStore, randomAlphaOfLengthBetween(1, 10), null, blobSize))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageEndingWith("can't be smaller than 5mb");
     }
 
     @Test
@@ -247,44 +243,45 @@ public class S3BlobStoreContainerTests extends ESBlobStoreContainerTestCase {
         blobContainer.executeMultipartUpload(blobStore, blobName, inputStream, blobSize);
 
         final InitiateMultipartUploadRequest initRequest = initArgCaptor.getValue();
-        assertEquals(bucketName, initRequest.getBucketName());
-        assertEquals(blobPath.buildAsString() + blobName, initRequest.getKey());
-        assertEquals(storageClass, initRequest.getStorageClass());
-        assertEquals(cannedAccessControlList, initRequest.getCannedACL());
+        assertThat(initRequest.getBucketName()).isEqualTo(bucketName);
+        assertThat(initRequest.getKey()).isEqualTo(blobPath.buildAsString() + blobName);
+        assertThat(initRequest.getStorageClass()).isEqualTo(storageClass);
+        assertThat(initRequest.getCannedACL()).isEqualTo(cannedAccessControlList);
         if (serverSideEncryption) {
-            assertEquals(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION, initRequest.getObjectMetadata().getSSEAlgorithm());
+            assertThat(initRequest.getObjectMetadata().getSSEAlgorithm())
+                .isEqualTo(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION);
         }
 
         final Tuple<Long, Long> numberOfParts = S3BlobContainer.numberOfMultiparts(blobSize, bufferSize);
 
         final List<UploadPartRequest> uploadRequests = uploadArgCaptor.getAllValues();
-        assertEquals(numberOfParts.v1().intValue(), uploadRequests.size());
+        assertThat(uploadRequests).hasSize(numberOfParts.v1().intValue());
 
         for (int i = 0; i < uploadRequests.size(); i++) {
             final UploadPartRequest uploadRequest = uploadRequests.get(i);
 
-            assertEquals(bucketName, uploadRequest.getBucketName());
-            assertEquals(blobPath.buildAsString() + blobName, uploadRequest.getKey());
-            assertEquals(initResult.getUploadId(), uploadRequest.getUploadId());
-            assertEquals(i + 1, uploadRequest.getPartNumber());
-            assertEquals(inputStream, uploadRequest.getInputStream());
+            assertThat(uploadRequest.getBucketName()).isEqualTo(bucketName);
+            assertThat(uploadRequest.getKey()).isEqualTo(blobPath.buildAsString() + blobName);
+            assertThat(uploadRequest.getUploadId()).isEqualTo(initResult.getUploadId());
+            assertThat(uploadRequest.getPartNumber()).isEqualTo(i + 1);
+            assertThat(uploadRequest.getInputStream()).isEqualTo(inputStream);
 
             if (i == (uploadRequests.size() -1)) {
-                assertTrue(uploadRequest.isLastPart());
-                assertEquals(numberOfParts.v2().longValue(), uploadRequest.getPartSize());
+                assertThat(uploadRequest.isLastPart()).isTrue();
+                assertThat(uploadRequest.getPartSize()).isEqualTo(numberOfParts.v2().longValue());
             } else {
-                assertFalse(uploadRequest.isLastPart());
-                assertEquals(bufferSize, uploadRequest.getPartSize());
+                assertThat(uploadRequest.isLastPart()).isFalse();
+                assertThat(uploadRequest.getPartSize()).isEqualTo(bufferSize);
             }
         }
 
         final CompleteMultipartUploadRequest compRequest = compArgCaptor.getValue();
-        assertEquals(bucketName, compRequest.getBucketName());
-        assertEquals(blobPath.buildAsString() + blobName, compRequest.getKey());
-        assertEquals(initResult.getUploadId(), compRequest.getUploadId());
+        assertThat(compRequest.getBucketName()).isEqualTo(bucketName);
+        assertThat(compRequest.getKey()).isEqualTo(blobPath.buildAsString() + blobName);
+        assertThat(compRequest.getUploadId()).isEqualTo(initResult.getUploadId());
 
         final List<String> actualETags = compRequest.getPartETags().stream().map(PartETag::getETag).collect(Collectors.toList());
-        assertEquals(expectedEtags, actualETags);
+        assertThat(actualETags).isEqualTo(expectedEtags);
     }
 
     @Test
@@ -357,9 +354,9 @@ public class S3BlobStoreContainerTests extends ESBlobStoreContainerTestCase {
             blobContainer.executeMultipartUpload(blobStore, blobName, new ByteArrayInputStream(new byte[0]), blobSize);
         });
 
-        assertEquals("Unable to upload object [" + blobName + "] using multipart upload", e.getMessage());
-        assertThat(e.getCause(), instanceOf(AmazonClientException.class));
-        assertEquals(exceptions.get(stage).getMessage(), e.getCause().getMessage());
+        assertThat(e.getMessage()).isEqualTo("Unable to upload object [" + blobName + "] using multipart upload");
+        assertThat(e.getCause()).isInstanceOf(AmazonClientException.class);
+        assertThat(e.getCause().getMessage()).isEqualTo(exceptions.get(stage).getMessage());
 
         if (stage == 0) {
             verify(client, times(1)).initiateMultipartUpload(any(InitiateMultipartUploadRequest.class));
@@ -381,17 +378,18 @@ public class S3BlobStoreContainerTests extends ESBlobStoreContainerTestCase {
             verify(client, times(1)).abortMultipartUpload(any(AbortMultipartUploadRequest.class));
 
             final AbortMultipartUploadRequest abortRequest = argumentCaptor.getValue();
-            assertEquals(bucketName, abortRequest.getBucketName());
-            assertEquals(blobName, abortRequest.getKey());
-            assertEquals(uploadId, abortRequest.getUploadId());
+            assertThat(abortRequest.getBucketName()).isEqualTo(bucketName);
+            assertThat(abortRequest.getKey()).isEqualTo(blobName);
+            assertThat(abortRequest.getUploadId()).isEqualTo(uploadId);
         }
     }
 
     @Test
     public void testNumberOfMultipartsWithZeroPartSize() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage(containsString("Part size must be greater than zero"));
-        S3BlobContainer.numberOfMultiparts(randomNonNegativeLong(), 0L);
+        assertThatThrownBy(
+            () -> S3BlobContainer.numberOfMultiparts(randomNonNegativeLong(), 0L))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Part size must be greater than zero");
     }
 
     @Test
@@ -418,7 +416,11 @@ public class S3BlobStoreContainerTests extends ESBlobStoreContainerTestCase {
     private static void assertNumberOfMultiparts(final int expectedParts, final long expectedRemaining, long totalSize, long partSize) {
         final Tuple<Long, Long> result = S3BlobContainer.numberOfMultiparts(totalSize, partSize);
 
-        assertEquals("Expected number of parts [" + expectedParts + "] but got [" + result.v1() + "]", expectedParts, (long) result.v1());
-        assertEquals("Expected remaining [" + expectedRemaining + "] but got [" + result.v2() + "]", expectedRemaining, (long) result.v2());
+        assertThat((long) result.v1())
+            .as("Expected number of parts [" + expectedParts + "] but got [" + result.v1() + "]")
+            .isEqualTo(expectedParts);
+        assertThat((long) result.v2())
+            .as("Expected remaining [" + expectedRemaining + "] but got [" + result.v2() + "]")
+            .isEqualTo(expectedRemaining);
     }
 }

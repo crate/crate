@@ -34,7 +34,7 @@ public class FailingBatchIterator<T> extends ForwardingBatchIterator<T> {
 
     public static <T> BatchIterator<T> failOnAllLoaded() {
         BatchIterator<T> delegate = InMemoryBatchIterator.empty(null);
-        return new ForwardingBatchIterator<T>() {
+        return new ForwardingBatchIterator<>() {
             @Override
             protected BatchIterator<T> delegate() {
                 return delegate;

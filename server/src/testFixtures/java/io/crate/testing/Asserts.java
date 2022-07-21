@@ -21,15 +21,19 @@
 
 package io.crate.testing;
 
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.instanceOf;
 
+import org.elasticsearch.common.settings.Settings;
 import org.hamcrest.Matcher;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.function.Executable;
 
 public class Asserts {
+
+    public static SettingsAssert assertThat(Settings actual) {
+        return new SettingsAssert(actual);
+    }
 
     private Asserts() {}
 
@@ -38,7 +42,7 @@ public class Asserts {
             executable.execute();
             Assertions.fail("Expected exception to be thrown, but nothing was thrown.");
         } catch (Throwable t) {
-            assertThat(t, matcher);
+            org.hamcrest.MatcherAssert.assertThat(t, matcher);
         }
     }
 
@@ -54,8 +58,8 @@ public class Asserts {
             executable.execute();
             Assertions.fail(assertionFailMsg);
         } catch (Throwable t) {
-            assertThat(t, instanceOf(type));
-            assertThat(t.getMessage(), containsString(msgSubString));
+            org.hamcrest.MatcherAssert.assertThat(t, instanceOf(type));
+            org.hamcrest.MatcherAssert.assertThat(t.getMessage(), containsString(msgSubString));
         }
     }
 }

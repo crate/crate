@@ -22,8 +22,7 @@
 package io.crate.window;
 
 import static io.crate.testing.TestingHelpers.printedTable;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -49,13 +48,16 @@ public class RankFunctionsIntegrationTest extends SQLIntegrationTestCase {
                 "dense_rank() OVER (partition by col2 order by col1)" +
                 "from unnest(['A', 'B', 'C', 'A', 'B', 'C', 'A'], [True, True, False, True, False, True, False]) " +
                 "order by col2, col1");
-        assertThat(printedTable(response.rows()), is("A| false| 1| 1\n" +
-                                                     "B| false| 2| 2\n" +
-                                                     "C| false| 3| 3\n" +
-                                                     "A| true| 1| 1\n" +
-                                                     "A| true| 1| 1\n" +
-                                                     "B| true| 3| 2\n" +
-                                                     "C| true| 4| 3\n"));
+        assertThat(printedTable(response.rows()))
+            .isEqualTo("""
+                A| false| 1| 1
+                B| false| 2| 2
+                C| false| 3| 3
+                A| true| 1| 1
+                A| true| 1| 1
+                B| true| 3| 2
+                C| true| 4| 3
+                """);
     }
 
 }

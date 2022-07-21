@@ -21,28 +21,30 @@
 
 package io.crate.data;
 
-import io.crate.testing.BatchIteratorTester;
-import io.crate.testing.BatchSimulatingIterator;
-import io.crate.testing.TestingBatchIterators;
-import org.junit.Test;
-
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import org.junit.Test;
+
+import io.crate.testing.BatchIteratorTester;
+import io.crate.testing.BatchSimulatingIterator;
+import io.crate.testing.TestingBatchIterators;
+
 public class SkippingBatchIteratorTest {
 
-    private int offset = 3;
-    private List<Object[]> expectedResult = IntStream.range(3, 10)
-        .mapToObj(i -> new Object[]{i})
+    private static final int OFFSET = 3;
+
+    private static final List<Object[]> EXPECTED_RESULT = IntStream.range(3, 10)
+        .mapToObj(i -> new Object[] {i})
         .collect(Collectors.toList());
 
     @Test
     public void testSkippingBatchIterator() throws Exception {
         BatchIteratorTester tester = new BatchIteratorTester(
-            () -> new SkippingBatchIterator<>(TestingBatchIterators.range(0, 10), offset)
+            () -> new SkippingBatchIterator<>(TestingBatchIterators.range(0, 10), OFFSET)
         );
-        tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
+        tester.verifyResultAndEdgeCaseBehaviour(EXPECTED_RESULT);
     }
 
     @Test
@@ -51,9 +53,9 @@ public class SkippingBatchIteratorTest {
             () -> {
                 BatchIterator<Row> source = TestingBatchIterators.range(0, 10);
                 source = new BatchSimulatingIterator<>(source, 2, 5, null);
-                return new SkippingBatchIterator<>(source, offset);
+                return new SkippingBatchIterator<>(source, OFFSET);
             }
         );
-        tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
+        tester.verifyResultAndEdgeCaseBehaviour(EXPECTED_RESULT);
     }
 }

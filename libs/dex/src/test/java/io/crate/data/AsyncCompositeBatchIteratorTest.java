@@ -21,11 +21,7 @@
 
 package io.crate.data;
 
-import io.crate.testing.BatchIteratorTester;
-import io.crate.testing.BatchSimulatingIterator;
-import io.crate.testing.TestingBatchIterators;
-import io.crate.testing.TestingRowConsumer;
-import org.junit.Test;
+import static org.assertj.core.api.Assertions.fail;
 
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -38,12 +34,17 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import static org.junit.Assert.fail;
+import org.junit.Test;
+
+import io.crate.testing.BatchIteratorTester;
+import io.crate.testing.BatchSimulatingIterator;
+import io.crate.testing.TestingBatchIterators;
+import io.crate.testing.TestingRowConsumer;
 
 public class AsyncCompositeBatchIteratorTest {
 
-    private List<Object[]> expectedResult = IntStream.range(0, 10)
-        .mapToObj(i -> new Object[]{i})
+    private static final List<Object[]> EXPECTED_RESULT = IntStream.range(0, 10)
+        .mapToObj(i -> new Object[] {i})
         .collect(Collectors.toList());
 
     @Test
@@ -65,7 +66,7 @@ public class AsyncCompositeBatchIteratorTest {
                     batchSimulatingItSupplier.get()
                 )
             );
-            tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
+            tester.verifyResultAndEdgeCaseBehaviour(EXPECTED_RESULT);
         } finally {
             executorService.shutdown();
             executorService.awaitTermination(10, TimeUnit.SECONDS);

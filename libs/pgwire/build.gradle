@@ -39,7 +39,7 @@ dependencies {
     implementation "org.antlr:antlr4-runtime:${versions.antlr}"
     implementation "com.carrotsearch:hppc:${versions.carrotsearch_hppc}"
 
-    testImplementation "org.hamcrest:hamcrest:${versions.hamcrest}"
+    testImplementation "org.assertj:assertj-core:${versions.assertj}"
     testImplementation "org.junit.jupiter:junit-jupiter:${versions.junit5}"
     testImplementation "junit:junit:${versions.junit}"
     testRuntimeOnly("org.junit.vintage:junit-vintage-engine") {

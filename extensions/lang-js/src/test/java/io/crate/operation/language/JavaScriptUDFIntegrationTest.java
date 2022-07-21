@@ -21,8 +21,7 @@
 
 package io.crate.operation.language;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -73,9 +72,9 @@ public class JavaScriptUDFIntegrationTest extends SQLIntegrationTestCase {
                 "RETURNS LONG LANGUAGE JAVASCRIPT AS 'function subtract_js(x, y) { return x-y; }'");
         assertFunctionIsCreatedOnAll(sqlExecutor.getCurrentSchema(), "subtract_js", List.of(DataTypes.LONG, DataTypes.LONG));
         execute("SELECT SUBTRACT_JS(a, b) FROM test ORDER BY a ASC");
-        assertThat(response.rowCount(), is(2L));
-        assertThat(response.rows()[0][0], is(2L));
-        assertThat(response.rows()[1][0], is(3L));
+        assertThat(response.rowCount()).isEqualTo(2L);
+        assertThat(response.rows()[0][0]).isEqualTo(2L);
+        assertThat(response.rows()[1][0]).isEqualTo(3L);
     }
 
     @Test
@@ -90,7 +89,7 @@ public class JavaScriptUDFIntegrationTest extends SQLIntegrationTestCase {
         execute("CREATE FUNCTION test.subtract(integer, integer) RETURNS INTEGER LANGUAGE javascript AS 'function subtract(x, y){ return x-y; }'");
         assertFunctionIsCreatedOnAll("test", "subtract", List.of(DataTypes.INTEGER, DataTypes.INTEGER));
         execute("SELECT test.subtract(a, b) FROM test.t ORDER BY 1");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("0\n1\n2\n"));
+        assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo("0\n1\n2\n");
     }
 
     @Test
@@ -108,8 +107,6 @@ public class JavaScriptUDFIntegrationTest extends SQLIntegrationTestCase {
         execute("insert into tbl (xs) values ([10.5, 27.4])");
         execute("refresh table tbl");
         execute("select x from tbl");
-        assertThat(TestingHelpers.printedTable(response.rows()), is(
-            "27.4\n"
-        ));
+        assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo("27.4\n");
     }
 }

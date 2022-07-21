@@ -21,10 +21,7 @@
 
 package io.crate.data;
 
-import io.crate.testing.BatchSimulatingIterator;
-import io.crate.testing.TestingBatchIterators;
-import org.hamcrest.Matchers;
-import org.junit.Test;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -32,8 +29,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
+import org.junit.Test;
+
+import io.crate.testing.BatchSimulatingIterator;
+import io.crate.testing.TestingBatchIterators;
 
 public class CollectingRowConsumerTest {
 
@@ -45,9 +44,9 @@ public class CollectingRowConsumerTest {
 
         BatchSimulatingIterator<Row> batchSimulatingIterator =
             new BatchSimulatingIterator<>(TestingBatchIterators.range(0, 10),
-                2,
-                5,
-                null);
+                                          2,
+                                          5,
+                                          null);
 
         CollectingRowConsumer<?, List<Object[]>> batchConsumer =
             new CollectingRowConsumer<>(Collectors.mapping(Row::materialize, Collectors.toList()));
@@ -57,7 +56,7 @@ public class CollectingRowConsumerTest {
         CompletableFuture<List<Object[]>> result = batchConsumer.completionFuture();
         List<Object[]> consumedRows = result.get(10, TimeUnit.SECONDS);
 
-        assertThat(consumedRows.size(), is(10));
-        assertThat(consumedRows, Matchers.contains(expectedResult.toArray(new Object[0])));
+        assertThat(consumedRows).hasSize(10);
+        assertThat(consumedRows).containsExactlyElementsOf(expectedResult);
     }
 }
