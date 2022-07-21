@@ -64,7 +64,7 @@ public class DataTypesTest extends ESTestCase {
         assertThat(objectType.compare(emptyMap, testMap), is(-1));
 
         // then values
-        assertThat(objectType.compare(testMap, testCompareMap), is(1));
+        assertThat(objectType.compare(testMap, testCompareMap), is(-1));
         assertThat(objectType.compare(testCompareMap, testMap), is(1));
     }
 
