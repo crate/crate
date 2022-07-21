@@ -30,8 +30,7 @@ import java.util.List;
 import static io.crate.sql.tree.FrameBound.Type.PRECEDING;
 import static io.crate.sql.tree.WindowFrame.Mode.RANGE;
 import static io.crate.sql.tree.WindowFrame.Mode.ROWS;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class OffsetPrecedingFrameBoundTest {
 
@@ -47,12 +46,12 @@ public class OffsetPrecedingFrameBoundTest {
     @Test
     public void test_preceding_start_in_range_mode() {
         int frameStart = PRECEDING.getStart(RANGE, 0, 4, 4, 2L, 4, intComparator, partition);
-        assertThat(frameStart, is(3));
+        assertThat(frameStart).isEqualTo(3);
     }
 
     @Test
     public void test_preceding_start_in_rows_mode() {
         int frameStart = PRECEDING.getStart(ROWS, 0, 4, 3, 2L, null, intComparator, partition);
-        assertThat(frameStart, is(1));
+        assertThat(frameStart).isEqualTo(1);
     }
 }

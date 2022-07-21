@@ -1,7 +1,7 @@
 package org.elasticsearch.repositories.azure;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Collections;
 import java.util.Map;
@@ -14,7 +14,6 @@ import org.elasticsearch.cluster.metadata.RepositoriesMetadata;
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ClusterServiceUtils;
-import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -77,12 +76,11 @@ public class AzureRepositoryAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
     @Test
     public void testCreateAzureRepoWithMissingMandatorySettings() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("The following required parameters are missing to" +
-                                        " create a repository of type \"azure\": [key]");
-        analyze(e, "CREATE REPOSITORY foo TYPE azure WITH (account='test')");
+        assertThatThrownBy(
+            () -> analyze(e, "CREATE REPOSITORY foo TYPE azure WITH (account='test')"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("The following required parameters are missing to create a repository of type \"azure\": [key]");
     }
-
 
     @Test
     public void testCreateAzureRepositoryWithAllSettings() {
@@ -103,33 +101,29 @@ public class AzureRepositoryAnalyzerTest extends CrateDummyClusterServiceUnitTes
             "   proxy_port=0," +
             "   proxy_type='socks'," +
             "   proxy_host='localhost')");
-        assertThat(request.name(), is("foo"));
-        assertThat(request.type(), is("azure"));
-        assertThat(
-            request.settings().getAsStructuredMap(),
-            Matchers.allOf(
-                Matchers.hasEntry("container", "test_container"),
-                Matchers.hasEntry("base_path", "test_path"),
-                Matchers.hasEntry("chunk_size", "12mb"),
-                Matchers.hasEntry("compress", "true"),
-                Matchers.hasEntry("readonly", "true"),
-                Matchers.hasEntry("account", "test_account"),
-                Matchers.hasEntry("key", "test_key"),
-                Matchers.hasEntry("max_retries", "3"),
-                Matchers.hasEntry("endpoint_suffix", ".com"),
-                Matchers.hasEntry("timeout", "30s"),
-                Matchers.hasEntry("proxy_port", "0"),
-                Matchers.hasEntry("proxy_type", "socks"),
-                Matchers.hasEntry("proxy_host", "localhost")
-            )
-        );
+        assertThat(request.name()).isEqualTo("foo");
+        assertThat(request.type()).isEqualTo("azure");
+        assertThat(request.settings().getAsStructuredMap())
+            .hasFieldOrPropertyWithValue("container", "test_container")
+            .hasFieldOrPropertyWithValue("base_path", "test_path")
+            .hasFieldOrPropertyWithValue("chunk_size", "12mb")
+            .hasFieldOrPropertyWithValue("compress", "true")
+            .hasFieldOrPropertyWithValue("readonly", "true")
+            .hasFieldOrPropertyWithValue("account", "test_account")
+            .hasFieldOrPropertyWithValue("key", "test_key")
+            .hasFieldOrPropertyWithValue("max_retries", "3")
+            .hasFieldOrPropertyWithValue("endpoint_suffix", ".com")
+            .hasFieldOrPropertyWithValue("timeout", "30s")
+            .hasFieldOrPropertyWithValue("proxy_port", "0")
+            .hasFieldOrPropertyWithValue("proxy_type", "socks")
+            .hasFieldOrPropertyWithValue("proxy_host", "localhost");
     }
-
 
     @Test
     public void testCreateAzureRepoWithWrongSettings() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("setting 'wrong' not supported");
-        analyze(e, "CREATE REPOSITORY foo TYPE azure WITH (wrong=true)");
+        assertThatThrownBy(
+            () -> analyze(e, "CREATE REPOSITORY foo TYPE azure WITH (wrong=true)"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("setting 'wrong' not supported");
     }
 }

@@ -21,17 +21,16 @@
 
 package io.crate.sql.tree;
 
-import org.junit.Before;
-import org.junit.Test;
+import static io.crate.sql.tree.FrameBound.Type.UNBOUNDED_FOLLOWING;
+import static io.crate.sql.tree.WindowFrame.Mode.RANGE;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Comparator;
 import java.util.List;
 
-import static io.crate.sql.testing.Asserts.assertThrowsMatches;
-import static io.crate.sql.tree.FrameBound.Type.UNBOUNDED_FOLLOWING;
-import static io.crate.sql.tree.WindowFrame.Mode.RANGE;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import org.junit.Before;
+import org.junit.Test;
 
 public class UnboundedFollowingFrameBoundTest {
 
@@ -48,25 +47,25 @@ public class UnboundedFollowingFrameBoundTest {
     public void testEndForFirstFrame() {
         var partition = List.of(1, 2, 2);
         int end = UNBOUNDED_FOLLOWING.getEnd(RANGE, 0, 3, 0, null, null, intComparator, partition);
-        assertThat("the end boundary should always be the end of the partition for the UNBOUNDED FOLLOWING frames",
-                   end,
-                   is(3));
+        assertThat(end)
+            .as("the end boundary should always be the end of the partition for the UNBOUNDED FOLLOWING frames")
+            .isEqualTo(3);
     }
 
     @Test
     public void testEndForSecondFrame() {
         int end = UNBOUNDED_FOLLOWING.getEnd(RANGE, 0, 3, 1, null, null, intComparator, partition);
-        assertThat("the end boundary should always be the end of the partition for the UNBOUNDED FOLLOWING frames",
-                   end,
-                   is(3));
+        assertThat(end)
+            .as("the end boundary should always be the end of the partition for the UNBOUNDED FOLLOWING frames")
+            .isEqualTo(3);
     }
 
     @Test
     public void testUnboundeFollowingCannotBeTheStartOfTheFrame() {
-        assertThrowsMatches(
-            () -> UNBOUNDED_FOLLOWING.getStart(RANGE, 0, 3, 1, null, null, intComparator, partition),
-            IllegalStateException.class,
-            "UNBOUNDED FOLLOWING cannot be the start of a frame");
+        assertThatThrownBy(
+            () -> UNBOUNDED_FOLLOWING.getStart(RANGE, 0, 3, 1, null, null, intComparator, partition))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessage("UNBOUNDED FOLLOWING cannot be the start of a frame");
     }
 
 }

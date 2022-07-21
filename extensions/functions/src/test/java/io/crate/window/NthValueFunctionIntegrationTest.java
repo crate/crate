@@ -22,8 +22,7 @@
 package io.crate.window;
 
 import static io.crate.testing.TestingHelpers.printedTable;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -50,10 +49,13 @@ public class NthValueFunctionIntegrationTest extends SQLIntegrationTestCase {
                 "nth_value(col1, 3) OVER(order by col2, col1) " +
                 "from unnest([1, 1, 3, 2], [1, 2, 2, 3]) " +
                 "order by col1, col2");
-        assertThat(printedTable(response.rows()), is("1| 1| 1| 1| NULL\n" +
-                                                     "1| 2| 1| 1| NULL\n" +
-                                                     "2| 3| 1| 2| 3\n" +
-                                                     "3| 2| 1| 3| 3\n"));
+        assertThat(printedTable(response.rows())).isEqualTo(
+            """
+                1| 1| 1| 1| NULL
+                1| 2| 1| 1| NULL
+                2| 3| 1| 2| 3
+                3| 2| 1| 3| 3
+                """);
     }
 
     @Test
@@ -61,10 +63,13 @@ public class NthValueFunctionIntegrationTest extends SQLIntegrationTestCase {
         execute(
             "select col1, last_value(col1) OVER(order by col2, col1), last_value(char_length(col1)) OVER(order by col2, col1) " +
             "from unnest(['a', 'cc', 'd', 'cc', 'b'], [1, 2, 2, 3, 1]) order by col1, col2");
-        assertThat(printedTable(response.rows()), is("a| a| 1\n" +
-                                                     "b| b| 1\n" +
-                                                     "cc| cc| 2\n" +
-                                                     "cc| cc| 2\n" +
-                                                     "d| d| 1\n"));
+        assertThat(printedTable(response.rows())).isEqualTo(
+            """
+                a| a| 1
+                b| b| 1
+                cc| cc| 2
+                cc| cc| 2
+                d| d| 1
+                """);
     }
 }

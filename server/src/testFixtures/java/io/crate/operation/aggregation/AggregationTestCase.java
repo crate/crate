@@ -23,14 +23,11 @@ package io.crate.operation.aggregation;
 
 import static io.crate.metadata.RelationName.fromIndexName;
 import static io.crate.testing.TestingHelpers.createNodeContext;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 import static org.elasticsearch.index.mapper.MapperService.MergeReason.MAPPING_RECOVERY;
 import static org.elasticsearch.index.shard.IndexShardTestCase.EMPTY_EVENT_LISTENER;
 import static org.elasticsearch.index.translog.Translog.UNSET_AUTO_GENERATED_TIMESTAMP;
-import static org.hamcrest.CoreMatchers.not;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -207,7 +204,7 @@ public abstract class AggregationTestCase extends ESTestCase {
             minNodeVersion
         );
 
-        var shard = newStartedPrimaryShard(Settings.EMPTY, buildMapping(actualArgumentTypes));
+        var shard = newStartedPrimaryShard(buildMapping(actualArgumentTypes));
         when(indexService.getShard(shard.shardId().id()))
             .thenReturn(shard);
         when(indexServices.indexServiceSafe(shard.routingEntry().index()))
@@ -227,11 +224,9 @@ public abstract class AggregationTestCase extends ESTestCase {
             // assert that aggregations with/-out doc values yield the
             // same result, if a doc value aggregator exists.
             if (partialResultWithDocValues != null) {
-                assertThat(partialResultWithDocValues.size(), is(1));
-                assertThat(
-                    partialResultWithoutDocValues,
-                    is(partialResultWithDocValues.get(0).get(0))
-                );
+                assertThat(partialResultWithDocValues).hasSize(1);
+                assertThat(partialResultWithoutDocValues).isEqualTo(
+                    partialResultWithDocValues.get(0).get(0));
             } else {
                 var docValueAggregator = aggregationFunction.getDocValueAggregator(
                     toReference(actualArgumentTypes),
@@ -392,7 +387,7 @@ public abstract class AggregationTestCase extends ESTestCase {
                 0,
                 UNSET_AUTO_GENERATED_TIMESTAMP,
                 false);
-            assertThat(result.getResultType(), is(Engine.Result.Type.SUCCESS));
+            assertThat(result.getResultType()).isEqualTo(Engine.Result.Type.SUCCESS);
         }
     }
 
@@ -429,9 +424,8 @@ public abstract class AggregationTestCase extends ESTestCase {
     /**
      * Creates a new empty primary shard and starts it.
      */
-    private IndexShard newStartedPrimaryShard(Settings settings,
-                                              XContentBuilder mapping) throws IOException {
-        IndexShard shard = newPrimaryShard(settings, mapping);
+    private IndexShard newStartedPrimaryShard(XContentBuilder mapping) throws IOException {
+        IndexShard shard = newPrimaryShard(mapping);
         shard.markAsRecovering(
             "store",
             new RecoveryState(
@@ -470,7 +464,7 @@ public abstract class AggregationTestCase extends ESTestCase {
      * Creates a new initializing primary shard.
      * The shard will have its own unique data path.
      */
-    private IndexShard newPrimaryShard(Settings settings, XContentBuilder mapping) throws IOException {
+    private IndexShard newPrimaryShard(XContentBuilder mapping) throws IOException {
         ShardRouting routing = TestShardRouting.newShardRouting(
             new ShardId("index", UUIDs.base64UUID(), 0),
             randomAlphaOfLength(10),
@@ -482,7 +476,7 @@ public abstract class AggregationTestCase extends ESTestCase {
             .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
             .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 0)
             .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1)
-            .put(settings)
+            .put(Settings.EMPTY)
             .build();
         var indexMetadata = IndexMetadata.builder(routing.getIndexName())
             .settings(indexSettings)
@@ -582,14 +576,12 @@ public abstract class AggregationTestCase extends ESTestCase {
             mock(DocTableInfo.class),
             List.of()
         );
-        assertThat(
-            "DocValueAggregator is not implemented for "
-            + functionName + "(" + argumentTypes.stream()
-                .map(DataType::toString)
-                .collect(Collectors.joining(", ")) + ")",
-            docValueAggregator,
-            is(not(nullValue()))
-        );
+        assertThat(docValueAggregator)
+                .as("DocValueAggregator is not implemented for "
+                    + functionName + "(" + argumentTypes.stream()
+                        .map(DataType::toString)
+                        .collect(Collectors.joining(", ")) + ")")
+            .isNotNull();
     }
 
     public static List<Reference> toReference(List<DataType<?>> dataTypes) {

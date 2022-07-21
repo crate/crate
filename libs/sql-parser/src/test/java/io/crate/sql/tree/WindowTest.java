@@ -26,11 +26,10 @@ import org.junit.Test;
 import java.util.List;
 import java.util.Optional;
 
-import static io.crate.sql.testing.Asserts.assertThrowsMatches;
 import static io.crate.sql.tree.FrameBound.Type.CURRENT_ROW;
 import static io.crate.sql.tree.WindowFrame.Mode.RANGE;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class WindowTest {
 
@@ -51,7 +50,7 @@ public class WindowTest {
         var provided = new Window("w", partitionBy, List.of(), Optional.empty());
 
         var newWindowDef = emptyWindow.merge(provided);
-        assertThat(newWindowDef.getPartitions(), is(provided.getPartitions()));
+        assertThat(newWindowDef.getPartitions()).isEqualTo(provided.getPartitions());
     }
 
     @Test
@@ -60,15 +59,15 @@ public class WindowTest {
         var provided = new Window(null, List.of(), orderBy, Optional.empty());
 
         var newWindowDef = current.merge(provided);
-        assertThat(newWindowDef.getOrderBy(), is(orderBy));
-        assertThat(newWindowDef.getWindowFrame(), is(Optional.of(frame)));
+        assertThat(newWindowDef.getOrderBy()).isEqualTo((orderBy));
+        assertThat(newWindowDef.getWindowFrame()).isEqualTo(Optional.of(frame));
     }
 
     @Test
     public void test_merge_empty_current_and_provided_returns_provided_definition() {
         var provided = new Window("w", partitionBy, orderBy, Optional.empty());
         var newWindowDef = emptyWindow.merge(provided);
-        assertThat(newWindowDef, is(provided));
+        assertThat(newWindowDef).isEqualTo(provided);
     }
 
     @Test
@@ -76,10 +75,10 @@ public class WindowTest {
         var current = new Window("w", List.of(), orderBy, Optional.empty());
         var provided = new Window(null, List.of(), List.of(), Optional.of(frame));
 
-        assertThrowsMatches(
-            () -> current.merge(provided),
-            IllegalArgumentException.class,
-            "Cannot copy window w because it has a frame clause");
+        assertThatThrownBy(
+            () -> current.merge(provided))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Cannot copy window w because it has a frame clause");
     }
 
     @Test
@@ -87,19 +86,19 @@ public class WindowTest {
         Window current = new Window("w", List.of(), orderBy, Optional.empty());
         Window provided = new Window(null, List.of(), orderBy, Optional.empty());
 
-        assertThrowsMatches(
-            () -> current.merge(provided),
-            IllegalArgumentException.class,
-            "Cannot override ORDER BY clause of window w");
+        assertThatThrownBy(
+            () -> current.merge(provided))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Cannot override ORDER BY clause of window w");
     }
 
     @Test
     public void test_merge_current_window_cannot_specify_partition_by() {
         var current = new Window("w", partitionBy, List.of(), Optional.empty());
 
-        assertThrowsMatches(
-            () -> current.merge(emptyWindow),
-            IllegalArgumentException.class,
-            "Cannot override PARTITION BY clause of window w");
+        assertThatThrownBy(
+            () -> current.merge(emptyWindow))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Cannot override PARTITION BY clause of window w");
     }
 }

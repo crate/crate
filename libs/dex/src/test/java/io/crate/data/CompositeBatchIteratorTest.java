@@ -21,37 +21,37 @@
 
 package io.crate.data;
 
-import io.crate.testing.BatchIteratorTester;
-import io.crate.testing.BatchSimulatingIterator;
-import io.crate.testing.TestingBatchIterators;
-import org.junit.Test;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
+import org.junit.Test;
+
+import io.crate.testing.BatchIteratorTester;
+import io.crate.testing.BatchSimulatingIterator;
+import io.crate.testing.TestingBatchIterators;
 
 public class CompositeBatchIteratorTest {
 
-    private List<Object[]> expectedResult = IntStream.concat(IntStream.range(0, 5), IntStream.range(5, 10))
-        .mapToObj(i -> new Object[] { i })
+    private static final List<Object[]> EXPECTED_RESULT = IntStream.concat(IntStream.range(0, 5),
+                                                                           IntStream.range(5, 10))
+        .mapToObj(i -> new Object[] {i})
         .collect(Collectors.toList());
 
-
     @Test
-    public void testDataRowInputsCanBeRetrievedEagerly() throws Exception {
+    public void testDataRowInputsCanBeRetrievedEagerly() {
         BatchIterator<Row> iterator = CompositeBatchIterator.seqComposite(
             TestingBatchIterators.range(0, 1),
             TestingBatchIterators.range(1, 2)
         );
-        assertThat(iterator.moveNext(), is(true));
-        assertThat(iterator.currentElement().get(0), is(0));
+        assertThat(iterator.moveNext()).isTrue();
+        assertThat(iterator.currentElement().get(0)).isEqualTo(0);
 
-        assertThat(iterator.moveNext(), is(true));
-        assertThat(iterator.currentElement().get(0), is(1));
+        assertThat(iterator.moveNext()).isTrue();
+        assertThat(iterator.currentElement().get(0)).isEqualTo(1);
     }
 
     @Test
@@ -61,7 +61,7 @@ public class CompositeBatchIteratorTest {
                 TestingBatchIterators.range(0, 5),
                 TestingBatchIterators.range(5, 10))
         );
-        tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
+        tester.verifyResultAndEdgeCaseBehaviour(EXPECTED_RESULT);
     }
 
     @Test

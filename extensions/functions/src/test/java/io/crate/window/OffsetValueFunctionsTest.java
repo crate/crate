@@ -138,7 +138,7 @@ public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
     }
 
     @Test
-    public void testLagWithIgnoreNullsAndZeroOffsetThrows() throws Throwable {
+    public void testLagWithIgnoreNullsAndZeroOffsetThrows() {
         Asserts.assertThrowsMatches(
             () -> assertEvaluate(
                 "lag(x,0,123) ignore nulls over()",

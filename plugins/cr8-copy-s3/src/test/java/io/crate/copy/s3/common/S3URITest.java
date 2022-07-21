@@ -26,13 +26,7 @@ import org.junit.jupiter.api.Test;
 import java.net.URI;
 
 import static io.crate.copy.s3.common.S3URI.getUserInfo;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.endsWith;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.startsWith;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class S3URITest {
 
@@ -89,23 +83,23 @@ class S3URITest {
         S3URI s3URI = S3URI.toS3URI(URI.create(toBeParsed));
         URI uri = s3URI.uri();
         if (accessKey != null) {
-            assertNotNull(secretKey);
-            assertThat(s3URI.accessKey() + ":" + s3URI.secretKey(), is(accessKey + ":" + secretKey));
-            assertThat(getUserInfo(uri), is(accessKey + ":" + secretKey));
+            assertThat(secretKey).isNotNull();
+            assertThat(s3URI.accessKey() + ":" + s3URI.secretKey()).isEqualTo(accessKey + ":" + secretKey);
+            assertThat(getUserInfo(uri)).isEqualTo(accessKey + ":" + secretKey);
         }
         if (host != null) {
-            assertThat(uri.getHost(), is(host));
-            assertThat(s3URI.endpoint(), startsWith(uri.getHost() + ":"));
-            assertThat(s3URI.endpoint(), endsWith(":" + uri.getPort()));
+            assertThat(uri.getHost()).isEqualTo(host);
+            assertThat(s3URI.endpoint()).startsWith(uri.getHost() + ":");
+            assertThat(s3URI.endpoint()).endsWith(":" + uri.getPort());
         }
-        assertThat(uri.getPort(), is(port));
+        assertThat(uri.getPort()).isEqualTo(port);
         if (bucketName != null) {
-            assertTrue(uri.getPath().startsWith("/" + bucketName));
-            assertEquals(bucketName, s3URI.bucket());
+            assertThat(uri.getPath()).startsWith("/" + bucketName);
+            assertThat(bucketName).isEqualTo(s3URI.bucket());
         }
         if (key != null) {
-            assertTrue(uri.getPath().endsWith(key));
-            assertEquals(key, s3URI.key());
+            assertThat(uri.getPath()).endsWith(key);
+            assertThat(key).isEqualTo(s3URI.key());
         }
     }
 
@@ -113,10 +107,10 @@ class S3URITest {
     public void testReplacePathMethod() {
         S3URI s3URI = S3URI.toS3URI(URI.create("s3://minioadmin:minio%2Fadmin@mj.myb/localhost:9000/"));
         S3URI replacedURI = s3URI.replacePath("new.Bucket", "newKey");
-        assertThat(replacedURI.uri().toString(), is("s3://minioadmin:minio%2Fadmin@/new.Bucket/newKey"));
+        assertThat(replacedURI.uri().toString()).isEqualTo("s3://minioadmin:minio%2Fadmin@/new.Bucket/newKey");
 
         s3URI = S3URI.toS3URI(URI.create("s3://host:123/myb"));
         replacedURI = s3URI.replacePath("new.Bucket", "newKey");
-        assertThat(replacedURI.uri().toString(), is("s3://host:123/new.Bucket/newKey"));
+        assertThat(replacedURI.uri().toString()).isEqualTo("s3://host:123/new.Bucket/newKey");
     }
 }

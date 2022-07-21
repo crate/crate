@@ -21,7 +21,8 @@
 
 package io.crate.copy.s3.common;
 
-import static org.junit.Assert.assertNotNull;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.net.URI;
 
@@ -43,30 +44,32 @@ public class S3ClientHelperTest extends ESTestCase {
 
     @Test
     public void testClient() throws Exception {
-        assertNotNull(s3ClientHelper.client(S3URI.toS3URI(new URI("s3:///baz"))));
-        assertNotNull(s3ClientHelper.client(S3URI.toS3URI(new URI("s3:///baz/path/to/file"))));
-        assertNotNull(s3ClientHelper.client(S3URI.toS3URI(new URI("s3://foo:inv%2Falid@/baz"))));
-        assertNotNull(s3ClientHelper.client(S3URI.toS3URI(new URI("s3://foo:inv%2Falid@/baz/path/to/file"))));
-        assertNotNull(s3ClientHelper.client(S3URI.toS3URI(new URI("s3://foo:inv%2Falid@host:9000/baz/path/to/file"))));
-        assertNotNull(s3ClientHelper.client(S3URI.toS3URI(new URI("s3://host:9000/baz/path/to/file"))));
-        assertNotNull(s3ClientHelper.client(S3URI.toS3URI(new URI("s3://secret:access@/bucket/key"))));
+        assertThat(s3ClientHelper.client(S3URI.toS3URI(new URI("s3:///baz")))).isNotNull();
+        assertThat(s3ClientHelper.client(S3URI.toS3URI(new URI("s3:///baz/path/to/file")))).isNotNull();
+        assertThat(s3ClientHelper.client(S3URI.toS3URI(new URI("s3://foo:inv%2Falid@/baz")))).isNotNull();
+        assertThat(s3ClientHelper.client(S3URI.toS3URI(new URI("s3://foo:inv%2Falid@/baz/path/to/file")))).isNotNull();
+        assertThat(s3ClientHelper.client(S3URI.toS3URI(new URI("s3://foo:inv%2Falid@host:9000/baz/path/to/file")))).isNotNull();
+        assertThat(s3ClientHelper.client(S3URI.toS3URI(new URI("s3://host:9000/baz/path/to/file")))).isNotNull();
+        assertThat(s3ClientHelper.client(S3URI.toS3URI(new URI("s3://secret:access@/bucket/key")))).isNotNull();
     }
 
     @Test
-    public void testWrongURIEncodingSecretKey() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid URI. Please make sure that given URI is encoded properly.");
+    public void testWrongURIEncodingSecretKey() {
         // 'inv/alid' should be 'inv%2Falid'
         // see http://en.wikipedia.org/wiki/UTF-8#Codepage_layout
-        s3ClientHelper.client(S3URI.toS3URI(new URI("s3://foo:inv/alid@/baz/path/to/file")));
+        assertThatThrownBy(
+            () -> s3ClientHelper.client(S3URI.toS3URI(new URI("s3://foo:inv/alid@/baz/path/to/file"))))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Invalid URI. Please make sure that given URI is encoded properly.");
     }
 
     @Test
-    public void testWrongURIEncodingAccessKey() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid URI. Please make sure that given URI is encoded properly.");
+    public void testWrongURIEncodingAccessKey() {
         // 'fo/o' should be 'fo%2Fo'
         // see http://en.wikipedia.org/wiki/UTF-8#Codepage_layout
-        s3ClientHelper.client(S3URI.toS3URI(new URI("s3://fo/o:inv%2Falid@/baz")));
+        assertThatThrownBy(
+            () -> s3ClientHelper.client(S3URI.toS3URI(new URI("s3://fo/o:inv%2Falid@/baz"))))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Invalid URI. Please make sure that given URI is encoded properly.");
     }
 }

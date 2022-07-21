@@ -22,8 +22,7 @@
 package io.crate.sql;
 
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 
@@ -36,48 +35,47 @@ public class IdentifiersTest {
         // If this test is failing you are introducing a new reserved keyword which is a breaking change.
         // Either add the new term to `nonReserved` in `SqlBase.4g` or add a breaking changes entry and adapt this test.
         assertThat(
-            (int) Identifiers.KEYWORDS.stream().filter(Identifiers.Keyword::isReserved).count(),
-            is(94)
-        );
+            (int) Identifiers.KEYWORDS.stream().filter(Identifiers.Keyword::isReserved).count())
+            .isEqualTo(94);
     }
 
     @Test
     public void testEscape() {
-        assertThat(Identifiers.escape(""), is(""));
-        assertThat(Identifiers.escape("\""), is("\"\""));
-        assertThat(Identifiers.escape("ABC\""), is("ABC\"\""));
-        assertThat(Identifiers.escape("\"\uD83D\uDCA9"), is("\"\"\uD83D\uDCA9"));
-        assertThat(Identifiers.escape("abcDEF"), is("abcDEF"));
-        assertThat(Identifiers.escape("œ"), is("œ"));
+        assertThat(Identifiers.escape("")).isEqualTo("");
+        assertThat(Identifiers.escape("\"")).isEqualTo("\"\"");
+        assertThat(Identifiers.escape("ABC\"")).isEqualTo("ABC\"\"");
+        assertThat(Identifiers.escape("\"\uD83D\uDCA9")).isEqualTo("\"\"\uD83D\uDCA9");
+        assertThat(Identifiers.escape("abcDEF")).isEqualTo("abcDEF");
+        assertThat(Identifiers.escape("œ")).isEqualTo("œ");
     }
 
     @Test
     public void testQuote() {
-        assertThat(Identifiers.quote(""), is("\"\""));
-        assertThat(Identifiers.quote("\""), is("\"\"\"\""));
-        assertThat(Identifiers.quote("ABC"), is("\"ABC\""));
-        assertThat(Identifiers.quote("\uD83D\uDCA9"), is("\"\uD83D\uDCA9\""));
+        assertThat(Identifiers.quote("")).isEqualTo("\"\"");
+        assertThat(Identifiers.quote("\"")).isEqualTo("\"\"\"\"");
+        assertThat(Identifiers.quote("ABC")).isEqualTo("\"ABC\"");
+        assertThat(Identifiers.quote("\uD83D\uDCA9")).isEqualTo("\"\uD83D\uDCA9\"");
     }
 
     @Test
     public void testQuoteIfNeeded() {
-        assertThat(Identifiers.quoteIfNeeded(""), is("\"\""));
-        assertThat(Identifiers.quoteIfNeeded("\""), is("\"\"\"\""));
-        assertThat(Identifiers.quoteIfNeeded("fhjgadhjgfhs"), is("fhjgadhjgfhs"));
-        assertThat(Identifiers.quoteIfNeeded("fhjgadhjgfhsÖ"), is("\"fhjgadhjgfhsÖ\""));
-        assertThat(Identifiers.quoteIfNeeded("ABC"), is("\"ABC\""));
-        assertThat(Identifiers.quoteIfNeeded("abc\""), is("\"abc\"\"\""));
-        assertThat(Identifiers.quoteIfNeeded("select"), is("\"select\"")); // keyword
-        assertThat(Identifiers.quoteIfNeeded("1column"), is("\"1column\""));
-        assertThat(Identifiers.quoteIfNeeded("column name"), is("\"column name\""));
-        assertThat(Identifiers.quoteIfNeeded("col1a"), is("col1a"));
-        assertThat(Identifiers.quoteIfNeeded("_col"), is("_col"));
-        assertThat(Identifiers.quoteIfNeeded("col_1"), is("col_1"));
-        assertThat(Identifiers.quoteIfNeeded("col['a']"), is("\"col['a']\""));
+        assertThat(Identifiers.quoteIfNeeded("")).isEqualTo("\"\"");
+        assertThat(Identifiers.quoteIfNeeded("\"")).isEqualTo("\"\"\"\"");
+        assertThat(Identifiers.quoteIfNeeded("fhjgadhjgfhs")).isEqualTo("fhjgadhjgfhs");
+        assertThat(Identifiers.quoteIfNeeded("fhjgadhjgfhsÖ")).isEqualTo("\"fhjgadhjgfhsÖ\"");
+        assertThat(Identifiers.quoteIfNeeded("ABC")).isEqualTo("\"ABC\"");
+        assertThat(Identifiers.quoteIfNeeded("abc\"")).isEqualTo("\"abc\"\"\"");
+        assertThat(Identifiers.quoteIfNeeded("select")).isEqualTo("\"select\""); // keyword
+        assertThat(Identifiers.quoteIfNeeded("1column")).isEqualTo("\"1column\"");
+        assertThat(Identifiers.quoteIfNeeded("column name")).isEqualTo("\"column name\"");
+        assertThat(Identifiers.quoteIfNeeded("col1a")).isEqualTo("col1a");
+        assertThat(Identifiers.quoteIfNeeded("_col")).isEqualTo("_col");
+        assertThat(Identifiers.quoteIfNeeded("col_1")).isEqualTo("col_1");
+        assertThat(Identifiers.quoteIfNeeded("col['a']")).isEqualTo("\"col['a']\"");
     }
 
     @Test
-    public void test_maybe_quote_expression_behaves_like_quote_if_needed_for_non_subscripts() throws Exception {
+    public void test_maybe_quote_expression_behaves_like_quote_if_needed_for_non_subscripts() {
         for (String candidate : List.of(
             (""),
             ("\""),
@@ -92,19 +90,19 @@ public class IdentifiersTest {
             ("_col"),
             ("col_1")
         )) {
-            assertThat(Identifiers.maybeQuoteExpression(candidate), is(Identifiers.quoteIfNeeded(candidate)));
+            assertThat(Identifiers.maybeQuoteExpression(candidate)).isEqualTo(Identifiers.quoteIfNeeded(candidate));
         }
     }
 
     @Test
-    public void test_quote_expression_quotes_only_base_part_of_subscript_expression() throws Exception {
-        assertThat(Identifiers.maybeQuoteExpression("col['a']"), is("col['a']"));
-        assertThat(Identifiers.maybeQuoteExpression("Col['a']"), is("\"Col\"['a']"));
-        assertThat(Identifiers.maybeQuoteExpression("col with space['a']"), is("\"col with space\"['a']"));
+    public void test_quote_expression_quotes_only_base_part_of_subscript_expression() {
+        assertThat(Identifiers.maybeQuoteExpression("col['a']")).isEqualTo("col['a']");
+        assertThat(Identifiers.maybeQuoteExpression("Col['a']")).isEqualTo("\"Col\"['a']");
+        assertThat(Identifiers.maybeQuoteExpression("col with space['a']")).isEqualTo("\"col with space\"['a']");
     }
 
     @Test
-    public void test_quote_expression_quotes_keywords() throws Exception {
-        assertThat(Identifiers.maybeQuoteExpression("select"), is("\"select\"")); // keyword
+    public void test_quote_expression_quotes_keywords() {
+        assertThat(Identifiers.maybeQuoteExpression("select")).isEqualTo("\"select\""); // keyword
     }
 }

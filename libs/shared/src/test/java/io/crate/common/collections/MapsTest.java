@@ -21,38 +21,35 @@
 
 package io.crate.common.collections;
 
-import org.junit.Assert;
-import org.junit.Test;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.hamcrest.Matchers.is;
+import org.junit.Test;
 
 public class MapsTest {
 
     @Test
-    public void testAccessByPath() throws Exception {
+    public void testAccessByPath() {
         Map<String, Object> map = new HashMap<>();
-        Assert.assertNull(Maps.getByPath(map, ""));
-        Assert.assertNull(Maps.getByPath(map, "a.b.c"));
+        assertThat(Maps.getByPath(map, "")).isNull();
+        assertThat(Maps.getByPath(map, "a.b.c")).isNull();
 
         map.put("a", "b");
 
-        Assert.assertThat(Maps.getByPath(map, "a"), is("b"));
-        Assert.assertNull(Maps.getByPath(map, "a.b"));
+        assertThat(Maps.getByPath(map, "a")).isEqualTo("b");
+        assertThat(Maps.getByPath(map, "a.b")).isNull();
 
-        Map<String, Object> nestedMap = new HashMap<>() {{
-                put("b", 123);
-            }};
+        Map<String, Object> nestedMap = Map.of("b", 123);
         map.put("a", nestedMap);
-        Assert.assertThat(Maps.getByPath(map, "a"), is(nestedMap));
-        Assert.assertThat(Maps.getByPath(map, "a.b"), is(123));
-        Assert.assertNull(Maps.getByPath(map, "a.b.c"));
-        Assert.assertNull(Maps.getByPath(map, "a.c"));
-        Assert.assertNull(Maps.getByPath(map, "b.c"));
+        assertThat(Maps.getByPath(map, "a")).isEqualTo(nestedMap);
+        assertThat(Maps.getByPath(map, "a.b")).isEqualTo(123);
+        assertThat(Maps.getByPath(map, "a.b.c")).isNull();
+        assertThat(Maps.getByPath(map, "a.c")).isNull();
+        assertThat(Maps.getByPath(map, "b.c")).isNull();
     }
 
     @Test
@@ -61,7 +58,7 @@ public class MapsTest {
         m.put("o", null);
 
         Maps.mergeInto(m, "o", Collections.singletonList("x"), 10);
-        Assert.assertThat(m, is(Map.of("o", Map.of("x", 10))));
+        assertThat(m).isEqualTo(Map.of("o", Map.of("x", 10)));
     }
 
     @Test
@@ -70,6 +67,6 @@ public class MapsTest {
         m.put("o", null);
 
         Maps.mergeInto(m, "o", Arrays.asList("x", "y"), 10);
-        Assert.assertThat(m, is(Map.of("o", Map.of("x", Map.of("y", 10)))));
+        assertThat(m).isEqualTo(Map.of("o", Map.of("x", Map.of("y", 10))));
     }
 }

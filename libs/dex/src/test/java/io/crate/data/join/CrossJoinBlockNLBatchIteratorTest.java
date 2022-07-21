@@ -21,10 +21,23 @@
 
 package io.crate.data.join;
 
+import static io.crate.data.SentinelRow.SENTINEL;
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.function.IntSupplier;
+import java.util.function.Supplier;
+
+import org.junit.Test;
+import org.junit.runner.RunWith;
+
 import com.carrotsearch.randomizedtesting.RandomizedRunner;
 import com.carrotsearch.randomizedtesting.annotations.Name;
 import com.carrotsearch.randomizedtesting.annotations.ParametersFactory;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
+
 import io.crate.breaker.RowAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.InMemoryBatchIterator;
@@ -33,21 +46,6 @@ import io.crate.testing.BatchIteratorTester;
 import io.crate.testing.BatchSimulatingIterator;
 import io.crate.testing.TestingBatchIterators;
 import io.crate.testing.TestingRowConsumer;
-import org.hamcrest.Matchers;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.function.IntSupplier;
-import java.util.function.Supplier;
-
-import static io.crate.data.SentinelRow.SENTINEL;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.hasItemInArray;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
 
 @RunWith(RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
@@ -138,8 +136,9 @@ public class CrossJoinBlockNLBatchIteratorTest {
         );
         tester.verifyResultAndEdgeCaseBehaviour(expectedResults,
             it -> {
-                assertThat(testingRowAccounting.numRows, is(expectedRowsLeft));
-                assertThat(testingRowAccounting.numReleaseCalled, greaterThan(expectedRowsLeft / blockSizeCalculator.getAsInt()));
+                assertThat(testingRowAccounting.numRows).isEqualTo(expectedRowsLeft);
+                assertThat(testingRowAccounting.numReleaseCalled).isGreaterThan(
+                    expectedRowsLeft / blockSizeCalculator.getAsInt());
             });
     }
 
@@ -157,8 +156,9 @@ public class CrossJoinBlockNLBatchIteratorTest {
         );
         tester.verifyResultAndEdgeCaseBehaviour(expectedResults,
             it -> {
-                assertThat(testingRowAccounting.numRows, is(expectedRowsLeft));
-                assertThat(testingRowAccounting.numReleaseCalled, greaterThan(expectedRowsLeft / blockSizeCalculator.getAsInt()));
+                assertThat(testingRowAccounting.numRows).isEqualTo(expectedRowsLeft);
+                assertThat(testingRowAccounting.numReleaseCalled).isGreaterThan(
+                    expectedRowsLeft / blockSizeCalculator.getAsInt());
             });
     }
 
@@ -173,7 +173,7 @@ public class CrossJoinBlockNLBatchIteratorTest {
         );
         TestingRowConsumer consumer = new TestingRowConsumer();
         consumer.accept(iterator, null);
-        assertThat(consumer.getResult(), Matchers.empty());
+        assertThat(consumer.getResult()).isEmpty();
     }
 
     @Test
@@ -187,7 +187,7 @@ public class CrossJoinBlockNLBatchIteratorTest {
         );
         TestingRowConsumer consumer = new TestingRowConsumer();
         consumer.accept(iterator, null);
-        assertThat(consumer.getResult(), Matchers.empty());
+        assertThat(consumer.getResult()).isEmpty();
     }
 
     @Test
@@ -201,7 +201,7 @@ public class CrossJoinBlockNLBatchIteratorTest {
         );
         TestingRowConsumer consumer = new TestingRowConsumer();
         consumer.accept(iterator, null);
-        assertThat(consumer.getResult(), Matchers.empty());
+        assertThat(consumer.getResult()).isEmpty();
     }
 
     @Test
@@ -214,13 +214,13 @@ public class CrossJoinBlockNLBatchIteratorTest {
             testingRowAccounting
         );
 
-        assertThat(batchIterator.moveNext(), is(true));
-        assertThat(expectedResults.toArray(), hasItemInArray(batchIterator.currentElement().materialize()));
+        assertThat(batchIterator.moveNext()).isTrue();
+        assertThat(expectedResults).contains(batchIterator.currentElement().materialize());
 
         batchIterator.moveToStart();
 
-        assertThat(batchIterator.moveNext(), is(true));
-        assertThat(expectedResults.toArray(), hasItemInArray(batchIterator.currentElement().materialize()));
+        assertThat(batchIterator.moveNext()).isTrue();
+        assertThat(expectedResults).contains(batchIterator.currentElement().materialize());
     }
 
     private static class TestingRowAccounting implements RowAccounting<Object[]> {
