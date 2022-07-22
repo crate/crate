@@ -243,7 +243,7 @@ public class AnalyzedColumnDefinition<T> {
     }
 
     @Nullable
-    IndexType indexConstraint() {
+    public IndexType indexConstraint() {
         return indexType;
     }
 
@@ -282,11 +282,15 @@ public class AnalyzedColumnDefinition<T> {
         this.objectType = objectType;
     }
 
+    public ColumnPolicy objectType() {
+        return this.objectType;
+    }
+
     void collectionType(String type) {
         this.collectionType = type;
     }
 
-    String collectionType() {
+    public String collectionType() {
         return collectionType;
     }
 
@@ -318,10 +322,9 @@ public class AnalyzedColumnDefinition<T> {
         return analyzerSettings;
     }
 
-    private static void applyAndValidateStorageSettings(Map<String, Object> mapping,
-                                                        AnalyzedColumnDefinition<Object> definition) {
+    public static boolean docValuesSpecifiedAndDisabled(AnalyzedColumnDefinition<Object> definition) {
         if (definition.storageProperties == null) {
-            return;
+            return false;
         }
         Settings storageSettings = GenericPropertiesConverter.genericPropertiesToSettings(definition.storageProperties);
         for (String property : storageSettings.names()) {
@@ -329,19 +332,19 @@ public class AnalyzedColumnDefinition<T> {
                 DataType<?> dataType = definition.dataType();
                 boolean val = storageSettings.getAsBoolean(property, true);
                 if (val == false) {
-                    if (dataType.id() != DataTypes.STRING.id()) {
+                    if (dataType.id() != DataTypes.STRING.id()) { // maybe even exclude text and leave only keyword
                         throw new IllegalArgumentException(
                             String.format(Locale.ENGLISH, "Invalid storage option \"columnstore\" for data type \"%s\"",
                                           dataType.getName()));
                     }
-
-                    mapping.put(DOC_VALUES, "false");
+                    return true;
                 }
             } else {
                 throw new IllegalArgumentException(
                     String.format(Locale.ENGLISH, "Invalid STORAGE WITH option `%s`", property));
             }
         }
+        return false;
     }
 
     static void applyAndValidateAnalyzerSettings(AnalyzedColumnDefinition<Object> definition,
@@ -415,7 +418,7 @@ public class AnalyzedColumnDefinition<T> {
         return name;
     }
 
-    static Map<String, Object> toMapping(AnalyzedColumnDefinition<Object> definition) {
+    public static Map<String, Object> toMapping(AnalyzedColumnDefinition<Object> definition) {
         Map<String, Object> mapping = new HashMap<>();
         addTypeOptions(mapping, definition);
         mapping.put("type", definition.typeNameForESMapping());
@@ -443,7 +446,12 @@ public class AnalyzedColumnDefinition<T> {
             objectMapping(mapping, definition);
         }
 
-        applyAndValidateStorageSettings(mapping, definition);
+        boolean docValuesSpecifiedAndDisabled = docValuesSpecifiedAndDisabled(definition);
+        if (docValuesSpecifiedAndDisabled == true) {
+            // Set only when specified (in order not break regular create table column definitions of non-string types)
+            // and value is different from default.
+            mapping.put(DOC_VALUES, "false");
+        }
 
         if (definition.formattedDefaultExpression != null) {
             mapping.put("default_expr", definition.formattedDefaultExpression);
@@ -521,7 +529,7 @@ public class AnalyzedColumnDefinition<T> {
         this.isPrimaryKey = true;
     }
 
-    boolean hasPrimaryKeyConstraint() {
+    public boolean hasPrimaryKeyConstraint() {
         return this.isPrimaryKey;
     }
 
@@ -529,7 +537,7 @@ public class AnalyzedColumnDefinition<T> {
         isNotNull = true;
     }
 
-    boolean hasNotNullConstraint() {
+    public boolean hasNotNullConstraint() {
         return isNotNull;
     }
 

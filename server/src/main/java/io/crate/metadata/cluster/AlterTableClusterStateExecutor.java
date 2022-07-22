@@ -80,7 +80,7 @@ import io.crate.metadata.doc.DocTableInfoFactory;
 
 public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<AlterTableRequest> {
 
-    private static final IndicesOptions FIND_OPEN_AND_CLOSED_INDICES_IGNORE_UNAVAILABLE_AND_NON_EXISTING = IndicesOptions.fromOptions(
+    public static final IndicesOptions FIND_OPEN_AND_CLOSED_INDICES_IGNORE_UNAVAILABLE_AND_NON_EXISTING = IndicesOptions.fromOptions(
         true, true, true, true);
 
     private final MetadataMappingService metadataMappingService;
@@ -108,6 +108,9 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
     }
 
     @Override
+    /**
+     * From 6.0 this should be simplified and used only for updating table settings, we have a dedicated action for adding columns.
+     */
     protected ClusterState execute(ClusterState currentState, AlterTableRequest request) throws Exception {
         if (request.isPartitioned()) {
             if (request.partitionIndexName() != null) {
@@ -191,6 +194,9 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
 
     @SuppressWarnings("unchecked")
     @VisibleForTesting
+    /**
+     * Used for BWC with versions < 5.1.0
+     */
     static String addExistingMeta(AlterTableRequest request, Map<String, Object> currentMeta) throws IOException {
         // The putMappingExtractor doesn't contain logic to merge _meta
         // and we need to preserve existing information.

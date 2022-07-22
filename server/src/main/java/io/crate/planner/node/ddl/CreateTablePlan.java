@@ -159,6 +159,12 @@ public class CreateTablePlan implements Plan {
             tableElements
         );
 
+        // finalizeAndValidate used to compute mapping which implicitly validated storage settings.
+        // Since toMapping call is removed from finalizeAndValidate we are triggering this check explicitly
+        for (AnalyzedColumnDefinition<Object> column : tableElements.columns()) {
+            AnalyzedColumnDefinition.docValuesSpecifiedAndDisabled(column);
+        }
+
         // update table settings
         Settings tableSettings = AnalyzedTableElements.validateAndBuildSettings(
             tableElements, fulltextAnalyzerResolver);

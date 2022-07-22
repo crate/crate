@@ -109,7 +109,7 @@ public class AnalyzedTableElements<T> {
         this.copyToMap = copyToMap;
     }
 
-    static Map<String, Object> toMapping(AnalyzedTableElements<Object> elements) {
+    public static Map<String, Object> toMapping(AnalyzedTableElements<Object> elements) {
         final Map<String, Object> mapping = new HashMap<>();
         final Map<String, Object> meta = new HashMap<>();
         final Map<String, Object> properties = new HashMap<>(elements.columns.size());
@@ -314,9 +314,9 @@ public class AnalyzedTableElements<T> {
         return builder.build();
     }
 
-    public static Map<String, Object> finalizeAndValidate(RelationName relationName,
-                                                          AnalyzedTableElements<Symbol> tableElementsWithExpressionSymbols,
-                                                          AnalyzedTableElements<Object> tableElementsEvaluated) {
+    public static void finalizeAndValidate(RelationName relationName,
+                                           AnalyzedTableElements<Symbol> tableElementsWithExpressionSymbols,
+                                           AnalyzedTableElements<Object> tableElementsEvaluated) {
         tableElementsEvaluated.expandColumnIdents();
         validateExpressions(tableElementsWithExpressionSymbols, tableElementsEvaluated);
         for (AnalyzedColumnDefinition<Object> column : tableElementsEvaluated.columns) {
@@ -325,7 +325,6 @@ public class AnalyzedTableElements<T> {
         }
         validateIndexDefinitions(relationName, tableElementsEvaluated);
         validatePrimaryKeys(relationName, tableElementsEvaluated);
-        return toMapping(tableElementsEvaluated);
     }
 
     private static void validateExpressions(AnalyzedTableElements<Symbol> tableElementsWithExpressionSymbols,
@@ -611,7 +610,7 @@ public class AnalyzedTableElements<T> {
     }
 
     @VisibleForTesting
-    Map<String, String> getCheckConstraints() {
+    public Map<String, String> getCheckConstraints() {
         return Map.copyOf(checkConstraints);
     }
 
