@@ -74,7 +74,7 @@ public class S3BlobStoreTests extends ESBlobStoreTestCase {
     public void testInvalidCannedACL() {
         assertThatThrownBy(
             () -> S3BlobStore.initCannedACL("test_invalid"))
-            .isInstanceOf(BlobStoreException.class)
+            .isExactlyInstanceOf(BlobStoreException.class)
             .hasMessage("cannedACL is not valid: [test_invalid]");
     }
 
@@ -101,7 +101,7 @@ public class S3BlobStoreTests extends ESBlobStoreTestCase {
     public void testInvalidStorageClass() {
         assertThatThrownBy(
             () -> S3BlobStore.initStorageClass("whatever"))
-            .isInstanceOf(BlobStoreException.class)
+            .isExactlyInstanceOf(BlobStoreException.class)
             .hasMessage("`whatever` is not a valid S3 Storage Class.");
     }
 
@@ -109,7 +109,7 @@ public class S3BlobStoreTests extends ESBlobStoreTestCase {
     public void testRejectGlacierStorageClass() {
         assertThatThrownBy(
             () -> S3BlobStore.initStorageClass("glacier"))
-            .isInstanceOf(BlobStoreException.class)
+            .isExactlyInstanceOf(BlobStoreException.class)
             .hasMessage("Glacier storage class is not supported");
     }
 

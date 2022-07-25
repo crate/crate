@@ -61,8 +61,8 @@ public class SrvUnicastHostsProviderTest extends ESTestCase {
     public void mockTransportService() throws Exception {
         String localHostName = InetAddress.getLocalHost().getCanonicalHostName();
         isLocalHost = anyOf(
-            new Condition<>(localHostName::equals, ""),
-            new Condition<>("localhost"::equals, ""));
+            new Condition<>(localHostName::equals, localHostName),
+            new Condition<>("localhost"::equals, "localhost"));
         threadPool = new TestThreadPool("dummy", Settings.EMPTY);
         TransportService transportService = MockTransportService.createNewService(
             Settings.EMPTY, Version.CURRENT, threadPool, null);

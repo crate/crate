@@ -61,16 +61,16 @@ public class TestSqlParser {
     public void testComments() {
         assertThat(
             SqlParser.createStatement("-- this is a line comment\nSelect 1"))
-            .isInstanceOf(Query.class);
+            .isExactlyInstanceOf(Query.class);
         assertThat(
             SqlParser.createStatement("Select 1\n-- this is a line comment"))
-            .isInstanceOf(Query.class);
+            .isExactlyInstanceOf(Query.class);
         assertThat(
             SqlParser.createStatement("-- this is a line comment\nSelect 1\n-- this is a line comment"))
-            .isInstanceOf(Query.class);
+            .isExactlyInstanceOf(Query.class);
         assertThat(
             SqlParser.createStatement("-- this is a line comment\nSelect \n-- this is a line comment\n1"))
-            .isInstanceOf(Query.class);
+            .isExactlyInstanceOf(Query.class);
         assertThat(SqlParser.createStatement(
                   """
                   /* this
@@ -78,21 +78,21 @@ public class TestSqlParser {
                          comment
                       */
                   Select 1;"""))
-            .isInstanceOf(Query.class);
+            .isExactlyInstanceOf(Query.class);
         assertThat(SqlParser.createStatement(
                   """
                   Select 1;    /* this
                          is a multiline
                          comment
                       */"""))
-            .isInstanceOf(Query.class);
+            .isExactlyInstanceOf(Query.class);
         assertThat(SqlParser.createStatement(
                   """
                   Select    /* this
                          is a multiline
                          comment
                       */1"""))
-            .isInstanceOf(Query.class);
+            .isExactlyInstanceOf(Query.class);
         assertThat(SqlParser.createStatement(
                   """
                   Select    /* this
@@ -101,7 +101,7 @@ public class TestSqlParser {
                       */
                   -- line comment
                   1"""))
-            .isInstanceOf(Query.class);
+            .isExactlyInstanceOf(Query.class);
         assertThat(SqlParser.createStatement(
                 """
                   CREATE TABLE IF NOT EXISTS "doc"."data" (
@@ -121,7 +121,7 @@ public class TestSqlParser {
                   WITH (
                      number_of_replicas = '1'
                   );"""))
-            .isInstanceOf(CreateTable.class);
+            .isExactlyInstanceOf(CreateTable.class);
     }
 
     @Test
@@ -184,7 +184,7 @@ public class TestSqlParser {
     public void testEmptyExpression() {
         assertThatThrownBy(
             () -> SqlParser.createExpression(""))
-            .isInstanceOf(ParsingException.class)
+            .isExactlyInstanceOf(ParsingException.class)
             .hasMessageStartingWith("line 1:1: mismatched input '<EOF>' expecting {'(', '[', '[]', '{',");
     }
 
@@ -192,7 +192,7 @@ public class TestSqlParser {
     public void testEmptyStatement() {
         assertThatThrownBy(
             () -> SqlParser.createStatement(""))
-            .isInstanceOf(ParsingException.class)
+            .isExactlyInstanceOf(ParsingException.class)
             .hasMessageStartingWith("line 1:1: mismatched input '<EOF>' expecting");
     }
 
@@ -200,7 +200,7 @@ public class TestSqlParser {
     public void testExpressionWithTrailingJunk() {
         assertThatThrownBy(
             () -> SqlParser.createExpression("1 + 1 x"))
-            .isInstanceOf(ParsingException.class)
+            .isExactlyInstanceOf(ParsingException.class)
             .hasMessage("line 1:7: extraneous input 'x' expecting <EOF>");
     }
 
@@ -208,7 +208,7 @@ public class TestSqlParser {
     public void testTokenizeErrorStartOfLine() {
         assertThatThrownBy(
             () -> SqlParser.createStatement("@select"))
-            .isInstanceOf(ParsingException.class)
+            .isExactlyInstanceOf(ParsingException.class)
             .hasMessageStartingWith("line 1:1: extraneous input '@' expecting");
     }
 
@@ -216,7 +216,7 @@ public class TestSqlParser {
     public void testTokenizeErrorMiddleOfLine() {
         assertThatThrownBy(
             () -> SqlParser.createStatement("select * from foo where @what"))
-            .isInstanceOf(ParsingException.class)
+            .isExactlyInstanceOf(ParsingException.class)
             .hasMessage("line 1:25: no viable alternative at input 'select * from foo where @'");
     }
 
@@ -224,7 +224,7 @@ public class TestSqlParser {
     public void testTokenizeErrorIncompleteToken() {
         assertThatThrownBy(
             () -> SqlParser.createStatement("select * from 'oops"))
-            .isInstanceOf(ParsingException.class)
+            .isExactlyInstanceOf(ParsingException.class)
             .hasMessage("line 1:15: no viable alternative at input 'select * from ''");
     }
 
@@ -232,7 +232,7 @@ public class TestSqlParser {
     public void testParseErrorStartOfLine() {
         assertThatThrownBy(
             () -> SqlParser.createStatement("select *\nfrom x\nfrom"))
-            .isInstanceOf(ParsingException.class)
+            .isExactlyInstanceOf(ParsingException.class)
             .hasMessage("line 3:1: extraneous input 'from' expecting {<EOF>, ';'}");
     }
 
@@ -240,7 +240,7 @@ public class TestSqlParser {
     public void testParseErrorMiddleOfLine() {
         assertThatThrownBy(
             () -> SqlParser.createStatement("select *\nfrom x\nwhere from"))
-            .isInstanceOf(ParsingException.class)
+            .isExactlyInstanceOf(ParsingException.class)
             .hasMessage("line 3:7: no viable alternative at input 'select *\\nfrom x\\nwhere from'");
     }
 
@@ -248,7 +248,7 @@ public class TestSqlParser {
     public void testParseErrorEndOfInput() {
         assertThatThrownBy(
             () -> SqlParser.createStatement("select * from"))
-            .isInstanceOf(ParsingException.class)
+            .isExactlyInstanceOf(ParsingException.class)
             .hasMessage("line 1:14: no viable alternative at input 'select * from'");
     }
 
@@ -256,7 +256,7 @@ public class TestSqlParser {
     public void testParseErrorEndOfInputWhitespace() {
         assertThatThrownBy(
             () -> SqlParser.createStatement("select * from  "))
-            .isInstanceOf(ParsingException.class)
+            .isExactlyInstanceOf(ParsingException.class)
             .hasMessage("line 1:16: no viable alternative at input 'select * from  '");
     }
 
@@ -264,7 +264,7 @@ public class TestSqlParser {
     public void testParseErrorBackquotes() {
         assertThatThrownBy(
             () -> SqlParser.createStatement("select * from `foo`"))
-            .isInstanceOf(ParsingException.class)
+            .isExactlyInstanceOf(ParsingException.class)
             .hasMessage("line 1:15: backquoted identifiers are not supported; use double quotes to quote identifiers");
     }
 
@@ -272,7 +272,7 @@ public class TestSqlParser {
     public void testParseErrorBackquotesEndOfInput() {
         assertThatThrownBy(
             () -> SqlParser.createStatement("select * from foo `bar`"))
-            .isInstanceOf(ParsingException.class)
+            .isExactlyInstanceOf(ParsingException.class)
             .hasMessage("line 1:19: backquoted identifiers are not supported; use double quotes to quote identifiers");
     }
 
@@ -280,7 +280,7 @@ public class TestSqlParser {
     public void testParseErrorDigitIdentifiers() {
         assertThatThrownBy(
             () -> SqlParser.createStatement("select 1x from dual"))
-            .isInstanceOf(ParsingException.class)
+            .isExactlyInstanceOf(ParsingException.class)
             .hasMessage(
                 "line 1:8: identifiers must not start with a digit; surround the identifier with double quotes");
     }
@@ -289,7 +289,7 @@ public class TestSqlParser {
     public void testIdentifierWithColon() {
         assertThatThrownBy(
             () -> SqlParser.createStatement("select * from foo:bar"))
-            .isInstanceOf(ParsingException.class)
+            .isExactlyInstanceOf(ParsingException.class)
             .hasMessage("line 1:18: mismatched input ':' expecting {<EOF>, ';'}");
     }
 
@@ -297,7 +297,7 @@ public class TestSqlParser {
     public void testParseErrorDualOrderBy() {
         assertThatThrownBy(
             () -> SqlParser.createStatement("select fuu from dual order by fuu order by fuu"))
-            .isInstanceOf(ParsingException.class)
+            .isExactlyInstanceOf(ParsingException.class)
             .hasMessage("line 1:35: mismatched input 'order' expecting {<EOF>, ';'}");
     }
 
@@ -305,11 +305,11 @@ public class TestSqlParser {
     public void testParseErrorLimitAndFetch() {
         assertThatThrownBy(
             () -> SqlParser.createStatement("select fuu from dual limit 10 fetch first 5 rows only"))
-            .isInstanceOf(ParsingException.class)
+            .isExactlyInstanceOf(ParsingException.class)
             .hasMessage("line 1:31: mismatched input 'fetch' expecting {<EOF>, ';'}");
         assertThatThrownBy(
             () -> SqlParser.createStatement("select fuu from dual fetch next 10 row only limit 5"))
-            .isInstanceOf(ParsingException.class)
+            .isExactlyInstanceOf(ParsingException.class)
             .hasMessage("line 1:45: mismatched input 'limit' expecting {<EOF>, ';'}");
     }
 
@@ -317,11 +317,11 @@ public class TestSqlParser {
     public void testParseErrorMultipleLimits() {
         assertThatThrownBy(
             () -> SqlParser.createStatement("select fuu from dual limit 1 limit 2 limit 3"))
-            .isInstanceOf(ParsingException.class)
+            .isExactlyInstanceOf(ParsingException.class)
             .hasMessage("line 1:30: mismatched input 'limit' expecting {<EOF>, ';'}");
         assertThatThrownBy(
             () -> SqlParser.createStatement("select fuu from dual fetch first 1 rows only fetch first 2 rows only"))
-            .isInstanceOf(ParsingException.class)
+            .isExactlyInstanceOf(ParsingException.class)
             .hasMessage("line 1:46: mismatched input 'fetch' expecting {<EOF>, ';'}");
     }
 
@@ -329,11 +329,11 @@ public class TestSqlParser {
     public void testParseErrorReverseOrderByLimit() {
         assertThatThrownBy(
             () -> SqlParser.createStatement("select fuu from dual limit 10 order by fuu"))
-            .isInstanceOf(ParsingException.class)
+            .isExactlyInstanceOf(ParsingException.class)
             .hasMessage("line 1:31: mismatched input 'order' expecting {<EOF>, ';'}");
         assertThatThrownBy(
             () -> SqlParser.createStatement("select fuu from dual fetch first 10 rows only order by fuu"))
-            .isInstanceOf(ParsingException.class)
+            .isExactlyInstanceOf(ParsingException.class)
             .hasMessage("line 1:47: mismatched input 'order' expecting {<EOF>, ';'}");
     }
 
@@ -341,15 +341,15 @@ public class TestSqlParser {
     public void testParseErrorReverseOrderByLimitOffset() {
         assertThatThrownBy(
             () -> SqlParser.createStatement("select fuu from dual limit 10 offset 20 order by fuu"))
-            .isInstanceOf(ParsingException.class)
+            .isExactlyInstanceOf(ParsingException.class)
             .hasMessage("line 1:41: mismatched input 'order' expecting {<EOF>, ';'}");
         assertThatThrownBy(
             () -> SqlParser.createStatement("select fuu from dual fetch first 10 row only offset 20 order by fuu"))
-            .isInstanceOf(ParsingException.class)
+            .isExactlyInstanceOf(ParsingException.class)
             .hasMessage("line 1:56: mismatched input 'order' expecting {<EOF>, ';'}");
         assertThatThrownBy(
             () -> SqlParser.createStatement("select fuu from dual offset ? fetch next 10 row only order by fuu"))
-            .isInstanceOf(ParsingException.class)
+            .isExactlyInstanceOf(ParsingException.class)
             .hasMessage("line 1:54: mismatched input 'order' expecting {<EOF>, ';'}");
     }
 
@@ -357,7 +357,7 @@ public class TestSqlParser {
     public void testParseErrorReverseOrderByOffset() {
         assertThatThrownBy(
             () -> SqlParser.createStatement("select fuu from dual offset 20 order by fuu"))
-            .isInstanceOf(ParsingException.class)
+            .isExactlyInstanceOf(ParsingException.class)
             .hasMessage("line 1:32: mismatched input 'order' expecting {<EOF>, ';'}");
     }
 
@@ -365,7 +365,7 @@ public class TestSqlParser {
     public void testParseErrorMultipleOffsets() {
         assertThatThrownBy(
             () -> SqlParser.createStatement("select fuu from dual offset 1 offset 2 offset 3"))
-            .isInstanceOf(ParsingException.class)
+            .isExactlyInstanceOf(ParsingException.class)
             .hasMessage("line 1:31: mismatched input 'offset' expecting {<EOF>, ';'}");
     }
 
@@ -449,19 +449,19 @@ public class TestSqlParser {
     public void testTrimFunctionMissingFromWhenCharsToTrimIsPresentThrowsException() {
         assertThatThrownBy(
             () -> assertInstanceOf("TRIM(' ' chars)", FunctionCall.class))
-            .isInstanceOf(ParsingException.class)
+            .isExactlyInstanceOf(ParsingException.class)
             .hasMessage("line 1:10: no viable alternative at input 'TRIM(' ' chars'");
     }
 
     private void assertInstanceOf(String expr, Class<? extends Node> cls) {
-        assertThat(SqlParser.createExpression(expr)).isInstanceOf(cls);
+        assertThat(SqlParser.createExpression(expr)).isExactlyInstanceOf(cls);
     }
 
     @Test
     public void testStackOverflowExpression() {
         assertThatThrownBy(
             () -> SqlParser.createExpression(Lists2.joinOn(" OR ", nCopies(4000, "x = y"), x -> x)))
-            .isInstanceOf(ParsingException.class)
+            .isExactlyInstanceOf(ParsingException.class)
             .hasMessage("line 1:1: expression is too large (stack overflow while parsing)");
     }
 
@@ -469,14 +469,14 @@ public class TestSqlParser {
     public void testStackOverflowStatement() {
         assertThatThrownBy(
             () -> SqlParser.createStatement("SELECT " + Lists2.joinOn(" OR ", nCopies(4000, "x = y"), x -> x)))
-            .isInstanceOf(ParsingException.class)
+            .isExactlyInstanceOf(ParsingException.class)
             .hasMessage("line 1:1: statement is too large (stack overflow while parsing)");
     }
 
     @Test
     public void testDataTypesWithWhitespaceCharacters() {
         Cast cast = (Cast) SqlParser.createExpression("1::double precision");
-        assertThat(cast.getType()).isInstanceOf(ColumnType.class);
+        assertThat(cast.getType()).isExactlyInstanceOf(ColumnType.class);
         assertThat(cast.getType().name()).isEqualTo("double precision");
     }
 
@@ -490,7 +490,7 @@ public class TestSqlParser {
     public void testFromStringLiteralCastDoesNotSupportArrayType() {
         assertThatThrownBy(
             () -> SqlParser.createExpression("array(boolean) '[1,2,0]'"))
-            .isInstanceOf(UnsupportedOperationException.class)
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
             .hasMessage(
                 "type 'string' cast notation only supports primitive types. Use '::' or cast() operator instead.");
     }
@@ -499,7 +499,7 @@ public class TestSqlParser {
     public void testFromStringLiteralCastDoesNotSupportObjectType() {
         assertThatThrownBy(
             () -> SqlParser.createExpression("object '{\"x\": 10}'"))
-            .isInstanceOf(UnsupportedOperationException.class)
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
             .hasMessage(
                 "type 'string' cast notation only supports primitive types. Use '::' or cast() operator instead.");
     }

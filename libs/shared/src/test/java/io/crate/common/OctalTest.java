@@ -45,7 +45,7 @@ public class OctalTest {
     @Test
     public void testIncompleteEscapeSequence() {
         assertThatThrownBy(() -> Octal.decode("abc\\"))
-            .isInstanceOf(IllegalArgumentException.class)
+            .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessageStartingWith("Invalid escape sequence at index 3");
     }
 
@@ -55,14 +55,14 @@ public class OctalTest {
     @Test
     public void testInvalidOctalNumber1() {
         assertThatThrownBy(() -> Octal.decode("\\00"))
-            .isInstanceOf(IllegalArgumentException.class)
+            .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessageStartingWith("Invalid escape sequence at index 0");
     }
 
     @Test
     public void testInvalidOctalNumber2() {
         assertThatThrownBy(() -> Octal.decode("\\008"))
-            .isInstanceOf(IllegalArgumentException.class)
+            .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Illegal octal character 8 at index 3");
     }
 

@@ -105,7 +105,7 @@ public class AwsS3ServiceImplTests extends ESTestCase {
         final S3ClientSettings clientSettings = S3ClientSettings.getClientSettings(settings);
         // test default exists and is an Instance provider
         final AWSCredentialsProvider defaultCredentialsProvider = S3Service.buildCredentials(logger, clientSettings);
-        assertThat(defaultCredentialsProvider).isInstanceOf(AWSStaticCredentialsProvider.class);
+        assertThat(defaultCredentialsProvider).isExactlyInstanceOf(AWSStaticCredentialsProvider.class);
         assertThat(defaultCredentialsProvider.getCredentials().getAWSAccessKeyId()).isEqualTo(awsAccessKey);
         assertThat(defaultCredentialsProvider.getCredentials().getAWSSecretKey()).isEqualTo(awsSecretKey);
     }
@@ -114,7 +114,7 @@ public class AwsS3ServiceImplTests extends ESTestCase {
     public void test_no_credentials_are_not_provided() {
         final S3ClientSettings clientSettings = S3ClientSettings.getClientSettings(Settings.builder().build());
         assertThatThrownBy(() -> S3Service.buildCredentials(logger, clientSettings))
-            .isInstanceOf(InvalidArgumentException.class)
+            .isExactlyInstanceOf(InvalidArgumentException.class)
             .hasMessageContaining("Cannot find required credentials to create a repository of type s3");
 
     }

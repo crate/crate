@@ -51,7 +51,7 @@ public class SimplePhoneticAnalysisTests extends ESTestCase {
 
     public void testPhoneticTokenFilterFactory() {
         TokenFilterFactory filterFactory = analysis.tokenFilter.get("phonetic");
-        assertThat(filterFactory).isInstanceOf(PhoneticTokenFilterFactory.class);
+        assertThat(filterFactory).isExactlyInstanceOf(PhoneticTokenFilterFactory.class);
     }
 
     public void testPhoneticTokenFilterBeiderMorseNoLanguage() throws IOException {
@@ -79,7 +79,7 @@ public class SimplePhoneticAnalysisTests extends ESTestCase {
         tokenizer.setReader(new StringReader("chauptman"));
         String[] expected = new String[] { "473660", "573660" };
 
-        assertThat(filterFactory.create(tokenizer)).isInstanceOf(DaitchMokotoffSoundexFilter.class);
+        assertThat(filterFactory.create(tokenizer)).isExactlyInstanceOf(DaitchMokotoffSoundexFilter.class);
         BaseTokenStreamTestCase.assertTokenStreamContents(filterFactory.create(tokenizer), expected);
     }
 

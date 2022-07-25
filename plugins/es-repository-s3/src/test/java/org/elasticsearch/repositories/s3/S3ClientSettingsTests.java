@@ -67,7 +67,7 @@ public class S3ClientSettingsTests extends ESTestCase {
                 Settings.builder()
                     .put("access_key", "aws_key")
                     .build()))
-            .isInstanceOf(IllegalArgumentException.class)
+            .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Missing secret key for s3 client");
     }
 
@@ -78,7 +78,7 @@ public class S3ClientSettingsTests extends ESTestCase {
                 Settings.builder()
                     .put("secret_key", "aws_key")
                     .build()))
-            .isInstanceOf(IllegalArgumentException.class)
+            .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Missing access key for s3 client");
     }
 
@@ -89,7 +89,7 @@ public class S3ClientSettingsTests extends ESTestCase {
                 Settings.builder()
                     .put("session_token", "aws_key")
                     .build()))
-            .isInstanceOf(IllegalArgumentException.class)
+            .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Missing access key and secret key for s3 client");
     }
 
