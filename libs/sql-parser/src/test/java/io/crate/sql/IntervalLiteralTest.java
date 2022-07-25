@@ -107,7 +107,7 @@ public class IntervalLiteralTest {
     public void testSecondToHour() {
         assertThatThrownBy(
             () -> SqlParser.createExpression("INTERVAL '1' SECOND TO HOUR"))
-            .isInstanceOf(IllegalArgumentException.class)
+            .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Startfield must be less significant than Endfield");
     }
 
@@ -115,7 +115,7 @@ public class IntervalLiteralTest {
     public void testSecondToYear() {
         assertThatThrownBy(
             () -> SqlParser.createExpression("INTERVAL '1' SECOND TO YEAR"))
-            .isInstanceOf(IllegalArgumentException.class)
+            .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Startfield must be less significant than Endfield");
     }
 
@@ -123,7 +123,7 @@ public class IntervalLiteralTest {
     public void testDayToYear() {
         assertThatThrownBy(
             () -> SqlParser.createExpression("INTERVAL '1' DAY TO YEAR"))
-            .isInstanceOf(IllegalArgumentException.class)
+            .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Startfield must be less significant than Endfield");
     }
 }

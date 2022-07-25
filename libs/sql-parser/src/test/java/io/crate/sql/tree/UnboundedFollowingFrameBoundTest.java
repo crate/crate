@@ -64,7 +64,7 @@ public class UnboundedFollowingFrameBoundTest {
     public void testUnboundeFollowingCannotBeTheStartOfTheFrame() {
         assertThatThrownBy(
             () -> UNBOUNDED_FOLLOWING.getStart(RANGE, 0, 3, 1, null, null, intComparator, partition))
-            .isInstanceOf(IllegalStateException.class)
+            .isExactlyInstanceOf(IllegalStateException.class)
             .hasMessage("UNBOUNDED FOLLOWING cannot be the start of a frame");
     }
 

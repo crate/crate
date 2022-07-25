@@ -63,7 +63,7 @@ public class UnboundedPrecedingFrameBoundTest {
     public void testUnboundedPrecedingCannotBeTheEndOfTheFrame() {
         assertThatThrownBy(
             () -> UNBOUNDED_PRECEDING.getEnd(RANGE, 0, 3, 1, null, null, intComparator, partition))
-            .isInstanceOf(IllegalStateException.class)
+            .isExactlyInstanceOf(IllegalStateException.class)
             .hasMessage("UNBOUNDED PRECEDING cannot be the start of a frame");
     }
 }

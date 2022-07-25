@@ -70,7 +70,7 @@ public class BitStringTest {
     public void test_bit_string_cannot_contain_values_other_than_zeros_or_ones() {
         assertThatThrownBy(
             () -> BitString.ofRawBits("0021💀"))
-            .isInstanceOf(IllegalArgumentException.class)
+            .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Bit string must only contain `0` or `1` values. Encountered: 2");
     }
 

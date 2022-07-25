@@ -64,7 +64,7 @@ public class AnalysisPhoneticFactoryTests extends AnalysisFactoryTestCase {
             tff = plugin.getTokenFilters().get("phonetic").get(idxSettings, null, "phonetic", settings);
 
             assertThatThrownBy(tff::getSynonymFilter)
-                .isInstanceOf(IllegalArgumentException.class)
+                .isExactlyInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Token filter [phonetic] cannot be used to parse synonyms");
         }
     }

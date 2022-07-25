@@ -49,7 +49,7 @@ public class CompletableFuturesTest {
 
         f2.complete(2);
         assertThatThrownBy(() -> all.get(10, TimeUnit.SECONDS))
-            .isInstanceOf(ExecutionException.class)
+            .isExactlyInstanceOf(ExecutionException.class)
             .hasCauseInstanceOf(IllegalStateException.class);
     }
 

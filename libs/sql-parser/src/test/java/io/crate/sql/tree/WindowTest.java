@@ -77,7 +77,7 @@ public class WindowTest {
 
         assertThatThrownBy(
             () -> current.merge(provided))
-            .isInstanceOf(IllegalArgumentException.class)
+            .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Cannot copy window w because it has a frame clause");
     }
 
@@ -88,7 +88,7 @@ public class WindowTest {
 
         assertThatThrownBy(
             () -> current.merge(provided))
-            .isInstanceOf(IllegalArgumentException.class)
+            .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Cannot override ORDER BY clause of window w");
     }
 
@@ -98,7 +98,7 @@ public class WindowTest {
 
         assertThatThrownBy(
             () -> current.merge(emptyWindow))
-            .isInstanceOf(IllegalArgumentException.class)
+            .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Cannot override PARTITION BY clause of window w");
     }
 }
