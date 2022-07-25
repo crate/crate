@@ -556,11 +556,13 @@ public class RecoveryState implements ToXContentFragment, Writeable {
         @SuppressWarnings("sync-override")
         public void writeTo(StreamOutput out) throws IOException {
             super.writeTo(out);
-            out.writeVInt(recovered);
-            out.writeVInt(total);
-            out.writeVInt(totalOnStart);
-            if (out.getVersion().onOrAfter(Version.V_4_3_0)) {
-                out.writeVInt(totalLocal);
+            synchronized (this) {
+                out.writeVInt(recovered);
+                out.writeVInt(total);
+                out.writeVInt(totalOnStart);
+                if (out.getVersion().onOrAfter(Version.V_4_3_0)) {
+                    out.writeVInt(totalLocal);
+                }
             }
         }
 
