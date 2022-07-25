@@ -155,11 +155,4 @@ Available parameters are:
 
 :upgrade_segments:
 
-  Don't optimize but instead upgrade all segments of the table/partition
-  to the current version of storage engine.
-
-  Defaults to ``false``.
-
-.. NOTE::
-
-    ``upgrade_segments`` cannot be used in combination with other parameters
+  This option is deprecated and has no effect anymore.
