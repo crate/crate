@@ -111,8 +111,9 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
     protected ClusterState execute(ClusterState currentState, AlterTableRequest request) throws Exception {
         if (request.isPartitioned()) {
             if (request.partitionIndexName() != null) {
+                assert request.mappingDelta() == null
+                    : "Cannot add column to a single partition. Template and index mappings must stay in sync";
                 Index[] concreteIndices = resolveIndices(currentState, request.partitionIndexName());
-                currentState = updateMapping(currentState, request, concreteIndices);
                 currentState = updateSettings(currentState, request.settings(), concreteIndices);
             } else {
                 // template gets all changes unfiltered
