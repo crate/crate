@@ -3264,7 +3264,7 @@ public class InternalEngineTests extends EngineTestCase {
                                 break;
                             }
                             case "flush": {
-                                engine.flush(true, false);
+                                engine.flush(true, true);
                                 break;
                             }
                         }
