@@ -64,6 +64,8 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Updated the bundled JDK from 17.0.3+7 to 17.0.4+8.
+
 - Fixed a race condition that could cause a ``INSERT INTO`` operation to get
   stuck.
 
