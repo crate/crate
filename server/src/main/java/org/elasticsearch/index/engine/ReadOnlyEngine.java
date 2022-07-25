@@ -379,8 +379,6 @@ public class ReadOnlyEngine extends Engine {
     public void forceMerge(boolean flush,
                            int maxNumSegments,
                            boolean onlyExpungeDeletes,
-                           boolean upgrade,
-                           boolean upgradeOnlyAncientSegments,
                            String forceMergeUUID) {
     }
 

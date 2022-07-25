@@ -99,18 +99,3 @@ reasons.
 
   cr> DROP TABLE parted_table;
   DROP OK, 1 row affected (... sec)
-
-.. _optimize_segments_upgrade:
-
-Segments upgrade
-================
-
-In case that some or all of the segments of a table or a table partition are
-created with an older version of the storage engine, then with the use of
-``OPTIMIZE``, these segments can be upgraded to the current version of the
-storage engine.
-
-::
-
-    cr> OPTIMIZE TABLE locations WITH (upgrade_segments=true);
-    OPTIMIZE OK, 1 row affected (... sec)

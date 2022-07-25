@@ -51,7 +51,9 @@ Breaking Changes
 Deprecations
 ============
 
-None
+- Deprecated the ``upgrade_segments`` option of the ``OPTIMIZE TABLE``
+  statement. The option will now longer have any effect and will be removed in
+  the future.
 
 
 Changes

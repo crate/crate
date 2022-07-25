@@ -23,6 +23,7 @@ package io.crate.analyze;
 
 import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeRequest;
 import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Setting.Property;
 
 import java.util.Map;
 
@@ -43,7 +44,7 @@ public final class OptimizeTableSettings {
 
     public static final Setting<Boolean> FLUSH = Setting.boolSetting("flush", ForceMergeRequest.Defaults.FLUSH);
 
-    public static final Setting<Boolean> UPGRADE_SEGMENTS = Setting.boolSetting("upgrade_segments", false);
+    public static final Setting<Boolean> UPGRADE_SEGMENTS = Setting.boolSetting("upgrade_segments", false, Property.Deprecated);
 
     public static final Map<String, Setting<?>> SUPPORTED_SETTINGS = Map.of(
         MAX_NUM_SEGMENTS.getKey(), MAX_NUM_SEGMENTS,
