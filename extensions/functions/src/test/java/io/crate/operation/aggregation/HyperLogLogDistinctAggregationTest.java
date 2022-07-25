@@ -124,7 +124,7 @@ public class HyperLogLogDistinctAggregationTest extends AggregationTestCase {
     public void testCallWithInvalidPrecisionResultsInAnError() {
         assertThatThrownBy(
             () -> executeAggregationWithPrecision(DataTypes.INTEGER, new Object[][]{{4, 1}}, List.of(Literal.of(1))))
-            .isInstanceOf(IllegalArgumentException.class)
+            .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("precision must be >= 4 and <= 18");
     }
 

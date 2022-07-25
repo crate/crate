@@ -78,7 +78,7 @@ public class AzureRepositoryAnalyzerTest extends CrateDummyClusterServiceUnitTes
     public void testCreateAzureRepoWithMissingMandatorySettings() {
         assertThatThrownBy(
             () -> analyze(e, "CREATE REPOSITORY foo TYPE azure WITH (account='test')"))
-            .isInstanceOf(IllegalArgumentException.class)
+            .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("The following required parameters are missing to create a repository of type \"azure\": [key]");
     }
 
@@ -123,7 +123,7 @@ public class AzureRepositoryAnalyzerTest extends CrateDummyClusterServiceUnitTes
     public void testCreateAzureRepoWithWrongSettings() {
         assertThatThrownBy(
             () -> analyze(e, "CREATE REPOSITORY foo TYPE azure WITH (wrong=true)"))
-            .isInstanceOf(IllegalArgumentException.class)
+            .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("setting 'wrong' not supported");
     }
 }

@@ -72,7 +72,7 @@ public class S3RepositoryTests extends ESTestCase {
     public void testCreateRepositoryWithChunkSmallerThanBufferSize() {
         assertThatThrownBy(
             () -> createS3Repo(getRepositoryMetadata(bufferAndChunkSettings(10, 5))))
-            .isInstanceOf(RepositoryException.class)
+            .isExactlyInstanceOf(RepositoryException.class)
             .hasMessageEndingWith("chunk_size (5mb) can't be lower than buffer_size (10mb).");
     }
 
@@ -80,7 +80,7 @@ public class S3RepositoryTests extends ESTestCase {
     public void testCreateRepositoryWithBufferSizeSmallerThan5mb() {
         assertThatThrownBy(
             () -> createS3Repo(getRepositoryMetadata(bufferAndChunkSettings(4, 10))))
-            .isInstanceOf(IllegalArgumentException.class)
+            .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("failed to parse value [4mb] for setting [buffer_size], must be >= [5mb]");
     }
 
@@ -88,7 +88,7 @@ public class S3RepositoryTests extends ESTestCase {
     public void testCreateRepositoryWithChunkSizeGreaterThan5tb() {
         assertThatThrownBy(
             () -> createS3Repo(getRepositoryMetadata(bufferAndChunkSettings(5, 6000000))))
-            .isInstanceOf(IllegalArgumentException.class)
+            .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("failed to parse value [6000000mb] for setting [chunk_size], must be <= [5tb]");
     }
 

@@ -59,7 +59,7 @@ public class S3ClientHelperTest extends ESTestCase {
         // see http://en.wikipedia.org/wiki/UTF-8#Codepage_layout
         assertThatThrownBy(
             () -> s3ClientHelper.client(S3URI.toS3URI(new URI("s3://foo:inv/alid@/baz/path/to/file"))))
-            .isInstanceOf(IllegalArgumentException.class)
+            .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Invalid URI. Please make sure that given URI is encoded properly.");
     }
 
@@ -69,7 +69,7 @@ public class S3ClientHelperTest extends ESTestCase {
         // see http://en.wikipedia.org/wiki/UTF-8#Codepage_layout
         assertThatThrownBy(
             () -> s3ClientHelper.client(S3URI.toS3URI(new URI("s3://fo/o:inv%2Falid@/baz"))))
-            .isInstanceOf(IllegalArgumentException.class)
+            .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Invalid URI. Please make sure that given URI is encoded properly.");
     }
 }
