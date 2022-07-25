@@ -43,7 +43,6 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 
@@ -462,33 +461,6 @@ public abstract class SQLIntegrationTestCase extends ESIntegTestCase {
             LOGGER.error("Timeout on SQL statement: {} {}", stmt, e);
             dumpActiveTasks();
             throw e;
-        }
-    }
-
-    /**
-     * Executes {@code statement} once for each entry in {@code setSessionStatementsList}
-     *
-     * The inner lists of {@code setSessionStatementsList} will be executed before the statement is executed.
-     * This is intended to change session settings using `SET ..` statements
-     *
-     * @param matcher matcher used to assert the result of {@code statement}
-     */
-    public void executeWith(List<List<String>> setSessionStatementsList,
-                            String statement,
-                            Consumer<SQLResponse> matcher) {
-        for (List<String> setSessionStatements : setSessionStatementsList) {
-            try (Session session = sqlExecutor.newSession()) {
-
-                for (String setSessionStatement : setSessionStatements) {
-                    sqlExecutor.exec(setSessionStatement, session);
-                }
-
-                SQLResponse resp = sqlExecutor.exec(statement, session);
-                assertThat(resp)
-                    .as("The query:\n\t" + statement + "\nwith session statements: [" +
-                        String.join(", ", setSessionStatements) + "] must produce correct result")
-                    .satisfies(matcher);
-            }
         }
     }
 
