@@ -4,3 +4,7 @@
 da06dceeb3636650f6afcc6f37c54cd2c33ae275
 # Add migration to assertj assertions for all modules except :server
 274f3c7cd094578b9009027839bf10d23afcabd5
+# assertj fixes
+ae1700bd6d15a44099afcc48290017728ddac95f
+bb14b1b5faa254cf556a7f0775374bd7e7ae59c2
+755c04fb0ef260f580c26854f2d812392a78c98b
