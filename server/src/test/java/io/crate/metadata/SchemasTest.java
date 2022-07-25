@@ -146,10 +146,10 @@ public class SchemasTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testResolveTableInfoForValidFQN() throws IOException {
-        RelationName tableIdent = new RelationName("schema", "t");
+        RelationName tableIdent = RelationName.of(QualifiedName.of("crate", "schema", "t"), null);
         SQLExecutor sqlExecutor = getSqlExecutorBuilderForTable(tableIdent, "doc", "schema").build();
 
-        QualifiedName fqn = QualifiedName.of("schema", "t");
+        QualifiedName fqn = QualifiedName.of("crate", "schema", "t");
         SessionContext sessionContext = sqlExecutor.getSessionContext();
         TableInfo tableInfo = sqlExecutor.schemas()
             .resolveTableInfo(fqn, Operation.READ, sessionContext.sessionUser(), sessionContext.searchPath());

@@ -21,6 +21,7 @@
 
 package io.crate.analyze.relations;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
@@ -95,5 +96,35 @@ public class RelationAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         AnalyzedRelation relation = executor.analyze("VALUES ([1, 2], 'a')");
         assertThat(relation, instanceOf(TableFunctionRelation.class));
         assertThat(relation.relationName().toString(), is(ValuesFunction.NAME));
+    }
+
+    @Test
+    public void test_fqn_with_catalog() {
+        AnalyzedRelation relation = executor.analyze("select * from crate.doc.t1");
+        assertThat(relation.outputs().size(), is(3));
+
+        relation = executor.analyze("select crate.doc.t1.a from crate.doc.t1");
+        assertThat(relation.outputs().size(), is(1));
+        assertThat(Symbols.pathFromSymbol(relation.outputs().get(0)).fqn(), is("a"));
+
+        relation = executor.analyze("select crate.doc.t1.a from t1");
+        assertThat(relation.outputs().size(), is(1));
+        assertThat(Symbols.pathFromSymbol(relation.outputs().get(0)).fqn(), is("a"));
+
+        relation = executor.analyze("select t.a from crate.doc.t1 as t");
+        assertThat(relation.outputs().size(), is(1));
+        assertThat(Symbols.pathFromSymbol(relation.outputs().get(0)).fqn(), is("a"));
+    }
+
+    @Test
+    public void test_fqn_with_invalid_catalog() {
+        assertThatThrownBy(
+            () -> executor.analyze("select * from \"invalidCatalog\".doc.t1"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Unexpected catalog name: invalidCatalog. Only available catalog is crate");
+        assertThatThrownBy(
+            () -> executor.analyze("select invalid.doc.t1.a from crate.doc.t1"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Unexpected catalog name: invalid. Only available catalog is crate");
     }
 }
