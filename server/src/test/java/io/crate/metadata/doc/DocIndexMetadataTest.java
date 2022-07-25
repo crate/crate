@@ -109,7 +109,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
 
     private IndexMetadata getIndexMetadata(String indexName,
                                            XContentBuilder builder) throws IOException {
-        Map<String, Object> mappingSource = XContentHelper.convertToMap(BytesReference.bytes(builder), true, XContentType.JSON).v2();
+        Map<String, Object> mappingSource = XContentHelper.convertToMap(BytesReference.bytes(builder), true, XContentType.JSON).map();
         mappingSource = sortProperties(mappingSource);
 
         Settings.Builder settingsBuilder = Settings.builder()

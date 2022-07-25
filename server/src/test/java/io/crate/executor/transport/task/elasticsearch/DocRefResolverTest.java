@@ -54,7 +54,7 @@ public class DocRefResolverTest extends ESTestCase {
                                                   1L,
                                                   1L,
                                                   1L,
-                                                  XContentHelper.convertToMap(SOURCE, false, XContentType.JSON).v2(),
+                                                  XContentHelper.convertToMap(SOURCE, false, XContentType.JSON).map(),
                                                   SOURCE::utf8ToString);
 
     @Test
@@ -78,7 +78,7 @@ public class DocRefResolverTest extends ESTestCase {
 
         assertThat(collectExpressions.get(0).value(), is("abc"));
         assertThat(collectExpressions.get(1).value(), is(1L));
-        assertThat(collectExpressions.get(2).value(), is(XContentHelper.convertToMap(SOURCE, false, XContentType.JSON).v2()));
+        assertThat(collectExpressions.get(2).value(), is(XContentHelper.convertToMap(SOURCE, false, XContentType.JSON).map()));
         assertThat(collectExpressions.get(3).value(), is(SOURCE.utf8ToString()));
         assertThat(collectExpressions.get(4).value(), is(2));
         assertThat(collectExpressions.get(5).value(), is(1L));

@@ -75,7 +75,7 @@ public class DocumentMapperParser {
     public DocumentMapper parse(CompressedXContent source) throws MapperParsingException {
         Map<String, Object> mapping = null;
         if (source != null) {
-            Map<String, Object> root = XContentHelper.convertToMap(source.compressedReference(), true, XContentType.JSON).v2();
+            Map<String, Object> root = XContentHelper.convertToMap(source.compressedReference(), true, XContentType.JSON).map();
             mapping = extractMapping(root);
         }
         if (mapping == null) {

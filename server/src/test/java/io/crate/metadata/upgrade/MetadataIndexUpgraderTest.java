@@ -51,7 +51,7 @@ public class MetadataIndexUpgraderTest extends ESTestCase {
         MappingMetadata mappingMetadata = new MappingMetadata(createDynamicStringMappingTemplate());
         MappingMetadata newMappingMetadata = metadataIndexUpgrader.createUpdatedIndexMetadata(mappingMetadata, "dummy");
 
-        Object dynamicTemplates = newMappingMetadata.getSourceAsMap().get("dynamic_templates");
+        Object dynamicTemplates = newMappingMetadata.sourceAsMap().get("dynamic_templates");
         assertThat(dynamicTemplates, nullValue());
 
         // Check that the new metadata still has the root "default" element

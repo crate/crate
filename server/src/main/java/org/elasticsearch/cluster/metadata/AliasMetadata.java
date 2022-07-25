@@ -303,7 +303,7 @@ public class AliasMetadata extends AbstractDiffable<AliasMetadata> implements To
                 if (binary) {
                     builder.field("filter", aliasMetadata.filter.compressed());
                 } else {
-                    builder.field("filter", XContentHelper.convertToMap(new BytesArray(aliasMetadata.filter().uncompressed()), true).v2());
+                    builder.field("filter", XContentHelper.convertToMap(new BytesArray(aliasMetadata.filter().uncompressed()), true).map());
                 }
             }
             if (aliasMetadata.indexRouting() != null) {

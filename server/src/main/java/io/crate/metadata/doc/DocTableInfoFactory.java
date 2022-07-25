@@ -153,7 +153,7 @@ public class DocTableInfoFactory {
         } catch (Exception e) {
             try {
                 LOGGER.error(
-                    "Could not build DocIndexMetadata from: {}", indexMetadata.mapping().getSourceAsMap());
+                    "Could not build DocIndexMetadata from: {}", indexMetadata.mapping().sourceAsMap());
             } catch (Exception ignored) {
             }
             throw e;

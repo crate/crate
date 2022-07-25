@@ -19,16 +19,6 @@
 
 package org.elasticsearch.common.xcontent;
 
-import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.ElasticsearchParseException;
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.bytes.BytesReference;
-import io.crate.common.collections.Tuple;
-import org.elasticsearch.common.compress.Compressor;
-import org.elasticsearch.common.compress.CompressorFactory;
-import org.elasticsearch.common.xcontent.ToXContent.Params;
-
-import javax.annotation.Nullable;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -38,6 +28,16 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+
+import javax.annotation.Nullable;
+
+import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.ElasticsearchParseException;
+import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.compress.Compressor;
+import org.elasticsearch.common.compress.CompressorFactory;
+import org.elasticsearch.common.xcontent.ToXContent.Params;
 
 @SuppressWarnings("unchecked")
 public class XContentHelper {
@@ -86,8 +86,7 @@ public class XContentHelper {
      *             instead with the proper {@link XContentType}
      */
     @Deprecated
-    public static Tuple<XContentType, Map<String, Object>> convertToMap(BytesReference bytes, boolean ordered)
-            throws ElasticsearchParseException {
+    public static ParsedXContent convertToMap(BytesReference bytes, boolean ordered) throws ElasticsearchParseException {
         return convertToMap(bytes, ordered, null);
     }
 
@@ -120,13 +119,13 @@ public class XContentHelper {
     /**
      * Converts the given bytes into a map that is optionally ordered.
      */
-    public static Tuple<XContentType, Map<String, Object>> convertToMap(BytesReference bytes, boolean ordered, @Nullable XContentType xContentType)
+    public static ParsedXContent convertToMap(BytesReference bytes, boolean ordered, @Nullable XContentType xContentType)
         throws ElasticsearchParseException {
         try {
             final XContentType contentType;
             try (InputStream input = getUncompressedInputStream(bytes)) {
                 contentType = xContentType != null ? xContentType : XContentFactory.xContentType(input);
-                return new Tuple<>(Objects.requireNonNull(contentType), convertToMap(XContentFactory.xContent(contentType), input, ordered));
+                return new ParsedXContent(Objects.requireNonNull(contentType), convertToMap(XContentFactory.xContent(contentType), input, ordered));
             }
         } catch (IOException e) {
             throw new ElasticsearchParseException("Failed to parse content to map", e);

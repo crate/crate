@@ -80,7 +80,7 @@ public class GeneratedColumnsTest extends CrateDummyClusterServiceUnitTest {
             1,
             1,
             1,
-            XContentHelper.convertToMap(bytes, false, XContentType.JSON).v2(),
+            XContentHelper.convertToMap(bytes, false, XContentType.JSON).map(),
             bytes::utf8ToString
         ));
         Map.Entry<? extends Reference, Input<?>> generatedColumn = generatedColumns.generatedToInject().iterator().next();
