@@ -98,21 +98,21 @@ public class TestStatementBuilder {
     public void testMultipleStatements() {
         List<Statement> statements = SqlParser.createStatements("BEGIN; END;");
         assertThat(statements).hasSize(2);
-        assertThat(statements.get(0)).isInstanceOf(BeginStatement.class);
-        assertThat(statements.get(1)).isInstanceOf(CommitStatement.class);
+        assertThat(statements.get(0)).isExactlyInstanceOf(BeginStatement.class);
+        assertThat(statements.get(1)).isExactlyInstanceOf(CommitStatement.class);
 
         statements = SqlParser.createStatements("BEGIN; END");
         assertThat(statements).hasSize(2);
-        assertThat(statements.get(0)).isInstanceOf(BeginStatement.class);
-        assertThat(statements.get(1)).isInstanceOf(CommitStatement.class);
+        assertThat(statements.get(0)).isExactlyInstanceOf(BeginStatement.class);
+        assertThat(statements.get(1)).isExactlyInstanceOf(CommitStatement.class);
 
         statements = SqlParser.createStatements("BEGIN");
         assertThat(statements).hasSize(1);
-        assertThat(statements.get(0)).isInstanceOf(BeginStatement.class);
+        assertThat(statements.get(0)).isExactlyInstanceOf(BeginStatement.class);
 
         statements = SqlParser.createStatements("SET extra_float_digits = 3");
         assertThat(statements).hasSize(1);
-        assertThat(statements.get(0)).isInstanceOf(SetStatement.class);
+        assertThat(statements.get(0)).isExactlyInstanceOf(SetStatement.class);
     }
 
     @Test
@@ -227,7 +227,7 @@ public class TestStatementBuilder {
     public void test_duplicates_in_window_definitions() {
         assertThatThrownBy(
             () -> printStatement("SELECT x FROM t WINDOW w AS (), w as ()"))
-            .isInstanceOf(IllegalArgumentException.class)
+            .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Window w is already defined");
     }
 
@@ -235,7 +235,7 @@ public class TestStatementBuilder {
     public void test_circular_references_in_window_definitions() {
         assertThatThrownBy(
             () -> printStatement("SELECT x FROM t WINDOW w AS (ww), ww as (w), www as ()"))
-            .isInstanceOf(IllegalArgumentException.class)
+            .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Window ww does not exist");
     }
 
@@ -257,7 +257,7 @@ public class TestStatementBuilder {
     public void testNullNotAllowedAsArgToExtractField() {
         assertThatThrownBy(
             () -> printStatement("select extract(null from x)"))
-            .isInstanceOf(ParsingException.class)
+            .isExactlyInstanceOf(ParsingException.class)
             .hasMessage("line 1:16: no viable alternative at input 'select extract(null'");
     }
 
@@ -295,7 +295,7 @@ public class TestStatementBuilder {
     public void test_decommission_node_id_is_missing() {
         assertThatThrownBy(
             () -> printStatement("ALTER CLUSTER DECOMMISSION'"))
-            .isInstanceOf(ParsingException.class)
+            .isExactlyInstanceOf(ParsingException.class)
             .hasMessageStartingWith("line 1:27: mismatched input ''' expecting {'(', '[', '[]', '{', '$', '?', ");
     }
 
@@ -474,7 +474,7 @@ public class TestStatementBuilder {
     public void testDeallocateWithoutParamThrowsParsingException() {
         assertThatThrownBy(
             () -> printStatement("deallocate"))
-            .isInstanceOf(ParsingException.class)
+            .isExactlyInstanceOf(ParsingException.class)
             .hasMessageStartingWith("line 1:11: mismatched input '<EOF>'");
     }
 
@@ -521,7 +521,7 @@ public class TestStatementBuilder {
     public void testSetSessionInvalidSetting() {
         assertThatThrownBy(
             () -> printStatement("set session 'some_setting' TO 1, ON"))
-            .isInstanceOf(ParsingException.class)
+            .isExactlyInstanceOf(ParsingException.class)
             .hasMessage("line 1:13: no viable alternative at input 'set session 'some_setting''");
     }
 
@@ -542,7 +542,7 @@ public class TestStatementBuilder {
     public void testSetLicenseInputWithoutQuotesThrowsParsingException() {
         assertThatThrownBy(
             () -> printStatement("set license LICENSE_KEY"))
-            .isInstanceOf(ParsingException.class)
+            .isExactlyInstanceOf(ParsingException.class)
             .hasMessage("line 1:13: no viable alternative at input 'set license LICENSE_KEY'");
     }
 
@@ -550,7 +550,7 @@ public class TestStatementBuilder {
     public void testSetLicenseWithoutParamThrowsParsingException() {
         assertThatThrownBy(
             () -> printStatement("set license"))
-            .isInstanceOf(ParsingException.class)
+            .isExactlyInstanceOf(ParsingException.class)
             .hasMessage("line 1:12: no viable alternative at input 'set license'");
     }
 
@@ -558,7 +558,7 @@ public class TestStatementBuilder {
     public void testSetLicenseLikeAnExpressionThrowsParsingException() {
         assertThatThrownBy(
             () -> printStatement("set license key='LICENSE_KEY'"))
-            .isInstanceOf(ParsingException.class)
+            .isExactlyInstanceOf(ParsingException.class)
             .hasMessage("line 1:13: no viable alternative at input 'set license key'");
     }
 
@@ -566,7 +566,7 @@ public class TestStatementBuilder {
     public void testSetLicenseMultipleInputThrowsParsingException() {
         assertThatThrownBy(
             () -> printStatement("set license 'LICENSE_KEY' 'LICENSE_KEY2'"))
-            .isInstanceOf(ParsingException.class)
+            .isExactlyInstanceOf(ParsingException.class)
             .hasMessage("line 1:27: extraneous input ''LICENSE_KEY2'' expecting {<EOF>, ';'}");
     }
 
@@ -679,7 +679,7 @@ public class TestStatementBuilder {
     public void testCreateTableColumnTypeOrGeneratedExpressionAreDefined() {
         assertThatThrownBy(
             () -> printStatement("create table test (col1)"))
-            .isInstanceOf(IllegalArgumentException.class)
+            .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Column [col1]: data type needs to be provided or " +
                         "column should be defined as a generated expression");
     }
@@ -694,7 +694,7 @@ public class TestStatementBuilder {
     public void testCreateTableBothDefaultAndGeneratedExpressionsNotAllowed() {
         assertThatThrownBy(
             () -> printStatement("create table test (col1 int default random() as 1+1)"))
-            .isInstanceOf(IllegalArgumentException.class)
+            .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Column [col1]: the default and generated expressions are mutually exclusive");
     }
 
@@ -703,7 +703,7 @@ public class TestStatementBuilder {
         assertThatThrownBy(
             () -> printStatement(
                 "create table test (col1 int, col2 timestamp with time zone) partitioned by (col1) partitioned by (col2)"))
-            .isInstanceOf(ParsingException.class)
+            .isExactlyInstanceOf(ParsingException.class)
             .hasMessage("line 1:83: mismatched input 'partitioned' expecting {<EOF>, ';'}");
     }
 
@@ -913,7 +913,7 @@ public class TestStatementBuilder {
             () -> printStatement("create function foo.bar.a() " +
                              "returns object " +
                              "language sql as 'select 1'"))
-            .isInstanceOf(IllegalArgumentException.class)
+            .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("The function name is not correct! name [foo.bar.a] " +
                 "does not conform the [[schema_name .] function_name] format.");
     }
@@ -1013,7 +1013,7 @@ public class TestStatementBuilder {
     public void testThatEscapedStringLiteralContainingDoubleBackSlashAndSingleQuoteThrowsException() {
         assertThatThrownBy(
             () -> printStatement("select e'aa\\\\\'bb' as col1"))
-            .isInstanceOf(IllegalArgumentException.class)
+            .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Invalid Escaped String Literal aa\\\\'bb");
     }
 
@@ -1118,7 +1118,7 @@ public class TestStatementBuilder {
     public void testArrayConstructorSubSelectBuilderNoParenthesisThrowsParsingException() {
         assertThatThrownBy(
             () -> printStatement("select array from f2"))
-            .isInstanceOf(ParsingException.class)
+            .isExactlyInstanceOf(ParsingException.class)
             .hasMessage("line 1:14: no viable alternative at input 'select array from'");
     }
 
@@ -1126,7 +1126,7 @@ public class TestStatementBuilder {
     public void testArrayConstructorSubSelectBuilderNoSubQueryThrowsParsingException() {
         assertThatThrownBy(
             () -> printStatement("select array() as array1 from f2"))
-            .isInstanceOf(ParsingException.class)
+            .isExactlyInstanceOf(ParsingException.class)
             .hasMessage("line 1:14: no viable alternative at input 'select array()'");
     }
 
@@ -1189,7 +1189,7 @@ public class TestStatementBuilder {
         Insert<Expression> insert = (Insert<Expression>) SqlParser.createStatement(
                 "insert into test_generated_column (id, ts) values (?, ?) on conflict (id) do update set ts = ?");
         Assignment<Expression> onDuplicateAssignment = insert.duplicateKeyContext().getAssignments().get(0);
-        assertThat(onDuplicateAssignment.expression()).isInstanceOf(ParameterExpression.class);
+        assertThat(onDuplicateAssignment.expression()).isExactlyInstanceOf(ParameterExpression.class);
         assertThat(onDuplicateAssignment.expressions().get(0).toString()).isEqualTo("$3");
 
         // insert from query
@@ -1357,19 +1357,19 @@ public class TestStatementBuilder {
     @Test
     public void testSubscriptExpression() {
         Expression expression = SqlParser.createExpression("a['sub']");
-        assertThat(expression).isInstanceOf(SubscriptExpression.class);
+        assertThat(expression).isExactlyInstanceOf(SubscriptExpression.class);
         SubscriptExpression subscript = (SubscriptExpression) expression;
-        assertThat(subscript.index()).isInstanceOf(StringLiteral.class);
+        assertThat(subscript.index()).isExactlyInstanceOf(StringLiteral.class);
         assertThat(((StringLiteral) subscript.index()).getValue()).isEqualTo("sub");
 
-        assertThat(subscript.base()).isInstanceOf(QualifiedNameReference.class);
+        assertThat(subscript.base()).isExactlyInstanceOf(QualifiedNameReference.class);
 
         expression = SqlParser.createExpression("[1,2,3][1]");
-        assertThat(expression).isInstanceOf(SubscriptExpression.class);
+        assertThat(expression).isExactlyInstanceOf(SubscriptExpression.class);
         subscript = (SubscriptExpression) expression;
-        assertThat(subscript.index()).isInstanceOf(IntegerLiteral.class);
+        assertThat(subscript.index()).isExactlyInstanceOf(IntegerLiteral.class);
         assertThat(((IntegerLiteral) subscript.index()).getValue()).isEqualTo(1);
-        assertThat(subscript.base()).isInstanceOf(ArrayLiteral.class);
+        assertThat(subscript.base()).isExactlyInstanceOf(ArrayLiteral.class);
     }
 
     @Test
@@ -1382,7 +1382,7 @@ public class TestStatementBuilder {
 
         assertThatThrownBy(
             () -> SqlParser.createExpression("match ([1]['1']['2'], 'abc')"))
-            .isInstanceOf(ParsingException.class)
+            .isExactlyInstanceOf(ParsingException.class)
             .hasMessageStartingWith("line 1:8: mismatched input '[' expecting {'('");
     }
 
@@ -1406,49 +1406,49 @@ public class TestStatementBuilder {
     @Test
     public void testArrayComparison() {
         Expression anyExpression = SqlParser.createExpression("1 = ANY (arrayColumnRef)");
-        assertThat(anyExpression).isInstanceOf(ArrayComparisonExpression.class);
+        assertThat(anyExpression).isExactlyInstanceOf(ArrayComparisonExpression.class);
         ArrayComparisonExpression arrayComparisonExpression = (ArrayComparisonExpression) anyExpression;
         assertThat(arrayComparisonExpression.quantifier()).isEqualTo(ArrayComparisonExpression.Quantifier.ANY);
-        assertThat(arrayComparisonExpression.getLeft()).isInstanceOf(IntegerLiteral.class);
-        assertThat(arrayComparisonExpression.getRight()).isInstanceOf(QualifiedNameReference.class);
+        assertThat(arrayComparisonExpression.getLeft()).isExactlyInstanceOf(IntegerLiteral.class);
+        assertThat(arrayComparisonExpression.getRight()).isExactlyInstanceOf(QualifiedNameReference.class);
 
         Expression someExpression = SqlParser.createExpression("1 = SOME (arrayColumnRef)");
-        assertThat(someExpression).isInstanceOf(ArrayComparisonExpression.class);
+        assertThat(someExpression).isExactlyInstanceOf(ArrayComparisonExpression.class);
         ArrayComparisonExpression someArrayComparison = (ArrayComparisonExpression) someExpression;
         assertThat(someArrayComparison.quantifier()).isEqualTo(ArrayComparisonExpression.Quantifier.ANY);
-        assertThat(someArrayComparison.getLeft()).isInstanceOf(IntegerLiteral.class);
-        assertThat(someArrayComparison.getRight()).isInstanceOf(QualifiedNameReference.class);
+        assertThat(someArrayComparison.getLeft()).isExactlyInstanceOf(IntegerLiteral.class);
+        assertThat(someArrayComparison.getRight()).isExactlyInstanceOf(QualifiedNameReference.class);
 
         Expression allExpression = SqlParser.createExpression("'StringValue' = ALL (arrayColumnRef)");
-        assertThat(allExpression).isInstanceOf(ArrayComparisonExpression.class);
+        assertThat(allExpression).isExactlyInstanceOf(ArrayComparisonExpression.class);
         ArrayComparisonExpression allArrayComparison = (ArrayComparisonExpression) allExpression;
         assertThat(allArrayComparison.quantifier()).isEqualTo(ArrayComparisonExpression.Quantifier.ALL);
-        assertThat(allArrayComparison.getLeft()).isInstanceOf(StringLiteral.class);
-        assertThat(allArrayComparison.getRight()).isInstanceOf(QualifiedNameReference.class);
+        assertThat(allArrayComparison.getLeft()).isExactlyInstanceOf(StringLiteral.class);
+        assertThat(allArrayComparison.getRight()).isExactlyInstanceOf(QualifiedNameReference.class);
     }
 
     @Test
     public void testArrayComparisonSubSelect() {
         Expression anyExpression = SqlParser.createExpression("1 = ANY ((SELECT 5))");
-        assertThat(anyExpression).isInstanceOf(ArrayComparisonExpression.class);
+        assertThat(anyExpression).isExactlyInstanceOf(ArrayComparisonExpression.class);
         ArrayComparisonExpression arrayComparisonExpression = (ArrayComparisonExpression) anyExpression;
         assertThat(arrayComparisonExpression.quantifier()).isEqualTo(ArrayComparisonExpression.Quantifier.ANY);
-        assertThat(arrayComparisonExpression.getLeft()).isInstanceOf(IntegerLiteral.class);
-        assertThat(arrayComparisonExpression.getRight()).isInstanceOf(SubqueryExpression.class);
+        assertThat(arrayComparisonExpression.getLeft()).isExactlyInstanceOf(IntegerLiteral.class);
+        assertThat(arrayComparisonExpression.getRight()).isExactlyInstanceOf(SubqueryExpression.class);
 
         // It's possible to omit the parenthesis
         anyExpression = SqlParser.createExpression("1 = ANY (SELECT 5)");
-        assertThat(anyExpression).isInstanceOf(ArrayComparisonExpression.class);
+        assertThat(anyExpression).isExactlyInstanceOf(ArrayComparisonExpression.class);
         arrayComparisonExpression = (ArrayComparisonExpression) anyExpression;
         assertThat(arrayComparisonExpression.quantifier()).isEqualTo(ArrayComparisonExpression.Quantifier.ANY);
-        assertThat(arrayComparisonExpression.getLeft()).isInstanceOf(IntegerLiteral.class);
-        assertThat(arrayComparisonExpression.getRight()).isInstanceOf(SubqueryExpression.class);
+        assertThat(arrayComparisonExpression.getLeft()).isExactlyInstanceOf(IntegerLiteral.class);
+        assertThat(arrayComparisonExpression.getRight()).isExactlyInstanceOf(SubqueryExpression.class);
     }
 
     @Test
     public void testArrayLikeExpression() {
         Expression expression = SqlParser.createExpression("'books%' LIKE ANY(race['interests'])");
-        assertThat(expression).isInstanceOf(ArrayLikePredicate.class);
+        assertThat(expression).isExactlyInstanceOf(ArrayLikePredicate.class);
         ArrayLikePredicate arrayLikePredicate = (ArrayLikePredicate) expression;
         assertThat(arrayLikePredicate.inverse()).isFalse();
         assertThat(arrayLikePredicate.getEscape()).isNull();
@@ -1456,7 +1456,7 @@ public class TestStatementBuilder {
         assertThat(arrayLikePredicate.getValue().toString()).isEqualTo("\"race\"['interests']");
 
         expression = SqlParser.createExpression("'b%' NOT LIKE ANY(race)");
-        assertThat(expression).isInstanceOf(ArrayLikePredicate.class);
+        assertThat(expression).isExactlyInstanceOf(ArrayLikePredicate.class);
         arrayLikePredicate = (ArrayLikePredicate) expression;
         assertThat(arrayLikePredicate.inverse()).isTrue();
         assertThat(arrayLikePredicate.getEscape()).isNull();
@@ -1495,22 +1495,22 @@ public class TestStatementBuilder {
     public void testObjectLiteral() {
         Expression emptyObjectLiteral = SqlParser.createExpression("{}");
         assertThat(emptyObjectLiteral)
-            .isInstanceOf(ObjectLiteral.class)
+            .isExactlyInstanceOf(ObjectLiteral.class)
             .extracting(ol -> ((ObjectLiteral) ol).values())
             .asInstanceOf(InstanceOfAssertFactories.MAP)
             .isEmpty();
 
         ObjectLiteral objectLiteral = (ObjectLiteral) SqlParser.createExpression("{a=1, aa=-1, b='str', c=[], d={}}");
         assertThat(objectLiteral.values()).hasSize(5);
-        assertThat(objectLiteral.values().get("a")).isInstanceOf(IntegerLiteral.class);
-        assertThat(objectLiteral.values().get("aa")).isInstanceOf(NegativeExpression.class);
-        assertThat(objectLiteral.values().get("b")).isInstanceOf(StringLiteral.class);
-        assertThat(objectLiteral.values().get("c")).isInstanceOf(ArrayLiteral.class);
-        assertThat(objectLiteral.values().get("d")).isInstanceOf(ObjectLiteral.class);
+        assertThat(objectLiteral.values().get("a")).isExactlyInstanceOf(IntegerLiteral.class);
+        assertThat(objectLiteral.values().get("aa")).isExactlyInstanceOf(NegativeExpression.class);
+        assertThat(objectLiteral.values().get("b")).isExactlyInstanceOf(StringLiteral.class);
+        assertThat(objectLiteral.values().get("c")).isExactlyInstanceOf(ArrayLiteral.class);
+        assertThat(objectLiteral.values().get("d")).isExactlyInstanceOf(ObjectLiteral.class);
 
         ObjectLiteral quotedObjectLiteral = (ObjectLiteral) SqlParser.createExpression("{\"AbC\"=123}");
         assertThat(quotedObjectLiteral.values()).hasSize(1);
-        assertThat(quotedObjectLiteral.values().get("AbC")).isInstanceOf(IntegerLiteral.class);
+        assertThat(quotedObjectLiteral.values().get("AbC")).isExactlyInstanceOf(IntegerLiteral.class);
         assertThat(quotedObjectLiteral.values().get("abc")).isNull();
         assertThat(quotedObjectLiteral.values().get("ABC")).isNull();
 
@@ -1527,15 +1527,15 @@ public class TestStatementBuilder {
 
         ArrayLiteral singleArrayLiteral = (ArrayLiteral) SqlParser.createExpression("[1]");
         assertThat(singleArrayLiteral.values()).hasSize(1);
-        assertThat(singleArrayLiteral.values().get(0)).isInstanceOf(IntegerLiteral.class);
+        assertThat(singleArrayLiteral.values().get(0)).isExactlyInstanceOf(IntegerLiteral.class);
 
         ArrayLiteral multipleArrayLiteral = (ArrayLiteral) SqlParser.createExpression(
             "['str', -12.56, {}, ['another', 'array']]");
         assertThat(multipleArrayLiteral.values()).hasSize(4);
-        assertThat(multipleArrayLiteral.values().get(0)).isInstanceOf(StringLiteral.class);
-        assertThat(multipleArrayLiteral.values().get(1)).isInstanceOf(NegativeExpression.class);
-        assertThat(multipleArrayLiteral.values().get(2)).isInstanceOf(ObjectLiteral.class);
-        assertThat(multipleArrayLiteral.values().get(3)).isInstanceOf(ArrayLiteral.class);
+        assertThat(multipleArrayLiteral.values().get(0)).isExactlyInstanceOf(StringLiteral.class);
+        assertThat(multipleArrayLiteral.values().get(1)).isExactlyInstanceOf(NegativeExpression.class);
+        assertThat(multipleArrayLiteral.values().get(2)).isExactlyInstanceOf(ObjectLiteral.class);
+        assertThat(multipleArrayLiteral.values().get(3)).isExactlyInstanceOf(ArrayLiteral.class);
     }
 
     @Test
@@ -1571,12 +1571,12 @@ public class TestStatementBuilder {
     public void testShowCreateTable() {
         Statement stmt = SqlParser.createStatement("SHOW CREATE TABLE foo");
         assertThat(stmt)
-            .isInstanceOf(ShowCreateTable.class)
+            .isExactlyInstanceOf(ShowCreateTable.class)
             .extracting(s -> ((ShowCreateTable<?>) s).table().getName().toString())
             .isEqualTo("foo");
         stmt = SqlParser.createStatement("SHOW CREATE TABLE my_schema.foo");
         assertThat(stmt)
-            .isInstanceOf(ShowCreateTable.class)
+            .isExactlyInstanceOf(ShowCreateTable.class)
             .extracting(s -> ((ShowCreateTable<?>) s).table().getName().toString())
             .isEqualTo("my_schema.foo");
     }
@@ -1646,7 +1646,7 @@ public class TestStatementBuilder {
     public void testAlterTableAddColumnTypeOrGeneratedExpressionAreDefined() {
         assertThatThrownBy(
             () -> printStatement("alter table t add column col2"))
-            .isInstanceOf(IllegalArgumentException.class)
+            .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Column [\"col2\"]: data type needs to be provided or column " +
                         "should be defined as a generated expression");
     }
@@ -1656,7 +1656,7 @@ public class TestStatementBuilder {
     public void testAddColumnWithDefaultExpressionIsNotSupported() {
         assertThatThrownBy(
             () -> printStatement("mismatched input 'default'"))
-            .isInstanceOf(ParsingException.class)
+            .isExactlyInstanceOf(ParsingException.class)
             .hasMessageStartingWith("line 1:1: mismatched input 'mismatched' expecting {'");
     }
 
@@ -1696,7 +1696,7 @@ public class TestStatementBuilder {
     public void testAlterUserWithMissingProperties() {
         assertThatThrownBy(
             () -> printStatement("alter user crate"))
-            .isInstanceOf(ParsingException.class)
+            .isExactlyInstanceOf(ParsingException.class)
             .hasMessage("line 1:17: mismatched input '<EOF>' expecting 'SET'");
     }
 

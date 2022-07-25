@@ -75,7 +75,7 @@ public class AzureStorageServiceTests extends ESTestCase {
         final AzureStorageService azureStorageService = storageServiceWithSettings(buildClientCredSettings());
         final CloudBlobClient client = azureStorageService.client().v1();
         assertThat(client.getDefaultRequestOptions().getRetryPolicyFactory()).isNotNull();
-        assertThat(client.getDefaultRequestOptions().getRetryPolicyFactory()).isInstanceOf(RetryExponentialRetry.class);
+        assertThat(client.getDefaultRequestOptions().getRetryPolicyFactory()).isExactlyInstanceOf(RetryExponentialRetry.class);
     }
 
     public void testGetSelectedClientBackoffPolicyNbRetries() {
@@ -87,7 +87,7 @@ public class AzureStorageServiceTests extends ESTestCase {
         final AzureStorageService azureStorageService = storageServiceWithSettings(timeoutSettings);
         final CloudBlobClient client = azureStorageService.client().v1();
         assertThat(client.getDefaultRequestOptions().getRetryPolicyFactory()).isNotNull();
-        assertThat(client.getDefaultRequestOptions().getRetryPolicyFactory()).isInstanceOf(RetryExponentialRetry.class);
+        assertThat(client.getDefaultRequestOptions().getRetryPolicyFactory()).isExactlyInstanceOf(RetryExponentialRetry.class);
     }
 
     public void testNoProxy() {
@@ -149,7 +149,7 @@ public class AzureStorageServiceTests extends ESTestCase {
             .build();
         assertThatThrownBy(
             () -> storageServiceWithSettings(settings))
-            .isInstanceOf(SettingsException.class)
+            .isExactlyInstanceOf(SettingsException.class)
             .hasMessage("Azure Proxy type has been set but proxy host or port is not defined.");
     }
 
@@ -162,7 +162,7 @@ public class AzureStorageServiceTests extends ESTestCase {
 
         assertThatThrownBy(
             () -> storageServiceWithSettings(settings))
-            .isInstanceOf(SettingsException.class)
+            .isExactlyInstanceOf(SettingsException.class)
             .hasMessage("Azure Proxy type has been set but proxy host or port is not defined.");
     }
 
@@ -175,7 +175,7 @@ public class AzureStorageServiceTests extends ESTestCase {
 
         assertThatThrownBy(
             () -> storageServiceWithSettings(settings))
-            .isInstanceOf(SettingsException.class)
+            .isExactlyInstanceOf(SettingsException.class)
             .hasMessage("Azure Proxy port or host have been set but proxy type is not defined.");
     }
 
@@ -189,7 +189,7 @@ public class AzureStorageServiceTests extends ESTestCase {
 
         assertThatThrownBy(
             () -> storageServiceWithSettings(settings))
-            .isInstanceOf(SettingsException.class)
+            .isExactlyInstanceOf(SettingsException.class)
             .hasMessage("Azure proxy host is unknown.");
     }
 

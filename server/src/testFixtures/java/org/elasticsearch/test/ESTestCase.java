@@ -132,6 +132,7 @@ import com.carrotsearch.randomizedtesting.generators.RandomPicks;
 import com.carrotsearch.randomizedtesting.generators.RandomStrings;
 import com.carrotsearch.randomizedtesting.rules.TestRuleAdapter;
 
+import io.crate.analyze.OptimizeTableSettings;
 import io.crate.common.SuppressForbidden;
 
 /**
@@ -362,9 +363,10 @@ public abstract class ESTestCase extends CrateLuceneTestCase {
                     // As long as these settings are deprecated but still used in
                     // tests we need to exclude them from the warning here.
                     l -> assertThat(l).isEmpty(),
-                    l -> assertThat(l).satisfies(s -> s.contains(IndexSettings.INDEX_SOFT_DELETES_SETTING.getKey())),
-                    l -> assertThat(l).satisfies(s -> s.contains(IndexSettings.INDEX_TRANSLOG_RETENTION_AGE_SETTING.getKey())),
-                    l -> assertThat(l).satisfies(s -> s.contains(IndexSettings.INDEX_TRANSLOG_RETENTION_SIZE_SETTING.getKey())));
+                    l -> assertThat(l).anyMatch(s -> s.contains(IndexSettings.INDEX_SOFT_DELETES_SETTING.getKey())),
+                    l -> assertThat(l).anyMatch(s -> s.contains(IndexSettings.INDEX_TRANSLOG_RETENTION_AGE_SETTING.getKey())),
+                    l -> assertThat(l).anyMatch(s -> s.contains(IndexSettings.INDEX_TRANSLOG_RETENTION_SIZE_SETTING.getKey())),
+                    l -> assertThat(l).anyMatch(s -> s.contains(OptimizeTableSettings.UPGRADE_SEGMENTS.getKey())));
         } finally {
             DeprecationLogger.resetWarnings();
         }

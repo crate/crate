@@ -231,7 +231,7 @@ public class LiteralsTest {
     public void testThatInvalidLengthEscapedUnicode16SequenceThrowsException() {
         assertThatThrownBy(
             () -> Literals.replaceEscapedChars("\\u006"))
-            .isInstanceOf(IllegalArgumentException.class)
+            .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage(Literals.ESCAPED_UNICODE_ERROR);
     }
 
@@ -239,7 +239,7 @@ public class LiteralsTest {
     public void testThatInvalidHexEscapedUnicode16SequenceThrowsException() {
         assertThatThrownBy(
             () -> Literals.replaceEscapedChars("\\u006G"))
-            .isInstanceOf(IllegalArgumentException.class)
+            .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage(Literals.ESCAPED_UNICODE_ERROR);
     }
 
@@ -273,7 +273,7 @@ public class LiteralsTest {
     public void testThatInvalidLengthEscapedUnicode32SequenceThrowsException() {
         assertThatThrownBy(
             () -> Literals.replaceEscapedChars("\\U0061"))
-            .isInstanceOf(IllegalArgumentException.class)
+            .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage(Literals.ESCAPED_UNICODE_ERROR);
     }
 
@@ -281,7 +281,7 @@ public class LiteralsTest {
     public void testThatInvalidHexEscapedUnicode32SequenceThrowsException() {
         assertThatThrownBy(
             () -> Literals.replaceEscapedChars("\\U0000006G"))
-            .isInstanceOf(IllegalArgumentException.class)
+            .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage(Literals.ESCAPED_UNICODE_ERROR);
     }
 

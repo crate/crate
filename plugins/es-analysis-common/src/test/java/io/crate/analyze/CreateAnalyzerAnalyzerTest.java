@@ -173,7 +173,7 @@ public class CreateAnalyzerAnalyzerTest extends CrateDummyClusterServiceUnitTest
                 "    lowercase" +
                 "  )" +
                 ")"))
-            .isInstanceOf(UnsupportedOperationException.class)
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
             .hasMessage("Tokenizer missing from non-extended analyzer");
     }
 
@@ -184,7 +184,7 @@ public class CreateAnalyzerAnalyzerTest extends CrateDummyClusterServiceUnitTest
                 "CREATE ANALYZER \"default\" (" +
                 "  TOKENIZER whitespace" +
                 ")"))
-            .isInstanceOf(IllegalArgumentException.class)
+            .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Overriding the default analyzer is forbidden");
     }
 
@@ -198,7 +198,7 @@ public class CreateAnalyzerAnalyzerTest extends CrateDummyClusterServiceUnitTest
                           "  TOKENIZER standard" +
                           ")"))
 
-            .isInstanceOf(IllegalArgumentException.class)
+            .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Cannot override builtin analyzer 'keyword'");
     }
 
@@ -212,7 +212,7 @@ public class CreateAnalyzerAnalyzerTest extends CrateDummyClusterServiceUnitTest
                 "  )," +
                 "  TOKENIZER whitespace" +
                 ")"))
-            .isInstanceOf(IllegalArgumentException.class)
+            .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("CHAR_FILTER of type 'mapping' needs additional parameters");
     }
 
