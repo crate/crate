@@ -181,7 +181,7 @@ public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServic
         } catch (ExecutionException e) {
             throw e.getCause();
         }
-        assertThat((T) actualResult).satisfies(expectedValue::matches);
+        assertThat((T) actualResult).matches(expectedValue::matches);
     }
 
     private static void ensureInputRowsHaveCorrectType(List<Symbol> sourceSymbols, Object[][] inputRows) {
