@@ -59,6 +59,12 @@ Deprecations
 Changes
 =======
 
+- Added support for ``catalog`` in fully qualified table and column names,
+  i.e.::
+
+    SELECT * FROM crate.doc.t1;
+    SELECT crate.doc.t1.a, crate.doc.t1.b FROM crate.doc.t1;
+
 - Added support of ``GROUP BY`` on ``ARRAY`` typed columns.
 
 

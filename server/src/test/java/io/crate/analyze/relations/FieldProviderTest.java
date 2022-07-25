@@ -22,6 +22,7 @@
 package io.crate.analyze.relations;
 
 import static io.crate.testing.SymbolMatchers.isField;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertThat;
 
 import java.util.Arrays;
@@ -68,10 +69,16 @@ public class FieldProviderTest extends ESTestCase {
 
     @Test
     public void testInvalidSources() throws Exception {
-        expectedException.expectMessage("Table with more than 2 QualifiedName parts is not supported. Only <schema>.<tableName> works.");
-        AnalyzedRelation relation = new DummyRelation("name");
-        FieldProvider<Symbol> resolver = newFQFieldProvider(Map.of(newQN("too.many.parts"), relation));
-        resolver.resolveField(newQN("name"), null, Operation.READ, DEFAULT_ERROR_ON_UNKNOWN_OBJECT_KEY);
+        final AnalyzedRelation relation = new DummyRelation("testTable");
+        assertThatThrownBy(
+            () -> newFQFieldProvider(Map.of(newQN("too.many.parts.fqn"), relation)))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Table with more than 3 QualifiedName parts is not supported. Only <catalog>.<schema>.<tableName> works.");
+
+        assertThatThrownBy(
+            () -> newFQFieldProvider(Map.of(newQN("invalidCatalog.schema.table"), relation)))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Unexpected catalog name: invalidCatalog. Only available catalog is crate");
     }
 
     @Test
