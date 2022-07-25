@@ -240,6 +240,6 @@ public class BatchIteratorTester {
     private static void expectFailure(Runnable runnable,
                                       Class<? extends Exception> expectedException,
                                       String reason) {
-        assertThatThrownBy(runnable::run).as(reason).isInstanceOf(expectedException);
+        assertThatThrownBy(runnable::run).as(reason).isExactlyInstanceOf(expectedException);
     }
 }

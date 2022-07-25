@@ -85,7 +85,7 @@ public class S3BlobStoreContainerTests extends ESBlobStoreContainerTestCase {
 
         assertThatThrownBy(
             () -> blobContainer.executeSingleUpload(blobStore, randomAlphaOfLengthBetween(1, 10), null, blobSize))
-            .isInstanceOf(IllegalArgumentException.class)
+            .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessageEndingWith("can't be larger than 5gb");
 
     }
@@ -100,7 +100,7 @@ public class S3BlobStoreContainerTests extends ESBlobStoreContainerTestCase {
 
         assertThatThrownBy(
             () -> blobContainer.executeSingleUpload(blobStore, blobName, new ByteArrayInputStream(new byte[0]), ByteSizeUnit.MB.toBytes(2)))
-            .isInstanceOf(IllegalArgumentException.class)
+            .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessageEndingWith("can't be larger than buffer size");
     }
 
@@ -164,7 +164,7 @@ public class S3BlobStoreContainerTests extends ESBlobStoreContainerTestCase {
 
         assertThatThrownBy(
             () -> blobContainer.executeMultipartUpload(blobStore, randomAlphaOfLengthBetween(1, 10), null, blobSize))
-            .isInstanceOf(IllegalArgumentException.class)
+            .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessageEndingWith("can't be larger than 5tb");
     }
 
@@ -176,7 +176,7 @@ public class S3BlobStoreContainerTests extends ESBlobStoreContainerTestCase {
 
         assertThatThrownBy(
             () -> blobContainer.executeMultipartUpload(blobStore, randomAlphaOfLengthBetween(1, 10), null, blobSize))
-            .isInstanceOf(IllegalArgumentException.class)
+            .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessageEndingWith("can't be smaller than 5mb");
     }
 
@@ -355,7 +355,7 @@ public class S3BlobStoreContainerTests extends ESBlobStoreContainerTestCase {
         });
 
         assertThat(e.getMessage()).isEqualTo("Unable to upload object [" + blobName + "] using multipart upload");
-        assertThat(e.getCause()).isInstanceOf(AmazonClientException.class);
+        assertThat(e.getCause()).isExactlyInstanceOf(AmazonClientException.class);
         assertThat(e.getCause().getMessage()).isEqualTo(exceptions.get(stage).getMessage());
 
         if (stage == 0) {
@@ -388,7 +388,7 @@ public class S3BlobStoreContainerTests extends ESBlobStoreContainerTestCase {
     public void testNumberOfMultipartsWithZeroPartSize() {
         assertThatThrownBy(
             () -> S3BlobContainer.numberOfMultiparts(randomNonNegativeLong(), 0L))
-            .isInstanceOf(IllegalArgumentException.class)
+            .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Part size must be greater than zero");
     }
 

@@ -311,7 +311,7 @@ public class JavascriptUserDefinedFunctionTest extends ScalarTestCase {
             "function f(x) { var File = Java.type(\"java.io.File\"); return x; }");
 
         assertThatThrownBy(() -> assertEvaluate("f(x)", 1L, Literal.of(1L)))
-            .isInstanceOf(io.crate.exceptions.ScriptException.class)
+            .isExactlyInstanceOf(io.crate.exceptions.ScriptException.class)
             .hasMessageContaining("Java is not defined");
     }
 

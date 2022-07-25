@@ -118,7 +118,7 @@ public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServic
         performInputSanityChecks(inputRows);
 
         Symbol normalizedFunctionSymbol = sqlExpressions.normalize(sqlExpressions.asSymbol(functionExpression));
-        assertThat(normalizedFunctionSymbol).isInstanceOf(io.crate.expression.symbol.WindowFunction.class);
+        assertThat(normalizedFunctionSymbol).isExactlyInstanceOf(io.crate.expression.symbol.WindowFunction.class);
 
         var windowFunctionSymbol = (io.crate.expression.symbol.WindowFunction) normalizedFunctionSymbol;
         ReferenceResolver<InputCollectExpression> referenceResolver =
