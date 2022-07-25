@@ -21,6 +21,26 @@
 
 package io.crate.planner.node.ddl;
 
+import static io.crate.analyze.GenericPropertiesConverter.genericPropertiesToSettings;
+import static io.crate.analyze.OptimizeTableSettings.FLUSH;
+import static io.crate.analyze.OptimizeTableSettings.MAX_NUM_SEGMENTS;
+import static io.crate.analyze.OptimizeTableSettings.ONLY_EXPUNGE_DELETES;
+import static io.crate.analyze.OptimizeTableSettings.SUPPORTED_SETTINGS;
+import static io.crate.analyze.OptimizeTableSettings.UPGRADE_SEGMENTS;
+import static io.crate.analyze.PartitionPropertiesAnalyzer.toPartitionName;
+import static io.crate.data.SentinelRow.SENTINEL;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+
+import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeAction;
+import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeRequest;
+import org.elasticsearch.action.support.IndicesOptions;
+import org.elasticsearch.common.settings.Settings;
+
 import io.crate.analyze.AnalyzedOptimizeTable;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.common.annotations.VisibleForTesting;
@@ -29,6 +49,7 @@ import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
+import io.crate.data.SentinelRow;
 import io.crate.exceptions.PartitionUnknownException;
 import io.crate.execution.support.OneRowActionListener;
 import io.crate.expression.symbol.Symbol;
@@ -43,28 +64,6 @@ import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.Table;
-
-import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeAction;
-import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeRequest;
-import org.elasticsearch.action.admin.indices.upgrade.post.UpgradeAction;
-import org.elasticsearch.action.admin.indices.upgrade.post.UpgradeRequest;
-import org.elasticsearch.action.support.IndicesOptions;
-import org.elasticsearch.common.settings.Settings;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
-
-import static io.crate.analyze.GenericPropertiesConverter.genericPropertiesToSettings;
-import static io.crate.analyze.OptimizeTableSettings.FLUSH;
-import static io.crate.analyze.OptimizeTableSettings.MAX_NUM_SEGMENTS;
-import static io.crate.analyze.OptimizeTableSettings.ONLY_EXPUNGE_DELETES;
-import static io.crate.analyze.OptimizeTableSettings.SUPPORTED_SETTINGS;
-import static io.crate.analyze.OptimizeTableSettings.UPGRADE_SEGMENTS;
-import static io.crate.analyze.PartitionPropertiesAnalyzer.toPartitionName;
-import static io.crate.data.SentinelRow.SENTINEL;
 
 public class OptimizeTablePlan implements Plan {
 
@@ -102,13 +101,7 @@ public class OptimizeTablePlan implements Plan {
         var toOptimize = stmt.indexNames();
 
         if (UPGRADE_SEGMENTS.get(settings)) {
-            var request = new UpgradeRequest(toOptimize.toArray(new String[0]));
-
-            dependencies.client().execute(UpgradeAction.INSTANCE, request)
-                .whenComplete(
-                    new OneRowActionListener<>(
-                        consumer,
-                        response -> new Row1(toOptimize.isEmpty() ? -1L : (long) toOptimize.size())));
+            consumer.accept(InMemoryBatchIterator.of(new Row1(-1L), SentinelRow.SENTINEL), null);
         } else {
             var request = new ForceMergeRequest(toOptimize.toArray(new String[0]));
             request.maxNumSegments(MAX_NUM_SEGMENTS.get(settings));
