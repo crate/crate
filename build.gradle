@@ -197,12 +197,12 @@ task jacocoReport(type: JacocoReport) {
 
     reports {
         xml {
-            enabled true
+            required = true
             destination file(project.buildDir.path + '/reports/jacoco/test/jacocoTestReport.xml')
         }
-        csv.enabled false
+        csv.required = false
         html {
-            enabled true
+            required = true
             destination file(project.buildDir.path + '/reports/jacoco/jacocoHtml')
         }
     }
