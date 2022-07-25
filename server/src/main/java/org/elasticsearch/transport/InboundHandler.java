@@ -206,10 +206,15 @@ public class InboundHandler {
             protected void doRun() {
                 handler.handleResponse(response);
             }
+
+            @Override
+            public boolean isForceExecution() {
+                return true;
+            }
         });
     }
 
-    private void handlerResponseError(StreamInput stream, final TransportResponseHandler handler) {
+    private void handlerResponseError(StreamInput stream, final TransportResponseHandler<?> handler) {
         Exception error;
         try {
             error = stream.readException();
@@ -219,16 +224,35 @@ public class InboundHandler {
         handleException(handler, error);
     }
 
-    private void handleException(final TransportResponseHandler handler, Throwable error) {
+    private void handleException(final TransportResponseHandler<?> handler, Throwable error) {
         if (!(error instanceof RemoteTransportException)) {
             error = new RemoteTransportException(error.getMessage(), error);
         }
         final RemoteTransportException rtx = (RemoteTransportException) error;
-        threadPool.executor(handler.executor()).execute(() -> {
-            try {
-                handler.handleException(rtx);
-            } catch (Exception e) {
-                LOGGER.error(() -> new ParameterizedMessage("failed to handle exception response [{}]", handler), e);
+        threadPool.executor(handler.executor()).execute(new AbstractRunnable() {
+
+            @Override
+            protected void doRun() throws Exception {
+                try {
+                    handler.handleException(rtx);
+                } catch (Exception e) {
+                    LOGGER.error(() -> new ParameterizedMessage("failed to handle exception response [{}]", handler), e);
+                }
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                try {
+                    handler.handleException(rtx);
+                } catch (Exception err) {
+                    e.addSuppressed(err);
+                    LOGGER.error(() -> new ParameterizedMessage("failed to handle exception response [{}]", handler), e);
+                }
+            }
+
+            @Override
+            public boolean isForceExecution() {
+                return true;
             }
         });
     }
