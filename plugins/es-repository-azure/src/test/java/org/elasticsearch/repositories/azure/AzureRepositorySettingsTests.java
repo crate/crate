@@ -111,19 +111,19 @@ public class AzureRepositorySettingsTests extends ESTestCase {
         // zero bytes is not allowed
         assertThatThrownBy(
             () -> azureRepository(Settings.builder().put("chunk_size", "0").build()))
-            .isInstanceOf(IllegalArgumentException.class)
+            .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("failed to parse value [0] for setting [chunk_size], must be >= [1b]");
 
         // negative bytes not allowed
         assertThatThrownBy(
             () -> azureRepository(Settings.builder().put("chunk_size", "-1").build()))
-            .isInstanceOf(IllegalArgumentException.class)
+            .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("failed to parse value [-1] for setting [chunk_size], must be >= [1b]");
 
         // greater than max chunk size not allowed
         assertThatThrownBy(
             () -> azureRepository(Settings.builder().put("chunk_size", "257mb").build()))
-            .isInstanceOf(IllegalArgumentException.class)
+            .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("failed to parse value [257mb] for setting [chunk_size], must be <= [256mb]");
     }
 }

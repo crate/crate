@@ -127,7 +127,7 @@ public class S3RepositoryPluginAnalyzerTest extends CrateDummyClusterServiceUnit
     public void testCreateS3RepoWithWrongSettings() {
         assertThatThrownBy(
             () -> analyze(e, "CREATE REPOSITORY foo TYPE s3 WITH (wrong=true)"))
-            .isInstanceOf(IllegalArgumentException.class)
+            .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("setting 'wrong' not supported");
     }
 

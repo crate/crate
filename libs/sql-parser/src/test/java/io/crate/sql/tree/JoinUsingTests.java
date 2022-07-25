@@ -42,19 +42,19 @@ public class JoinUsingTests {
             QualifiedName right = QualifiedName.of("doc", "t2");
             Expression e = JoinUsing.toExpression(left, right, cols);
             for (int i = 0; i < n - 2; i++) {
-                assertThat(e).isInstanceOf(LogicalBinaryExpression.class);
+                assertThat(e).isExactlyInstanceOf(LogicalBinaryExpression.class);
                 LogicalBinaryExpression and = (LogicalBinaryExpression) e;
-                assertThat(and.getLeft()).isInstanceOf(ComparisonExpression.class);
-                assertThat(and.getRight()).isInstanceOf(LogicalBinaryExpression.class);
+                assertThat(and.getLeft()).isExactlyInstanceOf(ComparisonExpression.class);
+                assertThat(and.getRight()).isExactlyInstanceOf(LogicalBinaryExpression.class);
                 e = and.getRight();
             }
             if (1 == n) {
-                assertThat(e).isInstanceOf(ComparisonExpression.class);
+                assertThat(e).isExactlyInstanceOf(ComparisonExpression.class);
             } else {
-                assertThat(e).isInstanceOf(LogicalBinaryExpression.class);
+                assertThat(e).isExactlyInstanceOf(LogicalBinaryExpression.class);
                 LogicalBinaryExpression and = (LogicalBinaryExpression) e;
-                assertThat(and.getLeft()).isInstanceOf(ComparisonExpression.class);
-                assertThat(and.getRight()).isInstanceOf(ComparisonExpression.class);
+                assertThat(and.getLeft()).isExactlyInstanceOf(ComparisonExpression.class);
+                assertThat(and.getRight()).isExactlyInstanceOf(ComparisonExpression.class);
             }
         }
     }
