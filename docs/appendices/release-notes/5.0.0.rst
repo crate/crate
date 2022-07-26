@@ -70,17 +70,17 @@ Breaking Changes
   name as column name unless the function returns more than one column. Some
   examples:
 
-    ``cr> SELECT * FROM generate_series(1, 2);``
+  1. ``cr> SELECT * FROM generate_series(1, 2);``
 
-  This used to return a column named ``col1`` and now returns a column named
-  ``generate_series``
+     This used to return a column named ``col1`` and now returns a column named
+     ``generate_series``.
 
-    ``cr> SELECT * FROM generate_series(1, 2) as numbers;``
+  2. ``cr> SELECT * FROM generate_series(1, 2) as numbers;``
 
-  This used to return a column named ``col1`` and now returns a column named
-  ``numbers``
+     This used to return a column named ``col1`` and now returns a column named
+     ``numbers``.
 
-  To ease migration we added a new setting
+  To ease migration, we added a new setting
   (:ref:`legacy.table_function_column_naming
   <legacy.table_function_column_naming>`.) to opt-out of this new behavior.
 
