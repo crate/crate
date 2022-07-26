@@ -1220,6 +1220,13 @@ public class TestStatementBuilder {
     }
 
     @Test
+    public void test_using_fqn_in_column_list_of_insert_into_results_in_user_friendly_error() {
+        assertThatThrownBy(() -> printStatement("insert into tbl (t.x) values (1)"))
+            .hasMessage("Column references used in INSERT INTO <tbl> (...) must use the column name. They cannot qualify catalog, schema or table. Got `t.x`");
+    }
+
+
+    @Test
     public void testParameterExpressionLimitOffset() {
         // ORMs like SQLAlchemy generate these kind of queries.
         printStatement("select * from foo limit ? offset ?");

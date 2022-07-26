@@ -171,7 +171,7 @@ public class SQLTypeMappingTest extends SQLIntegrationTestCase {
 
         assertThrowsMatches(() -> execute("insert into test12 (object_field['size']) values (127)"),
                      isSQLError(is(
-                         String.format(Locale.ENGLISH, "invalid table column reference \"object_field\"['size']",
+                         String.format(Locale.ENGLISH, "Invalid column reference \"object_field\"['size'] used in INSERT INTO statement",
                                        sqlExecutor.getCurrentSchema())),
                                 INTERNAL_ERROR,
                                 BAD_REQUEST,
