@@ -19,6 +19,17 @@
 
 package org.elasticsearch.index.shard;
 
+import static io.crate.common.unit.TimeValue.timeValueMillis;
+
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
+
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
@@ -31,6 +42,7 @@ import org.apache.lucene.store.IOContext;
 import org.apache.lucene.store.IndexInput;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.StepListener;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.routing.RecoverySource;
@@ -38,7 +50,6 @@ import org.elasticsearch.cluster.routing.RecoverySource.SnapshotRecoverySource;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.common.unit.ByteSizeValue;
-import io.crate.common.unit.TimeValue;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.engine.EngineException;
@@ -51,16 +62,7 @@ import org.elasticsearch.indices.recovery.RecoveryState;
 import org.elasticsearch.repositories.IndexId;
 import org.elasticsearch.repositories.Repository;
 
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Consumer;
-import java.util.stream.Collectors;
-
-import static io.crate.common.unit.TimeValue.timeValueMillis;
+import io.crate.common.unit.TimeValue;
 
 /**
  * This package private utility class encapsulates the logic to recover an index shard from either an existing index on
@@ -498,20 +500,24 @@ final class StoreRecovery {
             translogState.totalOperationsOnStart(0);
             indexShard.prepareForIndexRecovery();
             final ShardId snapshotShardId;
-            final String indexName = restoreSource.index();
-            if (!shardId.getIndexName().equals(indexName)) {
-                snapshotShardId = new ShardId(indexName, IndexMetadata.INDEX_UUID_NA_VALUE, shardId.id());
-            } else {
+            final IndexId indexId = restoreSource.index();
+            if (shardId.getIndexName().equals(indexId.getName())) {
                 snapshotShardId = shardId;
+            } else {
+                snapshotShardId = new ShardId(indexId.getName(), IndexMetadata.INDEX_UUID_NA_VALUE, shardId.id());
             }
-            repository.getRepositoryData(ActionListener.wrap(
-                repositoryData -> {
-                    final IndexId indexId = repositoryData.resolveIndexId(indexName);
-                    assert indexShard.getEngineOrNull() == null;
-                    repository.restoreShard(indexShard.store(), restoreSource.snapshot().getSnapshotId(), indexId, snapshotShardId,
-                        indexShard.recoveryState(), restoreListener);
-                }, restoreListener::onFailure
-            ));
+            final StepListener<IndexId> indexIdListener = new StepListener<>();
+            // If the index UUID was not found in the recovery source we will have to load RepositoryData and resolve it by index name
+            if (indexId.getId().equals(IndexMetadata.INDEX_UUID_NA_VALUE)) {
+                // BwC path, running against an old version master that did not add the IndexId to the recovery source
+                repository.getRepositoryData(ActionListener.map(
+                    indexIdListener, repositoryData -> repositoryData.resolveIndexId(indexId.getName())));
+            } else {
+                indexIdListener.onResponse(indexId);
+            }
+            assert indexShard.getEngineOrNull() == null;
+            indexIdListener.whenComplete(idx -> repository.restoreShard(indexShard.store(), restoreSource.snapshot().getSnapshotId(),
+                idx, snapshotShardId, indexShard.recoveryState(), restoreListener), restoreListener::onFailure);
         } catch (Exception e) {
             restoreListener.onFailure(e);
         }

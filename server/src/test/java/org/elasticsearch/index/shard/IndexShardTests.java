@@ -3467,7 +3467,7 @@ public class IndexShardTests extends IndexShardTestCase {
                 UUIDs.randomBase64UUID(),
                 snapshot,
                 Version.CURRENT,
-                "test")
+                new IndexId("test", UUIDs.randomBase64UUID(random())))
         );
         target = reinitShard(target, routing);
         Store sourceStore = source.store();
