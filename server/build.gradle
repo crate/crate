@@ -148,7 +148,7 @@ dependencies {
 task getVersion(dependsOn: 'classes', type: JavaExec) {
     def stdout = new ByteArrayOutputStream()
     classpath = sourceSets.main.runtimeClasspath
-    main = 'org.elasticsearch.Version'
+    mainClass = 'org.elasticsearch.Version'
     standardOutput = stdout
 
     doLast {
@@ -190,7 +190,7 @@ task generateGrammarSource(dependsOn: antlrOutputDir, type: JavaExec) {
 
     def grammars = fileTree(antlr.source).include('**/*.g4')
 
-    main = 'org.antlr.v4.Tool'
+    mainClass = 'org.antlr.v4.Tool'
     classpath = configurations.antlr4
     args = [
         "-o", "${antlr.output}",

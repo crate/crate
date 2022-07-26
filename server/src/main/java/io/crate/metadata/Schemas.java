@@ -21,10 +21,39 @@
 
 package io.crate.metadata;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.lucene.search.spell.LevenshteinDistance;
+import org.elasticsearch.cluster.ClusterChangedEvent;
+import org.elasticsearch.cluster.ClusterStateListener;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.component.AbstractLifecycleComponent;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
+
 import com.carrotsearch.hppc.cursors.ObjectCursor;
-import io.crate.user.Privilege;
-import io.crate.user.User;
+
 import io.crate.common.annotations.VisibleForTesting;
+import io.crate.common.collections.Sets;
 import io.crate.common.collections.Tuple;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.SchemaUnknownException;
@@ -41,34 +70,8 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.view.ViewMetadata;
 import io.crate.metadata.view.ViewsMetadata;
 import io.crate.sql.tree.QualifiedName;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.apache.lucene.search.spell.LevenshteinDistance;
-import org.elasticsearch.cluster.ClusterChangedEvent;
-import org.elasticsearch.cluster.ClusterStateListener;
-import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.component.AbstractLifecycleComponent;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
-import io.crate.common.collections.Sets;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
+import io.crate.user.Privilege;
+import io.crate.user.User;
 
 
 @Singleton
@@ -243,25 +246,21 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
 
     @Nullable
     private static String schemaName(QualifiedName ident) {
-        assert ident.getParts().size() <
-               3 : "When identifying schemas or tables a qualified name should not have more the 2 parts";
+        assert ident.getParts().size() <=
+               3 : "When identifying schemas or tables a qualified name should not have more the 3 parts";
         List<String> parts = ident.getParts();
-        if (parts.size() == 2) {
-            return parts.get(0);
+        if (parts.size() >= 2) {
+            return parts.get(parts.size() - 2);
         } else {
             return null;
         }
     }
 
     private static String relationName(QualifiedName ident) {
-        assert ident.getParts().size() <
-               3 : "When identifying schemas or tables a qualified name should not have more the 2 parts";
+        assert ident.getParts().size() <=
+               3 : "When identifying schemas or tables a qualified name should not have more the 3 parts";
         List<String> parts = ident.getParts();
-        if (parts.size() == 2) {
-            return parts.get(1);
-        } else {
-            return parts.get(0);
-        }
+        return parts.get(parts.size() - 1);
     }
 
     /**

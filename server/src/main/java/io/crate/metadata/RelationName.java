@@ -21,6 +21,20 @@
 
 package io.crate.metadata;
 
+import static io.crate.Constants.DB_NAME;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
+
+import javax.annotation.Nullable;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Writeable;
+
 import io.crate.blob.v2.BlobIndex;
 import io.crate.exceptions.InvalidRelationName;
 import io.crate.exceptions.InvalidSchemaNameException;
@@ -29,15 +43,6 @@ import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.sql.Identifiers;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.Table;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Writeable;
-
-import javax.annotation.Nullable;
-import java.io.IOException;
-import java.util.List;
-import java.util.Set;
 
 public final class RelationName implements Writeable {
 
@@ -49,12 +54,15 @@ public final class RelationName implements Writeable {
 
     public static RelationName of(QualifiedName name, String defaultSchema) {
         List<String> parts = name.getParts();
-        if (parts.size() > 2) {
+        if (parts.size() > 3) {
             throw new IllegalArgumentException(
-                "Table with more than 2 QualifiedName parts is not supported. Only <schema>.<tableName> works.");
+                "Table with more than 3 QualifiedName parts is not supported. Only <catalog>.<schema>.<tableName> works.");
         }
-        if (parts.size() == 2) {
-            return new RelationName(parts.get(0), parts.get(1));
+        if (parts.size() == 3) {
+            ensureIsCrateCatalog(parts.get(0));
+        }
+        if (parts.size() >= 2) {
+            return new RelationName(parts.get(parts.size() - 2), parts.get(parts.size() - 1));
         }
         return new RelationName(defaultSchema, parts.get(0));
     }
@@ -156,6 +164,15 @@ public final class RelationName implements Writeable {
         }
         if (Schemas.READ_ONLY_SYSTEM_SCHEMAS.contains(schema)) {
             throw new IllegalArgumentException("Cannot create relation in read-only schema: " + schema);
+        }
+    }
+
+    public static void ensureIsCrateCatalog(String catalogName) {
+        if (DB_NAME.equals(catalogName) == false) {
+            throw new IllegalArgumentException(
+                String.format(Locale.ENGLISH, "Unexpected catalog name: %s. Only available catalog is %s",
+                              catalogName,
+                              DB_NAME));
         }
     }
 
