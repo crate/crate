@@ -21,12 +21,14 @@ package org.elasticsearch.cluster.routing;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.RestoreInProgress;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.ToXContentObject;
 import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.repositories.IndexId;
 import org.elasticsearch.snapshots.Snapshot;
 
 import java.io.IOException;
@@ -142,7 +144,6 @@ public abstract class RecoverySource implements Writeable, ToXContentObject {
          */
         public static final String FORCED_ALLOCATION_ID = "_forced_allocation_";
 
-
         public static final ExistingStoreRecoverySource INSTANCE = new ExistingStoreRecoverySource(false);
         public static final ExistingStoreRecoverySource FORCE_STALE_PRIMARY_INSTANCE = new ExistingStoreRecoverySource(true);
 
@@ -215,14 +216,14 @@ public abstract class RecoverySource implements Writeable, ToXContentObject {
     public static class SnapshotRecoverySource extends RecoverySource {
         private final String restoreUUID;
         private final Snapshot snapshot;
-        private final String index;
+        private final IndexId index;
         private final Version version;
 
-        public SnapshotRecoverySource(String restoreUUID, Snapshot snapshot, Version version, String index) {
+        public SnapshotRecoverySource(String restoreUUID, Snapshot snapshot, Version version, IndexId indexId) {
             this.restoreUUID = restoreUUID;
             this.snapshot = Objects.requireNonNull(snapshot);
             this.version = Objects.requireNonNull(version);
-            this.index = Objects.requireNonNull(index);
+            this.index = Objects.requireNonNull(indexId);
         }
 
         SnapshotRecoverySource(StreamInput in) throws IOException {
@@ -233,7 +234,11 @@ public abstract class RecoverySource implements Writeable, ToXContentObject {
             }
             snapshot = new Snapshot(in);
             version = Version.readVersion(in);
-            index = in.readString();
+            if (in.getVersion().onOrAfter(Version.V_5_1_0)) {
+                index = new IndexId(in);
+            } else {
+                index = new IndexId(in.readString(), IndexMetadata.INDEX_UUID_NA_VALUE);
+            }
         }
 
         public String restoreUUID() {
@@ -244,7 +249,13 @@ public abstract class RecoverySource implements Writeable, ToXContentObject {
             return snapshot;
         }
 
-        public String index() {
+        /**
+         * Gets the {@link IndexId} of the recovery source. May contain {@link IndexMetadata#INDEX_UUID_NA_VALUE} as the index uuid if it
+         * was created by an older version master in a mixed version cluster.
+         *
+         * @return IndexId
+         */
+        public IndexId index() {
             return index;
         }
 
@@ -259,7 +270,11 @@ public abstract class RecoverySource implements Writeable, ToXContentObject {
             }
             snapshot.writeTo(out);
             Version.writeVersion(version, out);
-            out.writeString(index);
+            if (out.getVersion().onOrAfter(Version.V_5_1_0)) {
+                index.writeTo(out);
+            } else {
+                out.writeString(index.getName());
+            }
         }
 
         @Override
@@ -272,7 +287,7 @@ public abstract class RecoverySource implements Writeable, ToXContentObject {
             builder.field("repository", snapshot.getRepository())
                 .field("snapshot", snapshot.getSnapshotId().getName())
                 .field("version", version.toString())
-                .field("index", index)
+                .field("index", index.getName())
                 .field("restoreUUID", restoreUUID);
         }
 
@@ -290,11 +305,11 @@ public abstract class RecoverySource implements Writeable, ToXContentObject {
                 return false;
             }
 
-            @SuppressWarnings("unchecked") SnapshotRecoverySource that = (SnapshotRecoverySource) o;
+            SnapshotRecoverySource that = (SnapshotRecoverySource) o;
             return restoreUUID.equals(that.restoreUUID)
-                && snapshot.equals(that.snapshot)
-                && index.equals(that.index)
-                && version.equals(that.version);
+                   && snapshot.equals(that.snapshot)
+                   && index.equals(that.index)
+                   && version.equals(that.version);
         }
 
         @Override

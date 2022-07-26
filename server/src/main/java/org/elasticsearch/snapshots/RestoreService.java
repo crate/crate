@@ -271,7 +271,8 @@ public class RestoreService implements ClusterStateApplier {
                                             for (Map.Entry<String, String> indexEntry : indices.entrySet()) {
                                                 String index = indexEntry.getValue();
                                                 boolean partial = checkPartial(index);
-                                                SnapshotRecoverySource recoverySource = new SnapshotRecoverySource(restoreUUID, snapshot, snapshotInfo.version(), index);
+                                                SnapshotRecoverySource recoverySource = new SnapshotRecoverySource(restoreUUID, snapshot,
+                                                    snapshotInfo.version(), repositoryData.resolveIndexId(index));
                                                 IndexMetadata snapshotIndexMetadata = metadata.index(index);
                                                 if (snapshotIndexMetadata == null) {
                                                     throw new IndexNotFoundException(
