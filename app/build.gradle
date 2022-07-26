@@ -299,7 +299,7 @@ task downloadAdminUI {
 processResources.dependsOn(downloadPlugins)
 
 task(runDebug, dependsOn: 'classes', type: JavaExec) {
-    main = 'io.crate.bootstrap.CrateDB'
+    mainClass = 'io.crate.bootstrap.CrateDB'
     debug = true
     enableAssertions = true
     classpath = sourceSets.main.runtimeClasspath
@@ -308,7 +308,7 @@ task(runDebug, dependsOn: 'classes', type: JavaExec) {
 }
 
 task(run, dependsOn: 'classes', type: JavaExec) {
-    main = 'io.crate.bootstrap.CrateDB'
+    mainClass = 'io.crate.bootstrap.CrateDB'
     debug = false
     enableAssertions = true
     classpath = sourceSets.main.runtimeClasspath
@@ -318,7 +318,7 @@ task(run, dependsOn: 'classes', type: JavaExec) {
 
 task createCrateNodeScripts(type: CreateStartScripts) {
     outputDir = file('build/bin')
-    mainClassName = 'org.elasticsearch.cluster.coordination.NodeToolCli'
+    mainClass = 'org.elasticsearch.cluster.coordination.NodeToolCli'
     applicationName = 'crate-node'
     classpath = sourceSets.main.runtimeClasspath + files('lib/crate-app.jar')
 

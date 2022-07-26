@@ -41,7 +41,7 @@ task generateGrammarSource(dependsOn: antlrOutputDir, type: JavaExec) {
 
     def grammars = fileTree(antlr.source).include('**/*.g4')
 
-    main = 'org.antlr.v4.Tool'
+    mainClass = 'org.antlr.v4.Tool'
     classpath = configurations.antlr4
     args = ["-o", "${antlr.output}", "-visitor", "-package", antlr.package, grammars.files].flatten()
 }
