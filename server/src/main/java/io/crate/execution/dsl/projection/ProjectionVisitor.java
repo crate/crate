@@ -101,4 +101,8 @@ public class ProjectionVisitor<C, R> {
     public R visitTopNDistinct(TopNDistinctProjection topNDistinctProjection, C context) {
         return visitProjection(topNDistinctProjection, context);
     }
+
+    public R visitCorrelatedJoin(CorrelatedJoinProjection correlatedJoin, C context) {
+        return visitProjection(correlatedJoin, context);
+    }
 }

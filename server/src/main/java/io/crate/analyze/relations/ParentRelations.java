@@ -51,11 +51,21 @@ public class ParentRelations {
     }
 
     public boolean containsRelation(RelationName qualifiedName) {
-        return relation(qualifiedName) != null;
+        return getAncestor(qualifiedName) != null;
     }
 
     @Nullable
-    public AnalyzedRelation relation(RelationName relationName) {
+    public AnalyzedRelation getParent(RelationName relationName) {
+        if (sourcesTree.isEmpty() || sourcesTree.size() < 2) {
+            return null;
+        }
+        // the last item is the _current_ relation, need one before that for the immediate parent
+        Map<RelationName, AnalyzedRelation> parent = sourcesTree.get(sourcesTree.size() - 2);
+        return parent.get(relationName);
+    }
+
+    @Nullable
+    public AnalyzedRelation getAncestor(RelationName relationName) {
         AnalyzedRelation relation = null;
         for (int i = sourcesTree.size() - 1; i >= 0; i--) {
             relation = sourcesTree.get(i).get(relationName);

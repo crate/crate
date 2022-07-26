@@ -21,6 +21,20 @@
 
 package io.crate.planner.operators;
 
+import static io.crate.planner.operators.Limit.limitAndOffset;
+import static io.crate.planner.operators.LogicalPlanner.NO_LIMIT;
+
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import javax.annotation.Nullable;
+
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
@@ -41,6 +55,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.RelationName;
+import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.PositionalOrderBy;
@@ -49,19 +64,6 @@ import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.join.Join;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.statistics.TableStats;
-
-import javax.annotation.Nullable;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import static io.crate.planner.operators.Limit.limitAndOffset;
-import static io.crate.planner.operators.LogicalPlanner.NO_LIMIT;
 
 public class NestedLoopJoin implements LogicalPlan {
 
@@ -160,7 +162,8 @@ public class NestedLoopJoin implements LogicalPlan {
     }
 
     @Override
-    public ExecutionPlan build(PlannerContext plannerContext,
+    public ExecutionPlan build(DependencyCarrier executor,
+                               PlannerContext plannerContext,
                                Set<PlanHint> hints,
                                ProjectionBuilder projectionBuilder,
                                int limit,
@@ -182,9 +185,9 @@ public class NestedLoopJoin implements LogicalPlan {
             : null;
 
         ExecutionPlan left = lhs.build(
-            plannerContext, hints, projectionBuilder, NO_LIMIT, 0, null, childPageSizeHint, params, subQueryResults);
+            executor, plannerContext, hints, projectionBuilder, NO_LIMIT, 0, null, childPageSizeHint, params, subQueryResults);
         ExecutionPlan right = rhs.build(
-            plannerContext, hints, projectionBuilder, NO_LIMIT, 0, null, childPageSizeHint, params, subQueryResults);
+            executor, plannerContext, hints, projectionBuilder, NO_LIMIT, 0, null, childPageSizeHint, params, subQueryResults);
 
         PositionalOrderBy orderByFromLeft = left.resultDescription().orderBy();
         boolean hasDocTables = baseTables.stream().anyMatch(r -> r instanceof DocTableRelation);

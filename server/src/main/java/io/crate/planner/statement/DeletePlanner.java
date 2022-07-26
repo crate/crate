@@ -80,7 +80,7 @@ public final class DeletePlanner {
                                   SubqueryPlanner subqueryPlanner,
                                   PlannerContext context) {
         Plan plan = planDelete(delete, context);
-        return MultiPhasePlan.createIfNeeded(plan, subqueryPlanner.planSubQueries(delete));
+        return MultiPhasePlan.createIfNeeded(plan, subqueryPlanner.planSubQueries(delete).uncorrelated());
     }
 
     private static Plan planDelete(AnalyzedDeleteStatement delete, PlannerContext context) {

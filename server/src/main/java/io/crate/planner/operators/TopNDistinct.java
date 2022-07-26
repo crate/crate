@@ -46,6 +46,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.RowGranularity;
+import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
@@ -75,7 +76,8 @@ public final class TopNDistinct extends ForwardingLogicalPlan {
     }
 
     @Override
-    public ExecutionPlan build(PlannerContext plannerContext,
+    public ExecutionPlan build(DependencyCarrier executor,
+                               PlannerContext plannerContext,
                                Set<PlanHint> planHints,
                                ProjectionBuilder projectionBuilder,
                                int limitHint,
@@ -85,6 +87,7 @@ public final class TopNDistinct extends ForwardingLogicalPlan {
                                Row params,
                                SubQueryResults subQueryResults) {
         var executionPlan = source.build(
+            executor,
             plannerContext,
             planHints,
             projectionBuilder,

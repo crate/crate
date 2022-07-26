@@ -807,7 +807,8 @@ public class InsertFromValues implements LogicalPlan {
     }
 
     @Override
-    public ExecutionPlan build(PlannerContext plannerContext,
+    public ExecutionPlan build(DependencyCarrier executor,
+                               PlannerContext plannerContext,
                                Set<PlanHint> hints,
                                ProjectionBuilder projectionBuilder,
                                int limit,

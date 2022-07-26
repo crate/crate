@@ -41,6 +41,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
@@ -108,7 +109,8 @@ public final class Fetch extends ForwardingLogicalPlan {
     }
 
     @Override
-    public ExecutionPlan build(PlannerContext plannerContext,
+    public ExecutionPlan build(DependencyCarrier executor,
+                               PlannerContext plannerContext,
                                Set<PlanHint> hints,
                                ProjectionBuilder projectionBuilder,
                                int limit,
@@ -120,6 +122,7 @@ public final class Fetch extends ForwardingLogicalPlan {
         plannerContext.newReaderAllocations();
         var executionPlan = Merge.ensureOnHandler(
             source.build(
+                executor,
                 plannerContext,
                 hints,
                 projectionBuilder,

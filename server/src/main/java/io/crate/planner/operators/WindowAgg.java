@@ -50,6 +50,7 @@ import io.crate.execution.engine.pipeline.TopN;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.WindowFunction;
+import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
@@ -139,7 +140,8 @@ public class WindowAgg extends ForwardingLogicalPlan {
     }
 
     @Override
-    public ExecutionPlan build(PlannerContext plannerContext,
+    public ExecutionPlan build(DependencyCarrier executor,
+                               PlannerContext plannerContext,
                                Set<PlanHint> planHints,
                                ProjectionBuilder projectionBuilder,
                                int limit,
@@ -162,6 +164,7 @@ public class WindowAgg extends ForwardingLogicalPlan {
         );
         projections.add(windowAggProjection);
         ExecutionPlan sourcePlan = source.build(
+            executor,
             plannerContext,
             planHints,
             projectionBuilder,

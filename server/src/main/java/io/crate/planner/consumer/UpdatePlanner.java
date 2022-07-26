@@ -119,7 +119,7 @@ public final class UpdatePlanner {
                 )
             );
         }
-        Map<LogicalPlan, SelectSymbol> subQueries = subqueryPlanner.planSubQueries(update);
+        Map<LogicalPlan, SelectSymbol> subQueries = subqueryPlanner.planSubQueries(update).uncorrelated();
         return MultiPhasePlan.createIfNeeded(plan, subQueries);
     }
 

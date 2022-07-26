@@ -88,7 +88,8 @@ public interface LogicalPlan extends Plan {
      * {@code limit}, {@code offset}, {@code order} can be passed from one operator to another. Depending on the
      * operators implementation. Operator may choose to make use of this information, but can also ignore it.
      */
-    ExecutionPlan build(PlannerContext plannerContext,
+    ExecutionPlan build(DependencyCarrier dependencyCarrier,
+                        PlannerContext plannerContext,
                         Set<PlanHint> planHints,
                         ProjectionBuilder projectionBuilder,
                         int limit,

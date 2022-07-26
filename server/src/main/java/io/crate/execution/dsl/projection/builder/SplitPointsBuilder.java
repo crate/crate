@@ -32,7 +32,11 @@ import io.crate.analyze.QueriedSelectRelation;
 import io.crate.expression.symbol.Aggregation;
 import io.crate.expression.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.OuterColumn;
+import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.SymbolVisitors;
+import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.WindowFunction;
 import io.crate.metadata.FunctionType;
 
@@ -45,6 +49,19 @@ public final class SplitPointsBuilder extends DefaultTraversalSymbolVisitor<Spli
         private final ArrayList<Function> tableFunctions = new ArrayList<>();
         private final ArrayList<Symbol> standalone = new ArrayList<>();
         private final ArrayList<WindowFunction> windowFunctions = new ArrayList<>();
+        private final ArrayList<SelectSymbol> correlatedQueries = new ArrayList<>();
+
+        /**
+         * OuterColumns found within a relation
+         * For example in
+         *
+         * <pre>
+         *  SELECT (SELECT t.mountain) FROM sys.summits t
+         * </pre>
+         *
+         * This would contain `t.mountain` when processing the <b>inner</b> relation.
+         */
+        private final ArrayList<OuterColumn> outerColumns = new ArrayList<>();
         private boolean insideAggregate = false;
 
         private int tableFunctionLevel = 0;
@@ -75,11 +92,15 @@ public final class SplitPointsBuilder extends DefaultTraversalSymbolVisitor<Spli
 
     private void process(Collection<Symbol> symbols, Context context) {
         for (Symbol symbol : symbols) {
-            context.foundAggregateOrTableFunction = false;
-            symbol.accept(this, context);
-            if (context.foundAggregateOrTableFunction == false) {
-                context.standalone.add(symbol);
-            }
+            process(symbol, context);
+        }
+    }
+
+    private void process(Symbol symbol, Context context) {
+        context.foundAggregateOrTableFunction = false;
+        symbol.accept(this, context);
+        if (context.foundAggregateOrTableFunction == false) {
+            context.standalone.add(symbol);
         }
     }
 
@@ -94,6 +115,8 @@ public final class SplitPointsBuilder extends DefaultTraversalSymbolVisitor<Spli
         if (having != null) {
             having.accept(INSTANCE, context);
         }
+        Symbol where = relation.where();
+        where.accept(INSTANCE, context);
         LinkedHashSet<Symbol> toCollect = new LinkedHashSet<>();
         for (Function tableFunction : context.tableFunctions) {
             toCollect.addAll(extractColumns(tableFunction.arguments()));
@@ -129,12 +152,36 @@ public final class SplitPointsBuilder extends DefaultTraversalSymbolVisitor<Spli
         } else if (context.aggregates.isEmpty() && relation.groupBy().isEmpty()) {
             toCollect.addAll(context.standalone);
         }
+        var collectOuterColumns = new DefaultTraversalSymbolVisitor<Void, Void>() {
 
-        return new SplitPoints(new ArrayList<>(toCollect),
-                               context.aggregates,
-                               context.tableFunctions,
-                               groupByContext.tableFunctions,
-                               context.windowFunctions);
+            public Void visitOuterColumn(OuterColumn outerColumn, Void ignored) {
+                toCollect.add(outerColumn.symbol());
+                return null;
+            }
+        };
+        for (var selectSymbol : context.correlatedQueries) {
+            selectSymbol.relation().visitSymbols(symbol -> symbol.accept(collectOuterColumns, null));
+        }
+
+        ArrayList<Symbol> outputs = new ArrayList<>();
+        for (var output : toCollect) {
+            if (Symbols.containsCorrelatedSubQuery(output)) {
+                outputs.addAll(extractColumns(output));
+            } else {
+                outputs.add(output);
+            }
+        }
+        if (SymbolVisitors.any(s -> s instanceof OuterColumn, where)) {
+            outputs.addAll(extractColumns(where));
+        }
+        return new SplitPoints(
+            outputs,
+            context.outerColumns,
+            context.aggregates,
+            context.tableFunctions,
+            groupByContext.tableFunctions,
+            context.windowFunctions
+        );
     }
 
     @Override
@@ -175,6 +222,21 @@ public final class SplitPointsBuilder extends DefaultTraversalSymbolVisitor<Spli
         context.foundAggregateOrTableFunction = true;
         context.allocateWindowFunction(windowFunction);
         return super.visitFunction(windowFunction, context);
+    }
+
+    @Override
+    public Void visitSelectSymbol(SelectSymbol selectSymbol, Context context) {
+        if (selectSymbol.isCorrelated()) {
+            context.correlatedQueries.add(selectSymbol);
+            return null;
+        }
+        return super.visitSelectSymbol(selectSymbol, context);
+    }
+
+    @Override
+    public Void visitOuterColumn(OuterColumn outerColumn, Context context) {
+        context.outerColumns.add(outerColumn);
+        return null;
     }
 
     @Override

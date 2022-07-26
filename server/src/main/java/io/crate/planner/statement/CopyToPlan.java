@@ -115,6 +115,7 @@ public final class CopyToPlan implements Plan {
             subQueryResults);
 
         ExecutionPlan executionPlan = planCopyToExecution(
+            executor,
             boundedCopyTo,
             plannerContext,
             tableStats,
@@ -136,7 +137,8 @@ public final class CopyToPlan implements Plan {
     }
 
     @VisibleForTesting
-    static ExecutionPlan planCopyToExecution(BoundCopyTo boundedCopyTo,
+    static ExecutionPlan planCopyToExecution(DependencyCarrier executor,
+                                             BoundCopyTo boundedCopyTo,
                                              PlannerContext context,
                                              TableStats tableStats,
                                              ProjectionBuilder projectionBuilder,
@@ -166,7 +168,8 @@ public final class CopyToPlan implements Plan {
             context.params()
         );
         LogicalPlan source = optimizeCollect(context, tableStats, collect);
-        ExecutionPlan executionPlan = source.build(context, Set.of(), projectionBuilder, 0, 0, null, null, params, SubQueryResults.EMPTY);
+        ExecutionPlan executionPlan = source.build(
+            executor, context, Set.of(), projectionBuilder, 0, 0, null, null, params, SubQueryResults.EMPTY);
         executionPlan.addProjection(projection);
 
         return Merge.ensureOnHandler(

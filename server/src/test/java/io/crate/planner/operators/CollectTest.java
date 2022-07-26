@@ -24,6 +24,7 @@ package io.crate.planner.operators;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
+import static org.mockito.Mockito.mock;
 
 import java.util.List;
 import java.util.Set;
@@ -37,6 +38,7 @@ import io.crate.data.Row;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.Symbol;
+import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
 import io.crate.statistics.TableStats;
@@ -81,6 +83,7 @@ public class CollectTest extends CrateDummyClusterServiceUnitTest {
         );
         LogicalPlan operator = logicalPlanner.plan(analyzedRelation, plannerCtx);
         ExecutionPlan build = operator.build(
+            mock(DependencyCarrier.class),
             plannerCtx,
             Set.of(),
             projectionBuilder,

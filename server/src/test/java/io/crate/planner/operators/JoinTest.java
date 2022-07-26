@@ -34,6 +34,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.collection.IsIterableContainingInOrder.contains;
 import static org.junit.Assert.assertThat;
+import static org.mockito.Mockito.mock;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -56,6 +57,7 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
+import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
@@ -114,7 +116,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
     }
 
     private Join buildJoin(LogicalPlan operator) {
-        return (Join) operator.build(plannerCtx, Set.of(), projectionBuilder, -1, 0, null, null, Row.EMPTY, SubQueryResults.EMPTY);
+        return (Join) operator.build(mock(DependencyCarrier.class), plannerCtx, Set.of(), projectionBuilder, -1, 0, null, null, Row.EMPTY, SubQueryResults.EMPTY);
     }
 
     private Join plan(QueriedSelectRelation mss, TableStats tableStats) {
@@ -202,7 +204,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             false
         );
         Join nl = (Join) operator.build(
-            context, Set.of(), projectionBuilder, -1, 0, null, null, Row.EMPTY, SubQueryResults.EMPTY);
+            mock(DependencyCarrier.class), context, Set.of(), projectionBuilder, -1, 0, null, null, Row.EMPTY, SubQueryResults.EMPTY);
 
         assertThat(((Collect) nl.left()).collectPhase().toCollect(), isSQL("doc.users.id"));
         assertThat(nl.resultDescription().orderBy(), notNullValue());
@@ -226,7 +228,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         LogicalPlan plan = logicalPlanner.plan(e.analyze("select users.id from users, locations " +
                                                          "where users.id = locations.id order by users.id"), context);
         Merge merge = (Merge) plan.build(
-            context, Set.of(), projectionBuilder, -1, 0, null, null, Row.EMPTY, SubQueryResults.EMPTY);
+            mock(DependencyCarrier.class), context, Set.of(), projectionBuilder, -1, 0, null, null, Row.EMPTY, SubQueryResults.EMPTY);
         Join nl = (Join) merge.subPlan();
 
         assertThat(nl.resultDescription().orderBy(), notNullValue());
@@ -421,8 +423,8 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             () -> clusterService.state().nodes().getMinNodeVersion()
         );
         LogicalPlan operator = logicalPlanner.plan(mss, plannerCtx);
-        ExecutionPlan build = operator.build(plannerCtx, Set.of(), projectionBuilder, -1, 0, null,
-            null, Row.EMPTY, SubQueryResults.EMPTY);
+        ExecutionPlan build = operator.build(
+            mock(DependencyCarrier.class), plannerCtx, Set.of(), projectionBuilder, -1, 0, null, null, Row.EMPTY, SubQueryResults.EMPTY);
 
         assertThat((((NestedLoopPhase) ((Join) build).joinPhase())).blockNestedLoop, is(false));
     }

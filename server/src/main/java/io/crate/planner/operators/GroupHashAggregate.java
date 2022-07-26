@@ -47,9 +47,11 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
+import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
@@ -72,9 +74,11 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
         long distinctValues = 1;
         int numKeysWithStats = 0;
         for (Symbol groupKey : groupKeys) {
-
+            if (Symbols.containsCorrelatedSubQuery(groupKey)) {
+                throw new UnsupportedOperationException("Cannot use correlated subquery in GROUP BY clause");
+            }
             Stats stats = null;
-            ColumnStats columnStats = null;
+            ColumnStats<?> columnStats = null;
             if (groupKey instanceof Reference ref) {
                 stats = tableStats.getStats(ref.ident().tableIdent());
                 columnStats = stats.statsByColumn().get(ref.column());
@@ -128,7 +132,8 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
     }
 
     @Override
-    public ExecutionPlan build(PlannerContext plannerContext,
+    public ExecutionPlan build(DependencyCarrier executor,
+                               PlannerContext plannerContext,
                                Set<PlanHint> hints,
                                ProjectionBuilder projectionBuilder,
                                int limit,
@@ -142,7 +147,7 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
             hints.remove(PlanHint.PREFER_SOURCE_LOOKUP);
         }
         ExecutionPlan executionPlan = source.build(
-            plannerContext, hints, projectionBuilder, NO_LIMIT, 0, null, null, params, subQueryResults);
+            executor, plannerContext, hints, projectionBuilder, NO_LIMIT, 0, null, null, params, subQueryResults);
         if (executionPlan.resultDescription().hasRemainingLimitOrOffset()) {
             executionPlan = Merge.ensureOnHandler(executionPlan, plannerContext);
         }

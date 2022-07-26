@@ -25,6 +25,7 @@ import static java.util.Collections.singletonList;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
+import static org.mockito.Mockito.mock;
 
 import java.io.IOException;
 import java.util.List;
@@ -45,6 +46,7 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocSysColumns;
+import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Merge;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.operators.SubQueryResults;
@@ -91,6 +93,7 @@ public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
             SubQueryResults.EMPTY);
         //noinspection unchecked
         return (T) CopyToPlan.planCopyToExecution(
+            mock(DependencyCarrier.class),
             boundedCopyTo,
             e.getPlannerContext(clusterService.state()),
             new TableStats(),

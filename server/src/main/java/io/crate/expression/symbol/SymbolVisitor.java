@@ -89,5 +89,9 @@ public class SymbolVisitor<C, R> {
     public R visitFetchStub(FetchStub fetchStub, C context) {
         return visitSymbol(fetchStub, context);
     }
+
+    public R visitOuterColumn(OuterColumn outerColumn, C context) {
+        return visitSymbol(outerColumn, context);
+    }
 }
 

@@ -279,12 +279,35 @@ If zero rows are returned, it will be treated as null value. In the case that
 more than one row (or more than one column) is returned, CrateDB will treat it
 as an error.
 
-Columns from relations from outside of the subquery cannot be accessed from
-within the subquery. If you try to do so, CrateDB will treat it as an error,
-stating that the column is unknown.
+
+Scalar subqueries can access columns of its immediate parent if addressed via a
+table alias. Such a subquery is known as correlated subquery.
+
+::
+
+    cr> SELECT (SELECT t.mountain) as m FROM sys.summits t ORDER BY 1 ASC LIMIT 2;
+    +--------------+
+    | m            |
+    +--------------+
+    | Acherkogel   |
+    | Ackerlspitze |
+    +--------------+
+    SELECT 2 rows in set (... sec)
+
+
 
 .. NOTE::
 
     Scalar subqueries are restricted to :ref:`SELECT <sql-select>`, :ref:`DELETE
     <sql_reference_delete>` and :ref:`UPDATE <ref-update>` statements and
     cannot be used in other statements.
+
+.. NOTE::
+
+    Correlated subqueries are executed via a "Correlated Join". A correlated
+    join executes the sub-query for each row in the input relation. If the
+    result set of the outer relation is large this can be slow.
+
+.. NOTE::
+
+    Correlated subqueries are currently limited to the select list of a query.

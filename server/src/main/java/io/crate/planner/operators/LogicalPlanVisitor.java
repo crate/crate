@@ -114,4 +114,8 @@ public class LogicalPlanVisitor<C, R> {
     public R visitFetch(Fetch fetch, C context) {
         return visitPlan(fetch, context);
     }
+
+    public R visitCorrelatedJoin(CorrelatedJoin apply, C context) {
+        return visitPlan(apply, context);
+    }
 }

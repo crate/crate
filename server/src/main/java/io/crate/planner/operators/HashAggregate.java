@@ -47,6 +47,7 @@ import io.crate.metadata.FunctionType;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
+import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
@@ -64,7 +65,8 @@ public class HashAggregate extends ForwardingLogicalPlan {
     }
 
     @Override
-    public ExecutionPlan build(PlannerContext plannerContext,
+    public ExecutionPlan build(DependencyCarrier executor,
+                               PlannerContext plannerContext,
                                Set<PlanHint> planHints,
                                ProjectionBuilder projectionBuilder,
                                int limit,
@@ -74,7 +76,7 @@ public class HashAggregate extends ForwardingLogicalPlan {
                                Row params,
                                SubQueryResults subQueryResults) {
         ExecutionPlan executionPlan = source.build(
-            plannerContext, planHints, projectionBuilder, LogicalPlanner.NO_LIMIT, 0, null, null, params, subQueryResults);
+            executor, plannerContext, planHints, projectionBuilder, LogicalPlanner.NO_LIMIT, 0, null, null, params, subQueryResults);
 
         AggregationOutputValidator.validateOutputs(aggregates);
         var paramBinder = new SubQueryAndParamBinder(params, subQueryResults);

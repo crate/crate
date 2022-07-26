@@ -68,6 +68,9 @@ Deprecations
 Changes
 =======
 
+- Added support for correlated scalar sub-queries within the select list of a
+  query. See :ref:`Scalar subquery <sql-scalar-subquery>`.
+
 - Improve performance of queries on ``sys.snapshots``.
 
 - Added a ``application_name`` session setting that can be used to identify
