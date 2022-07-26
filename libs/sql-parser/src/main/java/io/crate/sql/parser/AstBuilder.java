@@ -631,15 +631,19 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         List<String> columns = identsToStrings(context.ident());
 
         Table table;
+        Node node = visit(context.table());
         try {
-            table = (Table) visit(context.table());
+            table = (Table) node;
         } catch (ClassCastException e) {
-            TableFunction tf = (TableFunction) visit(context.table());
+            TableFunction tf = (TableFunction) node;
             for (Expression ex : tf.functionCall().getArguments()) {
-                if (!(ex instanceof QualifiedNameReference)) {
-                    throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                        "invalid table column reference %s", ex.toString()));
+                if (ex instanceof QualifiedNameReference ref && ref.getName().getParts().size() > 1) {
+                    throw new IllegalArgumentException(
+                        "Column references used in INSERT INTO <tbl> (...) must use the column name. " +
+                        "They cannot qualify catalog, schema or table. Got `" + ref.getName().toString() + "`");
                 }
+                throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                    "Invalid column reference %s used in INSERT INTO statement", ex.toString()));
             }
             throw e;
         }
