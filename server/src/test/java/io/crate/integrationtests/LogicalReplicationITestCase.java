@@ -48,6 +48,7 @@ import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
+import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.common.network.NetworkModule;
 import org.elasticsearch.common.settings.Settings;
@@ -59,6 +60,7 @@ import org.elasticsearch.test.InternalTestCluster;
 import org.elasticsearch.test.MockHttpTransport;
 import org.elasticsearch.test.NodeConfigurationSource;
 import org.elasticsearch.test.transport.MockTransportService;
+import org.elasticsearch.threadpool.TestThreadPool;
 import org.elasticsearch.transport.Netty4Plugin;
 import org.elasticsearch.transport.TransportService;
 import org.hamcrest.Matchers;
@@ -202,7 +204,14 @@ public abstract class LogicalReplicationITestCase extends ESTestCase {
     }
 
     public SQLResponse executeOnSubscriber(String sql) {
-        return subscriberSqlExecutor.exec(sql);
+        try {
+            return subscriberSqlExecutor.exec(sql);
+        } catch (ElasticsearchTimeoutException ex) {
+            System.err.println("Timeout executing `" + sql + "`, dumping active tasks and threads");
+            subscriberCluster.dumpActiveTasks();
+            TestThreadPool.dumpThreads();
+            throw ex;
+        }
     }
 
     Settings logicalReplicationSettings() {

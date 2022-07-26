@@ -152,6 +152,7 @@ import io.crate.action.sql.SQLOperations;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
 import io.crate.execution.ddl.SchemaUpdateClient;
+import io.crate.execution.jobs.TasksService;
 import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.testing.SQLTransportExecutor;
 
@@ -2270,5 +2271,11 @@ public final class InternalTestCluster extends TestCluster {
                 }
             }
         );
+    }
+
+    public void dumpActiveTasks() {
+        for (var tasksService : getInstances(TasksService.class)) {
+            tasksService.logActiveTasksToError();
+        }
     }
 }

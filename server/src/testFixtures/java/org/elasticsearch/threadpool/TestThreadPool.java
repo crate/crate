@@ -19,6 +19,8 @@
 
 package org.elasticsearch.threadpool;
 
+import java.util.Map;
+
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.node.Node;
 
@@ -30,5 +32,17 @@ public class TestThreadPool extends ThreadPool {
 
     public TestThreadPool(String name, Settings settings) {
         super(Settings.builder().put(Node.NODE_NAME_SETTING.getKey(), name).put(settings).build());
+    }
+
+    public static void dumpThreads() {
+        Map<Thread, StackTraceElement[]> allStackTraces = Thread.getAllStackTraces();
+        for (var entry : allStackTraces.entrySet()) {
+            Thread thread = entry.getKey();
+            StackTraceElement[] stackTraces = entry.getValue();
+            System.err.println("Thread: " + thread.getName());
+            for (var stackTrace : stackTraces) {
+                System.err.println("    " + stackTrace.toString());
+            }
+        }
     }
 }
