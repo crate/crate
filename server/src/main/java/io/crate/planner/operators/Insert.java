@@ -42,6 +42,7 @@ import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RelationName;
+import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
@@ -62,7 +63,8 @@ public class Insert implements LogicalPlan {
     }
 
     @Override
-    public ExecutionPlan build(PlannerContext plannerContext,
+    public ExecutionPlan build(DependencyCarrier executor,
+                               PlannerContext plannerContext,
                                Set<PlanHint> planHints,
                                ProjectionBuilder projectionBuilder,
                                int limit,
@@ -72,6 +74,7 @@ public class Insert implements LogicalPlan {
                                Row params,
                                SubQueryResults subQueryResults) {
         ExecutionPlan sourcePlan = source.build(
+            executor,
             plannerContext,
             EnumSet.of(PlanHint.PREFER_SOURCE_LOOKUP),
             projectionBuilder,

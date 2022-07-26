@@ -41,6 +41,7 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.metadata.FunctionType;
+import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
 import io.crate.statistics.TableStats;
@@ -105,7 +106,8 @@ public class ProjectSet extends ForwardingLogicalPlan {
     }
 
     @Override
-    public ExecutionPlan build(PlannerContext plannerContext,
+    public ExecutionPlan build(DependencyCarrier executor,
+                               PlannerContext plannerContext,
                                Set<PlanHint> planHints,
                                ProjectionBuilder projectionBuilder,
                                int limit,
@@ -115,6 +117,7 @@ public class ProjectSet extends ForwardingLogicalPlan {
                                Row params,
                                SubQueryResults subQueryResults) {
         ExecutionPlan sourcePlan = source.build(
+            executor,
             plannerContext,
             planHints,
             projectionBuilder,

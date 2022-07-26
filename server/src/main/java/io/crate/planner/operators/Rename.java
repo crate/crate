@@ -31,6 +31,7 @@ import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.metadata.RelationName;
+import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
 import io.crate.statistics.TableStats;
@@ -182,7 +183,8 @@ public final class Rename extends ForwardingLogicalPlan implements FieldResolver
     }
 
     @Override
-    public ExecutionPlan build(PlannerContext plannerContext,
+    public ExecutionPlan build(DependencyCarrier executor,
+                               PlannerContext plannerContext,
                                Set<PlanHint> hints,
                                ProjectionBuilder projectionBuilder,
                                int limit,
@@ -191,7 +193,8 @@ public final class Rename extends ForwardingLogicalPlan implements FieldResolver
                                @Nullable Integer pageSizeHint,
                                Row params,
                                SubQueryResults subQueryResults) {
-        return source.build(plannerContext, hints, projectionBuilder, limit, offset, order, pageSizeHint, params, subQueryResults);
+        return source.build(
+            executor, plannerContext, hints, projectionBuilder, limit, offset, order, pageSizeHint, params, subQueryResults);
     }
 
     @Override

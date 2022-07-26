@@ -56,6 +56,15 @@ public class Symbols {
 
     public static final Predicate<Symbol> IS_COLUMN = s -> s instanceof ScopedSymbol || s instanceof Reference;
     public static final Predicate<Symbol> IS_GENERATED_COLUMN = input -> input instanceof GeneratedReference;
+    public static final Predicate<Symbol> IS_CORRELATED_SUBQUERY = Symbols::isCorrelatedSubQuery;
+
+    public static boolean isCorrelatedSubQuery(Symbol symbol) {
+        return symbol instanceof SelectSymbol selectSymbol && selectSymbol.isCorrelated();
+    }
+
+    public static boolean containsCorrelatedSubQuery(Symbol symbol) {
+        return SymbolVisitors.any(IS_CORRELATED_SUBQUERY, symbol);
+    }
 
     public static boolean isAggregate(Symbol s) {
         return s instanceof Function && ((Function) s).signature().getKind() == FunctionType.AGGREGATE;

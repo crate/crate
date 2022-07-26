@@ -342,6 +342,13 @@ public final class InputColumns extends DefaultTraversalSymbolVisitor<InputColum
 
     @Override
     public Symbol visitSelectSymbol(SelectSymbol selectSymbol, SourceSymbols sourceSymbols) {
+        if (selectSymbol.isCorrelated()) {
+            InputColumn inputColumn = sourceSymbols.inputs.get(selectSymbol);
+            if (inputColumn == null) {
+                throw new IllegalArgumentException("Couldn't find " + selectSymbol + " in " + sourceSymbols);
+            }
+            return inputColumn;
+        }
         return selectSymbol;
     }
 }

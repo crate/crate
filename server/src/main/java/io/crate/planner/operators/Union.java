@@ -50,6 +50,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.RelationName;
+import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
@@ -83,7 +84,8 @@ public class Union implements LogicalPlan {
     }
 
     @Override
-    public ExecutionPlan build(PlannerContext plannerContext,
+    public ExecutionPlan build(DependencyCarrier executor,
+                               PlannerContext plannerContext,
                                Set<PlanHint> hints,
                                ProjectionBuilder projectionBuilder,
                                int limit,
@@ -98,9 +100,9 @@ public class Union implements LogicalPlan {
             : null;
 
         ExecutionPlan left = lhs.build(
-            plannerContext, hints, projectionBuilder, limit + offset, TopN.NO_OFFSET, null, childPageSizeHint, params, subQueryResults);
+            executor, plannerContext, hints, projectionBuilder, limit + offset, TopN.NO_OFFSET, null, childPageSizeHint, params, subQueryResults);
         ExecutionPlan right = rhs.build(
-            plannerContext, hints, projectionBuilder, limit + offset, TopN.NO_OFFSET, null, childPageSizeHint, params, subQueryResults);
+            executor, plannerContext, hints, projectionBuilder, limit + offset, TopN.NO_OFFSET, null, childPageSizeHint, params, subQueryResults);
 
         addCastsForIncompatibleObjects(lhs, left);
         addCastsForIncompatibleObjects(rhs, right);

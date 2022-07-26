@@ -30,6 +30,7 @@ import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.SymbolMatchers.isReference;
 import static io.crate.testing.SymbolMatchers.isVoidReference;
 import static io.crate.testing.TestingHelpers.isSQL;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.contains;
@@ -2302,37 +2303,18 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
-    public void testSubSelectWithAccessToParentRelationThrowsUnsupportedFeature() throws Exception {
-        var executor = SQLExecutor.builder(clusterService)
-            .addTable(T3.T1_DEFINITION)
-            .build();
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Cannot use relation \"doc.t1\" in this context. It is only accessible in the parent context");
-        executor.analyze("select (select 1 from t1 as ti where ti.x = t1.x) from t1");
-    }
-
-    @Test
-    public void testSubSelectWithAccessToParentRelationAliasThrowsUnsupportedFeature() throws Exception {
-        var executor = SQLExecutor.builder(clusterService)
-            .addTable(T3.T1_DEFINITION)
-            .build();
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Cannot use relation \"tparent\" in this context. It is only accessible in the parent context");
-        executor.analyze("select (select 1 from t1 where t1.x = tparent.x) from t1 as tparent");
-    }
-
-    @Test
     public void testSubSelectWithAccessToGrandParentRelation() throws Exception {
         var executor = SQLExecutor.builder(clusterService)
             .addTable(T3.T1_DEFINITION)
             .build();
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Cannot use relation \"grandparent\" in this context. It is only accessible in the parent context");
-        executor.analyze("select (select (select 1 from t1 where grandparent.x = t1.x) from t1 as parent) from t1 as grandparent");
+        String statement = "select (select (select 1 from t1 where grandparent.x = t1.x) from t1 as parent) from t1 as grandparent";
+        assertThatThrownBy(() -> executor.analyze(statement))
+            .isInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("Cannot use relation \"grandparent\" in this context. Can only access columns of an immediate parent, not a grandparent");
     }
 
     @Test
-    public void testCustomSchemaSubSelectWithAccessToParentRelation() throws Exception {
+    public void test_correlated_query_in_where_clause_is_not_supported() throws Exception {
         var executor = SQLExecutor.builder(clusterService)
             .addTable(T3.T1_DEFINITION)
             .build();
@@ -2340,9 +2322,11 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             .setSearchPath("foo")
             .addTable("create table foo.t1 (id bigint primary key, name text)")
             .build();
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Cannot use relation \"foo.t1\" in this context. It is only accessible in the parent context");
-        sqlExecutor2.analyze("select * from t1 where id = (select 1 from t1 as x where x.id = t1.id)");
+
+        String statement = "select * from t1 where id = (select 1 from t1 as x where x.id = t1.id)";
+        assertThatThrownBy(() -> sqlExecutor2.plan(statement))
+            .isInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("Using correlated subqueries in the WHERE clause is not supported");
     }
 
     @Test
@@ -2351,11 +2335,12 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             .addTable(T3.T1_DEFINITION)
             .addTable(T3.T2_DEFINITION)
             .build();
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Cannot use relation \"doc.t1\" in this context. It is only accessible in the parent context");
         // Inner join has to be processed before implicit cross join.
         // Inner join does not know about t1's fields (!)
-        executor.analyze("select * from t1, t2 inner join t1 b on b.x = t1.x");
+        String statement = "select * from t1, t2 inner join t1 b on b.x = t1.x";
+        assertThatThrownBy(() -> executor.analyze(statement))
+            .isInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("Cannot use relation \"doc.t1\" in this context. Can only access columns of an immediate parent, not a grandparent");
     }
 
     @Test

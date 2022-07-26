@@ -42,6 +42,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
+import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
@@ -80,7 +81,8 @@ public class Limit extends ForwardingLogicalPlan {
     }
 
     @Override
-    public ExecutionPlan build(PlannerContext plannerContext,
+    public ExecutionPlan build(DependencyCarrier executor,
+                               PlannerContext plannerContext,
                                Set<PlanHint> planHints,
                                ProjectionBuilder projectionBuilder,
                                int limitHint,
@@ -107,7 +109,7 @@ public class Limit extends ForwardingLogicalPlan {
             0);
 
         ExecutionPlan executionPlan = source.build(
-            plannerContext, planHints, projectionBuilder, limit, offset, order, pageSizeHint, params, subQueryResults);
+            executor, plannerContext, planHints, projectionBuilder, limit, offset, order, pageSizeHint, params, subQueryResults);
         List<DataType<?>> sourceTypes = Symbols.typeView(source.outputs());
         ResultDescription resultDescription = executionPlan.resultDescription();
         if (resultDescription.hasRemainingLimitOrOffset()

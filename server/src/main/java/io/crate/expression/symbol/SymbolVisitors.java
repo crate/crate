@@ -21,14 +21,14 @@
 
 package io.crate.expression.symbol;
 
-import io.crate.analyze.OrderBy;
-import io.crate.analyze.WindowDefinition;
-import io.crate.metadata.ColumnIdent;
-
 import java.util.Collection;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+
+import io.crate.analyze.OrderBy;
+import io.crate.analyze.WindowDefinition;
+import io.crate.metadata.ColumnIdent;
 
 public class SymbolVisitors {
 
@@ -223,6 +223,14 @@ public class SymbolVisitors {
                 return true;
             }
             return aliasSymbol.symbol().accept(this, predicate);
+        }
+
+        @Override
+        public Boolean visitOuterColumn(OuterColumn outerColumn, Predicate<? super Symbol> predicate) {
+            if (predicate.test(outerColumn)) {
+                return true;
+            }
+            return outerColumn.symbol().accept(this, predicate);
         }
 
         @Override

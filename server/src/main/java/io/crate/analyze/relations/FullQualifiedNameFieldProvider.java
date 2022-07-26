@@ -31,6 +31,7 @@ import javax.annotation.Nullable;
 import io.crate.exceptions.AmbiguousColumnException;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.RelationUnknown;
+import io.crate.expression.symbol.OuterColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
@@ -122,7 +123,11 @@ public class FullQualifiedNameFieldProvider implements FieldProvider<Symbol> {
         if (lastField == null) {
             if (!schemaMatched || !tableNameMatched) {
                 String schema = columnSchema == null ? defaultSchema : columnSchema;
-                raiseUnsupportedFeatureIfInParentScope(columnSchema, columnTableName, schema);
+                Symbol fieldFromParent = fieldFromParent(columnSchema, columnTableName, schema, columnIdent, operation, errorOnUnknownObjectKey);
+                if (fieldFromParent != null) {
+                    return fieldFromParent;
+                }
+                raiseUnsupportedFeatureIfInAncestorScope(columnSchema, columnTableName, schema);
                 RelationName relationName = new RelationName(schema, columnTableName);
                 throw new RelationUnknown(relationName);
             }
@@ -132,17 +137,47 @@ public class FullQualifiedNameFieldProvider implements FieldProvider<Symbol> {
         return lastField;
     }
 
-    private void raiseUnsupportedFeatureIfInParentScope(String columnSchema, String columnTableName, String schema) {
+    @Nullable
+    private Symbol fieldFromParent(String columnSchema,
+                                   String columnTableName,
+                                   String schema,
+                                   ColumnIdent column,
+                                   Operation operation,
+                                   boolean errorOnUnknownObjectKey) {
+        RelationName name = new RelationName(schema, columnTableName);
+        AnalyzedRelation parentRelation = parents.getParent(name);
+        if (parentRelation != null) {
+            Symbol field = parentRelation.getField(column, operation, errorOnUnknownObjectKey);
+            if (field != null) {
+                return new OuterColumn(parentRelation, field);
+            }
+            return null;
+        }
+        if (columnSchema == null) {
+            name = new RelationName(null, columnTableName);
+            parentRelation = parents.getParent(name);
+            if (parentRelation != null) {
+                Symbol field = parentRelation.getField(column, operation, errorOnUnknownObjectKey);
+                if (field != null) {
+                    return new OuterColumn(parentRelation, field);
+                }
+                return null;
+            }
+        }
+        return null;
+    }
+
+    private void raiseUnsupportedFeatureIfInAncestorScope(String columnSchema, String columnTableName, String schema) {
         RelationName name = new RelationName(schema, columnTableName);
         if (parents.containsRelation(name)) {
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
-                "Cannot use relation \"%s.%s\" in this context. It is only accessible in the parent context.",
+                "Cannot use relation \"%s.%s\" in this context. Can only access columns of an immediate parent, not a grandparent",
                 schema,
                 columnTableName));
         }
         if (columnSchema == null && parents.containsRelation(new RelationName(null, columnTableName))) {
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
-                "Cannot use relation \"%s\" in this context. It is only accessible in the parent context.", columnTableName));
+                "Cannot use relation \"%s\" in this context. Can only access columns of an immediate parent, not a grandparent", columnTableName));
         }
     }
 }

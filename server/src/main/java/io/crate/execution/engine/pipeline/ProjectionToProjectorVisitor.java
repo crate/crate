@@ -68,6 +68,7 @@ import io.crate.execution.dml.upsert.ShardUpsertAction;
 import io.crate.execution.dml.upsert.ShardUpsertRequest;
 import io.crate.execution.dsl.projection.AggregationProjection;
 import io.crate.execution.dsl.projection.ColumnIndexWriterProjection;
+import io.crate.execution.dsl.projection.CorrelatedJoinProjection;
 import io.crate.execution.dsl.projection.DeleteProjection;
 import io.crate.execution.dsl.projection.EvalProjection;
 import io.crate.execution.dsl.projection.FetchProjection;
@@ -86,6 +87,7 @@ import io.crate.execution.dsl.projection.TopNProjection;
 import io.crate.execution.dsl.projection.UpdateProjection;
 import io.crate.execution.dsl.projection.WindowAggProjection;
 import io.crate.execution.dsl.projection.WriterProjection;
+import io.crate.execution.engine.CorrelatedJoinProjector;
 import io.crate.execution.engine.aggregation.AggregationContext;
 import io.crate.execution.engine.aggregation.AggregationPipe;
 import io.crate.execution.engine.aggregation.GroupingProjector;
@@ -705,6 +707,20 @@ public class ProjectionToProjectorVisitor
             indexVersionCreated,
             ThreadPools.numIdleThreads(searchThreadPool, numProcessors),
             searchThreadPool
+        );
+    }
+
+    @Override
+    public Projector visitCorrelatedJoin(CorrelatedJoinProjection correlatedJoin, Context context) {
+        return new CorrelatedJoinProjector(
+            correlatedJoin.subQueryPlan(),
+            correlatedJoin.correlatedSubQuery(),
+            correlatedJoin.plannerContext(),
+            correlatedJoin.projectionBuilder(),
+            correlatedJoin.executor(),
+            correlatedJoin.subQueryResults(),
+            correlatedJoin.params(),
+            correlatedJoin.inputPlanOutputs()
         );
     }
 

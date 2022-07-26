@@ -24,6 +24,7 @@ package io.crate.planner.optimizer.symbol;
 import static java.util.Collections.emptyMap;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
+import static org.mockito.Mockito.mock;
 
 import java.util.Collections;
 import java.util.List;
@@ -50,6 +51,7 @@ import io.crate.expression.symbol.SelectSymbol;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.planner.DependencyCarrier;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.SubQueryResults;
@@ -99,6 +101,7 @@ public class CollectQueryCastRulesTest extends CrateDummyClusterServiceUnitTest 
             10
         );
         var plan = (io.crate.planner.node.dql.Collect) collect.build(
+            mock(DependencyCarrier.class),
             plannerContext,
             Set.of(),
             new ProjectionBuilder(e.nodeCtx),

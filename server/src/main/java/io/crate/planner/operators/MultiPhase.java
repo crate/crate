@@ -21,23 +21,23 @@
 
 package io.crate.planner.operators;
 
-import io.crate.analyze.OrderBy;
-import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.common.collections.Lists2;
-import io.crate.data.Row;
-import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
-import io.crate.expression.symbol.SelectSymbol;
-import io.crate.planner.ExecutionPlan;
-import io.crate.planner.MultiPhasePlan;
-import io.crate.planner.PlannerContext;
-import io.crate.planner.SubqueryPlanner;
-
-import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import javax.annotation.Nullable;
+
+import io.crate.analyze.OrderBy;
+import io.crate.common.collections.Lists2;
+import io.crate.data.Row;
+import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
+import io.crate.expression.symbol.SelectSymbol;
+import io.crate.planner.DependencyCarrier;
+import io.crate.planner.ExecutionPlan;
+import io.crate.planner.MultiPhasePlan;
+import io.crate.planner.PlannerContext;
 
 /**
  * This is the {@link LogicalPlan} equivalent of the {@link MultiPhasePlan} plan.
@@ -47,14 +47,11 @@ public class MultiPhase extends ForwardingLogicalPlan {
 
     private final Map<LogicalPlan, SelectSymbol> subQueries;
 
-    public static LogicalPlan createIfNeeded(LogicalPlan source,
-                                             AnalyzedRelation relation,
-                                             SubqueryPlanner subqueryPlanner) {
-        Map<LogicalPlan, SelectSymbol> subQueries = subqueryPlanner.planSubQueries(relation);
-        if (subQueries.isEmpty()) {
+    public static LogicalPlan createIfNeeded(Map<LogicalPlan, SelectSymbol> uncorrelatedSubQueries, LogicalPlan source) {
+        if (uncorrelatedSubQueries.isEmpty()) {
             return source;
         } else {
-            return new MultiPhase(source, subQueries);
+            return new MultiPhase(source, uncorrelatedSubQueries);
         }
     }
 
@@ -66,7 +63,8 @@ public class MultiPhase extends ForwardingLogicalPlan {
     }
 
     @Override
-    public ExecutionPlan build(PlannerContext plannerContext,
+    public ExecutionPlan build(DependencyCarrier executor,
+                               PlannerContext plannerContext,
                                Set<PlanHint> planHints,
                                ProjectionBuilder projectionBuilder,
                                int limit,
@@ -76,7 +74,7 @@ public class MultiPhase extends ForwardingLogicalPlan {
                                Row params,
                                SubQueryResults subQueryResults) {
         return source.build(
-            plannerContext, planHints, projectionBuilder, limit, offset, order, pageSizeHint, params, subQueryResults);
+            executor, plannerContext, planHints, projectionBuilder, limit, offset, order, pageSizeHint, params, subQueryResults);
     }
 
     @Override

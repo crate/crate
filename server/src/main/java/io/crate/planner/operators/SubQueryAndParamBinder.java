@@ -25,6 +25,7 @@ import io.crate.data.Row;
 import io.crate.exceptions.ConversionException;
 import io.crate.expression.symbol.FunctionCopyVisitor;
 import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.OuterColumn;
 import io.crate.expression.symbol.ParameterSymbol;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
@@ -62,8 +63,20 @@ public class SubQueryAndParamBinder extends FunctionCopyVisitor<Void>
 
     @Override
     public Symbol visitSelectSymbol(SelectSymbol selectSymbol, Void context) {
+        DataType<?> valueType = selectSymbol.valueType();
+        if (selectSymbol.isCorrelated()) {
+            // Value will be provided by CorrelatedJoin plan
+            return selectSymbol;
+        }
         Object value = subQueryResults.getSafe(selectSymbol);
-        return Literal.ofUnchecked(selectSymbol.valueType(), selectSymbol.valueType().sanitizeValue(value));
+        return Literal.ofUnchecked(valueType, valueType.sanitizeValue(value));
+    }
+
+    @Override
+    public Symbol visitOuterColumn(OuterColumn outerColumn, Void context) {
+        DataType<?> valueType = outerColumn.valueType();
+        Object value = subQueryResults.get(outerColumn);
+        return Literal.ofUnchecked(valueType, valueType.sanitizeValue(value));
     }
 
     @Override

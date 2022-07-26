@@ -44,11 +44,14 @@ public enum ProjectionType {
     EVAL(EvalProjection::new),
     PROJECT_SET(ProjectSetProjection::new),
     WINDOW_AGGREGATION(WindowAggProjection::new),
-    TOPN_DISTINCT(TopNDistinctProjection::new);
+    TOPN_DISTINCT(TopNDistinctProjection::new),
+    CORRELATED_JOIN(in -> {
+        throw new UnsupportedOperationException("Cannot stream correlated join projection");
+    });
 
-    private final Projection.ProjectionFactory factory;
+    private final Projection.ProjectionFactory<?> factory;
 
-    ProjectionType(Projection.ProjectionFactory factory) {
+    ProjectionType(Projection.ProjectionFactory<?> factory) {
         this.factory = factory;
     }
 

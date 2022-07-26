@@ -52,6 +52,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.RelationName;
+import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.ResultDescription;
@@ -104,7 +105,8 @@ public class HashJoin implements LogicalPlan {
     }
 
     @Override
-    public ExecutionPlan build(PlannerContext plannerContext,
+    public ExecutionPlan build(DependencyCarrier executor,
+                               PlannerContext plannerContext,
                                Set<PlanHint> hints,
                                ProjectionBuilder projectionBuilder,
                                int limit,
@@ -114,9 +116,9 @@ public class HashJoin implements LogicalPlan {
                                Row params,
                                SubQueryResults subQueryResults) {
         ExecutionPlan leftExecutionPlan = lhs.build(
-            plannerContext, hints, projectionBuilder, NO_LIMIT, 0, null, null, params, subQueryResults);
+            executor, plannerContext, hints, projectionBuilder, NO_LIMIT, 0, null, null, params, subQueryResults);
         ExecutionPlan rightExecutionPlan = rhs.build(
-            plannerContext, hints, projectionBuilder, NO_LIMIT, 0, null, null, params, subQueryResults);
+            executor, plannerContext, hints, projectionBuilder, NO_LIMIT, 0, null, null, params, subQueryResults);
 
         LogicalPlan leftLogicalPlan = lhs;
         LogicalPlan rightLogicalPlan = rhs;

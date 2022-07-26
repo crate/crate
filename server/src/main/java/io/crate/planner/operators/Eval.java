@@ -39,6 +39,7 @@ import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.FetchMarker;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
+import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
@@ -70,7 +71,8 @@ public final class Eval extends ForwardingLogicalPlan {
     }
 
     @Override
-    public ExecutionPlan build(PlannerContext plannerContext,
+    public ExecutionPlan build(DependencyCarrier executor,
+                               PlannerContext plannerContext,
                                Set<PlanHint> planHints,
                                ProjectionBuilder projectionBuilder,
                                int limit,
@@ -80,7 +82,7 @@ public final class Eval extends ForwardingLogicalPlan {
                                Row params,
                                SubQueryResults subQueryResults) {
         ExecutionPlan executionPlan = source.build(
-            plannerContext, planHints, projectionBuilder, limit, offset, null, pageSizeHint, params, subQueryResults);
+            executor, plannerContext, planHints, projectionBuilder, limit, offset, null, pageSizeHint, params, subQueryResults);
         if (outputs.equals(source.outputs())) {
             return executionPlan;
         }
@@ -144,8 +146,9 @@ public final class Eval extends ForwardingLogicalPlan {
             }
         }
         InputColumns.SourceSymbols ctx = new InputColumns.SourceSymbols(Lists2.map(source.outputs(), binder));
+        EvalProjection projection = new EvalProjection(InputColumns.create(boundOutputs, ctx));
         executionPlan.addProjection(
-            new EvalProjection(InputColumns.create(boundOutputs, ctx)),
+            projection,
             executionPlan.resultDescription().limit(),
             executionPlan.resultDescription().offset(),
             newOrderBy

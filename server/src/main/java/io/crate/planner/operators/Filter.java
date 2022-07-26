@@ -30,6 +30,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.metadata.RowGranularity;
+import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
 import io.crate.statistics.TableStats;
@@ -71,7 +72,8 @@ public final class Filter extends ForwardingLogicalPlan {
     }
 
     @Override
-    public ExecutionPlan build(PlannerContext plannerContext,
+    public ExecutionPlan build(DependencyCarrier executor,
+                               PlannerContext plannerContext,
                                Set<PlanHint> planHints,
                                ProjectionBuilder projectionBuilder,
                                int limit,
@@ -81,7 +83,7 @@ public final class Filter extends ForwardingLogicalPlan {
                                Row params,
                                SubQueryResults subQueryResults) {
         ExecutionPlan executionPlan = source.build(
-            plannerContext, planHints, projectionBuilder, limit, offset, order, pageSizeHint, params, subQueryResults);
+            executor, plannerContext, planHints, projectionBuilder, limit, offset, order, pageSizeHint, params, subQueryResults);
         Symbol boundQuery = SubQueryAndParamBinder.convert(query, params, subQueryResults);
         FilterProjection filterProjection = ProjectionBuilder.filterProjection(source.outputs(), boundQuery);
         if (executionPlan.resultDescription().executesOnShard()) {

@@ -22,6 +22,7 @@
 package io.crate.execution.dsl.projection.builder;
 
 import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.OuterColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.WindowFunction;
 
@@ -49,18 +50,25 @@ public class SplitPoints {
     private final List<Function> tableFunctions;
     private final List<Function> tableFunctionsBelowGroupBy;
     private final List<WindowFunction> windowFunctions;
+    private final List<OuterColumn> outerColumns;
 
 
     SplitPoints(List<Symbol> toCollect,
+                List<OuterColumn> outerColumns,
                 List<Function> aggregates,
                 List<Function> tableFunctions,
                 List<Function> tableFunctionsBelowGroupBy,
                 List<WindowFunction> windowFunctions) {
         this.toCollect = toCollect;
+        this.outerColumns = outerColumns;
         this.aggregates = aggregates;
         this.tableFunctions = tableFunctions;
         this.tableFunctionsBelowGroupBy = tableFunctionsBelowGroupBy;
         this.windowFunctions = windowFunctions;
+    }
+
+    public List<OuterColumn> outerColumns() {
+        return outerColumns;
     }
 
     public List<Symbol> toCollect() {

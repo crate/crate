@@ -158,6 +158,7 @@ import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.view.ViewInfoFactory;
 import io.crate.metadata.view.ViewsMetadata;
+import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.PlannerContext;
@@ -866,6 +867,7 @@ public class SQLExecutor {
         Plan plan = planner.plan(analyzedStatement, plannerContext);
         if (plan instanceof LogicalPlan) {
             return (T) ((LogicalPlan) plan).build(
+                mock(DependencyCarrier.class),
                 plannerContext,
                 Set.of(),
                 new ProjectionBuilder(nodeCtx),

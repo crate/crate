@@ -67,6 +67,7 @@ import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
@@ -75,6 +76,7 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.SubqueryPlanner;
+import io.crate.planner.SubqueryPlanner.SubQueries;
 import io.crate.planner.consumer.InsertFromSubQueryPlanner;
 import io.crate.planner.optimizer.Optimizer;
 import io.crate.planner.optimizer.rule.DeduplicateOrder;
@@ -280,10 +282,11 @@ public class LogicalPlanner {
             // MultiPhase is needed here but not in `DocTableRelation` or `TableRelation` because
             // `TableFunctionRelation` is also used for top-level `VALUES`
             //    -> so there wouldn't be a `QueriedSelectRelation` that can do the MultiPhase handling
+
+            SubQueries subQueries = subqueryPlanner.planSubQueries(relation);
             return MultiPhase.createIfNeeded(
-                TableFunction.create(relation, relation.outputs(), WhereClause.MATCH_ALL),
-                relation,
-                subqueryPlanner
+                subQueries.uncorrelated(),
+                TableFunction.create(relation, relation.outputs(), WhereClause.MATCH_ALL)
             );
         }
 
@@ -336,6 +339,10 @@ public class LogicalPlanner {
 
         @Override
         public LogicalPlan visitQueriedSelectRelation(QueriedSelectRelation relation, List<Symbol> outputs) {
+            if (Symbols.containsCorrelatedSubQuery(relation.where())) {
+                throw new UnsupportedOperationException(
+                    "Using correlated subqueries in the WHERE clause is not supported");
+            }
             SplitPoints splitPoints = SplitPointsBuilder.create(relation);
             LogicalPlan source = JoinPlanBuilder.buildJoinTree(
                 relation.from(),
@@ -379,7 +386,22 @@ public class LogicalPlanner {
                 },
                 txnCtx.sessionSettings().hashJoinsEnabled()
             );
+            SubQueries subQueries = subqueryPlanner.planSubQueries(relation);
+            for (var subQuery : subQueries.correlated()) {
+                var subQueryRelation = subQuery.relation();
+                LogicalPlan subQueryPlan = subQueryRelation.accept(this, subQueryRelation.outputs());
+                source = new CorrelatedJoin(
+                    source,
+                    subQuery,
+                    subQueryPlan
+                );
+            }
+            Symbol having = relation.having();
+            if (having != null && Symbols.containsCorrelatedSubQuery(having)) {
+                throw new UnsupportedOperationException("Cannot use correlated subquery in HAVING clause");
+            }
             return MultiPhase.createIfNeeded(
+                subQueries.uncorrelated(),
                 Eval.create(
                     Limit.create(
                         Order.create(
@@ -396,7 +418,7 @@ public class LogicalPlanner {
                                                 splitPoints.aggregates(),
                                                 tableStats
                                             ),
-                                            relation.having()
+                                            having
                                         ),
                                         splitPoints.windowFunctions()
                                     ),
@@ -412,9 +434,7 @@ public class LogicalPlanner {
                         relation.offset()
                     ),
                     outputs
-                ),
-                relation,
-                subqueryPlanner
+                )
             );
         }
     }
@@ -471,7 +491,7 @@ public class LogicalPlanner {
     }
 
     private static void doExecute(LogicalPlan logicalPlan,
-                                  DependencyCarrier dependencies,
+                                  DependencyCarrier executor,
                                   PlannerContext plannerContext,
                                   RowConsumer consumer,
                                   Row params,
@@ -479,13 +499,13 @@ public class LogicalPlanner {
                                   boolean enableProfiling) {
         NodeOperationTree nodeOpTree;
         try {
-            nodeOpTree = getNodeOperationTree(logicalPlan, dependencies, plannerContext, params, subQueryResults);
+            nodeOpTree = getNodeOperationTree(logicalPlan, executor, plannerContext, params, subQueryResults);
         } catch (Throwable t) {
             consumer.accept(null, t);
             return;
         }
         executeNodeOpTree(
-            dependencies,
+            executor,
             plannerContext.transactionContext(),
             plannerContext.jobId(),
             consumer,
@@ -499,10 +519,19 @@ public class LogicalPlanner {
                                                          PlannerContext plannerContext,
                                                          Row params,
                                                          SubQueryResults subQueryResults) {
-        ExecutionPlan executionPlan;
         try {
-            executionPlan = logicalPlan.build(
-                plannerContext, Set.of(), executor.projectionBuilder(), -1, 0, null, null, params, subQueryResults);
+            var executionPlan = logicalPlan.build(
+                executor,
+                plannerContext,
+                Set.of(),
+                executor.projectionBuilder(),
+                -1,
+                0,
+                null,
+                null,
+                params,
+                subQueryResults);
+            return NodeOperationTreeGenerator.fromPlan(executionPlan, executor.localNodeId());
         } catch (ConversionException e) {
             throw e;
         } catch (Exception e) {
@@ -522,7 +551,6 @@ public class LogicalPlanner {
             illegalArgumentException.setStackTrace(e.getStackTrace());
             throw illegalArgumentException;
         }
-        return NodeOperationTreeGenerator.fromPlan(executionPlan, executor.localNodeId());
     }
 
     public static void executeNodeOpTree(DependencyCarrier dependencies,

@@ -638,7 +638,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         var relationContext = context.currentRelationContext();
 
         var withQuery = relationContext.parentSources()
-            .relation(RelationName.of(tableQualifiedName, null));
+            .getAncestor(RelationName.of(tableQualifiedName, null));
         if (withQuery != null) {
             relation = withQuery;
         } else {

@@ -27,79 +27,70 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.expression.symbol.format.Style;
-import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 
 /**
- * Symbol representing a sub-query
- */
-public class SelectSymbol implements Symbol {
+ * Used to represents columns from an outer relation in a correlated subquery.
+ *
+ * <pre>
+ * Example:
+ * </pre>
+ *
+ * <pre>
+ * {@code
+ * SELECT (SELECT t.mountains) FROM sys.summits t
+ *                ^^^^^^^^^^^
+ *                OuterColumn
+ *                 symbol: ScopedSymbol(relationName=t, column=mountains)
+ *                 relation: AliasedAnalyzedRelation(t)
+ * }
+ * </pre>
+ **/
+public final class OuterColumn implements Symbol {
 
     private final AnalyzedRelation relation;
-    private final ArrayType<?> dataType;
-    private final ResultType resultType;
-    private final boolean isCorrelated;
+    private final Symbol symbol;
 
-    public enum ResultType {
-        SINGLE_COLUMN_SINGLE_VALUE,
-        SINGLE_COLUMN_MULTIPLE_VALUES
-    }
-
-    public SelectSymbol(AnalyzedRelation relation, ArrayType<?> dataType, ResultType resultType) {
+    public OuterColumn(AnalyzedRelation relation, Symbol symbol) {
         this.relation = relation;
-        this.dataType = dataType;
-        this.resultType = resultType;
-        boolean[] isCorrelatedArr = new boolean[] { false };
-        relation.visitSymbols(symbolTree -> {
-            if (SymbolVisitors.any(s -> s instanceof OuterColumn, symbolTree)) {
-                isCorrelatedArr[0] = true;
-            }
-        });
-        this.isCorrelated = isCorrelatedArr[0];
+        this.symbol = symbol;
     }
 
     public AnalyzedRelation relation() {
         return relation;
     }
 
-    public boolean isCorrelated() {
-        return isCorrelated;
+    public Symbol symbol() {
+        return symbol;
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        throw new UnsupportedOperationException("Cannot stream SelectSymbol");
+        throw new UnsupportedOperationException("Cannot stream OuterColumn symbol " + toString());
     }
 
     @Override
     public SymbolType symbolType() {
-        return SymbolType.SELECT_SYMBOL;
+        return symbol.symbolType();
     }
 
     @Override
     public <C, R> R accept(SymbolVisitor<C, R> visitor, C context) {
-        return visitor.visitSelectSymbol(this, context);
+        return visitor.visitOuterColumn(this, context);
     }
 
     @Override
     public DataType<?> valueType() {
-        if (resultType == ResultType.SINGLE_COLUMN_SINGLE_VALUE) {
-            return dataType.innerType();
-        }
-        return dataType;
+        return symbol.valueType();
     }
 
     @Override
     public String toString() {
-        return "(" + relation + ")";
+        return symbol.toString();
     }
 
     @Override
     public String toString(Style style) {
-        return "(" + relation + ")";
-    }
-
-    public ResultType getResultType() {
-        return resultType;
+        return symbol.toString(style);
     }
 }

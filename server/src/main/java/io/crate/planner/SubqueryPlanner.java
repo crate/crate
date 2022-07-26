@@ -21,16 +21,18 @@
 
 package io.crate.planner;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Consumer;
+import java.util.function.Function;
+
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.expression.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.planner.operators.LogicalPlan;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.function.Consumer;
-import java.util.function.Function;
 
 public class SubqueryPlanner {
 
@@ -40,20 +42,29 @@ public class SubqueryPlanner {
         this.planSubSelects = planSubSelects;
     }
 
-    public Map<LogicalPlan, SelectSymbol> planSubQueries(AnalyzedStatement statement) {
+    public record SubQueries(Map<LogicalPlan, SelectSymbol> uncorrelated, List<SelectSymbol> correlated) {
+    }
+
+    public SubQueries planSubQueries(AnalyzedStatement statement) {
         Visitor visitor = new Visitor();
         statement.visitSymbols(visitor);
         return visitor.subQueries;
     }
 
-    private void planSubquery(SelectSymbol selectSymbol, Map<LogicalPlan, SelectSymbol> subQueries) {
-        LogicalPlan subPlan = planSubSelects.apply(selectSymbol);
-        subQueries.put(subPlan, selectSymbol);
+    private void planSubquery(SelectSymbol selectSymbol, SubQueries subQueries) {
+        if (selectSymbol.isCorrelated()) {
+            if (!subQueries.correlated.contains(selectSymbol)) {
+                subQueries.correlated.add(selectSymbol);
+            }
+        } else {
+            LogicalPlan subPlan = planSubSelects.apply(selectSymbol);
+            subQueries.uncorrelated.put(subPlan, selectSymbol);
+        }
     }
 
     private class Visitor extends DefaultTraversalSymbolVisitor<Symbol, Void> implements Consumer<Symbol> {
 
-        private final Map<LogicalPlan, SelectSymbol> subQueries = new HashMap<>();
+        private final SubQueries subQueries = new SubQueries(new HashMap<>(), new ArrayList<>());
 
         @Override
         public Void visitSelectSymbol(SelectSymbol selectSymbol, Symbol parent) {

@@ -30,6 +30,7 @@ import io.crate.analyze.OrderBy;
 import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
+import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
@@ -44,7 +45,8 @@ public class RootRelationBoundary extends ForwardingLogicalPlan {
     }
 
     @Override
-    public ExecutionPlan build(PlannerContext plannerContext,
+    public ExecutionPlan build(DependencyCarrier executor,
+                               PlannerContext plannerContext,
                                Set<PlanHint> hints,
                                ProjectionBuilder projectionBuilder,
                                int limit,
@@ -54,6 +56,7 @@ public class RootRelationBoundary extends ForwardingLogicalPlan {
                                Row params,
                                SubQueryResults subQueryResults) {
         return Merge.ensureOnHandler(source.build(
+            executor,
             plannerContext,
             hints,
             projectionBuilder,

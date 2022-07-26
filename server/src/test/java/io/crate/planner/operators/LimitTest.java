@@ -24,6 +24,7 @@ package io.crate.planner.operators;
 import static io.crate.planner.operators.LogicalPlannerTest.isPlan;
 import static org.hamcrest.Matchers.contains;
 import static org.junit.Assert.assertThat;
+import static org.mockito.Mockito.mock;
 
 import java.util.List;
 import java.util.Set;
@@ -40,6 +41,7 @@ import io.crate.data.Row;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.pipeline.TopN;
 import io.crate.expression.symbol.Literal;
+import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
 import io.crate.statistics.TableStats;
@@ -77,6 +79,7 @@ public class LimitTest extends CrateDummyClusterServiceUnitTest {
             "    └ Collect[doc.users | [name] | true]"));
         PlannerContext ctx = e.getPlannerContext(clusterService.state());
         Merge merge = (Merge) plan.build(
+            mock(DependencyCarrier.class),
             ctx,
             Set.of(),
             new ProjectionBuilder(e.nodeCtx),
