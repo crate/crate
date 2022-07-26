@@ -48,9 +48,14 @@ identifier. An identifier is an unquoted or double quoted string.
 
 - quoted: ``"columnName"``
 
-It's also possible to include the name of a table or alias in order to
-unambiguously identify a column of a specific relation if a statement contains
-multiple alias or table definitions::
+It's also possible to include the name of a table with or without schema and
+catalog name, or an alias in order to unambiguously identify a column of a
+specific relation if a statement contains multiple aliases or table definitions::
+
+    crate.myschema.mytable.columnname
+    myschema.mytable.columname
+
+or::
 
     tab0.columnname
 
@@ -58,6 +63,10 @@ multiple alias or table definitions::
 
     :ref:`sql_lexical`
 
+.. NOTE::
+
+    As CrateDB doesn't support multiple catalogs, only multiple schemas, the
+    only valid catalog name is ``crate``.
 
 .. _sql-parameter-reference:
 

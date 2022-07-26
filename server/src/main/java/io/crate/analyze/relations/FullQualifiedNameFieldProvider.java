@@ -21,6 +21,13 @@
 
 package io.crate.analyze.relations;
 
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
+
+import javax.annotation.Nullable;
+
 import io.crate.exceptions.AmbiguousColumnException;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.RelationUnknown;
@@ -29,12 +36,6 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
-
-import javax.annotation.Nullable;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
 
 /**
  * Resolves QualifiedNames to Fields considering multiple AnalyzedRelations.
@@ -71,6 +72,11 @@ public class FullQualifiedNameFieldProvider implements FieldProvider<Symbol> {
             case 3:
                 columnSchema = parts.get(0);
                 columnTableName = parts.get(1);
+                break;
+            case 4:
+                RelationName.ensureIsCrateCatalog(parts.get(0));
+                columnSchema = parts.get(1);
+                columnTableName = parts.get(2);
                 break;
             default:
                 throw new IllegalArgumentException("Column reference \"%s\" has too many parts. " +
