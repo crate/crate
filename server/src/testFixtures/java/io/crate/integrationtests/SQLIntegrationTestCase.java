@@ -419,12 +419,6 @@ public abstract class SQLIntegrationTestCase extends ESIntegTestCase {
         return response;
     }
 
-    private void dumpActiveTasks() {
-        for (var tasksService : internalCluster().getInstances(TasksService.class)) {
-            tasksService.logActiveTasksToError();
-        }
-    }
-
     /**
      * Execute an SQL Statement on a random node of the cluster
      *
@@ -439,7 +433,7 @@ public abstract class SQLIntegrationTestCase extends ESIntegTestCase {
             return response;
         } catch (ElasticsearchTimeoutException e) {
             LOGGER.error("Timeout on SQL statement: {} {}", stmt, e);
-            dumpActiveTasks();
+            internalCluster().dumpActiveTasks();
             throw e;
         }
     }
@@ -459,7 +453,7 @@ public abstract class SQLIntegrationTestCase extends ESIntegTestCase {
             return response;
         } catch (ElasticsearchTimeoutException e) {
             LOGGER.error("Timeout on SQL statement: {} {}", stmt, e);
-            dumpActiveTasks();
+            internalCluster().dumpActiveTasks();
             throw e;
         }
     }
