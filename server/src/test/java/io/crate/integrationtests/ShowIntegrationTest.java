@@ -36,6 +36,7 @@ import java.util.Locale;
 import org.junit.Test;
 
 import io.crate.testing.UseHashJoins;
+import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedSchema;
 
 @UseRandomizedSchema(random = false)
@@ -397,10 +398,12 @@ public class ShowIntegrationTest extends SQLIntegrationTestCase {
     }
 
     @UseHashJoins(1)
+    @UseJdbc(1)
     @Test
     public void testShowAll() {
         execute("show all");
         assertThat(printedTable(response.rows()), is(
+            "application_name| PostgreSQL JDBC Driver| Optional application name. Can be set by a client to identify the application which created the connection\n" +
             "enable_hashjoin| true| Considers using the Hash Join instead of the Nested Loop Join implementation.\n" +
             "error_on_unknown_object_key| true| Raises or suppresses ObjectKeyUnknownException when querying nonexistent keys to dynamic objects.\n" +
             "max_index_keys| 32| Shows the maximum number of index keys.\n" +
