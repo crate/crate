@@ -59,6 +59,9 @@ Deprecations
 Changes
 =======
 
+- Added a ``application_name`` session setting that can be used to identify
+  clients or applications which connect to a CrateDB node.
+
 - Added support for ``catalog`` in fully qualified table and column names,
   i.e.::
 

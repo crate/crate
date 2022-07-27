@@ -27,13 +27,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 
-
-import io.crate.common.collections.MapBuilder;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
+import io.crate.common.collections.MapBuilder;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
+import io.crate.metadata.settings.SessionSettings;
 import io.crate.protocols.postgres.PostgresWireProtocol;
 import io.crate.types.DataTypes;
 
@@ -46,6 +46,16 @@ public class SessionSettingRegistry {
     private static final String SERVER_VERSION_NUM = "server_version_num";
     private static final String SERVER_VERSION = "server_version";
     static final String ERROR_ON_UNKNOWN_OBJECT_KEY = "error_on_unknown_object_key";
+    static final SessionSetting<String> APPLICATION_NAME = new SessionSetting<String>(
+        "application_name",
+        inputs -> {},
+        inputs -> DataTypes.STRING.implicitCast(inputs[0]),
+        CoordinatorSessionSettings::setApplicationName,
+        SessionSettings::applicationName,
+        () -> null,
+        "Optional application name. Can be set by a client to identify the application which created the connection",
+        DataTypes.STRING
+    );
     private final Map<String, SessionSetting<?>> settings;
 
     @Inject
@@ -128,7 +138,9 @@ public class SessionSettingRegistry {
                      s -> Boolean.toString(s.errorOnUnknownObjectKey()),
                      () -> String.valueOf(true),
                      "Raises or suppresses ObjectKeyUnknownException when querying nonexistent keys to dynamic objects.",
-                     DataTypes.BOOLEAN));
+                     DataTypes.BOOLEAN)
+            )
+            .put(APPLICATION_NAME.name(), APPLICATION_NAME);
 
         for (var providers : sessionSettingProviders) {
             for (var setting : providers.sessionSettings()) {
