@@ -167,7 +167,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             new FullQualifiedNameFieldProvider(
                 relationAnalysisContext.sources(),
                 relationAnalysisContext.parentSources(),
-                coordinatorTxnCtx.sessionContext().searchPath().currentSchema()),
+                coordinatorTxnCtx.sessionSettings().searchPath().currentSchema()),
             new SubqueryAnalyzer(this, statementContext));
         ExpressionAnalysisContext expressionAnalysisContext = relationAnalysisContext.expressionAnalysisContext();
         SelectAnalysis selectAnalysis = new SelectAnalysis(
@@ -288,7 +288,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                     new FullQualifiedNameFieldProvider(
                         relationContext.sources(),
                         relationContext.parentSources(),
-                        coordinatorTxnCtx.sessionContext().searchPath().currentSchema()),
+                        coordinatorTxnCtx.sessionSettings().searchPath().currentSchema()),
                     new SubqueryAnalyzer(this, statementContext));
                 Expression expr;
                 if (joinCriteria instanceof JoinOn) {
@@ -343,7 +343,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             new FullQualifiedNameFieldProvider(
                 context.sources(),
                 context.parentSources(),
-                coordinatorTxnCtx.sessionContext().searchPath().currentSchema()),
+                coordinatorTxnCtx.sessionSettings().searchPath().currentSchema()),
             new SubqueryAnalyzer(this, statementContext));
 
         ExpressionAnalysisContext expressionAnalysisContext = context.expressionAnalysisContext();
@@ -633,7 +633,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     @Override
     protected AnalyzedRelation visitTable(Table<?> node, StatementAnalysisContext context) {
         QualifiedName tableQualifiedName = node.getName();
-        SearchPath searchPath = context.sessionContext().searchPath();
+        SearchPath searchPath = context.sessionSettings().searchPath();
         AnalyzedRelation relation;
         var relationContext = context.currentRelationContext();
 
@@ -647,7 +647,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                 tableInfo = schemas.resolveTableInfo(
                     tableQualifiedName,
                     context.currentOperation(),
-                    context.sessionContext().sessionUser(),
+                    context.sessionSettings().sessionUser(),
                     searchPath
                 );
                 if (tableInfo instanceof DocTableInfo) {
@@ -725,7 +725,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             FieldProvider.UNSUPPORTED,
             new SubqueryAnalyzer(this, context)
         );
-        var expressionAnalysisContext = new ExpressionAnalysisContext(context.sessionContext());
+        var expressionAnalysisContext = new ExpressionAnalysisContext(context.sessionSettings());
         // prevent normalization of the values array, otherwise the value literals are converted to an array literal
         // and a special per-value-literal casting logic won't be executed (e.g. FloatLiteral.cast())
         expressionAnalysisContext.allowEagerNormalize(false);

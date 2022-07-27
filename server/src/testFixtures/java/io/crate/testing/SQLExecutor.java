@@ -107,7 +107,6 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.RemoteClusters;
 
 import io.crate.Constants;
-import io.crate.action.sql.SessionContext;
 import io.crate.analyze.AnalyzedCreateBlobTable;
 import io.crate.analyze.AnalyzedCreateTable;
 import io.crate.analyze.AnalyzedStatement;
@@ -152,6 +151,7 @@ import io.crate.metadata.doc.DocTableInfoFactory;
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.metadata.settings.CrateSettings;
+import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.table.Operation;
@@ -196,7 +196,7 @@ public class SQLExecutor {
     public final Analyzer analyzer;
     public final Planner planner;
     private final RelationAnalyzer relAnalyzer;
-    private final SessionContext sessionContext;
+    private final CoordinatorSessionSettings sessionSettings;
     private final CoordinatorTxnCtx coordinatorTxnCtx;
     public final NodeContext nodeCtx;
     private final Random random;
@@ -218,7 +218,7 @@ public class SQLExecutor {
             clusterState,
             new RoutingProvider(random.nextInt(), emptyList()),
             UUID.randomUUID(),
-            new CoordinatorTxnCtx(sessionContext),
+            new CoordinatorTxnCtx(sessionSettings),
             nodeCtx,
             -1,
             null
@@ -444,7 +444,7 @@ public class SQLExecutor {
                     sessionSettingRegistry
                 ),
                 relationAnalyzer,
-                new SessionContext(user, searchPath),
+                new CoordinatorSessionSettings(user, searchPath),
                 schemas,
                 random,
                 fulltextAnalyzerResolver,
@@ -469,7 +469,7 @@ public class SQLExecutor {
 
         public Builder addPartitionedTable(String createTableStmt, String... partitions) throws IOException {
             CreateTable<Expression> stmt = (CreateTable<Expression>) SqlParser.createStatement(createTableStmt);
-            CoordinatorTxnCtx txnCtx = new CoordinatorTxnCtx(SessionContext.systemSessionContext());
+            CoordinatorTxnCtx txnCtx = new CoordinatorTxnCtx(CoordinatorSessionSettings.systemDefaults());
             AnalyzedCreateTable analyzedCreateTable = createTableStatementAnalyzer.analyze(
                 stmt, ParamTypeHints.EMPTY, txnCtx);
 
@@ -532,7 +532,7 @@ public class SQLExecutor {
          */
         public Builder addTable(String createTableStmt, Settings settings) throws IOException {
             CreateTable<Expression> stmt = (CreateTable<Expression>) SqlParser.createStatement(createTableStmt);
-            CoordinatorTxnCtx txnCtx = new CoordinatorTxnCtx(SessionContext.systemSessionContext());
+            CoordinatorTxnCtx txnCtx = new CoordinatorTxnCtx(CoordinatorSessionSettings.systemDefaults());
             AnalyzedCreateTable analyzedCreateTable = createTableStatementAnalyzer.analyze(
                 stmt, ParamTypeHints.EMPTY, txnCtx);
             BoundCreateTable analyzedStmt = CreateTablePlan.bind(
@@ -676,7 +676,7 @@ public class SQLExecutor {
 
         public Builder addBlobTable(String createBlobTableStmt) throws IOException {
             CreateBlobTable<Expression> stmt = (CreateBlobTable<Expression>) SqlParser.createStatement(createBlobTableStmt);
-            CoordinatorTxnCtx txnCtx = new CoordinatorTxnCtx(SessionContext.systemSessionContext());
+            CoordinatorTxnCtx txnCtx = new CoordinatorTxnCtx(CoordinatorSessionSettings.systemDefaults());
             AnalyzedCreateBlobTable analyzedStmt = createBlobTableAnalyzer.analyze(
                 stmt, ParamTypeHints.EMPTY, txnCtx);
             Settings settings = CreateBlobTablePlan.buildSettings(
@@ -774,7 +774,7 @@ public class SQLExecutor {
                         Analyzer analyzer,
                         Planner planner,
                         RelationAnalyzer relAnalyzer,
-                        SessionContext sessionContext,
+                        CoordinatorSessionSettings sessionSettings,
                         Schemas schemas,
                         Random random,
                         FulltextAnalyzerResolver fulltextAnalyzerResolver,
@@ -782,8 +782,8 @@ public class SQLExecutor {
         this.analyzer = analyzer;
         this.planner = planner;
         this.relAnalyzer = relAnalyzer;
-        this.sessionContext = sessionContext;
-        this.coordinatorTxnCtx = new CoordinatorTxnCtx(sessionContext);
+        this.sessionSettings = sessionSettings;
+        this.coordinatorTxnCtx = new CoordinatorTxnCtx(sessionSettings);
         this.nodeCtx = nodeCtx;
         this.schemas = schemas;
         this.random = random;
@@ -803,7 +803,7 @@ public class SQLExecutor {
         //noinspection unchecked
         return (T) analyzer.analyze(
             SqlParser.createStatement(stmt),
-            coordinatorTxnCtx.sessionContext(),
+            coordinatorTxnCtx.sessionSettings(),
             typeHints);
     }
 
@@ -825,7 +825,7 @@ public class SQLExecutor {
                 }
             }
         }
-        CoordinatorTxnCtx coordinatorTxnCtx = new CoordinatorTxnCtx(sessionContext);
+        CoordinatorTxnCtx coordinatorTxnCtx = new CoordinatorTxnCtx(sessionSettings);
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
             coordinatorTxnCtx,
             nodeCtx,
@@ -833,14 +833,14 @@ public class SQLExecutor {
             new FullQualifiedNameFieldProvider(
                 sources.immutableMap(),
                 ParentRelations.NO_PARENTS,
-                sessionContext.searchPath().currentSchema()
+                sessionSettings.searchPath().currentSchema()
             ),
             new SubqueryAnalyzer(
                 relAnalyzer,
                 new StatementAnalysisContext(ParamTypeHints.EMPTY, Operation.READ, coordinatorTxnCtx)
             )
         );
-        ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext(coordinatorTxnCtx.sessionContext());
+        ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext(coordinatorTxnCtx.sessionSettings());
         return expressionAnalyzer.convert(
             SqlParser.createExpression(expression), expressionAnalysisContext);
     }
@@ -900,13 +900,13 @@ public class SQLExecutor {
         return schemas;
     }
 
-    public SessionContext getSessionContext() {
-        return sessionContext;
+    public CoordinatorSessionSettings getSessionSettings() {
+        return sessionSettings;
     }
 
     public <T extends TableInfo> T resolveTableInfo(String tableName) {
         IndexParts indexParts = new IndexParts(tableName);
         QualifiedName qualifiedName = QualifiedName.of(indexParts.getSchema(), indexParts.getTable());
-        return (T) schemas.resolveTableInfo(qualifiedName, Operation.READ, sessionContext.sessionUser(), sessionContext.searchPath());
+        return (T) schemas.resolveTableInfo(qualifiedName, Operation.READ, sessionSettings.sessionUser(), sessionSettings.searchPath());
     }
 }

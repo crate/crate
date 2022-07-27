@@ -55,7 +55,7 @@ public class SysSnapshotRestoreTableInfo {
                 new ColumnIdent("id"),
                 new ColumnIdent("name"),
                 new ColumnIdent("repository"))
-            .withRouting((state, routingProvider, sessionContext) ->
+            .withRouting((state, routingProvider, sessionSettings) ->
                              routingProvider.forRandomMasterOrDataNode(IDENT, state.getNodes()))
             .build();
     }

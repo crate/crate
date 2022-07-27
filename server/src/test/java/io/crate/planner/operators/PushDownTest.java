@@ -49,7 +49,7 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
             .build();
 
         // push down is currently NOT possible when using hash joins. To test the push downs we must disable hash joins.
-        sqlExecutor.getSessionContext().setHashJoinEnabled(false);
+        sqlExecutor.getSessionSettings().setHashJoinEnabled(false);
     }
 
     private LogicalPlan plan(String stmt) {
@@ -188,11 +188,11 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testOrderByWithHashJoinNotPushedDown() {
-        sqlExecutor.getSessionContext().setHashJoinEnabled(true);
+        sqlExecutor.getSessionSettings().setHashJoinEnabled(true);
         LogicalPlan plan = sqlExecutor.logicalPlan("select t1.a, t2.b " +
                                                    "from t1 inner join t2 on t1.a = t2.b " +
                                                    "order by t1.a");
-        sqlExecutor.getSessionContext().setHashJoinEnabled(false);
+        sqlExecutor.getSessionSettings().setHashJoinEnabled(false);
         assertThat(plan, isPlan(
             "OrderBy[a ASC]\n" +
             "  └ HashJoin[(a = b)]\n" +
@@ -203,7 +203,7 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testOrderByIsPushedDownToLeftSide() {
-        sqlExecutor.getSessionContext().setHashJoinEnabled(false);
+        sqlExecutor.getSessionSettings().setHashJoinEnabled(false);
         // differs from testOrderByOnJoinPushedDown in that here the ORDER BY expression is not part of the outputs
         LogicalPlan plan = sqlExecutor.logicalPlan(
             "SELECT t1.i, t2.i FROM t2 INNER JOIN t1 ON t1.x = t2.y ORDER BY lower(t2.b)");
@@ -237,7 +237,7 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testFilterOnSubQueryWithJoinIsPushedBeneathJoin() {
-        sqlExecutor.getSessionContext().setHashJoinEnabled(true);
+        sqlExecutor.getSessionSettings().setHashJoinEnabled(true);
         var plan = sqlExecutor.logicalPlan(
             "SELECT * FROM " +
             "   (SELECT * FROM t1 INNER JOIN t2 on t1.x = t2.y) tjoin " +
@@ -268,7 +268,7 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testFilterOnSubQueryWithJoinIsSplitAndPartiallyPushedBeneathJoin() {
-        sqlExecutor.getSessionContext().setHashJoinEnabled(true);
+        sqlExecutor.getSessionSettings().setHashJoinEnabled(true);
         var plan = sqlExecutor.logicalPlan(
             "SELECT * FROM " +
             "   (SELECT * FROM t1 INNER JOIN t2 on t1.x = t2.y) tjoin " +

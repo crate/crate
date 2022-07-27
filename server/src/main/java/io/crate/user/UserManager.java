@@ -27,7 +27,7 @@ import java.util.concurrent.CompletableFuture;
 import javax.annotation.Nullable;
 
 import io.crate.auth.AccessControl;
-import io.crate.action.sql.SessionContext;
+import io.crate.metadata.settings.CoordinatorSessionSettings;
 
 /**
  * responsible for creating and deleting users
@@ -72,5 +72,5 @@ public interface UserManager extends UserLookup {
      */
     CompletableFuture<Long> applyPrivileges(Collection<String> userNames, Collection<Privilege> privileges);
 
-    AccessControl getAccessControl(SessionContext sessionContext);
+    AccessControl getAccessControl(CoordinatorSessionSettings sessionSettings);
 }

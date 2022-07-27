@@ -30,7 +30,6 @@ import javax.annotation.Nullable;
 
 import org.elasticsearch.common.inject.AbstractModule;
 
-import io.crate.action.sql.SessionContext;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
@@ -48,6 +47,7 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.parser.SqlParser;
 import io.crate.user.User;
@@ -76,7 +76,8 @@ public class SqlExpressions {
                           AbstractModule... additionalModules) {
         this.nodeCtx = createNodeContext(user, additionalModules);
         // In test_throws_error_when_user_is_not_found we explicitly inject null user but SessionContext user cannot be not null.
-        coordinatorTxnCtx = new CoordinatorTxnCtx(new SessionContext(user == null ? User.CRATE_USER : user));
+        var sessionSettings = new CoordinatorSessionSettings(user == null ? User.CRATE_USER : user);
+        coordinatorTxnCtx = new CoordinatorTxnCtx(sessionSettings);
         expressionAnalyzer = new ExpressionAnalyzer(
             coordinatorTxnCtx,
             nodeCtx,
@@ -84,14 +85,14 @@ public class SqlExpressions {
             new FullQualifiedNameFieldProvider(
                 sources,
                 ParentRelations.NO_PARENTS,
-                coordinatorTxnCtx.sessionContext().searchPath().currentSchema()),
+                sessionSettings.searchPath().currentSchema()),
             new SubqueryAnalyzer(
                 new RelationAnalyzer(nodeCtx, mock(Schemas.class)),
                 new StatementAnalysisContext(ParamTypeHints.EMPTY, Operation.READ, coordinatorTxnCtx)
             )
         );
         normalizer = new EvaluatingNormalizer(nodeCtx, RowGranularity.DOC, null, fieldResolver);
-        expressionAnalysisCtx = new ExpressionAnalysisContext(coordinatorTxnCtx.sessionContext());
+        expressionAnalysisCtx = new ExpressionAnalysisContext(sessionSettings);
     }
 
     public Symbol asSymbol(String expression) {
@@ -107,14 +108,14 @@ public class SqlExpressions {
     }
 
     public void setDefaultSchema(String schema) {
-        this.coordinatorTxnCtx.sessionContext().setSearchPath(schema);
+        this.coordinatorTxnCtx.sessionSettings().setSearchPath(schema);
     }
 
     public void setSearchPath(String... schemas) {
-        this.coordinatorTxnCtx.sessionContext().setSearchPath(schemas);
+        this.coordinatorTxnCtx.sessionSettings().setSearchPath(schemas);
     }
 
     public void setErrorOnUnknownObjectKey(boolean errorOnUnknownObjectKey) {
-        this.coordinatorTxnCtx.sessionContext().setErrorOnUnknownObjectKey(errorOnUnknownObjectKey);
+        this.coordinatorTxnCtx.sessionSettings().setErrorOnUnknownObjectKey(errorOnUnknownObjectKey);
     }
 }

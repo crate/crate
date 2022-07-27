@@ -49,12 +49,12 @@ import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.action.sql.SessionContext;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.exceptions.UnauthorizedException;
 import io.crate.execution.engine.collect.sources.SysTableRegistry;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.cluster.DDLClusterStateService;
+import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -143,7 +143,7 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     private void analyze(String stmt, User user) {
         e.analyzer.analyze(
             SqlParser.createStatement(stmt),
-            new SessionContext(user),
+            new CoordinatorSessionSettings(user),
             ParamTypeHints.EMPTY);
     }
 
@@ -580,7 +580,7 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     public void test_set_session_user_from_normal_to_originally_authenticated_user_succeeds() {
         e.analyzer.analyze(
             SqlParser.createStatement("SET SESSION AUTHORIZATION " + superUser.name()),
-            new SessionContext(superUser, user),
+            new CoordinatorSessionSettings(superUser, user),
             ParamTypeHints.EMPTY);
         assertThat(validationCallArguments.size(), is(0));
     }
@@ -589,7 +589,7 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     public void test_set_session_user_from_normal_user_to_default_succeeds() {
         e.analyzer.analyze(
             SqlParser.createStatement("SET SESSION AUTHORIZATION DEFAULT"),
-            new SessionContext(superUser, user),
+            new CoordinatorSessionSettings(superUser, user),
             ParamTypeHints.EMPTY);
         assertThat(validationCallArguments.size(), is(0));
     }
@@ -598,7 +598,7 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     public void test_reset_session_authorization_from_normal_user_succeeds() {
         e.analyzer.analyze(
             SqlParser.createStatement("RESET SESSION AUTHORIZATION"),
-            new SessionContext(superUser, user),
+            new CoordinatorSessionSettings(superUser, user),
             ParamTypeHints.EMPTY);
         assertThat(validationCallArguments.size(), is(0));
     }

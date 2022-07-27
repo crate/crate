@@ -21,7 +21,6 @@
 
 package io.crate.planner.statement;
 
-import io.crate.action.sql.SessionContext;
 import io.crate.analyze.AnalyzedDeleteStatement;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.DocTableRelation;
@@ -182,9 +181,9 @@ public final class DeletePlanner {
         DocTableInfo tableInfo = table.tableInfo();
         Reference idReference = requireNonNull(tableInfo.getReference(DocSysColumns.ID), "Table has to have a _id reference");
         DeleteProjection deleteProjection = new DeleteProjection(new InputColumn(0, idReference.valueType()));
-        SessionContext sessionContext = context.transactionContext().sessionContext();
+        var sessionSettings = context.transactionContext().sessionSettings();
         Routing routing = context.allocateRouting(
-            tableInfo, where, RoutingProvider.ShardSelection.PRIMARIES, sessionContext);
+            tableInfo, where, RoutingProvider.ShardSelection.PRIMARIES, sessionSettings);
         RoutedCollectPhase collectPhase = new RoutedCollectPhase(
             context.jobId(),
             context.nextExecutionPhaseId(),

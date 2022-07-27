@@ -36,7 +36,6 @@ import org.elasticsearch.test.ESTestCase;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.action.sql.SessionContext;
 import io.crate.expression.NestableInput;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.operator.AndOperator;
@@ -57,6 +56,7 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.SimpleReference;
+import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.types.DataTypes;
 
 public class EvaluatingNormalizerTest extends ESTestCase {
@@ -65,7 +65,7 @@ public class EvaluatingNormalizerTest extends ESTestCase {
     private NodeContext nodeCtx;
     private Reference dummyLoadInfo;
 
-    private final CoordinatorTxnCtx coordinatorTxnCtx = new CoordinatorTxnCtx(SessionContext.systemSessionContext());
+    private final CoordinatorTxnCtx coordinatorTxnCtx = new CoordinatorTxnCtx(CoordinatorSessionSettings.systemDefaults());
 
     @Before
     public void prepare() throws Exception {

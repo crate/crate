@@ -72,15 +72,15 @@ class AlterTableAddColumnAnalyzer {
         DocTableInfo tableInfo = (DocTableInfo) schemas.resolveTableInfo(
             alterTable.table().getName(),
             Operation.ALTER,
-            txnCtx.sessionContext().sessionUser(),
-            txnCtx.sessionContext().searchPath());
+            txnCtx.sessionSettings().sessionUser(),
+            txnCtx.sessionSettings().searchPath());
         TableReferenceResolver referenceResolver = new TableReferenceResolver(tableInfo.columns(), tableInfo.ident());
 
         var exprAnalyzerWithReferenceResolver = new ExpressionAnalyzer(
             txnCtx, nodeCtx, paramTypeHints, referenceResolver, null);
         var exprAnalyzerWithFieldsAsString = new ExpressionAnalyzer(
             txnCtx, nodeCtx, paramTypeHints, FieldProvider.TO_LITERAL_VALIDATE_NAME, null);
-        var exprCtx = new ExpressionAnalysisContext(txnCtx.sessionContext());
+        var exprCtx = new ExpressionAnalysisContext(txnCtx.sessionSettings());
 
         AddColumnDefinition<Expression> tableElement = alterTable.tableElement();
 

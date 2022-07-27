@@ -63,7 +63,7 @@ public class SysSegmentsTableInfo {
             .add("version", STRING, r -> r.getSegment().getVersion().toString())
             .add("compound", BOOLEAN, r -> r.getSegment().compound)
             .add("attributes", DataTypes.UNTYPED_OBJECT, r -> (Map<String, Object>) (Map<?, ?>) r.getSegment().getAttributes())
-            .withRouting((state, routingProvider, sessionContext) -> Routing.forTableOnAllNodes(IDENT, state.getNodes()))
+            .withRouting((state, routingProvider, sessionSettings) -> Routing.forTableOnAllNodes(IDENT, state.getNodes()))
             .build();
     }
 }

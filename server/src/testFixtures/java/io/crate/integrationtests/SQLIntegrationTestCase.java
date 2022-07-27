@@ -86,7 +86,6 @@ import com.carrotsearch.randomizedtesting.generators.RandomStrings;
 import io.crate.Constants;
 import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;
-import io.crate.action.sql.SessionContext;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.common.collections.Lists2;
@@ -114,6 +113,7 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.SearchPath;
+import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.DependencyCarrier;
@@ -490,11 +490,11 @@ public abstract class SQLIntegrationTestCase extends ESIntegTestCase {
         Planner planner = internalCluster().getInstance(Planner.class, nodeName);
         NodeContext nodeCtx = internalCluster().getInstance(NodeContext.class, nodeName);
 
-        SessionContext sessionContext = new SessionContext(
+        CoordinatorSessionSettings sessionSettings = new CoordinatorSessionSettings(
             User.CRATE_USER,
             sqlExecutor.getCurrentSchema()
         );
-        CoordinatorTxnCtx coordinatorTxnCtx = new CoordinatorTxnCtx(sessionContext);
+        CoordinatorTxnCtx coordinatorTxnCtx = new CoordinatorTxnCtx(sessionSettings);
         RoutingProvider routingProvider = new RoutingProvider(Randomness.get().nextInt(), planner.getAwarenessAttributes());
         PlannerContext plannerContext = new PlannerContext(
             planner.currentClusterState(),
@@ -508,7 +508,7 @@ public abstract class SQLIntegrationTestCase extends ESIntegTestCase {
         Plan plan = planner.plan(
             analyzer.analyze(
                 SqlParser.createStatement(stmt),
-                coordinatorTxnCtx.sessionContext(),
+                coordinatorTxnCtx.sessionSettings(),
                 ParamTypeHints.EMPTY),
             plannerContext);
         return new PlanForNode(plan, nodeName, plannerContext);

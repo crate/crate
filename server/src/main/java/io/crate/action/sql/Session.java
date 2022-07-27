@@ -65,6 +65,7 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationInfo;
 import io.crate.metadata.RoutingProvider;
+import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
@@ -120,7 +121,7 @@ public class Session implements AutoCloseable {
 
     public static final String UNNAMED = "";
     private final DependencyCarrier executor;
-    private final SessionContext sessionContext;
+    private final CoordinatorSessionSettings sessionSettings;
 
     @VisibleForTesting
     final Map<String, PreparedStmt> preparedStatements = new HashMap<>();
@@ -151,14 +152,14 @@ public class Session implements AutoCloseable {
                    JobsLogs jobsLogs,
                    boolean isReadOnly,
                    DependencyCarrier executor,
-                   SessionContext sessionContext) {
+                   CoordinatorSessionSettings sessionSettings) {
         this.nodeCtx = nodeCtx;
         this.analyzer = analyzer;
         this.planner = planner;
         this.jobsLogs = jobsLogs;
         this.isReadOnly = isReadOnly;
         this.executor = executor;
-        this.sessionContext = sessionContext;
+        this.sessionSettings = sessionSettings;
         this.parameterTypeExtractor = new ParameterTypeExtractor();
     }
 
@@ -177,9 +178,9 @@ public class Session implements AutoCloseable {
      *              Use {@link #quickExec(String, ResultReceiver, Row)} to use the regular parser
      */
     public void quickExec(String statement, Function<String, Statement> parse, ResultReceiver<?> resultReceiver, Row params) {
-        CoordinatorTxnCtx txnCtx = new CoordinatorTxnCtx(sessionContext);
+        CoordinatorTxnCtx txnCtx = new CoordinatorTxnCtx(sessionSettings);
         Statement parsedStmt = parse.apply(statement);
-        AnalyzedStatement analyzedStatement = analyzer.analyze(parsedStmt, sessionContext, ParamTypeHints.EMPTY);
+        AnalyzedStatement analyzedStatement = analyzer.analyze(parsedStmt, sessionSettings, ParamTypeHints.EMPTY);
         RoutingProvider routingProvider = new RoutingProvider(Randomness.get().nextInt(), planner.getAwarenessAttributes());
         mostRecentJobID = UUIDs.dirtyUUID();
         ClusterState clusterState = planner.currentClusterState();
@@ -196,12 +197,12 @@ public class Session implements AutoCloseable {
         try {
             plan = planner.plan(analyzedStatement, plannerContext);
         } catch (Throwable t) {
-            jobsLogs.logPreExecutionFailure(mostRecentJobID, statement, SQLExceptions.messageOf(t), sessionContext.sessionUser());
+            jobsLogs.logPreExecutionFailure(mostRecentJobID, statement, SQLExceptions.messageOf(t), sessionSettings.sessionUser());
             throw t;
         }
 
         StatementClassifier.Classification classification = StatementClassifier.classify(plan);
-        jobsLogs.logExecutionStart(mostRecentJobID, statement, sessionContext.sessionUser(), classification);
+        jobsLogs.logExecutionStart(mostRecentJobID, statement, sessionSettings.sessionUser(), classification);
         JobsLogsUpdateListener jobsLogsUpdateListener = new JobsLogsUpdateListener(mostRecentJobID, jobsLogs);
         if (!analyzedStatement.isWriteOperation()) {
             resultReceiver = new RetryOnFailureResultReceiver(
@@ -255,8 +256,8 @@ public class Session implements AutoCloseable {
         return portal;
     }
 
-    public SessionContext sessionContext() {
-        return sessionContext;
+    public CoordinatorSessionSettings sessionSettings() {
+        return sessionSettings;
     }
 
     public void parse(String statementName, String query, List<DataType> paramTypes) {
@@ -271,7 +272,7 @@ public class Session implements AutoCloseable {
             if ("".equals(query)) {
                 statement = EMPTY_STMT;
             } else {
-                jobsLogs.logPreExecutionFailure(UUIDs.dirtyUUID(), query, SQLExceptions.messageOf(t), sessionContext.sessionUser());
+                jobsLogs.logPreExecutionFailure(UUIDs.dirtyUUID(), query, SQLExceptions.messageOf(t), sessionSettings.sessionUser());
                 throw t;
             }
         }
@@ -287,7 +288,7 @@ public class Session implements AutoCloseable {
         try {
             analyzedStatement = analyzer.analyze(
                 statement,
-                sessionContext,
+                sessionSettings,
                 new ParamTypeHints(paramTypes));
 
             parameterTypes = parameterTypeExtractor.getParameterTypes(
@@ -298,7 +299,7 @@ public class Session implements AutoCloseable {
                 UUIDs.dirtyUUID(),
                 query == null ? statementName : query,
                 SQLExceptions.messageOf(t),
-                sessionContext.sessionUser());
+                sessionSettings.sessionUser());
             throw t;
         }
         preparedStatements.put(
@@ -317,7 +318,7 @@ public class Session implements AutoCloseable {
         try {
             preparedStmt = getSafeStmt(statementName);
         } catch (Throwable t) {
-            jobsLogs.logPreExecutionFailure(UUIDs.dirtyUUID(), null, SQLExceptions.messageOf(t), sessionContext.sessionUser());
+            jobsLogs.logPreExecutionFailure(UUIDs.dirtyUUID(), null, SQLExceptions.messageOf(t), sessionSettings.sessionUser());
             throw t;
         }
 
@@ -547,7 +548,7 @@ public class Session implements AutoCloseable {
         mostRecentJobID = UUIDs.dirtyUUID();
         var routingProvider = new RoutingProvider(Randomness.get().nextInt(), planner.getAwarenessAttributes());
         var clusterState = executor.clusterService().state();
-        var txnCtx = new CoordinatorTxnCtx(sessionContext);
+        var txnCtx = new CoordinatorTxnCtx(sessionSettings);
         var plannerContext = new PlannerContext(
             clusterState,
             routingProvider,
@@ -568,13 +569,13 @@ public class Session implements AutoCloseable {
                 mostRecentJobID,
                 firstPreparedStatement.rawStatement(),
                 SQLExceptions.messageOf(t),
-                sessionContext.sessionUser());
+                sessionSettings.sessionUser());
             throw t;
         }
         jobsLogs.logExecutionStart(
             mostRecentJobID,
             firstPreparedStatement.rawStatement(),
-            sessionContext.sessionUser(),
+            sessionSettings.sessionUser(),
             StatementClassifier.classify(plan)
         );
 
@@ -628,7 +629,7 @@ public class Session implements AutoCloseable {
         mostRecentJobID = UUIDs.dirtyUUID();
         var routingProvider = new RoutingProvider(Randomness.get().nextInt(), planner.getAwarenessAttributes());
         var clusterState = executor.clusterService().state();
-        var txnCtx = new CoordinatorTxnCtx(sessionContext);
+        var txnCtx = new CoordinatorTxnCtx(sessionSettings);
         var nodeCtx = executor.nodeContext();
         var params = new RowN(portal.params().toArray());
         var plannerContext = new PlannerContext(
@@ -637,14 +638,14 @@ public class Session implements AutoCloseable {
         String rawStatement = portal.preparedStmt().rawStatement();
         if (analyzedStmt == null) {
             String errorMsg = "Statement must have been analyzed: " + rawStatement;
-            jobsLogs.logPreExecutionFailure(mostRecentJobID, rawStatement, errorMsg, sessionContext.sessionUser());
+            jobsLogs.logPreExecutionFailure(mostRecentJobID, rawStatement, errorMsg, sessionSettings.sessionUser());
             throw new IllegalStateException(errorMsg);
         }
         Plan plan;
         try {
             plan = planner.plan(analyzedStmt, plannerContext);
         } catch (Throwable t) {
-            jobsLogs.logPreExecutionFailure(mostRecentJobID, rawStatement, SQLExceptions.messageOf(t), sessionContext.sessionUser());
+            jobsLogs.logPreExecutionFailure(mostRecentJobID, rawStatement, SQLExceptions.messageOf(t), sessionSettings.sessionUser());
             throw t;
         }
         if (!analyzedStmt.isWriteOperation()) {
@@ -669,7 +670,7 @@ public class Session implements AutoCloseable {
             );
         }
         jobsLogs.logExecutionStart(
-            mostRecentJobID, rawStatement, sessionContext.sessionUser(), StatementClassifier.classify(plan));
+            mostRecentJobID, rawStatement, sessionSettings.sessionUser(), StatementClassifier.classify(plan));
         RowConsumerToResultReceiver consumer = new RowConsumerToResultReceiver(
             resultReceiver, maxRows, new JobsLogsUpdateListener(mostRecentJobID, jobsLogs));
         portal.setActiveConsumer(consumer);

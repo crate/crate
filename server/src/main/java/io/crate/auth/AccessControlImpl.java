@@ -21,7 +21,10 @@
 
 package io.crate.auth;
 
-import io.crate.action.sql.SessionContext;
+import static io.crate.user.Privilege.Type.READ_WRITE_DEFINE;
+
+import java.util.Locale;
+
 import io.crate.analyze.AnalyzedAlterBlobTable;
 import io.crate.analyze.AnalyzedAlterTable;
 import io.crate.analyze.AnalyzedAlterTableAddColumn;
@@ -88,6 +91,7 @@ import io.crate.exceptions.UnauthorizedException;
 import io.crate.exceptions.UnscopedException;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.table.TableInfo;
 import io.crate.replication.logical.analyze.AnalyzedAlterPublication;
 import io.crate.replication.logical.analyze.AnalyzedAlterSubscription;
@@ -101,28 +105,24 @@ import io.crate.user.Privileges;
 import io.crate.user.User;
 import io.crate.user.UserLookup;
 
-import java.util.Locale;
-
-import static io.crate.user.Privilege.Type.READ_WRITE_DEFINE;
-
 public final class AccessControlImpl implements AccessControl {
 
     private final User sessionUser;
     private final User authenticatedUser;
     private final UserLookup userLookup;
-    private final SessionContext sessionContext;
+    private final CoordinatorSessionSettings sessionSettings;
 
     /**
-     * @param sessionContext for user and defaultSchema information.
-     *                       The `sessionContext` (instead of user and schema) is required to
+     * @param sessionSettings for user and defaultSchema information.
+     *                       The `sessionSettings` (instead of user and schema) is required to
      *                       observe updates to the default schema.
      *                       (Which can change at runtime within the life-time of a session)
      */
-    public AccessControlImpl(UserLookup userLookup, SessionContext sessionContext) {
+    public AccessControlImpl(UserLookup userLookup, CoordinatorSessionSettings sessionSettings) {
         this.userLookup = userLookup;
-        this.sessionContext = sessionContext;
-        this.sessionUser = sessionContext.sessionUser();
-        this.authenticatedUser = sessionContext.authenticatedUser();
+        this.sessionSettings = sessionSettings;
+        this.sessionUser = sessionSettings.sessionUser();
+        this.authenticatedUser = sessionSettings.authenticatedUser();
     }
 
     @Override
@@ -131,7 +131,7 @@ public final class AccessControlImpl implements AccessControl {
             statement.accept(
                 new StatementVisitor(
                     userLookup,
-                    sessionContext.searchPath().currentSchema(),
+                    sessionSettings.searchPath().currentSchema(),
                     authenticatedUser
                 ),
                 sessionUser

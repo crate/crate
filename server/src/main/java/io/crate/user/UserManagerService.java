@@ -32,13 +32,13 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
-import io.crate.action.sql.SessionContext;
 import io.crate.auth.AccessControl;
 import io.crate.auth.AccessControlImpl;
 import io.crate.exceptions.UserAlreadyExistsException;
 import io.crate.exceptions.UserUnknownException;
 import io.crate.execution.engine.collect.sources.SysTableRegistry;
 import io.crate.metadata.cluster.DDLClusterStateService;
+import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.user.metadata.SysPrivilegesTableInfo;
 import io.crate.user.metadata.SysUsersTableInfo;
 
@@ -149,8 +149,8 @@ public class UserManagerService implements UserManager {
 
 
     @Override
-    public AccessControl getAccessControl(SessionContext sessionContext) {
-        return new AccessControlImpl(userLookup, sessionContext);
+    public AccessControl getAccessControl(CoordinatorSessionSettings sessionSettings) {
+        return new AccessControlImpl(userLookup, sessionSettings);
     }
 
     public Iterable<User> users() {

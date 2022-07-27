@@ -65,7 +65,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.Constants;
-import io.crate.action.sql.SessionContext;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.AnalyzedCreateTable;
 import io.crate.analyze.BoundCreateTable;
@@ -85,6 +84,7 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.view.ViewInfoFactory;
 import io.crate.planner.node.ddl.CreateTablePlan;
 import io.crate.planner.operators.SubQueryResults;
@@ -1088,8 +1088,8 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
 
         CreateTableStatementAnalyzer analyzer = new CreateTableStatementAnalyzer(nodeCtx);
 
-        Analysis analysis = new Analysis(new CoordinatorTxnCtx(SessionContext.systemSessionContext()), ParamTypeHints.EMPTY);
-        CoordinatorTxnCtx txnCtx = new CoordinatorTxnCtx(SessionContext.systemSessionContext());
+        Analysis analysis = new Analysis(new CoordinatorTxnCtx(CoordinatorSessionSettings.systemDefaults()), ParamTypeHints.EMPTY);
+        CoordinatorTxnCtx txnCtx = new CoordinatorTxnCtx(CoordinatorSessionSettings.systemDefaults());
         AnalyzedCreateTable analyzedCreateTable = analyzer.analyze(
             (CreateTable<Expression>) statement,
             analysis.paramTypeHints(),

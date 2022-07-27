@@ -21,15 +21,15 @@
 
 package io.crate.analyze.expressions;
 
-import io.crate.action.sql.SessionContext;
+import java.util.IdentityHashMap;
+import java.util.Map;
+
+import io.crate.metadata.settings.SessionSettings;
 import io.crate.sql.tree.ArrayComparisonExpression;
 import io.crate.sql.tree.DefaultTraversalVisitor;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.SubqueryExpression;
 import io.crate.sql.tree.Window;
-
-import java.util.IdentityHashMap;
-import java.util.Map;
 
 /**
  * State which is passed during translation in the {@link ExpressionAnalyzer}.
@@ -45,8 +45,8 @@ public class ExpressionAnalysisContext {
 
     private Map<String, Window> windows = Map.of();
 
-    public ExpressionAnalysisContext(SessionContext sessionContext) {
-        this.errorOnUnknownObjectKey = sessionContext.errorOnUnknownObjectKey();
+    public ExpressionAnalysisContext(SessionSettings sessionSettings) {
+        this.errorOnUnknownObjectKey = sessionSettings.errorOnUnknownObjectKey();
     }
 
     void indicateAggregates() {

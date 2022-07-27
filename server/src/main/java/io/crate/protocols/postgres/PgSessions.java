@@ -57,7 +57,7 @@ public class PgSessions {
     public void cancel(KeyData targetKeyData) {
         Session targetSession = activeSessions.get(targetKeyData); // the session executing the target query
         if (targetSession != null) {
-            String userName = targetSession.sessionContext().sessionUser().name();
+            String userName = targetSession.sessionSettings().sessionUser().name();
             UUID targetJobID = targetSession.getMostRecentJobID();
             if (targetJobID != null) {
                 killNodeAction.execute(

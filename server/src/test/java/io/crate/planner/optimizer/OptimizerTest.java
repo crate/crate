@@ -30,19 +30,23 @@ import java.util.Set;
 import org.junit.Test;
 
 import io.crate.metadata.SearchPath;
-import io.crate.metadata.settings.SessionSettings;
+import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.planner.optimizer.rule.MergeFilters;
 import io.crate.planner.optimizer.rule.MoveFilterBeneathHashJoin;
+import io.crate.user.User;
 
 public class OptimizerTest {
 
     @Test
     public void test_rule_filtering() {
-        SessionSettings sessionSettings = new SessionSettings("User",
-                                                              SearchPath.pathWithPGCatalogAndDoc(),
-                                                              true,
-                                                              Set.of(MergeFilters.class),
-                                                              true);
+        var sessionSettings = new CoordinatorSessionSettings(
+            User.of("User"),
+            User.of("User"),
+            SearchPath.pathWithPGCatalogAndDoc(),
+            true,
+            Set.of(MergeFilters.class),
+            true
+        );
 
         List<Rule<?>> rules = Optimizer.removeExcludedRules(List.of(new MergeFilters()),
                                                             sessionSettings.excludedOptimizerRules());

@@ -28,8 +28,8 @@ import static org.junit.Assert.assertThat;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.action.sql.SessionContext;
 import io.crate.expression.symbol.Literal;
+import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -78,7 +78,7 @@ public class CreateFunctionAnalyzerTest extends CrateDummyClusterServiceUnitTest
             SqlParser.createStatement(
                 "CREATE FUNCTION bar(long, long)" +
                 " RETURNS long LANGUAGE dummy_lang AS 'function(a, b) { return a + b; }'"),
-            new SessionContext(User.CRATE_USER, "my_schema"),
+            new CoordinatorSessionSettings(User.CRATE_USER, "my_schema"),
             ParamTypeHints.EMPTY);
 
         assertThat(analysis.schema(), is("my_schema"));
@@ -90,7 +90,7 @@ public class CreateFunctionAnalyzerTest extends CrateDummyClusterServiceUnitTest
         AnalyzedCreateFunction analysis = (AnalyzedCreateFunction) e.analyzer.analyze(
             SqlParser.createStatement("CREATE FUNCTION my_other_schema.bar(long, long)" +
                 " RETURNS long LANGUAGE dummy_lang AS 'function(a, b) { return a + b; }'"),
-            new SessionContext(User.CRATE_USER, "my_schema"),
+            new CoordinatorSessionSettings(User.CRATE_USER, "my_schema"),
             ParamTypeHints.EMPTY);
 
         assertThat(analysis.schema(), is("my_other_schema"));

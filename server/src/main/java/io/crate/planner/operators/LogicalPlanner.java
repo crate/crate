@@ -377,7 +377,7 @@ public class LogicalPlanner {
                         return rel.accept(this, List.copyOf(toCollect));
                     }
                 },
-                txnCtx.sessionContext().isHashJoinEnabled()
+                txnCtx.sessionSettings().hashJoinsEnabled()
             );
             return MultiPhase.createIfNeeded(
                 Eval.create(

@@ -55,7 +55,6 @@ import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.repositories.blobstore.BlobStoreRepository;
 import org.elasticsearch.snapshots.SnapshotInfo;
-import org.elasticsearch.test.ESTestCase;
 
 /**
  * Mock Repository that allows testing the eventually consistent behaviour of AWS S3 as documented in the

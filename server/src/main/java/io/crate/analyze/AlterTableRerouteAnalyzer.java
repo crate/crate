@@ -71,7 +71,7 @@ public class AlterTableRerouteAnalyzer {
         } else {
             relationName = schemas.resolveRelation(
                 alterTableReroute.table().getName(),
-                transactionContext.sessionContext().searchPath());
+                transactionContext.sessionSettings().searchPath());
         }
         tableInfo = schemas.getTableInfo(relationName, Operation.ALTER_REROUTE);
         return alterTableReroute.rerouteOption().accept(
@@ -100,7 +100,7 @@ public class AlterTableRerouteAnalyzer {
                         ParamTypeHints paramTypeHints) {
             this.tableInfo = tableInfo;
             this.partitionProperties = partitionProperties;
-            this.exprCtx = new ExpressionAnalysisContext(txnCtx.sessionContext());
+            this.exprCtx = new ExpressionAnalysisContext(txnCtx.sessionSettings());
             this.exprAnalyzer = new ExpressionAnalyzer(
                 txnCtx, nodeCtx, paramTypeHints, FieldProvider.UNSUPPORTED, null);
             this.exprAnalyzerWithFields = new ExpressionAnalyzer(

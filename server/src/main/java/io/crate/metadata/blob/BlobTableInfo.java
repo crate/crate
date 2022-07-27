@@ -36,7 +36,6 @@ import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.common.settings.Settings;
 
-import io.crate.action.sql.SessionContext;
 import io.crate.analyze.TableParameters;
 import io.crate.analyze.WhereClause;
 import io.crate.common.collections.Tuple;
@@ -48,6 +47,7 @@ import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
+import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.ShardedTable;
 import io.crate.metadata.table.StoredTable;
@@ -127,7 +127,7 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
                               RoutingProvider routingProvider,
                               WhereClause whereClause,
                               RoutingProvider.ShardSelection shardSelection,
-                              SessionContext sessionContext) {
+                              CoordinatorSessionSettings sessionSettings) {
         return routingProvider.forIndices(state, new String[] { index }, Collections.emptyMap(), false, shardSelection);
     }
 

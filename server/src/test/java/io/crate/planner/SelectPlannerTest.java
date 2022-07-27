@@ -671,7 +671,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             .build();
 
         // disable hash joins otherwise it will be a distributed join and the plan differs
-        e.getSessionContext().setHashJoinEnabled(false);
+        e.getSessionSettings().setHashJoinEnabled(false);
         Merge merge = e.plan("select u1.text, concat(u2.text, '_foo') " +
                                     "from users u1 left join users u2 on u1.id = u2.id " +
                                     "where u2.name = 'Arthur'" +
@@ -880,7 +880,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             .addTable(T3.T2_DEFINITION)
             .build();
 
-        e.getSessionContext().setHashJoinEnabled(true);
+        e.getSessionSettings().setHashJoinEnabled(true);
         Merge merge = e.plan("select t2.b, t1.a from t1 inner join t2 on t1.i = t2.i order by 1, 2");
         Join join = (Join) merge.subPlan();
         assertThat(join.joinPhase().type(), is(ExecutionPhase.Type.HASH_JOIN));

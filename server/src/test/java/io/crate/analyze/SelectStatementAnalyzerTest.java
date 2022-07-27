@@ -2688,13 +2688,13 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         var executor = SQLExecutor.builder(clusterService)
             .addTable("CREATE TABLE tbl (a int)")
             .build();
-        executor.getSessionContext().setErrorOnUnknownObjectKey(true);
+        executor.getSessionSettings().setErrorOnUnknownObjectKey(true);
         Asserts.assertThrowsMatches(
             () -> executor.analyze("select unknown['u'] from tbl"),
             ColumnUnknownException.class,
             "Column unknown['u'] unknown"
         );
-        executor.getSessionContext().setErrorOnUnknownObjectKey(false);
+        executor.getSessionSettings().setErrorOnUnknownObjectKey(false);
         Asserts.assertThrowsMatches(
             () -> executor.analyze("select unknown['u'] from tbl"),
             ColumnUnknownException.class,
@@ -2715,7 +2715,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         var executor = SQLExecutor.builder(clusterService)
             .addTable("CREATE TABLE tbl (obj object, obj_n object as (obj_n2 object))")
             .build();
-        executor.getSessionContext().setErrorOnUnknownObjectKey(true);
+        executor.getSessionSettings().setErrorOnUnknownObjectKey(true);
         Asserts.assertThrowsMatches(
             () -> executor.analyze("select obj['u'] from tbl"),
             ColumnUnknownException.class,
@@ -2726,7 +2726,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             ColumnUnknownException.class,
             "Column obj_n['obj_n2']['u'] unknown"
         );
-        executor.getSessionContext().setErrorOnUnknownObjectKey(false);
+        executor.getSessionSettings().setErrorOnUnknownObjectKey(false);
         var analyzed = executor.analyze("select obj['u'] from tbl");
         assertThat(analyzed.outputs().size(), is(1));
         assertThat(analyzed.outputs().get(0), isVoidReference("obj['u']"));
@@ -2743,13 +2743,13 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
          * SELECT ''::OBJECT['x']; --> works
          */
         var executor = SQLExecutor.builder(clusterService).build();
-        executor.getSessionContext().setErrorOnUnknownObjectKey(true);
+        executor.getSessionSettings().setErrorOnUnknownObjectKey(true);
         Asserts.assertThrowsMatches(
             () -> executor.analyze("SELECT ''::OBJECT['x']"),
             ColumnUnknownException.class,
             "The object `{}` does not contain the key `x`"
         );
-        executor.getSessionContext().setErrorOnUnknownObjectKey(false);
+        executor.getSessionSettings().setErrorOnUnknownObjectKey(false);
         var analyzed = executor.analyze("SELECT ''::OBJECT['x']");
         assertThat(analyzed.outputs().size(), is(1));
         assertThat(analyzed.outputs().get(0), isLiteral(null));
@@ -2760,11 +2760,11 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
          * set errorOnUnknownObjectKey = false;
          * select (['{"x":1,"y":2}','{"y":2,"z":3}']::ARRAY(OBJECT))['x'];  --> works
          */
-        executor.getSessionContext().setErrorOnUnknownObjectKey(true);
+        executor.getSessionSettings().setErrorOnUnknownObjectKey(true);
         analyzed = executor.analyze("select (['{\"x\":1,\"y\":2}','{\"y\":2,\"z\":3}']::ARRAY(OBJECT))['x']");
         assertThat(analyzed.outputs().size(), is(1));
         assertThat(analyzed.outputs().get(0).toString(), is("[1, NULL]"));
-        executor.getSessionContext().setErrorOnUnknownObjectKey(false);
+        executor.getSessionSettings().setErrorOnUnknownObjectKey(false);
         analyzed = executor.analyze("select (['{\"x\":1,\"y\":2}','{\"y\":2,\"z\":3}']::ARRAY(OBJECT))['x']");
         assertThat(analyzed.outputs().size(), is(1));
         assertThat(analyzed.outputs().get(0).toString(), is("[1, NULL]"));
@@ -2782,11 +2782,11 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         var executor = SQLExecutor.builder(clusterService)
             .addTable("CREATE TABLE tbl (obj object(dynamic))")
             .build();
-        executor.getSessionContext().setErrorOnUnknownObjectKey(true);
+        executor.getSessionSettings().setErrorOnUnknownObjectKey(true);
         var analyzed = executor.analyze("select (obj).y from tbl");
         assertThat(analyzed.outputs().size(), is(1));
         assertThat(analyzed.outputs().get(0), isFunction("subscript_obj", isReference("obj"), isLiteral("y")));
-        executor.getSessionContext().setErrorOnUnknownObjectKey(false);
+        executor.getSessionSettings().setErrorOnUnknownObjectKey(false);
         analyzed = executor.analyze("select (obj).y from tbl");
         assertThat(analyzed.outputs().size(), is(1));
         assertThat(analyzed.outputs().get(0), isVoidReference("obj['y']"));
@@ -2796,13 +2796,13 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
          * set errorOnUnknownObjectKey = false;
          * select ('{}'::object).x; --> works
          */
-        executor.getSessionContext().setErrorOnUnknownObjectKey(true);
+        executor.getSessionSettings().setErrorOnUnknownObjectKey(true);
         Asserts.assertThrowsMatches(
             () -> executor.analyze("select ('{}'::object).x"),
             ColumnUnknownException.class,
             "The object `{}` does not contain the key `x`"
         );
-        executor.getSessionContext().setErrorOnUnknownObjectKey(false);
+        executor.getSessionSettings().setErrorOnUnknownObjectKey(false);
         analyzed = executor.analyze("select ('{}'::object).x");
         assertThat(analyzed.outputs().size(), is(1));
         assertThat(analyzed.outputs().get(0), isLiteral(null));
@@ -2829,7 +2829,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             .addTable("CREATE TABLE c1 (obj_dynamic object (dynamic) as (x int))")
             .addTable("CREATE TABLE c2 (obj_dynamic object (dynamic) as (y int))")
             .build();
-        executor.getSessionContext().setErrorOnUnknownObjectKey(true);
+        executor.getSessionSettings().setErrorOnUnknownObjectKey(true);
         Asserts.assertThrowsMatches(
             () -> executor.analyze("select obj_dynamic from c1, c2"),
             AmbiguousColumnException.class,
@@ -2846,7 +2846,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             AmbiguousColumnException.class,
             "Column \"obj_dynamic\" is ambiguous"
         );
-        executor.getSessionContext().setErrorOnUnknownObjectKey(false);
+        executor.getSessionSettings().setErrorOnUnknownObjectKey(false);
         Asserts.assertThrowsMatches(
             () -> executor.analyze("select obj_dynamic from c1, c2"),
             AmbiguousColumnException.class,
@@ -2886,7 +2886,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             .addTable("CREATE TABLE c1 (obj_strict object (strict) as (x int))")
             .addTable("CREATE TABLE c2 (obj_strict object (strict) as (y int))")
             .build();
-        executor.getSessionContext().setErrorOnUnknownObjectKey(true);
+        executor.getSessionSettings().setErrorOnUnknownObjectKey(true);
         Asserts.assertThrowsMatches(
             () -> executor.analyze("select obj_strict from c1, c2"),
             AmbiguousColumnException.class,
@@ -2903,7 +2903,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             AmbiguousColumnException.class,
             "Column \"obj_strict\" is ambiguous"
         );
-        executor.getSessionContext().setErrorOnUnknownObjectKey(false);
+        executor.getSessionSettings().setErrorOnUnknownObjectKey(false);
         Asserts.assertThrowsMatches(
             () -> executor.analyze("select obj_strict from c1, c2"),
             AmbiguousColumnException.class,
@@ -2940,7 +2940,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             .addTable("CREATE TABLE c3 (obj_ignored object (ignored) as (x int))")
             .addTable("CREATE TABLE c4 (obj_ignored object (ignored) as (y int))")
             .build();
-        executor.getSessionContext().setErrorOnUnknownObjectKey(true);
+        executor.getSessionSettings().setErrorOnUnknownObjectKey(true);
         Asserts.assertThrowsMatches(
             () -> executor.analyze("select obj_ignored from c3, c4"),
             AmbiguousColumnException.class,
@@ -2957,7 +2957,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             "Column \"obj_ignored['y']\" is ambiguous"
         );
 
-        executor.getSessionContext().setErrorOnUnknownObjectKey(false);
+        executor.getSessionSettings().setErrorOnUnknownObjectKey(false);
         Asserts.assertThrowsMatches(
             () -> executor.analyze("select obj_ignored from c3, c4"),
             AmbiguousColumnException.class,
@@ -2990,7 +2990,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         var executor = SQLExecutor.builder(clusterService)
             .addTable("CREATE TABLE e1 (obj_dy object, obj_st object(strict))")
             .build();
-        executor.getSessionContext().setErrorOnUnknownObjectKey(true);
+        executor.getSessionSettings().setErrorOnUnknownObjectKey(true);
         var analyzed = executor.analyze("select obj_dy['missing_key'] from (select obj_dy from e1) alias");
         assertThat(analyzed.outputs().size(), is(1));
         assertThat(analyzed.outputs().get(0), isFunction("subscript", isField("obj_dy"), isLiteral("missing_key")));
@@ -2998,7 +2998,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertThat(analyzed.outputs().size(), is(1));
         assertThat(analyzed.outputs().get(0), isFunction("subscript", isField("obj_st"), isLiteral("missing_key")));
 
-        executor.getSessionContext().setErrorOnUnknownObjectKey(false);
+        executor.getSessionSettings().setErrorOnUnknownObjectKey(false);
         analyzed = executor.analyze("select obj_dy['missing_key'] from (select obj_dy from e1) alias");
         assertThat(analyzed.outputs().size(), is(1));
         assertThat(analyzed.outputs().get(0), isVoidReference("obj_dy['missing_key']"));
@@ -3033,7 +3033,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             .addTable("CREATE TABLE c1 (obj object (strict)  as (a int,        c int))")
             .addTable("CREATE TABLE c2 (obj object (dynamic) as (       b int, c int))")
             .build();
-        executor.getSessionContext().setErrorOnUnknownObjectKey(true);
+        executor.getSessionSettings().setErrorOnUnknownObjectKey(true);
         var analyzed = executor.analyze("select obj['unknown'] from (select obj from c1 union all select obj from c1) alias");
         assertThat(analyzed.outputs().size(), is(1));
         assertThat(analyzed.outputs().get(0), isFunction("subscript", isField("obj"), isLiteral("unknown")));
@@ -3053,7 +3053,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertThat(analyzed.outputs().size(), is(1));
         assertThat(analyzed.outputs().get(0), isFunction("subscript", isField("obj"), isLiteral("unknown")));
 
-        executor.getSessionContext().setErrorOnUnknownObjectKey(false);
+        executor.getSessionSettings().setErrorOnUnknownObjectKey(false);
         analyzed = executor.analyze("select obj['unknown'] from (select obj from c1 union all select obj from c1) alias");
         assertThat(analyzed.outputs().size(), is(1));
         assertThat(analyzed.outputs().get(0), isFunction("subscript", isField("obj"), isLiteral("unknown")));

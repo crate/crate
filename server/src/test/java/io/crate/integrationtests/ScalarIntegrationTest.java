@@ -47,7 +47,7 @@ public class ScalarIntegrationTest extends SQLIntegrationTestCase {
     @Test
     public void testSubscriptFunctionFromUnnest() {
         var session = sqlExecutor.newSession();
-        session.sessionContext().setErrorOnUnknownObjectKey(true);
+        session.sessionSettings().setErrorOnUnknownObjectKey(true);
         Asserts.assertThrowsMatches(
             () -> sqlExecutor.exec(
                 "SELECT unnest['x'] FROM UNNEST(['{\"x\":1,\"y\":2}','{\"y\":2,\"z\":3}']::ARRAY(OBJECT))",
@@ -61,7 +61,7 @@ public class ScalarIntegrationTest extends SQLIntegrationTestCase {
         assertThat(TestingHelpers.printedTable(response.rows()), is("[1]\n[null]\n"));
 
         var session2 = sqlExecutor.newSession();
-        session2.sessionContext().setErrorOnUnknownObjectKey(false);
+        session2.sessionSettings().setErrorOnUnknownObjectKey(false);
         response = sqlExecutor.exec("SELECT unnest['x'] FROM UNNEST(['{\"x\":1,\"y\":2}','{\"y\":2,\"z\":3}']::ARRAY(OBJECT))",
                                  session2);
         assertThat(TestingHelpers.printedTable(response.rows()), is("1\nNULL\n"));

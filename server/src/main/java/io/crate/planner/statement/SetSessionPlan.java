@@ -21,7 +21,6 @@
 
 package io.crate.planner.statement;
 
-import io.crate.action.sql.SessionContext;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.InMemoryBatchIterator;
@@ -76,7 +75,7 @@ public class SetSessionPlan implements Plan {
                                                                               params,
                                                                               subQueryResults);
 
-        SessionContext sessionContext = plannerContext.transactionContext().sessionContext();
+        var sessionSettings = plannerContext.transactionContext().sessionSettings();
         Assignment<Symbol> assignment = settings.get(0);
         String settingName = eval.apply(assignment.columnName()).toString();
         validateSetting(settingName);
@@ -84,7 +83,7 @@ public class SetSessionPlan implements Plan {
         if (sessionSetting == null) {
             LOGGER.info("SET SESSION STATEMENT WILL BE IGNORED: {}", settingName);
         } else {
-            sessionSetting.apply(sessionContext, assignment.expressions(), eval);
+            sessionSetting.apply(sessionSettings, assignment.expressions(), eval);
         }
         consumer.accept(InMemoryBatchIterator.empty(SENTINEL), null);
     }

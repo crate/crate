@@ -89,7 +89,6 @@ import org.elasticsearch.threadpool.TestThreadPool;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import io.crate.Constants;
-import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
 import io.crate.breaker.RamAccounting;
 import io.crate.common.collections.Lists2;
@@ -126,6 +125,7 @@ import io.crate.metadata.SearchPath;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.sql.tree.BitString;
 import io.crate.sql.tree.ColumnPolicy;
@@ -559,7 +559,7 @@ public abstract class AggregationTestCase extends ESTestCase {
         );
         return function.normalizeSymbol(
             new Function(function.signature(), arguments, function.partialType()),
-            new CoordinatorTxnCtx(SessionContext.systemSessionContext()),
+            new CoordinatorTxnCtx(CoordinatorSessionSettings.systemDefaults()),
             nodeCtx
         );
     }

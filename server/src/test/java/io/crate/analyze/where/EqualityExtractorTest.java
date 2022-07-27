@@ -36,7 +36,6 @@ import java.util.Map;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.action.sql.SessionContext;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.expression.eval.EvaluatingNormalizer;
@@ -44,6 +43,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
@@ -51,7 +51,7 @@ import io.crate.testing.T3;
 @SuppressWarnings("unchecked")
 public class EqualityExtractorTest extends CrateDummyClusterServiceUnitTest {
 
-    private CoordinatorTxnCtx coordinatorTxnCtx = new CoordinatorTxnCtx(SessionContext.systemSessionContext());
+    private CoordinatorTxnCtx coordinatorTxnCtx = new CoordinatorTxnCtx(CoordinatorSessionSettings.systemDefaults());
     private SqlExpressions expressions;
     private EvaluatingNormalizer normalizer;
     private EqualityExtractor ee;

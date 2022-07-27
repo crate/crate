@@ -50,7 +50,7 @@ public class ResetStatementAnalyzer {
             null
         );
 
-        var statement = node.map(x -> exprAnalyzer.convert(x, new ExpressionAnalysisContext(txnCtx.sessionContext())));
+        var statement = node.map(x -> exprAnalyzer.convert(x, new ExpressionAnalysisContext(txnCtx.sessionSettings())));
         return new AnalyzedResetStatement(new HashSet<>(statement.columns()));
     }
 }

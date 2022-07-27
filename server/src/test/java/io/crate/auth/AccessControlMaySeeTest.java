@@ -36,12 +36,12 @@ import org.hamcrest.Matcher;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.action.sql.SessionContext;
 import io.crate.exceptions.RelationValidationException;
 import io.crate.exceptions.SchemaUnknownException;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.user.Privilege;
 import io.crate.user.User;
 
@@ -62,7 +62,7 @@ public class AccessControlMaySeeTest extends ESTestCase {
                 return true;
             }
         };
-        accessControl = new AccessControlImpl(() -> List.of(user), new SessionContext(user));
+        accessControl = new AccessControlImpl(() -> List.of(user), new CoordinatorSessionSettings(user));
     }
 
     @SuppressWarnings("unchecked")

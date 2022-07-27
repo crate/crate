@@ -51,7 +51,7 @@ public class CreatePublicationPlan implements Plan {
                               RowConsumer consumer,
                               Row params, SubQueryResults subQueryResults) throws Exception {
         var request = new CreatePublicationRequest(
-            plannerContext.transactionContext().sessionContext().sessionUser().name(),
+            plannerContext.transactionContext().sessionSettings().sessionUser().name(),
             analyzedCreatePublication.name(),
             analyzedCreatePublication.isForAllTables(),
             analyzedCreatePublication.tables()

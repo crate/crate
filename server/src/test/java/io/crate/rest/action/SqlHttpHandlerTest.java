@@ -40,9 +40,9 @@ import org.junit.Test;
 
 import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;
-import io.crate.action.sql.SessionContext;
 import io.crate.auth.AccessControl;
 import io.crate.auth.AuthSettings;
+import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.user.User;
 import io.netty.handler.codec.http.DefaultHttpHeaders;
 import io.netty.handler.codec.http.FullHttpRequest;
@@ -56,7 +56,7 @@ public class SqlHttpHandlerTest {
             mock(SQLOperations.class),
             (s) -> new NoopCircuitBreaker("dummy"),
             () -> List.of(User.CRATE_USER),
-            sessionContext -> AccessControl.DISABLED,
+            sessionSettings -> AccessControl.DISABLED,
             Netty4CorsConfigBuilder.forAnyOrigin().build()
         );
 
@@ -74,7 +74,7 @@ public class SqlHttpHandlerTest {
             mock(SQLOperations.class),
             (s) -> new NoopCircuitBreaker("dummy"),
             () -> List.of(User.of("trillian")),
-            sessionContext -> AccessControl.DISABLED,
+            sessionSettings -> AccessControl.DISABLED,
             Netty4CorsConfigBuilder.forAnyOrigin().build()
         );
 
@@ -89,7 +89,7 @@ public class SqlHttpHandlerTest {
             mock(SQLOperations.class),
             (s) -> new NoopCircuitBreaker("dummy"),
             () -> List.of(User.of("Aladdin")),
-            sessionContext -> AccessControl.DISABLED,
+            sessionSettings -> AccessControl.DISABLED,
             Netty4CorsConfigBuilder.forAnyOrigin().build()
         );
 
@@ -100,10 +100,10 @@ public class SqlHttpHandlerTest {
     @Test
     public void testSessionSettingsArePreservedAcrossRequests() {
         User dummyUser = User.of("crate");
-        var sessionConext = new SessionContext(dummyUser);
+        var sessionSettings = new CoordinatorSessionSettings(dummyUser);
 
         var mockedSession = mock(Session.class);
-        when(mockedSession.sessionContext()).thenReturn(sessionConext);
+        when(mockedSession.sessionSettings()).thenReturn(sessionSettings);
 
         var mockedSqlOperations = mock(SQLOperations.class);
         when(mockedSqlOperations.createSession(null, dummyUser)).thenReturn(mockedSession);
@@ -116,25 +116,25 @@ public class SqlHttpHandlerTest {
             mockedSqlOperations,
             (s) -> new NoopCircuitBreaker("dummy"),
             () -> List.of(dummyUser),
-            sessionContext -> AccessControl.DISABLED,
+            settings -> AccessControl.DISABLED,
             Netty4CorsConfigBuilder.forAnyOrigin().build()
         );
 
         // 1st call to ensureSession creates a session instance bound to 'dummyUser'
         var session = handler.ensureSession(mockedRequest);
         verify(mockedRequest, atLeast(1)).headers();
-        assertThat(session.sessionContext().authenticatedUser(), is(dummyUser));
-        assertThat(session.sessionContext().searchPath().currentSchema(), containsString("doc"));
-        assertTrue(session.sessionContext().isHashJoinEnabled());
+        assertThat(session.sessionSettings().authenticatedUser(), is(dummyUser));
+        assertThat(session.sessionSettings().searchPath().currentSchema(), containsString("doc"));
+        assertTrue(session.sessionSettings().hashJoinsEnabled());
 
         // modify the session settings
-        session.sessionContext().setSearchPath("dummy_path");
-        session.sessionContext().setHashJoinEnabled(false);
+        session.sessionSettings().setSearchPath("dummy_path");
+        session.sessionSettings().setHashJoinEnabled(false);
 
         // test that the 2nd call to ensureSession will retrieve the session settings modified previously
         session = handler.ensureSession(mockedRequest);
-        assertFalse(session.sessionContext().isHashJoinEnabled());
-        assertThat(session.sessionContext().searchPath().currentSchema(), containsString("dummy_path"));
+        assertFalse(session.sessionSettings().hashJoinsEnabled());
+        assertThat(session.sessionSettings().searchPath().currentSchema(), containsString("dummy_path"));
     }
 }
 

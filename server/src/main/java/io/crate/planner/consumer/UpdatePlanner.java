@@ -33,7 +33,6 @@ import javax.annotation.Nullable;
 
 import org.elasticsearch.Version;
 
-import io.crate.action.sql.SessionContext;
 import io.crate.analyze.AnalyzedUpdateStatement;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AbstractTableRelation;
@@ -318,9 +317,9 @@ public final class UpdatePlanner {
                                                        int maxRowsPerNode,
                                                        Projection ... mergeProjections
                                                        ) {
-        SessionContext sessionContext = plannerCtx.transactionContext().sessionContext();
+        var sessionSettings = plannerCtx.transactionContext().sessionSettings();
         Routing routing = plannerCtx.allocateRouting(
-            tableInfo, where, RoutingProvider.ShardSelection.PRIMARIES, sessionContext);
+            tableInfo, where, RoutingProvider.ShardSelection.PRIMARIES, sessionSettings);
         RoutedCollectPhase collectPhase = new RoutedCollectPhase(
             plannerCtx.jobId(),
             plannerCtx.nextExecutionPhaseId(),

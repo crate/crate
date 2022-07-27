@@ -21,7 +21,8 @@
 
 package io.crate.analyze;
 
-import io.crate.action.sql.SessionContext;
+import java.util.List;
+
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.FieldProvider;
@@ -33,6 +34,7 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.blob.BlobTableInfo;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.settings.SessionSettings;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.AlterBlobTable;
 import io.crate.sql.tree.AlterTable;
@@ -40,8 +42,6 @@ import io.crate.sql.tree.AlterTableOpenClose;
 import io.crate.sql.tree.AlterTableRename;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.Table;
-
-import java.util.List;
 
 class AlterTableAnalyzer {
 
@@ -58,15 +58,15 @@ class AlterTableAnalyzer {
                                CoordinatorTxnCtx txnCtx) {
         var exprAnalyzerWithFieldsAsString = new ExpressionAnalyzer(
             txnCtx, nodeCtx, paramTypeHints, FieldProvider.TO_LITERAL_VALIDATE_NAME, null);
-        var exprCtx = new ExpressionAnalysisContext(txnCtx.sessionContext());
+        var exprCtx = new ExpressionAnalysisContext(txnCtx.sessionSettings());
 
         AlterTable<Symbol> alterTable = node.map(x -> exprAnalyzerWithFieldsAsString.convert(x, exprCtx));
 
         DocTableInfo docTableInfo = (DocTableInfo) schemas.resolveTableInfo(
             alterTable.table().getName(),
             Operation.ALTER_BLOCKS,
-            txnCtx.sessionContext().sessionUser(),
-            txnCtx.sessionContext().searchPath());
+            txnCtx.sessionSettings().sessionUser(),
+            txnCtx.sessionSettings().searchPath());
 
         return new AnalyzedAlterTable(docTableInfo, alterTable);
     }
@@ -78,7 +78,7 @@ class AlterTableAnalyzer {
 
         var exprAnalyzerWithFieldsAsString = new ExpressionAnalyzer(
             txnCtx, nodeCtx, paramTypeHints, FieldProvider.TO_LITERAL_VALIDATE_NAME, null);
-        var exprCtx = new ExpressionAnalysisContext(txnCtx.sessionContext());
+        var exprCtx = new ExpressionAnalysisContext(txnCtx.sessionSettings());
 
         AlterTable<Symbol> alterTable = node.map(x -> exprAnalyzerWithFieldsAsString.convert(x, exprCtx));
 
@@ -89,7 +89,7 @@ class AlterTableAnalyzer {
     }
 
 
-    AnalyzedAlterTableRename analyze(AlterTableRename<Expression> node, SessionContext sessionContext) {
+    AnalyzedAlterTableRename analyze(AlterTableRename<Expression> node, SessionSettings sessionSettings) {
         if (!node.table().partitionProperties().isEmpty()) {
             throw new UnsupportedOperationException("Renaming a single partition is not supported");
         }
@@ -105,7 +105,7 @@ class AlterTableAnalyzer {
         if (node.blob()) {
             relationName = RelationName.fromBlobTable(node.table());
         } else {
-            relationName = schemas.resolveRelation(node.table().getName(), sessionContext.searchPath());
+            relationName = schemas.resolveRelation(node.table().getName(), sessionSettings.searchPath());
         }
 
         DocTableInfo tableInfo = schemas.getTableInfo(relationName, Operation.ALTER_TABLE_RENAME);
@@ -119,14 +119,14 @@ class AlterTableAnalyzer {
                                                CoordinatorTxnCtx txnCtx) {
         var exprAnalyzerWithFieldsAsStrings = new ExpressionAnalyzer(
             txnCtx, nodeCtx, paramTypeHints, FieldProvider.TO_LITERAL_VALIDATE_NAME, null);
-        var exprCtx = new ExpressionAnalysisContext(txnCtx.sessionContext());
+        var exprCtx = new ExpressionAnalysisContext(txnCtx.sessionSettings());
 
         Table<Symbol> table = node.table().map(x -> exprAnalyzerWithFieldsAsStrings.convert(x, exprCtx));
         RelationName relationName;
         if (node.blob()) {
             relationName = RelationName.fromBlobTable(table);
         } else {
-            relationName = schemas.resolveRelation(table.getName(), txnCtx.sessionContext().searchPath());
+            relationName = schemas.resolveRelation(table.getName(), txnCtx.sessionSettings().searchPath());
         }
 
         DocTableInfo tableInfo = schemas.getTableInfo(relationName, node.openTable() ? Operation.ALTER_OPEN : Operation.ALTER_CLOSE);

@@ -340,7 +340,7 @@ public class ObjectColumnTest extends SQLIntegrationTestCase {
     @Test
     public void testSelectUnknownObjectColumnPreservesTheUnknownName() throws Exception {
         var session = sqlExecutor.newSession();
-        session.sessionContext().setErrorOnUnknownObjectKey(false);
+        session.sessionSettings().setErrorOnUnknownObjectKey(false);
         execute("create table t (a object)");
         execute("explain select a['u'] = 123 from t", session);
         // make sure that a['u'] is kept as requested.

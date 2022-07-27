@@ -37,7 +37,6 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.settings.Settings;
 
-import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.DynamicReference;
@@ -53,6 +52,7 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.sys.TableColumn;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.ShardedTable;
@@ -244,7 +244,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                               RoutingProvider routingProvider,
                               final WhereClause whereClause,
                               RoutingProvider.ShardSelection shardSelection,
-                              SessionContext sessionContext) {
+                              CoordinatorSessionSettings sessionSettings) {
         String[] indices;
         if (whereClause.partitions().isEmpty()) {
             indices = concreteOpenIndices;

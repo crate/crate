@@ -48,7 +48,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.lucene.tests.util.CrateLuceneTestCase;
-import org.apache.lucene.tests.util.LuceneTestCase;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodeRole;

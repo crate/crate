@@ -33,7 +33,6 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
-import io.crate.action.sql.SessionContext;
 import io.crate.analyze.GeneratedColumnExpander;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
@@ -297,7 +296,7 @@ public class Collect implements LogicalPlan {
             throw VersioningValidationException.seqNoAndPrimaryTermUsage();
         }
 
-        SessionContext sessionContext = plannerContext.transactionContext().sessionContext();
+        var sessionSettings = plannerContext.transactionContext().sessionSettings();
         List<Symbol> boundOutputs = Lists2.map(outputs, binder);
         return new RoutedCollectPhase(
             plannerContext.jobId(),
@@ -307,7 +306,7 @@ public class Collect implements LogicalPlan {
                 tableInfo,
                 where,
                 RoutingProvider.ShardSelection.ANY,
-                sessionContext),
+                sessionSettings),
             tableInfo.rowGranularity(),
             planHints.contains(PlanHint.PREFER_SOURCE_LOOKUP) && tableInfo instanceof DocTableInfo
                 ? Lists2.map(boundOutputs, DocReferences::toSourceLookup)

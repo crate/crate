@@ -109,11 +109,11 @@ public final class UpdateAnalyzer {
             new FullQualifiedNameFieldProvider(
                 relCtx.sources(),
                 relCtx.parentSources(),
-                txnCtx.sessionContext().searchPath().currentSchema()
+                txnCtx.sessionSettings().searchPath().currentSchema()
             ),
             subqueryAnalyzer
         );
-        ExpressionAnalysisContext exprCtx = new ExpressionAnalysisContext(txnCtx.sessionContext());
+        ExpressionAnalysisContext exprCtx = new ExpressionAnalysisContext(txnCtx.sessionSettings());
 
         Map<Reference, Symbol> assignmentByTargetCol = getAssignments(
             update.assignments(), typeHints, txnCtx, table, normalizer, subqueryAnalyzer, sourceExprAnalyzer, exprCtx);

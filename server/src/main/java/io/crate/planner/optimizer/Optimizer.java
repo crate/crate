@@ -23,6 +23,7 @@ package io.crate.planner.optimizer;
 
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists2;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.LogicalPlan;
@@ -54,7 +55,7 @@ public class Optimizer {
         this.nodeCtx = nodeCtx;
     }
 
-    public LogicalPlan optimize(LogicalPlan plan, TableStats tableStats, TransactionContext txnCtx) {
+    public LogicalPlan optimize(LogicalPlan plan, TableStats tableStats, CoordinatorTxnCtx txnCtx) {
         var applicableRules = removeExcludedRules(rules, txnCtx.sessionSettings().excludedOptimizerRules());
         LogicalPlan optimizedRoot = tryApplyRules(applicableRules, plan, tableStats, txnCtx);
         var optimizedSources = Lists2.mapIfChange(optimizedRoot.sources(), x -> optimize(x, tableStats, txnCtx));

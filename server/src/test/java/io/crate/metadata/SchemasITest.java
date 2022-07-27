@@ -42,11 +42,11 @@ import org.junit.Test;
 
 import com.carrotsearch.hppc.IntIndexedContainer;
 
-import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
 import io.crate.expression.symbol.Symbol;
 import io.crate.integrationtests.SQLIntegrationTestCase;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.CheckConstraint;
 
@@ -89,7 +89,7 @@ public class SchemasITest extends SQLIntegrationTestCase {
             routingProvider,
             WhereClause.MATCH_ALL,
             RoutingProvider.ShardSelection.ANY,
-            SessionContext.systemSessionContext()
+            CoordinatorSessionSettings.systemDefaults()
         );
 
         Set<String> nodes = routing.nodes();
@@ -111,7 +111,7 @@ public class SchemasITest extends SQLIntegrationTestCase {
         TableInfo ti = schemas.getTableInfo(new RelationName("sys", "nodes"));
         ClusterService clusterService = clusterService();
         Routing routing = ti.getRouting(
-            clusterService.state(), routingProvider, null, null, SessionContext.systemSessionContext());
+            clusterService.state(), routingProvider, null, null, CoordinatorSessionSettings.systemDefaults());
         assertTrue(routing.hasLocations());
         assertEquals(1, routing.nodes().size());
         for (Map<String, ?> indices : routing.locations().values()) {
@@ -128,7 +128,7 @@ public class SchemasITest extends SQLIntegrationTestCase {
         TableInfo ti = schemas.getTableInfo(new RelationName("sys", "shards"));
         ClusterService clusterService = clusterService();
         Routing routing = ti.getRouting(
-            clusterService.state(), routingProvider, null, null, SessionContext.systemSessionContext());
+            clusterService.state(), routingProvider, null, null, CoordinatorSessionSettings.systemDefaults());
 
         Set<String> tables = new HashSet<>();
         Set<String> expectedTables = Set.of(getFqn("t2"), getFqn("t3"));
@@ -148,7 +148,7 @@ public class SchemasITest extends SQLIntegrationTestCase {
         TableInfo ti = schemas.getTableInfo(new RelationName("sys", "cluster"));
         ClusterService clusterService = clusterService();
         assertThat(ti.getRouting(
-            clusterService.state(), routingProvider, null, null, SessionContext.systemSessionContext()
+            clusterService.state(), routingProvider, null, null, CoordinatorSessionSettings.systemDefaults()
         ).locations().size(), is(1));
     }
 }

@@ -94,7 +94,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
     @After
     public void resetEnableHashJoinFlag() {
-        txnCtx.sessionContext().setHashJoinEnabled(true);
+        txnCtx.sessionSettings().setHashJoinEnabled(true);
     }
 
     private LogicalPlan createLogicalPlan(QueriedSelectRelation mss, TableStats tableStats) {
@@ -109,7 +109,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             mss.where(),
             mss.joinPairs(),
             rel -> logicalPlanner.plan(rel, plannerCtx, subqueryPlanner, true),
-            txnCtx.sessionContext().isHashJoinEnabled()
+            txnCtx.sessionSettings().hashJoinsEnabled()
         );
     }
 
@@ -123,7 +123,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testNestedLoop_TablesAreSwitchedIfLeftIsSmallerThanRight() {
-        txnCtx.sessionContext().setHashJoinEnabled(false);
+        txnCtx.sessionSettings().setHashJoinEnabled(false);
         QueriedSelectRelation mss = e.analyze("select * from users, locations where users.id = locations.id");
 
         TableStats tableStats = new TableStats();
@@ -176,7 +176,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testNestedLoop_TablesAreNotSwitchedIfLeftHasAPushedDownOrderBy() {
-        txnCtx.sessionContext().setHashJoinEnabled(false);
+        txnCtx.sessionSettings().setHashJoinEnabled(false);
         // we use a subselect to simulate the pushed-down order by
         QueriedSelectRelation mss = e.analyze("select users.id from (select id from users order by id) users, " +
                                               "locations where users.id = locations.id");
@@ -217,7 +217,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         tableStats.updateTableStats(rowCountByTable);
 
         PlannerContext context = e.getPlannerContext(clusterService.state());
-        context.transactionContext().sessionContext().setHashJoinEnabled(false);
+        context.transactionContext().sessionSettings().setHashJoinEnabled(false);
         LogicalPlanner logicalPlanner = new LogicalPlanner(
             e.nodeCtx,
             tableStats,
@@ -429,7 +429,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testPlanChainedJoinsWithWindowFunctionInOutput() {
-        txnCtx.sessionContext().setHashJoinEnabled(false);
+        txnCtx.sessionSettings().setHashJoinEnabled(false);
         QueriedSelectRelation mss = e.analyze("SELECT t1.a, t2.b, row_number() OVER(ORDER BY t3.z) " +
                                               "FROM t1 t1 " +
                                               "JOIN t2 t2 on t1.a = t2.b " +
