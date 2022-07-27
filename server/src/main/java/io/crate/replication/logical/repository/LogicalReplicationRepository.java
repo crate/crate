@@ -423,7 +423,6 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                     } catch (IOException e) {
                         listener.onFailure(new UncheckedIOException(e));
                     } finally {
-                        store.decRef();
                         releasePublisherResources(remoteClient, restoreUUID, publisherShardNode, shardId);
                     }
                 } else {
