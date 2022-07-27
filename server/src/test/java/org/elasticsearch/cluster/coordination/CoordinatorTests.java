@@ -19,6 +19,7 @@
 package org.elasticsearch.cluster.coordination;
 
 import static org.elasticsearch.cluster.coordination.AbstractCoordinatorTestCase.Cluster.DEFAULT_DELAY_VARIABILITY;
+import static org.elasticsearch.cluster.coordination.AbstractCoordinatorTestCase.Cluster.EXTREME_DELAY_VARIABILITY;
 import static org.elasticsearch.cluster.coordination.Coordinator.Mode.CANDIDATE;
 import static org.elasticsearch.cluster.coordination.Coordinator.PUBLISH_TIMEOUT_SETTING;
 import static org.elasticsearch.cluster.coordination.ElectionSchedulerFactory.ELECTION_INITIAL_TIMEOUT_SETTING;
@@ -41,6 +42,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.sameInstance;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -84,6 +86,7 @@ import org.elasticsearch.gateway.GatewayService;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.test.MockLogAppender;
 
+import io.crate.common.unit.TimeValue;
 
 
 @AwaitsFix(bugUrl = "https://github.com/crate/crate/issues/10811")
@@ -1056,7 +1059,7 @@ public class CoordinatorTests extends AbstractCoordinatorTestCase {
             cluster.stabilise();
 
             partitionedNode.heal();
-            cluster.runRandomly(false);
+            cluster.runRandomly(false, true, EXTREME_DELAY_VARIABILITY);
             cluster.stabilise();
         }
     }
@@ -1134,6 +1137,36 @@ public class CoordinatorTests extends AbstractCoordinatorTestCase {
 
             cluster.runRandomly();
             cluster.stabilise();
+        }
+    }
+
+    public void testSingleNodeDiscoveryStabilisesEvenWhenDisrupted() {
+        try (Cluster cluster = new Cluster(1, randomBoolean(), Settings.builder()
+            .put(DiscoveryModule.DISCOVERY_TYPE_SETTING.getKey(), DiscoveryModule.SINGLE_NODE_DISCOVERY_TYPE).build())) {
+
+            // A cluster using single-node discovery should not apply any timeouts to joining or cluster state publication. There are no
+            // other options, so there's no point in failing and retrying from scratch no matter how badly disrupted we are and we may as
+            // well just wait.
+
+            // larger variability is are good for checking that we don't time out, but smaller variability also tightens up the time bound
+            // within which we expect to converge, so use a mix of both
+            final long delayVariabilityMillis = randomLongBetween(DEFAULT_DELAY_VARIABILITY, TimeValue.timeValueMinutes(10).millis());
+            if (randomBoolean()) {
+                cluster.runRandomly(true, false, delayVariabilityMillis);
+            } else {
+                cluster.deterministicTaskQueue.setExecutionDelayVariabilityMillis(delayVariabilityMillis);
+            }
+
+            final ClusterNode clusterNode = cluster.getAnyNode();
+
+            // cf. DEFAULT_STABILISATION_TIME, but stabilisation is quicker when there's a single node - there's no meaningful fault
+            // detection and ongoing publications do not time out
+            cluster.runFor(ELECTION_INITIAL_TIMEOUT_SETTING.get(Settings.EMPTY).millis() + delayVariabilityMillis
+                + 4 * delayVariabilityMillis // two round trips for pre-voting and voting
+                + 7 * delayVariabilityMillis, // see definition of DEFAULT_CLUSTER_STATE_UPDATE_DELAY
+                "stabilising");
+
+            assertThat(cluster.getAnyLeader(), sameInstance(clusterNode));
         }
     }
 
