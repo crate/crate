@@ -260,7 +260,7 @@ public class RoutingTable implements Iterable<IndexRoutingTable>, Diffable<Routi
                 }
             }
         }
-        return new GroupShardsIterator<>(set);
+        return GroupShardsIterator.sortAndCreate(set);
     }
 
     public ShardsIterator allShards(String[] indices) {
@@ -320,7 +320,7 @@ public class RoutingTable implements Iterable<IndexRoutingTable>, Diffable<Routi
                 }
             }
         }
-        return new GroupShardsIterator<>(set);
+        return GroupShardsIterator.sortAndCreate(set);
     }
 
     @Override
