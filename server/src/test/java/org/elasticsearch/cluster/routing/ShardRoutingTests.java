@@ -171,7 +171,7 @@ public class ShardRoutingTests extends ESTestCase {
                                                         otherRouting.relocatingNodeId(), otherRouting.primary(), otherRouting.state(),
                                                         new RecoverySource.SnapshotRecoverySource(UUIDs.randomBase64UUID(),
                                                         new Snapshot("test",
-                                                        new SnapshotId("s1", UUIDs.randomBase64UUID())), Version.CURRENT, new IndexId("test", UUIDs.randomBase64UUID(random())).getId()),
+                                                        new SnapshotId("s1", UUIDs.randomBase64UUID())), Version.CURRENT, new IndexId("test", UUIDs.randomBase64UUID(random()))),
                                                         otherRouting.unassignedInfo(), otherRouting.allocationId(), otherRouting.getExpectedShardSize());
                     }
                     break;
