@@ -524,7 +524,7 @@ should be crossed out as well.
 - [ ] 00b90982502 Ignore timeouts with single-node discovery (#52159)
 - [ ] 350288ddf83 Check dot-index rules after template application (#52087)
 - [ ] 28a8db730f4 In FieldTypeLookup, factor out flat object field logic. (#52091)
-- [ ] d8169e5fdcf Don't Upload Redundant Shard Files (#51729) (#52147)
+- [x] d8169e5fdcf Don't Upload Redundant Shard Files (#51729) (#52147)
 - [x] 90eb6a020da Remove Redundant Loading of RepositoryData during Restore (#51977) (#52108)
 - [x] b77ef1f61bc Cleanup some Dead Code in o.e.index.store (#52045) (#52084)
 - [x] 337d73a7c6f Rename MapperService#fullName to fieldType.
