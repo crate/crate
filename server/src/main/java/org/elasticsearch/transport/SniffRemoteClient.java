@@ -292,7 +292,7 @@ public final class SniffRemoteClient extends AbstractClient {
             }
             remoteClusterName.trySet(handshakeResponse.getClusterName());
             FutureActionListener<Void, Connection> connectedListener = new FutureActionListener<>(ignored -> openedConnection.join());
-            transportService.connectToNode(handshakeNode, connectedListener);
+            transportService.connectToNode(handshakeNode, profile, connectedListener);
             return connectedListener;
         });
     }

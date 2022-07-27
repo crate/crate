@@ -102,9 +102,10 @@ public class ClusterConnectionManager implements ConnectionManager {
      * The ActionListener will be called on the calling thread or the generic thread pool.
      */
     @Override
-    public void connectToNode(DiscoveryNode node,
+    public void connectToNode(DiscoveryNode node, ConnectionProfile connectionProfile,
                               ConnectionValidator connectionValidator,
                               ActionListener<Void> listener) throws ConnectTransportException {
+        ConnectionProfile resolvedProfile = ConnectionProfile.resolveConnectionProfile(connectionProfile, defaultProfile);
         if (node == null) {
             listener.onFailure(new ConnectTransportException(null, "can't connect to a null node"));
             return;
@@ -136,8 +137,8 @@ public class ClusterConnectionManager implements ConnectionManager {
         currentListener.addListener(listener, EsExecutors.directExecutor());
 
         final RunOnce releaseOnce = new RunOnce(connectingRefCounter::decRef);
-        internalOpenConnection(node, defaultProfile, ActionListener.wrap(conn -> {
-            connectionValidator.validate(conn, defaultProfile, ActionListener.wrap(
+        internalOpenConnection(node, resolvedProfile, ActionListener.wrap(conn -> {
+            connectionValidator.validate(conn, resolvedProfile, ActionListener.wrap(
                 ignored -> {
                     assert Transports.assertNotTransportThread("connection validator success");
                     try {
