@@ -21,36 +21,20 @@
 
 package io.crate.rest.action;
 
-import io.crate.action.sql.DescribeResult;
-import io.crate.action.sql.ResultReceiver;
-import io.crate.action.sql.SQLOperations;
-import io.crate.action.sql.Session;
-import io.crate.action.sql.SessionContext;
-import io.crate.action.sql.parser.SQLRequestParseContext;
-import io.crate.action.sql.parser.SQLRequestParser;
-import io.crate.auth.AuthSettings;
-import io.crate.auth.AccessControl;
-import io.crate.common.annotations.VisibleForTesting;
-import io.crate.user.User;
-import io.crate.user.UserLookup;
-import io.crate.breaker.BlockBasedRamAccounting;
-import io.crate.breaker.RamAccounting;
-import io.crate.breaker.RowAccountingWithEstimators;
-import io.crate.exceptions.SQLExceptions;
-import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
-import io.crate.protocols.http.Headers;
-import io.netty.buffer.ByteBuf;
-import io.netty.channel.ChannelFutureListener;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelPromise;
-import io.netty.channel.SimpleChannelInboundHandler;
-import io.netty.handler.codec.http.DefaultFullHttpResponse;
-import io.netty.handler.codec.http.FullHttpRequest;
-import io.netty.handler.codec.http.HttpHeaderNames;
-import io.netty.handler.codec.http.HttpResponseStatus;
-import io.netty.handler.codec.http.HttpVersion;
-import io.netty.handler.codec.http.QueryStringDecoder;
+import static io.crate.action.sql.Session.UNNAMED;
+import static io.crate.breaker.BlockBasedRamAccounting.MAX_BLOCK_SIZE_IN_BYTES;
+import static io.crate.protocols.http.Headers.isCloseConnection;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
+
+import javax.annotation.Nullable;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.breaker.CircuitBreaker;
@@ -63,18 +47,36 @@ import org.elasticsearch.http.netty4.cors.Netty4CorsHandler;
 import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 import org.elasticsearch.transport.netty4.Netty4Utils;
 
-import javax.annotation.Nullable;
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.Function;
-
-import static io.crate.action.sql.Session.UNNAMED;
-import static io.crate.breaker.BlockBasedRamAccounting.MAX_BLOCK_SIZE_IN_BYTES;
-import static io.crate.protocols.http.Headers.isCloseConnection;
-import static java.util.Collections.emptyList;
-import static java.util.Collections.singletonList;
+import io.crate.action.sql.DescribeResult;
+import io.crate.action.sql.ResultReceiver;
+import io.crate.action.sql.SQLOperations;
+import io.crate.action.sql.Session;
+import io.crate.action.sql.parser.SQLRequestParseContext;
+import io.crate.action.sql.parser.SQLRequestParser;
+import io.crate.auth.AccessControl;
+import io.crate.auth.AuthSettings;
+import io.crate.breaker.BlockBasedRamAccounting;
+import io.crate.breaker.RamAccounting;
+import io.crate.breaker.RowAccountingWithEstimators;
+import io.crate.common.annotations.VisibleForTesting;
+import io.crate.exceptions.SQLExceptions;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
+import io.crate.metadata.settings.CoordinatorSessionSettings;
+import io.crate.protocols.http.Headers;
+import io.crate.user.User;
+import io.crate.user.UserLookup;
+import io.netty.buffer.ByteBuf;
+import io.netty.channel.ChannelFutureListener;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelPromise;
+import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.handler.codec.http.DefaultFullHttpResponse;
+import io.netty.handler.codec.http.FullHttpRequest;
+import io.netty.handler.codec.http.HttpHeaderNames;
+import io.netty.handler.codec.http.HttpResponseStatus;
+import io.netty.handler.codec.http.HttpVersion;
+import io.netty.handler.codec.http.QueryStringDecoder;
 
 public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
 
@@ -86,7 +88,7 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
     private final SQLOperations sqlOperations;
     private final Function<String, CircuitBreaker> circuitBreakerProvider;
     private final UserLookup userLookup;
-    private final Function<SessionContext, AccessControl> getAccessControl;
+    private final Function<CoordinatorSessionSettings, AccessControl> getAccessControl;
     private final Netty4CorsConfig corsConfig;
 
     private Session session;
@@ -95,7 +97,7 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
                    SQLOperations sqlOperations,
                    Function<String, CircuitBreaker> circuitBreakerProvider,
                    UserLookup userLookup,
-                   Function<SessionContext, AccessControl> getAccessControl,
+                   Function<CoordinatorSessionSettings, AccessControl> getAccessControl,
                    Netty4CorsConfig corsConfig) {
         super(false);
         this.settings = settings;
@@ -159,7 +161,7 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
             resp = new DefaultFullHttpResponse(httpVersion, HttpResponseStatus.OK, content);
             resp.headers().add(HttpHeaderNames.CONTENT_TYPE, result.contentType().mediaType());
         } else {
-            var throwable = SQLExceptions.prepareForClientTransmission(getAccessControl.apply(session.sessionContext()), t);
+            var throwable = SQLExceptions.prepareForClientTransmission(getAccessControl.apply(session.sessionSettings()), t);
             HttpError httpError = HttpError.fromThrowable(throwable);
             String mediaType;
             boolean includeErrorTrace = paramContainFlag(parameters, "error_trace");
@@ -219,7 +221,7 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         Session session = this.session;
         if (session == null) {
             session = sqlOperations.createSession(defaultSchema, authenticatedUser);
-        } else if (session.sessionContext().authenticatedUser().equals(authenticatedUser) == false) {
+        } else if (session.sessionSettings().authenticatedUser().equals(authenticatedUser) == false) {
             session.close();
             session = sqlOperations.createSession(defaultSchema, authenticatedUser);
         }

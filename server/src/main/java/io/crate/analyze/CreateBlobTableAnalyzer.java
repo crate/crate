@@ -48,7 +48,7 @@ public class CreateBlobTableAnalyzer {
                                            CoordinatorTxnCtx txnCtx) {
         var exprAnalyzerWithoutFields = new ExpressionAnalyzer(
             txnCtx, nodeCtx, paramTypeHints, FieldProvider.UNSUPPORTED, null);
-        var exprCtx = new ExpressionAnalysisContext(txnCtx.sessionContext());
+        var exprCtx = new ExpressionAnalysisContext(txnCtx.sessionSettings());
 
         CreateBlobTable<Symbol> createBlobTable = node.map(x -> exprAnalyzerWithoutFields.convert(x, exprCtx));
 

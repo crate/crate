@@ -106,8 +106,8 @@ class InsertAnalyzer {
         DocTableInfo tableInfo = (DocTableInfo) schemas.resolveTableInfo(
             insert.table().getName(),
             Operation.INSERT,
-            txnCtx.sessionContext().sessionUser(),
-            txnCtx.sessionContext().searchPath()
+            txnCtx.sessionSettings().sessionUser(),
+            txnCtx.sessionSettings().searchPath()
         );
         List<Reference> targetColumns;
         if (insert.columns().isEmpty()) {
@@ -152,7 +152,7 @@ class InsertAnalyzer {
         if (insert.returningClause().isEmpty()) {
             returnValues = null;
         } else {
-            var exprCtx = new ExpressionAnalysisContext(txnCtx.sessionContext());
+            var exprCtx = new ExpressionAnalysisContext(txnCtx.sessionSettings());
             Map<RelationName, AnalyzedRelation> sources = Map.of(tableRelation.relationName(), tableRelation);
             var sourceExprAnalyzer = new ExpressionAnalyzer(
                 txnCtx,
@@ -161,7 +161,7 @@ class InsertAnalyzer {
                 new FullQualifiedNameFieldProvider(
                     sources,
                     ParentRelations.NO_PARENTS,
-                    txnCtx.sessionContext().searchPath().currentSchema()),
+                    txnCtx.sessionSettings().searchPath().currentSchema()),
                 null
             );
             var selectAnalysis = SelectAnalyzer.analyzeSelectItems(
@@ -199,7 +199,7 @@ class InsertAnalyzer {
                     constraintColumns, pkColumnIdents));
         }
 
-        ExpressionAnalysisContext ctx = new ExpressionAnalysisContext(txnCtx.sessionContext());
+        ExpressionAnalysisContext ctx = new ExpressionAnalysisContext(txnCtx.sessionSettings());
         List<Symbol> conflictTargets = Lists2.map(constraintColumns, x -> {
             try {
                 return expressionAnalyzer.convert(x, ctx);
@@ -296,7 +296,7 @@ class InsertAnalyzer {
             return Collections.emptyMap();
         }
 
-        ExpressionAnalysisContext exprCtx = new ExpressionAnalysisContext(txnCtx.sessionContext());
+        ExpressionAnalysisContext exprCtx = new ExpressionAnalysisContext(txnCtx.sessionSettings());
         ValuesResolver valuesResolver = new ValuesResolver(targetCols);
         final FieldProvider<?> fieldProvider;
         if (duplicateKeyContext.getType() == Insert.DuplicateKeyContext.Type.ON_CONFLICT_DO_UPDATE_SET) {

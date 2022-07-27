@@ -21,13 +21,13 @@
 
 package io.crate.analyze;
 
-import io.crate.action.sql.SessionContext;
 import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.execution.ddl.RepositoryService;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.analyze.LogicalReplicationAnalyzer;
@@ -207,14 +207,14 @@ public class Analyzer {
     }
 
     public AnalyzedStatement analyze(Statement statement,
-                                     SessionContext sessionContext,
+                                     CoordinatorSessionSettings sessionSettings,
                                      ParamTypeHints paramTypeHints) {
         var analyzedStatement = statement.accept(
             dispatcher,
             new Analysis(
-                new CoordinatorTxnCtx(sessionContext),
+                new CoordinatorTxnCtx(sessionSettings),
                 paramTypeHints));
-        userManager.getAccessControl(sessionContext).ensureMayExecute(analyzedStatement);
+        userManager.getAccessControl(sessionSettings).ensureMayExecute(analyzedStatement);
         return analyzedStatement;
     }
 
@@ -286,7 +286,7 @@ public class Analyzer {
         public AnalyzedStatement visitAlterTableRename(AlterTableRename<?> node, Analysis context) {
             return alterTableAnalyzer.analyze(
                 (AlterTableRename<Expression>) node,
-                context.sessionContext());
+                context.sessionSettings());
         }
 
         @Override
@@ -359,7 +359,7 @@ public class Analyzer {
                 (CreateFunction<Expression>) node,
                 context.paramTypeHints(),
                 context.transactionContext(),
-                context.sessionContext().searchPath());
+                context.sessionSettings().searchPath());
         }
 
         @Override
@@ -429,8 +429,8 @@ public class Analyzer {
         public AnalyzedStatement visitDenyPrivilege(DenyPrivilege node, Analysis context) {
             return privilegesAnalyzer.analyzeDeny(
                 node,
-                context.sessionContext().sessionUser(),
-                context.sessionContext().searchPath());
+                context.sessionSettings().sessionUser(),
+                context.sessionSettings().searchPath());
         }
 
         @Override
@@ -440,12 +440,12 @@ public class Analyzer {
 
         @Override
         public AnalyzedStatement visitDropBlobTable(DropBlobTable<?> node, Analysis context) {
-            return dropTableAnalyzer.analyze(node, context.sessionContext());
+            return dropTableAnalyzer.analyze(node, context.sessionSettings());
         }
 
         @Override
         public AnalyzedStatement visitDropFunction(DropFunction node, Analysis context) {
-            return dropFunctionAnalyzer.analyze(node, context.sessionContext().searchPath());
+            return dropFunctionAnalyzer.analyze(node, context.sessionSettings().searchPath());
         }
 
         @Override
@@ -460,7 +460,7 @@ public class Analyzer {
 
         @Override
         public AnalyzedDropTable visitDropTable(DropTable<?> node, Analysis context) {
-            return dropTableAnalyzer.analyze(node, context.sessionContext());
+            return dropTableAnalyzer.analyze(node, context.sessionSettings());
         }
 
         @Override
@@ -487,8 +487,8 @@ public class Analyzer {
         public AnalyzedStatement visitGrantPrivilege(GrantPrivilege node, Analysis context) {
             return privilegesAnalyzer.analyzeGrant(
                 node,
-                context.sessionContext().sessionUser(),
-                context.sessionContext().searchPath());
+                context.sessionSettings().sessionUser(),
+                context.sessionSettings().searchPath());
         }
 
         @Override
@@ -552,8 +552,8 @@ public class Analyzer {
         public AnalyzedStatement visitRevokePrivilege(RevokePrivilege node, Analysis context) {
             return privilegesAnalyzer.analyzeRevoke(
                 node,
-                context.sessionContext().sessionUser(),
-                context.sessionContext().searchPath());
+                context.sessionSettings().sessionUser(),
+                context.sessionSettings().searchPath());
         }
 
         @Override
@@ -580,7 +580,7 @@ public class Analyzer {
             var coordinatorTxnCtx = context.transactionContext();
             Query query = showStatementAnalyzer.rewriteShowColumns(
                 node,
-                coordinatorTxnCtx.sessionContext().searchPath().currentSchema());
+                coordinatorTxnCtx.sessionSettings().searchPath().currentSchema());
             return relationAnalyzer.analyze(
                 query,
                 coordinatorTxnCtx,
@@ -645,19 +645,19 @@ public class Analyzer {
         @Override
         public AnalyzedStatement visitCreatePublication(CreatePublication createPublication,
                                                         Analysis context) {
-            return logicalReplicationAnalyzer.analyze(createPublication, context.sessionContext());
+            return logicalReplicationAnalyzer.analyze(createPublication, context.sessionSettings());
         }
 
         @Override
         public AnalyzedStatement visitDropPublication(DropPublication dropPublication,
                                                       Analysis context) {
-            return logicalReplicationAnalyzer.analyze(dropPublication, context.sessionContext());
+            return logicalReplicationAnalyzer.analyze(dropPublication, context.sessionSettings());
         }
 
         @Override
         public AnalyzedStatement visitAlterPublication(AlterPublication alterPublication,
                                                        Analysis context) {
-            return logicalReplicationAnalyzer.analyze(alterPublication, context.sessionContext());
+            return logicalReplicationAnalyzer.analyze(alterPublication, context.sessionSettings());
         }
 
         @Override
@@ -673,13 +673,13 @@ public class Analyzer {
         @Override
         public AnalyzedStatement visitDropSubscription(DropSubscription dropSubscription,
                                                        Analysis context) {
-            return logicalReplicationAnalyzer.analyze(dropSubscription, context.sessionContext());
+            return logicalReplicationAnalyzer.analyze(dropSubscription, context.sessionSettings());
         }
 
         @Override
         public AnalyzedStatement visitAlterSubscription(AlterSubscription alterSubscription,
                                                         Analysis context) {
-            return logicalReplicationAnalyzer.analyze(alterSubscription, context.sessionContext());
+            return logicalReplicationAnalyzer.analyze(alterSubscription, context.sessionSettings());
         }
     }
 }

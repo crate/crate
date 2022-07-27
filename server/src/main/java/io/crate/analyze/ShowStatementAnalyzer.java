@@ -91,7 +91,7 @@ class ShowStatementAnalyzer {
             table.getName(),
             Operation.SHOW_CREATE,
             User.CRATE_USER,
-            analysis.sessionContext().searchPath()
+            analysis.sessionSettings().searchPath()
         );
         return new AnalyzedShowCreateTable(tableInfo);
     }
@@ -200,7 +200,7 @@ class ShowStatementAnalyzer {
     private AnalyzedStatement unboundAnalyze(Query query, Analysis analysis) {
         return analyzer.analyze(
             query,
-            analysis.sessionContext(),
+            analysis.sessionSettings(),
             analysis.paramTypeHints());
     }
 

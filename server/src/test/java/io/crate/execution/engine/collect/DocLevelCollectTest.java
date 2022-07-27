@@ -49,7 +49,6 @@ import org.junit.Test;
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntIndexedContainer;
 
-import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
 import io.crate.data.Bucket;
 import io.crate.execution.dsl.phases.ExecutionPhase;
@@ -75,6 +74,7 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.SimpleReference;
+import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.testing.UseRandomizedSchema;
@@ -215,7 +215,7 @@ public class DocLevelCollectTest extends SQLIntegrationTestCase {
             new RoutingProvider(Randomness.get().nextInt(), Collections.emptyList()),
             WhereClause.MATCH_ALL,
             RoutingProvider.ShardSelection.ANY,
-            SessionContext.systemSessionContext());
+            CoordinatorSessionSettings.systemDefaults());
         RoutedCollectPhase collectNode = getCollectNode(
             Arrays.asList(
                 tableInfo.getReference(new ColumnIdent("id")),

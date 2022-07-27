@@ -21,23 +21,23 @@
 
 package io.crate.metadata.settings.session;
 
-import io.crate.action.sql.SessionContext;
-import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.settings.SessionSettings;
-import io.crate.types.DataType;
-
 import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.settings.CoordinatorSessionSettings;
+import io.crate.metadata.settings.SessionSettings;
+import io.crate.types.DataType;
+
 public class SessionSetting<T> {
 
     private final String name;
     private final Consumer<Object[]> validator;
     private final Function<Object[], T> converter;
-    private final BiConsumer<SessionContext, T> setter;
+    private final BiConsumer<CoordinatorSessionSettings, T> setter;
     private final Function<SessionSettings, String> getter;
     private final Supplier<String> defaultValue;
 
@@ -47,7 +47,7 @@ public class SessionSetting<T> {
     public SessionSetting(String name,
                    Consumer<Object[]> validator,
                    Function<Object[], T> converter,
-                   BiConsumer<SessionContext, T> setter,
+                   BiConsumer<CoordinatorSessionSettings, T> setter,
                    Function<SessionSettings, String> getter,
                    Supplier<String> defaultValue,
                    String description,
@@ -62,7 +62,9 @@ public class SessionSetting<T> {
         this.type = type;
     }
 
-    public void apply(SessionContext sessionContext, List<Symbol> symbols, Function<? super Symbol, Object> eval) {
+    public void apply(CoordinatorSessionSettings sessionSettings,
+                      List<Symbol> symbols,
+                      Function<? super Symbol, Object> eval) {
         Object[] values = new Object[symbols.size()];
         for (int i = 0; i < symbols.size(); i++) {
             Symbol symbol = symbols.get(i);
@@ -70,7 +72,7 @@ public class SessionSetting<T> {
         }
         validator.accept(values);
         T converted = converter.apply(values);
-        setter.accept(sessionContext, converted);
+        setter.accept(sessionSettings, converted);
     }
 
     public String getValue(SessionSettings sessionSettings) {

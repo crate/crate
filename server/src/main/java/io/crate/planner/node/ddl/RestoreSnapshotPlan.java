@@ -168,7 +168,7 @@ public class RestoreSnapshotPlan implements Plan {
         for (Table<Symbol> table : restoreSnapshot.tables()) {
             var relationName = RelationName.of(
                 table.getName(),
-                txnCtx.sessionContext().searchPath().currentSchema());
+                txnCtx.sessionSettings().searchPath().currentSchema());
 
             try {
                 DocTableInfo docTableInfo = schemas.getTableInfo(relationName, Operation.RESTORE_SNAPSHOT);

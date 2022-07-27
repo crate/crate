@@ -34,6 +34,7 @@ import org.elasticsearch.transport.NodeDisconnectedException;
 import io.crate.analyze.Analyzer;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Planner;
 import io.crate.user.User;
@@ -73,7 +74,7 @@ public class SQLOperations {
         this.isReadOnly = NODE_READ_ONLY_SETTING.get(settings);
     }
 
-    private Session createSession(SessionContext sessionContext) {
+    private Session createSession(CoordinatorSessionSettings sessionSettings) {
         if (disabled) {
             throw new NodeDisconnectedException(clusterService.localNode(), "sql");
         }
@@ -84,22 +85,22 @@ public class SQLOperations {
             jobsLogs,
             isReadOnly,
             executorProvider.get(),
-            sessionContext);
+            sessionSettings);
     }
 
     public Session newSystemSession() {
-        return createSession(SessionContext.systemSessionContext());
+        return createSession(CoordinatorSessionSettings.systemDefaults());
     }
 
     public Session createSession(@Nullable String defaultSchema, User authenticatedUser) {
-        SessionContext sessionContext;
+        CoordinatorSessionSettings sessionSettings;
         if (defaultSchema == null) {
-            sessionContext = new SessionContext(authenticatedUser);
+            sessionSettings = new CoordinatorSessionSettings(authenticatedUser);
         } else {
-            sessionContext = new SessionContext(authenticatedUser, defaultSchema);
+            sessionSettings = new CoordinatorSessionSettings(authenticatedUser, defaultSchema);
         }
 
-        return createSession(sessionContext);
+        return createSession(sessionSettings);
     }
 
     /**

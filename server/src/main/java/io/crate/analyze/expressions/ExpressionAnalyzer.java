@@ -1164,7 +1164,7 @@ public class ExpressionAnalyzer {
             schema,
             functionName,
             arguments,
-            coordinatorTxnCtx.sessionContext().searchPath());
+            coordinatorTxnCtx.sessionSettings().searchPath());
 
         Signature signature = funcImpl.signature();
         Signature boundSignature = funcImpl.boundSignature();

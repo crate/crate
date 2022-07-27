@@ -101,7 +101,7 @@ public class Count implements LogicalPlan {
             tableRelation.tableInfo(),
             boundWhere,
             RoutingProvider.ShardSelection.ANY,
-            plannerContext.transactionContext().sessionContext());
+            plannerContext.transactionContext().sessionSettings());
         CountPhase countPhase = new CountPhase(
             plannerContext.nextExecutionPhaseId(),
             routing,

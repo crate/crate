@@ -21,8 +21,8 @@
 
 package io.crate.analyze;
 
-import io.crate.action.sql.SessionContext;
 import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.settings.CoordinatorSessionSettings;
 
 public class Analysis {
 
@@ -38,8 +38,8 @@ public class Analysis {
         return coordinatorTxnCtx;
     }
 
-    public SessionContext sessionContext() {
-        return coordinatorTxnCtx.sessionContext();
+    public CoordinatorSessionSettings sessionSettings() {
+        return coordinatorTxnCtx.sessionSettings();
     }
 
     public ParamTypeHints paramTypeHints() {

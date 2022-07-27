@@ -56,7 +56,7 @@ public class SetSessionAuthorizationPlan implements Plan {
                               RowConsumer consumer,
                               Row params,
                               SubQueryResults subQueryResults) throws Exception {
-        var sessionContext = plannerContext.transactionContext().sessionContext();
+        var sessionSettings = plannerContext.transactionContext().sessionSettings();
         String userName = setSessionAuthorization.user();
         User user;
         if (userName != null) {
@@ -65,9 +65,9 @@ public class SetSessionAuthorizationPlan implements Plan {
                 throw new IllegalArgumentException("User '" + userName + "' does not exist.");
             }
         } else {
-            user = sessionContext.authenticatedUser();
+            user = sessionSettings.authenticatedUser();
         }
-        sessionContext.setSessionUser(user);
+        sessionSettings.setSessionUser(user);
         consumer.accept(InMemoryBatchIterator.empty(SENTINEL), null);
     }
 }

@@ -35,12 +35,12 @@ import org.elasticsearch.common.Randomness;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.action.sql.SessionContext;
 import io.crate.data.Row1;
 import io.crate.exceptions.ConversionException;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.RoutingProvider;
+import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.planner.node.ddl.UpdateSettingsPlan;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.LogicalPlanner;
@@ -84,7 +84,7 @@ public class PlannerTest extends CrateDummyClusterServiceUnitTest {
             clusterService.state(),
             new RoutingProvider(Randomness.get().nextInt(), Collections.emptyList()),
             UUID.randomUUID(),
-            new CoordinatorTxnCtx(SessionContext.systemSessionContext()),
+            new CoordinatorTxnCtx(CoordinatorSessionSettings.systemDefaults()),
             e.nodeCtx,
             0,
             null

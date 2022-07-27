@@ -32,8 +32,8 @@ import io.crate.common.collections.MapBuilder;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
-import io.crate.action.sql.SessionContext;
 import io.crate.metadata.SearchPath;
+import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.protocols.postgres.PostgresWireProtocol;
 import io.crate.types.DataTypes;
 
@@ -56,7 +56,7 @@ public class SessionSettingRegistry {
                      SEARCH_PATH_KEY,
                      objects -> {}, // everything allowed, empty list (resulting by ``SET .. TO DEFAULT`` results in defaults
                      objects -> createSearchPathFrom(objectsToStringArray(objects)),
-                     SessionContext::setSearchPath,
+                     CoordinatorSessionSettings::setSearchPath,
                      s -> String.join(", ", s.searchPath()),
                      () -> String.join(", ", SearchPath.pathWithPGCatalogAndDoc()),
                      "Sets the schema search order.",
@@ -70,7 +70,7 @@ public class SessionSettingRegistry {
                          }
                      },
                      objects -> DataTypes.BOOLEAN.implicitCast(objects[0]),
-                     SessionContext::setHashJoinEnabled,
+                     CoordinatorSessionSettings::setHashJoinEnabled,
                      s -> Boolean.toString(s.hashJoinsEnabled()),
                      () -> String.valueOf(true),
                      "Considers using the Hash Join instead of the Nested Loop Join implementation.",
@@ -124,7 +124,7 @@ public class SessionSettingRegistry {
                          }
                      },
                      objects -> DataTypes.BOOLEAN.implicitCast(objects[0]),
-                     SessionContext::setErrorOnUnknownObjectKey,
+                     CoordinatorSessionSettings::setErrorOnUnknownObjectKey,
                      s -> Boolean.toString(s.errorOnUnknownObjectKey()),
                      () -> String.valueOf(true),
                      "Raises or suppresses ObjectKeyUnknownException when querying nonexistent keys to dynamic objects.",

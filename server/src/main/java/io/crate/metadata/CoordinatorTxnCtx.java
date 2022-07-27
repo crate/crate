@@ -21,11 +21,10 @@
 
 package io.crate.metadata;
 
-import io.crate.action.sql.SessionContext;
-import io.crate.metadata.settings.SessionSettings;
-
 import java.time.Instant;
 import java.util.Objects;
+
+import io.crate.metadata.settings.CoordinatorSessionSettings;
 
 /**
  * TransactionContext is a context that is used to keep state which is valid during a transaction.
@@ -35,15 +34,15 @@ import java.util.Objects;
  */
 public final class CoordinatorTxnCtx implements TransactionContext {
 
-    private final SessionContext sessionContext;
+    private final CoordinatorSessionSettings sessionSettings;
     private Instant currentInstant;
 
     public static CoordinatorTxnCtx systemTransactionContext() {
-        return new CoordinatorTxnCtx(SessionContext.systemSessionContext());
+        return new CoordinatorTxnCtx(CoordinatorSessionSettings.systemDefaults());
     }
 
-    public CoordinatorTxnCtx(SessionContext sessionContext) {
-        this.sessionContext = Objects.requireNonNull(sessionContext);
+    public CoordinatorTxnCtx(CoordinatorSessionSettings sessionSettings) {
+        this.sessionSettings = Objects.requireNonNull(sessionSettings);
     }
 
     /**
@@ -59,15 +58,7 @@ public final class CoordinatorTxnCtx implements TransactionContext {
     }
 
     @Override
-    public SessionSettings sessionSettings() {
-        return new SessionSettings(sessionContext.sessionUser().name(),
-                                   sessionContext.searchPath(),
-                                   sessionContext.isHashJoinEnabled(),
-                                   sessionContext.excludedOptimizerRules(),
-                                   sessionContext.errorOnUnknownObjectKey());
-    }
-
-    public SessionContext sessionContext() {
-        return sessionContext;
+    public CoordinatorSessionSettings sessionSettings() {
+        return sessionSettings;
     }
 }

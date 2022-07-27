@@ -29,17 +29,17 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.carrotsearch.hppc.IntIndexedContainer;
-import com.carrotsearch.hppc.cursors.IntCursor;
-
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.routing.ShardRouting;
 
-import io.crate.action.sql.SessionContext;
+import com.carrotsearch.hppc.IntIndexedContainer;
+import com.carrotsearch.hppc.cursors.IntCursor;
+
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
+import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.fetch.IndexBaseBuilder;
 
@@ -99,9 +99,9 @@ final class RoutingBuilder {
     Routing allocateRouting(TableInfo tableInfo,
                             WhereClause where,
                             RoutingProvider.ShardSelection shardSelection,
-                            SessionContext sessionContext) {
+                            CoordinatorSessionSettings sessionSettings) {
 
-        Routing routing = tableInfo.getRouting(clusterState, routingProvider, where, shardSelection, sessionContext);
+        Routing routing = tableInfo.getRouting(clusterState, routingProvider, where, shardSelection, sessionSettings);
         Map<RelationName, List<Routing>> routingListByTable = routingListByTableStack.peekLast();
         if (routingListByTable == null) {
             return routing;

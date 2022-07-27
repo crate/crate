@@ -29,6 +29,7 @@ import org.elasticsearch.common.inject.Singleton;
 import io.crate.common.StringUtils;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists2;
+import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.settings.session.SessionSetting;
 import io.crate.metadata.settings.session.SessionSettingProvider;
 import io.crate.planner.operators.RewriteInsertFromSubQueryToInsertFromValues;
@@ -50,8 +51,8 @@ import io.crate.planner.optimizer.rule.MoveOrderBeneathFetchOrEval;
 import io.crate.planner.optimizer.rule.MoveOrderBeneathNestedLoop;
 import io.crate.planner.optimizer.rule.MoveOrderBeneathRename;
 import io.crate.planner.optimizer.rule.MoveOrderBeneathUnion;
-import io.crate.planner.optimizer.rule.RemoveRedundantFetchOrEval;
 import io.crate.planner.optimizer.rule.OptimizeCollectWhereClauseAccess;
+import io.crate.planner.optimizer.rule.RemoveRedundantFetchOrEval;
 import io.crate.planner.optimizer.rule.RewriteFilterOnOuterJoinToInnerJoin;
 import io.crate.planner.optimizer.rule.RewriteGroupByKeysLimitToTopNDistinct;
 import io.crate.planner.optimizer.rule.RewriteToQueryThenFetch;
@@ -102,15 +103,20 @@ public class LoadedRules implements SessionSettingProvider {
             optimizerRuleName,
             objects -> {},
             objects -> DataTypes.BOOLEAN.sanitizeValue(objects[0]),
-            (sessionContext, activateRule) -> {
+            (sessionSettings, activateRule) -> {
                 if (activateRule) {
                     // All rules are activated by default
-                    sessionContext.excludedOptimizerRules().remove(rule);
+                    sessionSettings.excludedOptimizerRules().remove(rule);
                 } else {
-                    sessionContext.excludedOptimizerRules().add(rule);
+                    sessionSettings.excludedOptimizerRules().add(rule);
                 }
             },
-            s -> String.valueOf(s.excludedOptimizerRules().contains(rule) == false),
+            s -> {
+                if (s instanceof CoordinatorSessionSettings cs) {
+                    return String.valueOf(cs.excludedOptimizerRules().contains(rule) == false);
+                }
+                return "false";
+            },
             () -> String.valueOf(true),
             String.format(Locale.ENGLISH, "Indicates if the optimizer rule %s is activated.", simpleName),
             DataTypes.BOOLEAN

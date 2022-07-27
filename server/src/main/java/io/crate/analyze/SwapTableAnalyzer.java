@@ -64,10 +64,10 @@ public final class SwapTableAnalyzer {
         } else {
             ExpressionAnalyzer exprAnalyzer = new ExpressionAnalyzer(
                 txnCtx, nodeCtx, typeHints, FieldProvider.UNSUPPORTED, null);
-            dropSource = exprAnalyzer.convert(dropSourceExpr, new ExpressionAnalysisContext(txnCtx.sessionContext()));
+            dropSource = exprAnalyzer.convert(dropSourceExpr, new ExpressionAnalysisContext(txnCtx.sessionSettings()));
         }
-        SearchPath searchPath = txnCtx.sessionContext().searchPath();
-        User user = txnCtx.sessionContext().sessionUser();
+        SearchPath searchPath = txnCtx.sessionSettings().searchPath();
+        User user = txnCtx.sessionSettings().sessionUser();
         return new AnalyzedSwapTable(
             (DocTableInfo) schemas.resolveTableInfo(swapTable.source(), Operation.ALTER, user, searchPath),
             (DocTableInfo) schemas.resolveTableInfo(swapTable.target(), Operation.ALTER, user, searchPath),

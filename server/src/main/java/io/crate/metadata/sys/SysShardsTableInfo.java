@@ -46,7 +46,6 @@ import org.elasticsearch.index.shard.ShardId;
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntIndexedContainer;
 
-import io.crate.action.sql.SessionContext;
 import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.NestableInput;
 import io.crate.expression.reference.sys.shard.ShardRowContext;
@@ -58,6 +57,7 @@ import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SystemTable;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
+import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.shard.unassigned.UnassignedShard;
 import io.crate.types.DataTypes;
 import io.crate.user.Privilege;
@@ -235,11 +235,11 @@ public class SysShardsTableInfo {
      * This routing contains ALL shards of ALL indices.
      * Any shards that are not yet assigned to a node will have a NEGATIVE shard id (see {@link UnassignedShard}
      */
-    public static Routing getRouting(ClusterState clusterState, RoutingProvider routingProvider, SessionContext sessionContext) {
+    public static Routing getRouting(ClusterState clusterState, RoutingProvider routingProvider, CoordinatorSessionSettings sessionSettings) {
         String[] concreteIndices = Arrays.stream(clusterState.metadata().getConcreteAllIndices())
             .filter(index -> !IndexParts.isDangling(index))
             .toArray(String[]::new);
-        User user = sessionContext != null ? sessionContext.sessionUser() : null;
+        User user = sessionSettings != null ? sessionSettings.sessionUser() : null;
         if (user != null) {
             List<String> accessibleTables = new ArrayList<>(concreteIndices.length);
             for (String indexName : concreteIndices) {

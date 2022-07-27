@@ -59,10 +59,10 @@ class CopyAnalyzer {
         DocTableInfo tableInfo = (DocTableInfo) schemas.resolveTableInfo(
             node.table().getName(),
             Operation.INSERT,
-            txnCtx.sessionContext().sessionUser(),
-            txnCtx.sessionContext().searchPath());
+            txnCtx.sessionSettings().sessionUser(),
+            txnCtx.sessionSettings().searchPath());
 
-        var exprCtx = new ExpressionAnalysisContext(txnCtx.sessionContext());
+        var exprCtx = new ExpressionAnalysisContext(txnCtx.sessionSettings());
 
         var exprAnalyzerWithoutFields = new ExpressionAnalyzer(
             txnCtx, nodeCtx, paramTypeHints, FieldProvider.UNSUPPORTED, null);
@@ -107,8 +107,8 @@ class CopyAnalyzer {
         TableInfo tableInfo = schemas.resolveTableInfo(
             node.table().getName(),
             Operation.COPY_TO,
-            txnCtx.sessionContext().sessionUser(),
-            txnCtx.sessionContext().searchPath());
+            txnCtx.sessionSettings().sessionUser(),
+            txnCtx.sessionSettings().searchPath());
         Operation.blockedRaiseException(tableInfo, Operation.READ);
         DocTableRelation tableRelation = new DocTableRelation((DocTableInfo) tableInfo);
 
@@ -118,7 +118,7 @@ class CopyAnalyzer {
             null,
             tableRelation);
 
-        var exprCtx = new ExpressionAnalysisContext(txnCtx.sessionContext());
+        var exprCtx = new ExpressionAnalysisContext(txnCtx.sessionSettings());
         var expressionAnalyzer = new ExpressionAnalyzer(
             txnCtx,
             nodeCtx,

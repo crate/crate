@@ -38,7 +38,6 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
-import io.crate.action.sql.SessionContext;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
@@ -50,6 +49,7 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.types.DataTypes;
 
@@ -105,7 +105,7 @@ public class RoutedCollectPhaseTest extends ESTestCase {
         collect.orderBy(new OrderBy(Collections.singletonList(toInt10)));
         EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(nodeCtx);
         RoutedCollectPhase normalizedCollect = collect.normalize(
-            normalizer, new CoordinatorTxnCtx(SessionContext.systemSessionContext()));
+            normalizer, new CoordinatorTxnCtx(CoordinatorSessionSettings.systemDefaults()));
 
         assertThat(normalizedCollect.orderBy(), notNullValue());
     }
@@ -127,7 +127,7 @@ public class RoutedCollectPhaseTest extends ESTestCase {
         collect.nodePageSizeHint(10);
         EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(nodeCtx);
         RoutedCollectPhase normalizedCollect = collect.normalize(
-            normalizer, new CoordinatorTxnCtx(SessionContext.systemSessionContext()));
+            normalizer, new CoordinatorTxnCtx(CoordinatorSessionSettings.systemDefaults()));
 
         assertThat(normalizedCollect.nodePageSizeHint(), is(10));
     }
@@ -147,7 +147,7 @@ public class RoutedCollectPhaseTest extends ESTestCase {
         );
         EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(nodeCtx);
         RoutedCollectPhase normalizedCollect = collect.normalize(
-            normalizer, new CoordinatorTxnCtx(SessionContext.systemSessionContext()));
+            normalizer, new CoordinatorTxnCtx(CoordinatorSessionSettings.systemDefaults()));
 
         assertThat(normalizedCollect, sameInstance(collect));
     }

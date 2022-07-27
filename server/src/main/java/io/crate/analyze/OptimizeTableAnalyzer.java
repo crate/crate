@@ -52,7 +52,7 @@ public class OptimizeTableAnalyzer {
         var exprAnalyzerWithFieldsAsString = new ExpressionAnalyzer(
             txnCtx, nodeCtx, paramTypeHints, FieldProvider.TO_LITERAL_VALIDATE_NAME, null);
 
-        var exprCtx = new ExpressionAnalysisContext(txnCtx.sessionContext());
+        var exprCtx = new ExpressionAnalysisContext(txnCtx.sessionSettings());
         OptimizeStatement<Symbol> analyzedStatement =
             statement.map(x -> exprAnalyzerWithFieldsAsString.convert(x, exprCtx));
 
@@ -61,8 +61,8 @@ public class OptimizeTableAnalyzer {
             TableInfo tableInfo = schemas.resolveTableInfo(
                 table.getName(),
                 Operation.OPTIMIZE,
-                txnCtx.sessionContext().sessionUser(),
-                txnCtx.sessionContext().searchPath()
+                txnCtx.sessionSettings().sessionUser(),
+                txnCtx.sessionSettings().searchPath()
             );
             analyzedOptimizeTables.put(table, tableInfo);
         }

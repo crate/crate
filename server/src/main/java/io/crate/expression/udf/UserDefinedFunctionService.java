@@ -304,7 +304,7 @@ public class UserDefinedFunctionService {
                     var genRef = (GeneratedReference) ref;
                     Expression expression = SqlParser.createExpression(genRef.formattedGeneratedExpression());
                     try {
-                        exprAnalyzer.convert(expression, new ExpressionAnalysisContext(coordinatorTxnCtx.sessionContext()));
+                        exprAnalyzer.convert(expression, new ExpressionAnalysisContext(coordinatorTxnCtx.sessionSettings()));
                     } catch (UnsupportedOperationException e) {
                         throw new IllegalArgumentException(
                             "Cannot drop function '" + functionName + "', it is still in use by '" +

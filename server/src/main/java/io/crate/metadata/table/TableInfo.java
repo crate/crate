@@ -32,7 +32,6 @@ import javax.annotation.Nullable;
 
 import org.elasticsearch.cluster.ClusterState;
 
-import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
@@ -40,6 +39,7 @@ import io.crate.metadata.RelationInfo;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.SimpleReference;
+import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -160,6 +160,6 @@ public interface TableInfo extends RelationInfo {
                        RoutingProvider routingProvider,
                        WhereClause whereClause,
                        RoutingProvider.ShardSelection shardSelection,
-                       SessionContext sessionContext);
+                       CoordinatorSessionSettings sessionSettings);
 
 }

@@ -38,12 +38,12 @@ import org.mockito.Answers;
 
 import io.crate.action.sql.BaseResultReceiver;
 import io.crate.action.sql.Session;
-import io.crate.action.sql.SessionContext;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.engine.collect.stats.JobsLogs;
+import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
@@ -105,7 +105,7 @@ public class BatchPortalTest extends CrateDummyClusterServiceUnitTest {
             new JobsLogs(() -> false),
             false,
             executor,
-            SessionContext.systemSessionContext());
+            CoordinatorSessionSettings.systemDefaults());
 
         session.parse("S_1", "insert into t1(x) values(1)", Collections.emptyList());
         session.bind("Portal", "S_1", Collections.emptyList(), null);

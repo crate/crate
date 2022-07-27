@@ -43,7 +43,6 @@ import org.joda.time.Period;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.action.sql.SessionContext;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.relations.AliasedAnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
@@ -70,6 +69,7 @@ import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
+import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.ColumnPolicy;
@@ -95,7 +95,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Before
     public void prepare() throws Exception {
         paramTypeHints = ParamTypeHints.EMPTY;
-        context = new ExpressionAnalysisContext(SessionContext.systemSessionContext());
+        context = new ExpressionAnalysisContext(CoordinatorSessionSettings.systemDefaults());
         executor = SQLExecutor.builder(clusterService)
             .addTable(T3.T1_DEFINITION)
             .addTable(T3.T2_DEFINITION)
@@ -159,15 +159,15 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             a1, new AliasedAnalyzedRelation(relation, a1),
             a2, new AliasedAnalyzedRelation(relation, a2)
         );
-        SessionContext sessionContext = SessionContext.systemSessionContext();
-        CoordinatorTxnCtx coordinatorTxnCtx = new CoordinatorTxnCtx(sessionContext);
+        var sessionSettings = CoordinatorSessionSettings.systemDefaults();
+        CoordinatorTxnCtx coordinatorTxnCtx = new CoordinatorTxnCtx(sessionSettings);
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
             coordinatorTxnCtx,
             expressions.nodeCtx,
             paramTypeHints,
             new FullQualifiedNameFieldProvider(sources,
                                                ParentRelations.NO_PARENTS,
-                                               sessionContext.searchPath().currentSchema()),
+                                               sessionSettings.searchPath().currentSchema()),
             null
         );
         Function andFunction = (Function) expressionAnalyzer.convert(
@@ -207,7 +207,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testNonDeterministicFunctionsAlwaysNew() throws Exception {
         CoordinatorTxnCtx txnCtx = CoordinatorTxnCtx.systemTransactionContext();
-        ExpressionAnalysisContext localContext = new ExpressionAnalysisContext(txnCtx.sessionContext());
+        ExpressionAnalysisContext localContext = new ExpressionAnalysisContext(txnCtx.sessionSettings());
         String functionName = CoalesceFunction.NAME;
         Symbol fn1 = ExpressionAnalyzer.allocateFunction(
             functionName,
@@ -436,7 +436,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                                            true,
                                            1, null);
         CoordinatorTxnCtx txnCtx = CoordinatorTxnCtx.systemTransactionContext();
-        ExpressionAnalysisContext localContext = new ExpressionAnalysisContext(txnCtx.sessionContext());
+        ExpressionAnalysisContext localContext = new ExpressionAnalysisContext(txnCtx.sessionSettings());
         Symbol function = ExpressionAnalyzer.allocateFunction(
             ArraySliceFunction.NAME,
             List.of(arrayRef, Literal.of(1), Literal.of(3)),

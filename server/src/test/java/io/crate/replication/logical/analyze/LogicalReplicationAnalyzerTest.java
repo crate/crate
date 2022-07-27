@@ -32,12 +32,12 @@ import org.elasticsearch.common.settings.Setting;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
-import io.crate.action.sql.SessionContext;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.exceptions.InvalidArgumentException;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.UnauthorizedException;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.replication.logical.exceptions.PublicationAlreadyExistsException;
 import io.crate.replication.logical.exceptions.PublicationUnknownException;
 import io.crate.replication.logical.exceptions.SubscriptionAlreadyExistsException;
@@ -136,7 +136,7 @@ public class LogicalReplicationAnalyzerTest extends CrateDummyClusterServiceUnit
         assertThrowsMatches(
             () -> e.analyzer.analyze(
                 SqlParser.createStatement("DROP PUBLICATION pub1"),
-                new SessionContext(User.of("other_user")),
+                new CoordinatorSessionSettings(User.of("other_user")),
                 ParamTypeHints.EMPTY
             ),
             UnauthorizedException.class,
@@ -187,7 +187,7 @@ public class LogicalReplicationAnalyzerTest extends CrateDummyClusterServiceUnit
         assertThrowsMatches(
             () -> e.analyzer.analyze(
                 SqlParser.createStatement("ALTER PUBLICATION pub1 ADD TABLE doc.t2"),
-                new SessionContext(User.of("other_user")),
+                new CoordinatorSessionSettings(User.of("other_user")),
                 ParamTypeHints.EMPTY
             ),
             UnauthorizedException.class,
@@ -232,7 +232,7 @@ public class LogicalReplicationAnalyzerTest extends CrateDummyClusterServiceUnit
         assertThrowsMatches(
             () -> e.analyzer.analyze(
                 SqlParser.createStatement("DROP SUBSCRIPTION sub1"),
-                new SessionContext(User.of("other_user")),
+                new CoordinatorSessionSettings(User.of("other_user")),
                 ParamTypeHints.EMPTY
             ),
             UnauthorizedException.class,
@@ -249,7 +249,7 @@ public class LogicalReplicationAnalyzerTest extends CrateDummyClusterServiceUnit
         assertThrowsMatches(
             () -> e.analyzer.analyze(
                 SqlParser.createStatement("ALTER SUBSCRIPTION sub1 DISABLE"),
-                new SessionContext(User.of("other_user")),
+                new CoordinatorSessionSettings(User.of("other_user")),
                 ParamTypeHints.EMPTY
             ),
             UnauthorizedException.class,

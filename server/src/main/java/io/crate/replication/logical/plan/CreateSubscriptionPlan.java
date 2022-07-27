@@ -86,7 +86,7 @@ public class CreateSubscriptionPlan implements Plan {
         }
 
         var request = new CreateSubscriptionRequest(
-            plannerContext.transactionContext().sessionContext().sessionUser().name(),
+            plannerContext.transactionContext().sessionSettings().sessionUser().name(),
             analyzedCreateSubscription.name(),
             connectionInfo,
             analyzedCreateSubscription.publications(),

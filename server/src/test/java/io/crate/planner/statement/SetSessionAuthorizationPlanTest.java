@@ -33,9 +33,9 @@ import static org.mockito.Mockito.when;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.action.sql.SessionContext;
 import io.crate.auth.AccessControl;
 import io.crate.data.Row;
+import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.NoopPlan;
 import io.crate.planner.Plan;
@@ -54,7 +54,7 @@ public class SetSessionAuthorizationPlanTest extends CrateDummyClusterServiceUni
     @Before
     public void beforeEach() {
         userManager = mock(UserManager.class);
-        when(userManager.getAccessControl(any(SessionContext.class)))
+        when(userManager.getAccessControl(any(CoordinatorSessionSettings.class)))
             .thenReturn(AccessControl.DISABLED);
         e = SQLExecutor.builder(clusterService).setUserManager(userManager).build();
     }
@@ -69,30 +69,30 @@ public class SetSessionAuthorizationPlanTest extends CrateDummyClusterServiceUni
 
     @Test
     public void test_set_session_auth_modifies_the_session_user() throws Exception {
-        var sessionContext = e.getSessionContext();
-        sessionContext.setSessionUser(User.CRATE_USER);
+        var sessionSettings = e.getSessionSettings();
+        sessionSettings.setSessionUser(User.CRATE_USER);
         var user = User.of("test");
         when(userManager.findUser(eq(user.name()))).thenReturn(user);
 
         execute(e.plan("SET SESSION AUTHORIZATION " + user.name()));
 
-        assertThat(sessionContext.sessionUser(), is(user));
+        assertThat(sessionSettings.sessionUser(), is(user));
     }
 
     @Test
     public void test_set_session_auth_to_default_sets_session_user_to_authenticated_user() throws Exception {
-        var sessionContext = e.getSessionContext();
-        sessionContext.setSessionUser(User.of("test"));
+        var sessionSettings = e.getSessionSettings();
+        sessionSettings.setSessionUser(User.of("test"));
         assertThat(
-            sessionContext.sessionUser(),
-            is(not(sessionContext.authenticatedUser()))
+            sessionSettings.sessionUser(),
+            is(not(sessionSettings.authenticatedUser()))
         );
 
         execute(e.plan("SET SESSION AUTHORIZATION DEFAULT"));
 
         assertThat(
-            sessionContext.sessionUser(),
-            is(sessionContext.authenticatedUser())
+            sessionSettings.sessionUser(),
+            is(sessionSettings.authenticatedUser())
         );
     }
 

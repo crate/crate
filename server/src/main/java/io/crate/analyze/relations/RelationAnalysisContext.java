@@ -21,19 +21,20 @@
 
 package io.crate.analyze.relations;
 
-import io.crate.action.sql.SessionContext;
-import io.crate.analyze.expressions.ExpressionAnalysisContext;
-import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.RelationName;
-import io.crate.planner.node.dql.join.JoinType;
-
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+
+import javax.annotation.Nullable;
+
+import io.crate.analyze.expressions.ExpressionAnalysisContext;
+import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.settings.CoordinatorSessionSettings;
+import io.crate.planner.node.dql.join.JoinType;
 
 public class RelationAnalysisContext {
 
@@ -49,10 +50,10 @@ public class RelationAnalysisContext {
 
     RelationAnalysisContext(boolean aliasedRelation,
                             ParentRelations parents,
-                            SessionContext sessionContext) {
+                            CoordinatorSessionSettings sessionSettings) {
         this.aliasedRelation = aliasedRelation;
         this.parents = parents;
-        this.expressionAnalysisContext = new ExpressionAnalysisContext(sessionContext);
+        this.expressionAnalysisContext = new ExpressionAnalysisContext(sessionSettings);
     }
 
     boolean isAliasedRelation() {

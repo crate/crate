@@ -869,7 +869,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
             .build();
 
         BoundCreateTable analysis = analyze(sqlExecutor, "create table t (id int)");
-        assertThat(analysis.tableIdent().schema(), is(sqlExecutor.getSessionContext().searchPath().currentSchema()));
+        assertThat(analysis.tableIdent().schema(), is(sqlExecutor.getSessionSettings().searchPath().currentSchema()));
     }
 
     @Test

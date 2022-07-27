@@ -56,14 +56,14 @@ public final class CreateTableStatementAnalyzer {
                                        ParamTypeHints paramTypeHints,
                                        CoordinatorTxnCtx txnCtx) {
         RelationName relationName = RelationName
-            .of(createTable.name().getName(), txnCtx.sessionContext().searchPath().currentSchema());
+            .of(createTable.name().getName(), txnCtx.sessionSettings().searchPath().currentSchema());
         relationName.ensureValidForRelationCreation();
 
         var exprAnalyzerWithoutFields = new ExpressionAnalyzer(
             txnCtx, nodeCtx, paramTypeHints, FieldProvider.UNSUPPORTED, null);
         var exprAnalyzerWithFieldsAsString = new ExpressionAnalyzer(
             txnCtx, nodeCtx, paramTypeHints, FieldProvider.TO_LITERAL_VALIDATE_NAME, null);
-        var exprCtx = new ExpressionAnalysisContext(txnCtx.sessionContext());
+        var exprCtx = new ExpressionAnalysisContext(txnCtx.sessionSettings());
         Function<Expression, Symbol> exprMapper = y -> exprAnalyzerWithFieldsAsString.convert(y, exprCtx);
 
         // 1st phase, map and analyze everything EXCEPT:

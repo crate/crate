@@ -27,7 +27,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.service.ClusterService;
 
-import io.crate.action.sql.SessionContext;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.SchemaUnknownException;
@@ -36,6 +35,7 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.blob.BlobTableInfo;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.DropBlobTable;
@@ -54,33 +54,33 @@ class DropTableAnalyzer {
         this.schemas = schemas;
     }
 
-    public AnalyzedDropTable<DocTableInfo> analyze(DropTable<?> node, SessionContext sessionContext) {
-        return analyze(node.table().getName(), node.dropIfExists(), sessionContext);
+    public AnalyzedDropTable<DocTableInfo> analyze(DropTable<?> node, CoordinatorSessionSettings sessionSettings) {
+        return analyze(node.table().getName(), node.dropIfExists(), sessionSettings);
     }
 
-    public AnalyzedDropTable<BlobTableInfo> analyze(DropBlobTable<?> node, SessionContext sessionContext) {
+    public AnalyzedDropTable<BlobTableInfo> analyze(DropBlobTable<?> node, CoordinatorSessionSettings sessionSettings) {
         List<String> parts = node.table().getName().getParts();
         if (parts.size() != 1 && !parts.get(0).equals(BlobSchemaInfo.NAME)) {
             throw new IllegalArgumentException("No blob tables in schema `" + parts.get(0) + "`");
         } else {
             QualifiedName name = new QualifiedName(
                 List.of(BlobSchemaInfo.NAME, node.table().getName().getSuffix()));
-            return analyze(name, node.ignoreNonExistentTable(), sessionContext);
+            return analyze(name, node.ignoreNonExistentTable(), sessionSettings);
         }
     }
 
     private <T extends TableInfo> AnalyzedDropTable<T> analyze(QualifiedName name,
                                                                boolean dropIfExists,
-                                                               SessionContext sessionContext) {
+                                                               CoordinatorSessionSettings sessionSettings) {
         T tableInfo;
         RelationName tableName;
         boolean maybeCorrupt = false;
         try {
             //noinspection unchecked
-            tableInfo = (T) schemas.resolveTableInfo(name, Operation.DROP, sessionContext.sessionUser(), sessionContext.searchPath());
+            tableInfo = (T) schemas.resolveTableInfo(name, Operation.DROP, sessionSettings.sessionUser(), sessionSettings.searchPath());
             tableName = tableInfo.ident();
         } catch (SchemaUnknownException | RelationUnknown e) {
-            tableName = RelationName.of(name, sessionContext.searchPath().currentSchema());
+            tableName = RelationName.of(name, sessionSettings.searchPath().currentSchema());
             var metadata = clusterService.state().metadata();
             var indexNameOrAlias = tableName.indexNameOrAlias();
 
@@ -95,12 +95,12 @@ class DropTableAnalyzer {
         } catch (OperationOnInaccessibleRelationException e) {
             throw e;
         } catch (Throwable t) {
-            if (!sessionContext.sessionUser().isSuperUser()) {
+            if (!sessionSettings.sessionUser().isSuperUser()) {
                 throw t;
             }
             tableInfo = null;
             maybeCorrupt = true;
-            tableName = RelationName.of(name, sessionContext.searchPath().currentSchema());
+            tableName = RelationName.of(name, sessionSettings.searchPath().currentSchema());
             LOGGER.info(
                 "Unexpected error resolving table during DROP TABLE operation on {}. " +
                 "Proceeding with operation as table schema may be corrupt (error={})",

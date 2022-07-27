@@ -42,7 +42,6 @@ import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
 import io.crate.data.BatchIterator;
 import io.crate.data.Bucket;
@@ -69,6 +68,7 @@ import io.crate.metadata.SearchPath;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.information.InformationSchemaInfo;
+import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.distribution.DistributionInfo;
@@ -118,7 +118,7 @@ public class HandlerSideLevelCollectTest extends SQLIntegrationTestCase {
         Routing routing = tableInfo.getRouting(
             clusterService().state(),
             routingProvider,
-            WhereClause.MATCH_ALL, RoutingProvider.ShardSelection.ANY, SessionContext.systemSessionContext());
+            WhereClause.MATCH_ALL, RoutingProvider.ShardSelection.ANY, CoordinatorSessionSettings.systemDefaults());
         SimpleReference clusterNameRef = new SimpleReference(
             new ReferenceIdent(SysClusterTableInfo.IDENT, new ColumnIdent("name")),
             RowGranularity.CLUSTER,
@@ -148,7 +148,7 @@ public class HandlerSideLevelCollectTest extends SQLIntegrationTestCase {
         Routing routing = tablesTableInfo.getRouting(
             clusterService().state(),
             routingProvider,
-            WhereClause.MATCH_ALL, RoutingProvider.ShardSelection.ANY, SessionContext.systemSessionContext());
+            WhereClause.MATCH_ALL, RoutingProvider.ShardSelection.ANY, CoordinatorSessionSettings.systemDefaults());
         List<Symbol> toCollect = new ArrayList<>();
         for (Reference reference : tablesTableInfo.columns()) {
             toCollect.add(reference);
@@ -174,7 +174,7 @@ public class HandlerSideLevelCollectTest extends SQLIntegrationTestCase {
         Routing routing = tableInfo.getRouting(
             clusterService().state(),
             routingProvider,
-            WhereClause.MATCH_ALL, RoutingProvider.ShardSelection.ANY, SessionContext.systemSessionContext());
+            WhereClause.MATCH_ALL, RoutingProvider.ShardSelection.ANY, CoordinatorSessionSettings.systemDefaults());
         List<Symbol> toCollect = new ArrayList<>();
         for (Reference ref : tableInfo.columns()) {
             if (Set.of("column_name", "data_type", "table_name").contains(ref.column().name())) {

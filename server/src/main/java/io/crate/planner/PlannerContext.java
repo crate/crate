@@ -29,13 +29,13 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.common.UUIDs;
 
-import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
 import io.crate.data.Row;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
+import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.table.TableInfo;
 
 public class PlannerContext {
@@ -121,8 +121,8 @@ public class PlannerContext {
     public Routing allocateRouting(TableInfo tableInfo,
                                    WhereClause where,
                                    RoutingProvider.ShardSelection shardSelection,
-                                   SessionContext sessionContext) {
-        return routingBuilder.allocateRouting(tableInfo, where, shardSelection, sessionContext);
+                                   CoordinatorSessionSettings sessionSettings) {
+        return routingBuilder.allocateRouting(tableInfo, where, shardSelection, sessionSettings);
     }
 
     public ShardRouting resolveShard(String indexName, String id, @Nullable String routing) {

@@ -62,7 +62,7 @@ public final class CreateTableAsAnalyzer {
 
         RelationName relationName = RelationName.of(
             createTableAs.name().getName(),
-            txnCtx.sessionContext().searchPath().currentSchema());
+            txnCtx.sessionSettings().searchPath().currentSchema());
 
         relationName.ensureValidForRelationCreation();
 

@@ -21,10 +21,10 @@
 
 package io.crate.analyze.relations;
 
-import io.crate.action.sql.SessionContext;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.table.Operation;
 
 import java.util.ArrayList;
@@ -75,7 +75,7 @@ public class StatementAnalysisContext {
             parentRelations = parentCtx.parentSources().newLevel(parentCtx.sources());
         }
         RelationAnalysisContext currentRelationContext =
-            new RelationAnalysisContext(aliasedRelation, parentRelations, sessionContext());
+            new RelationAnalysisContext(aliasedRelation, parentRelations, sessionSettings());
         lastRelationContextQueue.add(currentRelationContext);
         return currentRelationContext;
     }
@@ -91,8 +91,8 @@ public class StatementAnalysisContext {
         return lastRelationContextQueue.get(lastRelationContextQueue.size() - 1);
     }
 
-    public SessionContext sessionContext() {
-        return coordinatorTxnCtx.sessionContext();
+    public CoordinatorSessionSettings sessionSettings() {
+        return coordinatorTxnCtx.sessionSettings();
     }
 
     public ParamTypeHints paramTyeHints() {

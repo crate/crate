@@ -35,17 +35,17 @@ import java.util.function.Supplier;
 
 import org.junit.Test;
 
-import io.crate.action.sql.SessionContext;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.planner.optimizer.LoadedRules;
 
 public class SessionSettingRegistryTest {
 
-    private SessionContext sessionContext = SessionContext.systemSessionContext();
+    private CoordinatorSessionSettings sessionSettings = CoordinatorSessionSettings.systemDefaults();
     private NodeContext nodeCtx = createNodeContext();
     private Function<Symbol, Object> eval = s -> SymbolEvaluator.evaluateWithoutParams(
         CoordinatorTxnCtx.systemTransactionContext(),
@@ -57,40 +57,40 @@ public class SessionSettingRegistryTest {
     public void testMaxIndexKeysSessionSettingCannotBeChanged() {
         SessionSetting<?> setting = new SessionSettingRegistry(Set.of(new LoadedRules())).settings().get(SessionSettingRegistry.MAX_INDEX_KEYS);
         assertThrows(UnsupportedOperationException.class,
-                     () -> setting.apply(sessionContext, generateInput("32"), eval),
+                     () -> setting.apply(sessionSettings, generateInput("32"), eval),
                      "\"max_index_keys\" cannot be changed.");
     }
 
     @Test
     public void testHashJoinSessionSetting() {
         SessionSetting<?> setting = new SessionSettingRegistry(Set.of(new LoadedRules())).settings().get(SessionSettingRegistry.HASH_JOIN_KEY);
-        assertBooleanNonEmptySetting(sessionContext::isHashJoinEnabled, setting, true);
+        assertBooleanNonEmptySetting(sessionSettings::hashJoinsEnabled, setting, true);
     }
 
     @Test
     public void testSettingErrorOnUnknownObjectKey() {
         SessionSetting<?> setting = new SessionSettingRegistry(Set.of(new LoadedRules())).settings().get(SessionSettingRegistry.ERROR_ON_UNKNOWN_OBJECT_KEY);
-        assertBooleanNonEmptySetting(sessionContext::errorOnUnknownObjectKey, setting, true);
+        assertBooleanNonEmptySetting(sessionSettings::errorOnUnknownObjectKey, setting, true);
     }
 
     private void assertBooleanNonEmptySetting(Supplier<Boolean> contextBooleanSupplier,
                                               SessionSetting<?> sessionSetting,
                                               boolean defaultValue) {
         assertThat(contextBooleanSupplier.get(), is(defaultValue));
-        sessionSetting.apply(sessionContext, generateInput("true"), eval);
+        sessionSetting.apply(sessionSettings, generateInput("true"), eval);
         assertThat(contextBooleanSupplier.get(), is(true));
-        sessionSetting.apply(sessionContext, generateInput("false"), eval);
+        sessionSetting.apply(sessionSettings, generateInput("false"), eval);
         assertThat(contextBooleanSupplier.get(), is(false));
-        sessionSetting.apply(sessionContext, generateInput("TrUe"), eval);
+        sessionSetting.apply(sessionSettings, generateInput("TrUe"), eval);
         assertThat(contextBooleanSupplier.get(), is(true));
         try {
-            sessionSetting.apply(sessionContext, generateInput(""), eval);
+            sessionSetting.apply(sessionSettings, generateInput(""), eval);
             fail("Should have failed to apply setting.");
         } catch (IllegalArgumentException e) {
             assertThat(contextBooleanSupplier.get(), is(true));
         }
         try {
-            sessionSetting.apply(sessionContext, generateInput("invalid", "input"), eval);
+            sessionSetting.apply(sessionSettings, generateInput("invalid", "input"), eval);
             fail("Should have failed to apply setting.");
         } catch (IllegalArgumentException e) {
             assertThat(contextBooleanSupplier.get(), is(true));

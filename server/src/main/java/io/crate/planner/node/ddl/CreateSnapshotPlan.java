@@ -157,8 +157,8 @@ public class CreateSnapshotPlan implements Plan {
                     docTableInfo = (DocTableInfo) schemas.resolveTableInfo(
                         table.getName(),
                         Operation.CREATE_SNAPSHOT,
-                        txnCtx.sessionContext().sessionUser(),
-                        txnCtx.sessionContext().searchPath());
+                        txnCtx.sessionSettings().sessionUser(),
+                        txnCtx.sessionSettings().searchPath());
                 } catch (Exception e) {
                     if (ignoreUnavailable && e instanceof ResourceUnknownException) {
                         LOGGER.info(

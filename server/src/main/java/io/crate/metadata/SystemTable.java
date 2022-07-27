@@ -41,13 +41,13 @@ import javax.annotation.Nullable;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.common.settings.Settings;
 
-import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
 import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.NestableInput;
 import io.crate.expression.reference.MapLookupByPathExpression;
 import io.crate.expression.symbol.DynamicReference;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
+import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.ColumnPolicy;
@@ -81,7 +81,7 @@ public final class SystemTable<T> implements TableInfo {
         this.supportedOperations = supportedOperations;
         this.rowGranularity = rowGranularity;
         this.getRouting = getRouting == null
-            ? (state, routingProvider, sessionContext) -> Routing.forTableOnSingleNode(name, state.getNodes().getLocalNodeId())
+            ? (state, routingProvider, sessionSettings) -> Routing.forTableOnSingleNode(name, state.getNodes().getLocalNodeId())
             : getRouting;
         this.rootColumns = columns.values().stream()
             .filter(x -> x.column().isTopLevel())
@@ -119,8 +119,8 @@ public final class SystemTable<T> implements TableInfo {
                               RoutingProvider routingProvider,
                               WhereClause whereClause,
                               RoutingProvider.ShardSelection shardSelection,
-                              SessionContext sessionContext) {
-        return getRouting.getRouting(state, routingProvider, sessionContext);
+                              CoordinatorSessionSettings sessionSettings) {
+        return getRouting.getRouting(state, routingProvider, sessionSettings);
     }
 
     @Override
@@ -171,7 +171,7 @@ public final class SystemTable<T> implements TableInfo {
     @FunctionalInterface
     public interface GetRouting {
 
-        Routing getRouting(ClusterState state, RoutingProvider routingProvider, SessionContext sessionContext);
+        Routing getRouting(ClusterState state, RoutingProvider routingProvider, CoordinatorSessionSettings sessionSettings);
     }
 
     static class Column<T, U> {

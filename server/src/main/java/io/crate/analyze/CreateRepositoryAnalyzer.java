@@ -53,7 +53,7 @@ class CreateRepositoryAnalyzer {
 
         var exprAnalyzerWithFieldsAsString = new ExpressionAnalyzer(
             txnCtx, nodeCtx, paramTypeHints, FieldProvider.TO_LITERAL_VALIDATE_NAME, null);
-        var exprCtx = new ExpressionAnalysisContext(txnCtx.sessionContext());
+        var exprCtx = new ExpressionAnalysisContext(txnCtx.sessionSettings());
         GenericProperties<Symbol> genericProperties = createRepository.properties()
             .map(p -> exprAnalyzerWithFieldsAsString.convert(p, exprCtx));
 

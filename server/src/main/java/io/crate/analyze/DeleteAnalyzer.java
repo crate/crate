@@ -72,11 +72,11 @@ final class DeleteAnalyzer {
             new FullQualifiedNameFieldProvider(
                 relationCtx.sources(),
                 relationCtx.parentSources(),
-                txnContext.sessionContext().searchPath().currentSchema()),
+                txnContext.sessionSettings().searchPath().currentSchema()),
             new SubqueryAnalyzer(relationAnalyzer, new StatementAnalysisContext(typeHints, Operation.READ, txnContext))
         );
         Symbol query = Objects.requireNonNullElse(
-            expressionAnalyzer.generateQuerySymbol(delete.getWhere(), new ExpressionAnalysisContext(txnContext.sessionContext())),
+            expressionAnalyzer.generateQuerySymbol(delete.getWhere(), new ExpressionAnalysisContext(txnContext.sessionSettings())),
             Literal.BOOLEAN_TRUE
         );
         query = maybeAliasedStatement.maybeMapFields(query);

@@ -104,7 +104,7 @@ public final class CreateViewPlan implements Plan {
         RelationAnalyzer analyzer = new RelationAnalyzer(nodeCtx, schemas);
         Query query = (Query) SqlParser.createStatement(formattedQuery);
         if (replaceExisting) {
-            new EnsureNoSelfReference(viewName, txnCtx.sessionContext().searchPath())
+            new EnsureNoSelfReference(viewName, txnCtx.sessionSettings().searchPath())
                 .raiseOnSelfReference(query);
         }
         analyzer.analyze(query, txnCtx, new ParamTypeHints(List.of()) {

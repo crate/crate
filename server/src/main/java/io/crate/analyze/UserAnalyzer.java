@@ -59,7 +59,7 @@ public class UserAnalyzer {
     private GenericProperties<Symbol> mappedProperties(GenericProperties<Expression> properties,
                                                        ParamTypeHints paramTypeHints,
                                                        CoordinatorTxnCtx txnContext) {
-        ExpressionAnalysisContext exprContext = new ExpressionAnalysisContext(txnContext.sessionContext());
+        ExpressionAnalysisContext exprContext = new ExpressionAnalysisContext(txnContext.sessionSettings());
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
             txnContext,
             nodeCtx,

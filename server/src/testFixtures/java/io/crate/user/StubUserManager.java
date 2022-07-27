@@ -27,9 +27,9 @@ import java.util.concurrent.CompletableFuture;
 
 import javax.annotation.Nullable;
 
-import io.crate.action.sql.SessionContext;
 import io.crate.auth.AccessControl;
 import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.metadata.settings.CoordinatorSessionSettings;
 
 public class StubUserManager implements UserManager {
 
@@ -71,7 +71,7 @@ public class StubUserManager implements UserManager {
     }
 
     @Override
-    public AccessControl getAccessControl(SessionContext sessionContext) {
+    public AccessControl getAccessControl(CoordinatorSessionSettings sessionSettings) {
         return AccessControl.DISABLED;
     }
 }
