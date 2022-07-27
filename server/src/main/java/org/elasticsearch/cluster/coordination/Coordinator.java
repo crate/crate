@@ -19,58 +19,13 @@
 
 package org.elasticsearch.cluster.coordination;
 
-import org.apache.logging.log4j.Level;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.message.ParameterizedMessage;
-import org.apache.lucene.util.SetOnce;
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.cluster.ClusterChangedEvent;
-import org.elasticsearch.cluster.ClusterName;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.ClusterStateTaskConfig;
-import org.elasticsearch.cluster.ClusterStateUpdateTask;
-import org.elasticsearch.cluster.LocalClusterUpdateTask;
-import org.elasticsearch.cluster.block.ClusterBlocks;
-import org.elasticsearch.cluster.coordination.ClusterFormationFailureHelper.ClusterFormationState;
-import org.elasticsearch.cluster.coordination.CoordinationMetadata.VotingConfigExclusion;
-import org.elasticsearch.cluster.coordination.CoordinationMetadata.VotingConfiguration;
-import org.elasticsearch.cluster.coordination.FollowersChecker.FollowerCheckRequest;
-import org.elasticsearch.cluster.coordination.JoinHelper.InitialJoinAccumulator;
-import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.cluster.node.DiscoveryNodes;
-import org.elasticsearch.cluster.routing.RerouteService;
-import org.elasticsearch.cluster.routing.allocation.AllocationService;
-import org.elasticsearch.cluster.service.ClusterApplier;
-import org.elasticsearch.cluster.service.ClusterApplier.ClusterApplyListener;
-import org.elasticsearch.cluster.service.MasterService;
-import javax.annotation.Nullable;
-import org.elasticsearch.common.Priority;
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.component.AbstractLifecycleComponent;
-import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
-import org.elasticsearch.common.lease.Releasable;
-import org.elasticsearch.common.settings.ClusterSettings;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.TransportAddress;
-import io.crate.common.unit.TimeValue;
-import org.elasticsearch.common.util.concurrent.EsExecutors;
-import org.elasticsearch.common.util.concurrent.ListenableFuture;
-import org.elasticsearch.common.xcontent.XContentHelper;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
-import org.elasticsearch.discovery.Discovery;
-import org.elasticsearch.discovery.DiscoveryModule;
-import org.elasticsearch.discovery.DiscoveryStats;
-import org.elasticsearch.discovery.HandshakingTransportAddressConnector;
-import org.elasticsearch.discovery.PeerFinder;
-import org.elasticsearch.discovery.SeedHostsProvider;
-import org.elasticsearch.discovery.SeedHostsResolver;
-import org.elasticsearch.threadpool.Scheduler;
-import org.elasticsearch.threadpool.ThreadPool.Names;
-import org.elasticsearch.transport.TransportResponse.Empty;
-import org.elasticsearch.transport.TransportService;
+import static org.elasticsearch.cluster.coordination.JoinHelper.FollowerJoinAccumulator;
+import static org.elasticsearch.cluster.coordination.JoinHelper.InitialJoinAccumulator;
+import static org.elasticsearch.cluster.coordination.JoinHelper.JoinAccumulator;
+import static org.elasticsearch.cluster.coordination.JoinHelper.JoinCallback;
+import static org.elasticsearch.cluster.coordination.NoMasterBlockService.NO_MASTER_BLOCK_ID;
+import static org.elasticsearch.gateway.ClusterStateUpdaters.hideStateIfNotRecovered;
+import static org.elasticsearch.gateway.GatewayService.STATE_NOT_RECOVERED_BLOCK;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -88,9 +43,59 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
-import static org.elasticsearch.cluster.coordination.NoMasterBlockService.NO_MASTER_BLOCK_ID;
-import static org.elasticsearch.gateway.ClusterStateUpdaters.hideStateIfNotRecovered;
-import static org.elasticsearch.gateway.GatewayService.STATE_NOT_RECOVERED_BLOCK;
+import javax.annotation.Nullable;
+
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.message.ParameterizedMessage;
+import org.apache.lucene.util.SetOnce;
+import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.cluster.ClusterChangedEvent;
+import org.elasticsearch.cluster.ClusterName;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.ClusterStateTaskConfig;
+import org.elasticsearch.cluster.ClusterStateUpdateTask;
+import org.elasticsearch.cluster.LocalClusterUpdateTask;
+import org.elasticsearch.cluster.block.ClusterBlocks;
+import org.elasticsearch.cluster.coordination.ClusterFormationFailureHelper.ClusterFormationState;
+import org.elasticsearch.cluster.coordination.CoordinationMetadata.VotingConfigExclusion;
+import org.elasticsearch.cluster.coordination.CoordinationMetadata.VotingConfiguration;
+import org.elasticsearch.cluster.coordination.FollowersChecker.FollowerCheckRequest;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.node.DiscoveryNodes;
+import org.elasticsearch.cluster.routing.RerouteService;
+import org.elasticsearch.cluster.routing.allocation.AllocationService;
+import org.elasticsearch.cluster.service.ClusterApplier;
+import org.elasticsearch.cluster.service.ClusterApplier.ClusterApplyListener;
+import org.elasticsearch.cluster.service.MasterService;
+import org.elasticsearch.common.Priority;
+import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.component.AbstractLifecycleComponent;
+import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
+import org.elasticsearch.common.lease.Releasable;
+import org.elasticsearch.common.settings.ClusterSettings;
+import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.transport.TransportAddress;
+import org.elasticsearch.common.util.concurrent.EsExecutors;
+import org.elasticsearch.common.util.concurrent.ListenableFuture;
+import org.elasticsearch.common.xcontent.XContentHelper;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
+import org.elasticsearch.discovery.Discovery;
+import org.elasticsearch.discovery.DiscoveryModule;
+import org.elasticsearch.discovery.DiscoveryStats;
+import org.elasticsearch.discovery.HandshakingTransportAddressConnector;
+import org.elasticsearch.discovery.PeerFinder;
+import org.elasticsearch.discovery.SeedHostsProvider;
+import org.elasticsearch.discovery.SeedHostsResolver;
+import org.elasticsearch.threadpool.Scheduler;
+import org.elasticsearch.threadpool.ThreadPool.Names;
+import org.elasticsearch.transport.TransportResponse.Empty;
+import org.elasticsearch.transport.TransportService;
+
+import io.crate.common.unit.TimeValue;
 
 public class Coordinator extends AbstractLifecycleComponent implements Discovery {
 
@@ -146,7 +151,7 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
     private Mode mode;
     private Optional<DiscoveryNode> lastKnownLeader;
     private Optional<Join> lastJoin;
-    private JoinHelper.JoinAccumulator joinAccumulator;
+    private JoinAccumulator joinAccumulator;
     private Optional<CoordinatorPublication> currentPublication = Optional.empty();
 
     /**
@@ -163,7 +168,7 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
         this.masterService = masterService;
         this.allocationService = allocationService;
         this.onJoinValidators = JoinTaskExecutor.addBuiltInJoinValidators(onJoinValidators);
-        this.singleNodeDiscovery = DiscoveryModule.SINGLE_NODE_DISCOVERY_TYPE.equals(DiscoveryModule.DISCOVERY_TYPE_SETTING.get(settings));
+        this.singleNodeDiscovery = DiscoveryModule.isSingleNodeDiscovery(settings);
         this.joinHelper = new JoinHelper(settings, allocationService, masterService, transportService,
             this::getCurrentTerm, this::getStateForMasterService, this::handleJoinRequest, this::joinLeaderInTerm, this.onJoinValidators,
             rerouteService);
@@ -438,7 +443,7 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
     }
 
 
-    private void handleJoinRequest(JoinRequest joinRequest, JoinHelper.JoinCallback joinCallback) {
+    private void handleJoinRequest(JoinRequest joinRequest, JoinCallback joinCallback) {
         assert Thread.holdsLock(mutex) == false;
         assert getLocalNode().isMasterEligibleNode() : getLocalNode() + " received a join but is not master-eligible";
         LOGGER.trace("handleJoinRequest: as {}, handling {}", mode, joinRequest);
@@ -469,7 +474,7 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
 
     // package private for tests
     void sendValidateJoinRequest(ClusterState stateForJoinValidation, JoinRequest joinRequest,
-                                 JoinHelper.JoinCallback joinCallback) {
+                                 JoinCallback joinCallback) {
         // validate the join on the joining node, will throw a failure if it fails the validation
         joinHelper.sendValidateJoinRequest(joinRequest.getSourceNode(), stateForJoinValidation, new ActionListener<Empty>() {
             @Override
@@ -490,7 +495,7 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
         });
     }
 
-    private void processJoinRequest(JoinRequest joinRequest, JoinHelper.JoinCallback joinCallback) {
+    private void processJoinRequest(JoinRequest joinRequest, JoinCallback joinCallback) {
         final Optional<Join> optionalJoin = joinRequest.getOptionalJoin();
         synchronized (mutex) {
             final CoordinationState coordState = coordinationState.get();
@@ -581,7 +586,7 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
         if (mode != Mode.FOLLOWER) {
             mode = Mode.FOLLOWER;
             joinAccumulator.close(mode);
-            joinAccumulator = new JoinHelper.FollowerJoinAccumulator();
+            joinAccumulator = new FollowerJoinAccumulator();
             leaderChecker.setCurrentNodes(DiscoveryNodes.EMPTY_NODES);
         }
 
@@ -770,7 +775,7 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
             } else if (mode == Mode.FOLLOWER) {
                 assert coordinationState.get().electionWon() == false : getLocalNode() + " is FOLLOWER so electionWon() should be false";
                 assert lastKnownLeader.isPresent() && (lastKnownLeader.get().equals(getLocalNode()) == false);
-                assert joinAccumulator instanceof JoinHelper.FollowerJoinAccumulator;
+                assert joinAccumulator instanceof FollowerJoinAccumulator;
                 assert peerFinderLeader.equals(lastKnownLeader) : peerFinderLeader;
                 assert electionScheduler == null : electionScheduler;
                 assert prevotingRound == null : prevotingRound;
@@ -1216,6 +1221,8 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
         private final AckListener ackListener;
         private final ActionListener<Void> publishListener;
         private final PublicationTransportHandler.PublicationContext publicationContext;
+
+        @Nullable // if using single-node discovery
         private final Scheduler.ScheduledCancellable timeoutHandler;
         private final Scheduler.Cancellable infoTimeoutHandler;
 
@@ -1259,7 +1266,7 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
             this.ackListener = ackListener;
             this.publishListener = publishListener;
 
-            this.timeoutHandler = transportService.getThreadPool().schedule(new Runnable() {
+            this.timeoutHandler = singleNodeDiscovery ? null : transportService.getThreadPool().schedule(new Runnable() {
                 @Override
                 public void run() {
                     synchronized (mutex) {
@@ -1327,8 +1334,7 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
                                 synchronized (mutex) {
                                     removePublicationAndPossiblyBecomeCandidate("clusterApplier#onNewClusterState");
                                 }
-                                timeoutHandler.cancel();
-                                infoTimeoutHandler.cancel();
+                                cancelTimeoutHandlers();
                                 ackListener.onNodeAck(getLocalNode(), e);
                                 publishListener.onFailure(e);
                             }
@@ -1363,8 +1369,7 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
                                     lagDetector.startLagDetector(publishRequest.getAcceptedState().version());
                                     logIncompleteNodes(Level.WARN);
                                 }
-                                timeoutHandler.cancel();
-                                infoTimeoutHandler.cancel();
+                                cancelTimeoutHandlers();
                                 ackListener.onNodeAck(getLocalNode(), null);
                                 publishListener.onResponse(null);
                             }
@@ -1375,14 +1380,20 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
                 public void onFailure(Exception e) {
                     assert Thread.holdsLock(mutex) : "Coordinator mutex not held";
                     removePublicationAndPossiblyBecomeCandidate("Publication.onCompletion(false)");
-                    timeoutHandler.cancel();
-                    infoTimeoutHandler.cancel();
+                    cancelTimeoutHandlers();
 
                     final FailedToCommitClusterStateException exception = new FailedToCommitClusterStateException("publication failed", e);
                     ackListener.onNodeAck(getLocalNode(), exception); // other nodes have acked, but not the master.
                     publishListener.onFailure(exception);
                 }
             }, EsExecutors.directExecutor());
+        }
+
+        private void cancelTimeoutHandlers() {
+            if (timeoutHandler != null) {
+                timeoutHandler.cancel();
+            }
+            infoTimeoutHandler.cancel();
         }
 
         private void handleAssociatedJoin(Join join) {

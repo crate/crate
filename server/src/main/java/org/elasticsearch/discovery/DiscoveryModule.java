@@ -150,6 +150,10 @@ public class DiscoveryModule {
         LOGGER.info("using discovery type [{}] and seed hosts providers {}", discoveryType, seedProviderNames);
     }
 
+    public static boolean isSingleNodeDiscovery(Settings settings) {
+        return SINGLE_NODE_DISCOVERY_TYPE.equals(DISCOVERY_TYPE_SETTING.get(settings));
+    }
+
     public Discovery getDiscovery() {
         return discovery;
     }
