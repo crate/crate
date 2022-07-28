@@ -22,6 +22,7 @@
 package org.elasticsearch.index.shard;
 
 import org.apache.lucene.index.IndexCommit;
+import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -104,7 +105,7 @@ public abstract class RestoreOnlyRepository implements Repository {
                                  long repositoryStateId,
                                  boolean includeGlobalState,
                                  Metadata clusterMetadata,
-                                 boolean writeShardGens,
+                                 Version repositoryMetaVersion,
                                  ActionListener<SnapshotInfo> listener) {
         listener.onResponse(null);
     }
@@ -112,7 +113,7 @@ public abstract class RestoreOnlyRepository implements Repository {
     @Override
     public void deleteSnapshot(SnapshotId snapshotId,
                                long repositoryStateId,
-                               boolean writeShardGens,
+                               Version repositoryMetaVersion,
                                ActionListener<Void> listener) {
 
     }
@@ -144,7 +145,8 @@ public abstract class RestoreOnlyRepository implements Repository {
                               IndexId indexId,
                               IndexCommit snapshotIndexCommit,
                               IndexShardSnapshotStatus snapshotStatus,
-                              boolean writeShardGens, ActionListener<String> listener) {
+                              Version repositoryMetaVersion,
+                              ActionListener<String> listener) {
 
     }
 

@@ -35,6 +35,7 @@ import java.util.List;
 
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.tests.util.TestUtil;
+import org.elasticsearch.Version;
 import org.elasticsearch.action.support.PlainActionFuture;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
@@ -186,7 +187,7 @@ public class BlobStoreRepositoryRestoreTests extends IndexShardTestCase {
                 -1L,
                 false,
                 Metadata.builder().put(shard.indexSettings().getIndexMetadata(), false).build(),
-                true,
+                Version.CURRENT,
                 future
             );
             future.actionGet();
