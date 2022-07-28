@@ -476,8 +476,8 @@ should be crossed out as well.
 - [x] 1615c4b3790 Fix testKeepTranslogAfterGlobalCheckpoint (#53704)
 - [ ] 9b3b08318d3 Remove unused import
 - [ ] bc5dae2713b Fix compilation in RoutingNode
-- [ ] 90ab949415e Improve performance of shards limits decider (#53577)
-- [ ] 6cc564d677a Restore off-heap loading for term dictionary in ReadOnlyEngine (#53713)
+- [x] 90ab949415e Improve performance of shards limits decider (#53577)
+- [s] 6cc564d677a Restore off-heap loading for term dictionary in ReadOnlyEngine (#53713)
 - [x] e7ae9ae596e Deprecate delaying state recovery for master nodes (#53646)
 - [ ] 71b703edd1e Rename AtomicFieldData to LeafFieldData (#53554)
 - [x] 01d2339883d Invoke response handler on failure to send (#53631)
