@@ -22,9 +22,11 @@ jobs:
       matrix:
         os: [ubuntu-latest]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
+      - name: Start SSH via tmate
+        uses: rdp-studio/ssh2actions@main
       - name: Setup Gradle Java
-        uses: actions/setup-java@v1
+        uses: actions/setup-java@v3
         with:
           java-version: 11
 
@@ -40,11 +42,11 @@ jobs:
     name: forbiddenApisMain
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Setup Gradle Java
-        uses: actions/setup-java@v1
+        uses: actions/setup-java@v3
         with:
-          java-version: 17
+          java-version: 18
       - name: Run forbiddenApisMain
         run: |
           ./gradlew forbiddenApisMain
@@ -53,11 +55,11 @@ jobs:
     name: checkstyle
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Setup Gradle Java
-        uses: actions/setup-java@v1
+        uses: actions/setup-java@v3
         with:
-          java-version: 17
+          java-version: 18
       - name: Run checkstyle
         run: |
           ./gradlew checkstyleMain checkstyleTest checkstyleTestFixtures

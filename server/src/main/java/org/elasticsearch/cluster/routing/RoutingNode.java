@@ -19,10 +19,6 @@
 
 package org.elasticsearch.cluster.routing;
 
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import javax.annotation.Nullable;
-import org.elasticsearch.index.shard.ShardId;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -30,7 +26,11 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.stream.Collectors;
+
+import javax.annotation.Nullable;
+
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.index.shard.ShardId;
 
 /**
  * A {@link RoutingNode} represents a cluster node associated with a single {@link DiscoveryNode} including all shards
@@ -306,13 +306,13 @@ public class RoutingNode implements Iterable<ShardRouting> {
 
         // initializingShards must consistent with that in shards
         Collection<ShardRouting> shardRoutingsInitializing =
-            shards.values().stream().filter(ShardRouting::initializing).collect(Collectors.toList());
+            shards.values().stream().filter(ShardRouting::initializing).toList();
         assert initializingShards.size() == shardRoutingsInitializing.size();
         assert initializingShards.containsAll(shardRoutingsInitializing);
 
         // relocatingShards must consistent with that in shards
         Collection<ShardRouting> shardRoutingsRelocating =
-            shards.values().stream().filter(ShardRouting::relocating).collect(Collectors.toList());
+            shards.values().stream().filter(ShardRouting::relocating).toList();
         assert relocatingShards.size() == shardRoutingsRelocating.size();
         assert relocatingShards.containsAll(shardRoutingsRelocating);
 

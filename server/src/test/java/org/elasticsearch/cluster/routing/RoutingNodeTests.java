@@ -36,11 +36,11 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.test.ESTestCase;
 
 public class RoutingNodeTests extends ESTestCase {
-    private ShardRouting unassignedShard0 =
+    private static final ShardRouting unassignedShard0 =
         TestShardRouting.newShardRouting("test", 0, "node-1", false, ShardRoutingState.STARTED);
-    private ShardRouting initializingShard0 =
+    private static final ShardRouting initializingShard0 =
         TestShardRouting.newShardRouting("test", 1, "node-1", false, ShardRoutingState.INITIALIZING);
-    private ShardRouting relocatingShard0 =
+    private static final ShardRouting relocatingShard0 =
         TestShardRouting.newShardRouting("test", 2, "node-1", "node-2", false, ShardRoutingState.RELOCATING);
     private RoutingNode routingNode;
 
