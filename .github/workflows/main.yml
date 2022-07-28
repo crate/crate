@@ -22,7 +22,7 @@ jobs:
       matrix:
         os: [ubuntu-latest]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Setup Gradle Java
         uses: actions/setup-java@v1
         with:
@@ -40,7 +40,7 @@ jobs:
     name: forbiddenApisMain
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Setup Gradle Java
         uses: actions/setup-java@v1
         with:
@@ -53,7 +53,7 @@ jobs:
     name: checkstyle
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Setup Gradle Java
         uses: actions/setup-java@v1
         with:
