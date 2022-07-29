@@ -22,6 +22,8 @@
 package io.crate.gradle.plugins.jdk;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
+
+import org.assertj.core.api.Assertions;
 import org.gradle.testkit.runner.BuildResult;
 import org.gradle.testkit.runner.GradleRunner;
 import org.junit.Test;
@@ -39,9 +41,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.head;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.assertj.core.api.Assertions.fail;
 
 /**
  * Note: the downloading of the JDK bundles are not covered by the test,
@@ -85,10 +85,14 @@ public class JdkDownloadPluginFunctionalTest {
                                          String version) {
         runBuild(task, result -> {
             Matcher matcher = JDK_HOME_LOG.matcher(result.getOutput());
-            assertThat("could not find jdk home in: " + result.getOutput(), matcher.find(), is(true));
+            Assertions.assertThat(matcher.find())
+                .as("could not find jdk home in: " + result.getOutput())
+                .isTrue();
             String jdkHome = matcher.group(1);
             Path javaPath = Paths.get(jdkHome, javaBin);
-            assertThat(javaPath.toString(), Files.exists(javaPath), is(true));
+            Assertions.assertThat(Files.exists(javaPath))
+                .as(javaPath.toString())
+                .isTrue();
         }, os, arch, vendor, version);
     }
 
