@@ -509,7 +509,7 @@ should be crossed out as well.
 - [s] 18663b0a85d Don't index ranges including NOW in percolator (#52748)
 - [s] f993ef80f88 Move the terms index of `_id` off-heap. (#52518)
 - [s] 96d603979b4 Upgrade Lucene to 8.5.0-snapshot-b01d7cb (#52584)
-- [ ] 0a09e159594 Add Caching for RepositoryData in BlobStoreRepository (#52341) (#52566)
+- [x] 0a09e159594 Add Caching for RepositoryData in BlobStoreRepository (#52341) (#52566)
 - [x] 4bb780bc373 Refactor Inflexible Snapshot Repository BwC (#52365) (#52557)
 - [x] 3afb5ca1330 Fix synchronization in ByteSizeCachingDirectory (#52512)
 - [x] 0c7ae0217de Fix testPrepareIndexForPeerRecovery (#52245)

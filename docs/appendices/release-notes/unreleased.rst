@@ -59,6 +59,8 @@ Deprecations
 Changes
 =======
 
+- Improve performance of queries on ``sys.snapshots``.
+
 - Added a ``application_name`` session setting that can be used to identify
   clients or applications which connect to a CrateDB node.
 
