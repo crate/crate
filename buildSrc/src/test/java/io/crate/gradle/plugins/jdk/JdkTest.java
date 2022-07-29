@@ -20,18 +20,15 @@
  */
 package io.crate.gradle.plugins.jdk;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import org.gradle.api.NamedDomainObjectContainer;
 import org.gradle.api.Project;
 import org.gradle.testfixtures.ProjectBuilder;
 import org.junit.BeforeClass;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class JdkTest {
-
-    @Rule
-    public final ExpectedException expectedException = ExpectedException.none();
 
     private static Project rootProject;
 
@@ -42,112 +39,116 @@ public class JdkTest {
 
     @Test
     public void testMissingArch() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage(
-            "architecture is not specified for jdk [testjdk]");
-        createJdk(createProject(),
-            "testjdk",
-            null,
-            "11.0.2+33",
-            "linux",
-            null
-        );
+        assertThatThrownBy(() ->
+           createJdk(createProject(),
+                     "testjdk",
+                     null,
+                     "11.0.2+33",
+                     "linux",
+                     null
+           ))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("architecture is not specified for jdk [testjdk]");
     }
 
     @Test
     public void testUnknownArch() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage(
-            "unknown architecture [x86] for jdk [testjdk], must be one of [x64, aarch64]");
-        createJdk(createProject(),
-            "testjdk",
-            "adoptopenjdk",
-            "11.0.2+33",
-            "windows",
-            "x86"
-        );
+        assertThatThrownBy(() ->
+           createJdk(createProject(),
+                     "testjdk",
+                     "adoptopenjdk",
+                     "11.0.2+33",
+                     "windows",
+                     "x86"
+           ))
+           .isExactlyInstanceOf(IllegalArgumentException.class)
+           .hasMessage("unknown architecture [x86] for jdk [testjdk], must be one of [x64, aarch64]");
+
     }
 
     @Test
     public void testMissingVendor() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage(
-            "vendor is not specified for jdk [testjdk]");
-        createJdk(createProject(),
-            "testjdk",
-            null,
-            "11.0.2+33",
-            "linux",
-            "x64"
-        );
+        assertThatThrownBy(() ->
+           createJdk(createProject(),
+                     "testjdk",
+                     null,
+                     "11.0.2+33",
+                     "linux",
+                     "x64"
+           ))
+           .isExactlyInstanceOf(IllegalArgumentException.class)
+           .hasMessage("vendor is not specified for jdk [testjdk]");
     }
 
     @Test
     public void testUnknownVendor() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage(
-            "unknown vendor [unknown] for jdk [testjdk], must be one of [adoptopenjdk, adoptium]");
-        createJdk(createProject(),
-            "testjdk",
-            "unknown",
-            "11.0.2+33",
-            "linux",
-            "x64"
-        );
+        assertThatThrownBy(() ->
+           createJdk(createProject(),
+                     "testjdk",
+                     "unknown",
+                     "11.0.2+33",
+                     "linux",
+                     "x64"
+           ))
+           .isExactlyInstanceOf(IllegalArgumentException.class)
+           .hasMessage("unknown vendor [unknown] for jdk [testjdk], must be one of [adoptopenjdk, adoptium]");
     }
 
     @Test
     public void testMissingVersion() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("version is not specified for jdk [testjdk]");
-        createJdk(createProject(),
-            "testjdk",
-            "adoptopenjdk",
-            null,
-            "linux",
-            "x64"
-        );
+        assertThatThrownBy(() ->
+           createJdk(createProject(),
+                     "testjdk",
+                     "adoptopenjdk",
+                     null,
+                     "linux",
+                     "x64"
+           ))
+           .isExactlyInstanceOf(IllegalArgumentException.class)
+           .hasMessage("version is not specified for jdk [testjdk]");
+
     }
 
     @Test
     public void testBadVersionFormat() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("malformed version [badversion] for jdk [testjdk]");
-        createJdk(createProject(),
-            "testjdk",
-            "adoptopenjdk",
-            "badversion",
-            "linux",
-            "x64"
-        );
+        assertThatThrownBy(() ->
+           createJdk(createProject(),
+                     "testjdk",
+                     "adoptopenjdk",
+                     "badversion",
+                     "linux",
+                     "x64"
+           ))
+           .isExactlyInstanceOf(IllegalArgumentException.class)
+           .hasMessage("malformed version [badversion] for jdk [testjdk]");
     }
 
     @Test
     public void testMissingOS() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("OS is not specified for jdk [testjdk]");
-        createJdk(createProject(),
-            "testjdk",
-            "adoptopenjdk",
-            "11.0.2+33",
-            null,
-            "x64"
-        );
+        assertThatThrownBy(() ->
+           createJdk(createProject(),
+                     "testjdk",
+                     "adoptopenjdk",
+                     "11.0.2+33",
+                     null,
+                     "x64"
+           ))
+           .isExactlyInstanceOf(IllegalArgumentException.class)
+           .hasMessage("OS is not specified for jdk [testjdk]");
     }
 
     @Test
     public void testUnknownOS() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage(
-            "unknown OS [unknown] for jdk [testjdk], " +
-            "must be one of [linux, windows, mac]");
-        createJdk(createProject(),
-            "testjdk",
-            "adoptopenjdk",
-            "11.0.2+33",
-            "unknown",
-            "x64"
-        );
+        assertThatThrownBy(() ->
+           createJdk(createProject(),
+                     "testjdk",
+                     "adoptopenjdk",
+                     "11.0.2+33",
+                     "unknown",
+                     "x64"
+           ))
+           .isExactlyInstanceOf(IllegalArgumentException.class)
+           .hasMessage("unknown OS [unknown] for jdk [testjdk], must be one of [linux, windows, mac]");
     }
 
     private void createJdk(Project project,
