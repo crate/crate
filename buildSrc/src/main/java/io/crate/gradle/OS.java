@@ -26,6 +26,7 @@ public enum OS {
     MAC,
     LINUX;
 
+    @SuppressWarnings("unused")
     public static OS current() {
         String os = System.getProperty("os.name", "");
         if (os.startsWith("Windows")) {
