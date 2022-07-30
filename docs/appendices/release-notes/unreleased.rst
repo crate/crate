@@ -75,6 +75,10 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Fix an issue, causing ``IndexOutOfBoundsException`` to be thrown when using
+  ``LEFT``/``RIGHT`` or ``FULL`` ``OUTER JOIN`` and one of the tables (or
+  sub-selects) joined has 0 rows.
+
 - Updated the bundled JDK from 18.0.1+10 to 18.0.2+9.
 
 - Fixed a race condition that could cause a ``INSERT INTO`` operation to get
