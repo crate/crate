@@ -29,6 +29,7 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 
+import org.assertj.core.api.Assertions;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
@@ -136,6 +137,22 @@ public class SortedPagingIteratorTest extends ESTestCase {
         List<Object> replayedRows = new ArrayList<>();
         consumeSingleColumnRows(pagingIterator.repeat().iterator(), replayedRows);
         assertThat(rows, is(replayedRows));
+    }
+
+    @Test
+    public void testReplayOnEmptyIterators() {
+        SortedPagingIterator<Void, Row> pagingIterator = new SortedPagingIterator<>(ORDERING, true);
+        pagingIterator.merge(numberedBuckets(List.of(new ArrayBucket(new Object[][]{}))));
+        List<Object> rows = new ArrayList<>();
+        consumeSingleColumnRows(pagingIterator, rows);
+
+        pagingIterator.merge(numberedBuckets(List.of(new ArrayBucket(new Object[][]{}))));
+        pagingIterator.finish();
+        consumeSingleColumnRows(pagingIterator, rows);
+        Assertions.assertThat(rows).isEmpty();
+        List<Object> replayedRows = new ArrayList<>();
+        consumeSingleColumnRows(pagingIterator.repeat().iterator(), replayedRows);
+        Assertions.assertThat(replayedRows).isEmpty();
     }
 
     private Iterable<? extends KeyIterable<Void, Row>> numberedBuckets(List<Bucket> buckets) {
