@@ -21,21 +21,22 @@
 
 package io.crate.execution.engine.distribution.merge;
 
-import io.crate.common.collections.Lists2;
-import io.crate.data.ArrayBucket;
-import io.crate.data.Bucket;
-import io.crate.data.Row;
-import io.crate.execution.engine.sort.OrderingByPosition;
-import org.elasticsearch.test.ESTestCase;
-import io.crate.testing.TestingHelpers;
-import org.junit.Test;
+import static org.hamcrest.core.Is.is;
 
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 
-import static org.hamcrest.core.Is.is;
+import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
+
+import io.crate.common.collections.Lists2;
+import io.crate.data.ArrayBucket;
+import io.crate.data.Bucket;
+import io.crate.data.Row;
+import io.crate.execution.engine.sort.OrderingByPosition;
+import io.crate.testing.TestingHelpers;
 
 public class SortedPagingIteratorTest extends ESTestCase {
 
@@ -134,6 +135,22 @@ public class SortedPagingIteratorTest extends ESTestCase {
         List<Object> replayedRows = new ArrayList<>();
         consumeSingleColumnRows(pagingIterator.repeat().iterator(), replayedRows);
         assertThat(rows, is(replayedRows));
+    }
+
+    @Test
+    public void testReplayOnEmptyIterators() {
+        SortedPagingIterator<Void, Row> pagingIterator = new SortedPagingIterator<>(ORDERING, true);
+        pagingIterator.merge(numberedBuckets(List.of(new ArrayBucket(new Object[][]{}))));
+        List<Object> rows = new ArrayList<>();
+        consumeSingleColumnRows(pagingIterator, rows);
+
+        pagingIterator.merge(numberedBuckets(List.of(new ArrayBucket(new Object[][]{}))));
+        pagingIterator.finish();
+        consumeSingleColumnRows(pagingIterator, rows);
+        assertThat(rows.isEmpty(), is(true));
+        List<Object> replayedRows = new ArrayList<>();
+        consumeSingleColumnRows(pagingIterator.repeat().iterator(), replayedRows);
+        assertThat(replayedRows.isEmpty(), is(true));
     }
 
     private Iterable<? extends KeyIterable<Void, Row>> numberedBuckets(List<Bucket> buckets) {
