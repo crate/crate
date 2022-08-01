@@ -38,6 +38,7 @@ import org.junit.Test;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.pgcatalog.OidHash;
 import io.crate.testing.UseHashJoins;
+import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedSchema;
 
 public class PgCatalogITest extends SQLIntegrationTestCase {
@@ -142,12 +143,14 @@ public class PgCatalogITest extends SQLIntegrationTestCase {
     }
 
     @Test
+    @UseJdbc(0)
     @UseRandomizedSchema(random = false)
     @UseHashJoins(0)
     public void testPgSettingsTable() {
         execute("select name, setting, short_desc, min_val, max_val from pg_catalog.pg_settings");
         String printedTable = printedTable(response.rows());
         assertThat(printedTable.split("\\n"), Matchers.arrayContaining(
+            "application_name| NULL| Optional application name. Can be set by a client to identify the application which created the connection| NULL| NULL",
             "enable_hashjoin| false| Considers using the Hash Join instead of the Nested Loop Join implementation.| NULL| NULL",
             "error_on_unknown_object_key| true| Raises or suppresses ObjectKeyUnknownException when querying nonexistent keys to dynamic objects.| NULL| NULL",
             "max_index_keys| 32| Shows the maximum number of index keys.| NULL| NULL",

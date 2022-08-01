@@ -63,6 +63,17 @@ Supported session settings
      includes it in the ``search_path`` *before* the configured schemas, unless
      it is already explicitly in the schema configuration.
 
+.. _conf-session-application-name:
+
+**application_name**
+  | *Default:* ``null``
+  | *Modifiable:* ``yes``
+
+  An arbitrary application name that can be set to identify an application that
+  connects to a CrateDB node.
+
+  Some clients set this implicitly to their client name.
+
 .. _conf-session-enable-hashjoin:
 
 **enable_hashjoin**

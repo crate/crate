@@ -43,6 +43,7 @@ import org.elasticsearch.cluster.metadata.RepositoriesMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.unit.ByteSizeUnit;
+import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.repositories.Repository;
@@ -236,10 +237,10 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
         final SnapshotsService snapshotsService = internalCluster().getCurrentMasterNodeInstance(SnapshotsService.class);
         final ThreadPool threadPool = internalCluster().getCurrentMasterNodeInstance(ThreadPool.class);
         assertThat(
-            threadPool.generic().submit(() -> {
-                return snapshotsService.hasOldVersionSnapshots(repoName, getRepositoryData(repository), null);
-            }).get().get(),
-            is(true)
+            FutureUtils.get(threadPool.generic().submit(() ->
+                snapshotsService.minCompatibleVersion(Version.CURRENT, repoName, getRepositoryData(repository), null)
+            )),
+            is(SnapshotsService.OLD_SNAPSHOT_FORMAT)
         );
 
         logger.info("--> verify that snapshot with missing root level metadata can be deleted");
@@ -247,10 +248,10 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
 
         logger.info("--> verify that repository is assumed in new metadata format after removing corrupted snapshot");
         assertThat(
-            threadPool.generic().submit(() -> {
-                return snapshotsService.hasOldVersionSnapshots(repoName, getRepositoryData(repository), null);
-            }).get().get(),
-            is(false)
+            FutureUtils.get(threadPool.generic().submit(() ->
+                snapshotsService.minCompatibleVersion(Version.CURRENT, repoName, getRepositoryData(repository), null)
+            )),
+            is(Version.CURRENT)
         );
         final RepositoryData finalRepositoryData = getRepositoryData(repository);
         for (SnapshotId snapshotId : finalRepositoryData.getSnapshotIds()) {

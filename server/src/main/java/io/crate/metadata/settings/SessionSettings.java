@@ -89,6 +89,11 @@ public class SessionSettings implements Writeable {
         return errorOnUnknownObjectKey;
     }
 
+    public String applicationName() {
+        // Only available on coordinator.
+        return null;
+    }
+
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeString(userName);

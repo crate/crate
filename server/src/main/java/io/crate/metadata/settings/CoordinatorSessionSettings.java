@@ -41,6 +41,7 @@ public class CoordinatorSessionSettings extends SessionSettings {
     private final User authenticatedUser;
     private User sessionUser;
     private Set<Class<? extends Rule<?>>> excludedOptimizerRules;
+    private String applicationName;
 
     public CoordinatorSessionSettings(User authenticatedUser, String ... searchPath) {
         this(authenticatedUser, authenticatedUser, SearchPath.createSearchPathFrom(searchPath), true, Set.of(), true);
@@ -97,5 +98,14 @@ public class CoordinatorSessionSettings extends SessionSettings {
 
     public Set<Class<? extends Rule<?>>> excludedOptimizerRules() {
         return excludedOptimizerRules;
+    }
+
+    public void setApplicationName(String applicationName) {
+        this.applicationName = applicationName;
+    }
+
+    @Override
+    public String applicationName() {
+        return this.applicationName;
     }
 }
