@@ -19,8 +19,26 @@
 
 package org.elasticsearch.transport;
 
-import io.crate.common.io.IOUtils;
-import io.crate.common.unit.TimeValue;
+import static org.elasticsearch.common.settings.Setting.timeSetting;
+import static org.elasticsearch.transport.TransportSettings.TRACE_LOG_EXCLUDE_SETTING;
+import static org.elasticsearch.transport.TransportSettings.TRACE_LOG_INCLUDE_SETTING;
+
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.net.UnknownHostException;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
+import java.util.function.Predicate;
+
+import javax.annotation.Nullable;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
@@ -45,28 +63,11 @@ import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.util.concurrent.AbstractRunnable;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.node.NodeClosedException;
-import org.elasticsearch.tasks.TaskCancelledException;
 import org.elasticsearch.threadpool.Scheduler;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import javax.annotation.Nullable;
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.net.UnknownHostException;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.Executor;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Function;
-import java.util.function.Predicate;
-
-import static org.elasticsearch.common.settings.Setting.timeSetting;
-import static org.elasticsearch.transport.TransportSettings.TRACE_LOG_EXCLUDE_SETTING;
-import static org.elasticsearch.transport.TransportSettings.TRACE_LOG_INCLUDE_SETTING;
+import io.crate.common.io.IOUtils;
+import io.crate.common.unit.TimeValue;
 
 public class TransportService extends AbstractLifecycleComponent implements TransportMessageListener, TransportConnectionListener {
 
@@ -478,13 +479,15 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
     public <T extends TransportResponse> void sendRequest(final DiscoveryNode node, final String action,
                                                           final TransportRequest request,
                                                           final TransportResponseHandler<T> handler) {
+        final Transport.Connection connection;
         try {
-            Transport.Connection connection = getConnection(node);
-            sendRequest(connection, action, request, TransportRequestOptions.EMPTY, handler);
+            connection = getConnection(node);
         } catch (NodeNotConnectedException ex) {
             // the caller might not handle this so we invoke the handler
             handler.handleException(ex);
+            return;
         }
+        sendRequest(connection, action, request, TransportRequestOptions.EMPTY, handler);
     }
 
     public final <T extends TransportResponse> void sendRequest(final DiscoveryNode node,
@@ -492,15 +495,27 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
                                                                 final TransportRequest request,
                                                                 final TransportRequestOptions options,
                                                                 TransportResponseHandler<T> handler) {
+        final Transport.Connection connection;
         try {
-            Transport.Connection connection = getConnection(node);
-            sendRequest(connection, action, request, options, handler);
+            connection = getConnection(node);
         } catch (NodeNotConnectedException ex) {
             // the caller might not handle this so we invoke the handler
             handler.handleException(ex);
+            return;
         }
+        sendRequest(connection, action, request, options, handler);
     }
 
+    /**
+     * Sends a request on the specified connection. If there is a failure sending the request, the specified handler is invoked.
+     *
+     * @param connection the connection to send the request on
+     * @param action     the name of the action
+     * @param request    the request
+     * @param options    the options for this request
+     * @param handler    the response handler
+     * @param <T>        the type of the transport response
+     */
     public final <T extends TransportResponse> void sendRequest(final Transport.Connection connection,
                                                                 final String action,
                                                                 final TransportRequest request,
@@ -508,9 +523,15 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
                                                                 TransportResponseHandler<T> handler) {
         try {
             sendRequestInternal(connection, action, request, options, handler);
-        } catch (NodeNotConnectedException ex) {
+        } catch (final Exception ex) {
             // the caller might not handle this so we invoke the handler
-            handler.handleException(ex);
+            final TransportException te;
+            if (ex instanceof TransportException) {
+                te = (TransportException) ex;
+            } else {
+                te = new TransportException("failure to send", ex);
+            }
+            handler.handleException(te);
         }
     }
 
@@ -531,13 +552,15 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
                                                                      final TransportRequest request,
                                                                      final TransportRequestOptions options,
                                                                      final TransportResponseHandler<T> handler) {
+        final Transport.Connection connection;
         try {
-            Transport.Connection connection = getConnection(node);
-            sendChildRequest(connection, action, request, options, handler);
+            connection = getConnection(node);
         } catch (NodeNotConnectedException ex) {
             // the caller might not handle this so we invoke the handler
             handler.handleException(ex);
+            return;
         }
+        sendChildRequest(connection, action, request, options, handler);
     }
 
     public <T extends TransportResponse> void sendChildRequest(final Transport.Connection connection,
@@ -552,16 +575,7 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
                                                                final TransportRequest request,
                                                                final TransportRequestOptions options,
                                                                final TransportResponseHandler<T> handler) {
-        try {
-            sendRequest(connection, action, request, options, handler);
-        } catch (TaskCancelledException ex) {
-            // The parent task is already cancelled - just fail the request
-            handler.handleException(new TransportException(ex));
-        } catch (NodeNotConnectedException ex) {
-            // the caller might not handle this so we invoke the handler
-            handler.handleException(ex);
-        }
-
+        sendRequest(connection, action, request, options, handler);
     }
 
     private <T extends TransportResponse> void sendRequestInternal(final Transport.Connection connection,
