@@ -35,6 +35,8 @@ import java.util.zip.ZipInputStream;
 
 public abstract class UnzipTransform implements UnpackTransform {
 
+    private static final int BUFFER_SIZE = 4096;
+
     public void unpack(File zipFile, File targetDir) throws IOException {
         Logging.getLogger(UnzipTransform.class)
             .info("Unpacking " + zipFile.getName() + " using " + UnzipTransform.class.getSimpleName() + ".");
@@ -49,14 +51,14 @@ public abstract class UnzipTransform implements UnpackTransform {
                 File outFile = new File(targetDir, child);
                 outFile.getParentFile().mkdirs();
                 try (FileOutputStream outputStream = new FileOutputStream(outFile)) {
-                    copy(inputStream, outputStream, 4096);
+                    copy(inputStream, outputStream);
                 }
             }
         }
     }
 
-    private static void copy(InputStream in, OutputStream out, int bufferSize) throws IOException {
-        byte[] buf = new byte[bufferSize];
+    private static void copy(InputStream in, OutputStream out) throws IOException {
+        byte[] buf = new byte[BUFFER_SIZE];
         int len;
         while ((len = in.read(buf)) >= 0) {
             out.write(buf, 0, len);

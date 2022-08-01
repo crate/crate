@@ -21,8 +21,10 @@
 
 package io.crate.gradle.plugins.jdk;
 
-import io.crate.gradle.plugins.jdk.transform.SymbolicLinkPreservingUntarTransform;
-import io.crate.gradle.plugins.jdk.transform.UnzipTransform;
+import static org.gradle.api.artifacts.type.ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE;
+import static org.gradle.api.artifacts.type.ArtifactTypeDefinition.DIRECTORY_TYPE;
+import static org.gradle.api.artifacts.type.ArtifactTypeDefinition.ZIP_TYPE;
+
 import org.gradle.api.GradleException;
 import org.gradle.api.NamedDomainObjectContainer;
 import org.gradle.api.Plugin;
@@ -31,7 +33,9 @@ import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.artifacts.dsl.RepositoryHandler;
 import org.gradle.api.artifacts.repositories.IvyArtifactRepository;
 import org.gradle.api.artifacts.type.ArtifactTypeDefinition;
-import org.gradle.api.internal.artifacts.ArtifactAttributes;
+
+import io.crate.gradle.plugins.jdk.transform.SymbolicLinkPreservingUntarTransform;
+import io.crate.gradle.plugins.jdk.transform.UnzipTransform;
 
 /**
  * The plugin exposes the `jdks` extension for configuring
@@ -91,26 +95,27 @@ public class JdkDownloadPlugin implements Plugin<Project> {
     private static final String REPO_NAME_PREFIX = "jdk_repo_";
     private static final String EXTENSION_NAME = "jdks";
 
+    @SuppressWarnings("UnstableApiUsage")
     @Override
     public void apply(Project project) {
-        project.getDependencies().getArtifactTypes().maybeCreate(ArtifactTypeDefinition.ZIP_TYPE);
+        project.getDependencies().getArtifactTypes().maybeCreate(ZIP_TYPE);
         project.getDependencies().registerTransform(UnzipTransform.class, transformSpec -> {
-            transformSpec.getFrom().attribute(ArtifactAttributes.ARTIFACT_FORMAT, ArtifactTypeDefinition.ZIP_TYPE);
-            transformSpec.getTo().attribute(ArtifactAttributes.ARTIFACT_FORMAT, ArtifactTypeDefinition.DIRECTORY_TYPE);
+            transformSpec.getFrom().attribute(ARTIFACT_TYPE_ATTRIBUTE, ZIP_TYPE);
+            transformSpec.getTo().attribute(ARTIFACT_TYPE_ATTRIBUTE, DIRECTORY_TYPE);
         });
 
         ArtifactTypeDefinition tarArtifactTypeDefinition = project.getDependencies().getArtifactTypes().maybeCreate("tar.gz");
         project.getDependencies().registerTransform(SymbolicLinkPreservingUntarTransform.class, transformSpec -> {
-            transformSpec.getFrom().attribute(ArtifactAttributes.ARTIFACT_FORMAT, tarArtifactTypeDefinition.getName());
-            transformSpec.getTo().attribute(ArtifactAttributes.ARTIFACT_FORMAT, ArtifactTypeDefinition.DIRECTORY_TYPE);
+            transformSpec.getFrom().attribute(ARTIFACT_TYPE_ATTRIBUTE, tarArtifactTypeDefinition.getName());
+            transformSpec.getTo().attribute(ARTIFACT_TYPE_ATTRIBUTE, DIRECTORY_TYPE);
         });
 
         NamedDomainObjectContainer<Jdk> jdksContainer = project.container(Jdk.class, name -> {
             Configuration configuration = project.getConfigurations().create("jdk_" + name);
             configuration.setCanBeConsumed(false);
             configuration.getAttributes().attribute(
-                ArtifactAttributes.ARTIFACT_FORMAT,
-                ArtifactTypeDefinition.DIRECTORY_TYPE
+                ARTIFACT_TYPE_ATTRIBUTE,
+                DIRECTORY_TYPE
             );
 
             Jdk jdk = new Jdk(name, configuration, project.getObjects());
@@ -166,11 +171,6 @@ public class JdkDownloadPlugin implements Plugin<Project> {
                 repo.content(repositoryContentDescriptor -> repositoryContentDescriptor.includeGroup(groupName(jdk)));
             });
         }
-    }
-
-    @SuppressWarnings("unchecked")
-    public static NamedDomainObjectContainer<Jdk> getContUnzipTransformainer(Project project) {
-        return (NamedDomainObjectContainer<Jdk>) project.getExtensions().getByName(EXTENSION_NAME);
     }
 
     private static String dependencyNotation(Jdk jdk) {

@@ -21,16 +21,16 @@
 
 package io.crate.gradle.plugins.jdk;
 
+import java.io.File;
+import java.util.Iterator;
+import java.util.List;
+import java.util.regex.Pattern;
+
 import org.gradle.api.Buildable;
 import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.model.ObjectFactory;
 import org.gradle.api.provider.Property;
 import org.gradle.api.tasks.TaskDependency;
-
-import java.io.File;
-import java.util.Iterator;
-import java.util.List;
-import java.util.regex.Pattern;
 
 public class Jdk implements Buildable, Iterable<File> {
 
@@ -38,7 +38,7 @@ public class Jdk implements Buildable, Iterable<File> {
     private static final List<String> ALLOWED_OS = List.of("linux", "windows", "mac");
     private static final List<String> ALLOWED_ARCH = List.of("x64", "aarch64");
     private static final Pattern VERSION_PATTERN = Pattern.compile(
-        "(\\d+)(\\.\\d+\\.\\d+)?\\+(\\d+(?:\\.\\d+)?)(@([a-f0-9]{32}))?");
+        "(\\d+)(\\.\\d+\\.\\d+)?\\+(\\d+(?:\\.\\d+)?)(@([a-f\\d]{32}))?");
 
     private final String name;
     private final Configuration configuration;
@@ -59,10 +59,6 @@ public class Jdk implements Buildable, Iterable<File> {
         this.version = objectFactory.property(String.class);
         this.arch = objectFactory.property(String.class);
         this.os = objectFactory.property(String.class);
-    }
-
-    public String name() {
-        return name;
     }
 
     public String vendor() {
@@ -95,10 +91,6 @@ public class Jdk implements Buildable, Iterable<File> {
         build = versionMatcher.group(3);
         hash = versionMatcher.group(5);
         this.version.set(version);
-    }
-
-    public String platform() {
-        return arch() + "_" + os();
     }
 
     public String arch() {
@@ -149,20 +141,18 @@ public class Jdk implements Buildable, Iterable<File> {
         return configuration.getSingleFile().toString();
     }
 
-    public Configuration configuration() {
-        return configuration;
-    }
-
     @Override
     public String toString() {
         return path();
     }
 
+    @SuppressWarnings("NullableProblems")
     @Override
     public TaskDependency getBuildDependencies() {
         return configuration.getBuildDependencies();
     }
 
+    @SuppressWarnings("unused")
     public Object getBinJavaPath() {
         return new Object() {
             @Override
@@ -176,7 +166,6 @@ public class Jdk implements Buildable, Iterable<File> {
         return new File(path() + ("mac".equals(os()) ? "/Contents/Home" : ""));
     }
 
-    @SuppressWarnings("UnstableApiUsage")
     void finalizeValues() {
         if (!version.isPresent()) {
             throw new IllegalArgumentException("version is not specified for jdk [" + name + "]");
