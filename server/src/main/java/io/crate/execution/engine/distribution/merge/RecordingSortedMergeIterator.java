@@ -29,6 +29,7 @@ import io.crate.common.collections.PeekingIterator;
 import org.elasticsearch.common.util.CollectionUtils;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
@@ -119,6 +120,9 @@ final class RecordingSortedMergeIterator<TKey, TRow> implements SortedMergeItera
     }
 
     public Iterable<TRow> repeat() {
+        if (storedIterables.isEmpty()) {
+            return Collections.emptyList();
+        }
         return () -> new ReplayingIterator<>(sortRecording.buffer, Iterables.transform(storedIterables, Iterable::iterator));
     }
 
