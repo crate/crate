@@ -267,7 +267,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                                  long repositoryStateId,
                                  boolean includeGlobalState,
                                  Metadata clusterMetadata,
-                                 boolean writeShardGens,
+                                 Version repositoryMetaVersion,
                                  ActionListener<SnapshotInfo> listener) {
         throw new UnsupportedOperationException("Operation not permitted");
     }
@@ -275,7 +275,8 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
     @Override
     public void deleteSnapshot(SnapshotId snapshotId,
                                long repositoryStateId,
-                               boolean writeShardGens, ActionListener<Void> listener) {
+                               Version repositoryMetaVersion,
+                               ActionListener<Void> listener) {
         throw new UnsupportedOperationException("Operation not permitted");
     }
 
@@ -306,7 +307,8 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                               IndexId indexId,
                               IndexCommit snapshotIndexCommit,
                               IndexShardSnapshotStatus snapshotStatus,
-                              boolean writeShardGens, ActionListener<String> listener) {
+                              Version repositoryMetaVersion,
+                              ActionListener<String> listener) {
         throw new UnsupportedOperationException("Operation not permitted");
     }
 

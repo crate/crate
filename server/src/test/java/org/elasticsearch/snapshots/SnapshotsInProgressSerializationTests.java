@@ -37,6 +37,7 @@ import org.elasticsearch.index.Index;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.repositories.IndexId;
 import org.elasticsearch.test.AbstractDiffableWireSerializationTestCase;
+import org.elasticsearch.test.VersionUtils;
 
 public class SnapshotsInProgressSerializationTests extends AbstractDiffableWireSerializationTestCase<Custom> {
 
@@ -86,7 +87,7 @@ public class SnapshotsInProgressSerializationTests extends AbstractDiffableWireS
             }
         }
         ImmutableOpenMap<ShardId, SnapshotsInProgress.ShardSnapshotStatus> shards = builder.build();
-        return new Entry(snapshot, includeGlobalState, partial, state, indices, templates, startTime, repositoryStateId, shards, randomBoolean());
+        return new Entry(snapshot, includeGlobalState, partial, state, indices, templates, startTime, repositoryStateId, shards, VersionUtils.randomVersion(random()));
     }
 
     @Override
