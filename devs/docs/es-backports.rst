@@ -488,7 +488,7 @@ should be crossed out as well.
 - [s] 2438b899eb0 Support joda style date patterns in 7.x (#52555)
 - [s] 9ada5083479 Fix date_nanos in composite aggs (backport of #53315) (#53347)
 - [x] ac721938c22 Allow joining node to trigger term bump (#53338)
-- [s] 7189c57b6cb Record Force Merges in Live Commit Data (#52694) (#53372)
+- [x] 7189c57b6cb Record Force Merges in Live Commit Data (#52694) (#53372)
 - [x] 24f114766fb Fix doc_stats and segment_stats of ReadOnlyEngine (#53345)
 - [s] 5c861cfe6e2 Upgrade to final lucene 8.5.0 snapshot (#53293)
 - [x] 5e96d3e59ae Use given executor for global checkpoint listener (#53260)
