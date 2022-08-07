@@ -63,7 +63,11 @@ public class GeneratedReference implements Reference {
             ref = new SimpleReference(in);
         }
         formattedGeneratedExpression = in.readString();
-        generatedExpression = Symbols.fromStream(in);
+        if (in.getVersion().onOrAfter(Version.V_5_1_0)) {
+            generatedExpression = Symbols.nullableFromStream(in);
+        } else {
+            generatedExpression = Symbols.fromStream(in);
+        }
         int size = in.readVInt();
         referencedReferences = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {
@@ -94,7 +98,12 @@ public class GeneratedReference implements Reference {
             }
         }
         out.writeString(formattedGeneratedExpression);
-        Symbols.toStream(generatedExpression, out);
+        if (out.getVersion().onOrAfter(Version.V_5_1_0)) {
+            Symbols.nullableToStream(generatedExpression, out);
+        } else {
+            Symbols.toStream(generatedExpression, out);
+        }
+
         out.writeVInt(referencedReferences.size());
         for (Reference reference : referencedReferences) {
             Reference.toStream(reference, out);
