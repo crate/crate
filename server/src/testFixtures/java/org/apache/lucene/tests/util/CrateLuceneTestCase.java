@@ -662,24 +662,6 @@ public abstract class CrateLuceneTestCase {
     }
 
     /**
-     * Max 10mb of static data stored in a test suite class after the suite is complete. Prevents
-     * static data structures leaking and causing OOMs in subsequent tests.
-     */
-    private static final long STATIC_LEAK_THRESHOLD = 10 * 1024 * 1024;
-
-    /** By-name list of ignored types like loggers etc. */
-    private static final Set<String> STATIC_LEAK_IGNORED_TYPES =
-        Set.of(
-            "org.slf4j.Logger",
-            "org.apache.solr.SolrLogFormatter",
-            "java.io.File", // Solr sometimes refers to this in a static way, but it has a
-            // "java.nio.fs.Path" inside
-            Path.class
-                .getName(), // causes problems because interface is implemented by hidden classes
-            Class.class.getName(),
-            EnumSet.class.getName());
-
-    /**
      * This controls how suite-level rules are nested. It is important that _all_ rules declared in
      * {@link CrateLuceneTestCase} are executed in proper order if they depend on each other.
      */
@@ -696,26 +678,6 @@ public abstract class CrateLuceneTestCase {
                 .around(new TestRuleAssertionsRequired())
                 .around(new TestRuleLimitSysouts(suiteFailureMarker))
                 .around(tempFilesCleanupRule = new CrateTestRuleTemporaryFilesCleanup(suiteFailureMarker));
-        // TODO LUCENE-7595: Java 9 does not allow to look into runtime classes, so we have to fix the
-        // RAM usage checker!
-        if (!Constants.JRE_IS_MINIMUM_JAVA9) {
-            r =
-                r.around(
-                    new StaticFieldsInvariantRule(STATIC_LEAK_THRESHOLD, true) {
-                        @Override
-                        protected boolean accept(java.lang.reflect.Field field) {
-                            // Don't count known classes that consume memory once.
-                            if (STATIC_LEAK_IGNORED_TYPES.contains(field.getType().getName())) {
-                                return false;
-                            }
-                            // Don't count references from ourselves, we're top-level.
-                            if (field.getDeclaringClass() == CrateLuceneTestCase.class) {
-                                return false;
-                            }
-                            return super.accept(field);
-                        }
-                    });
-        }
         classRules =
             r.around(new NoClassHooksShadowingRule())
                 .around(
