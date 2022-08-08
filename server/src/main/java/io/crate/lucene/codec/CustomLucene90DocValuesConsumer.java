@@ -827,12 +827,10 @@ final class CustomLucene90DocValuesConsumer extends DocValuesConsumer {
                             public int nextDoc() throws IOException {
                                 int doc = values.nextDoc();
                                 if (doc != NO_MORE_DOCS) {
-                                    docValueCount = 0;
-                                    for (long ord = values
-                                            .nextOrd(); ord != SortedSetDocValues.NO_MORE_ORDS; ord = values
-                                                    .nextOrd()) {
-                                        ords = ArrayUtil.grow(ords, docValueCount + 1);
-                                        ords[docValueCount++] = ord;
+                                    docValueCount = values.docValueCount();
+                                    ords = ArrayUtil.grow(ords, docValueCount);
+                                    for (int j = 0; j < docValueCount; j++) {
+                                        ords[j] = values.nextOrd();
                                     }
                                     i = 0;
                                 }
