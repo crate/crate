@@ -23,7 +23,6 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.nio.ByteOrder;
 
-import org.elasticsearch.common.util.ByteUtils;
 
 
 /**
@@ -158,7 +157,7 @@ public enum MurmurHash3 {
             final int len16 = length & 0xFFFFFFF0; // higher multiple of 16 that is lower than or equal to length
             final int end = offset + len16;
             for (int i = offset; i < end; i += 16) {
-                long k1 = ByteUtils.readLongLE(key, i);
+                long k1 = (long) VH_LE_LONG.get(key, i);
 
                 k1 *= C1;
                 k1 = Long.rotateLeft(k1, 31);
@@ -169,7 +168,7 @@ public enum MurmurHash3 {
                 h1 += h2;
                 h1 = h1 * 5 + 0x52dce729;
 
-                long k2 = ByteUtils.readLongLE(key, i + 8);
+                long k2 = (long) VH_LE_LONG.get(key, i + 8);
                 k2 *= C2;
                 k2 = Long.rotateLeft(k2, 33);
                 k2 *= C1;
