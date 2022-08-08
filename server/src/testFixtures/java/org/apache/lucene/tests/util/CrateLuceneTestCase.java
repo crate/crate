@@ -1081,8 +1081,6 @@ public abstract class CrateLuceneTestCase {
 
         c.setMergePolicy(newMergePolicy(r));
 
-        avoidPathologicalMerging(c);
-
         if (rarely(r)) {
             c.setMergedSegmentWarmer(new SimpleMergedSegmentWarmer(c.getInfoStream()));
         }
@@ -1098,69 +1096,6 @@ public abstract class CrateLuceneTestCase {
 
         c.setMaxFullFlushMergeWaitMillis(rarely() ? atLeast(r, 1000) : atLeast(r, 200));
         return c;
-    }
-
-    private static void avoidPathologicalMerging(IndexWriterConfig iwc) {
-        // Don't allow "tiny" flushed segments with "big" merge
-        // floor: this leads to pathological O(N^2) merge costs:
-        long estFlushSizeBytes = Long.MAX_VALUE;
-        if (iwc.getMaxBufferedDocs() != IndexWriterConfig.DISABLE_AUTO_FLUSH) {
-            // Gross estimation of 1 KB segment bytes for each doc indexed:
-            estFlushSizeBytes = Math.min(estFlushSizeBytes, iwc.getMaxBufferedDocs() * 1024);
-        }
-        if (iwc.getRAMBufferSizeMB() != IndexWriterConfig.DISABLE_AUTO_FLUSH) {
-            estFlushSizeBytes =
-                Math.min(estFlushSizeBytes, (long) (iwc.getRAMBufferSizeMB() * 1024 * 1024));
-        }
-        assert estFlushSizeBytes > 0;
-
-        MergePolicy mp = iwc.getMergePolicy();
-        if (mp instanceof TieredMergePolicy) {
-            TieredMergePolicy tmp = (TieredMergePolicy) mp;
-            long floorSegBytes = (long) (tmp.getFloorSegmentMB() * 1024 * 1024);
-            if (floorSegBytes / estFlushSizeBytes > 10) {
-                double newValue = estFlushSizeBytes * 10.0 / 1024 / 1024;
-                if (VERBOSE) {
-                    System.out.println(
-                        "NOTE: LuceneTestCase: changing TieredMergePolicy.floorSegmentMB from "
-                        + tmp.getFloorSegmentMB()
-                        + " to "
-                        + newValue
-                        + " to avoid pathological merging");
-                }
-                tmp.setFloorSegmentMB(newValue);
-            }
-        } else if (mp instanceof LogByteSizeMergePolicy) {
-            LogByteSizeMergePolicy lmp = (LogByteSizeMergePolicy) mp;
-            if ((lmp.getMinMergeMB() * 1024 * 1024) / estFlushSizeBytes > 10) {
-                double newValue = estFlushSizeBytes * 10.0 / 1024 / 1024;
-                if (VERBOSE) {
-                    System.out.println(
-                        "NOTE: LuceneTestCase: changing LogByteSizeMergePolicy.minMergeMB from "
-                        + lmp.getMinMergeMB()
-                        + " to "
-                        + newValue
-                        + " to avoid pathological merging");
-                }
-                lmp.setMinMergeMB(newValue);
-            }
-        } else if (mp instanceof LogDocMergePolicy) {
-            LogDocMergePolicy lmp = (LogDocMergePolicy) mp;
-            assert estFlushSizeBytes / 1024 < Integer.MAX_VALUE / 10;
-            int estFlushDocs = Math.max(1, (int) (estFlushSizeBytes / 1024));
-            if (lmp.getMinMergeDocs() / estFlushDocs > 10) {
-                int newValue = estFlushDocs * 10;
-                if (VERBOSE) {
-                    System.out.println(
-                        "NOTE: LuceneTestCase: changing LogDocMergePolicy.minMergeDocs from "
-                        + lmp.getMinMergeDocs()
-                        + " to "
-                        + newValue
-                        + " to avoid pathological merging");
-                }
-                lmp.setMinMergeDocs(newValue);
-            }
-        }
     }
 
     public static MergePolicy newMergePolicy(Random r) {
