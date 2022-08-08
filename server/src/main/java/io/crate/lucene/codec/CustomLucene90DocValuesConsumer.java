@@ -762,9 +762,9 @@ final class CustomLucene90DocValuesConsumer extends DocValuesConsumer {
 
         assert values.docID() == -1;
         for (int doc = values.nextDoc(); doc != DocIdSetIterator.NO_MORE_DOCS; doc = values.nextDoc()) {
-            final long firstOrd = values.nextOrd();
-            assert firstOrd != SortedSetDocValues.NO_MORE_ORDS;
-            if (values.nextOrd() != SortedSetDocValues.NO_MORE_ORDS) {
+            int docValueCount = values.docValueCount();
+            assert docValueCount > 0;
+            if (docValueCount > 1) {
                 return false;
             }
         }
