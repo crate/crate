@@ -1029,7 +1029,7 @@ public class PatchedAssertingLeafReader extends FilterLeafReader {
         }
 
         @Override
-        public long docValueCount() {
+        public int docValueCount() {
             return in.docValueCount();
         }
 

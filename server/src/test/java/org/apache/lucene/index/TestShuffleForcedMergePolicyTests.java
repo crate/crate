@@ -48,6 +48,7 @@ public class TestShuffleForcedMergePolicyTests extends BaseMergePolicyTestCase {
             IndexWriterConfig iwc = newIndexWriterConfig();
             MergePolicy mp = new ShuffleForcedMergePolicy(newTieredMergePolicy());
             iwc.setMergePolicy(mp);
+            iwc.setMaxFullFlushMergeWaitMillis(0L);
             boolean sorted = random().nextBoolean();
             if (sorted) {
                 iwc.setIndexSort(new Sort(new SortField("sort", SortField.Type.INT)));
