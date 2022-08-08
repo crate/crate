@@ -1463,7 +1463,7 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
             }
 
             @Override
-            public long docValueCount() {
+            public int docValueCount() {
                 return count;
             }
 
