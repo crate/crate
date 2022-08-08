@@ -2613,11 +2613,10 @@ public abstract class CrateLuceneTestCase {
                         if (docID == NO_MORE_DOCS) {
                             break;
                         }
-                        long ord;
-                        while ((ord = leftValues.nextOrd()) != SortedSetDocValues.NO_MORE_ORDS) {
-                            assertEquals(info, ord, rightValues.nextOrd());
+                        assertEquals(info, leftValues.docValueCount(), rightValues.docValueCount());
+                        for (int i = 0; i < leftValues.docValueCount(); i++) {
+                            assertEquals(info, leftValues.nextOrd(), rightValues.nextOrd());
                         }
-                        assertEquals(info, SortedSetDocValues.NO_MORE_ORDS, rightValues.nextOrd());
                     }
                 } else {
                     assertNull(info, leftValues);
