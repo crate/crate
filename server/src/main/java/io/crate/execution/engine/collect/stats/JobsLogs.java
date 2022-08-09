@@ -29,7 +29,6 @@ import io.crate.expression.reference.sys.operation.OperationContextLog;
 import io.crate.metadata.sys.ClassifiedMetrics;
 import io.crate.metadata.sys.MetricsView;
 import io.crate.planner.operators.StatementClassifier;
-import io.crate.common.collections.Tuple;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.ThreadSafe;
@@ -64,8 +63,10 @@ import static io.crate.planner.Plan.StatementType.UNDEFINED;
 @ThreadSafe
 public class JobsLogs {
 
+    record OperationId(int operationId, UUID jobId) {}
+
     private final Map<UUID, JobContext> jobsTable = new ConcurrentHashMap<>();
-    private final Map<Tuple<Integer, UUID>, OperationContext> operationsTable = new ConcurrentHashMap<>();
+    private final Map<OperationId, OperationContext> operationsTable = new ConcurrentHashMap<>();
 
     private LogSink<JobContextLog> jobsLog = NoopLogSink.instance();
     private LogSink<OperationContextLog> operationsLog = NoopLogSink.instance();
@@ -87,13 +88,6 @@ public class JobsLogs {
      */
     private boolean isEnabled() {
         return enabled.getAsBoolean();
-    }
-
-    /**
-     * Generate a unique ID for an operation based on jobId and operationId.
-     */
-    private static Tuple<Integer, UUID> uniqueOperationId(int operationId, UUID jobId) {
-        return Tuple.tuple(operationId, jobId);
     }
 
     /**
@@ -163,7 +157,7 @@ public class JobsLogs {
     public void operationStarted(int operationId, UUID jobId, String name, LongSupplier bytesUsed) {
         if (isEnabled()) {
             operationsTable.put(
-                uniqueOperationId(operationId, jobId),
+                new OperationId(operationId, jobId),
                 new OperationContext(operationId, jobId, name, System.currentTimeMillis(), bytesUsed));
         }
     }
@@ -176,7 +170,7 @@ public class JobsLogs {
         if (!isEnabled()) {
             return;
         }
-        OperationContext operationContext = operationsTable.remove(uniqueOperationId(operationId, jobId));
+        OperationContext operationContext = operationsTable.remove(new OperationId(operationId, jobId));
         if (operationContext == null) {
             // this might be the case if the stats were disabled when the operation started but have
             // been enabled before the finish

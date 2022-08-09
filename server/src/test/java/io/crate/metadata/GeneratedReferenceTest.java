@@ -77,4 +77,21 @@ public class GeneratedReferenceTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(generatedReferenceInfo2, is(generatedReferenceInfo));
     }
+
+    @Test
+    public void test_streaming_generated_reference_with_null_expression_symbol() throws Exception {
+        ReferenceIdent referenceIdent = new ReferenceIdent(t1Info.ident(), "generated_column");
+        String formattedGeneratedExpression = "concat(a, 'bar')";
+        SimpleReference simpleRef = new SimpleReference(referenceIdent, RowGranularity.DOC, StringType.INSTANCE, 1, null);
+        GeneratedReference generatedReference = new GeneratedReference(simpleRef, formattedGeneratedExpression, null);
+
+        BytesStreamOutput out = new BytesStreamOutput();
+        Reference.toStream(generatedReference, out);
+
+        StreamInput in = out.bytes().streamInput();
+        GeneratedReference generatedReference2 = Reference.fromStream(in);
+
+        assertThat(generatedReference2, is(generatedReference));
+
+    }
 }
