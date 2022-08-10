@@ -42,6 +42,11 @@ Unreleased Changes
 Breaking Changes
 ================
 
+- Removed the deprecated ``discovery.zen.publish_timeout``,
+  ``discovery.zen.commit_timeout``, ``discovery.zen.no_master_block``,
+  ``discovery.zen.publish_diff.enable`` settings.
+  They had no effect since 4.0.0 and have been deprecated in 4.4.0.
+
 - Removed the deprecated azure discovery functionality.
 
 - Fields referencing ``catalog`` in :ref:`information_schema <information_schema>`
