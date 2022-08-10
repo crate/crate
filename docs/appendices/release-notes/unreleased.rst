@@ -42,6 +42,10 @@ Unreleased Changes
 Breaking Changes
 ================
 
+- Removed the ``indices.breaker.fielddata.limit`` setting and the ``*.overhead``
+  settings for all circuit breakers. They were deprecated in 4.3.0 and had no
+  effect since then.
+
 - Removed the deprecated ``discovery.zen.publish_timeout``,
   ``discovery.zen.commit_timeout``, ``discovery.zen.no_master_block``,
   ``discovery.zen.publish_diff.enable`` settings.

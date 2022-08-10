@@ -1033,40 +1033,6 @@ keeps working.
   or percentage of the heap size (like ``12%``). A value of ``-1`` disables
   breaking the circuit while still accounting memory usage.
 
-  .. CAUTION::
-
-      This setting is deprecated and has no effect.
-
-.. _indices.breaker.query.overhead:
-
-**indices.breaker.query.overhead**
-  | *Default:*   ``1.00``
-  | *Runtime:*   ``no``
-
-  .. CAUTION::
-
-      This setting is deprecated and has no effect.
-
-
-Field data circuit breaker
---------------------------
-
-These settings are deprecated and will be removed in CrateDB 5.0. They don't
-have any effect anymore.
-
-.. _indices.breaker.fielddata.limit:
-
-**indices.breaker.fielddata.limit**
-  | *Default:*   ``60%``
-  | *Runtime:*  ``yes``
-
-
-.. _indices.breaker.fielddata.overhead:
-
-**indices.breaker.fielddata.overhead**
-  | *Default:*   ``1.03``
-  | *Runtime:*  ``yes``
-
 
 Request circuit breaker
 -----------------------
@@ -1083,15 +1049,6 @@ exception is raised.
 
   Specifies the JVM heap limit for the request circuit breaker.
 
-.. _indices.breaker.request.overhead:
-
-**indices.breaker.request.overhead**
-  | *Default:*   ``1.0``
-  | *Runtime:*  ``yes``
-
-  .. CAUTION::
-
-      This setting is deprecated and has no effect.
 
 Accounting circuit breaker
 --------------------------
@@ -1107,15 +1064,10 @@ memory used by Lucene for segments.
 
   Specifies the JVM heap limit for the accounting circuit breaker
 
-.. _indices.breaker.accounting.overhead:
-
-**indices.breaker.accounting.overhead**
-  | *Default:*  ``1.0``
-  | *Runtime:*  ``yes``
-
   .. CAUTION::
 
-      This setting is deprecated and has no effect.
+      This setting is deprecated and will be removed in a future release.
+
 
 .. _stats.breaker.log:
 
