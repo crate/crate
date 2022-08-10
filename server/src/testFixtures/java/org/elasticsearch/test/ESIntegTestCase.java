@@ -263,16 +263,15 @@ public abstract class ESIntegTestCase extends ESTestCase {
             case SUITE:
                 assert SUITE_SEED != null : "Suite seed was not initialized";
                 currentCluster = buildAndPutCluster(currentClusterScope, SUITE_SEED);
+                RandomizedContext.current().runWithPrivateRandomness(SUITE_SEED, setup);
                 break;
             case TEST:
                 currentCluster = buildAndPutCluster(currentClusterScope, randomLong());
+                setup.call();
                 break;
             default:
                 fail("Unknown Scope: [" + currentClusterScope + "]");
         }
-        cluster().beforeTest(random());
-        cluster().wipe(excludeTemplates());
-        randomIndexTemplate();
     }
 
     private void printTestMessage(String message) {
