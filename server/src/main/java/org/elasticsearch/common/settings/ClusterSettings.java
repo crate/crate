@@ -66,7 +66,6 @@ import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.util.PageCacheRecycler;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.discovery.DiscoveryModule;
-import org.elasticsearch.discovery.DiscoverySettings;
 import org.elasticsearch.discovery.PeerFinder;
 import org.elasticsearch.discovery.SeedHostsResolver;
 import org.elasticsearch.discovery.SettingsBasedSeedHostsProvider;
@@ -235,10 +234,6 @@ public final class ClusterSettings extends AbstractScopedSettings {
         InternalClusterInfoService.INTERNAL_CLUSTER_INFO_UPDATE_INTERVAL_SETTING,
         DestructiveOperations.REQUIRES_NAME_SETTING,
         NoMasterBlockService.NO_MASTER_BLOCK_SETTING,
-        DiscoverySettings.PUBLISH_TIMEOUT_SETTING,
-        DiscoverySettings.PUBLISH_DIFF_ENABLE_SETTING,
-        DiscoverySettings.COMMIT_TIMEOUT_SETTING,
-        DiscoverySettings.NO_MASTER_BLOCK_SETTING,
         GatewayService.EXPECTED_DATA_NODES_SETTING,
         GatewayService.EXPECTED_MASTER_NODES_SETTING,
         GatewayService.EXPECTED_NODES_SETTING,

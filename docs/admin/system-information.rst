@@ -99,11 +99,11 @@ information about the currently applied cluster settings.
 ::
 
     cr> select settings from sys.cluster;
-    +-------------------------------------------------------...-+
-    | settings                                                  |
-    +-------------------------------------------------------...-+
-    | {"bulk": {...}, "cluster": {...}, "discovery": {...}, ... |
-    +-------------------------------------------------------...-+
+    +-----------------------------------------------------...-+
+    | settings                                                |
+    +-----------------------------------------------------...-+
+    | {"bulk": {...}, "cluster": {...}, "gateway": {...}, ... |
+    +-----------------------------------------------------...-+
     SELECT 1 row in set (... sec)
 
 ::
@@ -161,9 +161,6 @@ information about the currently applied cluster settings.
     | settings['cluster']['routing']['allocation']['total_shards_per_node']             | integer          |
     | settings['cluster']['routing']['rebalance']                                       | object           |
     | settings['cluster']['routing']['rebalance']['enable']                             | text             |
-    | settings['discovery']                                                             | object           |
-    | settings['discovery']['zen']                                                      | object           |
-    | settings['discovery']['zen']['publish_timeout']                                   | text             |
     | settings['gateway']                                                               | object           |
     | settings['gateway']['expected_data_nodes']                                        | integer          |
     | settings['gateway']['expected_nodes']                                             | integer          |

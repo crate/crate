@@ -33,7 +33,6 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.discovery.DiscoverySettings;
 import org.elasticsearch.index.shard.IndexShardRecoveringException;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.shard.ShardNotFoundException;
@@ -254,26 +253,21 @@ public final class RandomObjects {
         Exception actualException;
         ElasticsearchException expectedException;
 
-        int type = randomIntBetween(random, 0, 3);
+        int type = randomIntBetween(random, 0, 2);
         switch (type) {
             case 0:
-                actualException = new ClusterBlockException(singleton(DiscoverySettings.NO_MASTER_BLOCK_WRITES));
-                expectedException = new ElasticsearchException("Elasticsearch exception [type=cluster_block_exception, " +
-                        "reason=blocked by: [SERVICE_UNAVAILABLE/2/no master];]");
-                break;
-            case 1:
                 actualException = new ShardNotFoundException(shard);
                 expectedException = new ElasticsearchException("Elasticsearch exception [type=shard_not_found_exception, " +
                         "reason=no such shard]");
                 expectedException.setShard(shard);
                 break;
-            case 2:
+            case 1:
                 actualException = new IllegalArgumentException("Closed resource", new RuntimeException("Resource"));
                 expectedException = new ElasticsearchException("Elasticsearch exception [type=illegal_argument_exception, " +
                         "reason=Closed resource]",
                         new ElasticsearchException("Elasticsearch exception [type=runtime_exception, reason=Resource]"));
                 break;
-            case 3:
+            case 2:
                 actualException = new IndexShardRecoveringException(shard);
                 expectedException = new ElasticsearchException("Elasticsearch exception [type=index_shard_recovering_exception, " +
                         "reason=CurrentState[RECOVERING] Already recovering]");

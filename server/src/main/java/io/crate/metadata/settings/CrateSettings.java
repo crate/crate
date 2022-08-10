@@ -46,7 +46,6 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.discovery.DiscoverySettings;
 import org.elasticsearch.gateway.GatewayService;
 import org.elasticsearch.indices.ShardLimitValidator;
 import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
@@ -128,8 +127,6 @@ public final class CrateSettings implements ClusterStateListener {
         DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_LOW_DISK_WATERMARK_SETTING,
         DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_HIGH_DISK_WATERMARK_SETTING,
         DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_DISK_FLOOD_STAGE_WATERMARK_SETTING,
-        // DISCOVERY
-        DiscoverySettings.PUBLISH_TIMEOUT_SETTING,
         // GATEWAY
         GatewayService.RECOVER_AFTER_NODES_SETTING,
         GatewayService.RECOVER_AFTER_DATA_NODES_SETTING,
