@@ -22,7 +22,6 @@ package org.elasticsearch.common;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.util.CollectionUtils;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
@@ -633,16 +632,6 @@ public class Strings {
     }
 
     private Strings() {
-    }
-
-
-    /**
-     * If an array only consists of zero or one element, which is "*" or "_all" return an empty array
-     * which is usually used as everything
-     */
-    public static boolean isAllOrWildcard(String[] data) {
-        return CollectionUtils.isEmpty(data) ||
-               data.length == 1 && ("_all".equals(data[0]) || "*".equals(data[0]));
     }
 
     /**

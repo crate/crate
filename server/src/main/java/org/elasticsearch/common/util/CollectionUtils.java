@@ -19,30 +19,15 @@
 
 package org.elasticsearch.common.util;
 
-import com.carrotsearch.hppc.ObjectArrayList;
-import org.apache.lucene.util.IntroSorter;
-
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-import java.util.Objects;
 import java.util.RandomAccess;
 
 /** Collections-related utility methods. */
 public class CollectionUtils {
-
-    /**
-     * Checks if the given array contains any elements.
-     *
-     * @param array The array to check
-     *
-     * @return false if the array contains an element, true if not or the array is null.
-     */
-    public static boolean isEmpty(Object[] array) {
-        return array == null || array.length == 0;
-    }
 
     /**
      * Return a rotated view of the given list with the given distance.
@@ -62,66 +47,6 @@ public class CollectionUtils {
         }
 
         return new RotatedList<>(list, d);
-    }
-
-    public static void sortAndDedup(final ObjectArrayList<byte[]> array) {
-        int len = array.size();
-        if (len > 1) {
-            sort(array);
-            int uniqueCount = 1;
-            for (int i = 1; i < len; ++i) {
-                if (!Arrays.equals(array.get(i), array.get(i - 1))) {
-                    array.set(uniqueCount++, array.get(i));
-                }
-            }
-            array.elementsCount = uniqueCount;
-        }
-    }
-
-    public static void sort(final ObjectArrayList<byte[]> array) {
-        new IntroSorter() {
-
-            byte[] pivot;
-
-            @Override
-            protected void swap(int i, int j) {
-                final byte[] tmp = array.get(i);
-                array.set(i, array.get(j));
-                array.set(j, tmp);
-            }
-
-            @Override
-            protected int compare(int i, int j) {
-                return compare(array.get(i), array.get(j));
-            }
-
-            @Override
-            protected void setPivot(int i) {
-                pivot = array.get(i);
-            }
-
-            @Override
-            protected int comparePivot(int j) {
-                return compare(pivot, array.get(j));
-            }
-
-            private int compare(byte[] left, byte[] right) {
-                for (int i = 0, j = 0; i < left.length && j < right.length; i++, j++) {
-                    int a = left[i] & 0xFF;
-                    int b = right[j] & 0xFF;
-                    if (a != b) {
-                        return a - b;
-                    }
-                }
-                return left.length - right.length;
-            }
-
-        }.sort(0, array.size());
-    }
-
-    public static int[] toArray(Collection<Integer> ints) {
-        Objects.requireNonNull(ints);
-        return ints.stream().mapToInt(s -> s).toArray();
     }
 
     private static class RotatedList<T> extends AbstractList<T> implements RandomAccess {
