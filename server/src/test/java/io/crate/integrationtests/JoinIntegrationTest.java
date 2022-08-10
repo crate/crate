@@ -898,9 +898,7 @@ public class JoinIntegrationTest extends SQLIntegrationTestCase {
         execute("refresh table t1, t2");
 
         long memoryLimit = 6 * 1024 * 1024;
-        double overhead = 1.0d;
-        execute("set global \"indices.breaker.query.limit\" = '" + memoryLimit + "b', " +
-                "\"indices.breaker.query.overhead\" = " + overhead);
+        execute("set global \"indices.breaker.query.limit\" = '" + memoryLimit + "b'");
         CircuitBreaker queryCircuitBreaker = internalCluster().getInstance(CircuitBreakerService.class).getBreaker(HierarchyCircuitBreakerService.QUERY);
         randomiseAndConfigureJoinBlockSize("t1", 5L, queryCircuitBreaker);
         randomiseAndConfigureJoinBlockSize("t2", 5L, queryCircuitBreaker);
@@ -980,9 +978,7 @@ public class JoinIntegrationTest extends SQLIntegrationTestCase {
         execute("refresh table t1");
 
         long memoryLimit = 6 * 1024 * 1024;
-        double overhead = 1.0d;
-        execute("set global \"indices.breaker.query.limit\" = '" + memoryLimit + "b', " +
-                "\"indices.breaker.query.overhead\" = " + overhead);
+        execute("set global \"indices.breaker.query.limit\" = '" + memoryLimit + "b'");
         CircuitBreaker queryCircuitBreaker = internalCluster().getInstance(CircuitBreakerService.class).getBreaker(HierarchyCircuitBreakerService.QUERY);
         randomiseAndConfigureJoinBlockSize("t1", 10L, queryCircuitBreaker);
 

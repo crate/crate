@@ -63,9 +63,7 @@ public class ResetSettingsPlanTest extends ESTestCase {
 
         Settings expected = Settings.builder()
             .put("stats.breaker.log.operations.limit", (String) null)
-            .put("stats.breaker.log.operations.overhead", (String) null)
             .put("stats.breaker.log.jobs.limit", (String) null)
-            .put("stats.breaker.log.jobs.overhead", (String) null)
             .put("stats.enabled", (String) null)
             .put("stats.jobs_log_size", (String) null)
             .put("stats.jobs_log_expiration", (String) null)
