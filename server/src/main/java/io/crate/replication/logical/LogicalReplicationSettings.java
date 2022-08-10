@@ -30,6 +30,7 @@ import org.elasticsearch.cluster.routing.allocation.decider.ShardsLimitAllocatio
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.index.IndexSettings;
@@ -43,7 +44,9 @@ public class LogicalReplicationSettings {
 
     public static final Setting<Integer> REPLICATION_CHANGE_BATCH_SIZE = Setting.intSetting(
         "replication.logical.ops_batch_size", 50000, 16,
-        Setting.Property.Dynamic, Setting.Property.NodeScope
+        Property.Dynamic,
+        Property.NodeScope,
+        Property.Exposed
     );
 
     public static final Setting<TimeValue> REPLICATION_READ_POLL_DURATION = Setting.timeSetting(
@@ -51,8 +54,9 @@ public class LogicalReplicationSettings {
         TimeValue.timeValueMillis(50),
         TimeValue.timeValueMillis(1),
         TimeValue.timeValueSeconds(1),
-        Setting.Property.Dynamic,
-        Setting.Property.NodeScope
+        Property.Dynamic,
+        Property.NodeScope,
+        Property.Exposed
     );
 
     public static final Setting<ByteSizeValue> REPLICATION_RECOVERY_CHUNK_SIZE =
@@ -60,8 +64,9 @@ public class LogicalReplicationSettings {
             new ByteSizeValue(1, ByteSizeUnit.MB),
             new ByteSizeValue(1, ByteSizeUnit.KB),
             new ByteSizeValue(1, ByteSizeUnit.GB),
-            Setting.Property.Dynamic,
-            Setting.Property.NodeScope
+            Property.Dynamic,
+            Property.NodeScope,
+            Property.Exposed
         );
 
     /**
@@ -70,7 +75,9 @@ public class LogicalReplicationSettings {
     public static final Setting<Integer> REPLICATION_RECOVERY_MAX_CONCURRENT_FILE_CHUNKS =
         Setting.intSetting("replication.logical.recovery.max_concurrent_file_chunks",
             2, 1, 5,
-            Setting.Property.Dynamic, Setting.Property.NodeScope
+            Property.Dynamic,
+            Property.NodeScope,
+            Property.Exposed
         );
 
     /**

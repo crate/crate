@@ -60,10 +60,10 @@ public class HierarchyCircuitBreakerService extends CircuitBreakerService {
     private final ConcurrentMap<String, CircuitBreaker> breakers = new ConcurrentHashMap<>();
 
     public static final Setting<ByteSizeValue> TOTAL_CIRCUIT_BREAKER_LIMIT_SETTING =
-        Setting.memorySizeSetting("indices.breaker.total.limit", "95%", Property.Dynamic, Property.NodeScope);
+        Setting.memorySizeSetting("indices.breaker.total.limit", "95%", Property.Dynamic, Property.NodeScope, Property.Exposed);
 
     public static final Setting<ByteSizeValue> REQUEST_CIRCUIT_BREAKER_LIMIT_SETTING =
-        Setting.memorySizeSetting("indices.breaker.request.limit", "60%", Property.Dynamic, Property.NodeScope);
+        Setting.memorySizeSetting("indices.breaker.request.limit", "60%", Property.Dynamic, Property.NodeScope, Property.Exposed);
     public static final Setting<CircuitBreaker.Type> REQUEST_CIRCUIT_BREAKER_TYPE_SETTING =
         new Setting<>("indices.breaker.request.type", "memory", CircuitBreaker.Type::parseValue, DataTypes.STRING, Property.NodeScope);
 
@@ -81,15 +81,15 @@ public class HierarchyCircuitBreakerService extends CircuitBreakerService {
     public static final String QUERY = "query";
 
     public static final Setting<ByteSizeValue> QUERY_CIRCUIT_BREAKER_LIMIT_SETTING = Setting.memorySizeSetting(
-        "indices.breaker.query.limit", "60%", Setting.Property.Dynamic, Setting.Property.NodeScope);
+        "indices.breaker.query.limit", "60%", Property.Dynamic, Property.NodeScope, Property.Exposed);
 
     public static final String JOBS_LOG = "jobs_log";
     public static final Setting<ByteSizeValue> JOBS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING = Setting.memorySizeSetting(
-        "stats.breaker.log.jobs.limit", "5%", Setting.Property.Dynamic, Setting.Property.NodeScope);
+        "stats.breaker.log.jobs.limit", "5%", Property.Dynamic, Property.NodeScope, Property.Exposed);
 
     public static final String OPERATIONS_LOG = "operations_log";
     public static final Setting<ByteSizeValue> OPERATIONS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING = Setting.memorySizeSetting(
-        "stats.breaker.log.operations.limit", "5%", Setting.Property.Dynamic, Setting.Property.NodeScope);
+        "stats.breaker.log.operations.limit", "5%", Property.Dynamic, Property.NodeScope, Property.Exposed);
 
     public static final String BREAKING_EXCEPTION_MESSAGE =
         "[query] Data too large, data for [%s] would be larger than limit of [%d/%s]";

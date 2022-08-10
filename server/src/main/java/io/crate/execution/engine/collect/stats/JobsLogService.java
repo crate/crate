@@ -40,6 +40,7 @@ import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
@@ -82,11 +83,11 @@ import io.crate.types.DataTypes;
 public class JobsLogService extends AbstractLifecycleComponent implements Provider<JobsLogs> {
 
     public static final Setting<Boolean> STATS_ENABLED_SETTING = Setting.boolSetting(
-        "stats.enabled", true, Setting.Property.NodeScope, Setting.Property.Dynamic);
+        "stats.enabled", true, Property.NodeScope, Property.Dynamic, Property.Exposed);
     public static final Setting<Integer> STATS_JOBS_LOG_SIZE_SETTING = Setting.intSetting(
-        "stats.jobs_log_size", 10_000, 0, Setting.Property.NodeScope, Setting.Property.Dynamic);
+        "stats.jobs_log_size", 10_000, 0, Property.NodeScope, Property.Dynamic, Property.Exposed);
     public static final Setting<TimeValue> STATS_JOBS_LOG_EXPIRATION_SETTING = Setting.timeSetting(
-        "stats.jobs_log_expiration", TimeValue.timeValueSeconds(0L), Setting.Property.NodeScope, Setting.Property.Dynamic);
+        "stats.jobs_log_expiration", TimeValue.timeValueSeconds(0L), Property.NodeScope, Property.Dynamic, Property.Exposed);
 
     private static final FilterValidator FILTER_VALIDATOR = new FilterValidator();
 
@@ -97,8 +98,9 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
         Function.identity(),
         FILTER_VALIDATOR,
         DataTypes.STRING,
-        Setting.Property.NodeScope,
-        Setting.Property.Dynamic
+        Property.NodeScope,
+        Property.Dynamic,
+        Property.Exposed
     );
 
     // Explicit generic is required for eclipse JDT, otherwise it won't compile
@@ -108,15 +110,16 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
         Function.identity(),
         FILTER_VALIDATOR,
         DataTypes.STRING,
-        Setting.Property.NodeScope,
-        Setting.Property.Dynamic
+        Property.NodeScope,
+        Property.Dynamic,
+        Property.Exposed
     );
 
     public static final Setting<Integer> STATS_OPERATIONS_LOG_SIZE_SETTING = Setting.intSetting(
-        "stats.operations_log_size", 10_000, 0, Setting.Property.NodeScope, Setting.Property.Dynamic);
+        "stats.operations_log_size", 10_000, 0, Property.NodeScope, Property.Dynamic, Property.Exposed);
 
     public static final Setting<TimeValue> STATS_OPERATIONS_LOG_EXPIRATION_SETTING = Setting.timeSetting(
-        "stats.operations_log_expiration", TimeValue.timeValueSeconds(0L), Setting.Property.NodeScope, Setting.Property.Dynamic);
+        "stats.operations_log_expiration", TimeValue.timeValueSeconds(0L), Property.NodeScope, Property.Dynamic, Property.Exposed);
 
     private static final JobContextLogSizeEstimator JOB_CONTEXT_LOG_ESTIMATOR = new JobContextLogSizeEstimator();
     private static final OperationContextLogSizeEstimator OPERATION_CONTEXT_LOG_SIZE_ESTIMATOR = new OperationContextLogSizeEstimator();

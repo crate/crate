@@ -48,6 +48,7 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.settings.Setting.Property;
 
 import javax.annotation.Nullable;
 import java.util.HashMap;
@@ -74,15 +75,16 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
         DataAvailability.PRIMARIES.name(),
         DataAvailability::of,
         DataTypes.STRING,
-        Setting.Property.Dynamic,
-        Setting.Property.NodeScope
+        Property.Dynamic,
+        Property.NodeScope,
+        Property.Exposed
     );
 
     public static final Setting<Boolean> GRACEFUL_STOP_FORCE_SETTING = Setting.boolSetting(
-        "cluster.graceful_stop.force", false, Setting.Property.Dynamic, Setting.Property.NodeScope);
+        "cluster.graceful_stop.force", false, Property.Dynamic, Property.NodeScope, Property.Exposed);
 
     public static final Setting<TimeValue> GRACEFUL_STOP_TIMEOUT_SETTING = Setting.positiveTimeSetting(
-        "cluster.graceful_stop.timeout", new TimeValue(7_200_000), Setting.Property.Dynamic, Setting.Property.NodeScope);
+        "cluster.graceful_stop.timeout", new TimeValue(7_200_000), Property.Dynamic, Property.NodeScope, Property.Exposed);
 
     private final ClusterService clusterService;
     private final JobsLogs jobsLogs;

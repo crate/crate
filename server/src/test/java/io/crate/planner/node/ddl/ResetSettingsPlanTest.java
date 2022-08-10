@@ -22,6 +22,7 @@
 package io.crate.planner.node.ddl;
 
 import static io.crate.planner.node.ddl.ResetSettingsPlan.buildSettingsFrom;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
@@ -80,12 +81,11 @@ public class ResetSettingsPlanTest extends ESTestCase {
 
     @Test
     public void testResetNonRuntimeSetting() {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Setting 'gateway.recover_after_nodes' cannot be set/reset at runtime");
-
         Set<Symbol> settings = Set.of(Literal.of("gateway"));
 
-        buildSettingsFrom(settings, symbolEvaluator(Row.EMPTY));
+        assertThatThrownBy(() -> buildSettingsFrom(settings, symbolEvaluator(Row.EMPTY)))
+            .isInstanceOf(UnsupportedOperationException.class)
+            .hasMessageContaining("cannot be set/reset at runtime");
     }
 
     @Test

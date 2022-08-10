@@ -82,7 +82,7 @@ public class InternalClusterInfoService implements ClusterInfoService, ClusterSt
 
     public static final Setting<TimeValue> INTERNAL_CLUSTER_INFO_UPDATE_INTERVAL_SETTING =
         Setting.timeSetting("cluster.info.update.interval", TimeValue.timeValueSeconds(30), TimeValue.timeValueSeconds(10),
-            Property.Dynamic, Property.NodeScope);
+            Property.Dynamic, Property.NodeScope, Property.Exposed);
     public static final Setting<TimeValue> INTERNAL_CLUSTER_INFO_TIMEOUT_SETTING =
         Setting.positiveTimeSetting("cluster.info.update.timeout", TimeValue.timeValueSeconds(15),
             Property.Dynamic, Property.NodeScope);

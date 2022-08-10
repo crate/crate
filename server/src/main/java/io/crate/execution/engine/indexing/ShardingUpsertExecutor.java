@@ -51,6 +51,7 @@ import org.elasticsearch.client.ElasticsearchClient;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.index.shard.ShardId;
 
@@ -76,8 +77,9 @@ public class ShardingUpsertExecutor
     public static final Setting<TimeValue> BULK_REQUEST_TIMEOUT_SETTING = Setting.positiveTimeSetting(
         "bulk.request_timeout",
         new TimeValue(1, TimeUnit.MINUTES),
-        Setting.Property.NodeScope,
-        Setting.Property.Dynamic
+        Property.NodeScope,
+        Property.Dynamic,
+        Property.Exposed
     );
 
     private static final Logger LOGGER = LogManager.getLogger(ShardingUpsertExecutor.class);

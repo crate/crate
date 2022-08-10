@@ -57,6 +57,7 @@ import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.common.lease.Releasables;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.AbstractRunnable;
 import org.elasticsearch.index.IndexNotFoundException;
@@ -103,9 +104,12 @@ public abstract class TransportReplicationAction<
     /**
      * The timeout for retrying replication requests.
      */
-    public static final Setting<TimeValue> REPLICATION_RETRY_TIMEOUT =
-        Setting.timeSetting("indices.replication.retry_timeout", TimeValue.timeValueSeconds(60), Setting.Property.Dynamic,
-            Setting.Property.NodeScope);
+    public static final Setting<TimeValue> REPLICATION_RETRY_TIMEOUT = Setting.timeSetting(
+        "indices.replication.retry_timeout",
+        TimeValue.timeValueSeconds(60),
+        Property.Dynamic,
+        Property.NodeScope,
+        Property.Exposed);
 
     /**
      * The maximum bound for the first retry backoff for failed replication operations. The backoff bound
