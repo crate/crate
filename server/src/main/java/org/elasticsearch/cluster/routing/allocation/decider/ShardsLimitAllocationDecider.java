@@ -82,7 +82,8 @@ public class ShardsLimitAllocationDecider extends AllocationDecider {
             -1,
             -1,
             Property.Dynamic,
-            Property.NodeScope
+            Property.NodeScope,
+            Property.Exposed
         );
 
     public ShardsLimitAllocationDecider(Settings settings, ClusterSettings clusterSettings) {

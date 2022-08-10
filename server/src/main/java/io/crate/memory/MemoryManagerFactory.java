@@ -27,6 +27,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Setting.Property;
 
 import java.util.Set;
 import java.util.function.Function;
@@ -73,8 +74,9 @@ public final class MemoryManagerFactory implements Function<RamAccounting, Memor
                 "Invalid argument `" + input + "` for `memory.allocation.type`, valid values are: " + TYPES);
         },
         DataTypes.STRING,
-        Setting.Property.NodeScope,
-        Setting.Property.Dynamic
+        Property.NodeScope,
+        Property.Dynamic,
+        Property.Exposed
     );
 
     private volatile MemoryType currentMemoryType = MemoryType.ON_HEAP;

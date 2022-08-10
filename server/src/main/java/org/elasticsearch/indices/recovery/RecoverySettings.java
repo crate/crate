@@ -37,7 +37,7 @@ public class RecoverySettings {
 
     public static final Setting<ByteSizeValue> INDICES_RECOVERY_MAX_BYTES_PER_SEC_SETTING =
         Setting.byteSizeSetting("indices.recovery.max_bytes_per_sec", new ByteSizeValue(40, ByteSizeUnit.MB),
-            Property.Dynamic, Property.NodeScope);
+            Property.Dynamic, Property.NodeScope, Property.Exposed);
 
     /**
      * Controls the maximum number of file chunk requests that can be sent concurrently from the source node to the target node.
@@ -57,17 +57,17 @@ public class RecoverySettings {
      */
     public static final Setting<TimeValue> INDICES_RECOVERY_RETRY_DELAY_STATE_SYNC_SETTING =
         Setting.positiveTimeSetting("indices.recovery.retry_delay_state_sync", TimeValue.timeValueMillis(500),
-            Property.Dynamic, Property.NodeScope);
+            Property.Dynamic, Property.NodeScope, Property.Exposed);
 
     /** how long to wait before retrying after network related issues */
     public static final Setting<TimeValue> INDICES_RECOVERY_RETRY_DELAY_NETWORK_SETTING =
         Setting.positiveTimeSetting("indices.recovery.retry_delay_network", TimeValue.timeValueSeconds(5),
-            Property.Dynamic, Property.NodeScope);
+            Property.Dynamic, Property.NodeScope, Property.Exposed);
 
     /** timeout value to use for requests made as part of the recovery process */
     public static final Setting<TimeValue> INDICES_RECOVERY_INTERNAL_ACTION_TIMEOUT_SETTING =
         Setting.positiveTimeSetting("indices.recovery.internal_action_timeout", TimeValue.timeValueMinutes(15),
-            Property.Dynamic, Property.NodeScope);
+            Property.Dynamic, Property.NodeScope, Property.Exposed);
 
     /** timeout value to use for the retrying of requests made as part of the recovery process */
     public static final Setting<TimeValue> INDICES_RECOVERY_INTERNAL_ACTION_RETRY_TIMEOUT_SETTING =
@@ -84,7 +84,8 @@ public class RecoverySettings {
             (s) -> TimeValue.timeValueMillis(INDICES_RECOVERY_INTERNAL_ACTION_TIMEOUT_SETTING.get(s).millis() * 2),
             TimeValue.timeValueSeconds(0),
             Property.Dynamic,
-            Property.NodeScope
+            Property.NodeScope,
+            Property.Exposed
         );
 
     /**
@@ -94,7 +95,7 @@ public class RecoverySettings {
     public static final Setting<TimeValue> INDICES_RECOVERY_ACTIVITY_TIMEOUT_SETTING =
         Setting.timeSetting("indices.recovery.recovery_activity_timeout",
             INDICES_RECOVERY_INTERNAL_LONG_ACTION_TIMEOUT_SETTING::get, TimeValue.timeValueSeconds(0),
-            Property.Dynamic, Property.NodeScope);
+            Property.Dynamic, Property.NodeScope, Property.Exposed);
 
     // choose 512KB-16B to ensure that the resulting byte[] is not a humongous allocation in G1.
     public static final ByteSizeValue DEFAULT_CHUNK_SIZE = new ByteSizeValue(512 * 1024 - 16, ByteSizeUnit.BYTES);

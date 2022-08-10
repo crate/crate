@@ -83,12 +83,12 @@ public class BalancedShardsAllocator implements ShardsAllocator {
     private static final Logger LOGGER = LogManager.getLogger(BalancedShardsAllocator.class);
 
     public static final Setting<Float> INDEX_BALANCE_FACTOR_SETTING =
-        Setting.floatSetting("cluster.routing.allocation.balance.index", 0.55f, 0.0f, Property.Dynamic, Property.NodeScope);
+        Setting.floatSetting("cluster.routing.allocation.balance.index", 0.55f, 0.0f, Property.Dynamic, Property.NodeScope, Property.Exposed);
     public static final Setting<Float> SHARD_BALANCE_FACTOR_SETTING =
-        Setting.floatSetting("cluster.routing.allocation.balance.shard", 0.45f, 0.0f, Property.Dynamic, Property.NodeScope);
+        Setting.floatSetting("cluster.routing.allocation.balance.shard", 0.45f, 0.0f, Property.Dynamic, Property.NodeScope, Property.Exposed);
     public static final Setting<Float> THRESHOLD_SETTING =
         Setting.floatSetting("cluster.routing.allocation.balance.threshold", 1.0f, 0.0f,
-            Property.Dynamic, Property.NodeScope);
+            Property.Dynamic, Property.NodeScope, Property.Exposed);
 
     private volatile WeightFunction weightFunction;
     private volatile float threshold;

@@ -19,21 +19,23 @@
 
 package org.elasticsearch.cluster.routing.allocation;
 
-import io.crate.common.unit.TimeValue;
-import io.crate.types.DataTypes;
-import org.elasticsearch.ElasticsearchParseException;
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.settings.ClusterSettings;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.unit.ByteSizeValue;
-import org.elasticsearch.common.unit.RatioValue;
-
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+
+import org.elasticsearch.ElasticsearchParseException;
+import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.settings.ClusterSettings;
+import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Setting.Property;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.unit.ByteSizeValue;
+import org.elasticsearch.common.unit.RatioValue;
+
+import io.crate.common.unit.TimeValue;
+import io.crate.types.DataTypes;
 
 /**
  * A container to keep settings for disk thresholds up to date with cluster setting changes.
@@ -41,25 +43,25 @@ import java.util.Map;
 public class DiskThresholdSettings {
     public static final Setting<Boolean> CLUSTER_ROUTING_ALLOCATION_DISK_THRESHOLD_ENABLED_SETTING =
         Setting.boolSetting("cluster.routing.allocation.disk.threshold_enabled", true,
-            Setting.Property.Dynamic, Setting.Property.NodeScope);
+            Setting.Property.Dynamic, Setting.Property.NodeScope, Property.Exposed);
     public static final Setting<String> CLUSTER_ROUTING_ALLOCATION_LOW_DISK_WATERMARK_SETTING =
         new Setting<>("cluster.routing.allocation.disk.watermark.low", "85%",
             (s) -> validWatermarkSetting(s, "cluster.routing.allocation.disk.watermark.low"),
             new LowDiskWatermarkValidator(),
             DataTypes.STRING,
-            Setting.Property.Dynamic, Setting.Property.NodeScope);
+            Setting.Property.Dynamic, Setting.Property.NodeScope, Property.Exposed);
     public static final Setting<String> CLUSTER_ROUTING_ALLOCATION_HIGH_DISK_WATERMARK_SETTING =
         new Setting<>("cluster.routing.allocation.disk.watermark.high", "90%",
             (s) -> validWatermarkSetting(s, "cluster.routing.allocation.disk.watermark.high"),
             new HighDiskWatermarkValidator(),
             DataTypes.STRING,
-            Setting.Property.Dynamic, Setting.Property.NodeScope);
+            Setting.Property.Dynamic, Setting.Property.NodeScope, Property.Exposed);
     public static final Setting<String> CLUSTER_ROUTING_ALLOCATION_DISK_FLOOD_STAGE_WATERMARK_SETTING =
         new Setting<>("cluster.routing.allocation.disk.watermark.flood_stage", "95%",
             (s) -> validWatermarkSetting(s, "cluster.routing.allocation.disk.watermark.flood_stage"),
             new FloodStageValidator(),
             DataTypes.STRING,
-            Setting.Property.Dynamic, Setting.Property.NodeScope);
+            Setting.Property.Dynamic, Setting.Property.NodeScope, Property.Exposed);
     public static final Setting<Boolean> CLUSTER_ROUTING_ALLOCATION_INCLUDE_RELOCATIONS_SETTING =
         Setting.boolSetting("cluster.routing.allocation.disk.include_relocations", true,
             Setting.Property.Dynamic, Setting.Property.NodeScope);

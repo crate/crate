@@ -30,36 +30,17 @@ import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterStateListener;
-import org.elasticsearch.cluster.InternalClusterInfoService;
-import org.elasticsearch.cluster.routing.allocation.DiskThresholdSettings;
-import org.elasticsearch.cluster.routing.allocation.allocator.BalancedShardsAllocator;
-import org.elasticsearch.cluster.routing.allocation.decider.ClusterRebalanceAllocationDecider;
-import org.elasticsearch.cluster.routing.allocation.decider.ConcurrentRebalanceAllocationDecider;
-import org.elasticsearch.cluster.routing.allocation.decider.EnableAllocationDecider;
 import org.elasticsearch.cluster.routing.allocation.decider.FilterAllocationDecider;
-import org.elasticsearch.cluster.routing.allocation.decider.ShardsLimitAllocationDecider;
-import org.elasticsearch.cluster.routing.allocation.decider.ThrottlingAllocationDecider;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.gateway.GatewayService;
-import org.elasticsearch.indices.ShardLimitValidator;
-import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
-import org.elasticsearch.indices.recovery.RecoverySettings;
 
-import io.crate.cluster.gracefulstop.DecommissioningService;
-import io.crate.execution.engine.collect.stats.JobsLogService;
-import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
-import io.crate.execution.jobs.NodeLimits;
-import io.crate.memory.MemoryManagerFactory;
-import io.crate.replication.logical.LogicalReplicationSettings;
-import io.crate.statistics.TableStatsService;
+import io.crate.common.collections.Lists2;
 import io.crate.types.DataTypes;
-import io.crate.udc.service.UDCService;
 
 public final class CrateSettings implements ClusterStateListener {
 
@@ -67,115 +48,49 @@ public final class CrateSettings implements ClusterStateListener {
      * List of cluster/node settings exposed via `sys.cluster.settings`,
      * see also {@link io.crate.metadata.sys.SysClusterTableInfo}
      */
-    public static final List<Setting<?>> EXPOSED_SETTINGS = List.of(
-        // CLUSTER
-        InternalClusterInfoService.INTERNAL_CLUSTER_INFO_UPDATE_INTERVAL_SETTING,
-        // CLUSTER ROUTING
-        EnableAllocationDecider.CLUSTER_ROUTING_ALLOCATION_ENABLE_SETTING,
-        EnableAllocationDecider.CLUSTER_ROUTING_REBALANCE_ENABLE_SETTING,
-        ClusterRebalanceAllocationDecider.CLUSTER_ROUTING_ALLOCATION_ALLOW_REBALANCE_SETTING,
-        ConcurrentRebalanceAllocationDecider.CLUSTER_ROUTING_ALLOCATION_CLUSTER_CONCURRENT_REBALANCE_SETTING,
-        ShardsLimitAllocationDecider.CLUSTER_TOTAL_SHARDS_PER_NODE_SETTING,
-        ThrottlingAllocationDecider.CLUSTER_ROUTING_ALLOCATION_NODE_INITIAL_PRIMARIES_RECOVERIES_SETTING,
-        ThrottlingAllocationDecider.CLUSTER_ROUTING_ALLOCATION_NODE_CONCURRENT_RECOVERIES_SETTING,
-        HierarchyCircuitBreakerService.JOBS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING,
-        HierarchyCircuitBreakerService.OPERATIONS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING,
-        HierarchyCircuitBreakerService.QUERY_CIRCUIT_BREAKER_LIMIT_SETTING,
-        Setting.simpleString(
-            FilterAllocationDecider.CLUSTER_ROUTING_INCLUDE_GROUP_SETTING.getKey() + "_ip",
-            Setting.Property.NodeScope, Setting.Property.Dynamic),
-        Setting.simpleString(
-            FilterAllocationDecider.CLUSTER_ROUTING_INCLUDE_GROUP_SETTING.getKey() + "_id",
-            Setting.Property.NodeScope, Setting.Property.Dynamic),
-        Setting.simpleString(
-            FilterAllocationDecider.CLUSTER_ROUTING_INCLUDE_GROUP_SETTING.getKey() + "_host",
-            Setting.Property.NodeScope, Setting.Property.Dynamic),
-        Setting.simpleString(
-            FilterAllocationDecider.CLUSTER_ROUTING_INCLUDE_GROUP_SETTING.getKey() + "_name",
-            Setting.Property.NodeScope, Setting.Property.Dynamic),
-        Setting.simpleString(
-            FilterAllocationDecider.CLUSTER_ROUTING_EXCLUDE_GROUP_SETTING.getKey() + "_ip",
-            Setting.Property.NodeScope, Setting.Property.Dynamic),
-        Setting.simpleString(
-            FilterAllocationDecider.CLUSTER_ROUTING_EXCLUDE_GROUP_SETTING.getKey() + "_id",
-            Setting.Property.NodeScope, Setting.Property.Dynamic),
-        Setting.simpleString(
-            FilterAllocationDecider.CLUSTER_ROUTING_EXCLUDE_GROUP_SETTING.getKey() + "_host",
-            Setting.Property.NodeScope, Setting.Property.Dynamic),
-        Setting.simpleString(
-            FilterAllocationDecider.CLUSTER_ROUTING_EXCLUDE_GROUP_SETTING.getKey() + "_name",
-            Setting.Property.NodeScope, Setting.Property.Dynamic),
-        Setting.simpleString(
-            FilterAllocationDecider.CLUSTER_ROUTING_REQUIRE_GROUP_SETTING.getKey() + "_ip",
-            Setting.Property.NodeScope, Setting.Property.Dynamic),
-        Setting.simpleString(
-            FilterAllocationDecider.CLUSTER_ROUTING_REQUIRE_GROUP_SETTING.getKey() + "_id",
-            Setting.Property.NodeScope, Setting.Property.Dynamic),
-        Setting.simpleString(
-            FilterAllocationDecider.CLUSTER_ROUTING_REQUIRE_GROUP_SETTING.getKey() + "_host",
-            Setting.Property.NodeScope, Setting.Property.Dynamic),
-        Setting.simpleString(
-            FilterAllocationDecider.CLUSTER_ROUTING_REQUIRE_GROUP_SETTING.getKey() + "_name",
-            Setting.Property.NodeScope, Setting.Property.Dynamic),
-        BalancedShardsAllocator.SHARD_BALANCE_FACTOR_SETTING,
-        BalancedShardsAllocator.INDEX_BALANCE_FACTOR_SETTING,
-        BalancedShardsAllocator.THRESHOLD_SETTING,
-        DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_DISK_THRESHOLD_ENABLED_SETTING,
-        DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_LOW_DISK_WATERMARK_SETTING,
-        DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_HIGH_DISK_WATERMARK_SETTING,
-        DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_DISK_FLOOD_STAGE_WATERMARK_SETTING,
-        // GATEWAY
-        GatewayService.RECOVER_AFTER_NODES_SETTING,
-        GatewayService.RECOVER_AFTER_DATA_NODES_SETTING,
-        GatewayService.RECOVER_AFTER_TIME_SETTING,
-        GatewayService.EXPECTED_NODES_SETTING,
-        GatewayService.EXPECTED_DATA_NODES_SETTING,
-        // INDICES
-        RecoverySettings.INDICES_RECOVERY_MAX_BYTES_PER_SEC_SETTING,
-        RecoverySettings.INDICES_RECOVERY_RETRY_DELAY_STATE_SYNC_SETTING,
-        RecoverySettings.INDICES_RECOVERY_RETRY_DELAY_NETWORK_SETTING,
-        RecoverySettings.INDICES_RECOVERY_INTERNAL_ACTION_TIMEOUT_SETTING,
-        RecoverySettings.INDICES_RECOVERY_INTERNAL_LONG_ACTION_TIMEOUT_SETTING,
-        RecoverySettings.INDICES_RECOVERY_ACTIVITY_TIMEOUT_SETTING,
-        HierarchyCircuitBreakerService.REQUEST_CIRCUIT_BREAKER_LIMIT_SETTING,
-        HierarchyCircuitBreakerService.TOTAL_CIRCUIT_BREAKER_LIMIT_SETTING,
-        ShardLimitValidator.SETTING_CLUSTER_MAX_SHARDS_PER_NODE,
-        // Overload protection
-        NodeLimits.INITIAL_CONCURRENCY,
-        NodeLimits.QUEUE_SIZE,
-        NodeLimits.MIN_CONCURRENCY,
-        NodeLimits.MAX_CONCURRENCY,
-        // STATS
-        JobsLogService.STATS_ENABLED_SETTING,
-        JobsLogService.STATS_JOBS_LOG_SIZE_SETTING,
-        JobsLogService.STATS_JOBS_LOG_EXPIRATION_SETTING,
-        JobsLogService.STATS_JOBS_LOG_FILTER,
-        JobsLogService.STATS_JOBS_LOG_PERSIST_FILTER,
-        JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING,
-        JobsLogService.STATS_OPERATIONS_LOG_EXPIRATION_SETTING,
-        TableStatsService.STATS_SERVICE_REFRESH_INTERVAL_SETTING,
-        // BULK
-        ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING,
-        // GRACEFUL STOP
-        DecommissioningService.GRACEFUL_STOP_MIN_AVAILABILITY_SETTING,
-        DecommissioningService.GRACEFUL_STOP_TIMEOUT_SETTING,
-        DecommissioningService.GRACEFUL_STOP_FORCE_SETTING,
-        // UDC
-        UDCService.UDC_ENABLED_SETTING,
-        UDCService.UDC_URL_SETTING,
-        UDCService.UDC_INITIAL_DELAY_SETTING,
-        UDCService.UDC_INTERVAL_SETTING,
-        // Memory
-        MemoryManagerFactory.MEMORY_ALLOCATION_TYPE,
-
-        LogicalReplicationSettings.REPLICATION_CHANGE_BATCH_SIZE,
-        LogicalReplicationSettings.REPLICATION_READ_POLL_DURATION,
-        LogicalReplicationSettings.REPLICATION_RECOVERY_CHUNK_SIZE,
-        LogicalReplicationSettings.REPLICATION_RECOVERY_MAX_CONCURRENT_FILE_CHUNKS,
-
-        TransportReplicationAction.REPLICATION_RETRY_TIMEOUT
+    public static final List<Setting<?>> EXPOSED_SETTINGS = Lists2.concat(
+        ClusterSettings.BUILT_IN_CLUSTER_SETTINGS.stream()
+            .filter(Setting::isExposed)
+            .toList(),
+        List.of(
+            Setting.simpleString(
+                FilterAllocationDecider.CLUSTER_ROUTING_INCLUDE_GROUP_SETTING.getKey() + "_ip",
+                Setting.Property.NodeScope, Setting.Property.Dynamic),
+            Setting.simpleString(
+                FilterAllocationDecider.CLUSTER_ROUTING_INCLUDE_GROUP_SETTING.getKey() + "_id",
+                Setting.Property.NodeScope, Setting.Property.Dynamic),
+            Setting.simpleString(
+                FilterAllocationDecider.CLUSTER_ROUTING_INCLUDE_GROUP_SETTING.getKey() + "_host",
+                Setting.Property.NodeScope, Setting.Property.Dynamic),
+            Setting.simpleString(
+                FilterAllocationDecider.CLUSTER_ROUTING_INCLUDE_GROUP_SETTING.getKey() + "_name",
+                Setting.Property.NodeScope, Setting.Property.Dynamic),
+            Setting.simpleString(
+                FilterAllocationDecider.CLUSTER_ROUTING_EXCLUDE_GROUP_SETTING.getKey() + "_ip",
+                Setting.Property.NodeScope, Setting.Property.Dynamic),
+            Setting.simpleString(
+                FilterAllocationDecider.CLUSTER_ROUTING_EXCLUDE_GROUP_SETTING.getKey() + "_id",
+                Setting.Property.NodeScope, Setting.Property.Dynamic),
+            Setting.simpleString(
+                FilterAllocationDecider.CLUSTER_ROUTING_EXCLUDE_GROUP_SETTING.getKey() + "_host",
+                Setting.Property.NodeScope, Setting.Property.Dynamic),
+            Setting.simpleString(
+                FilterAllocationDecider.CLUSTER_ROUTING_EXCLUDE_GROUP_SETTING.getKey() + "_name",
+                Setting.Property.NodeScope, Setting.Property.Dynamic),
+            Setting.simpleString(
+                FilterAllocationDecider.CLUSTER_ROUTING_REQUIRE_GROUP_SETTING.getKey() + "_ip",
+                Setting.Property.NodeScope, Setting.Property.Dynamic),
+            Setting.simpleString(
+                FilterAllocationDecider.CLUSTER_ROUTING_REQUIRE_GROUP_SETTING.getKey() + "_id",
+                Setting.Property.NodeScope, Setting.Property.Dynamic),
+            Setting.simpleString(
+                FilterAllocationDecider.CLUSTER_ROUTING_REQUIRE_GROUP_SETTING.getKey() + "_host",
+                Setting.Property.NodeScope, Setting.Property.Dynamic),
+            Setting.simpleString(
+                FilterAllocationDecider.CLUSTER_ROUTING_REQUIRE_GROUP_SETTING.getKey() + "_name",
+                Setting.Property.NodeScope, Setting.Property.Dynamic)
+        )
     );
-
 
     private static final List<String> EXPOSED_SETTING_NAMES = EXPOSED_SETTINGS.stream()
         .map(Setting::getKey)

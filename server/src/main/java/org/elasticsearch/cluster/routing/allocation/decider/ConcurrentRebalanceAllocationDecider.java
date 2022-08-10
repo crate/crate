@@ -48,7 +48,7 @@ public class ConcurrentRebalanceAllocationDecider extends AllocationDecider {
 
     public static final Setting<Integer> CLUSTER_ROUTING_ALLOCATION_CLUSTER_CONCURRENT_REBALANCE_SETTING =
         Setting.intSetting("cluster.routing.allocation.cluster_concurrent_rebalance", 2, -1,
-            Property.Dynamic, Property.NodeScope);
+            Property.Dynamic, Property.NodeScope, Property.Exposed);
     private volatile int clusterConcurrentRebalance;
 
     public ConcurrentRebalanceAllocationDecider(Settings settings, ClusterSettings clusterSettings) {

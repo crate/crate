@@ -52,9 +52,9 @@ public class GatewayService extends AbstractLifecycleComponent implements Cluste
     private static final Logger LOGGER = LogManager.getLogger(GatewayService.class);
 
     public static final Setting<Integer> EXPECTED_NODES_SETTING =
-        Setting.intSetting("gateway.expected_nodes", -1, -1, Property.NodeScope, Property.Deprecated);
+        Setting.intSetting("gateway.expected_nodes", -1, -1, Property.NodeScope, Property.Deprecated, Property.Exposed);
     public static final Setting<Integer> EXPECTED_DATA_NODES_SETTING =
-        Setting.intSetting("gateway.expected_data_nodes", -1, -1, Property.NodeScope);
+        Setting.intSetting("gateway.expected_data_nodes", -1, -1, Property.NodeScope, Property.Exposed);
     public static final Setting<Integer> EXPECTED_MASTER_NODES_SETTING =
         Setting.intSetting("gateway.expected_master_nodes", -1, -1, Property.NodeScope, Property.Deprecated);
 
@@ -71,12 +71,13 @@ public class GatewayService extends AbstractLifecycleComponent implements Cluste
                 return TimeValue.timeValueMillis(0);
             },
             TimeValue.ZERO,
-            Property.NodeScope
+            Property.NodeScope,
+            Property.Exposed
         );
     public static final Setting<Integer> RECOVER_AFTER_NODES_SETTING =
-        Setting.intSetting("gateway.recover_after_nodes", -1, -1, Property.NodeScope, Property.Deprecated);
+        Setting.intSetting("gateway.recover_after_nodes", -1, -1, Property.NodeScope, Property.Deprecated, Property.Exposed);
     public static final Setting<Integer> RECOVER_AFTER_DATA_NODES_SETTING =
-        Setting.intSetting("gateway.recover_after_data_nodes", -1, -1, Property.NodeScope);
+        Setting.intSetting("gateway.recover_after_data_nodes", -1, -1, Property.NodeScope, Property.Exposed);
     public static final Setting<Integer> RECOVER_AFTER_MASTER_NODES_SETTING =
         Setting.intSetting("gateway.recover_after_master_nodes", 0, 0, Property.NodeScope, Property.Deprecated);
 

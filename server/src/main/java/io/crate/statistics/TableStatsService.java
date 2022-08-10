@@ -37,6 +37,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.threadpool.Scheduler;
 import org.elasticsearch.threadpool.ThreadPool;
 
@@ -51,7 +52,7 @@ public class TableStatsService implements Runnable {
     private static final Logger LOGGER = LogManager.getLogger(TableStatsService.class);
 
     public static final Setting<TimeValue> STATS_SERVICE_REFRESH_INTERVAL_SETTING = Setting.timeSetting(
-        "stats.service.interval", TimeValue.timeValueHours(24), Setting.Property.NodeScope, Setting.Property.Dynamic);
+        "stats.service.interval", TimeValue.timeValueHours(24), Property.NodeScope, Property.Dynamic, Property.Exposed);
 
     static final String STMT = "ANALYZE";
     private static final Statement PARSED_STMT = SqlParser.createStatement(STMT);

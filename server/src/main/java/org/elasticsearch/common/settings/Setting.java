@@ -142,7 +142,12 @@ public class Setting<T> implements ToXContentObject {
         /**
          * Indicates a setting that contains sensitive information. Such a setting will be masked when shown to the users.
          */
-        Masked
+        Masked,
+
+        /**
+         * Exposes the setting via sys.cluster.settings
+         */
+        Exposed
     }
 
     private final Key key;
@@ -1850,5 +1855,9 @@ public class Setting<T> implements ToXContentObject {
 
     public List<String> path() {
         return path;
+    }
+
+    public boolean isExposed() {
+        return properties.contains(Property.Exposed);
     }
 }

@@ -32,6 +32,8 @@ import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.settings.Setting.Property;
+
 import io.crate.common.unit.TimeValue;
 
 import java.util.Timer;
@@ -43,20 +45,23 @@ public class UDCService extends AbstractLifecycleComponent {
     private static final Logger LOGGER = LogManager.getLogger(UDCService.class);
 
     public static final Setting<Boolean> UDC_ENABLED_SETTING = Setting.boolSetting(
-        "udc.enabled", true, Setting.Property.NodeScope);
+        "udc.enabled", true, Property.NodeScope, Property.Exposed);
 
     // Explicit generic is required for eclipse JDT, otherwise it won't compile
     public static final Setting<String> UDC_URL_SETTING = new Setting<String>(
         "udc.url", "https://udc.crate.io/",
-        Function.identity(), DataTypes.STRING, Setting.Property.NodeScope);
+        Function.identity(), DataTypes.STRING, Property.NodeScope, Property.Exposed);
 
     public static final Setting<TimeValue> UDC_INITIAL_DELAY_SETTING = Setting.positiveTimeSetting(
         "udc.initial_delay", new TimeValue(10, TimeUnit.MINUTES),
-        Setting.Property.NodeScope);
+        Property.NodeScope,
+        Property.Exposed);
 
     public static final Setting<TimeValue> UDC_INTERVAL_SETTING = Setting.positiveTimeSetting(
         "udc.interval", new TimeValue(24, TimeUnit.HOURS),
-        Setting.Property.NodeScope);
+        Property.NodeScope,
+        Property.Exposed
+    );
 
     private final Timer timer;
 
