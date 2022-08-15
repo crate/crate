@@ -64,7 +64,15 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
-- Fix an issue, causing ``IndexOutOfBoundsException`` to be thrown when using
+- Fixed an issue, preventing users from defining a constraint on a generated
+  column, when creating a table or when adding a generated column, i.e.::
+
+    CREATE TABLE test(
+        col1 INT,
+        col2 INT GENERATED ALWAYS AS col1*2 CHECK (col2 > 0)
+   )
+
+- Fixed an issue causing ``IndexOutOfBoundsException`` to be thrown when using
   ``LEFT``/``RIGHT`` or ``FULL`` ``OUTER JOIN`` and one of the tables (or
   sub-selects) joined has 0 rows.
 
