@@ -571,4 +571,4 @@ CrateDB and we love to hear feedback.
 .. _PostgreSQL simple query: https://www.postgresql.org/docs/current/static/protocol-flow.html#id-1.10.5.7.4
 .. _PostgreSQL value expressions: https://www.postgresql.org/docs/current/static/sql-expressions.html
 .. _PostgreSQL wire protocol v3: https://www.postgresql.org/docs/current/static/protocol.html
-.. _PostgreSQL cancelling requests: https://www.postgresql.org/docs/current/protocol-flow.html#id-1.10.5.7.9
+.. _PostgreSQL cancelling requests: https://www.postgresql.org/docs/current/protocol-flow.html#id-1.10.5.7.10
