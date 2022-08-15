@@ -163,5 +163,9 @@ public class CreateTableIntegrationTest extends SQLIntegrationTestCase {
                        INTERNAL_ERROR,
                        BAD_REQUEST,
                        4000));
+
+        execute("INSERT INTO test(col1) VALUES(1),(2),(3)");
+        assertThat(printedTable(response.rows()))
+            .isEqualTo("");
     }
 }
