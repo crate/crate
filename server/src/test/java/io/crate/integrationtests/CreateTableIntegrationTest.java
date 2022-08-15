@@ -22,14 +22,14 @@
 package io.crate.integrationtests;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_TABLE;
 import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static org.hamcrest.Matchers.is;
+import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.startsWith;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertThrows;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -73,18 +73,19 @@ public class CreateTableIntegrationTest extends SQLIntegrationTestCase {
             .execute()
             .actionGet(5, TimeUnit.SECONDS);
 
-        assertThat(
-            internalCluster().getInstance(ClusterService.class).state().metadata().hasIndex("tbl"),
-            is(true)
-        );
-        assertThrows(Exception.class, () -> execute("select * from doc.tbl"));
+        assertThat(internalCluster().getInstance(ClusterService.class).state().metadata().hasIndex("tbl"))
+            .isTrue();
+        assertThrowsMatches(
+            () -> execute("select * from doc.tbl"),
+            isSQLError(startsWith("Relation 'doc.tbl' unknown"),
+                       UNDEFINED_TABLE,
+                       NOT_FOUND,
+                       4041));
         execute("drop table doc.tbl");
         execute("select count(*) from information_schema.tables where table_name = 'tbl'");
-        assertThat(response.rows()[0][0], is(0L));
-        assertThat(
-            internalCluster().getInstance(ClusterService.class).state().metadata().hasIndex("tbl"),
-            is(false)
-        );
+        assertThat(response.rows()[0][0]).isEqualTo(0L);
+        assertThat(internalCluster().getInstance(ClusterService.class).state().metadata().hasIndex("tbl"))
+            .isFalse();
     }
 
     private void executeCreateTableThreaded(final String statement) throws Throwable {
@@ -105,7 +106,9 @@ public class CreateTableIntegrationTest extends SQLIntegrationTestCase {
         }
 
         executorService.shutdown();
-        assertThat("executorservice did not shutdown within timeout", executorService.awaitTermination(10, TimeUnit.SECONDS), is(true));
+        assertThat(executorService.awaitTermination(10, TimeUnit.SECONDS))
+            .as("executorservice did not shutdown within timeout")
+            .isTrue();
 
         Throwable throwable = lastThrowable.get();
         if (throwable != null) {
@@ -122,7 +125,7 @@ public class CreateTableIntegrationTest extends SQLIntegrationTestCase {
         execute("insert into test(t) values('2020-02-11 15:44:17')");
         refresh();
         execute("select date_format('%Y-%m-%d %H:%i:%s', calculated) from test");
-        assertThat(printedTable(response.rows()), is("2020-02-11 15:30:00\n"));
+        assertThat(printedTable(response.rows())).isEqualTo("2020-02-11 15:30:00\n");
     }
 
     @Test
