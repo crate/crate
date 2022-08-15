@@ -40,7 +40,6 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
-import io.crate.expression.symbol.DefaultTraversalSymbolVisitor;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
@@ -59,6 +58,7 @@ import io.crate.common.Booleans;
 import io.crate.common.collections.Lists2;
 import io.crate.common.collections.MapBuilder;
 import io.crate.common.collections.Maps;
+import io.crate.expression.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -667,9 +667,9 @@ public class DocIndexMetadata {
 
         for (var generatedReference : generatedColumnReferences) {
             Expression expression = SqlParser.createExpression(generatedReference.formattedGeneratedExpression());
+            tableReferenceResolver.references().clear();
             generatedReference.generatedExpression(exprAnalyzer.convert(expression, analysisCtx));
             generatedReference.referencedReferences(List.copyOf(tableReferenceResolver.references()));
-            tableReferenceResolver.references().clear();
         }
         return this;
     }
