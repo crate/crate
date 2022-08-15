@@ -24,7 +24,6 @@ package io.crate.analyze.expressions;
 import io.crate.analyze.relations.FieldProvider;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.table.Operation;
@@ -66,9 +65,6 @@ public class TableReferenceResolver implements FieldProvider<Reference> {
         ColumnIdent columnIdent = columnIdent(qualifiedName, path);
         for (Reference reference : tableReferences) {
             if (reference.column().equals(columnIdent)) {
-                if (reference instanceof GeneratedReference) {
-                    throw new IllegalArgumentException("A generated column cannot be based on a generated column");
-                }
                 references.add(reference);
                 return reference;
             }
