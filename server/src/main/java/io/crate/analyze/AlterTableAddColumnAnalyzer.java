@@ -37,6 +37,7 @@ import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
@@ -123,6 +124,13 @@ class AlterTableAddColumnAnalyzer {
                 analyzedTableElements.addCheckColumnConstraint(tableInfo.ident(), check);
                 analyzedTableElementsWithExpressions.addCheckColumnConstraint(tableInfo.ident(), check);
             });
+        if (addColumnDefinitionWithExpression.generatedExpression() != null) {
+            GeneratedColumnValidator.validate(
+                addColumnDefinitionWithExpression.generatedExpression(),
+                tableInfo.ident(),
+                analyzedTableElements.columnIdents().iterator().next().name(),
+                tableInfo.generatedColumns().stream().map(GeneratedReference::column).toList());
+        }
         return new AnalyzedAlterTableAddColumn(tableInfo, analyzedTableElements, analyzedTableElementsWithExpressions);
     }
 

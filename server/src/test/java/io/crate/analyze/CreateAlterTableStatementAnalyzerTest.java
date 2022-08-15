@@ -28,6 +28,7 @@ import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.mapToSortedString;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_ROUTING_EXCLUDE_GROUP_SETTING;
 import static org.elasticsearch.index.engine.EngineConfig.INDEX_CODEC_SETTING;
 import static org.hamcrest.Matchers.containsString;
@@ -73,6 +74,7 @@ import org.junit.jupiter.api.Assertions;
 import io.crate.common.collections.Maps;
 import io.crate.data.RowN;
 import io.crate.exceptions.ColumnUnknownException;
+import io.crate.exceptions.ColumnValidationException;
 import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.exceptions.InvalidRelationName;
 import io.crate.exceptions.InvalidSchemaNameException;
@@ -1138,13 +1140,17 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
 
     @Test
     public void testCreateTableGeneratedColumnBasedOnGeneratedColumn() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("A generated column cannot be based on a generated column");
-        analyze(
-            "create table foo (" +
-            "   ts timestamp with time zone," +
-            "   day as date_trunc('day', ts)," +
-            "   date_string as cast(day as string))");
+        assertThatThrownBy(
+            () -> analyze(
+                """
+                create table foo (
+                    ts timestamp with time zone,
+                    day as date_trunc('day', ts),
+                    date_string as cast(day as string)
+                )
+                    """))
+            .isExactlyInstanceOf(ColumnValidationException.class)
+            .hasMessage("Validation failed for date_string: a generated column cannot be based on a generated column");
     }
 
     @Test
@@ -1292,6 +1298,50 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
                      Maps.getByPath(mapping, Arrays.asList("_meta", "check_constraints", "check_qty_gt_zero")));
         assertEquals(checkConstraints.get("bazinga_check"),
                      Maps.getByPath(mapping, Arrays.asList("_meta", "check_constraints", "bazinga_check")));
+    }
+
+    @Test
+    public void test_alter_table_add_generated_column_based_on_generated_column() throws IOException {
+        SQLExecutor.builder(clusterService)
+            .addTable("CREATE TABLE tbl (col1 INT, col2 INT GENERATED ALWAYS AS col1*2)").build();
+        assertThatThrownBy(
+            () -> analyze(
+                """
+                    ALTER TABLE tbl
+                        ADD COLUMN col3 INT GENERATED ALWAYS AS col2+1
+                """))
+            .isExactlyInstanceOf(ColumnValidationException.class)
+            .hasMessage("Validation failed for col3: a generated column cannot be based on a generated column");
+    }
+
+    @Test
+    public void test_create_table_with_check_constraint_on_generated_column() {
+        BoundCreateTable analysis = analyze(
+            """
+                CREATE TABLE foo (
+                    col1 INT,
+                    col2 INT GENERATED ALWAYS AS col1*2 CONSTRAINT check_col2_ge_zero CHECK (col2 > 0))
+            """);
+        Map<String, Object> mapping = analysis.mapping();
+        Map<String, String> checkConstraints = analysis.analyzedTableElements().getCheckConstraints();
+        assertThat(checkConstraints.size(), is(1));
+        assertEquals(checkConstraints.get("check_col2_ge_zero"),
+                     Maps.getByPath(mapping, Arrays.asList("_meta", "check_constraints", "check_col2_ge_zero")));
+    }
+
+    @Test
+    public void test_alter_table_add_column_with_check_constraint_on_generated_column() throws IOException {
+        SQLExecutor.builder(clusterService).addTable("CREATE TABLE tbl (col1 INT)").build();
+        BoundAddColumn analysis = analyze(
+            """
+                ALTER TABLE tbl
+                    ADD COLUMN col2 INT GENERATED ALWAYS AS col1*2 CONSTRAINT check_col2_ge_zero CHECK (col2 > 0)
+            """);
+        Map<String, Object> mapping = analysis.mapping();
+        Map<String, String> checkConstraints = analysis.analyzedTableElements().getCheckConstraints();
+        assertThat(checkConstraints.size(), is(1));
+        assertEquals(checkConstraints.get("check_col2_ge_zero"),
+                     Maps.getByPath(mapping, Arrays.asList("_meta", "check_constraints", "check_col2_ge_zero")));
     }
 
     @Test

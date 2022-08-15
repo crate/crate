@@ -146,5 +146,19 @@ public class CreateTableIntegrationTest extends IntegTestCase {
 
     }
 
-
+    public void test_constraint_on_generated_column() {
+        execute(
+            """
+                CREATE TABLE test(
+                    col1 INT,
+                    col2 INT GENERATED ALWAYS AS col1*2 CONSTRAINT gt_zero CHECK (col2 > 0)
+                )
+                """);
+        assertThrowsMatches(
+            () -> execute("INSERT INTO test(col1) VALUES(0)"),
+            isSQLError(startsWith("Failed CONSTRAINT gt_zero CHECK (\"col2\" > 0) and values {col2=0, col1=0}"),
+                       INTERNAL_ERROR,
+                       BAD_REQUEST,
+                       4000));
+    }
 }
