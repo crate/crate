@@ -21,11 +21,18 @@
 
 package io.crate.analyze;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.TableReferenceResolver;
 import io.crate.analyze.relations.FieldProvider;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
@@ -37,12 +44,6 @@ import io.crate.sql.tree.ColumnDefinition;
 import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.TableElement;
-
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
 
 public final class CreateTableStatementAnalyzer {
 
@@ -145,6 +146,14 @@ public final class CreateTableStatementAnalyzer {
             });
         AnalyzedTableElements<Symbol> analyzedTableElementsWithExpressions = TableElementsAnalyzer.analyze(
             tableElementsWithExpressions, relationName, null, false);
+        if (analyzedTableElementsWithExpressions.hasGeneratedColumns()) {
+            List<ColumnIdent> generatedColumns = analyzedTableElementsWithExpressions.columns().stream()
+                .filter(AnalyzedColumnDefinition::isGenerated)
+                .map(AnalyzedColumnDefinition::ident).toList();
+            analyzedTableElementsWithExpressions.columns().stream().filter(AnalyzedColumnDefinition::isGenerated).forEach(
+                s -> GeneratedColumnValidator.validate(s.generatedExpression(), relationName, s.name(), generatedColumns)
+            );
+        }
         return new AnalyzedCreateTable(
             relationName,
             analyzedCreateTable,
