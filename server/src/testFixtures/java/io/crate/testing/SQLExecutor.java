@@ -145,6 +145,7 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.blob.BlobSchemaInfo;
+import io.crate.metadata.blob.BlobTableInfoFactory;
 import io.crate.metadata.doc.DocSchemaInfoFactory;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.DocTableInfoFactory;
@@ -260,6 +261,11 @@ public class SQLExecutor {
             nodeCtx = createNodeContext(additionalModules);
             DocTableInfoFactory tableInfoFactory = new DocTableInfoFactory(nodeCtx);
             udfService = new UserDefinedFunctionService(clusterService, tableInfoFactory, nodeCtx);
+            File homeDir = createTempDir();
+            Environment environment = new Environment(
+                Settings.builder().put(PATH_HOME_SETTING.getKey(), homeDir.getAbsolutePath()).build(),
+                homeDir.toPath().resolve("config")
+            );
             Map<String, SchemaInfo> schemaInfoByName = new HashMap<>();
             schemaInfoByName.put("sys", new SysSchemaInfo(clusterService));
             schemaInfoByName.put("information_schema", new InformationSchemaInfo());
@@ -268,8 +274,7 @@ public class SQLExecutor {
                 BlobSchemaInfo.NAME,
                 new BlobSchemaInfo(
                     clusterService,
-                    new TestingBlobTableInfoFactory(
-                        Collections.emptyMap(), createTempDir())));
+                    new BlobTableInfoFactory(clusterService.getSettings(), environment)));
 
 
             ViewInfoFactory testingViewInfoFactory = (ident, state) -> null;
@@ -280,12 +285,6 @@ public class SQLExecutor {
                 new DocSchemaInfoFactory(tableInfoFactory, testingViewInfoFactory, nodeCtx, udfService)
             );
             schemas.start();  // start listen to cluster state changes
-
-            File homeDir = createTempDir();
-            Environment environment = new Environment(
-                Settings.builder().put(PATH_HOME_SETTING.getKey(), homeDir.getAbsolutePath()).build(),
-                homeDir.toPath().resolve("config")
-            );
             try {
                 analysisRegistry = new AnalysisModule(environment, analysisPlugins).getAnalysisRegistry();
             } catch (IOException e) {

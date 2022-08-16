@@ -21,9 +21,25 @@
 
 package io.crate.metadata.blob;
 
-import io.crate.metadata.RelationName;
+import java.nio.file.Path;
+
+import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.common.inject.ImplementedBy;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.env.Environment;
+import org.elasticsearch.index.Index;
+import org.elasticsearch.index.IndexNotFoundException;
+
+import io.crate.analyze.NumberOfReplicas;
+import io.crate.blob.v2.BlobIndex;
+import io.crate.blob.v2.BlobIndicesService;
+import io.crate.exceptions.RelationUnknown;
+import io.crate.metadata.RelationName;
 
 /**
  * Similar to {@link io.crate.metadata.doc.DocTableInfoFactory} this is a factory to create BlobTableInfos'
@@ -31,8 +47,57 @@ import org.elasticsearch.common.inject.ImplementedBy;
  * The reason there is no shared interface with generics is that guice cannot bind different implementations based
  * on the generic
  */
-@ImplementedBy(InternalBlobTableInfoFactory.class)
-public interface BlobTableInfoFactory {
+public class BlobTableInfoFactory {
 
-    BlobTableInfo create(RelationName ident, ClusterState clusterState);
+    private final Path[] dataFiles;
+    private final Path globalBlobPath;
+
+    @Inject
+    public BlobTableInfoFactory(Settings settings, Environment environment) {
+        this.dataFiles = environment.dataFiles();
+        this.globalBlobPath = BlobIndicesService.getGlobalBlobPath(settings);
+    }
+
+    private IndexMetadata resolveIndexMetadata(String tableName, Metadata metadata) {
+        String indexName = BlobIndex.fullIndexName(tableName);
+        Index index;
+        try {
+            index = IndexNameExpressionResolver.concreteIndices(metadata, IndicesOptions.strictExpandOpen(), indexName)[0];
+        } catch (IndexNotFoundException ex) {
+            throw new RelationUnknown(indexName, ex);
+        }
+        return metadata.index(index);
+    }
+
+    public BlobTableInfo create(RelationName ident, ClusterState clusterState) {
+        IndexMetadata indexMetadata = resolveIndexMetadata(ident.name(), clusterState.metadata());
+        Settings settings = indexMetadata.getSettings();
+        return new BlobTableInfo(
+            ident,
+            indexMetadata.getIndex().getName(),
+            indexMetadata.getNumberOfShards(),
+            NumberOfReplicas.fromSettings(settings),
+            settings,
+            blobsPath(settings),
+            IndexMetadata.SETTING_INDEX_VERSION_CREATED.get(settings),
+            settings.getAsVersion(IndexMetadata.SETTING_VERSION_UPGRADED, null),
+            indexMetadata.getState() == IndexMetadata.State.CLOSE);
+    }
+
+    private String blobsPath(Settings indexMetadataSettings) {
+        String blobsPath;
+        String blobsPathStr = BlobIndicesService.SETTING_INDEX_BLOBS_PATH.get(indexMetadataSettings);
+        if (!Strings.isNullOrEmpty(blobsPathStr)) {
+            blobsPath = blobsPathStr;
+        } else {
+            Path path = globalBlobPath;
+            if (path != null) {
+                blobsPath = path.toString();
+            } else {
+                // TODO: should we set this to null because there is no special blobPath?
+                blobsPath = dataFiles[0].toString();
+            }
+        }
+        return blobsPath;
+    }
 }
