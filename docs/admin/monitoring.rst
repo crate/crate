@@ -398,8 +398,6 @@ of each circuit breaker with the following attributes:
 +------------------+------------------------------------------------------+
 | ``limit``        | The configured limit when to trip.                   |
 +------------------+------------------------------------------------------+
-| ``overhead``     | The configured overhead used to account estimations. |
-+------------------+------------------------------------------------------+
 | ``trippedCount`` | The total number of occurred trips.                  |
 +------------------+------------------------------------------------------+
 
