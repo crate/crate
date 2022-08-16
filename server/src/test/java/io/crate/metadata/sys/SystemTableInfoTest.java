@@ -29,7 +29,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.metadata.Reference;
-import io.crate.metadata.settings.CrateSettings;
 import io.crate.metadata.table.TableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.TestingHelpers;
@@ -40,10 +39,7 @@ public class SystemTableInfoTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() {
-        sysSchemaInfo = new SysSchemaInfo(
-            this.clusterService,
-            new CrateSettings(clusterService, clusterService.getSettings())
-        );
+        sysSchemaInfo = new SysSchemaInfo(this.clusterService);
     }
 
     @Test

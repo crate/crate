@@ -72,7 +72,6 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.SystemTable;
 import io.crate.metadata.doc.DocSchemaInfoFactory;
 import io.crate.metadata.doc.DocTableInfoFactory;
-import io.crate.metadata.settings.CrateSettings;
 import io.crate.metadata.shard.ShardReferenceResolver;
 import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.sys.SysShardsTableInfo;
@@ -92,14 +91,13 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
     public void prepare() {
         NodeContext nodeCtx = createNodeContext();
         indexShard = mockIndexShard();
-        CrateSettings crateSettings = new CrateSettings(clusterService, clusterService.getSettings());
         UserDefinedFunctionService udfService = new UserDefinedFunctionService(
             clusterService,
             new DocTableInfoFactory(nodeCtx),
             nodeCtx
         );
         schemas = new Schemas(
-            Map.of("sys", new SysSchemaInfo(this.clusterService, crateSettings)),
+            Map.of("sys", new SysSchemaInfo(this.clusterService)),
             clusterService,
             new DocSchemaInfoFactory(new DocTableInfoFactory(nodeCtx), (ident, state) -> null , nodeCtx, udfService)
         );

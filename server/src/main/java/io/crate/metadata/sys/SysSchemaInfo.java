@@ -21,20 +21,20 @@
 
 package io.crate.metadata.sys;
 
-import io.crate.metadata.settings.CrateSettings;
-import io.crate.metadata.table.SchemaInfo;
-import io.crate.metadata.table.TableInfo;
-import io.crate.metadata.view.ViewInfo;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.Supplier;
+
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.function.Supplier;
+import io.crate.metadata.table.SchemaInfo;
+import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.view.ViewInfo;
 
 @Singleton
 public class SysSchemaInfo implements SchemaInfo {
@@ -43,9 +43,9 @@ public class SysSchemaInfo implements SchemaInfo {
     private final Map<String, TableInfo> tableInfos;
 
     @Inject
-    public SysSchemaInfo(ClusterService clusterService, CrateSettings crateSettings) {
+    public SysSchemaInfo(ClusterService clusterService) {
         tableInfos = new HashMap<>();
-        tableInfos.put(SysClusterTableInfo.IDENT.name(), SysClusterTableInfo.of(clusterService, crateSettings));
+        tableInfos.put(SysClusterTableInfo.IDENT.name(), SysClusterTableInfo.of(clusterService));
         tableInfos.put(SysNodesTableInfo.IDENT.name(), SysNodesTableInfo.create());
         tableInfos.put(SysShardsTableInfo.IDENT.name(), SysShardsTableInfo.create());
         Supplier<DiscoveryNode> localNode = clusterService::localNode;

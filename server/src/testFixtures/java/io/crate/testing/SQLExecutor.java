@@ -150,7 +150,6 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.DocTableInfoFactory;
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
-import io.crate.metadata.settings.CrateSettings;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.metadata.sys.SysSchemaInfo;
@@ -261,8 +260,7 @@ public class SQLExecutor {
             DocTableInfoFactory tableInfoFactory = new DocTableInfoFactory(nodeCtx);
             udfService = new UserDefinedFunctionService(clusterService, tableInfoFactory, nodeCtx);
             Map<String, SchemaInfo> schemaInfoByName = new HashMap<>();
-            CrateSettings crateSettings = new CrateSettings(clusterService, clusterService.getSettings());
-            schemaInfoByName.put("sys", new SysSchemaInfo(clusterService, crateSettings));
+            schemaInfoByName.put("sys", new SysSchemaInfo(clusterService));
             schemaInfoByName.put("information_schema", new InformationSchemaInfo());
             schemaInfoByName.put(PgCatalogSchemaInfo.NAME, new PgCatalogSchemaInfo(udfService, tableStats));
             schemaInfoByName.put(

@@ -28,13 +28,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.cluster.ClusterChangedEvent;
-import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.cluster.routing.allocation.decider.FilterAllocationDecider;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
@@ -42,7 +36,7 @@ import org.elasticsearch.common.settings.Settings;
 import io.crate.common.collections.Lists2;
 import io.crate.types.DataTypes;
 
-public final class CrateSettings implements ClusterStateListener {
+public final class CrateSettings {
 
     /**
      * List of cluster/node settings exposed via `sys.cluster.settings`,
@@ -149,40 +143,5 @@ public final class CrateSettings implements ClusterStateListener {
 
     private static boolean isLoggingSetting(String name) {
         return name.startsWith("logger.");
-    }
-
-    private final Logger logger;
-    private final Settings initialSettings;
-
-    private volatile Settings settings;
-
-    @Inject
-    public CrateSettings(ClusterService clusterService, Settings settings) {
-        logger = LogManager.getLogger(this.getClass());
-        Settings.Builder defaultsBuilder = Settings.builder();
-        for (Setting<?> builtInSetting : EXPOSED_SETTINGS) {
-            defaultsBuilder.put(builtInSetting.getKey(), builtInSetting.getDefaultRaw(settings));
-        }
-        initialSettings = defaultsBuilder.put(settings).build();
-        this.settings = initialSettings;
-        clusterService.addListener(this);
-    }
-
-    @Override
-    public void clusterChanged(ClusterChangedEvent event) {
-        try {
-            // nothing to do until we actually recover from the gateway or any other block indicates we need to disable persistency
-            if (event.state().blocks().disableStatePersistence() == false && event.metadataChanged()) {
-                Settings incomingSetting = event.state().metadata().settings();
-                settings = Settings.builder().put(initialSettings).put(incomingSetting).build();
-            }
-        } catch (Exception ex) {
-            logger.warn("failed to apply cluster settings", ex);
-        }
-
-    }
-
-    public Settings settings() {
-        return settings;
     }
 }

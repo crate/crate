@@ -28,9 +28,6 @@ import static org.junit.Assert.assertThat;
 
 import java.util.Map;
 
-import org.elasticsearch.cluster.ClusterChangedEvent;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.gateway.GatewayService;
 import org.junit.Test;
@@ -105,28 +102,5 @@ public class CrateSettingsTest extends CrateDummyClusterServiceUnitTest {
             .build();
         CrateSettings.flattenSettings(builder, "stats", value);
         assertThat(builder.build(), is(expected));
-    }
-
-    @Test
-    public void testDefaultValuesAreSet() {
-        CrateSettings crateSettings = new CrateSettings(clusterService, clusterService.getSettings());
-        assertThat(
-            crateSettings.settings().get(JobsLogService.STATS_ENABLED_SETTING.getKey()),
-            is(JobsLogService.STATS_ENABLED_SETTING.getDefaultRaw(Settings.EMPTY)));
-    }
-
-
-    @Test
-    public void testSettingsChanged() {
-        CrateSettings crateSettings = new CrateSettings(clusterService, clusterService.getSettings());
-
-        ClusterState newState = ClusterState.builder(clusterService.state())
-            .metadata(Metadata.builder().transientSettings(
-                Settings.builder().put(JobsLogService.STATS_ENABLED_SETTING.getKey(), true).build()))
-            .build();
-        crateSettings.clusterChanged(new ClusterChangedEvent("settings updated", newState, clusterService.state()));
-        assertThat(
-            crateSettings.settings().getAsBoolean(JobsLogService.STATS_ENABLED_SETTING.getKey(), false),
-            is(true));
     }
 }
