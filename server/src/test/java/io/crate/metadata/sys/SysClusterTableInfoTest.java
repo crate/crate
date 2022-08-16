@@ -29,16 +29,13 @@ import org.junit.Test;
 import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.reference.StaticTableReferenceResolver;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.settings.CrateSettings;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 
 public class SysClusterTableInfoTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_license_data_can_be_selected() {
-        var clusterTable = SysClusterTableInfo.of(
-            clusterService,
-            new CrateSettings(clusterService, clusterService.getSettings()));
+        var clusterTable = SysClusterTableInfo.of(clusterService);
 
         StaticTableReferenceResolver<Void> refResolver = new StaticTableReferenceResolver<>(clusterTable.expressions());
         NestableCollectExpression<Void, ?> expiryDate = refResolver.getImplementation(clusterTable.getReference(new ColumnIdent(

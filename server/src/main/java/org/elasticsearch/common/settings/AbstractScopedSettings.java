@@ -26,6 +26,7 @@ import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.search.spell.LevenshteinDistance;
 import org.apache.lucene.util.CollectionUtil;
 import org.elasticsearch.ExceptionsHelper;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.regex.Regex;
 
 import java.util.ArrayList;
@@ -117,6 +118,13 @@ public abstract class AbstractScopedSettings {
         keySettings = other.keySettings;
         settingUpgraders = Map.copyOf(other.settingUpgraders);
         settingUpdaters.addAll(other.settingUpdaters);
+    }
+
+    public synchronized Settings getLoggerSettings() {
+        if (lastSettingsApplied == Settings.EMPTY) {
+            return settings.filter(Loggers.LOG_LEVEL_SETTING::match);
+        }
+        return lastSettingsApplied.filter(Loggers.LOG_LEVEL_SETTING::match);
     }
 
     /**

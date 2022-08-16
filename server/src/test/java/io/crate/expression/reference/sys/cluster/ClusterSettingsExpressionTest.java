@@ -21,24 +21,16 @@
 
 package io.crate.expression.reference.sys.cluster;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.ClusterStateUpdateTask;
-import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
 import io.crate.cluster.gracefulstop.DecommissioningService;
 import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.settings.CrateSettings;
 import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 
@@ -47,58 +39,40 @@ public class ClusterSettingsExpressionTest extends CrateDummyClusterServiceUnitT
     @Test
     public void testSettingsAreAppliedImmediately() throws Exception {
         Settings settings = Settings.builder().put("bulk.request_timeout", "20s").build();
-        var sysCluster = SysClusterTableInfo.of(
-            clusterService,
-            new CrateSettings(clusterService, settings)
-        );
+        clusterService.getClusterSettings().applySettings(settings);
+        var sysCluster = SysClusterTableInfo.of(clusterService);
 
         var expressionFactory = sysCluster.expressions().get(new ColumnIdent("settings", List.of("bulk", "request_timeout")));
         var expression = expressionFactory.create();
         expression.setNextRow(null);
-        assertThat(expression.value(), is("20s"));
+        assertThat(expression.value()).isEqualTo("20s");
     }
 
     @Test
     public void testSettingsAreUpdated() throws Exception {
-        var sysCluster = SysClusterTableInfo.of(
-            clusterService,
-            new CrateSettings(clusterService, Settings.EMPTY)
-        );
+        var sysCluster = SysClusterTableInfo.of(clusterService);
 
         Settings settings = Settings.builder()
             .put(JobsLogService.STATS_JOBS_LOG_SIZE_SETTING.getKey(), 1)
             .put(JobsLogService.STATS_ENABLED_SETTING.getKey(), false)
             .put(DecommissioningService.GRACEFUL_STOP_MIN_AVAILABILITY_SETTING.getKey(), "full")
             .build();
-        CountDownLatch latch = new CountDownLatch(1);
-        clusterService.addListener(event -> latch.countDown());
-        clusterService.submitStateUpdateTask("update settings", new ClusterStateUpdateTask() {
-            @Override
-            public ClusterState execute(ClusterState currentState) throws Exception {
-                return ClusterState.builder(currentState).metadata(Metadata.builder().transientSettings(settings)).build();
-            }
 
-            @Override
-            public void onFailure(String source, Exception e) {
-                fail(e.getMessage());
-            }
-        });
-        latch.await(5, TimeUnit.SECONDS);
-
+        clusterService.getClusterSettings().applySettings(settings);
 
         var jobsLogSize = sysCluster.expressions()
             .get(new ColumnIdent("settings", List.of("stats", "jobs_log_size")))
             .create();
-        assertThat(jobsLogSize.value(), is(1));
+        assertThat(jobsLogSize.value()).isEqualTo(1);
 
         var statsEnabled = sysCluster.expressions()
             .get(new ColumnIdent("settings", List.of("stats", "enabled")))
             .create();
-        assertThat(statsEnabled.value(), is(false));
+        assertThat(statsEnabled.value()).isEqualTo(false);
 
         var minAvailability = sysCluster.expressions()
             .get(new ColumnIdent("settings", List.of("cluster", "graceful_stop", "min_availability")))
             .create();
-        assertThat(minAvailability.value(), is("FULL"));
+        assertThat(minAvailability.value()).isEqualTo("FULL");
     }
 }

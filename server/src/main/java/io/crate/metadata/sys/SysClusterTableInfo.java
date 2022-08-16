@@ -28,6 +28,7 @@ import java.util.function.Function;
 
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 
@@ -62,9 +63,9 @@ public class SysClusterTableInfo {
         }
     }
 
-    public static SystemTable<Void> of(ClusterService clusterService,
-                                       CrateSettings crateSettings) {
+    public static SystemTable<Void> of(ClusterService clusterService) {
         Settings settings = clusterService.getSettings();
+        ClusterSettings clusterSettings = clusterService.getClusterSettings();
         var relBuilder = SystemTable.<Void>builder(IDENT)
             .add("id", DataTypes.STRING, nothing -> clusterService.state().metadata().clusterUUID())
             .add("name", DataTypes.STRING, nothing -> ClusterName.CLUSTER_NAME_SETTING.get(settings).value())
@@ -76,7 +77,7 @@ public class SysClusterTableInfo {
             .endObject();
 
         var settingsBuilder = relBuilder.startObject("settings")
-            .startObjectArray("logger", extractLoggers(crateSettings))
+            .startObjectArray("logger", extractLoggers(clusterSettings))
                 .add("name", DataTypes.STRING, LoggerEntry::loggerName)
                 .add("level", DataTypes.STRING, LoggerEntry::level)
             .endObjectArray();
@@ -106,14 +107,14 @@ public class SysClusterTableInfo {
         var rootNode = toTree(CrateSettings.EXPOSED_SETTINGS);
 
         for (var child : rootNode.children) {
-            addSetting(crateSettings, settingsBuilder, child);
+            addSetting(clusterSettings, settingsBuilder, child);
         }
         return settingsBuilder
             .endObject()
             .build();
     }
 
-    private static void addSetting(CrateSettings crateSettings,
+    private static void addSetting(ClusterSettings clusterSettings,
                                    ObjectBuilder<Void, ? extends Builder<Void>> settingsBuilder,
                                    Node<Setting<?>> element) {
         if (element instanceof Leaf<?>) {
@@ -123,26 +124,24 @@ public class SysClusterTableInfo {
             settingsBuilder.add(
                 leaf.name,
                 valueType,
-                x -> valueType.implicitCast(setting.get(crateSettings.settings()))
+                x -> valueType.implicitCast(clusterSettings.get(setting))
             );
         } else {
             var node = (Node<Setting<?>>) element;
             var objectSetting = settingsBuilder.startObject(node.name);
             for (var c : node.children) {
-                addSetting(crateSettings, objectSetting, c);
+                addSetting(clusterSettings, objectSetting, c);
             }
             objectSetting.endObject();
         }
     }
 
-    private static Function<Void, List<LoggerEntry>> extractLoggers(CrateSettings crateSettings) {
+    private static Function<Void, List<LoggerEntry>> extractLoggers(ClusterSettings clusterSettings) {
         return x -> {
-            var settings = crateSettings.settings();
             ArrayList<LoggerEntry> loggers = new ArrayList<>();
-            for (var settingName : settings.keySet()) {
-                if (settingName.startsWith("logger.")) {
-                    loggers.add(new LoggerEntry(settingName, settings.get(settingName).toUpperCase(Locale.ENGLISH)));
-                }
+            Settings loggerSettings = clusterSettings.getLoggerSettings();
+            for (var settingName : loggerSettings.keySet()) {
+                loggers.add(new LoggerEntry(settingName, loggerSettings.get(settingName).toUpperCase(Locale.ENGLISH)));
             }
             return loggers;
         };
