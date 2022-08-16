@@ -55,6 +55,7 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.table.Operation;
+import io.crate.metadata.view.ViewInfoFactory;
 import io.crate.replication.logical.metadata.Publication;
 import io.crate.replication.logical.metadata.PublicationsMetadata;
 import io.crate.sql.tree.ColumnPolicy;
@@ -117,7 +118,7 @@ public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
             clusterService,
             nodeCtx,
             udfService,
-            (ident, state) -> null,
+            new ViewInfoFactory(() -> null),
             new DocTableInfoFactory(nodeCtx)
         );
     }
