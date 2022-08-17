@@ -32,8 +32,12 @@ import java.util.stream.Stream;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
+import com.carrotsearch.randomizedtesting.annotations.Seed;
+
 import io.crate.testing.TestingHelpers;
 
+@Seed("5BA6213A27C40403")
 public class CorrelatedSubqueryITest extends IntegTestCase {
 
     @Test
@@ -156,6 +160,7 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
     }
 
     @Test
+    @Repeat(iterations = 100)
     public void test_correlated_subquery_used_in_virtual_table_with_union() {
         String stmt = """
             SELECT

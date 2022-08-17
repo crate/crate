@@ -39,6 +39,7 @@ import io.crate.data.CapturingRowConsumer;
 import io.crate.data.CloseableIterator;
 import io.crate.data.Projector;
 import io.crate.data.Row;
+import io.crate.exceptions.Exceptions;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.pipeline.TopN;
 import io.crate.expression.symbol.SelectSymbol;
@@ -129,6 +130,9 @@ public final class CorrelatedJoinProjector implements Projector {
                                 "Subquery returned more than 1 row when it shouldn't.");
                         }
                         return CloseableIterator.fromIterator(rows.iterator());
+                    }).exceptionally(err -> {
+                        err.printStackTrace();
+                        throw Exceptions.toRuntimeException(err);
                     });
             } catch (Throwable t) {
                 return CompletableFuture.failedFuture(t);
