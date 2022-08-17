@@ -68,6 +68,8 @@ Deprecations
 Changes
 =======
 
+- Changed the ``interval`` parameter of ``date_trunc`` to be case insensitive.
+
 - Added support for correlated scalar sub-queries within the select list of a
   query. See :ref:`Scalar subquery <sql-scalar-subquery>`.
 
