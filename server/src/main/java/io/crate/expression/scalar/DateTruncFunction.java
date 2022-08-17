@@ -206,12 +206,12 @@ public class DateTruncFunction extends Scalar<Long, Object> {
         return rounding.round(ts);
     }
 
-    private DateTimeUnit intervalAsUnit(String interval) {
+    private static DateTimeUnit intervalAsUnit(String interval) {
         if (interval == null) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                 "invalid interval NULL for scalar '%s'", NAME));
         }
-        DateTimeUnit intervalAsUnit = DATE_FIELD_PARSERS.get(interval);
+        DateTimeUnit intervalAsUnit = DATE_FIELD_PARSERS.get(interval.toLowerCase(Locale.ENGLISH));
         if (intervalAsUnit == null) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                 "invalid interval '%s' for scalar '%s'", interval, NAME));
