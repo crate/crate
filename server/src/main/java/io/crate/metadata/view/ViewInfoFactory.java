@@ -21,11 +21,72 @@
 
 package io.crate.metadata.view;
 
-import io.crate.metadata.RelationName;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.common.inject.ImplementedBy;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
-@ImplementedBy(InternalViewInfoFactory.class)
-public interface ViewInfoFactory {
-    ViewInfo create(RelationName ident, ClusterState state);
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Provider;
+
+import io.crate.analyze.ParamTypeHints;
+import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.RelationAnalyzer;
+import io.crate.exceptions.ResourceUnknownException;
+import io.crate.expression.symbol.Symbols;
+import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.Reference;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.SimpleReference;
+import io.crate.sql.parser.SqlParser;
+import io.crate.sql.tree.Query;
+
+public class ViewInfoFactory {
+
+    private final Provider<RelationAnalyzer> analyzerProvider;
+
+    @Inject
+    public ViewInfoFactory(Provider<RelationAnalyzer> analyzerProvider) {
+        this.analyzerProvider = analyzerProvider;
+    }
+
+    public ViewInfo create(RelationName ident, ClusterState state) {
+        ViewsMetadata meta = state.metadata().custom(ViewsMetadata.TYPE);
+        if (meta == null) {
+            return null;
+        }
+        ViewMetadata view = meta.getView(ident);
+        if (view == null) {
+            return null;
+        }
+        List<Reference> columns;
+        try {
+            AnalyzedRelation relation = analyzerProvider.get().analyze(
+                (Query) SqlParser.createStatement(view.stmt()),
+                CoordinatorTxnCtx.systemTransactionContext(),
+                ParamTypeHints.EMPTY);
+            final List<Reference> collectedColumns = new ArrayList<>(relation.outputs().size());
+            int position = 1;
+            for (var field : relation.outputs()) {
+                collectedColumns.add(
+                    new SimpleReference(new ReferenceIdent(ident, Symbols.pathFromSymbol(field).sqlFqn()),
+                                  RowGranularity.DOC,
+                                  field.valueType(),
+                                  position++,
+                                  null));
+            }
+            columns = collectedColumns;
+        } catch (Exception e) {
+            if (e instanceof ResourceUnknownException) {
+                // Return ViewInfo with no columns in case the statement could not be analyzed,
+                // because the underlying table of the view could not be found.
+                columns = Collections.emptyList();
+            } else {
+                throw e;
+            }
+        }
+        return new ViewInfo(ident, view.stmt(), columns, view.owner());
+    }
 }

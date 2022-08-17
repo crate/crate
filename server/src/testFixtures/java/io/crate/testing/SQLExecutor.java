@@ -57,6 +57,7 @@ import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
@@ -277,12 +278,19 @@ public class SQLExecutor {
                     new BlobTableInfoFactory(clusterService.getSettings(), environment)));
 
 
-            ViewInfoFactory testingViewInfoFactory = (ident, state) -> null;
-
+            AtomicReference<RelationAnalyzer> relationAnalyzerRef = new AtomicReference<>(null);
+            var viewInfoFactory = new ViewInfoFactory(() -> {
+                var relationAnalyzer = relationAnalyzerRef.get();
+                if (relationAnalyzer == null) {
+                    relationAnalyzer = new RelationAnalyzer(nodeCtx, schemas);
+                    relationAnalyzerRef.set(relationAnalyzer);
+                }
+                return relationAnalyzer;
+            });
             schemas = new Schemas(
                 schemaInfoByName,
                 clusterService,
-                new DocSchemaInfoFactory(tableInfoFactory, testingViewInfoFactory, nodeCtx, udfService)
+                new DocSchemaInfoFactory(tableInfoFactory, viewInfoFactory, nodeCtx, udfService)
             );
             schemas.start();  // start listen to cluster state changes
             try {

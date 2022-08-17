@@ -59,6 +59,7 @@ import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.expression.NestableInput;
 import io.crate.expression.reference.ReferenceResolver;
 import io.crate.expression.reference.sys.shard.ShardRowContext;
@@ -75,6 +76,7 @@ import io.crate.metadata.doc.DocTableInfoFactory;
 import io.crate.metadata.shard.ShardReferenceResolver;
 import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.sys.SysShardsTableInfo;
+import io.crate.metadata.view.ViewInfoFactory;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.DataTypes;
 
@@ -99,7 +101,12 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
         schemas = new Schemas(
             Map.of("sys", new SysSchemaInfo(this.clusterService)),
             clusterService,
-            new DocSchemaInfoFactory(new DocTableInfoFactory(nodeCtx), (ident, state) -> null , nodeCtx, udfService)
+            new DocSchemaInfoFactory(
+                new DocTableInfoFactory(nodeCtx),
+                new ViewInfoFactory(() -> new RelationAnalyzer(nodeCtx, schemas)),
+                nodeCtx,
+                udfService
+            )
         );
         resolver = new ShardReferenceResolver(schemas, new ShardRowContext(indexShard, clusterService));
         sysShards = schemas.getTableInfo(SysShardsTableInfo.IDENT);

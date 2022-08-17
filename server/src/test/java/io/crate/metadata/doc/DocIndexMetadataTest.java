@@ -1060,7 +1060,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
         Statement statement = SqlParser.createStatement(stmt);
 
         DocTableInfoFactory docTableInfoFactory = new DocTableInfoFactory(nodeCtx);
-        ViewInfoFactory viewInfoFactory = (ident, state) -> null;
+        ViewInfoFactory viewInfoFactory = new ViewInfoFactory(() -> null);
         DocSchemaInfo docSchemaInfo = new DocSchemaInfo(Schemas.DOC_SCHEMA_NAME, clusterService, nodeCtx, udfService, viewInfoFactory, docTableInfoFactory);
         Path homeDir = createTempDir();
         Schemas schemas = new Schemas(
