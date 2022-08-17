@@ -35,11 +35,6 @@ public class ColumnValidationException extends RuntimeException implements Table
         this.relationName = relationName;
     }
 
-    public ColumnValidationException(String column, RelationName relationName, Throwable e) {
-        super(String.format(Locale.ENGLISH, "Validation failed for %s: %s", column, e.getMessage()));
-        this.relationName = relationName;
-    }
-
     @Override
     public Iterable<RelationName> getTableIdents() {
         return Collections.singletonList(relationName);
