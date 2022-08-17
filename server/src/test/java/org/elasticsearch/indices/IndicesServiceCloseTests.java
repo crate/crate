@@ -47,7 +47,7 @@ import org.elasticsearch.node.Node;
 import org.elasticsearch.node.NodeValidationException;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.ESTestCase;
-import org.elasticsearch.test.InternalTestCluster;
+import org.elasticsearch.test.TestCluster;
 import org.elasticsearch.test.MockHttpTransport;
 import org.elasticsearch.transport.Netty4Plugin;
 import org.junit.Test;
@@ -58,7 +58,7 @@ public class IndicesServiceCloseTests extends ESTestCase {
         final Path tempDir = createTempDir();
         String nodeName = "node_s_0";
         Settings settings = Settings.builder()
-            .put(ClusterName.CLUSTER_NAME_SETTING.getKey(), InternalTestCluster.clusterName("single-node-cluster", random().nextLong()))
+            .put(ClusterName.CLUSTER_NAME_SETTING.getKey(), TestCluster.clusterName("single-node-cluster", random().nextLong()))
             .put(Environment.PATH_HOME_SETTING.getKey(), tempDir)
             .put(Environment.PATH_REPO_SETTING.getKey(), tempDir.resolve("repo"))
             .put(Environment.PATH_SHARED_DATA_SETTING.getKey(), createTempDir().getParent())

@@ -24,7 +24,7 @@ import javax.annotation.Nullable;
 import io.crate.common.SuppressForbidden;
 import io.crate.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.AbstractRunnable;
-import org.elasticsearch.test.InternalTestCluster;
+import org.elasticsearch.test.TestCluster;
 
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadInfo;
@@ -200,7 +200,7 @@ public class LongGCDisruption extends SingleNodeDisruption {
     }
 
     @Override
-    public void removeAndEnsureHealthy(InternalTestCluster cluster) {
+    public void removeAndEnsureHealthy(TestCluster cluster) {
         removeFromCluster(cluster);
         ensureNodeCount(cluster);
     }

@@ -23,7 +23,7 @@ import org.elasticsearch.common.Priority;
 import io.crate.common.unit.TimeValue;
 import io.crate.exceptions.Exceptions;
 
-import org.elasticsearch.test.InternalTestCluster;
+import org.elasticsearch.test.TestCluster;
 
 import java.util.Random;
 import java.util.concurrent.CountDownLatch;
@@ -130,7 +130,7 @@ public class SlowClusterStateProcessing extends SingleNodeDisruption {
     }
 
     @Override
-    public void removeAndEnsureHealthy(InternalTestCluster cluster) {
+    public void removeAndEnsureHealthy(TestCluster cluster) {
         removeFromCluster(cluster);
         ensureNodeCount(cluster);
     }

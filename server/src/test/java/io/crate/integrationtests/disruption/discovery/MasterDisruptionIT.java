@@ -45,7 +45,7 @@ import org.elasticsearch.cluster.coordination.NoMasterBlockService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.test.IntegTestCase;
-import org.elasticsearch.test.InternalTestCluster;
+import org.elasticsearch.test.TestCluster;
 import org.elasticsearch.test.disruption.BlockMasterServiceOnMaster;
 import org.elasticsearch.test.disruption.IntermittentLongGCDisruption;
 import org.elasticsearch.test.disruption.NetworkDisruption;
@@ -257,7 +257,7 @@ public class MasterDisruptionIT extends AbstractDisruptionTestCase {
 
     @Test
     public void testMappingNewFieldsTimeoutDoesntAffectCheckpoints() throws Exception {
-        InternalTestCluster internalCluster = internalCluster();
+        TestCluster internalCluster = internalCluster();
         internalCluster.startNodes(3,
                                    Settings.builder()
                                        .put(SchemaUpdateClient.INDICES_MAPPING_DYNAMIC_TIMEOUT_SETTING.getKey(),

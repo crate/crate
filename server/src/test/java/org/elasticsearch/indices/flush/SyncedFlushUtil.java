@@ -30,7 +30,7 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.test.InternalTestCluster;
+import org.elasticsearch.test.TestCluster;
 
 /** Utils for SyncedFlush */
 public class SyncedFlushUtil {
@@ -42,7 +42,7 @@ public class SyncedFlushUtil {
     /**
      * Blocking version of {@link SyncedFlushService#attemptSyncedFlush(ShardId, ActionListener)}
      */
-    public static ShardsSyncedFlushResult attemptSyncedFlush(Logger logger, InternalTestCluster cluster, ShardId shardId) throws Exception {
+    public static ShardsSyncedFlushResult attemptSyncedFlush(Logger logger, TestCluster cluster, ShardId shardId) throws Exception {
         /*
          * When the last indexing operation is completed, we will fire a global checkpoint sync.
          * Since a global checkpoint sync request is a replication request, it will acquire an index

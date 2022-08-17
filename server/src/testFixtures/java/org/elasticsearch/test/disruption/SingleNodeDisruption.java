@@ -26,14 +26,14 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
-import org.elasticsearch.test.InternalTestCluster;
+import org.elasticsearch.test.TestCluster;
 
 public abstract class SingleNodeDisruption implements ServiceDisruptionScheme {
 
     protected final Logger logger = LogManager.getLogger(getClass());
 
     protected volatile String disruptedNode;
-    protected volatile InternalTestCluster cluster;
+    protected volatile TestCluster cluster;
     protected final Random random;
 
 
@@ -47,7 +47,7 @@ public abstract class SingleNodeDisruption implements ServiceDisruptionScheme {
     }
 
     @Override
-    public void applyToCluster(InternalTestCluster cluster) {
+    public void applyToCluster(TestCluster cluster) {
         this.cluster = cluster;
         if (disruptedNode == null) {
             String[] nodes = cluster.getNodeNames();
@@ -56,19 +56,19 @@ public abstract class SingleNodeDisruption implements ServiceDisruptionScheme {
     }
 
     @Override
-    public void removeFromCluster(InternalTestCluster cluster) {
+    public void removeFromCluster(TestCluster cluster) {
         if (disruptedNode != null) {
             removeFromNode(disruptedNode, cluster);
         }
     }
 
     @Override
-    public synchronized void applyToNode(String node, InternalTestCluster cluster) {
+    public synchronized void applyToNode(String node, TestCluster cluster) {
 
     }
 
     @Override
-    public synchronized void removeFromNode(String node, InternalTestCluster cluster) {
+    public synchronized void removeFromNode(String node, TestCluster cluster) {
         if (disruptedNode == null) {
             return;
         }
@@ -84,7 +84,7 @@ public abstract class SingleNodeDisruption implements ServiceDisruptionScheme {
         disruptedNode = null;
     }
 
-    protected void ensureNodeCount(InternalTestCluster cluster) {
+    protected void ensureNodeCount(TestCluster cluster) {
         boolean timedOut = FutureUtils.get(cluster.client().admin().cluster().health(
             new ClusterHealthRequest()
                 .waitForNodes(String.valueOf(cluster.size()))

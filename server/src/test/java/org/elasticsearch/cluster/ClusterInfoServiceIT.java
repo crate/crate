@@ -39,7 +39,7 @@ import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.store.Store;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.test.IntegTestCase;
-import org.elasticsearch.test.InternalTestCluster;
+import org.elasticsearch.test.TestCluster;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
@@ -70,7 +70,7 @@ public class ClusterInfoServiceIT extends IntegTestCase {
             execute("alter table test close");
         }
         ensureGreen("test");
-        InternalTestCluster internalTestCluster = internalCluster();
+        TestCluster internalTestCluster = internalCluster();
         // Get the cluster info service on the master node
         final InternalClusterInfoService infoService = (InternalClusterInfoService) internalTestCluster
             .getInstance(ClusterInfoService.class, internalTestCluster.getMasterName());

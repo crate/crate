@@ -40,7 +40,7 @@ import org.elasticsearch.common.io.PathUtilsForTesting;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.test.BackgroundIndexer;
 import org.elasticsearch.test.IntegTestCase;
-import org.elasticsearch.test.InternalTestCluster;
+import org.elasticsearch.test.TestCluster;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -167,7 +167,7 @@ public class DiskDisruptionIT extends AbstractDisruptionTestCase {
         }
 
         logger.info("full cluster restart");
-        internalCluster().fullRestart(new InternalTestCluster.RestartCallback() {
+        internalCluster().fullRestart(new TestCluster.RestartCallback() {
 
             @Override
             public void onAllNodesStopped() {

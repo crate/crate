@@ -27,7 +27,7 @@ import org.elasticsearch.cluster.NodeConnectionsService;
 import org.elasticsearch.cluster.service.ClusterService;
 import io.crate.common.unit.TimeValue;
 import io.crate.common.collections.Sets;
-import org.elasticsearch.test.InternalTestCluster;
+import org.elasticsearch.test.TestCluster;
 import org.elasticsearch.test.transport.MockTransportService;
 import org.elasticsearch.transport.ConnectTransportException;
 import org.elasticsearch.transport.TransportService;
@@ -52,7 +52,7 @@ public class NetworkDisruption implements ServiceDisruptionScheme {
     private final DisruptedLinks disruptedLinks;
     private final NetworkLinkDisruptionType networkLinkDisruptionType;
 
-    protected volatile InternalTestCluster cluster;
+    protected volatile TestCluster cluster;
     protected volatile boolean activeDisruption = false;
 
     public NetworkDisruption(DisruptedLinks disruptedLinks, NetworkLinkDisruptionType networkLinkDisruptionType) {
@@ -69,17 +69,17 @@ public class NetworkDisruption implements ServiceDisruptionScheme {
     }
 
     @Override
-    public void applyToCluster(InternalTestCluster cluster) {
+    public void applyToCluster(TestCluster cluster) {
         this.cluster = cluster;
     }
 
     @Override
-    public void removeFromCluster(InternalTestCluster cluster) {
+    public void removeFromCluster(TestCluster cluster) {
         stopDisrupting();
     }
 
     @Override
-    public void removeAndEnsureHealthy(InternalTestCluster cluster) {
+    public void removeAndEnsureHealthy(TestCluster cluster) {
         removeFromCluster(cluster);
         ensureHealthy(cluster);
     }
@@ -87,7 +87,7 @@ public class NetworkDisruption implements ServiceDisruptionScheme {
     /**
      * ensures the cluster is healthy after the disruption
      */
-    public void ensureHealthy(InternalTestCluster cluster) {
+    public void ensureHealthy(TestCluster cluster) {
         assert activeDisruption == false;
         ensureNodeCount(cluster);
         ensureFullyConnectedCluster(cluster);
@@ -100,7 +100,7 @@ public class NetworkDisruption implements ServiceDisruptionScheme {
      * {@link org.elasticsearch.cluster.NodeConnectionsService} will eventually reconnect but it's
      * handy to be able to ensure this happens faster
      */
-    public static void ensureFullyConnectedCluster(InternalTestCluster cluster) {
+    public static void ensureFullyConnectedCluster(TestCluster cluster) {
         final String[] nodeNames = cluster.getNodeNames();
         final CountDownLatch countDownLatch = new CountDownLatch(nodeNames.length);
         for (String node : nodeNames) {
@@ -115,17 +115,17 @@ public class NetworkDisruption implements ServiceDisruptionScheme {
         }
     }
 
-    protected void ensureNodeCount(InternalTestCluster cluster) {
+    protected void ensureNodeCount(TestCluster cluster) {
         cluster.validateClusterFormed();
     }
 
     @Override
-    public synchronized void applyToNode(String node, InternalTestCluster cluster) {
+    public synchronized void applyToNode(String node, TestCluster cluster) {
 
     }
 
     @Override
-    public synchronized void removeFromNode(String node1, InternalTestCluster cluster) {
+    public synchronized void removeFromNode(String node1, TestCluster cluster) {
         logger.info("stop disrupting node (disruption type: {}, disrupted links: {})", networkLinkDisruptionType, disruptedLinks);
         applyToNodes(new String[]{ node1 }, cluster.getNodeNames(), networkLinkDisruptionType::removeDisruption);
         applyToNodes(cluster.getNodeNames(), new String[]{ node1 }, networkLinkDisruptionType::removeDisruption);

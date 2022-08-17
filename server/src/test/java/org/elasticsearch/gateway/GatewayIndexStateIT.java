@@ -77,7 +77,7 @@ import org.elasticsearch.node.Node;
 import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.test.IntegTestCase.ClusterScope;
 import org.elasticsearch.test.IntegTestCase.Scope;
-import org.elasticsearch.test.InternalTestCluster.RestartCallback;
+import org.elasticsearch.test.TestCluster.RestartCallback;
 import org.junit.Test;
 
 import io.crate.action.sql.SQLOperations;
