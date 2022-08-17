@@ -31,7 +31,7 @@ import java.util.concurrent.TimeUnit;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.index.Index;
-import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 import com.carrotsearch.hppc.IntArrayList;
@@ -48,7 +48,7 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.table.TableInfo;
 import io.crate.testing.SqlExpressions;
 
-@ESIntegTestCase.ClusterScope(numDataNodes = 1)
+@IntegTestCase.ClusterScope(numDataNodes = 1)
 public class InternalCountOperationTest extends SQLIntegrationTestCase {
 
     @Test

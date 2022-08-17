@@ -27,10 +27,10 @@ import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 
-import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
-@ESIntegTestCase.ClusterScope(numDataNodes = 2)
+@IntegTestCase.ClusterScope(numDataNodes = 2)
 public class SysHealthITest extends SQLIntegrationTestCase {
 
     @Test

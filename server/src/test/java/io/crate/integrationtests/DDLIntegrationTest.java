@@ -48,7 +48,7 @@ import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesRequ
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.test.IntegTestCase;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 import org.skyscreamer.jsonassert.JSONAssert;
@@ -64,7 +64,7 @@ import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseRandomizedSchema;
 import io.netty.handler.codec.http.HttpResponseStatus;
 
-@ESIntegTestCase.ClusterScope()
+@IntegTestCase.ClusterScope()
 @UseRandomizedSchema(random = false)
 public class DDLIntegrationTest extends SQLIntegrationTestCase {
 

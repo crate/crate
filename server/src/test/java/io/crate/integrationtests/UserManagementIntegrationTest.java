@@ -31,14 +31,14 @@ import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 
-import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.After;
 import org.junit.Test;
 
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
 
-@ESIntegTestCase.ClusterScope(minNumDataNodes = 2)
+@IntegTestCase.ClusterScope(minNumDataNodes = 2)
 public class UserManagementIntegrationTest extends BaseUsersIntegrationTest {
 
     private void assertUserIsCreated(String userName) throws Exception {

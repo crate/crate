@@ -31,10 +31,10 @@ import java.nio.file.Path;
 import org.apache.lucene.tests.util.TestUtil;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
-import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
-@ESIntegTestCase.ClusterScope(numDataNodes = 0, numClientNodes = 0)
+@IntegTestCase.ClusterScope(numDataNodes = 0, numClientNodes = 0)
 public class TablesNeedUpgradeSysCheckTest extends SQLIntegrationTestCase {
 
     private void startUpNodeWithDataDir(String dataPath) throws Exception {

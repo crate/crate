@@ -61,7 +61,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
-import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -71,7 +71,7 @@ import com.carrotsearch.randomizedtesting.LifecycleScope;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
 
-@ESIntegTestCase.ClusterScope(numDataNodes = 2)
+@IntegTestCase.ClusterScope(numDataNodes = 2)
 public class CopyIntegrationTest extends SQLHttpIntegrationTest {
 
     private final String copyFilePath =

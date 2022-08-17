@@ -31,13 +31,13 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 import io.crate.execution.engine.collect.sources.ShardCollectSource;
 import io.crate.integrationtests.SQLIntegrationTestCase;
 
-@ESIntegTestCase.ClusterScope(numClientNodes = 0, numDataNodes = 1, supportsDedicatedMasters = false)
+@IntegTestCase.ClusterScope(numClientNodes = 0, numDataNodes = 1, supportsDedicatedMasters = false)
 public class ShardCollectorProviderTest extends SQLIntegrationTestCase {
 
     public void assertNumberOfShardEntriesInShardCollectSource(int numberOfShards) throws Exception {

@@ -165,7 +165,7 @@ import io.crate.testing.SQLTransportExecutor;
  * The Cluster is bound to a test lifecycle where tests must call {@link #beforeTest(java.util.Random)} and
  * {@link #afterTest()} to initialize and reset the cluster in order to be more reproducible. The term "more" relates
  * to the async nature of Elasticsearch in combination with randomized testing. Once Threads and asynchronous calls
- * are involved reproducibility is very limited. This class should only be used through {@link ESIntegTestCase}.
+ * are involved reproducibility is very limited. This class should only be used through {@link IntegTestCase}.
  * </p>
  */
 public final class InternalTestCluster extends TestCluster {

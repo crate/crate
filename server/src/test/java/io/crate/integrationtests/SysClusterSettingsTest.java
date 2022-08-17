@@ -35,7 +35,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.MemorySizeValue;
 import org.elasticsearch.gateway.GatewayService;
 import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
-import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.After;
 import org.junit.Test;
 
@@ -44,7 +44,7 @@ import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
 import io.crate.udc.service.UDCService;
 
-@ESIntegTestCase.ClusterScope
+@IntegTestCase.ClusterScope
 public class SysClusterSettingsTest extends SQLIntegrationTestCase {
 
     @Override

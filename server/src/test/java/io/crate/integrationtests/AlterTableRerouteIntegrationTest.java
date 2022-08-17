@@ -24,13 +24,13 @@ package io.crate.integrationtests;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 
-import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 import io.crate.testing.UseRandomizedSchema;
 
 // ensure that only data nodes are picked for rerouting
-@ESIntegTestCase.ClusterScope(supportsDedicatedMasters = false, numDataNodes = 2, numClientNodes = 0)
+@IntegTestCase.ClusterScope(supportsDedicatedMasters = false, numDataNodes = 2, numClientNodes = 0)
 @UseRandomizedSchema(random = false)
 public class AlterTableRerouteIntegrationTest extends SQLIntegrationTestCase {
 

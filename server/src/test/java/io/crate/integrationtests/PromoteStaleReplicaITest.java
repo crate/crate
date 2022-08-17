@@ -29,10 +29,10 @@ import static org.junit.Assert.assertThat;
 
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.node.Node;
-import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
-@ESIntegTestCase.ClusterScope(numDataNodes = 0, numClientNodes = 0)
+@IntegTestCase.ClusterScope(numDataNodes = 0, numClientNodes = 0)
 public class PromoteStaleReplicaITest extends SQLIntegrationTestCase {
 
     @Test

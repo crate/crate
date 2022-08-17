@@ -51,11 +51,11 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.http.HttpServerTransport;
 import org.elasticsearch.plugins.Plugin;
-import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.transport.Netty4Plugin;
 import org.junit.Before;
 
-public abstract class AdminUIHttpIntegrationTest extends ESIntegTestCase {
+public abstract class AdminUIHttpIntegrationTest extends IntegTestCase {
 
     protected InetSocketAddress address;
     protected CloseableHttpClient httpClient = HttpClients.createDefault();

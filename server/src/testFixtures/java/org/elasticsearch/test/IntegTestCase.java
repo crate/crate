@@ -147,7 +147,7 @@ import io.crate.exceptions.SQLExceptions;
 import io.crate.testing.SQLTransportExecutor;
 
 /**
- * {@link ESIntegTestCase} is an abstract base class to run integration
+ * {@link IntegTestCase} is an abstract base class to run integration
  * tests against a JVM private Elasticsearch Cluster. The test class supports 2 different
  * cluster scopes.
  * <ul>
@@ -179,7 +179,7 @@ import io.crate.testing.SQLTransportExecutor;
  * }
  * </pre>
  * <p>
- * Note, the {@link ESIntegTestCase} uses randomized settings on a cluster and index level. For instance
+ * Note, the {@link IntegTestCase} uses randomized settings on a cluster and index level. For instance
  * each test might use different directory implementation for each test or will return a random client to one of the
  * nodes in the cluster for each call to {@link #client()}. Test failures might only be reproducible if the correct
  * system properties are passed to the test execution environment.
@@ -192,7 +192,7 @@ import io.crate.testing.SQLTransportExecutor;
  * </ul>
  */
 @CrateLuceneTestCase.SuppressFileSystems("ExtrasFS") // doesn't work with potential multi data path from test cluster yet
-public abstract class ESIntegTestCase extends ESTestCase {
+public abstract class IntegTestCase extends ESTestCase {
 
     /** node names of the corresponding clusters will start with these prefixes */
     public static final String SUITE_CLUSTER_NODE_PREFIX = "node_s";
@@ -211,7 +211,7 @@ public abstract class ESIntegTestCase extends ESTestCase {
      * system without asserting modules that to make sure they don't hide any bugs in
      * production.
      *
-     * @see ESIntegTestCase
+     * @see IntegTestCase
      */
     public static final String TESTS_ENABLE_MOCK_MODULES = "tests.enable_mock_modules";
 
@@ -235,7 +235,7 @@ public abstract class ESIntegTestCase extends ESTestCase {
 
     private static final Map<Class<?>, TestCluster> clusters = new IdentityHashMap<>();
 
-    private static ESIntegTestCase INSTANCE = null; // see @SuiteScope
+    private static IntegTestCase INSTANCE = null; // see @SuiteScope
     private static Long SUITE_SEED = null;
 
     @BeforeClass
@@ -975,7 +975,7 @@ public abstract class ESIntegTestCase extends ESTestCase {
 
     /**
      * The scope of a test cluster used together with
-     * {@link ESIntegTestCase.ClusterScope} annotations on {@link ESIntegTestCase} subclasses.
+     * {@link IntegTestCase.ClusterScope} annotations on {@link IntegTestCase} subclasses.
      */
     public enum Scope {
         /**
@@ -989,15 +989,15 @@ public abstract class ESIntegTestCase extends ESTestCase {
     }
 
     /**
-     * Defines a cluster scope for a {@link ESIntegTestCase} subclass.
-     * By default if no {@link ClusterScope} annotation is present {@link ESIntegTestCase.Scope#SUITE} is used
+     * Defines a cluster scope for a {@link IntegTestCase} subclass.
+     * By default if no {@link ClusterScope} annotation is present {@link IntegTestCase.Scope#SUITE} is used
      * together with randomly chosen settings like number of nodes etc.
      */
     @Retention(RetentionPolicy.RUNTIME)
     @Target({ElementType.TYPE})
     public @interface ClusterScope {
         /**
-         * Returns the scope. {@link ESIntegTestCase.Scope#SUITE} is default.
+         * Returns the scope. {@link IntegTestCase.Scope#SUITE} is default.
          */
         Scope scope() default Scope.SUITE;
 
@@ -1041,7 +1041,7 @@ public abstract class ESIntegTestCase extends ESTestCase {
     }
 
     private static <A extends Annotation> A getAnnotation(Class<?> clazz, Class<A> annotationClass) {
-        if (clazz == Object.class || clazz == ESIntegTestCase.class) {
+        if (clazz == Object.class || clazz == IntegTestCase.class) {
             return null;
         }
         A annotation = clazz.getAnnotation(annotationClass);
@@ -1180,17 +1180,17 @@ public abstract class ESIntegTestCase extends ESTestCase {
             public Settings nodeSettings(int nodeOrdinal) {
                 return Settings.builder()
                     .put(initialNodeSettings.build())
-                    .put(ESIntegTestCase.this.nodeSettings(nodeOrdinal)).build();
+                    .put(IntegTestCase.this.nodeSettings(nodeOrdinal)).build();
             }
 
             @Override
             public Path nodeConfigPath(int nodeOrdinal) {
-                return ESIntegTestCase.this.nodeConfigPath(nodeOrdinal);
+                return IntegTestCase.this.nodeConfigPath(nodeOrdinal);
             }
 
             @Override
             public Collection<Class<? extends Plugin>> nodePlugins() {
-                return ESIntegTestCase.this.nodePlugins();
+                return IntegTestCase.this.nodePlugins();
             }
         };
     }
@@ -1340,7 +1340,7 @@ public abstract class ESIntegTestCase extends ESTestCase {
         assert INSTANCE == null;
         if (isSuiteScopedTest(targetClass)) {
             // note we need to do this this way to make sure this is reproducible
-            INSTANCE = (ESIntegTestCase) targetClass.getConstructor().newInstance();
+            INSTANCE = (IntegTestCase) targetClass.getConstructor().newInstance();
             boolean success = false;
             try {
                 INSTANCE.printTestMessage("setup");

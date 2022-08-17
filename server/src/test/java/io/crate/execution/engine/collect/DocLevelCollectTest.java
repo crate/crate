@@ -41,7 +41,7 @@ import java.util.function.UnaryOperator;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.common.Randomness;
 import org.elasticsearch.indices.IndicesService;
-import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -81,7 +81,7 @@ import io.crate.testing.UseRandomizedSchema;
 import io.crate.types.DataTypes;
 
 
-@ESIntegTestCase.ClusterScope(numDataNodes = 1)
+@IntegTestCase.ClusterScope(numDataNodes = 1)
 @UseRandomizedSchema(random = false)
 public class DocLevelCollectTest extends SQLIntegrationTestCase {
 

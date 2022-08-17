@@ -29,11 +29,11 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertThat;
 
-import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.test.IntegTestCase;
 import org.hamcrest.CoreMatchers;
 import org.junit.Test;
 
-@ESIntegTestCase.ClusterScope(numClientNodes = 0, supportsDedicatedMasters = false)
+@IntegTestCase.ClusterScope(numClientNodes = 0, supportsDedicatedMasters = false)
 public class SysNodesITest extends SQLIntegrationTestCase {
 
     @Override

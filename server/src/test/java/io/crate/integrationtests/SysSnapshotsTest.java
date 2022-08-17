@@ -32,7 +32,7 @@ import java.util.List;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.snapshots.SnapshotState;
-import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.hamcrest.Matchers;
 import org.junit.ClassRule;
@@ -47,7 +47,7 @@ import io.crate.types.ObjectType;
 import io.crate.types.StringType;
 import io.crate.types.TimestampType;
 
-@ESIntegTestCase.ClusterScope()
+@IntegTestCase.ClusterScope()
 @UseJdbc(0) // missing column types
 public class SysSnapshotsTest extends SQLIntegrationTestCase {
 

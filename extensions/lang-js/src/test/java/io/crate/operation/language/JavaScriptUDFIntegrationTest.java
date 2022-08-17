@@ -29,7 +29,7 @@ import java.util.List;
 
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugins.Plugin;
-import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -39,7 +39,7 @@ import io.crate.testing.TestingHelpers;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 
-@ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0)
+@IntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0)
 public class JavaScriptUDFIntegrationTest extends SQLIntegrationTestCase {
 
     @Override

@@ -28,7 +28,7 @@ import java.io.File;
 import java.util.Map;
 
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -39,7 +39,7 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.StringType;
 
-@ESIntegTestCase.ClusterScope()
+@IntegTestCase.ClusterScope()
 @UseJdbc(0) // missing column types
 public class SysRepositoriesServiceTest extends SQLIntegrationTestCase {
 

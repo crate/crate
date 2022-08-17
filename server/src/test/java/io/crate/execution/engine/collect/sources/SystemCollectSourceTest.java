@@ -34,7 +34,7 @@ import java.util.stream.StreamSupport;
 
 import org.elasticsearch.cluster.routing.ShardRoutingState;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 import io.crate.analyze.OrderBy;
@@ -54,7 +54,7 @@ import io.crate.metadata.sys.SysShardsTableInfo;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.types.DataTypes;
 
-@ESIntegTestCase.ClusterScope(numDataNodes = 1, supportsDedicatedMasters = false)
+@IntegTestCase.ClusterScope(numDataNodes = 1, supportsDedicatedMasters = false)
 public class SystemCollectSourceTest extends SQLIntegrationTestCase {
 
     @Test

@@ -33,7 +33,7 @@ import javax.annotation.Nullable;
 
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -44,7 +44,7 @@ import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;
 import io.crate.testing.UseRandomizedSchema;
 
-@ESIntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 1)
+@IntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 1)
 @UseRandomizedSchema(random = false)
 public class ReadOnlyNodeIntegrationTest extends SQLIntegrationTestCase {
 

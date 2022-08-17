@@ -31,14 +31,14 @@ import static org.junit.Assert.assertThat;
 import java.util.Locale;
 
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.test.IntegTestCase;
 import org.hamcrest.core.Is;
 import org.junit.After;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-@ESIntegTestCase.ClusterScope(numDataNodes = 1)
+@IntegTestCase.ClusterScope(numDataNodes = 1)
 public class TableBlocksIntegrationTest extends SQLIntegrationTestCase {
 
     @ClassRule
