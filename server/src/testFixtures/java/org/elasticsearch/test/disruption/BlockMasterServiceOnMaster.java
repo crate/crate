@@ -24,7 +24,7 @@ import org.elasticsearch.cluster.ClusterStateUpdateTask;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
 import io.crate.common.unit.TimeValue;
-import org.elasticsearch.test.InternalTestCluster;
+import org.elasticsearch.test.TestCluster;
 
 import java.util.Random;
 import java.util.concurrent.CountDownLatch;
@@ -96,7 +96,7 @@ public class BlockMasterServiceOnMaster extends SingleNodeDisruption {
     }
 
     @Override
-    public void removeAndEnsureHealthy(InternalTestCluster cluster) {
+    public void removeAndEnsureHealthy(TestCluster cluster) {
         removeFromCluster(cluster);
     }
 

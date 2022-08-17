@@ -50,7 +50,7 @@ import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.InternalSettingsPlugin;
-import org.elasticsearch.test.InternalTestCluster;
+import org.elasticsearch.test.TestCluster;
 import org.elasticsearch.test.disruption.NetworkDisruption;
 import org.elasticsearch.test.disruption.NetworkDisruption.Bridge;
 import org.elasticsearch.test.disruption.NetworkDisruption.DisruptedLinks;
@@ -137,7 +137,7 @@ public abstract class AbstractDisruptionTestCase extends IntegTestCase {
     }
 
     List<String> startCluster(int numberOfNodes) {
-        InternalTestCluster internalCluster = internalCluster();
+        TestCluster internalCluster = internalCluster();
         List<String> nodes = internalCluster.startNodes(numberOfNodes);
         ensureStableCluster(numberOfNodes);
         return nodes;
@@ -256,7 +256,7 @@ public abstract class AbstractDisruptionTestCase extends IntegTestCase {
         return isolateNode(internalCluster(), isolatedNode);
     }
 
-    public static TwoPartitions isolateNode(InternalTestCluster cluster, String isolatedNode) {
+    public static TwoPartitions isolateNode(TestCluster cluster, String isolatedNode) {
         Set<String> side1 = new HashSet<>();
         Set<String> side2 = new HashSet<>(Arrays.asList(cluster.getNodeNames()));
         side1.add(isolatedNode);

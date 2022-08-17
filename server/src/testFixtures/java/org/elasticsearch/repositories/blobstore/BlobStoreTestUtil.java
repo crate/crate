@@ -73,14 +73,14 @@ import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.repositories.RepositoryData;
 import org.elasticsearch.repositories.ShardGenerations;
 import org.elasticsearch.snapshots.SnapshotId;
-import org.elasticsearch.test.InternalTestCluster;
+import org.elasticsearch.test.TestCluster;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import io.crate.common.unit.TimeValue;
 
 public final class BlobStoreTestUtil {
 
-    public static void assertRepoConsistency(InternalTestCluster testCluster, String repoName) {
+    public static void assertRepoConsistency(TestCluster testCluster, String repoName) {
         final BlobStoreRepository repo =
             (BlobStoreRepository) testCluster.getCurrentMasterNodeInstance(RepositoriesService.class).repository(repoName);
         BlobStoreTestUtil.assertConsistency(repo, repo.threadPool().executor(ThreadPool.Names.GENERIC));

@@ -31,7 +31,7 @@ import org.elasticsearch.common.CheckedConsumer;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.gateway.PersistedClusterStateService;
 import org.elasticsearch.test.IntegTestCase;
-import org.elasticsearch.test.InternalTestCluster;
+import org.elasticsearch.test.TestCluster;
 import org.junit.Test;
 
 
@@ -42,7 +42,7 @@ public class NodeEnvironmentIT extends IntegTestCase {
         internalCluster().startNode();
         final Path[] dataPaths = internalCluster().getInstance(NodeEnvironment.class).nodeDataPaths();
         return expectThrows(IllegalStateException.class,
-                            () -> internalCluster().restartRandomDataNode(new InternalTestCluster.RestartCallback() {
+                            () -> internalCluster().restartRandomDataNode(new TestCluster.RestartCallback() {
                                 @Override
                                 public Settings onNodeStopped(String nodeName) {
                                     try {

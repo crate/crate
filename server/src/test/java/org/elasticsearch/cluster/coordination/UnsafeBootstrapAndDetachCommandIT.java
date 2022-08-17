@@ -51,7 +51,7 @@ import org.elasticsearch.gateway.PersistedClusterStateService;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.test.IntegTestCase;
-import org.elasticsearch.test.InternalTestCluster;
+import org.elasticsearch.test.TestCluster;
 import org.junit.Test;
 
 import io.crate.testing.UseJdbc;
@@ -258,8 +258,8 @@ public class UnsafeBootstrapAndDetachCommandIT extends IntegTestCase {
         Settings dataNodeDataPathSettings = internalCluster().dataPathSettings(dataNode);
 
         logger.info("--> stop 2nd and 3d master eligible node");
-        internalCluster().stopRandomNode(InternalTestCluster.nameFilter(masterNodes.get(1)));
-        internalCluster().stopRandomNode(InternalTestCluster.nameFilter(masterNodes.get(2)));
+        internalCluster().stopRandomNode(TestCluster.nameFilter(masterNodes.get(1)));
+        internalCluster().stopRandomNode(TestCluster.nameFilter(masterNodes.get(2)));
 
         logger.info("--> ensure NO_MASTER_BLOCK on data-only node");
         assertBusy(() -> {
@@ -275,7 +275,7 @@ public class UnsafeBootstrapAndDetachCommandIT extends IntegTestCase {
 
         logger.info("--> stop 1st master-eligible node and data-only node");
         NodeEnvironment nodeEnvironment = internalCluster().getMasterNodeInstance(NodeEnvironment.class);
-        internalCluster().stopRandomNode(InternalTestCluster.nameFilter(masterNodes.get(0)));
+        internalCluster().stopRandomNode(TestCluster.nameFilter(masterNodes.get(0)));
         internalCluster().stopRandomDataNode();
 
         logger.info("--> unsafely-bootstrap 1st master-eligible node");
@@ -350,13 +350,13 @@ public class UnsafeBootstrapAndDetachCommandIT extends IntegTestCase {
 
         logger.info("--> stop data-only node and detach it from the old cluster");
         Settings dataNodeDataPathSettings = internalCluster().dataPathSettings(dataNode);
-        internalCluster().stopRandomNode(InternalTestCluster.nameFilter(dataNode));
+        internalCluster().stopRandomNode(TestCluster.nameFilter(dataNode));
         final Environment environment = TestEnvironment.newEnvironment(
             Settings.builder().put(internalCluster().getDefaultSettings()).put(dataNodeDataPathSettings).build());
         detachCluster(environment, false);
 
         logger.info("--> stop master-eligible node, clear its data and start it again - new cluster should form");
-        internalCluster().restartNode(masterNode, new InternalTestCluster.RestartCallback(){
+        internalCluster().restartNode(masterNode, new TestCluster.RestartCallback(){
             @Override
             public boolean clearData(String nodeName) {
                 return true;
@@ -403,7 +403,7 @@ public class UnsafeBootstrapAndDetachCommandIT extends IntegTestCase {
             .get().getState();
         assertTrue(state.blocks().hasGlobalBlockWithId(NoMasterBlockService.NO_MASTER_BLOCK_ID));
 
-        internalCluster().stopRandomNode(InternalTestCluster.nameFilter(node));
+        internalCluster().stopRandomNode(TestCluster.nameFilter(node));
     }
 
     @Test

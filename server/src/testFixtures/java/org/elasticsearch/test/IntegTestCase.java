@@ -557,14 +557,14 @@ public abstract class IntegTestCase extends ESTestCase {
     }
 
     public static boolean isInternalCluster() {
-        return (currentCluster instanceof InternalTestCluster);
+        return true;
     }
 
-    public static InternalTestCluster internalCluster() {
+    public static TestCluster internalCluster() {
         if (!isInternalCluster()) {
             throw new UnsupportedOperationException("current test cluster is immutable");
         }
-        return (InternalTestCluster) currentCluster;
+        return currentCluster;
     }
 
     public ClusterService clusterService() {
@@ -979,7 +979,7 @@ public abstract class IntegTestCase extends ESTestCase {
         ensureStableCluster(internalCluster(), nodeCount, viaNode, logger);
     }
 
-    public static void ensureStableCluster(InternalTestCluster cluster,
+    public static void ensureStableCluster(TestCluster cluster,
                                            int nodeCount,
                                            @Nullable String viaNode,
                                            @Nullable Logger logger) {
@@ -990,7 +990,7 @@ public abstract class IntegTestCase extends ESTestCase {
         ensureStableCluster(internalCluster(), nodeCount, timeValue, local, viaNode, logger);
     }
 
-    public static void ensureStableCluster(InternalTestCluster cluster,
+    public static void ensureStableCluster(TestCluster cluster,
                                            int nodeCount,
                                            TimeValue timeValue,
                                            boolean local,
@@ -1021,13 +1021,13 @@ public abstract class IntegTestCase extends ESTestCase {
     }
 
     /**
-     * See {@link NetworkDisruption#ensureFullyConnectedCluster(InternalTestCluster)}
+     * See {@link NetworkDisruption#ensureFullyConnectedCluster(TestCluster)}
      */
     protected void ensureFullyConnectedCluster() {
         ensureFullyConnectedCluster(internalCluster());
     }
 
-    protected static void ensureFullyConnectedCluster(InternalTestCluster cluster) {
+    protected static void ensureFullyConnectedCluster(TestCluster cluster) {
         NetworkDisruption.ensureFullyConnectedCluster(cluster);
     }
 
@@ -1121,7 +1121,7 @@ public abstract class IntegTestCase extends ESTestCase {
          * Returns the number of client nodes in the cluster. Default is {@link InternalTestCluster#DEFAULT_NUM_CLIENT_NODES}, a
          * negative value means that the number of client nodes will be randomized.
          */
-        int numClientNodes() default InternalTestCluster.DEFAULT_NUM_CLIENT_NODES;
+        int numClientNodes() default TestCluster.DEFAULT_NUM_CLIENT_NODES;
     }
 
     private static <A extends Annotation> A getAnnotation(Class<?> clazz, Class<A> annotationClass) {
@@ -1163,18 +1163,18 @@ public abstract class IntegTestCase extends ESTestCase {
     private int getMinNumDataNodes() {
         ClusterScope annotation = getAnnotation(this.getClass(), ClusterScope.class);
         return annotation == null || annotation.minNumDataNodes() == -1
-                ? InternalTestCluster.DEFAULT_MIN_NUM_DATA_NODES : annotation.minNumDataNodes();
+                ? TestCluster.DEFAULT_MIN_NUM_DATA_NODES : annotation.minNumDataNodes();
     }
 
     private int getMaxNumDataNodes() {
         ClusterScope annotation = getAnnotation(this.getClass(), ClusterScope.class);
         return annotation == null || annotation.maxNumDataNodes() == -1
-                ? InternalTestCluster.DEFAULT_MAX_NUM_DATA_NODES : annotation.maxNumDataNodes();
+                ? TestCluster.DEFAULT_MAX_NUM_DATA_NODES : annotation.maxNumDataNodes();
     }
 
     private int getNumClientNodes() {
         ClusterScope annotation = getAnnotation(this.getClass(), ClusterScope.class);
-        return annotation == null ? InternalTestCluster.DEFAULT_NUM_CLIENT_NODES : annotation.numClientNodes();
+        return annotation == null ? TestCluster.DEFAULT_NUM_CLIENT_NODES : annotation.numClientNodes();
     }
 
     /**
@@ -1245,14 +1245,14 @@ public abstract class IntegTestCase extends ESTestCase {
         }
         Collection<Class<? extends Plugin>> mockPlugins = getMockPlugins();
         NodeConfigurationSource nodeConfigurationSource = getNodeConfigSource();
-        return new InternalTestCluster(
+        return new TestCluster(
             seed,
             createTempDir(),
             supportsDedicatedMasters,
             getAutoManageMasterNodes(),
             minNumDataNodes,
             maxNumDataNodes,
-            InternalTestCluster.clusterName(scope.name(), seed) + "-cluster",
+            TestCluster.clusterName(scope.name(), seed) + "-cluster",
             nodeConfigurationSource,
             getNumClientNodes(),
             nodePrefix,
@@ -1333,10 +1333,7 @@ public abstract class IntegTestCase extends ESTestCase {
      * Returns path to a random directory that can be used to create a temporary file system repo
      */
     public Path randomRepoPath() {
-        if (currentCluster instanceof InternalTestCluster) {
-            return randomRepoPath(((InternalTestCluster) currentCluster).getDefaultSettings());
-        }
-        throw new UnsupportedOperationException("unsupported cluster type");
+        return randomRepoPath(currentCluster.getDefaultSettings());
     }
 
     /**

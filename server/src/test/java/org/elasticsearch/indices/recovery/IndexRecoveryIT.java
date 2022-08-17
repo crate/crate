@@ -122,7 +122,7 @@ import org.elasticsearch.test.BackgroundIndexer;
 import org.elasticsearch.test.IntegTestCase.ClusterScope;
 import org.elasticsearch.test.IntegTestCase.Scope;
 import org.elasticsearch.test.InternalSettingsPlugin;
-import org.elasticsearch.test.InternalTestCluster;
+import org.elasticsearch.test.TestCluster;
 import org.elasticsearch.test.store.MockFSIndexStore;
 import org.elasticsearch.test.transport.MockTransportService;
 import org.elasticsearch.test.transport.StubbableTransport;
@@ -392,7 +392,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         assertRecoveryState(nodeBRecoveryState, 0, RecoverySource.PeerRecoverySource.INSTANCE, false, RecoveryState.Stage.DONE, nodeA, nodeB);
         validateIndexRecoveryState(nodeBRecoveryState.getIndex());
 
-        internalCluster().stopRandomNode(InternalTestCluster.nameFilter(nodeA));
+        internalCluster().stopRandomNode(TestCluster.nameFilter(nodeA));
 
         if (closedIndex) {
             execute("ALTER TABLE " + INDEX_NAME + " OPEN");
@@ -443,7 +443,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         logger.info("--> restart node B");
         internalCluster().restartNode(
             nodeB,
-            new InternalTestCluster.RestartCallback() {
+            new TestCluster.RestartCallback() {
                 @Override
                 public Settings onNodeStopped(String nodeName) throws Exception {
                     phase1ReadyBlocked.await();
@@ -623,7 +623,7 @@ public class IndexRecoveryIT extends IntegTestCase {
 
         if (randomBoolean()) {
             // shutdown node with relocation source of replica shard and check if recovery continues
-            internalCluster().stopRandomNode(InternalTestCluster.nameFilter(nodeA));
+            internalCluster().stopRandomNode(TestCluster.nameFilter(nodeA));
             ensureStableCluster(2);
 
             response = client().execute(RecoveryAction.INSTANCE, new RecoveryRequest(index.getName())).get();
@@ -1186,10 +1186,10 @@ public class IndexRecoveryIT extends IntegTestCase {
 
         String firstNodeToStop = randomFrom(internalCluster().getNodeNames());
         Settings firstNodeToStopDataPathSettings = internalCluster().dataPathSettings(firstNodeToStop);
-        internalCluster().stopRandomNode(InternalTestCluster.nameFilter(firstNodeToStop));
+        internalCluster().stopRandomNode(TestCluster.nameFilter(firstNodeToStop));
         String secondNodeToStop = randomFrom(internalCluster().getNodeNames());
         Settings secondNodeToStopDataPathSettings = internalCluster().dataPathSettings(secondNodeToStop);
-        internalCluster().stopRandomNode(InternalTestCluster.nameFilter(secondNodeToStop));
+        internalCluster().stopRandomNode(TestCluster.nameFilter(secondNodeToStop));
 
         final long desyncNanoTime = System.nanoTime();
         //noinspection StatementWithEmptyBody
@@ -1290,7 +1290,7 @@ public class IndexRecoveryIT extends IntegTestCase {
                     " \"routing.allocation.include._name\"='" + nodeWithPrimary + "," + nodeWithReplica + "')");
             phase1ReadyBlocked.await();
             internalCluster().restartNode(clusterService().state().nodes().getMasterNode().getName(),
-                                          new InternalTestCluster.RestartCallback());
+                                          new TestCluster.RestartCallback());
             internalCluster().ensureAtLeastNumDataNodes(3);
             execute("ALTER TABLE doc.test RESET (\"routing.allocation.include._name\")");
             execute("ALTER TABLE doc.test SET (number_of_replicas = 2)");
@@ -1368,7 +1368,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         final ShardRouting shardToResync = randomFrom(clusterState.routingTable().shardRoutingTable(shardId).activeShards());
         internalCluster().restartNode(
             clusterState.nodes().get(shardToResync.currentNodeId()).getName(),
-            new InternalTestCluster.RestartCallback() {
+            new TestCluster.RestartCallback() {
                 @Override
                 public Settings onNodeStopped(String nodeName) throws Exception {
                     assertBusy(() -> {
@@ -1499,7 +1499,7 @@ public class IndexRecoveryIT extends IntegTestCase {
 
         final ShardRouting replicaShardRouting = indexShardRoutingTable.replicaShards().get(0);
         internalCluster().restartNode(discoveryNodes.get(replicaShardRouting.currentNodeId()).getName(),
-                                      new InternalTestCluster.RestartCallback() {
+                                      new TestCluster.RestartCallback() {
                                           @Override
                                           public Settings onNodeStopped(String nodeName) throws Exception {
                                               assertFalse(
@@ -1555,7 +1555,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         final ShardRouting replicaShardRouting = indexShardRoutingTable.replicaShards().get(0);
         internalCluster().restartNode(
             discoveryNodes.get(replicaShardRouting.currentNodeId()).getName(),
-            new InternalTestCluster.RestartCallback() {
+            new TestCluster.RestartCallback() {
                 @Override
                 public Settings onNodeStopped(String nodeName) throws Exception {
                     assertFalse(
@@ -1651,7 +1651,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         assertTrue("should have lease for " + replicaShardRouting, indicesStats.getShards()[0].getRetentionLeaseStats()
                        .leases().contains(ReplicationTracker.getPeerRecoveryRetentionLeaseId(replicaShardRouting)));
         internalCluster().restartNode(discoveryNodes.get(replicaShardRouting.currentNodeId()).getName(),
-                                      new InternalTestCluster.RestartCallback() {
+                                      new TestCluster.RestartCallback() {
                                           @Override
                                           public Settings onNodeStopped(String nodeName) throws Exception {
                                               assertFalse(

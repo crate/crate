@@ -20,27 +20,27 @@
 package org.elasticsearch.test.disruption;
 
 import io.crate.common.unit.TimeValue;
-import org.elasticsearch.test.InternalTestCluster;
+import org.elasticsearch.test.TestCluster;
 
 public class NoOpDisruptionScheme implements ServiceDisruptionScheme {
 
     @Override
-    public void applyToCluster(InternalTestCluster cluster) {
+    public void applyToCluster(TestCluster cluster) {
 
     }
 
     @Override
-    public void removeFromCluster(InternalTestCluster cluster) {
+    public void removeFromCluster(TestCluster cluster) {
 
     }
 
     @Override
-    public void applyToNode(String node, InternalTestCluster cluster) {
+    public void applyToNode(String node, TestCluster cluster) {
 
     }
 
     @Override
-    public void removeFromNode(String node, InternalTestCluster cluster) {
+    public void removeFromNode(String node, TestCluster cluster) {
 
     }
 
@@ -60,7 +60,7 @@ public class NoOpDisruptionScheme implements ServiceDisruptionScheme {
     }
 
     @Override
-    public void removeAndEnsureHealthy(InternalTestCluster cluster) {
+    public void removeAndEnsureHealthy(TestCluster cluster) {
 
     }
 

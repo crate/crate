@@ -31,7 +31,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.test.IntegTestCase.ClusterScope;
-import org.elasticsearch.test.InternalTestCluster;
+import org.elasticsearch.test.TestCluster;
 
 
 @ClusterScope(numDataNodes = 0, scope = IntegTestCase.Scope.TEST)
@@ -68,7 +68,7 @@ public class DanglingIndicesIT extends IntegTestCase {
         }
 
         // Restart node, deleting the index in its absence, so that there is a dangling index to recover
-        internalCluster().restartRandomDataNode(new InternalTestCluster.RestartCallback() {
+        internalCluster().restartRandomDataNode(new TestCluster.RestartCallback() {
 
             @Override
             public Settings onNodeStopped(String nodeName) throws Exception {
@@ -98,7 +98,7 @@ public class DanglingIndicesIT extends IntegTestCase {
             indicesService -> assertTrue(indicesService.allPendingDanglingIndicesWritten())));
 
         // Restart node, deleting the index in its absence, so that there is a dangling index to recover
-        internalCluster().restartRandomDataNode(new InternalTestCluster.RestartCallback() {
+        internalCluster().restartRandomDataNode(new TestCluster.RestartCallback() {
 
             @Override
             public Settings onNodeStopped(String nodeName) throws Exception {

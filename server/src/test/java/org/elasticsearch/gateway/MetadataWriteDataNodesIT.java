@@ -37,7 +37,7 @@ import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.test.IntegTestCase.ClusterScope;
 import org.elasticsearch.test.IntegTestCase.Scope;
-import org.elasticsearch.test.InternalTestCluster;
+import org.elasticsearch.test.TestCluster;
 
 import org.elasticsearch.test.IntegTestCase;
 
@@ -119,7 +119,7 @@ public class MetadataWriteDataNodesIT extends IntegTestCase {
 
 
     private boolean indexDirectoryExists(String nodeName, Index index) {
-        NodeEnvironment nodeEnv = ((InternalTestCluster) cluster()).getInstance(NodeEnvironment.class, nodeName);
+        NodeEnvironment nodeEnv = ((TestCluster) cluster()).getInstance(NodeEnvironment.class, nodeName);
         Path[] paths = nodeEnv.indexPaths(index);
         for (Path path : paths) {
             if (Files.exists(path)) {

@@ -38,7 +38,7 @@ import javax.annotation.Nullable;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.discovery.SettingsBasedSeedHostsProvider;
 import org.elasticsearch.test.ESTestCase;
-import org.elasticsearch.test.InternalTestCluster;
+import org.elasticsearch.test.TestCluster;
 import org.elasticsearch.test.MockHttpTransport;
 import org.elasticsearch.test.NodeConfigurationSource;
 import org.elasticsearch.transport.Netty4Plugin;
@@ -60,12 +60,12 @@ import io.netty.handler.ssl.util.SelfSignedCertificate;
 
 public class PgTunnelLogicalReplicationITest extends ESTestCase {
 
-    private InternalTestCluster publisherCluster;
-    private InternalTestCluster subscriberCluster;
+    private TestCluster publisherCluster;
+    private TestCluster subscriberCluster;
     private SQLTransportExecutor publisher;
     private SQLTransportExecutor subscriber;
 
-    private InternalTestCluster newCluster(String clusterName, Settings settings) throws Exception {
+    private TestCluster newCluster(String clusterName, Settings settings) throws Exception {
         Settings allSettings = Settings.builder()
             .putList(SettingsBasedSeedHostsProvider.DISCOVERY_SEED_HOSTS_SETTING.getKey())
             .put(LogicalReplicationSettings.REPLICATION_READ_POLL_DURATION.getKey(), "10ms")
@@ -83,7 +83,7 @@ public class PgTunnelLogicalReplicationITest extends ESTestCase {
                 return null;
             }
         };
-        var cluster = new InternalTestCluster(
+        var cluster = new TestCluster(
             randomLong(),
             createTempDir(),
             false,
@@ -105,7 +105,7 @@ public class PgTunnelLogicalReplicationITest extends ESTestCase {
         return cluster;
     }
 
-    private void stopCluster(@Nullable InternalTestCluster cluster) throws Exception {
+    private void stopCluster(@Nullable TestCluster cluster) throws Exception {
         if (cluster == null) {
             return;
         }

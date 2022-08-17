@@ -66,7 +66,7 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.test.InternalSettingsPlugin;
-import org.elasticsearch.test.InternalTestCluster;
+import org.elasticsearch.test.TestCluster;
 import org.elasticsearch.test.disruption.NetworkDisruption;
 import org.elasticsearch.test.disruption.NetworkDisruption.Bridge;
 import org.elasticsearch.test.disruption.NetworkDisruption.NetworkLinkDisruptionType;
@@ -406,7 +406,7 @@ public class ClusterDisruptionIT extends AbstractDisruptionTestCase {
         }
         ensureGreen();
         assertBusy(() -> assertThat(docID.get(), greaterThanOrEqualTo(100)));
-        internalCluster().restartRandomDataNode(new InternalTestCluster.RestartCallback());
+        internalCluster().restartRandomDataNode(new TestCluster.RestartCallback());
         ensureGreen();
         assertBusy(() -> assertThat(docID.get(), greaterThanOrEqualTo(200)));
         stopped.set(true);
