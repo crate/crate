@@ -29,7 +29,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.KeyStore;
 import java.security.cert.Certificate;
-import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
@@ -116,7 +115,7 @@ public class PgTunnelLogicalReplicationITest extends ESTestCase {
             cluster.assertSameDocIdsOnShards();
             cluster.assertConsistentHistoryBetweenTranslogAndLuceneIndex();
         } finally {
-            cluster.wipe(Collections.emptySet());
+            cluster.wipe();
             cluster.close();
         }
     }

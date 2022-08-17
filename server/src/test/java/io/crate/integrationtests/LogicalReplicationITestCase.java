@@ -38,7 +38,6 @@ import java.net.InetSocketAddress;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.StringJoiner;
@@ -53,8 +52,8 @@ import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.common.network.NetworkModule;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugins.Plugin;
-import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.test.ESTestCase;
+import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.test.InternalSettingsPlugin;
 import org.elasticsearch.test.InternalTestCluster;
 import org.elasticsearch.test.MockHttpTransport;
@@ -158,7 +157,7 @@ public abstract class LogicalReplicationITestCase extends ESTestCase {
                 cluster.assertSameDocIdsOnShards();
                 cluster.assertConsistentHistoryBetweenTranslogAndLuceneIndex();
             } finally {
-                cluster.wipe(Collections.emptySet());
+                cluster.wipe();
                 cluster.close();
             }
         }
