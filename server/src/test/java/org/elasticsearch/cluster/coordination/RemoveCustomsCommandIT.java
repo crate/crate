@@ -30,13 +30,13 @@ import org.elasticsearch.cli.UserException;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.env.TestEnvironment;
-import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 import joptsimple.OptionSet;
 
-@ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.TEST, numDataNodes = 0, autoManageMasterNodes = false)
-public class RemoveCustomsCommandIT extends ESIntegTestCase {
+@IntegTestCase.ClusterScope(scope = IntegTestCase.Scope.TEST, numDataNodes = 0, autoManageMasterNodes = false)
+public class RemoveCustomsCommandIT extends IntegTestCase {
 
     @Test
     public void testRemoveCustomsAbortedByUser() throws Exception {

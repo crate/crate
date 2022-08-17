@@ -62,7 +62,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugins.Plugin;
-import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.test.InternalSettingsPlugin;
 import org.elasticsearch.test.disruption.ServiceDisruptionScheme;
 import org.elasticsearch.threadpool.Scheduler;
@@ -127,7 +127,7 @@ import io.crate.testing.SQLResponse;
  *     stale or dirty, i.e., come from a stale primary or belong to a write that ends up being discarded.</li>
  * </ul>
  */
-@ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.TEST, minNumDataNodes = 4, maxNumDataNodes = 6)
+@IntegTestCase.ClusterScope(scope = IntegTestCase.Scope.TEST, minNumDataNodes = 4, maxNumDataNodes = 6)
 public class ConcurrentSeqNoVersioningIT extends AbstractDisruptionTestCase {
 
     @Override

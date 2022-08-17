@@ -30,7 +30,7 @@ import static org.junit.Assert.assertThat;
 import java.util.List;
 import java.util.Map;
 
-import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -40,7 +40,7 @@ import io.crate.testing.UseJdbc;
 import io.crate.types.ArrayType;
 
 @UseJdbc(0)
-@ESIntegTestCase.ClusterScope(numDataNodes = 1)
+@IntegTestCase.ClusterScope(numDataNodes = 1)
 public class SysAllocationsTest extends SQLIntegrationTestCase {
 
     @Before

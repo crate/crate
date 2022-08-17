@@ -52,7 +52,7 @@ import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.xcontent.ParsedXContent;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.test.IntegTestCase;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
@@ -62,7 +62,7 @@ import io.crate.metadata.RelationName;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.testing.TestingHelpers;
 
-@ESIntegTestCase.ClusterScope(numDataNodes = 1)
+@IntegTestCase.ClusterScope(numDataNodes = 1)
 public class ColumnPolicyIntegrationTest extends SQLIntegrationTestCase {
 
     private String copyFilePath = Paths.get(getClass().getResource("/essetup/data/copy").toURI()).toUri().toString();

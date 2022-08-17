@@ -39,7 +39,7 @@ import org.apache.lucene.tests.mockfile.FilterFileSystemProvider;
 import org.elasticsearch.common.io.PathUtilsForTesting;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.test.BackgroundIndexer;
-import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.test.InternalTestCluster;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -52,7 +52,7 @@ import io.crate.common.unit.TimeValue;
 import io.crate.integrationtests.SQLIntegrationTestCase;
 import io.crate.testing.UseRandomizedSchema;
 
-@ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.TEST, numDataNodes = 0)
+@IntegTestCase.ClusterScope(scope = IntegTestCase.Scope.TEST, numDataNodes = 0)
 @SQLIntegrationTestCase.Slow
 public class DiskDisruptionIT extends AbstractDisruptionTestCase {
 

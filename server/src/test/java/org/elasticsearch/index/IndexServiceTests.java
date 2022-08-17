@@ -57,7 +57,7 @@ import org.elasticsearch.index.shard.IndexShardTestCase;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.plugins.Plugin;
-import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.test.InternalSettingsPlugin;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Test;
@@ -65,7 +65,7 @@ import org.junit.Test;
 import io.crate.common.unit.TimeValue;
 import io.crate.integrationtests.SQLIntegrationTestCase;
 
-@ESIntegTestCase.ClusterScope(numDataNodes = 1, supportsDedicatedMasters = false)
+@IntegTestCase.ClusterScope(numDataNodes = 1, supportsDedicatedMasters = false)
 public class IndexServiceTests extends SQLIntegrationTestCase {
 
     @Override

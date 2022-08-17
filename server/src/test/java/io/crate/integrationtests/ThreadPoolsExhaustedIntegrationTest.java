@@ -33,14 +33,14 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.test.IntegTestCase;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;
 
-@ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.TEST, maxNumDataNodes = 2)
+@IntegTestCase.ClusterScope(scope = IntegTestCase.Scope.TEST, maxNumDataNodes = 2)
 public class ThreadPoolsExhaustedIntegrationTest extends SQLIntegrationTestCase {
 
     @Override

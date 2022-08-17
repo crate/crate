@@ -73,7 +73,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.test.IntegTestCase;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.Is;
@@ -90,7 +90,7 @@ import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseRandomizedSchema;
 
-@ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 2)
+@IntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 2)
 public class PartitionedTableIntegrationTest extends SQLIntegrationTestCase {
 
     private Setup setup = new Setup(sqlExecutor);

@@ -47,8 +47,8 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.plugins.Plugin;
-import org.elasticsearch.test.ESIntegTestCase.ClusterScope;
-import org.elasticsearch.test.ESIntegTestCase.Scope;
+import org.elasticsearch.test.IntegTestCase.ClusterScope;
+import org.elasticsearch.test.IntegTestCase.Scope;
 import org.elasticsearch.test.InternalSettingsPlugin;
 import org.junit.Test;
 

@@ -39,14 +39,14 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
 
-@ESIntegTestCase.ClusterScope(minNumDataNodes = 2)
+@IntegTestCase.ClusterScope(minNumDataNodes = 2)
 public class SQLTypeMappingTest extends SQLIntegrationTestCase {
 
     private void setUpSimple() throws IOException {

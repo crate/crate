@@ -23,7 +23,7 @@ package io.crate.integrationtests.disruption.replication.logical;
 
 import static io.crate.integrationtests.disruption.discovery.AbstractDisruptionTestCase.isolateNode;
 import static io.crate.testing.TestingHelpers.printedTable;
-import static org.elasticsearch.test.ESIntegTestCase.ensureStableCluster;
+import static org.elasticsearch.test.IntegTestCase.ensureStableCluster;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 

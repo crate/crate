@@ -27,14 +27,14 @@ import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
-import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.test.IntegTestCase;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.testing.UseJdbc;
 
-@ESIntegTestCase.ClusterScope(minNumDataNodes = 1)
+@IntegTestCase.ClusterScope(minNumDataNodes = 1)
 public class UnionIntegrationTest extends SQLIntegrationTestCase {
 
     @Before

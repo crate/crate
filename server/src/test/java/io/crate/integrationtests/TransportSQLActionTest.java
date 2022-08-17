@@ -67,7 +67,7 @@ import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.index.IndexNotFoundException;
-import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.test.IntegTestCase;
 import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;
@@ -88,7 +88,7 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.StorageSupport;
 
-@ESIntegTestCase.ClusterScope(minNumDataNodes = 2)
+@IntegTestCase.ClusterScope(minNumDataNodes = 2)
 public class TransportSQLActionTest extends SQLIntegrationTestCase {
 
     private Setup setup = new Setup(sqlExecutor);

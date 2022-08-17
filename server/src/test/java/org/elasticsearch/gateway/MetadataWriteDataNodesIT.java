@@ -35,8 +35,8 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.discovery.Discovery;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.index.Index;
-import org.elasticsearch.test.ESIntegTestCase.ClusterScope;
-import org.elasticsearch.test.ESIntegTestCase.Scope;
+import org.elasticsearch.test.IntegTestCase.ClusterScope;
+import org.elasticsearch.test.IntegTestCase.Scope;
 import org.elasticsearch.test.InternalTestCluster;
 
 import io.crate.integrationtests.SQLIntegrationTestCase;

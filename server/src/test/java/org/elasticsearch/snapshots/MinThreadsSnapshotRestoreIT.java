@@ -34,7 +34,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.snapshots.mockstore.MockRepository;
-import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 import io.crate.common.unit.TimeValue;
@@ -46,7 +46,7 @@ import io.crate.testing.UseJdbc;
  * block on master).
  */
 @UseJdbc(0)
-@ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.TEST, numDataNodes = 0)
+@IntegTestCase.ClusterScope(scope = IntegTestCase.Scope.TEST, numDataNodes = 0)
 public class MinThreadsSnapshotRestoreIT extends AbstractSnapshotIntegTestCase {
 
     @Override

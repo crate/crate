@@ -29,7 +29,7 @@ import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
-import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 import com.carrotsearch.hppc.cursors.ObjectCursor;
@@ -37,7 +37,7 @@ import com.carrotsearch.hppc.cursors.ObjectCursor;
 import io.crate.common.unit.TimeValue;
 import io.crate.testing.TestingHelpers;
 
-@ESIntegTestCase.ClusterScope(numDataNodes = 2)
+@IntegTestCase.ClusterScope(numDataNodes = 2)
 public class RemoteCollectorIntegrationTest extends SQLIntegrationTestCase {
 
     @Test

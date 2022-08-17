@@ -34,11 +34,11 @@ import org.elasticsearch.index.engine.EngineFactory;
 import org.elasticsearch.index.engine.InternalEngine;
 import org.elasticsearch.plugins.EnginePlugin;
 import org.elasticsearch.plugins.Plugin;
-import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.test.IntegTestCase;
 
 import io.crate.integrationtests.SQLIntegrationTestCase;
 
-@ESIntegTestCase.ClusterScope(numDataNodes = 1)
+@IntegTestCase.ClusterScope(numDataNodes = 1)
 public class IndexingMemoryControllerIT extends SQLIntegrationTestCase {
 
     @Override

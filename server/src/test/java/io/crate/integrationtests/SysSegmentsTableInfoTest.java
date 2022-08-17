@@ -32,11 +32,11 @@ import static org.junit.Assert.assertThat;
 import java.util.Map;
 
 import org.elasticsearch.Version;
-import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 
-@ESIntegTestCase.ClusterScope(minNumDataNodes = 2)
+@IntegTestCase.ClusterScope(minNumDataNodes = 2)
 public class SysSegmentsTableInfoTest extends SQLIntegrationTestCase {
 
     @Test

@@ -38,7 +38,7 @@ import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.store.Store;
 import org.elasticsearch.indices.IndicesService;
-import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.test.InternalTestCluster;
 import org.hamcrest.Matchers;
 import org.junit.Test;
@@ -52,7 +52,7 @@ import io.crate.testing.UseRandomizedSchema;
 /**
  * Integration tests for the ClusterInfoService collecting information
  */
-@ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.TEST, numDataNodes = 0)
+@IntegTestCase.ClusterScope(scope = IntegTestCase.Scope.TEST, numDataNodes = 0)
 public class ClusterInfoServiceIT extends SQLIntegrationTestCase {
 
     @Test

@@ -41,14 +41,14 @@ import java.util.stream.Stream;
 
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.http.HttpServerTransport;
-import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.test.IntegTestCase;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.blob.v2.BlobAdminClient;
 import io.crate.blob.v2.BlobIndicesService;
 
-@ESIntegTestCase.ClusterScope(numDataNodes = 0, numClientNodes = 0)
+@IntegTestCase.ClusterScope(numDataNodes = 0, numClientNodes = 0)
 @WindowsIncompatible
 public class BlobPathITest extends BlobIntegrationTestBase {
 

@@ -42,7 +42,7 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.routing.OperationRouting;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.test.MockLogAppender;
 import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.junit.After;
@@ -57,7 +57,7 @@ import io.crate.exceptions.JobKilledException;
 import io.crate.testing.SQLTransportExecutor;
 import io.crate.testing.UseJdbc;
 
-@ESIntegTestCase.ClusterScope(numDataNodes = 0, numClientNodes = 0, supportsDedicatedMasters = false)
+@IntegTestCase.ClusterScope(numDataNodes = 0, numClientNodes = 0, supportsDedicatedMasters = false)
 public class CopyFromFailFastITest extends SQLIntegrationTestCase {
 
     @Rule

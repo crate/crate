@@ -41,7 +41,7 @@ import java.util.stream.Collectors;
 
 import javax.script.ScriptException;
 
-import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -65,7 +65,7 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.TypeSignature;
 
-@ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0)
+@IntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0)
 public class UserDefinedFunctionsIntegrationTest extends SQLIntegrationTestCase {
 
     public static class DummyFunction<InputType> extends Scalar<String, InputType> {

@@ -29,13 +29,13 @@ import java.util.concurrent.TimeUnit;
 
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.IndicesService;
-import org.elasticsearch.test.ESIntegTestCase;
-import org.elasticsearch.test.ESIntegTestCase.ClusterScope;
+import org.elasticsearch.test.IntegTestCase;
+import org.elasticsearch.test.IntegTestCase.ClusterScope;
 import org.elasticsearch.test.InternalTestCluster;
 
 import io.crate.integrationtests.SQLIntegrationTestCase;
 
-@ClusterScope(numDataNodes = 0, scope = ESIntegTestCase.Scope.TEST)
+@ClusterScope(numDataNodes = 0, scope = IntegTestCase.Scope.TEST)
 public class DanglingIndicesIT extends SQLIntegrationTestCase {
 
     private Settings buildSettings(boolean writeDanglingIndices, boolean importDanglingIndices) {

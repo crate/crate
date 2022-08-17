@@ -25,13 +25,13 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
 import org.elasticsearch.client.Client;
-import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 import io.crate.action.sql.SQLOperations;
 import io.crate.testing.SQLTransportExecutor;
 
-@ESIntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 2, supportsDedicatedMasters = false)
+@IntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 2, supportsDedicatedMasters = false)
 public class ClientNodeIntegrationTest extends SQLIntegrationTestCase {
 
     public ClientNodeIntegrationTest() {

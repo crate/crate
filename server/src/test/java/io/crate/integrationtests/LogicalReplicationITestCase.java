@@ -53,7 +53,7 @@ import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.common.network.NetworkModule;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugins.Plugin;
-import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.InternalSettingsPlugin;
 import org.elasticsearch.test.InternalTestCluster;
@@ -94,7 +94,7 @@ public abstract class LogicalReplicationITestCase extends ESTestCase {
     @Before
     public void setupClusters() throws IOException, InterruptedException {
         Collection<Class<? extends Plugin>> mockPlugins = List.of(
-            ESIntegTestCase.TestSeedPlugin.class,
+            IntegTestCase.TestSeedPlugin.class,
             MockHttpTransport.TestPlugin.class,
             MockTransportService.TestPlugin.class,
             InternalSettingsPlugin.class

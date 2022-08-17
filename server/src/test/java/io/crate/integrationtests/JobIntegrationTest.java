@@ -31,14 +31,14 @@ import javax.annotation.Nullable;
 
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 import io.crate.action.sql.SQLOperations;
 import io.crate.exceptions.VersioningValidationException;
 import io.crate.testing.SQLTransportExecutor;
 
-@ESIntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 1, supportsDedicatedMasters = false)
+@IntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 1, supportsDedicatedMasters = false)
 public class JobIntegrationTest extends SQLIntegrationTestCase {
 
     @Override

@@ -47,7 +47,7 @@ import org.elasticsearch.index.shard.ShardPath;
 import org.elasticsearch.index.store.FsDirectoryFactory;
 import org.elasticsearch.index.store.Store;
 import org.elasticsearch.plugins.IndexStorePlugin;
-import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Assert;
 
@@ -69,7 +69,7 @@ public class MockFSDirectoryFactory implements IndexStorePlugin.DirectoryFactory
     @Override
     public Directory newDirectory(IndexSettings idxSettings, ShardPath path) throws IOException {
         Settings indexSettings = idxSettings.getSettings();
-        Random random = new Random(idxSettings.getValue(ESIntegTestCase.INDEX_TEST_SEED_SETTING));
+        Random random = new Random(idxSettings.getValue(IntegTestCase.INDEX_TEST_SEED_SETTING));
         return wrap(randomDirectoryService(random, idxSettings, path), random, indexSettings,
             path.getShardId());
     }

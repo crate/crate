@@ -30,7 +30,7 @@ import java.nio.file.Paths;
 import javax.net.ssl.SSLContext;
 
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.transport.Transport;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -40,7 +40,7 @@ import io.crate.protocols.ssl.SslSettings;
 import io.crate.test.utils.ConnectionTest;
 import io.crate.test.utils.ConnectionTest.ProbeResult;
 
-@ESIntegTestCase.ClusterScope(numDataNodes = 2, supportsDedicatedMasters = false, numClientNodes = 0)
+@IntegTestCase.ClusterScope(numDataNodes = 2, supportsDedicatedMasters = false, numClientNodes = 0)
 public class SSLTransportITest extends SQLIntegrationTestCase {
 
     private static Path keyStoreFile;

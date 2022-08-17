@@ -26,12 +26,12 @@ import java.io.IOException;
 
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.test.ESIntegTestCase;
-import org.elasticsearch.test.ESIntegTestCase.ClusterScope;
+import org.elasticsearch.test.IntegTestCase;
+import org.elasticsearch.test.IntegTestCase.ClusterScope;
 import org.elasticsearch.test.InternalTestCluster;
 
-@ClusterScope(scope = ESIntegTestCase.Scope.TEST, numDataNodes = 0)
-public class InternalTestClusterIT extends ESIntegTestCase {
+@ClusterScope(scope = IntegTestCase.Scope.TEST, numDataNodes = 0)
+public class InternalTestClusterIT extends IntegTestCase {
 
     public void testStartingAndStoppingNodes() throws IOException {
         logger.info("--> cluster has [{}] nodes", internalCluster().size());

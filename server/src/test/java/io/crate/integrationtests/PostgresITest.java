@@ -59,7 +59,7 @@ import java.util.UUID;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.test.IntegTestCase;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -80,7 +80,7 @@ import io.crate.testing.DataTypeTesting;
 import io.crate.testing.UseJdbc;
 import io.crate.types.DataTypes;
 
-@ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0, supportsDedicatedMasters = false)
+@IntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0, supportsDedicatedMasters = false)
 public class PostgresITest extends SQLIntegrationTestCase {
 
     private static final String NO_IPV6 = "CRATE_TESTS_NO_IPV6";

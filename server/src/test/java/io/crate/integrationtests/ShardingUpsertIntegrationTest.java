@@ -26,11 +26,11 @@ import static org.junit.Assert.assertEquals;
 import java.nio.file.Paths;
 
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 
-@ESIntegTestCase.ClusterScope(numDataNodes = 1)
+@IntegTestCase.ClusterScope(numDataNodes = 1)
 public class ShardingUpsertIntegrationTest extends SQLIntegrationTestCase {
 
     @Override

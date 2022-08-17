@@ -22,7 +22,7 @@
 
 package io.crate.integrationtests;
 
-import org.elasticsearch.test.ESIntegTestCase.ClusterScope;
+import org.elasticsearch.test.IntegTestCase.ClusterScope;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Test;

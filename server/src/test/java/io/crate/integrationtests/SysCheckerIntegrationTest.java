@@ -30,14 +30,14 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
-import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 import io.crate.expression.reference.sys.check.SysCheck.Severity;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
 
-@ESIntegTestCase.ClusterScope(
+@IntegTestCase.ClusterScope(
     numDataNodes = 0, numClientNodes = 0, supportsDedicatedMasters = false)
 public class SysCheckerIntegrationTest extends SQLIntegrationTestCase {
 

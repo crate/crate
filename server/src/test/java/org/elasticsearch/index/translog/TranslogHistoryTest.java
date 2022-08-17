@@ -24,11 +24,11 @@ package org.elasticsearch.index.translog;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
-import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.test.IntegTestCase;
 
 import io.crate.integrationtests.SQLIntegrationTestCase;
 
-@ESIntegTestCase.ClusterScope(numDataNodes = 2)
+@IntegTestCase.ClusterScope(numDataNodes = 2)
 public class TranslogHistoryTest extends SQLIntegrationTestCase {
 
     public void test_translog_is_trimmed_with_soft_deletes_enabled() throws Exception {

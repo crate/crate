@@ -69,7 +69,7 @@ import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.tasks.TaskId;
-import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.Netty4Plugin;
 import org.junit.After;
@@ -140,7 +140,7 @@ import io.crate.user.UserLookup;
 @UseJdbc
 @UseHashJoins
 @UseRandomizedSchema
-public abstract class SQLIntegrationTestCase extends ESIntegTestCase {
+public abstract class SQLIntegrationTestCase extends IntegTestCase {
 
     private static final Logger LOGGER = LogManager.getLogger(SQLIntegrationTestCase.class);
     private static final int ORIGINAL_PAGE_SIZE = Paging.PAGE_SIZE;
@@ -197,7 +197,7 @@ public abstract class SQLIntegrationTestCase extends ESIntegTestCase {
             new SQLTransportExecutor.ClientProvider() {
                 @Override
                 public Client client() {
-                    return ESIntegTestCase.client();
+                    return IntegTestCase.client();
                 }
 
                 @Override
@@ -228,7 +228,7 @@ public abstract class SQLIntegrationTestCase extends ESIntegTestCase {
             new SQLTransportExecutor.ClientProvider() {
                 @Override
                 public Client client() {
-                    return ESIntegTestCase.client(nodeName);
+                    return IntegTestCase.client(nodeName);
                 }
 
                 @Override

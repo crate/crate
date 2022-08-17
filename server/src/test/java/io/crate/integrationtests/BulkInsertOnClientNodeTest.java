@@ -31,14 +31,14 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.elasticsearch.client.Client;
-import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.test.IntegTestCase;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.action.sql.SQLOperations;
 import io.crate.testing.SQLTransportExecutor;
 
-@ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 1)
+@IntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 1)
 public class BulkInsertOnClientNodeTest extends SQLIntegrationTestCase {
 
     public BulkInsertOnClientNodeTest() {

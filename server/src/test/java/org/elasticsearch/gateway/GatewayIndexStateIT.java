@@ -74,9 +74,9 @@ import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.node.Node;
-import org.elasticsearch.test.ESIntegTestCase;
-import org.elasticsearch.test.ESIntegTestCase.ClusterScope;
-import org.elasticsearch.test.ESIntegTestCase.Scope;
+import org.elasticsearch.test.IntegTestCase;
+import org.elasticsearch.test.IntegTestCase.ClusterScope;
+import org.elasticsearch.test.IntegTestCase.Scope;
 import org.elasticsearch.test.InternalTestCluster.RestartCallback;
 import org.junit.Test;
 
@@ -366,7 +366,7 @@ public class GatewayIndexStateIT extends SQLIntegrationTestCase {
                 var clientProvider = new SQLTransportExecutor.ClientProvider() {
                     @Override
                     public Client client() {
-                        return ESIntegTestCase.client(otherNode);
+                        return IntegTestCase.client(otherNode);
                     }
 
                     @Override

@@ -46,7 +46,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.test.IntegTestCase;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.IsNull;
 import org.junit.Test;
@@ -60,7 +60,7 @@ import io.crate.exceptions.VersioningValidationException;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
 
-@ESIntegTestCase.ClusterScope(numDataNodes = 2)
+@IntegTestCase.ClusterScope(numDataNodes = 2)
 public class InsertIntoIntegrationTest extends SQLIntegrationTestCase {
 
     private Setup setup = new Setup(sqlExecutor);

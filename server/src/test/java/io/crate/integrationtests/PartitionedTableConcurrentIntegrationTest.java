@@ -47,7 +47,7 @@ import org.elasticsearch.cluster.routing.ShardRoutingState;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
-import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.test.IntegTestCase;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Test;
@@ -62,7 +62,7 @@ import io.crate.metadata.RelationName;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;
 
-@ESIntegTestCase.ClusterScope(numDataNodes = 2)
+@IntegTestCase.ClusterScope(numDataNodes = 2)
 public class PartitionedTableConcurrentIntegrationTest extends SQLIntegrationTestCase {
 
     private final TimeValue ACCEPTABLE_RELOCATION_TIME = new TimeValue(10, TimeUnit.SECONDS);
