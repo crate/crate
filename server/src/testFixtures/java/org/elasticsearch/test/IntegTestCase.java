@@ -353,7 +353,7 @@ public abstract class IntegTestCase extends ESTestCase {
         Scope currentClusterScope = getCurrentClusterScope();
         Callable<Void> setup = () -> {
             cluster().beforeTest(random());
-            cluster().wipe(excludeTemplates());
+            cluster().wipe();
             randomIndexTemplate();
             return null;
         };
@@ -515,51 +515,37 @@ public abstract class IntegTestCase extends ESTestCase {
     }
 
     private void afterInternal(boolean afterClass) throws Exception {
-        boolean success = false;
+        Scope currentClusterScope = getCurrentClusterScope();
+        if (isInternalCluster()) {
+            internalCluster().clearDisruptionScheme();
+        }
         try {
-            Scope currentClusterScope = getCurrentClusterScope();
-            if (isInternalCluster()) {
-                internalCluster().clearDisruptionScheme();
-            }
-            try {
-                if (cluster() != null) {
-                    if (currentClusterScope != Scope.TEST) {
-                        Metadata metadata = FutureUtils.get(client().admin().cluster().state(new ClusterStateRequest())).getState().getMetadata();
-                        Set<String> persistent = metadata.persistentSettings().keySet();
-                        assertThat("test leaves persistent cluster metadata behind: " + persistent, persistent.size(), equalTo(0));
-                        Set<String> transientSettings = new HashSet<>(metadata.transientSettings().keySet());
-                        assertThat("test leaves transient cluster metadata behind: " + transientSettings,
-                            transientSettings, empty());
-                    }
-                    ensureClusterSizeConsistency();
-                    ensureClusterStateConsistency();
-                    beforeIndexDeletion();
-                    cluster().wipe(excludeTemplates()); // wipe after to make sure we fail in the test that didn't ack the delete
-                    if (afterClass || currentClusterScope == Scope.TEST) {
-                        cluster().close();
-                    }
-                    cluster().assertAfterTest();
+            TestCluster cluster = cluster();
+            if (cluster != null) {
+                if (currentClusterScope != Scope.TEST) {
+                    Metadata metadata = FutureUtils.get(client().admin().cluster().state(new ClusterStateRequest())).getState().getMetadata();
+                    Set<String> persistent = metadata.persistentSettings().keySet();
+                    assertThat(persistent)
+                        .as("test does not leave persistent settings behind")
+                        .isEmpty();
+                    assertThat(metadata.transientSettings().keySet())
+                        .as("test does not leave transient settings behind")
+                        .isEmpty();
                 }
-            } finally {
-                if (currentClusterScope == Scope.TEST) {
-                    clearClusters(); // it is ok to leave persistent / transient cluster state behind if scope is TEST
+                ensureClusterSizeConsistency();
+                ensureClusterStateConsistency();
+                beforeIndexDeletion();
+                cluster().wipe(); // wipe after to make sure we fail in the test that didn't ack the delete
+                if (afterClass || currentClusterScope == Scope.TEST) {
+                    cluster().close();
                 }
+                cluster().assertAfterTest();
             }
-            success = true;
         } finally {
-            if (!success) {
-                // if we failed here that means that something broke horribly so we should clear all clusters
-                // TODO: just let the exception happen, WTF is all this horseshit
-                // afterTestRule.forceFailure();
+            if (currentClusterScope == Scope.TEST) {
+                clearClusters(); // it is ok to leave persistent / transient cluster state behind if scope is TEST
             }
         }
-    }
-
-    /**
-     * @return An exclude set of index templates that will not be removed in between tests.
-     */
-    protected Set<String> excludeTemplates() {
-        return Collections.emptySet();
     }
 
     protected void beforeIndexDeletion() throws Exception {

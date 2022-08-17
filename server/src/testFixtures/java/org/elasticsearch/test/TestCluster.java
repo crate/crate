@@ -19,7 +19,14 @@
 
 package org.elasticsearch.test;
 
-import com.carrotsearch.hppc.ObjectArrayList;
+import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertAcked;
+
+import java.io.Closeable;
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.util.Random;
+import java.util.concurrent.ExecutionException;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryAction;
@@ -38,14 +45,7 @@ import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.indices.IndexTemplateMissingException;
 import org.elasticsearch.repositories.RepositoryMissingException;
 
-import java.io.Closeable;
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.util.Random;
-import java.util.Set;
-import java.util.concurrent.ExecutionException;
-
-import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertAcked;
+import com.carrotsearch.hppc.ObjectArrayList;
 
 /**
  * Base test cluster that exposes the basis to run tests against any elasticsearch cluster, whose layout
@@ -76,9 +76,9 @@ public abstract class TestCluster implements Closeable {
     /**
      * Wipes any data that a test can leave behind: indices, templates (except exclude templates) and repositories
      */
-    public void wipe(Set<String> excludeTemplates) {
+    public void wipe() {
         wipeIndices("_all");
-        wipeAllTemplates(excludeTemplates);
+        wipeAllTemplates();
         wipeRepositories();
     }
 
@@ -166,13 +166,10 @@ public abstract class TestCluster implements Closeable {
     /**
      * Removes all templates, except the templates defined in the exclude
      */
-    public void wipeAllTemplates(Set<String> exclude) {
+    public void wipeAllTemplates() {
         if (size() > 0) {
             GetIndexTemplatesResponse response = FutureUtils.get(client().admin().indices().getTemplates(new GetIndexTemplatesRequest()));
             for (IndexTemplateMetadata indexTemplate : response.getIndexTemplates()) {
-                if (exclude.contains(indexTemplate.getName())) {
-                    continue;
-                }
                 try {
                     FutureUtils.get(client().admin().indices().deleteTemplate(new DeleteIndexTemplateRequest(indexTemplate.getName())));
                 } catch (IndexTemplateMissingException e) {
