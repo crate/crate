@@ -104,6 +104,11 @@ public class DateTruncFunctionTest extends ScalarTestCase {
                        TIMESTAMP); // Fri Jan  1 00:00:00.000 UTC 1999
     }
 
+    @Test
+    public void test_interval_is_case_insensitive() {
+        assertEvaluate("date_trunc('dAy', timestamp_tz)", 919900800000L, TIMESTAMP);
+    }
+
 
     @Test
     public void testDateTruncWithLongDataType() throws Exception {
