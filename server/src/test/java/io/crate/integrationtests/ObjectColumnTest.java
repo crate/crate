@@ -40,13 +40,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.elasticsearch.test.IntegTestCase;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.testing.UseJdbc;
 
-public class ObjectColumnTest extends SQLIntegrationTestCase {
+public class ObjectColumnTest extends IntegTestCase {
 
     private Setup setup = new Setup(sqlExecutor);
 

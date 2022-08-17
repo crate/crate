@@ -63,7 +63,7 @@ import io.crate.sql.tree.ColumnPolicy;
 import io.crate.testing.TestingHelpers;
 
 @IntegTestCase.ClusterScope(numDataNodes = 1)
-public class ColumnPolicyIntegrationTest extends SQLIntegrationTestCase {
+public class ColumnPolicyIntegrationTest extends IntegTestCase {
 
     private String copyFilePath = Paths.get(getClass().getResource("/essetup/data/copy").toURI()).toUri().toString();
 

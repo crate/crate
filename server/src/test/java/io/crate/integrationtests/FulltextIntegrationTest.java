@@ -30,11 +30,12 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 import io.crate.testing.TestingHelpers;
 
-public class FulltextIntegrationTest extends SQLIntegrationTestCase {
+public class FulltextIntegrationTest extends IntegTestCase {
 
     @Test
     public void testSelectMatch() throws Exception {

@@ -25,9 +25,10 @@ import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
-public class RelationAliasITest extends SQLIntegrationTestCase {
+public class RelationAliasITest extends IntegTestCase {
 
     @Test
     public void testRelationAliasWithColumnAliases() {

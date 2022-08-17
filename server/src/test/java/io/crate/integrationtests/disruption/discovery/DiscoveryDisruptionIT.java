@@ -47,14 +47,13 @@ import org.elasticsearch.transport.Transport;
 import org.elasticsearch.transport.TransportService;
 import org.junit.Test;
 
-import io.crate.integrationtests.SQLIntegrationTestCase;
 
 /**
  * Tests for discovery during disruptions.
  */
 @TestLogging("_root:DEBUG,org.elasticsearch.cluster.service:TRACE")
 @IntegTestCase.ClusterScope(scope = IntegTestCase.Scope.TEST, numDataNodes = 0)
-@SQLIntegrationTestCase.Slow
+@IntegTestCase.Slow
 public class DiscoveryDisruptionIT extends AbstractDisruptionTestCase {
 
     /**

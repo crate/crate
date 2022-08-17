@@ -52,7 +52,6 @@ import io.crate.expression.operator.EqOperator;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.integrationtests.SQLIntegrationTestCase;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionImplementation;
@@ -77,7 +76,7 @@ import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
 
 @IntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 0, supportsDedicatedMasters = false)
-public class HandlerSideLevelCollectTest extends SQLIntegrationTestCase {
+public class HandlerSideLevelCollectTest extends IntegTestCase {
 
     private MapSideDataCollectOperation operation;
     private Functions functions;

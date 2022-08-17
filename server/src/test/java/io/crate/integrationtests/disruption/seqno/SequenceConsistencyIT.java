@@ -38,12 +38,11 @@ import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.test.disruption.NetworkDisruption;
 import org.junit.Test;
 
-import io.crate.integrationtests.SQLIntegrationTestCase;
 import io.crate.integrationtests.disruption.discovery.AbstractDisruptionTestCase;
 import io.crate.metadata.IndexParts;
 
 @IntegTestCase.ClusterScope(scope = IntegTestCase.Scope.TEST, numDataNodes = 0, numClientNodes = 0)
-@SQLIntegrationTestCase.Slow
+@IntegTestCase.Slow
 public class SequenceConsistencyIT extends AbstractDisruptionTestCase {
 
 

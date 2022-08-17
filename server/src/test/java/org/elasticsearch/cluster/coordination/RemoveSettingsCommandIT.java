@@ -37,11 +37,10 @@ import org.elasticsearch.env.TestEnvironment;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
-import io.crate.integrationtests.SQLIntegrationTestCase;
 import joptsimple.OptionSet;
 
 @IntegTestCase.ClusterScope(scope = IntegTestCase.Scope.TEST, numDataNodes = 0, autoManageMasterNodes = false)
-public class RemoveSettingsCommandIT extends SQLIntegrationTestCase {
+public class RemoveSettingsCommandIT extends IntegTestCase {
 
     @Test
     public void testRemoveSettingsAbortedByUser() throws Exception {

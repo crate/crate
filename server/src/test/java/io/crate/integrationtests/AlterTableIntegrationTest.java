@@ -27,9 +27,10 @@ import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static org.hamcrest.Matchers.startsWith;
 
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
-public class AlterTableIntegrationTest extends SQLIntegrationTestCase {
+public class AlterTableIntegrationTest extends IntegTestCase {
 
     @Test
     public void test_create_soft_delete_setting_for_partitioned_tables() {

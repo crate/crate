@@ -28,6 +28,7 @@ import static org.junit.Assert.assertThat;
 import java.util.Arrays;
 import java.util.List;
 
+import org.elasticsearch.test.IntegTestCase;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 import org.locationtech.spatial4j.shape.Point;
@@ -35,7 +36,7 @@ import org.locationtech.spatial4j.shape.Point;
 import io.crate.common.collections.MapBuilder;
 import io.crate.testing.TestingHelpers;
 
-public class WherePKIntegrationTest extends SQLIntegrationTestCase {
+public class WherePKIntegrationTest extends IntegTestCase {
 
     @Test
     public void testWherePkColInWithLimit() throws Exception {

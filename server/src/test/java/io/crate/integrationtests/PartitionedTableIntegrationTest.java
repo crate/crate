@@ -91,7 +91,7 @@ import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseRandomizedSchema;
 
 @IntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 2)
-public class PartitionedTableIntegrationTest extends SQLIntegrationTestCase {
+public class PartitionedTableIntegrationTest extends IntegTestCase {
 
     private Setup setup = new Setup(sqlExecutor);
     private String copyFilePath = Paths.get(getClass().getResource("/essetup/data/copy").toURI()).toUri().toString();

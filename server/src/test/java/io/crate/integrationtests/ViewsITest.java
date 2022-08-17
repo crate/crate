@@ -37,6 +37,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.test.IntegTestCase;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Test;
@@ -47,7 +48,7 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.view.ViewsMetadata;
 import io.netty.handler.codec.http.HttpResponseStatus;
 
-public class ViewsITest extends SQLIntegrationTestCase {
+public class ViewsITest extends IntegTestCase {
 
     @After
     public void dropViews() {

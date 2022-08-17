@@ -46,14 +46,13 @@ import org.junit.Test;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 
 import io.crate.common.unit.TimeValue;
-import io.crate.integrationtests.SQLIntegrationTestCase;
 import io.crate.testing.UseRandomizedSchema;
 
 /**
  * Integration tests for the ClusterInfoService collecting information
  */
 @IntegTestCase.ClusterScope(scope = IntegTestCase.Scope.TEST, numDataNodes = 0)
-public class ClusterInfoServiceIT extends SQLIntegrationTestCase {
+public class ClusterInfoServiceIT extends IntegTestCase {
 
     @Test
     @UseRandomizedSchema(random = false)

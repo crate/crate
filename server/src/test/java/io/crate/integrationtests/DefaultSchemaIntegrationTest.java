@@ -27,13 +27,14 @@ import static org.junit.Assert.assertThat;
 import java.io.File;
 import java.nio.file.Paths;
 
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import io.crate.testing.SQLResponse;
 
-public class DefaultSchemaIntegrationTest extends SQLIntegrationTestCase {
+public class DefaultSchemaIntegrationTest extends IntegTestCase {
 
 
     @Rule

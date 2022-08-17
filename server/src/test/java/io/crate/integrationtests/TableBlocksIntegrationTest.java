@@ -39,7 +39,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 @IntegTestCase.ClusterScope(numDataNodes = 1)
-public class TableBlocksIntegrationTest extends SQLIntegrationTestCase {
+public class TableBlocksIntegrationTest extends IntegTestCase {
 
     @ClassRule
     public static final TemporaryFolder TEMPORARY_FOLDER = new TemporaryFolder();

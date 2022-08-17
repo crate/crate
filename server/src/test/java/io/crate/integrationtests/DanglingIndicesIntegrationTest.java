@@ -29,7 +29,7 @@ import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 @IntegTestCase.ClusterScope(numDataNodes = 1)
-public class DanglingIndicesIntegrationTest extends SQLIntegrationTestCase {
+public class DanglingIndicesIntegrationTest extends IntegTestCase {
 
     @Test
     public void testDanglingIndicesAreFilteredOutFromDBCatalog() throws Exception {

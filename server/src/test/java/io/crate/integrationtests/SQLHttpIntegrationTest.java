@@ -41,12 +41,13 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.http.HttpServerTransport;
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.Before;
 
 import io.crate.common.Hex;
 import io.crate.test.utils.Blobs;
 
-public abstract class SQLHttpIntegrationTest extends SQLIntegrationTestCase {
+public abstract class SQLHttpIntegrationTest extends IntegTestCase {
 
     private HttpPost httpPost;
     private InetSocketAddress address;

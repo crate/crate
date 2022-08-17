@@ -81,7 +81,7 @@ import io.crate.testing.UseJdbc;
 import io.crate.types.DataTypes;
 
 @IntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0, supportsDedicatedMasters = false)
-public class PostgresITest extends SQLIntegrationTestCase {
+public class PostgresITest extends IntegTestCase {
 
     private static final String NO_IPV6 = "CRATE_TESTS_NO_IPV6";
     private static final String RO = "node_s0";

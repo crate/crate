@@ -57,13 +57,12 @@ import org.junit.Test;
 
 import io.crate.common.unit.TimeValue;
 import io.crate.execution.ddl.SchemaUpdateClient;
-import io.crate.integrationtests.SQLIntegrationTestCase;
 
 /**
  * Tests relating to the loss of the master.
  */
 @IntegTestCase.ClusterScope(scope = IntegTestCase.Scope.TEST, numDataNodes = 0)
-@SQLIntegrationTestCase.Slow
+@IntegTestCase.Slow
 public class MasterDisruptionIT extends AbstractDisruptionTestCase {
 
     /**

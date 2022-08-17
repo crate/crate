@@ -52,10 +52,10 @@ import org.elasticsearch.test.IntegTestCase.Scope;
 import org.elasticsearch.test.InternalSettingsPlugin;
 import org.junit.Test;
 
-import io.crate.integrationtests.SQLIntegrationTestCase;
+import org.elasticsearch.test.IntegTestCase;
 
 @ClusterScope(scope= Scope.TEST, numDataNodes=0)
-public class FilteringAllocationIT extends SQLIntegrationTestCase {
+public class FilteringAllocationIT extends IntegTestCase {
 
     @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {

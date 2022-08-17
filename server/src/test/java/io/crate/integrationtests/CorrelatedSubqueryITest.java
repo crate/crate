@@ -29,11 +29,12 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Stream;
 
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 import io.crate.testing.TestingHelpers;
 
-public class CorrelatedSubqueryITest extends SQLIntegrationTestCase {
+public class CorrelatedSubqueryITest extends IntegTestCase {
 
     @Test
     public void test_simple_correlated_subquery() {

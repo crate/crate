@@ -63,7 +63,7 @@ import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;
 
 @IntegTestCase.ClusterScope(numDataNodes = 2)
-public class PartitionedTableConcurrentIntegrationTest extends SQLIntegrationTestCase {
+public class PartitionedTableConcurrentIntegrationTest extends IntegTestCase {
 
     private final TimeValue ACCEPTABLE_RELOCATION_TIME = new TimeValue(10, TimeUnit.SECONDS);
 

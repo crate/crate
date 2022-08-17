@@ -40,9 +40,10 @@ import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
-public class CreateTableIntegrationTest extends SQLIntegrationTestCase {
+public class CreateTableIntegrationTest extends IntegTestCase {
 
     @Test
     public void testCreateTableIfNotExistsConcurrently() throws Throwable {

@@ -31,11 +31,12 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 import io.crate.testing.UseJdbc;
 
-public class TableFunctionITest extends SQLIntegrationTestCase {
+public class TableFunctionITest extends IntegTestCase {
 
     @Test
     public void testSelectFromUnnest() {

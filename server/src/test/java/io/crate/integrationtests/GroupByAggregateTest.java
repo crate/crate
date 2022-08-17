@@ -49,7 +49,7 @@ import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
 
 @IntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0, supportsDedicatedMasters = false)
-public class GroupByAggregateTest extends SQLIntegrationTestCase {
+public class GroupByAggregateTest extends IntegTestCase {
 
     private Setup setup = new Setup(sqlExecutor);
 

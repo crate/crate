@@ -26,6 +26,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.sql.PreparedStatement;
 
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 import org.postgresql.util.PSQLException;
 
@@ -33,7 +34,7 @@ import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
 
 @UseJdbc(value = 1)
-public class PostgresCompatIntegrationTest extends SQLIntegrationTestCase {
+public class PostgresCompatIntegrationTest extends IntegTestCase {
 
     @Test
     public void testBeginStatement() {

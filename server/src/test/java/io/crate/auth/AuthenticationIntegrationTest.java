@@ -47,12 +47,12 @@ import org.junit.After;
 import org.junit.Test;
 import org.postgresql.util.PSQLException;
 
-import io.crate.integrationtests.SQLIntegrationTestCase;
+import org.elasticsearch.test.IntegTestCase;
 import io.crate.testing.UseJdbc;
 import io.netty.handler.codec.http.HttpHeaderNames;
 
 @UseJdbc(value = 1)
-public class AuthenticationIntegrationTest extends SQLIntegrationTestCase {
+public class AuthenticationIntegrationTest extends IntegTestCase {
 
     @Override
     protected boolean addMockHttpTransport() {

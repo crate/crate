@@ -43,7 +43,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 @IntegTestCase.ClusterScope(numDataNodes = 2)
-public class ExplainAnalyzeIntegrationTest extends SQLIntegrationTestCase {
+public class ExplainAnalyzeIntegrationTest extends IntegTestCase {
 
     @Before
     public void initTestData() throws Exception {

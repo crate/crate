@@ -45,9 +45,9 @@ import org.junit.Test;
 import org.junit.jupiter.api.Assertions;
 
 import io.crate.exceptions.SQLExceptions;
-import io.crate.integrationtests.SQLIntegrationTestCase;
+import org.elasticsearch.test.IntegTestCase;
 
-public class TransportCreatePartitionsActionTest extends SQLIntegrationTestCase {
+public class TransportCreatePartitionsActionTest extends IntegTestCase {
 
     TransportCreatePartitionsAction action;
 

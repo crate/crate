@@ -61,7 +61,7 @@ import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
 
 @IntegTestCase.ClusterScope(numDataNodes = 2)
-public class InsertIntoIntegrationTest extends SQLIntegrationTestCase {
+public class InsertIntoIntegrationTest extends IntegTestCase {
 
     private Setup setup = new Setup(sqlExecutor);
 

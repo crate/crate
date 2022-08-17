@@ -24,13 +24,14 @@ package io.crate.integrationtests;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
+import org.elasticsearch.test.IntegTestCase;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.Is;
 import org.junit.Test;
 
 import io.crate.testing.TestingHelpers;
 
-public class AnyIntegrationTest extends SQLIntegrationTestCase {
+public class AnyIntegrationTest extends IntegTestCase {
 
     @Test
     public void testAnyOnArrayLiteralDeleteUpdateSelect() throws Exception {

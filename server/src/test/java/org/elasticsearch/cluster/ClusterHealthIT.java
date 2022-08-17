@@ -40,9 +40,9 @@ import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.test.InternalTestCluster;
 import org.junit.Test;
 
-import io.crate.integrationtests.SQLIntegrationTestCase;
+import org.elasticsearch.test.IntegTestCase;
 
-public class ClusterHealthIT extends SQLIntegrationTestCase {
+public class ClusterHealthIT extends IntegTestCase {
 
     @Test
     public void testSimpleLocalHealth() {

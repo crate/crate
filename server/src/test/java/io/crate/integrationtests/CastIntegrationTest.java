@@ -27,10 +27,11 @@ import static org.junit.Assert.assertThat;
 
 import java.util.List;
 
+import org.elasticsearch.test.IntegTestCase;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
-public class CastIntegrationTest extends SQLIntegrationTestCase {
+public class CastIntegrationTest extends IntegTestCase {
 
     @Test
     public void testTryCastValidLiteralCasting() {

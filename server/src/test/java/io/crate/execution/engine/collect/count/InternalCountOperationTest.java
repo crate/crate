@@ -41,7 +41,6 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.integrationtests.SQLIntegrationTestCase;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
@@ -49,7 +48,7 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.testing.SqlExpressions;
 
 @IntegTestCase.ClusterScope(numDataNodes = 1)
-public class InternalCountOperationTest extends SQLIntegrationTestCase {
+public class InternalCountOperationTest extends IntegTestCase {
 
     @Test
     public void testCount() throws Exception {

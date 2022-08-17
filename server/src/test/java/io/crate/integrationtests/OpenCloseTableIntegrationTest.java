@@ -36,10 +36,11 @@ import java.util.List;
 
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
 
-public class OpenCloseTableIntegrationTest extends SQLIntegrationTestCase {
+public class OpenCloseTableIntegrationTest extends IntegTestCase {
 
     @Before
     public void prepareClosedTable() {

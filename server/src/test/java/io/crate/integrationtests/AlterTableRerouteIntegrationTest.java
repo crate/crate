@@ -32,7 +32,7 @@ import io.crate.testing.UseRandomizedSchema;
 // ensure that only data nodes are picked for rerouting
 @IntegTestCase.ClusterScope(supportsDedicatedMasters = false, numDataNodes = 2, numClientNodes = 0)
 @UseRandomizedSchema(random = false)
-public class AlterTableRerouteIntegrationTest extends SQLIntegrationTestCase {
+public class AlterTableRerouteIntegrationTest extends IntegTestCase {
 
     @Test
     public void testAlterTableRerouteMoveShard() throws Exception {

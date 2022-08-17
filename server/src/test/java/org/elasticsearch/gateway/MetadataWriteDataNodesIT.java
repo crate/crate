@@ -39,11 +39,11 @@ import org.elasticsearch.test.IntegTestCase.ClusterScope;
 import org.elasticsearch.test.IntegTestCase.Scope;
 import org.elasticsearch.test.InternalTestCluster;
 
-import io.crate.integrationtests.SQLIntegrationTestCase;
+import org.elasticsearch.test.IntegTestCase;
 
 
 @ClusterScope(scope = Scope.TEST, numDataNodes = 0)
-public class MetadataWriteDataNodesIT extends SQLIntegrationTestCase {
+public class MetadataWriteDataNodesIT extends IntegTestCase {
 
     public void testMetaWrittenAlsoOnDataNode() throws Exception {
         // this test checks that index state is written on data only nodes if they have a shard allocated

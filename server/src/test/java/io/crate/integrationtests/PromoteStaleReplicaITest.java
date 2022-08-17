@@ -33,7 +33,7 @@ import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 @IntegTestCase.ClusterScope(numDataNodes = 0, numClientNodes = 0)
-public class PromoteStaleReplicaITest extends SQLIntegrationTestCase {
+public class PromoteStaleReplicaITest extends IntegTestCase {
 
     @Test
     public void test_stale_replica_can_manually_be_promoted() throws Exception {

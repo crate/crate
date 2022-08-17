@@ -21,26 +21,21 @@
 
 package io.crate.integrationtests;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.http.HttpTransportSettings.SETTING_CORS_ALLOW_ORIGIN;
 import static org.elasticsearch.http.HttpTransportSettings.SETTING_CORS_ENABLED;
 import static org.elasticsearch.http.HttpTransportSettings.SETTING_HTTP_COMPRESSION;
-import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.plugins.Plugin;
-import org.elasticsearch.transport.Netty4Plugin;
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.After;
 import org.junit.Before;
 
@@ -48,7 +43,7 @@ import io.crate.blob.v2.BlobIndex;
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.blob.v2.BlobShard;
 
-public abstract class BlobIntegrationTestBase extends SQLIntegrationTestCase {
+public abstract class BlobIntegrationTestBase extends IntegTestCase {
 
     private Field indicesField;
     private Field shardsField;
@@ -76,11 +71,6 @@ public abstract class BlobIntegrationTestBase extends SQLIntegrationTestCase {
             .build();
     }
 
-    @Override
-    protected Collection<Class<? extends Plugin>> nodePlugins() {
-        return List.of(Netty4Plugin.class);
-    }
-
     @After
     public void assertNoTmpFilesAndNoIndicesRemaining() throws Exception {
         assertBusy(() -> forEachIndicesMap(i -> {
@@ -90,7 +80,7 @@ public abstract class BlobIntegrationTestBase extends SQLIntegrationTestCase {
                     for (BlobShard blobShard : o.values()) {
                         Path tmpDir = blobShard.blobContainer().getTmpDirectory();
                         try (Stream<Path> files = Files.list(tmpDir)) {
-                            assertThat(files.count(), is(0L));
+                            assertThat(files.count()).isEqualTo(0L);
                         }
                     }
                 } catch (IOException | IllegalAccessException e) {
@@ -100,7 +90,7 @@ public abstract class BlobIntegrationTestBase extends SQLIntegrationTestCase {
         }));
 
         internalCluster().wipeIndices("_all");
-        assertBusy(() -> forEachIndicesMap(i -> assertThat(i.keySet(), empty())));
+        assertBusy(() -> forEachIndicesMap(i -> assertThat(i.keySet()).isEmpty()));
     }
 
     private void forEachIndicesMap(Consumer<Map<String, BlobIndex>> consumer) {

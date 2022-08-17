@@ -30,11 +30,12 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 import io.crate.data.Paging;
 
-public class QueryThenFetchIntegrationTest extends SQLIntegrationTestCase {
+public class QueryThenFetchIntegrationTest extends IntegTestCase {
 
     @Test
     public void testCrateSearchServiceSupportsOrderByOnFunctionWithBooleanReturnType() throws Exception {

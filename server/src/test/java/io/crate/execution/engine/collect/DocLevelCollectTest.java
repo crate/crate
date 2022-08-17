@@ -63,7 +63,6 @@ import io.crate.expression.operator.EqOperator;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.integrationtests.SQLIntegrationTestCase;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceIdent;
@@ -83,7 +82,7 @@ import io.crate.types.DataTypes;
 
 @IntegTestCase.ClusterScope(numDataNodes = 1)
 @UseRandomizedSchema(random = false)
-public class DocLevelCollectTest extends SQLIntegrationTestCase {
+public class DocLevelCollectTest extends IntegTestCase {
 
     private static final String TEST_TABLE_NAME = "test_table";
     private static final SimpleReference TEST_DOC_LEVEL_REFERENCE = new SimpleReference(

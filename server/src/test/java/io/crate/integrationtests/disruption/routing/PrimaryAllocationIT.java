@@ -63,12 +63,11 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.common.collections.Sets;
-import io.crate.integrationtests.SQLIntegrationTestCase;
 import io.crate.metadata.IndexParts;
 
 @IntegTestCase.ClusterScope(scope = IntegTestCase.Scope.TEST, numDataNodes = 0)
-@SQLIntegrationTestCase.Slow
-public class PrimaryAllocationIT extends SQLIntegrationTestCase {
+@IntegTestCase.Slow
+public class PrimaryAllocationIT extends IntegTestCase {
 
     private String schema;
     private String indexName;

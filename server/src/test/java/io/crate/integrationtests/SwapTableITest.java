@@ -31,9 +31,10 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
-public class SwapTableITest extends SQLIntegrationTestCase {
+public class SwapTableITest extends IntegTestCase {
 
     @Test
     public void testSwapTwoTablesWithDropSource() {

@@ -41,7 +41,7 @@ import io.crate.test.utils.ConnectionTest;
 import io.crate.test.utils.ConnectionTest.ProbeResult;
 
 @IntegTestCase.ClusterScope(numDataNodes = 2, supportsDedicatedMasters = false, numClientNodes = 0)
-public class DefaultTransportITest extends SQLIntegrationTestCase {
+public class DefaultTransportITest extends IntegTestCase {
 
     private static Path keyStoreFile;
     private Settings sslSettings = Settings.builder()

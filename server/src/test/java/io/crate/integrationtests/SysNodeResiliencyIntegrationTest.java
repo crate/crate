@@ -36,7 +36,7 @@ import org.elasticsearch.test.transport.MockTransportService;
 import org.junit.Test;
 
 @IntegTestCase.ClusterScope(minNumDataNodes = 2)
-public class SysNodeResiliencyIntegrationTest extends SQLIntegrationTestCase {
+public class SysNodeResiliencyIntegrationTest extends IntegTestCase {
 
     @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {

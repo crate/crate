@@ -26,13 +26,14 @@ import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 
+import org.elasticsearch.test.IntegTestCase;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
 
-public class SelectOrderByIntegrationTest extends SQLIntegrationTestCase {
+public class SelectOrderByIntegrationTest extends IntegTestCase {
 
     @Test
     public void testSelectOrderByNullSortingASC() throws Exception {

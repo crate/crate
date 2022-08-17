@@ -25,13 +25,14 @@ import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 import io.crate.common.unit.TimeValue;
 import io.crate.execution.dsl.projection.AbstractIndexWriterProjection;
 import io.crate.testing.UseJdbc;
 
-public class DeleteIntegrationTest extends SQLIntegrationTestCase {
+public class DeleteIntegrationTest extends IntegTestCase {
 
     private Setup setup = new Setup(sqlExecutor);
 

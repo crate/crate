@@ -30,7 +30,7 @@ import org.junit.Test;
 import io.crate.testing.TestingHelpers;
 
 @IntegTestCase.ClusterScope(numDataNodes = 1)
-public class UnassignedShardsTest extends SQLIntegrationTestCase {
+public class UnassignedShardsTest extends IntegTestCase {
 
     @Test
     public void testUnassignedReplicasAreVisibleAsUnassignedInSysShards() throws Exception {

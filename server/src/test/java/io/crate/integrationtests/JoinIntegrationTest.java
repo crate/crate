@@ -59,7 +59,7 @@ import io.crate.testing.UseHashJoins;
 import io.crate.testing.UseRandomizedSchema;
 
 @IntegTestCase.ClusterScope(minNumDataNodes = 2)
-public class JoinIntegrationTest extends SQLIntegrationTestCase {
+public class JoinIntegrationTest extends IntegTestCase {
 
     @After
     public void resetStatsAndBreakerSettings() {

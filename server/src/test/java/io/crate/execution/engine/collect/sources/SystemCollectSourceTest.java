@@ -42,7 +42,6 @@ import io.crate.analyze.WhereClause;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.expression.reference.StaticTableReferenceResolver;
-import io.crate.integrationtests.SQLIntegrationTestCase;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
@@ -55,7 +54,7 @@ import io.crate.planner.distribution.DistributionInfo;
 import io.crate.types.DataTypes;
 
 @IntegTestCase.ClusterScope(numDataNodes = 1, supportsDedicatedMasters = false)
-public class SystemCollectSourceTest extends SQLIntegrationTestCase {
+public class SystemCollectSourceTest extends IntegTestCase {
 
     @Test
     public void testOrderBySymbolsDoNotAppearTwiceInRows() throws Exception {

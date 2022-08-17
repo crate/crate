@@ -26,12 +26,13 @@ import static org.junit.Assert.assertThat;
 
 import java.util.List;
 
+import org.elasticsearch.test.IntegTestCase;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.types.DataTypes;
 
-public class AnalyzeITest extends SQLIntegrationTestCase {
+public class AnalyzeITest extends IntegTestCase {
 
     @Test
     public void test_analyze_statement_refreshes_table_stats_and_stats_are_visible_in_pg_class_and_pg_stats() {

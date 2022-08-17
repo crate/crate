@@ -27,6 +27,7 @@ import static org.junit.Assert.assertThat;
 import java.util.Arrays;
 import java.util.List;
 
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -34,7 +35,7 @@ import io.crate.data.CollectionBucket;
 import io.crate.execution.engine.sort.OrderingByPosition;
 import io.crate.testing.TestingHelpers;
 
-public class JoinGroupByIntegrationTests extends SQLIntegrationTestCase {
+public class JoinGroupByIntegrationTests extends IntegTestCase {
 
     @Before
     public void initTestData() throws Exception {

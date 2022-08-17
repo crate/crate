@@ -35,10 +35,9 @@ import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 import io.crate.execution.engine.collect.sources.ShardCollectSource;
-import io.crate.integrationtests.SQLIntegrationTestCase;
 
 @IntegTestCase.ClusterScope(numClientNodes = 0, numDataNodes = 1, supportsDedicatedMasters = false)
-public class ShardCollectorProviderTest extends SQLIntegrationTestCase {
+public class ShardCollectorProviderTest extends IntegTestCase {
 
     public void assertNumberOfShardEntriesInShardCollectSource(int numberOfShards) throws Exception {
         final Field shards = ShardCollectSource.class.getDeclaredField("shards");

@@ -25,11 +25,12 @@ import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 import io.crate.testing.TestingHelpers;
 
-public class RenameTableIntegrationTest extends SQLIntegrationTestCase {
+public class RenameTableIntegrationTest extends IntegTestCase {
 
     @Test
     public void testRenameTable() {

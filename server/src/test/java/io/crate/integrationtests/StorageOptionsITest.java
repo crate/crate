@@ -25,13 +25,14 @@ import static org.apache.lucene.index.IndexWriter.MAX_TERM_LENGTH;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 import com.carrotsearch.randomizedtesting.generators.RandomStrings;
 
 import io.crate.testing.TestingHelpers;
 
-public class StorageOptionsITest extends SQLIntegrationTestCase {
+public class StorageOptionsITest extends IntegTestCase {
 
     @Test
     public void testInsertStringGreaterThanDocValuesLimit() throws Exception {

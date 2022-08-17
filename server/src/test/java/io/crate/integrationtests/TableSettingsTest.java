@@ -38,10 +38,11 @@ import static org.junit.Assert.assertTrue;
 import java.util.Locale;
 import java.util.Map;
 
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
 
-public class TableSettingsTest extends SQLIntegrationTestCase {
+public class TableSettingsTest extends IntegTestCase {
 
     @Before
     public void prepare() throws Exception {

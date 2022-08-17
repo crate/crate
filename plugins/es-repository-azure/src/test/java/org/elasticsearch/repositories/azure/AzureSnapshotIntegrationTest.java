@@ -35,15 +35,14 @@ import java.util.Collection;
 
 import org.elasticsearch.common.network.InetAddresses;
 import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import com.sun.net.httpserver.HttpServer;
 
-import io.crate.integrationtests.SQLIntegrationTestCase;
-
-public class AzureSnapshotIntegrationTest extends SQLIntegrationTestCase {
+public class AzureSnapshotIntegrationTest extends IntegTestCase {
 
     private static final String CONTAINER_NAME = "crate_snapshots";
 

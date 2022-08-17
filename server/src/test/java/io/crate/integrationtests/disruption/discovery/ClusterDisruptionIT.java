@@ -76,14 +76,13 @@ import org.junit.Test;
 
 import io.crate.common.unit.TimeValue;
 import io.crate.exceptions.DuplicateKeyException;
-import io.crate.integrationtests.SQLIntegrationTestCase;
 
 /**
  * Tests various cluster operations (e.g., indexing) during disruptions.
  */
 @TestLogging("_root:DEBUG,org.elasticsearch.cluster.service:TRACE")
 @IntegTestCase.ClusterScope(scope = IntegTestCase.Scope.TEST, numDataNodes = 0)
-@SQLIntegrationTestCase.Slow
+@IntegTestCase.Slow
 public class ClusterDisruptionIT extends AbstractDisruptionTestCase {
 
     @Override

@@ -45,7 +45,7 @@ import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
 import io.crate.udc.service.UDCService;
 
 @IntegTestCase.ClusterScope
-public class SysClusterSettingsTest extends SQLIntegrationTestCase {
+public class SysClusterSettingsTest extends IntegTestCase {
 
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {

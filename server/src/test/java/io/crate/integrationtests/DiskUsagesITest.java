@@ -71,7 +71,7 @@ import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedSchema;
 
 @IntegTestCase.ClusterScope(scope = IntegTestCase.Scope.TEST, numDataNodes = 0)
-public class DiskUsagesITest extends SQLIntegrationTestCase {
+public class DiskUsagesITest extends IntegTestCase {
 
     @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {

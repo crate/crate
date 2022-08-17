@@ -26,12 +26,12 @@ import static org.junit.Assert.assertThat;
 
 import java.util.concurrent.CompletableFuture;
 
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 import io.crate.common.unit.TimeValue;
-import io.crate.integrationtests.SQLIntegrationTestCase;
 
-public class ClusterStateApiTests extends SQLIntegrationTestCase {
+public class ClusterStateApiTests extends IntegTestCase {
 
     @Test
     public void testWaitForMetaDataVersion() throws Exception {

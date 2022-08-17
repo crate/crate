@@ -89,7 +89,7 @@ import io.crate.types.DataTypes;
 import io.crate.types.StorageSupport;
 
 @IntegTestCase.ClusterScope(minNumDataNodes = 2)
-public class TransportSQLActionTest extends SQLIntegrationTestCase {
+public class TransportSQLActionTest extends IntegTestCase {
 
     private Setup setup = new Setup(sqlExecutor);
 

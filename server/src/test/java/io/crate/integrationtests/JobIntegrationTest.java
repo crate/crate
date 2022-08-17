@@ -39,7 +39,7 @@ import io.crate.exceptions.VersioningValidationException;
 import io.crate.testing.SQLTransportExecutor;
 
 @IntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 1, supportsDedicatedMasters = false)
-public class JobIntegrationTest extends SQLIntegrationTestCase {
+public class JobIntegrationTest extends IntegTestCase {
 
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {

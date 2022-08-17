@@ -28,9 +28,10 @@ import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
-public class CountStarIntegrationTest extends SQLIntegrationTestCase {
+public class CountStarIntegrationTest extends IntegTestCase {
 
     @Test
     public void testCountWithPartitionFilter() throws Exception {

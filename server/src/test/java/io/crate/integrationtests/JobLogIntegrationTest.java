@@ -45,7 +45,7 @@ import io.crate.testing.UseRandomizedSchema;
 @IntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0, supportsDedicatedMasters = false)
 @UseRandomizedSchema(random = false) // Avoid set session stmt to interfere with tests
 @UseHashJoins(1) // Avoid set session stmt to interfere with tests
-public class JobLogIntegrationTest extends SQLIntegrationTestCase {
+public class JobLogIntegrationTest extends IntegTestCase {
 
     @After
     public void resetSettings() {

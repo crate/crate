@@ -24,6 +24,7 @@ package io.crate.integrationtests;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 import io.crate.exceptions.ColumnUnknownException;
@@ -33,7 +34,7 @@ import io.crate.testing.UseJdbc;
 import io.crate.types.DataTypes;
 
 @UseJdbc(0) // data types needed
-public class ScalarIntegrationTest extends SQLIntegrationTestCase {
+public class ScalarIntegrationTest extends IntegTestCase {
 
     @Test
     public void testExtractFunctionReturnTypes() {

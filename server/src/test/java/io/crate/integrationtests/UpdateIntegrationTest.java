@@ -40,6 +40,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.elasticsearch.test.IntegTestCase;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.IsNull;
 import org.junit.Test;
@@ -49,7 +50,7 @@ import io.crate.exceptions.VersioningValidationException;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
 
-public class UpdateIntegrationTest extends SQLIntegrationTestCase {
+public class UpdateIntegrationTest extends IntegTestCase {
 
     private Setup setup = new Setup(sqlExecutor);
 

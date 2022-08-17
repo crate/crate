@@ -51,7 +51,7 @@ import io.crate.testing.UseRandomizedSchema;
 @UseJdbc(1)
 @UseRandomizedSchema(random = false) // Avoid set session stmt to interfere with tests
 @UseHashJoins(1) // Avoid set session stmt to interfere with tests
-public class PostgresJobsLogsITest extends SQLIntegrationTestCase {
+public class PostgresJobsLogsITest extends IntegTestCase {
 
     Properties properties = new Properties();
 

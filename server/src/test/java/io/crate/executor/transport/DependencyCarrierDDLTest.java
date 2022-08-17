@@ -40,7 +40,7 @@ import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.integrationtests.SQLIntegrationTestCase;
+import org.elasticsearch.test.IntegTestCase;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
@@ -49,7 +49,7 @@ import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.Assignment;
 import io.crate.testing.TestingRowConsumer;
 
-public class DependencyCarrierDDLTest extends SQLIntegrationTestCase {
+public class DependencyCarrierDDLTest extends IntegTestCase {
 
     private DependencyCarrier executor;
 

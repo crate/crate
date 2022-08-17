@@ -27,6 +27,7 @@ import static org.junit.Assert.assertThat;
 
 import java.util.Map;
 
+import org.elasticsearch.test.IntegTestCase;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
@@ -35,7 +36,7 @@ import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.exceptions.SQLParseException;
 import io.crate.testing.UseJdbc;
 
-public class CreateTableAsIntegrationTest extends SQLIntegrationTestCase {
+public class CreateTableAsIntegrationTest extends IntegTestCase {
 
     /*
      * Testing re-creation of ColumnDefinitions is covered by SymbolToColumnDefinitionConverterTest

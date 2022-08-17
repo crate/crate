@@ -32,11 +32,12 @@ import java.io.File;
 import java.util.HashMap;
 
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-public class RepositoryIntegrationTest extends SQLIntegrationTestCase {
+public class RepositoryIntegrationTest extends IntegTestCase {
 
     @ClassRule
     public static TemporaryFolder TEMPORARY_FOLDER = new TemporaryFolder();

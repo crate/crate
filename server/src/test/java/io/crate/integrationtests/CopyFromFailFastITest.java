@@ -58,7 +58,7 @@ import io.crate.testing.SQLTransportExecutor;
 import io.crate.testing.UseJdbc;
 
 @IntegTestCase.ClusterScope(numDataNodes = 0, numClientNodes = 0, supportsDedicatedMasters = false)
-public class CopyFromFailFastITest extends SQLIntegrationTestCase {
+public class CopyFromFailFastITest extends IntegTestCase {
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();

@@ -26,12 +26,12 @@ import java.util.Collection;
 
 import org.elasticsearch.analysis.common.CommonAnalysisPlugin;
 import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
-import io.crate.integrationtests.SQLIntegrationTestCase;
 import io.crate.testing.TestingHelpers;
 
-public class CommonAnalyzerITest extends SQLIntegrationTestCase {
+public class CommonAnalyzerITest extends IntegTestCase {
 
     @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {

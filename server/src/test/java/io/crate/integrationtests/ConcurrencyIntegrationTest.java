@@ -27,11 +27,12 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-public class ConcurrencyIntegrationTest extends SQLIntegrationTestCase {
+public class ConcurrencyIntegrationTest extends IntegTestCase {
 
     private ExecutorService executor;
 

@@ -23,6 +23,7 @@ package io.crate.integrationtests;
 
 import java.util.Objects;
 
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.Before;
 
 import io.crate.action.sql.SQLOperations;
@@ -31,7 +32,7 @@ import io.crate.testing.SQLResponse;
 import io.crate.user.User;
 import io.crate.user.UserLookup;
 
-public abstract class BaseUsersIntegrationTest extends SQLIntegrationTestCase {
+public abstract class BaseUsersIntegrationTest extends IntegTestCase {
 
     private Session superUserSession;
     private Session normalUserSession;

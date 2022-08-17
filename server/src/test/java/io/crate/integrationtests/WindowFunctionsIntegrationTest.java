@@ -25,9 +25,10 @@ import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
-public class WindowFunctionsIntegrationTest extends SQLIntegrationTestCase {
+public class WindowFunctionsIntegrationTest extends IntegTestCase {
 
     @Test
     public void testAvgOnEmptyOver() {

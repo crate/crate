@@ -50,7 +50,7 @@ import io.crate.statistics.TableStats;
 import io.crate.testing.TestingHelpers;
 
 @IntegTestCase.ClusterScope(minNumDataNodes = 2)
-public class SubSelectIntegrationTest extends SQLIntegrationTestCase {
+public class SubSelectIntegrationTest extends IntegTestCase {
 
     private Setup setup = new Setup(sqlExecutor);
 

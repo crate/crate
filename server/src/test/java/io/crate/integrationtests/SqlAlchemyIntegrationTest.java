@@ -23,9 +23,10 @@ package io.crate.integrationtests;
 
 import static org.junit.Assert.assertEquals;
 
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
-public class SqlAlchemyIntegrationTest extends SQLIntegrationTestCase {
+public class SqlAlchemyIntegrationTest extends IntegTestCase {
 
     @Test
     public void testSqlAlchemyGeneratedCountWithStar() throws Exception {

@@ -21,9 +21,10 @@
 
 package io.crate.integrationtests;
 
-import static org.hamcrest.core.Is.is;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertThat;
 
+import org.elasticsearch.test.IntegTestCase;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
@@ -33,7 +34,7 @@ import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.metadata.sys.MetricsView;
 import io.crate.planner.Plan;
 
-public class MetricsITest extends SQLIntegrationTestCase {
+public class MetricsITest extends IntegTestCase {
 
     @Before
     public void clearStats() {
@@ -97,7 +98,7 @@ public class MetricsITest extends SQLIntegrationTestCase {
                     }
                 }
             }
-            assertThat(cnt, is((long) numQueries));
+            assertThat(cnt).isEqualTo(numQueries);
         });
 
         execute("SELECT sum(total_count) FROM sys.jobs_metrics WHERE classification['type'] = 'SELECT'");
