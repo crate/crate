@@ -62,9 +62,9 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import io.crate.integrationtests.SQLIntegrationTestCase;
+import org.elasticsearch.test.IntegTestCase;
 
-public class BlobStoreRepositoryTest extends SQLIntegrationTestCase {
+public class BlobStoreRepositoryTest extends IntegTestCase {
 
     private static final String REPOSITORY_NAME = "my_repo";
 

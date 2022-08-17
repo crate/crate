@@ -23,10 +23,11 @@ package io.crate.integrationtests;
 
 import static org.junit.Assert.assertEquals;
 
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 
-public class SeqNoBasedOCCIntegrationTest extends SQLIntegrationTestCase {
+public class SeqNoBasedOCCIntegrationTest extends IntegTestCase {
 
     @Test
     public void testDeleteWhereSeqNoAndTermThatMatch() throws Exception {

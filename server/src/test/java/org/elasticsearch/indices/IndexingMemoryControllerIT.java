@@ -36,10 +36,9 @@ import org.elasticsearch.plugins.EnginePlugin;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.IntegTestCase;
 
-import io.crate.integrationtests.SQLIntegrationTestCase;
 
 @IntegTestCase.ClusterScope(numDataNodes = 1)
-public class IndexingMemoryControllerIT extends SQLIntegrationTestCase {
+public class IndexingMemoryControllerIT extends IntegTestCase {
 
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {

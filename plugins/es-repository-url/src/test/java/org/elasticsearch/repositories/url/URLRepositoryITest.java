@@ -15,14 +15,13 @@ import java.util.Collection;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugin.repository.url.URLRepositoryPlugin;
 import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import io.crate.integrationtests.SQLIntegrationTestCase;
-
-public class URLRepositoryITest extends SQLIntegrationTestCase {
+public class URLRepositoryITest extends IntegTestCase {
 
     @ClassRule
     public static final TemporaryFolder TEMPORARY_FOLDER = new TemporaryFolder();

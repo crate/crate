@@ -22,6 +22,7 @@
 
 package io.crate.integrationtests;
 
+import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.test.IntegTestCase.ClusterScope;
 import org.hamcrest.Matchers;
 import org.junit.After;
@@ -33,7 +34,7 @@ import io.crate.testing.SQLErrorMatcher;
 import io.netty.handler.codec.http.HttpResponseStatus;
 
 @ClusterScope(numDataNodes = 2, supportsDedicatedMasters = false, numClientNodes = 0)
-public class ShardLimitsIT extends SQLIntegrationTestCase {
+public class ShardLimitsIT extends IntegTestCase {
 
     @After
     public void reset_settings() {

@@ -21,20 +21,20 @@
 
 package org.elasticsearch.repositories.s3;
 
-import io.crate.integrationtests.SQLIntegrationTestCase;
-import org.elasticsearch.plugins.Plugin;
-import org.junit.Test;
-
-import java.util.ArrayList;
-import java.util.Collection;
-
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 import static org.hamcrest.Matchers.startsWith;
 
-public class S3RepositoryIntegrationTest extends SQLIntegrationTestCase {
+import java.util.ArrayList;
+import java.util.Collection;
+
+import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.test.IntegTestCase;
+import org.junit.Test;
+
+public class S3RepositoryIntegrationTest extends IntegTestCase {
 
     @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {

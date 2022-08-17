@@ -27,12 +27,13 @@ import static org.junit.Assert.assertThat;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.elasticsearch.test.IntegTestCase;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.testing.SQLResponse;
 
-public class InformationSchemaQueryTest extends SQLIntegrationTestCase {
+public class InformationSchemaQueryTest extends IntegTestCase {
 
     @Test
     public void testDoNotIgnoreClosedTables() throws Exception {

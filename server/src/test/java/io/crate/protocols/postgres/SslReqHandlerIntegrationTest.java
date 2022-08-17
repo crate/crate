@@ -38,7 +38,6 @@ import org.elasticsearch.test.IntegTestCase;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import io.crate.integrationtests.SQLIntegrationTestCase;
 import io.crate.protocols.ssl.SslSettings;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
@@ -47,7 +46,7 @@ import io.netty.handler.ssl.util.SelfSignedCertificate;
 
 @UseJdbc(value = 1)
 @IntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 0, supportsDedicatedMasters = false)
-public class SslReqHandlerIntegrationTest extends SQLIntegrationTestCase {
+public class SslReqHandlerIntegrationTest extends IntegTestCase {
 
     private static final char[] EMPTY_PASS = new char[]{};
 

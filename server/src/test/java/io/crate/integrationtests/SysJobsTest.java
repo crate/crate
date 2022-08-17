@@ -27,12 +27,13 @@ import static org.junit.Assert.assertTrue;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.After;
 import org.junit.Test;
 
 import io.crate.testing.SQLResponse;
 
-public class SysJobsTest extends SQLIntegrationTestCase {
+public class SysJobsTest extends IntegTestCase {
 
     @After
     public void resetStatsEnabled() throws Exception {

@@ -35,10 +35,11 @@ import static org.junit.Assert.assertThat;
 import java.util.List;
 import java.util.Locale;
 
+import org.elasticsearch.test.IntegTestCase;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
-public class ArithmeticIntegrationTest extends SQLIntegrationTestCase {
+public class ArithmeticIntegrationTest extends IntegTestCase {
 
     @Test
     public void testMathFunctionNullArguments() throws Exception {

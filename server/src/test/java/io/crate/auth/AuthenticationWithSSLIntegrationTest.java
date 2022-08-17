@@ -45,7 +45,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.postgresql.util.PSQLException;
 
-import io.crate.integrationtests.SQLIntegrationTestCase;
+import org.elasticsearch.test.IntegTestCase;
 import io.crate.protocols.ssl.SslSettings;
 import io.crate.testing.UseJdbc;
 
@@ -54,7 +54,7 @@ import io.crate.testing.UseJdbc;
  * support is disabled. In this test we have SSL support.
  */
 @UseJdbc(value = 1)
-public class AuthenticationWithSSLIntegrationTest extends SQLIntegrationTestCase {
+public class AuthenticationWithSSLIntegrationTest extends IntegTestCase {
 
     private static File trustStoreFile;
     private static File keyStoreFile;

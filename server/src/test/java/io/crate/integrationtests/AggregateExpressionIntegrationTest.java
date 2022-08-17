@@ -25,11 +25,12 @@ import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 import io.crate.testing.TestingHelpers;
 
-public class AggregateExpressionIntegrationTest extends SQLIntegrationTestCase {
+public class AggregateExpressionIntegrationTest extends IntegTestCase {
 
     @Test
     public void test_sum_int() throws Exception {

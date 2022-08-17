@@ -34,7 +34,7 @@ import org.hamcrest.CoreMatchers;
 import org.junit.Test;
 
 @IntegTestCase.ClusterScope(numClientNodes = 0, supportsDedicatedMasters = false)
-public class SysNodesITest extends SQLIntegrationTestCase {
+public class SysNodesITest extends IntegTestCase {
 
     @Override
     protected boolean addMockHttpTransport() {

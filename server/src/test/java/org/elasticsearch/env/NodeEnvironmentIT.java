@@ -34,10 +34,9 @@ import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.test.InternalTestCluster;
 import org.junit.Test;
 
-import io.crate.integrationtests.SQLIntegrationTestCase;
 
 @IntegTestCase.ClusterScope(scope = IntegTestCase.Scope.TEST, numDataNodes = 0)
-public class NodeEnvironmentIT extends SQLIntegrationTestCase {
+public class NodeEnvironmentIT extends IntegTestCase {
 
     private IllegalStateException expectThrowsOnRestart(CheckedConsumer<Path[], Exception> onNodeStopped) {
         internalCluster().startNode();

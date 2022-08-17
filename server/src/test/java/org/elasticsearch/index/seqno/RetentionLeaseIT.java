@@ -66,9 +66,9 @@ import org.junit.Test;
 
 import io.crate.common.collections.Lists2;
 import io.crate.common.unit.TimeValue;
-import io.crate.integrationtests.SQLIntegrationTestCase;
+import org.elasticsearch.test.IntegTestCase;
 
-public class RetentionLeaseIT extends SQLIntegrationTestCase  {
+public class RetentionLeaseIT extends IntegTestCase  {
 
     @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {

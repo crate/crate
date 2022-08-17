@@ -23,14 +23,15 @@ package io.crate.integrationtests;
 
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.fail;
 
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseRandomizedSchema;
 
-public class CustomSchemaIntegrationTest extends SQLIntegrationTestCase {
+public class CustomSchemaIntegrationTest extends IntegTestCase {
 
     @Test
     @UseRandomizedSchema(random = false)

@@ -31,7 +31,7 @@ import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 @IntegTestCase.ClusterScope(numDataNodes = 2)
-public class ShardStatsTest extends SQLIntegrationTestCase {
+public class ShardStatsTest extends IntegTestCase {
 
     @Test
     public void testSelectZeroLimit() throws Exception {

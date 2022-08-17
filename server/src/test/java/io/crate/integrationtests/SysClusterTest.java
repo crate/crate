@@ -33,9 +33,10 @@ import static org.junit.Assert.assertTrue;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
-public class SysClusterTest extends SQLIntegrationTestCase {
+public class SysClusterTest extends IntegTestCase {
 
     @Test
     public void testSysCluster() throws Exception {

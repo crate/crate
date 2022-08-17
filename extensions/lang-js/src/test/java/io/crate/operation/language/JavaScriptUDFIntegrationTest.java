@@ -33,14 +33,13 @@ import org.elasticsearch.test.IntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.integrationtests.SQLIntegrationTestCase;
 import io.crate.module.JavaScriptLanguageModule;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 
 @IntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0)
-public class JavaScriptUDFIntegrationTest extends SQLIntegrationTestCase {
+public class JavaScriptUDFIntegrationTest extends IntegTestCase {
 
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {

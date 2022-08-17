@@ -39,7 +39,7 @@ import io.crate.testing.TestingHelpers;
 
 @IntegTestCase.ClusterScope(
     numDataNodes = 0, numClientNodes = 0, supportsDedicatedMasters = false)
-public class SysCheckerIntegrationTest extends SQLIntegrationTestCase {
+public class SysCheckerIntegrationTest extends IntegTestCase {
 
     @Test
     public void testChecksPresenceAndSeverityLevels() throws Exception {

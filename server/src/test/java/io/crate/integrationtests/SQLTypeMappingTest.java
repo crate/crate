@@ -47,7 +47,7 @@ import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
 
 @IntegTestCase.ClusterScope(minNumDataNodes = 2)
-public class SQLTypeMappingTest extends SQLIntegrationTestCase {
+public class SQLTypeMappingTest extends IntegTestCase {
 
     private void setUpSimple() throws IOException {
         setUpSimple(2);

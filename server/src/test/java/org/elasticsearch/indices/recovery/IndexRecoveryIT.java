@@ -137,11 +137,11 @@ import org.elasticsearch.transport.TransportService;
 import org.junit.Test;
 
 import io.crate.common.unit.TimeValue;
-import io.crate.integrationtests.SQLIntegrationTestCase;
+import org.elasticsearch.test.IntegTestCase;
 import io.crate.metadata.IndexParts;
 
 @ClusterScope(scope = Scope.TEST, numDataNodes = 0)
-public class IndexRecoveryIT extends SQLIntegrationTestCase {
+public class IndexRecoveryIT extends IntegTestCase {
 
     private static final String INDEX_NAME = "test_idx_1";
     private static final String REPO_NAME = "test_repo_1";

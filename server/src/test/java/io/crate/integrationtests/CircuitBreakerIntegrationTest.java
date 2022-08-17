@@ -38,7 +38,7 @@ import org.junit.After;
 import org.junit.Test;
 
 @IntegTestCase.ClusterScope(numDataNodes = 1, supportsDedicatedMasters = false, numClientNodes = 0)
-public class CircuitBreakerIntegrationTest extends SQLIntegrationTestCase {
+public class CircuitBreakerIntegrationTest extends IntegTestCase {
 
     @After
     public void resetBreakerLimit() {

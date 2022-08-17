@@ -29,9 +29,10 @@ import static org.hamcrest.Matchers.is;
 
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
-public class GroupByAggregateBreakerTest extends SQLIntegrationTestCase {
+public class GroupByAggregateBreakerTest extends IntegTestCase {
 
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {

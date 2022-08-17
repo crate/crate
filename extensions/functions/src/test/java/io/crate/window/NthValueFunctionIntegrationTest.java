@@ -30,9 +30,9 @@ import java.util.Collection;
 import org.elasticsearch.plugins.Plugin;
 import org.junit.Test;
 
-import io.crate.integrationtests.SQLIntegrationTestCase;
+import org.elasticsearch.test.IntegTestCase;
 
-public class NthValueFunctionIntegrationTest extends SQLIntegrationTestCase {
+public class NthValueFunctionIntegrationTest extends IntegTestCase {
 
     @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {

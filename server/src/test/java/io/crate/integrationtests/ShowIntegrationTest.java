@@ -33,6 +33,7 @@ import static org.junit.Assert.assertThat;
 
 import java.util.Locale;
 
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 import io.crate.testing.UseHashJoins;
@@ -40,7 +41,7 @@ import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedSchema;
 
 @UseRandomizedSchema(random = false)
-public class ShowIntegrationTest extends SQLIntegrationTestCase {
+public class ShowIntegrationTest extends IntegTestCase {
 
     @Test
     public void testShowCrateSystemTable() throws Exception {

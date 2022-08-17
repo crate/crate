@@ -34,14 +34,13 @@ import org.elasticsearch.test.IntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.integrationtests.SQLIntegrationTestCase;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
 import io.crate.types.ArrayType;
 
 @UseJdbc(0)
 @IntegTestCase.ClusterScope(numDataNodes = 1)
-public class SysAllocationsTest extends SQLIntegrationTestCase {
+public class SysAllocationsTest extends IntegTestCase {
 
     @Before
     public void initTestData() throws Exception {

@@ -33,13 +33,13 @@ import java.util.Collection;
 
 import org.elasticsearch.analysis.common.CommonAnalysisPlugin;
 import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
-import io.crate.integrationtests.SQLIntegrationTestCase;
 import io.crate.integrationtests.Setup;
 import io.crate.testing.TestingHelpers;
 
-public class FulltextITest extends SQLIntegrationTestCase {
+public class FulltextITest extends IntegTestCase {
 
     private Setup setup = new Setup(sqlExecutor);
 

@@ -35,7 +35,7 @@ import org.junit.Test;
 import io.crate.testing.UseJdbc;
 
 @IntegTestCase.ClusterScope(minNumDataNodes = 1)
-public class UnionIntegrationTest extends SQLIntegrationTestCase {
+public class UnionIntegrationTest extends IntegTestCase {
 
     @Before
     public void beforeTest() {

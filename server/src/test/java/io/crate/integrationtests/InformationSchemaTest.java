@@ -54,7 +54,7 @@ import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseRandomizedSchema;
 
 @IntegTestCase.ClusterScope(numDataNodes = 2)
-public class InformationSchemaTest extends SQLIntegrationTestCase {
+public class InformationSchemaTest extends IntegTestCase {
 
     @After
     public void dropLeftoverViews() {

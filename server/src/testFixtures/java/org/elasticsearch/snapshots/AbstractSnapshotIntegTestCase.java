@@ -45,10 +45,10 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.After;
 
 import io.crate.common.unit.TimeValue;
-import io.crate.integrationtests.SQLIntegrationTestCase;
+import org.elasticsearch.test.IntegTestCase;
 
 
-public abstract class AbstractSnapshotIntegTestCase extends SQLIntegrationTestCase {
+public abstract class AbstractSnapshotIntegTestCase extends IntegTestCase {
 
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {

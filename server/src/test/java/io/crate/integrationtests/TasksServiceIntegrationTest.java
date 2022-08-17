@@ -21,21 +21,21 @@
 
 package io.crate.integrationtests;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.lang.reflect.Field;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 import io.crate.execution.jobs.RootTask;
 import io.crate.execution.jobs.TasksService;
 
-public class TasksServiceIntegrationTest extends SQLIntegrationTestCase {
+public class TasksServiceIntegrationTest extends IntegTestCase {
 
     Setup setup = new Setup(sqlExecutor);
 
@@ -81,7 +81,7 @@ public class TasksServiceIntegrationTest extends SQLIntegrationTestCase {
                 Map<UUID, RootTask> tasksByJobId;
                 try {
                     tasksByJobId = (Map<UUID, RootTask>) activeTasks.get(tasksService);
-                    assertThat(tasksByJobId.size(), is(0));
+                    assertThat(tasksByJobId.size()).isEqualTo(0);
                 } catch (Exception e) {
                     fail(e.getMessage());
                 }

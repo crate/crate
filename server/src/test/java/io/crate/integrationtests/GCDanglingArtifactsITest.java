@@ -25,9 +25,10 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
-public class GCDanglingArtifactsITest extends SQLIntegrationTestCase {
+public class GCDanglingArtifactsITest extends IntegTestCase {
 
 
     @Test

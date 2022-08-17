@@ -22,8 +22,8 @@
 package io.crate.integrationtests;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.anyOf;
-import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
@@ -39,6 +39,7 @@ import java.util.concurrent.TimeUnit;
 import javax.annotation.Nullable;
 
 import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Rule;
 import org.junit.Test;
@@ -50,7 +51,7 @@ import io.crate.exceptions.TaskMissing;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.plugin.CrateTestingPlugin;
 
-public class KillIntegrationTest extends SQLIntegrationTestCase {
+public class KillIntegrationTest extends IntegTestCase {
 
     private Setup setup = new Setup(sqlExecutor);
 
@@ -129,7 +130,7 @@ public class KillIntegrationTest extends SQLIntegrationTestCase {
                     return;
                 }
             }
-            assertThat(logResponse.rowCount(), greaterThan(0L));
+            assertThat(logResponse.rowCount()).isGreaterThan(0L);
             String jobId = logResponse.rows()[0][0].toString();
             jobIdFuture.complete(jobId);
         });

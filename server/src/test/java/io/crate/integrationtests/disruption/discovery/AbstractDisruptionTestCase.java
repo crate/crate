@@ -64,9 +64,9 @@ import org.elasticsearch.transport.TransportSettings;
 import org.junit.Before;
 
 import io.crate.common.unit.TimeValue;
-import io.crate.integrationtests.SQLIntegrationTestCase;
+import org.elasticsearch.test.IntegTestCase;
 
-public abstract class AbstractDisruptionTestCase extends SQLIntegrationTestCase {
+public abstract class AbstractDisruptionTestCase extends IntegTestCase {
 
     static final TimeValue DISRUPTION_HEALING_OVERHEAD = TimeValue.timeValueSeconds(40);
 

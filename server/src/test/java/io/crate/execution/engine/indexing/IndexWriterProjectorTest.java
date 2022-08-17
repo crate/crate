@@ -54,7 +54,7 @@ import io.crate.execution.engine.pipeline.TableSettingsResolver;
 import io.crate.execution.jobs.NodeLimits;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
-import io.crate.integrationtests.SQLIntegrationTestCase;
+import org.elasticsearch.test.IntegTestCase;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
@@ -67,7 +67,7 @@ import io.crate.metadata.doc.DocSysColumns;
 import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
 
-public class IndexWriterProjectorTest extends SQLIntegrationTestCase {
+public class IndexWriterProjectorTest extends IntegTestCase {
 
     private static final ColumnIdent ID_IDENT = new ColumnIdent("id");
 

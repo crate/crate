@@ -82,12 +82,11 @@ import org.junit.Test;
 
 import io.crate.action.sql.SQLOperations;
 import io.crate.common.unit.TimeValue;
-import io.crate.integrationtests.SQLIntegrationTestCase;
 import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.testing.SQLTransportExecutor;
 
 @ClusterScope(scope = Scope.TEST, numDataNodes = 0)
-public class GatewayIndexStateIT extends SQLIntegrationTestCase {
+public class GatewayIndexStateIT extends IntegTestCase {
 
     private final Logger logger = LogManager.getLogger(GatewayIndexStateIT.class);
 

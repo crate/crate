@@ -31,7 +31,7 @@ import org.junit.Test;
 
 
 @IntegTestCase.ClusterScope(numDataNodes = 1)
-public class ShardingUpsertIntegrationTest extends SQLIntegrationTestCase {
+public class ShardingUpsertIntegrationTest extends IntegTestCase {
 
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {

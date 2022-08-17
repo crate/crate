@@ -66,7 +66,7 @@ import io.crate.types.DataTypes;
 import io.crate.types.TypeSignature;
 
 @IntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0)
-public class UserDefinedFunctionsIntegrationTest extends SQLIntegrationTestCase {
+public class UserDefinedFunctionsIntegrationTest extends IntegTestCase {
 
     public static class DummyFunction<InputType> extends Scalar<String, InputType> {
 

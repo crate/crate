@@ -38,7 +38,7 @@ import io.crate.common.unit.TimeValue;
 import io.crate.testing.TestingHelpers;
 
 @IntegTestCase.ClusterScope(numDataNodes = 2)
-public class RemoteCollectorIntegrationTest extends SQLIntegrationTestCase {
+public class RemoteCollectorIntegrationTest extends IntegTestCase {
 
     @Test
     public void testUpdateWithExpressionAndRelocatedShard() throws Exception {

@@ -54,12 +54,11 @@ import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.test.InternalTestCluster;
 import org.junit.Test;
 
-import io.crate.integrationtests.SQLIntegrationTestCase;
 import io.crate.testing.UseJdbc;
 import joptsimple.OptionSet;
 
 @IntegTestCase.ClusterScope(scope = IntegTestCase.Scope.TEST, numDataNodes = 0, autoManageMasterNodes = false)
-public class UnsafeBootstrapAndDetachCommandIT extends SQLIntegrationTestCase {
+public class UnsafeBootstrapAndDetachCommandIT extends IntegTestCase {
 
     private MockTerminal executeCommand(ElasticsearchNodeCommand command, Environment environment, boolean abort)
         throws Exception {

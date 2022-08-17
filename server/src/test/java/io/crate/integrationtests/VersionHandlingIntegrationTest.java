@@ -34,11 +34,12 @@ import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 import io.crate.exceptions.VersioningValidationException;
 
-public class VersionHandlingIntegrationTest extends SQLIntegrationTestCase {
+public class VersionHandlingIntegrationTest extends IntegTestCase {
 
     private Setup setup = new Setup(sqlExecutor);
 

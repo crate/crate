@@ -63,10 +63,9 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Test;
 
 import io.crate.common.unit.TimeValue;
-import io.crate.integrationtests.SQLIntegrationTestCase;
 
 @IntegTestCase.ClusterScope(numDataNodes = 1, supportsDedicatedMasters = false)
-public class IndexServiceTests extends SQLIntegrationTestCase {
+public class IndexServiceTests extends IntegTestCase {
 
     @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {

@@ -23,11 +23,12 @@ package io.crate.integrationtests;
 
 import java.util.Locale;
 
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 import io.crate.testing.SQLResponse;
 
-public class CrateSettingsIntegrationTest extends SQLIntegrationTestCase {
+public class CrateSettingsIntegrationTest extends IntegTestCase {
 
     @Test
     public void testAllSettingsAreSelectable() throws Exception {

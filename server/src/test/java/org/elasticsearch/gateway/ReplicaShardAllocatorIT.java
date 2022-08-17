@@ -55,12 +55,11 @@ import org.elasticsearch.transport.TransportService;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
-import io.crate.integrationtests.SQLIntegrationTestCase;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.types.DataTypes;
 
 @IntegTestCase.ClusterScope(scope = IntegTestCase.Scope.TEST, numDataNodes = 0)
-public class ReplicaShardAllocatorIT extends SQLIntegrationTestCase {
+public class ReplicaShardAllocatorIT extends IntegTestCase {
 
     @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {

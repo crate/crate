@@ -46,7 +46,7 @@ import io.crate.testing.UseRandomizedSchema;
 
 @IntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 1)
 @UseRandomizedSchema(random = false)
-public class ReadOnlyNodeIntegrationTest extends SQLIntegrationTestCase {
+public class ReadOnlyNodeIntegrationTest extends IntegTestCase {
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();

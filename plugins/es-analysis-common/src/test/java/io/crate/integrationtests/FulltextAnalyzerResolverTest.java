@@ -49,6 +49,7 @@ import org.elasticsearch.analysis.common.CommonAnalysisPlugin;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -57,7 +58,7 @@ import org.junit.Test;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.testing.SQLResponse;
 
-public class FulltextAnalyzerResolverTest extends SQLIntegrationTestCase {
+public class FulltextAnalyzerResolverTest extends IntegTestCase {
 
     private static FulltextAnalyzerResolver fulltextAnalyzerResolver;
 

@@ -31,7 +31,7 @@ import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 @IntegTestCase.ClusterScope(numDataNodes = 2)
-public class SysHealthITest extends SQLIntegrationTestCase {
+public class SysHealthITest extends IntegTestCase {
 
     @Test
     public void testTablesHealth() throws IOException {

@@ -30,12 +30,13 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import org.elasticsearch.test.IntegTestCase;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.testing.SQLResponse;
 
-public class SysOperationsTest extends SQLIntegrationTestCase {
+public class SysOperationsTest extends IntegTestCase {
 
     @Test
     public void testDistinctSysOperations() throws Exception {

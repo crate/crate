@@ -32,7 +32,7 @@ import io.crate.action.sql.SQLOperations;
 import io.crate.testing.SQLTransportExecutor;
 
 @IntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 2, supportsDedicatedMasters = false)
-public class ClientNodeIntegrationTest extends SQLIntegrationTestCase {
+public class ClientNodeIntegrationTest extends IntegTestCase {
 
     public ClientNodeIntegrationTest() {
         super(new SQLTransportExecutor(

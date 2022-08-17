@@ -64,6 +64,7 @@ import org.elasticsearch.repositories.RepositoryData;
 import org.elasticsearch.snapshots.Snapshot;
 import org.elasticsearch.snapshots.SnapshotId;
 import org.elasticsearch.snapshots.SnapshotState;
+import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.test.MockKeywordPlugin;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.After;
@@ -76,7 +77,7 @@ import io.crate.common.unit.TimeValue;
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.testing.SQLResponse;
 
-public class SnapshotRestoreIntegrationTest extends SQLIntegrationTestCase {
+public class SnapshotRestoreIntegrationTest extends IntegTestCase {
 
     private static final String REPOSITORY_NAME = "my_repo";
     private static final String SNAPSHOT_NAME = "my_snapshot";

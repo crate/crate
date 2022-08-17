@@ -35,7 +35,7 @@ import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 @IntegTestCase.ClusterScope(numDataNodes = 0, numClientNodes = 0)
-public class TablesNeedUpgradeSysCheckTest extends SQLIntegrationTestCase {
+public class TablesNeedUpgradeSysCheckTest extends IntegTestCase {
 
     private void startUpNodeWithDataDir(String dataPath) throws Exception {
         Path indexDir = createTempDir();

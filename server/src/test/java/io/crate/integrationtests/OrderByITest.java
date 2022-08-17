@@ -24,12 +24,13 @@ package io.crate.integrationtests;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
+import org.elasticsearch.test.IntegTestCase;
 import org.hamcrest.core.Is;
 import org.junit.Test;
 
 import io.crate.testing.TestingHelpers;
 
-public class OrderByITest extends SQLIntegrationTestCase {
+public class OrderByITest extends IntegTestCase {
 
     @Test
     public void testOrderByIpType() throws Exception {

@@ -30,6 +30,7 @@ import static org.junit.Assert.assertThat;
 import java.util.Arrays;
 import java.util.List;
 
+import org.elasticsearch.test.IntegTestCase;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
@@ -41,7 +42,7 @@ import io.crate.testing.UseHashJoins;
 import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedSchema;
 
-public class PgCatalogITest extends SQLIntegrationTestCase {
+public class PgCatalogITest extends IntegTestCase {
 
     @Before
     public void createRelations() {

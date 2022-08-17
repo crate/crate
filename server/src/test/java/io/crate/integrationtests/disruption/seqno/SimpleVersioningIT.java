@@ -24,9 +24,9 @@ import static org.junit.Assert.assertThat;
 
 import org.junit.Test;
 
-import io.crate.integrationtests.SQLIntegrationTestCase;
+import org.elasticsearch.test.IntegTestCase;
 
-public class SimpleVersioningIT extends SQLIntegrationTestCase {
+public class SimpleVersioningIT extends IntegTestCase {
 
     @Test
     public void test_compare_and_set() {

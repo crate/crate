@@ -36,7 +36,7 @@ import io.crate.statistics.TableStats;
 
 
 @IntegTestCase.ClusterScope(supportsDedicatedMasters = false, numDataNodes = 2, numClientNodes = 0)
-public class TableStatsServiceIntegrationTest extends SQLIntegrationTestCase {
+public class TableStatsServiceIntegrationTest extends IntegTestCase {
 
     @Before
     public void setRefreshInterval() {

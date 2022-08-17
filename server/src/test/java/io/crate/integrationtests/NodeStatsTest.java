@@ -52,7 +52,7 @@ import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
 
 @IntegTestCase.ClusterScope(numClientNodes = 0, numDataNodes = 2, supportsDedicatedMasters = false)
-public class NodeStatsTest extends SQLIntegrationTestCase {
+public class NodeStatsTest extends IntegTestCase {
 
     @Test
     public void testSysNodesMem() throws Exception {

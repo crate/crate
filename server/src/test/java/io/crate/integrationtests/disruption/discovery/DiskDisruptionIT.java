@@ -49,11 +49,10 @@ import org.junit.Test;
 import com.carrotsearch.randomizedtesting.RandomizedTest;
 
 import io.crate.common.unit.TimeValue;
-import io.crate.integrationtests.SQLIntegrationTestCase;
 import io.crate.testing.UseRandomizedSchema;
 
 @IntegTestCase.ClusterScope(scope = IntegTestCase.Scope.TEST, numDataNodes = 0)
-@SQLIntegrationTestCase.Slow
+@IntegTestCase.Slow
 public class DiskDisruptionIT extends AbstractDisruptionTestCase {
 
     private static DisruptTranslogFileSystemProvider disruptTranslogFileSystemProvider;

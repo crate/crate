@@ -41,7 +41,7 @@ import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
 
 @IntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 0, supportsDedicatedMasters = false)
-public class TransportSQLActionSingleNodeTest extends SQLIntegrationTestCase {
+public class TransportSQLActionSingleNodeTest extends IntegTestCase {
 
     @Test
     public void testUnassignedShards() throws Exception {

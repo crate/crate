@@ -37,9 +37,9 @@ import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.execution.ddl.tables.TransportCloseTable;
-import io.crate.integrationtests.SQLIntegrationTestCase;
+import org.elasticsearch.test.IntegTestCase;
 
-public class CloseIndexIT extends SQLIntegrationTestCase {
+public class CloseIndexIT extends IntegTestCase {
 
     @Override
     public Settings indexSettings() {

@@ -26,6 +26,7 @@ import static org.junit.Assert.assertThat;
 
 import java.nio.file.Paths;
 
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -39,7 +40,7 @@ import io.crate.testing.SQLResponse;
  * the contract of having the same value of the routing field on only one shard. So in Crate the behaviour is
  * different and is asserted via tests in this class.
  */
-public class EmptyStringRoutingIntegrationTest extends SQLIntegrationTestCase {
+public class EmptyStringRoutingIntegrationTest extends IntegTestCase {
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();

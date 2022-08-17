@@ -25,10 +25,11 @@ import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
 
-public class SubSelectGroupByIntegrationTest extends SQLIntegrationTestCase {
+public class SubSelectGroupByIntegrationTest extends IntegTestCase {
 
     @Before
     public void initTestData() throws Exception {

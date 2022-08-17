@@ -41,7 +41,7 @@ import io.crate.types.StringType;
 
 @IntegTestCase.ClusterScope()
 @UseJdbc(0) // missing column types
-public class SysRepositoriesServiceTest extends SQLIntegrationTestCase {
+public class SysRepositoriesServiceTest extends IntegTestCase {
 
     @ClassRule
     public static TemporaryFolder TEMP_FOLDER = new TemporaryFolder();

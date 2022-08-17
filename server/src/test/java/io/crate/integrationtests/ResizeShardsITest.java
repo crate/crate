@@ -28,9 +28,10 @@ import static org.junit.Assert.assertThat;
 
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
-public class ResizeShardsITest extends SQLIntegrationTestCase {
+public class ResizeShardsITest extends IntegTestCase {
 
     private String getADataNodeName(ClusterState state) {
         assertThat(state.nodes().getDataNodes().isEmpty(), is(false));

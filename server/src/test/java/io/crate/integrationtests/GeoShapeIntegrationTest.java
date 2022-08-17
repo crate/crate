@@ -32,13 +32,14 @@ import static org.junit.Assert.assertThat;
 import java.util.List;
 import java.util.Map;
 
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseRandomizedSchema;
 
-public class GeoShapeIntegrationTest extends SQLIntegrationTestCase {
+public class GeoShapeIntegrationTest extends IntegTestCase {
 
     private static final Map<String, Object> GEO_SHAPE1 = Map.of(
         "coordinates", new double[][]{

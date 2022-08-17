@@ -29,10 +29,11 @@ import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
 
-public class StaticInformationSchemaQueryTest extends SQLIntegrationTestCase {
+public class StaticInformationSchemaQueryTest extends IntegTestCase {
 
     @Before
     public void tableCreation() throws Exception {

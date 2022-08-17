@@ -25,11 +25,10 @@ import java.util.ArrayList;
 import java.util.Collection;
 
 import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
-import io.crate.integrationtests.SQLIntegrationTestCase;
-
-public class WindowFunctionsITest extends SQLIntegrationTestCase {
+public class WindowFunctionsITest extends IntegTestCase {
 
     @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {

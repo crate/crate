@@ -33,10 +33,9 @@ import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.test.IntegTestCase.ClusterScope;
 import org.elasticsearch.test.InternalTestCluster;
 
-import io.crate.integrationtests.SQLIntegrationTestCase;
 
 @ClusterScope(numDataNodes = 0, scope = IntegTestCase.Scope.TEST)
-public class DanglingIndicesIT extends SQLIntegrationTestCase {
+public class DanglingIndicesIT extends IntegTestCase {
 
     private Settings buildSettings(boolean writeDanglingIndices, boolean importDanglingIndices) {
         return Settings.builder()
