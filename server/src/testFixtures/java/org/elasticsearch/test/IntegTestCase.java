@@ -354,7 +354,6 @@ public abstract class IntegTestCase extends ESTestCase {
         Callable<Void> setup = () -> {
             cluster().beforeTest(random());
             cluster().wipe(excludeTemplates());
-            randomIndexTemplate();
             return null;
         };
         switch (currentClusterScope) {
@@ -378,109 +377,6 @@ public abstract class IntegTestCase extends ESTestCase {
         } else {
             logger.info("[{}#{}]: {} test", getTestClass().getSimpleName(), getTestName(), message);
         }
-    }
-
-    /**
-     * Creates a randomized index template. This template is used to pass in randomized settings on a
-     * per index basis. Allows to enable/disable the randomization for number of shards and replicas
-     */
-    private void randomIndexTemplate() {
-        // TODO move settings for random directory etc here into the index based randomized settings.
-        if (cluster().size() > 0) {
-            Settings.Builder randomSettingsBuilder =
-                setRandomIndexSettings(random(), Settings.builder());
-            if (isInternalCluster()) {
-                // this is only used by mock plugins and if the cluster is not internal we just can't set it
-                randomSettingsBuilder.put(INDEX_TEST_SEED_SETTING.getKey(), random().nextLong());
-            }
-
-            randomSettingsBuilder.put(SETTING_NUMBER_OF_SHARDS, numberOfShards())
-                .put(SETTING_NUMBER_OF_REPLICAS, numberOfReplicas());
-
-            // if the test class is annotated with SuppressCodecs("*"), it means don't use lucene's codec randomization
-            // otherwise, use it, it has assertions and so on that can find bugs.
-            SuppressCodecs annotation = getClass().getAnnotation(SuppressCodecs.class);
-            if (annotation != null && annotation.value().length == 1 && "*".equals(annotation.value()[0])) {
-                randomSettingsBuilder.put("index.codec", randomFrom(CodecService.DEFAULT_CODEC, CodecService.BEST_COMPRESSION_CODEC));
-            } else {
-                randomSettingsBuilder.put("index.codec", CodecService.LUCENE_DEFAULT_CODEC);
-            }
-
-            for (String setting : randomSettingsBuilder.keys()) {
-                assertThat("non index. prefix setting set on index template, its a node setting...", setting, startsWith("index."));
-            }
-            // always default delayed allocation to 0 to make sure we have tests are not delayed
-            randomSettingsBuilder.put(UnassignedInfo.INDEX_DELAYED_NODE_LEFT_TIMEOUT_SETTING.getKey(), 0);
-            if (randomBoolean()) {
-                randomSettingsBuilder.put(IndexModule.INDEX_QUERY_CACHE_ENABLED_SETTING.getKey(), randomBoolean());
-            }
-            PutIndexTemplateRequest request = new PutIndexTemplateRequest("random_index_template")
-                .patterns(Collections.singletonList("*"))
-                .order(0)
-                .settings(randomSettingsBuilder);
-
-            assertAcked(FutureUtils.get(client().admin().indices().execute(PutIndexTemplateAction.INSTANCE, request)));
-        }
-    }
-
-    protected Settings.Builder setRandomIndexSettings(Random random, Settings.Builder builder) {
-        setRandomIndexMergeSettings(random, builder);
-        setRandomIndexTranslogSettings(random, builder);
-
-        if (random.nextBoolean()) {
-            builder.put(MergeSchedulerConfig.AUTO_THROTTLE_SETTING.getKey(), false);
-        }
-
-        if (random.nextBoolean()) {
-            builder.put(IndexSettings.INDEX_CHECK_ON_STARTUP.getKey(), randomFrom("false", "checksum", "true"));
-        }
-
-        if (randomBoolean()) {
-            // keep this low so we don't stall tests
-            builder.put(UnassignedInfo.INDEX_DELAYED_NODE_LEFT_TIMEOUT_SETTING.getKey(),
-                    RandomNumbers.randomIntBetween(random, 1, 15) + "ms");
-        }
-
-        return builder;
-    }
-
-    private static Settings.Builder setRandomIndexMergeSettings(Random random, Settings.Builder builder) {
-        if (random.nextBoolean()) {
-            builder.put(MergePolicyConfig.INDEX_COMPOUND_FORMAT_SETTING.getKey(),
-                (random.nextBoolean() ? random.nextDouble() : random.nextBoolean()).toString());
-        }
-        switch (random.nextInt(4)) {
-            case 3:
-                int maxThreadCount = RandomNumbers.randomIntBetween(random, 1, 4);
-                int maxMergeCount = RandomNumbers.randomIntBetween(random, maxThreadCount, maxThreadCount + 4);
-                builder.put(MergeSchedulerConfig.MAX_MERGE_COUNT_SETTING.getKey(), maxMergeCount);
-                builder.put(MergeSchedulerConfig.MAX_THREAD_COUNT_SETTING.getKey(), maxThreadCount);
-                break;
-        }
-
-        return builder;
-    }
-
-    private static Settings.Builder setRandomIndexTranslogSettings(Random random, Settings.Builder builder) {
-        if (random.nextBoolean()) {
-            builder.put(IndexSettings.INDEX_TRANSLOG_FLUSH_THRESHOLD_SIZE_SETTING.getKey(),
-                    new ByteSizeValue(RandomNumbers.randomIntBetween(random, 1, 300), ByteSizeUnit.MB));
-        }
-        if (random.nextBoolean()) {
-            builder.put(IndexSettings.INDEX_TRANSLOG_FLUSH_THRESHOLD_SIZE_SETTING.getKey(),
-                    new ByteSizeValue(1, ByteSizeUnit.PB)); // just don't flush
-        }
-        if (random.nextBoolean()) {
-            builder.put(IndexSettings.INDEX_TRANSLOG_DURABILITY_SETTING.getKey(),
-                    RandomPicks.randomFrom(random, Translog.Durability.values()));
-        }
-
-        if (random.nextBoolean()) {
-            builder.put(IndexSettings.INDEX_TRANSLOG_SYNC_INTERVAL_SETTING.getKey(),
-                    RandomNumbers.randomIntBetween(random, 100, 5000), TimeUnit.MILLISECONDS);
-        }
-
-        return builder;
     }
 
     private TestCluster buildWithPrivateContext(Scope scope, long seed) throws Exception {
