@@ -1,0 +1,39 @@
+---
+name: 🌱 Feature request
+description: Tell us about a problem CrateDB could solve
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: Describe your problem
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Possible Solutions
+      description: |-
+        Describe how a solution could look like.
+        Please focus on how you'd use the feature, this isn't about
+        implementation details.
+    validations:
+      required: false
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Considered Alternatives
+      description: |-
+        If you have tried alternatives and found them insufficient, let us know
+        and explain why they were insufficient.
+
+        This helps us prioritize the feature.
+    validations:
+      required: false
+
+  - type: markdown
+    attributes:
+      value: |-
+        ## Thanks 🙏
