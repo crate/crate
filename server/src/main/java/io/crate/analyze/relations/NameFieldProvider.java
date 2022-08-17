@@ -38,7 +38,7 @@ import java.util.Locale;
  */
 public class NameFieldProvider implements FieldProvider<Symbol> {
 
-    private AnalyzedRelation relation;
+    private final AnalyzedRelation relation;
 
     public NameFieldProvider(AnalyzedRelation relation) {
         this.relation = relation;

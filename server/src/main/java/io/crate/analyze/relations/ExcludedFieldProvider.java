@@ -35,12 +35,12 @@ import java.util.List;
  *  a) checks if a QualifiedName matches the excluded table
  *  b) resolves the column name to Literal specified in the VALUES part of INSERT INTO
  *
- * Otherwise it just calls the wrapped field provider.
+ * Otherwise, it just calls the wrapped field provider.
  */
 public class ExcludedFieldProvider implements FieldProvider<Symbol> {
 
-    private ValuesResolver valuesResolver;
-    private FieldProvider<?> fieldProvider;
+    private final ValuesResolver valuesResolver;
+    private final FieldProvider<?> fieldProvider;
 
     public ExcludedFieldProvider(FieldProvider<?> fieldProvider, ValuesResolver valuesResolver) {
         this.fieldProvider = fieldProvider;
