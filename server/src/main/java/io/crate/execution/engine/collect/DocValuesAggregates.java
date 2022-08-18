@@ -67,7 +67,6 @@ import io.crate.memory.MemoryManager;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
-import io.crate.metadata.SearchPath;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.types.DataTypes;
 
@@ -89,7 +88,6 @@ public class DocValuesAggregates {
             functions,
             aggregateProjection.aggregations(),
             phase.toCollect(),
-            collectTask.txnCtx().sessionSettings().searchPath(),
             table
         );
         if (aggregators == null) {
@@ -138,7 +136,6 @@ public class DocValuesAggregates {
     public static List<DocValueAggregator> createAggregators(Functions functions,
                                                              List<Aggregation> aggregations,
                                                              List<Symbol> toCollect,
-                                                             SearchPath searchPath,
                                                              DocTableInfo table) {
         ArrayList<DocValueAggregator> aggregator = new ArrayList<>(aggregations.size());
         for (int i = 0; i < aggregations.size(); i++) {

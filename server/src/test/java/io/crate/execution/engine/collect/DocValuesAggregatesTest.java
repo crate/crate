@@ -42,7 +42,6 @@ import io.crate.expression.symbol.Literal;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.SearchPath;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
@@ -82,7 +81,6 @@ public class DocValuesAggregatesTest extends CrateDummyClusterServiceUnitTest {
             functions,
             List.of(longSumAggregation()),
             List.of(e.asSymbol("tbl.x")),
-            SearchPath.pathWithPGCatalogAndDoc(),
             table
         );
         assertThat(aggregators)
@@ -95,7 +93,6 @@ public class DocValuesAggregatesTest extends CrateDummyClusterServiceUnitTest {
             functions,
             List.of(longSumAggregation()),
             List.of(e.asSymbol("tbl.x::real")),
-            SearchPath.pathWithPGCatalogAndDoc(),
             table
         );
         assertThat(aggregators).isNull();
@@ -104,7 +101,6 @@ public class DocValuesAggregatesTest extends CrateDummyClusterServiceUnitTest {
             functions,
             List.of(longSumAggregation()),
             List.of(e.asSymbol("tbl.x::numeric")),
-            SearchPath.pathWithPGCatalogAndDoc(),
             table
         );
         assertThat(aggregators)
@@ -125,7 +121,6 @@ public class DocValuesAggregatesTest extends CrateDummyClusterServiceUnitTest {
                 List.of(Literal.of(1L)))
             ),
             Collections.emptyList(),
-            SearchPath.pathWithPGCatalogAndDoc(),
             table
         );
         assertThat(aggregators).isNull();
@@ -137,7 +132,6 @@ public class DocValuesAggregatesTest extends CrateDummyClusterServiceUnitTest {
             functions,
             List.of(longSumAggregation()),
             List.of(Literal.of(1)),
-            SearchPath.pathWithPGCatalogAndDoc(),
             table
         );
         assertThat(aggregators).isNull();
@@ -150,7 +144,6 @@ public class DocValuesAggregatesTest extends CrateDummyClusterServiceUnitTest {
             functions,
             List.of(longSumAggregation()),
             List.of(xRef),
-            SearchPath.pathWithPGCatalogAndDoc(),
             table
         );
         assertThat(aggregators).isNotNull();
@@ -169,7 +162,6 @@ public class DocValuesAggregatesTest extends CrateDummyClusterServiceUnitTest {
                 xRef.position(),
                 xRef.defaultExpression())
             ),
-            SearchPath.pathWithPGCatalogAndDoc(),
             table
         );
         assertThat(aggregators).isNull();
@@ -184,7 +176,6 @@ public class DocValuesAggregatesTest extends CrateDummyClusterServiceUnitTest {
                     longSumAggregation(2)
             ),
             List.of(e.asSymbol("tbl.Payload_subInt"), e.asSymbol("tbl.payload_subInt"),e.asSymbol("tbl.x")),
-            SearchPath.pathWithPGCatalogAndDoc(),
             table
         );
         //select count(tbl.Payload_subInt), count(tbl.payload_subInt), sum(tbl.x) from tbl;
