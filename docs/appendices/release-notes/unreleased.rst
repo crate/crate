@@ -64,8 +64,14 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Fixed a regression introduced in CrateDB ``4.3.0`` causing an
+  ``IndexOutOfBoundsException`` when applying aggregations on literals.
+  Example::
+
+    SELECT SUM(10) FROM test HAVING COUNT(1) > 0
+
 - Fixed an issue, preventing users from defining a constraint on a generated
-  column, when creating a table or when adding a generated column, i.e.::
+  column, when creating a table or when adding a generated column. Example::
 
     CREATE TABLE test(
         col1 INT,
