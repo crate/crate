@@ -22,17 +22,11 @@
 package io.crate.execution.engine.collect;
 
 import static io.crate.testing.TestingHelpers.createNodeContext;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.Map;
 
-import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -64,22 +58,6 @@ public class DocValuesAggregatesTest extends CrateDummyClusterServiceUnitTest {
     private SqlExpressions e;
     private DocTableInfo table;
 
-    private final Aggregation longSumAggregation = new Aggregation(
-        Signature.aggregate(
-            SumAggregation.NAME,
-            DataTypes.LONG.getTypeSignature(),
-            DataTypes.LONG.getTypeSignature()
-        ),
-        DataTypes.LONG,
-        List.of(new InputColumn(0, DataTypes.LONG))
-    );
-
-    private final Aggregation countAggregation = new Aggregation(
-        CountAggregation.SIGNATURE,
-        CountAggregation.SIGNATURE.getReturnType().createType(),
-        List.of(new InputColumn(0, ObjectType.UNTYPED))
-    );
-
     @Before
     public void setup() {
         functions = createNodeContext().functions();
@@ -101,57 +79,59 @@ public class DocValuesAggregatesTest extends CrateDummyClusterServiceUnitTest {
     public void test_create_aggregators_for_reference_and_doc_value_field_for_the_correct_field_type() {
         var aggregators = DocValuesAggregates.createAggregators(
             functions,
-            List.of(longSumAggregation),
+            List.of(longSumAggregation()),
             List.of(e.asSymbol("tbl.x")),
             SearchPath.pathWithPGCatalogAndDoc(),
             table
         );
-        assertThat(aggregators, contains(instanceOf(SumAggregation.SumLong.class)));
+        assertThat(aggregators)
+            .satisfiesExactly(a -> assertThat(a).isExactlyInstanceOf((SumAggregation.SumLong.class)));
     }
 
     @Test
     public void test_create_aggregators_for_cast_reference_returns_aggregator_only_if_it_is_cast_to_numeric() {
         var aggregators = DocValuesAggregates.createAggregators(
             functions,
-            List.of(longSumAggregation),
+            List.of(longSumAggregation()),
             List.of(e.asSymbol("tbl.x::real")),
             SearchPath.pathWithPGCatalogAndDoc(),
             table
         );
-        assertThat(aggregators, is(nullValue()));
+        assertThat(aggregators).isNull();
 
         aggregators = DocValuesAggregates.createAggregators(
             functions,
-            List.of(longSumAggregation),
+            List.of(longSumAggregation()),
             List.of(e.asSymbol("tbl.x::numeric")),
             SearchPath.pathWithPGCatalogAndDoc(),
             table
         );
-        assertThat(aggregators, contains(instanceOf(SumAggregation.SumLong.class)));
+        assertThat(aggregators)
+            .satisfiesExactly(a -> assertThat(a).isExactlyInstanceOf((SumAggregation.SumLong.class)));
     }
 
     @Test
     public void test_create_aggregators_for_literal_aggregation_input_returns_null() {
         var aggregators = DocValuesAggregates.createAggregators(
             functions,
-            List.of(longSumAggregation),
+            List.of(longSumAggregation()),
             List.of(Literal.of(1)),
             SearchPath.pathWithPGCatalogAndDoc(),
             table
         );
-        assertThat(aggregators, is(nullValue()));
+        assertThat(aggregators).isNull();
     }
 
     @Test
     public void test_create_aggregators_for_reference_not_mapped_to_field_returns_null() {
         var aggregators = DocValuesAggregates.createAggregators(
             functions,
-            List.of(longSumAggregation),
+            List.of(longSumAggregation()),
             List.of(Literal.of(1)),
             SearchPath.pathWithPGCatalogAndDoc(),
             table
         );
-        assertThat(aggregators, is(nullValue()));
+        assertThat(aggregators).isNull();
     }
 
     @Test
@@ -159,16 +139,16 @@ public class DocValuesAggregatesTest extends CrateDummyClusterServiceUnitTest {
         Reference xRef = (Reference) e.asSymbol("tbl.x");
         var aggregators = DocValuesAggregates.createAggregators(
             functions,
-            List.of(longSumAggregation),
+            List.of(longSumAggregation()),
             List.of(xRef),
             SearchPath.pathWithPGCatalogAndDoc(),
             table
         );
-        assertThat(aggregators, is(Matchers.notNullValue()));
+        assertThat(aggregators).isNotNull();
 
         aggregators = DocValuesAggregates.createAggregators(
             functions,
-            List.of(longSumAggregation),
+            List.of(longSumAggregation()),
             List.of(new SimpleReference(
                 xRef.ident(),
                 xRef.granularity(),
@@ -183,38 +163,51 @@ public class DocValuesAggregatesTest extends CrateDummyClusterServiceUnitTest {
             SearchPath.pathWithPGCatalogAndDoc(),
             table
         );
-        assertThat(aggregators, is(Matchers.nullValue()));
+        assertThat(aggregators).isNull();
     }
 
     @Test
     public void test_create_aggregators_for_multiple_aggregations() {
         var actualAggregators = DocValuesAggregates.createAggregators(
             functions,
-            List.of(new Aggregation(
-                        CountAggregation.SIGNATURE,
-                        CountAggregation.SIGNATURE.getReturnType().createType(),
-                        List.of(new InputColumn(0, ObjectType.UNTYPED))),
-                    new Aggregation(
-                        CountAggregation.SIGNATURE,
-                        CountAggregation.SIGNATURE.getReturnType().createType(),
-                        List.of(new InputColumn(1, ObjectType.UNTYPED))),
-                    new Aggregation(
-                        Signature.aggregate(
-                            SumAggregation.NAME,
-                            DataTypes.LONG.getTypeSignature(),
-                            DataTypes.LONG.getTypeSignature()
-                        ),
-                        DataTypes.LONG,
-                        List.of(new InputColumn(2, DataTypes.LONG)))
-
+            List.of(countAggregation(0),
+                    countAggregation(1),
+                    longSumAggregation(2)
             ),
             List.of(e.asSymbol("tbl.Payload_subInt"), e.asSymbol("tbl.payload_subInt"),e.asSymbol("tbl.x")),
             SearchPath.pathWithPGCatalogAndDoc(),
             table
         );
         //select count(tbl.Payload_subInt), count(tbl.payload_subInt), sum(tbl.x) from tbl;
-        assertThat(actualAggregators, containsInAnyOrder(instanceOf(SortedNumericDocValueAggregator.class),
-                                                         instanceOf(SortedNumericDocValueAggregator.class),
-                                                         instanceOf(SumAggregation.SumLong.class)));
+        assertThat(actualAggregators)
+            .satisfiesExactlyInAnyOrder(
+                c -> assertThat(c).isExactlyInstanceOf(SortedNumericDocValueAggregator.class),
+                c -> assertThat(c).isExactlyInstanceOf(SortedNumericDocValueAggregator.class),
+                c -> assertThat(c).isExactlyInstanceOf(SumAggregation.SumLong.class)
+            );
+    }
+
+    private static Aggregation countAggregation(int inputCol) {
+        return new Aggregation(
+            CountAggregation.SIGNATURE,
+            CountAggregation.SIGNATURE.getReturnType().createType(),
+            List.of(new InputColumn(inputCol, ObjectType.UNTYPED))
+        );
+    }
+
+    private static Aggregation longSumAggregation() {
+        return longSumAggregation(0);
+    }
+
+    private static Aggregation longSumAggregation(int inputCol) {
+        return new Aggregation(
+            Signature.aggregate(
+                SumAggregation.NAME,
+                DataTypes.LONG.getTypeSignature(),
+                DataTypes.LONG.getTypeSignature()
+            ),
+            DataTypes.LONG,
+            List.of(new InputColumn(inputCol, DataTypes.LONG))
+        );
     }
 }
