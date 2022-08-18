@@ -125,7 +125,6 @@ final class DocValuesGroupByOptimizedIterator {
             functions,
             groupProjection.values(),
             collectPhase.toCollect(),
-            collectTask.txnCtx().sessionSettings().searchPath(),
             table
         );
         if (aggregators == null) {
