@@ -167,6 +167,9 @@ public class DocValuesAggregates {
                 throw new IllegalStateException(
                     "Expected an aggregationFunction for " + aggregation + " got: " + func);
             }
+            if (aggregationReferences.isEmpty()) {
+                return null;
+            }
             DocValueAggregator<?> docValueAggregator = aggFunc.getDocValueAggregator(
                 aggregationReferences,
                 table,
