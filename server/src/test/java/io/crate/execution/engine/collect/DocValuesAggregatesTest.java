@@ -24,6 +24,7 @@ package io.crate.execution.engine.collect;
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -114,8 +115,16 @@ public class DocValuesAggregatesTest extends CrateDummyClusterServiceUnitTest {
     public void test_create_aggregators_for_literal_aggregation_input_returns_null() {
         var aggregators = DocValuesAggregates.createAggregators(
             functions,
-            List.of(longSumAggregation()),
-            List.of(Literal.of(1)),
+            List.of(new Aggregation(
+                Signature.aggregate(
+                    SumAggregation.NAME,
+                    DataTypes.LONG.getTypeSignature(),
+                    DataTypes.LONG.getTypeSignature()
+                ),
+                DataTypes.LONG,
+                List.of(Literal.of(1L)))
+            ),
+            Collections.emptyList(),
             SearchPath.pathWithPGCatalogAndDoc(),
             table
         );
