@@ -19,9 +19,9 @@
 
 package org.elasticsearch.index.seqno;
 
-import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.emptyCollectionOf;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
@@ -57,16 +57,17 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.indices.recovery.PeerRecoveryTargetService;
 import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.test.transport.MockTransportService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.AbstractSimpleTransportTestCase;
 import org.elasticsearch.transport.TransportService;
+import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Test;
 
 import io.crate.common.collections.Lists2;
 import io.crate.common.unit.TimeValue;
-import org.elasticsearch.test.IntegTestCase;
 
 public class RetentionLeaseIT extends IntegTestCase  {
 
@@ -240,7 +241,7 @@ public class RetentionLeaseIT extends IntegTestCase  {
                         .getInstance(IndicesService.class, replicaShardNodeName)
                         .getShardOrNull(new ShardId(resolveIndex("tbl"), 0));
                 assertThat(RetentionLeaseUtils.toMapExcludingPeerRecoveryRetentionLeases(replica.getRetentionLeases()).values(),
-                    anyOf(empty(), contains(currentRetentionLease)));
+                           Matchers.anyOf(contains(currentRetentionLease), emptyCollectionOf(RetentionLease.class)));
             }
 
             // update the index for retention leases to short a long time, to force expiration

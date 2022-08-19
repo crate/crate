@@ -52,7 +52,7 @@ allprojects {
             force "org.antlr:antlr4-runtime:${versions.antlr}"
             force "commons-cli:commons-cli:${versions.commonscli}"
             force "org.apache.commons:commons-math3:${versions.commonsmath}"
-            force "org.apache.commons:commons-lang3:${versions.commonslang3}"
+            force "org.apache.commons:commons-lang3:${versions.commonslang}"
             force "commons-logging:commons-logging:${versions.commonslogging}"
             force "org.apache.httpcomponents:httpcore:${versions.httpcore}"
             force "org.apache.httpcomponents:httpcore-nio:${versions.httpcore}"
@@ -65,9 +65,9 @@ allprojects {
             force "io.netty:netty-resolver:${versions.netty4}"
             force "io.netty:netty-transport:${versions.netty4}"
             force "net.sf.jopt-simple:jopt-simple:${versions.jopt_simple}"
+            force "net.bytebuddy:byte-buddy:${versions.bytebuddy}"
 
             force "com.google.code.findbugs:jsr305:${versions.jsr305}"
-            force "commons-lang:commons-lang:${versions.commonslang}"
             force "org.apache.logging.log4j:log4j-api:${versions.log4j2}"
             force "org.apache.logging.log4j:log4j-core:${versions.log4j2}"
         }
