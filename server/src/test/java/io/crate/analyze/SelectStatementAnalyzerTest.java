@@ -1853,7 +1853,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         relation = executor.analyze("select try_cast(['fd', '3', '5'] as array(integer)) from users");
         assertThat(relation.outputs().get(0), isLiteral(Arrays.asList(null, 3, 5)));
 
-        relation = executor.analyze("select try_cast('1' as boolean) from users");
+        relation = executor.analyze("select try_cast('2' as boolean) from users");
         assertThat(relation.outputs().get(0), isLiteral(null));
     }
 

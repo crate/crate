@@ -75,8 +75,16 @@ public class BooleanType extends DataType<Boolean> implements Streamer<Boolean>,
     private static final Map<String, Boolean> BOOLEAN_MAP = Map.ofEntries(
         Map.entry("f", false),
         Map.entry("false", false),
+        Map.entry("n", false),
+        Map.entry("no", false),
+        Map.entry("off", false),
+        Map.entry("0", false),
         Map.entry("t", true),
-        Map.entry("true", true)
+        Map.entry("true", true),
+        Map.entry("y", true),
+        Map.entry("yes", true),
+        Map.entry("on", true),
+        Map.entry("1", true)
     );
 
     @Override
