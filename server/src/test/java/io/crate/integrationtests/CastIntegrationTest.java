@@ -45,7 +45,7 @@ public class CastIntegrationTest extends IntegTestCase {
 
     @Test
     public void testTryCastNotValidLiteralCasting() {
-        execute("select try_cast('2e' as integer), try_cast('1' as boolean), try_cast(128 as byte) from sys.cluster");
+        execute("select try_cast('2e' as integer), try_cast('2' as boolean), try_cast(128 as byte) from sys.cluster");
         assertThat(response.rowCount(), is(1L));
         assertThat(response.rows()[0][0], is(nullValue()));
         assertThat(response.rows()[0][1], is(nullValue()));

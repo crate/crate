@@ -35,14 +35,36 @@ public class BooleanTypeTest extends ESTestCase {
     @Test
     public void test_cast_text_to_boolean() {
         assertThat(BooleanType.INSTANCE.implicitCast("t"), is(true));
+        assertThat(BooleanType.INSTANCE.implicitCast("T"), is(true));
         assertThat(BooleanType.INSTANCE.implicitCast("false"), is(false));
+        assertThat(BooleanType.INSTANCE.implicitCast("fAlSe"), is(false));
         assertThat(BooleanType.INSTANCE.implicitCast("FALSE"), is(false));
         assertThat(BooleanType.INSTANCE.implicitCast("f"), is(false));
         assertThat(BooleanType.INSTANCE.implicitCast("F"), is(false));
+        assertThat(BooleanType.INSTANCE.implicitCast("no"), is(false));
+        assertThat(BooleanType.INSTANCE.implicitCast("nO"), is(false));
+        assertThat(BooleanType.INSTANCE.implicitCast("NO"), is(false));
+        assertThat(BooleanType.INSTANCE.implicitCast("n"), is(false));
+        assertThat(BooleanType.INSTANCE.implicitCast("N"), is(false));
+        assertThat(BooleanType.INSTANCE.implicitCast("off"), is(false));
+        assertThat(BooleanType.INSTANCE.implicitCast("Off"), is(false));
+        assertThat(BooleanType.INSTANCE.implicitCast("OFF"), is(false));
+        assertThat(BooleanType.INSTANCE.implicitCast("0"), is(false));
+
         assertThat(BooleanType.INSTANCE.implicitCast("true"), is(true));
+        assertThat(BooleanType.INSTANCE.implicitCast("trUe"), is(true));
         assertThat(BooleanType.INSTANCE.implicitCast("TRUE"), is(true));
         assertThat(BooleanType.INSTANCE.implicitCast("t"), is(true));
         assertThat(BooleanType.INSTANCE.implicitCast("T"), is(true));
+        assertThat(BooleanType.INSTANCE.implicitCast("yes"), is(true));
+        assertThat(BooleanType.INSTANCE.implicitCast("yEs"), is(true));
+        assertThat(BooleanType.INSTANCE.implicitCast("YES"), is(true));
+        assertThat(BooleanType.INSTANCE.implicitCast("y"), is(true));
+        assertThat(BooleanType.INSTANCE.implicitCast("Y"), is(true));
+        assertThat(BooleanType.INSTANCE.implicitCast("on"), is(true));
+        assertThat(BooleanType.INSTANCE.implicitCast("On"), is(true));
+        assertThat(BooleanType.INSTANCE.implicitCast("ON"), is(true));
+        assertThat(BooleanType.INSTANCE.implicitCast("1"), is(true));
     }
 
     @Test
