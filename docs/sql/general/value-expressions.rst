@@ -310,4 +310,5 @@ table alias. Such a subquery is known as correlated subquery.
 
 .. NOTE::
 
-    Correlated subqueries are currently limited to the select list of a query.
+    Correlated subqueries are currently limited to the select list and where
+    clause of a query.
