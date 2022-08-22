@@ -88,7 +88,10 @@ public final class CorrelatedJoinProjector implements Projector {
         public CompletableFuture<? extends CloseableIterator<Row>> apply(Row inputRow, boolean isLastCall) {
             try {
                 subQueryResults.bindOuterColumnInputRow(inputRow);
-                var capturingRowConsumer = new CapturingRowConsumer(false);
+                var batchIterator = new CompletableFuture<BatchIterator<Row>>();
+                var subQueryResult = batchIterator
+                    .thenCompose(it -> BatchIterators.collect(it, collector));
+                var capturingRowConsumer = new CapturingRowConsumer(false, batchIterator, subQueryResult);
                 subQueryPlan.execute(
                     executor,
                     PlannerContext.forSubPlan(plannerContext),
@@ -97,8 +100,6 @@ public final class CorrelatedJoinProjector implements Projector {
                     subQueryResults
                 );
                 outputRow.firstCells(inputRow.materialize());
-                CompletableFuture<?> subQueryResult = capturingRowConsumer.capturedBatchIterator()
-                    .thenCompose(it -> BatchIterators.collect(it, collector));
                 return subQueryResult.thenApply(result -> {
                     secondCells[0] = result;
                     return CloseableIterator.fromIterator(outputRows.iterator());
