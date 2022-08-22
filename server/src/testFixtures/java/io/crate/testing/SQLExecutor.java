@@ -474,6 +474,10 @@ public class SQLExecutor {
         }
 
         public Builder addPartitionedTable(String createTableStmt, String... partitions) throws IOException {
+            return addPartitionedTable(createTableStmt, Settings.EMPTY, partitions);
+        }
+
+        public Builder addPartitionedTable(String createTableStmt, Settings customSettings, String... partitions) throws IOException {
             CreateTable<Expression> stmt = (CreateTable<Expression>) SqlParser.createStatement(createTableStmt);
             CoordinatorTxnCtx txnCtx = new CoordinatorTxnCtx(CoordinatorSessionSettings.systemDefaults());
             AnalyzedCreateTable analyzedCreateTable = createTableStatementAnalyzer.analyze(
@@ -493,16 +497,19 @@ public class SQLExecutor {
                 throw new IllegalArgumentException("use addTable(..) to add non partitioned tables");
             }
             ClusterState prevState = clusterService.state();
+            var combinedSettings = Settings.builder()
+                .put(analyzedStmt.tableParameter().settings())
+                .put(customSettings)
+                .build();
 
             XContentBuilder mappingBuilder = XContentFactory.jsonBuilder().map(analyzedStmt.mapping());
             CompressedXContent mapping = new CompressedXContent(BytesReference.bytes(mappingBuilder));
-            Settings settings = analyzedStmt.tableParameter().settings();
             AliasMetadata.Builder alias = AliasMetadata.builder(analyzedStmt.tableIdent().indexNameOrAlias());
             IndexTemplateMetadata.Builder template = IndexTemplateMetadata.builder(analyzedStmt.templateName())
                 .patterns(singletonList(analyzedStmt.templatePrefix()))
                 .order(100)
                 .putMapping(Constants.DEFAULT_MAPPING_TYPE, mapping)
-                .settings(settings)
+                .settings(buildSettings(false, combinedSettings, prevState.nodes().getSmallestNonClientNodeVersion()))
                 .putAlias(alias);
 
             Metadata.Builder mdBuilder = Metadata.builder(prevState.metadata())
@@ -512,7 +519,7 @@ public class SQLExecutor {
             for (String partition : partitions) {
                 IndexMetadata indexMetadata = getIndexMetadata(
                     partition,
-                    analyzedStmt.tableParameter().settings(),
+                    combinedSettings,
                     analyzedStmt.mapping(),
                     prevState.nodes().getSmallestNonClientNodeVersion())
                     .putAlias(alias)
@@ -605,13 +612,7 @@ public class SQLExecutor {
                                                               Settings settings,
                                                               @Nullable Map<String, Object> mapping,
                                                               Version smallestNodeVersion) throws IOException {
-            Settings.Builder builder = Settings.builder()
-                .put(settings)
-                .put(SETTING_VERSION_CREATED, smallestNodeVersion)
-                .put(SETTING_CREATION_DATE, Instant.now().toEpochMilli())
-                .put(SETTING_INDEX_UUID, UUIDs.randomBase64UUID());
-
-            Settings indexSettings = builder.build();
+            Settings indexSettings = buildSettings(true, settings, smallestNodeVersion);
             IndexMetadata.Builder metaBuilder = IndexMetadata.builder(indexName)
                 .settings(indexSettings);
             if (mapping != null) {
@@ -621,6 +622,22 @@ public class SQLExecutor {
             }
 
             return metaBuilder;
+        }
+
+        private static Settings buildSettings(boolean isIndex, Settings settings, Version smallestNodeVersion) {
+            Settings.Builder builder = Settings.builder()
+                .put(settings);
+            if (settings.get(SETTING_VERSION_CREATED) == null) {
+                builder.put(SETTING_VERSION_CREATED, smallestNodeVersion);
+            }
+            if (settings.get(SETTING_CREATION_DATE) == null) {
+                builder.put(SETTING_CREATION_DATE, Instant.now().toEpochMilli());
+            }
+            if (isIndex && settings.get(SETTING_INDEX_UUID) == null) {
+                builder.put(SETTING_INDEX_UUID, UUIDs.randomBase64UUID());
+            }
+
+            return builder.build();
         }
 
         /**
