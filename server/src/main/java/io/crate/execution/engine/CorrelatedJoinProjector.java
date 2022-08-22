@@ -22,13 +22,10 @@
 package io.crate.execution.engine;
 
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
-
-import org.elasticsearch.common.UUIDs;
 
 import io.crate.data.AsyncFlatMapBatchIterator;
 import io.crate.data.AsyncFlatMapper;
@@ -39,8 +36,6 @@ import io.crate.data.CapturingRowConsumer;
 import io.crate.data.CloseableIterator;
 import io.crate.data.Projector;
 import io.crate.data.Row;
-import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
-import io.crate.execution.engine.pipeline.TopN;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.planner.DependencyCarrier;
@@ -52,7 +47,6 @@ public final class CorrelatedJoinProjector implements Projector {
 
     private final LogicalPlan subQueryPlan;
     private final PlannerContext plannerContext;
-    private final ProjectionBuilder projectionBuilder;
     private final DependencyCarrier executor;
     private final SubQueryResults subQueryResults;
     private final SelectSymbol correlatedSubQuery;
@@ -62,7 +56,6 @@ public final class CorrelatedJoinProjector implements Projector {
     public CorrelatedJoinProjector(LogicalPlan subQueryPlan,
                                    SelectSymbol correlatedSubQuery,
                                    PlannerContext plannerContext,
-                                   ProjectionBuilder projectionBuilder,
                                    DependencyCarrier executor,
                                    SubQueryResults subQueryResults,
                                    Row params,
@@ -70,7 +63,6 @@ public final class CorrelatedJoinProjector implements Projector {
         this.subQueryPlan = subQueryPlan;
         this.correlatedSubQuery = correlatedSubQuery;
         this.plannerContext = plannerContext;
-        this.projectionBuilder = projectionBuilder;
         this.executor = executor;
         this.subQueryResults = subQueryResults;
         this.params = params;
@@ -101,23 +93,14 @@ public final class CorrelatedJoinProjector implements Projector {
                     inputPlanOutputs,
                     inputRow
                 );
-                var executionPlan = subQueryPlan.build(
+                var capturingRowConsumer = new CapturingRowConsumer(false);
+                subQueryPlan.execute(
                     executor,
-                    PlannerContext.forSubPlan(plannerContext, 2),
-                    Set.of(),
-                    projectionBuilder,
-                    TopN.NO_LIMIT,
-                    TopN.NO_OFFSET,
-                    null,
-                    null,
+                    PlannerContext.forSubPlan(plannerContext),
+                    capturingRowConsumer,
                     params,
                     newSubQueryResults
                 );
-                var nodeOps = List.of(NodeOperationTreeGenerator.fromPlan(executionPlan, executor.localNodeId()));
-                var capturingRowConsumer = new CapturingRowConsumer(false);
-                executor.phasesTaskFactory()
-                    .create(UUIDs.dirtyUUID(), nodeOps)
-                    .execute(capturingRowConsumer, plannerContext.transactionContext());
 
                 // Scalar sub-query returns 1 row, the materialization here shouldn't be too bad
                 outputRow.firstCells(inputRow.materialize());

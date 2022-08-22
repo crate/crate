@@ -93,8 +93,9 @@ public class Collect implements LogicalPlan {
     final TableInfo tableInfo;
     private final long numExpectedRows;
     private final long estimatedRowSize;
+    final WhereClause immutableWhere;
 
-    WhereClause where;
+    WhereClause mutableBoundWhere;
     DetailedQuery detailedQuery;
 
     public static Collect create(AbstractTableRelation<?> relation,
@@ -121,7 +122,8 @@ public class Collect implements LogicalPlan {
         this.numExpectedRows = collect.numExpectedRows;
         this.estimatedRowSize = collect.estimatedRowSize;
         this.relation = collect.relation;
-        this.where = collect.where;
+        this.mutableBoundWhere = collect.mutableBoundWhere;
+        this.immutableWhere = collect.immutableWhere;
         this.tableInfo = collect.relation.tableInfo();
         this.detailedQuery = detailedQuery;
     }
@@ -139,7 +141,8 @@ public class Collect implements LogicalPlan {
             EnsureNoMatchPredicate.ensureNoMatchPredicate(where.queryOrFallback(), "Cannot use MATCH on system tables");
         }
         this.relation = relation;
-        this.where = where;
+        this.immutableWhere = where;
+        this.mutableBoundWhere = where;
         this.tableInfo = relation.tableInfo();
     }
 
@@ -193,7 +196,7 @@ public class Collect implements LogicalPlan {
     }
 
     public WhereClause where() {
-        return where;
+        return immutableWhere;
     }
 
     public DetailedQuery detailedQuery() {
@@ -260,7 +263,7 @@ public class Collect implements LogicalPlan {
         WhereClause boundWhere;
         if (tableInfo instanceof DocTableInfo docTable) {
             if (detailedQuery == null) {
-                boundWhere = where.map(binder);
+                boundWhere = immutableWhere.map(binder);
             } else {
                 boundWhere = detailedQuery.toBoundWhereClause(
                     docTable,
@@ -280,21 +283,21 @@ public class Collect implements LogicalPlan {
                 boundWhere = new WhereClause(query, boundWhere.partitions(), boundWhere.clusteredBy());
             }
         } else {
-            boundWhere = where.map(binder);
+            boundWhere = immutableWhere.map(binder);
         }
 
         // bind all parameters and possible subQuery values and re-analyze the query
         // (could result in a NO_MATCH, routing could've changed, etc).
         // the <p>where</p> instance variable must be overwritten as the plan creation of outer operators relies on it
         // (e.g. GroupHashAggregate will build different plans based on the collect routing)
-        where = WhereClauseAnalyzer.resolvePartitions(
+        mutableBoundWhere = WhereClauseAnalyzer.resolvePartitions(
             boundWhere,
             relation,
             plannerContext.transactionContext(),
             plannerContext.nodeContext());
-        if (where.hasVersions()) {
+        if (mutableBoundWhere.hasVersions()) {
             throw VersioningValidationException.versionInvalidUsage();
-        } else if (where.hasSeqNoAndPrimaryTerm()) {
+        } else if (mutableBoundWhere.hasSeqNoAndPrimaryTerm()) {
             throw VersioningValidationException.seqNoAndPrimaryTermUsage();
         }
 
@@ -306,7 +309,7 @@ public class Collect implements LogicalPlan {
             COLLECT_PHASE_NAME,
             plannerContext.allocateRouting(
                 tableInfo,
-                where,
+                mutableBoundWhere,
                 RoutingProvider.ShardSelection.ANY,
                 sessionSettings),
             tableInfo.rowGranularity(),
@@ -314,7 +317,7 @@ public class Collect implements LogicalPlan {
                 ? Lists2.map(boundOutputs, DocReferences::toSourceLookup)
                 : boundOutputs,
             Collections.emptyList(),
-            Optimizer.optimizeCasts(where.queryOrFallback(), plannerContext),
+            Optimizer.optimizeCasts(mutableBoundWhere.queryOrFallback(), plannerContext),
             DistributionInfo.DEFAULT_BROADCAST
         );
     }
@@ -363,7 +366,7 @@ public class Collect implements LogicalPlan {
         return new Collect(
             relation,
             newOutputs,
-            where,
+            immutableWhere,
             numExpectedRows,
             stats.estimateSizeForColumns(newOutputs)
         );
@@ -409,7 +412,7 @@ public class Collect implements LogicalPlan {
             new Collect(
                 relation,
                 newOutputs,
-                where,
+                immutableWhere,
                 numExpectedRows,
                 stats.estimateSizeForColumns(newOutputs)
             )
@@ -434,7 +437,7 @@ public class Collect implements LogicalPlan {
         return "Collect{" +
                tableInfo.ident() +
                ", [" + Lists2.joinOn(", ", outputs, Symbol::toString) +
-               "], " + where +
+               "], " + immutableWhere +
                '}';
     }
 
@@ -451,7 +454,7 @@ public class Collect implements LogicalPlan {
             .text(" | [")
             .text(Lists2.joinOn(", ", outputs, Symbol::toString))
             .text("] | ")
-            .text(where.queryOrFallback().toString())
+            .text(immutableWhere.queryOrFallback().toString())
             .text("]");
     }
 }
