@@ -21,14 +21,16 @@
 
 package io.crate.metadata.doc;
 
+import static org.hamcrest.Matchers.is;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.Version;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import io.crate.exceptions.ColumnUnknownException;
@@ -42,10 +44,12 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.ColumnPolicy;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.Asserts;
+import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
 
-public class DocTableInfoTest extends ESTestCase {
+public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testGetColumnInfo() throws Exception {
@@ -203,5 +207,30 @@ public class DocTableInfoTest extends ESTestCase {
 
         Reference colInfo = info.getReference(new ColumnIdent("foobar"));
         assertNotNull(colInfo);
+    }
+
+    @Test
+    public void test_version_created_is_read_from_partitioned_template() throws Exception {
+        var customSettings = Settings.builder()
+            .put(IndexMetadata.SETTING_VERSION_CREATED, Version.V_4_7_0)
+            .build();
+        var e = SQLExecutor.builder(clusterService)
+            .addPartitionedTable("CREATE TABLE p1 (id INT, p INT) PARTITIONED BY (p)", customSettings)
+            .build();
+
+        DocTableInfo tableInfo = e.resolveTableInfo("p1");
+        assertThat(IndexMetadata.SETTING_INDEX_VERSION_CREATED.get(tableInfo.parameters()), is(Version.V_4_7_0));
+    }
+
+    @Test
+    public void test_version_created_is_set_to_current_version_if_unavailable_at_partitioned_template() throws Exception {
+        var customSettings = Settings.builder()
+            .build();
+        var e = SQLExecutor.builder(clusterService)
+            .addPartitionedTable("CREATE TABLE p1 (id INT, p INT) PARTITIONED BY (p)", customSettings)
+            .build();
+
+        DocTableInfo tableInfo = e.resolveTableInfo("p1");
+        assertThat(IndexMetadata.SETTING_INDEX_VERSION_CREATED.get(tableInfo.parameters()), is(Version.CURRENT));
     }
 }

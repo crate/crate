@@ -21,15 +21,17 @@
 
 package io.crate.metadata.doc;
 
-import io.crate.Constants;
-import io.crate.exceptions.RelationUnknown;
-import io.crate.exceptions.UnhandledServerException;
-import io.crate.metadata.IndexParts;
-import io.crate.metadata.NodeContext;
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.RelationName;
-import io.crate.replication.logical.metadata.PublicationsMetadata;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_REPLICAS;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_SHARDS;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+
+import javax.annotation.Nullable;
+
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.support.IndicesOptions;
@@ -38,19 +40,17 @@ import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
-import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexNotFoundException;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-
-import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_REPLICAS;
-import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_SHARDS;
-
-import javax.annotation.Nullable;
+import io.crate.Constants;
+import io.crate.exceptions.RelationUnknown;
+import io.crate.exceptions.UnhandledServerException;
+import io.crate.metadata.IndexParts;
+import io.crate.metadata.NodeContext;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
+import io.crate.replication.logical.metadata.PublicationsMetadata;
 
 public class DocTableInfoBuilder {
 
@@ -138,8 +138,10 @@ public class DocTableInfoBuilder {
                 indexTemplateMetadata.getMappings().get(Constants.DEFAULT_MAPPING_TYPE).toString());
 
             Settings.Builder settingsBuilder = Settings.builder()
-                .put(indexTemplateMetadata.settings())
-                .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT);
+                .put(indexTemplateMetadata.settings());
+            if (indexTemplateMetadata.settings().get(IndexMetadata.SETTING_VERSION_CREATED) == null) {
+                settingsBuilder.put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT);
+            }
 
             Settings settings = settingsBuilder.build();
             builder.settings(settings);
