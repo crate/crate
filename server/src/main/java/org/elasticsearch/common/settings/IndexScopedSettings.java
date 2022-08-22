@@ -19,8 +19,10 @@
 
 package org.elasticsearch.common.settings;
 
-import io.crate.blob.v2.BlobIndicesService;
-import io.crate.replication.logical.LogicalReplicationSettings;
+import java.util.Collections;
+import java.util.Set;
+import java.util.function.Predicate;
+
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.routing.UnassignedInfo;
 import org.elasticsearch.cluster.routing.allocation.decider.EnableAllocationDecider;
@@ -37,9 +39,8 @@ import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.store.FsDirectoryFactory;
 import org.elasticsearch.index.store.Store;
 
-import java.util.Collections;
-import java.util.Set;
-import java.util.function.Predicate;
+import io.crate.blob.v2.BlobIndicesService;
+import io.crate.replication.logical.LogicalReplicationSettings;
 
 /**
  * Encapsulates all valid index level settings.
@@ -150,6 +151,7 @@ public final class IndexScopedSettings extends AbstractScopedSettings {
         switch (key) {
             case IndexMetadata.SETTING_CREATION_DATE:
             case IndexMetadata.SETTING_INDEX_UUID:
+            case IndexMetadata.SETTING_VERSION_CREATED:
             case IndexMetadata.SETTING_VERSION_UPGRADED:
             case IndexMetadata.SETTING_INDEX_PROVIDED_NAME:
             case MergePolicyConfig.INDEX_MERGE_ENABLED:
