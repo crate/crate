@@ -21,18 +21,21 @@
 
 package io.crate.metadata.cluster;
 
-import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
-import io.crate.Constants;
-import io.crate.common.annotations.VisibleForTesting;
-import io.crate.common.collections.MapBuilder;
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.RelationName;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+
+import javax.annotation.Nullable;
+
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.compress.CompressedXContent;
+import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
@@ -41,14 +44,13 @@ import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 
-import javax.annotation.Nullable;
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.BiConsumer;
-import java.util.function.Predicate;
+import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
+
+import io.crate.Constants;
+import io.crate.common.annotations.VisibleForTesting;
+import io.crate.common.collections.MapBuilder;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
 
 public class DDLClusterStateHelpers {
 
@@ -56,23 +58,24 @@ public class DDLClusterStateHelpers {
                                                        Map<String, Object> newMappings,
                                                        Map<String, Object> mappingsToRemove,
                                                        Settings newSettings,
-                                                       BiConsumer<String, Settings> settingsValidator,
-                                                       Predicate<String> settingsFilter) {
+                                                       IndexScopedSettings indexScopedSettings) {
 
         // merge mappings & remove mappings
         Map<String, Object> mapping = removeFromMapping(
             mergeTemplateMapping(indexTemplateMetadata, newMappings),
             mappingsToRemove);
 
-        // merge settings
-        final Settings settings = Settings.builder()
-            .put(indexTemplateMetadata.settings())
-            .put(newSettings)
-            .normalizePrefix(IndexMetadata.INDEX_SETTING_PREFIX)
-            // Private settings must not be (over-)written as they are generated, remove them.
-            .build().filter(settingsFilter);
-
-        settingsValidator.accept(indexTemplateMetadata.getName(), settings);
+        Settings settings = indexTemplateMetadata.settings();
+        if (newSettings.isEmpty() == false) {
+            // merge and validate settings (private settings must be filtered out, they are handled internally)
+            Settings mergedSettings = Settings.builder()
+                .put(indexTemplateMetadata.settings())
+                .put(newSettings)
+                .build()
+                .filter(k -> indexScopedSettings.isPrivateSetting(k) == false);
+            indexScopedSettings.validate(mergedSettings, true);
+            settings = mergedSettings;
+        }
 
         // wrap it in a type map if its not
         if (mapping.size() != 1 || mapping.containsKey(Constants.DEFAULT_MAPPING_TYPE) == false) {
