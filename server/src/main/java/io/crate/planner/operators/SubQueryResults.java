@@ -22,9 +22,11 @@
 package io.crate.planner.operators;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import com.carrotsearch.hppc.ObjectIntHashMap;
+import com.carrotsearch.hppc.ObjectIntMap;
 
 import io.crate.data.Row;
 import io.crate.expression.symbol.DefaultTraversalSymbolVisitor;
@@ -35,17 +37,20 @@ import io.crate.expression.symbol.Symbol;
 public class SubQueryResults {
 
     public static final SubQueryResults EMPTY = new SubQueryResults(Collections.emptyMap());
+    private static final ObjectIntHashMap<OuterColumn> EMPTY_OUTER_COLUMNS = new ObjectIntHashMap<>();
 
     private final Map<SelectSymbol, Object> valuesBySubQuery;
-    private final Map<OuterColumn, Object> boundOuterColumns;
+    private final ObjectIntMap<OuterColumn> boundOuterColumns;
+
+    private Row inputRow = Row.EMPTY;
 
     public SubQueryResults(Map<SelectSymbol, Object> valuesBySubQuery) {
         this.valuesBySubQuery = valuesBySubQuery;
-        this.boundOuterColumns = Map.of();
+        this.boundOuterColumns = EMPTY_OUTER_COLUMNS;
     }
 
     public SubQueryResults(Map<SelectSymbol, Object> valuesBySubQuery,
-                           Map<OuterColumn, Object> boundOuterColumns) {
+                           ObjectIntMap<OuterColumn> boundOuterColumns) {
         this.valuesBySubQuery = valuesBySubQuery;
         this.boundOuterColumns = boundOuterColumns;
     }
@@ -59,16 +64,16 @@ public class SubQueryResults {
     }
 
     public Object get(OuterColumn key) {
-        Object value = boundOuterColumns.get(key);
-        if (value == null && !boundOuterColumns.containsKey(key)) {
+        int index = boundOuterColumns.getOrDefault(key, -1);
+        if (index == -1) {
             throw new IllegalArgumentException("Couldn't resolve value for OuterColumn: " + key);
         }
-        return value;
+        return inputRow.get(index);
     }
 
-    public SubQueryResults merge(SelectSymbol selectSymbol, List<Symbol> subQueryOutputs, Row row) {
-        HashMap<OuterColumn, Object> boundOuterColumns = new HashMap<>();
-        selectSymbol.relation().visitSymbols(symbol -> {
+    public SubQueryResults forCorrelation(SelectSymbol correlatedSubQuery, List<Symbol> subQueryOutputs) {
+        ObjectIntHashMap<OuterColumn> outerColumnPositions = new ObjectIntHashMap<>();
+        correlatedSubQuery.relation().visitSymbols(symbol -> {
             symbol.accept(new DefaultTraversalSymbolVisitor<Void, Void>() {
 
                 @Override
@@ -77,11 +82,15 @@ public class SubQueryResults {
                     if (index < 0) {
                         throw new IllegalStateException("OuterColumn must appear in input of CorrelatedJoin");
                     }
-                    boundOuterColumns.put(outerColumn, row.get(index));
+                    outerColumnPositions.put(outerColumn, index);
                     return null;
                 }
             }, null);
         });
-        return new SubQueryResults(this.valuesBySubQuery, boundOuterColumns);
+        return new SubQueryResults(this.valuesBySubQuery, outerColumnPositions);
+    }
+
+    public void bindOuterColumnInputRow(Row inputRow) {
+        this.inputRow = inputRow;
     }
 }

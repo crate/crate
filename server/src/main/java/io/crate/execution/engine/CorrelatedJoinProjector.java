@@ -49,8 +49,6 @@ public final class CorrelatedJoinProjector implements Projector {
     private final PlannerContext plannerContext;
     private final DependencyCarrier executor;
     private final SubQueryResults subQueryResults;
-    private final SelectSymbol correlatedSubQuery;
-    private final List<Symbol> inputPlanOutputs;
     private final Row params;
 
     public CorrelatedJoinProjector(LogicalPlan subQueryPlan,
@@ -61,12 +59,10 @@ public final class CorrelatedJoinProjector implements Projector {
                                    Row params,
                                    List<Symbol> inputPlanOutputs) {
         this.subQueryPlan = subQueryPlan;
-        this.correlatedSubQuery = correlatedSubQuery;
         this.plannerContext = plannerContext;
         this.executor = executor;
-        this.subQueryResults = subQueryResults;
+        this.subQueryResults = subQueryResults.forCorrelation(correlatedSubQuery, inputPlanOutputs);
         this.params = params;
-        this.inputPlanOutputs = inputPlanOutputs;
     }
 
     @Override
@@ -88,18 +84,14 @@ public final class CorrelatedJoinProjector implements Projector {
         @Override
         public CompletableFuture<? extends CloseableIterator<Row>> apply(Row inputRow, boolean isLastCall) {
             try {
-                var newSubQueryResults = subQueryResults.merge(
-                    correlatedSubQuery,
-                    inputPlanOutputs,
-                    inputRow
-                );
+                subQueryResults.bindOuterColumnInputRow(inputRow);
                 var capturingRowConsumer = new CapturingRowConsumer(false);
                 subQueryPlan.execute(
                     executor,
                     PlannerContext.forSubPlan(plannerContext),
                     capturingRowConsumer,
                     params,
-                    newSubQueryResults
+                    subQueryResults
                 );
 
                 // Scalar sub-query returns 1 row, the materialization here shouldn't be too bad
