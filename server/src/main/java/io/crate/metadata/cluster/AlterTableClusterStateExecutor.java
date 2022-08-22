@@ -485,9 +485,8 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
             newMapping,
             Collections.emptyMap(),
             newSetting,
-            settingsValidator,
-            k -> indexScopedSettings.isPrivateSetting(k) == false
-            );
+            indexScopedSettings
+        );
 
         final Metadata.Builder metadata = Metadata.builder(currentState.metadata()).put(newIndexTemplateMetadata);
         return ClusterState.builder(currentState).metadata(metadata).build();

@@ -19,7 +19,19 @@
 
 package org.elasticsearch.cluster.metadata;
 
-import com.carrotsearch.hppc.cursors.ObjectCursor;
+import static org.elasticsearch.cluster.metadata.MetadataCreateIndexService.setIndexVersionCreatedSetting;
+import static org.elasticsearch.indices.cluster.IndicesClusterStateService.AllocatedIndices.IndexRemovalReason.NO_LONGER_ASSIGNED;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.CollectionUtil;
@@ -37,7 +49,6 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.regex.Regex;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
-import io.crate.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexService;
@@ -48,17 +59,9 @@ import org.elasticsearch.indices.IndexTemplateMissingException;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.indices.InvalidIndexTemplateException;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
+import com.carrotsearch.hppc.cursors.ObjectCursor;
 
-import static org.elasticsearch.indices.cluster.IndicesClusterStateService.AllocatedIndices.IndexRemovalReason.NO_LONGER_ASSIGNED;
+import io.crate.common.unit.TimeValue;
 
 /**
  * Service responsible for submitting index templates updates
@@ -175,7 +178,7 @@ public class MetadataIndexTemplateService {
                         throw new IllegalArgumentException("index_template [" + request.name + "] already exists");
                     }
 
-                    validateAndAddTemplate(request, templateBuilder, indicesService, xContentRegistry);
+                    validateAndAddTemplate(request, templateBuilder, indicesService, xContentRegistry, currentState);
 
                     for (Alias alias : request.aliases) {
                         AliasMetadata aliasMetadata = AliasMetadata.builder(alias.name()).filter(alias.filter())
@@ -215,8 +218,11 @@ public class MetadataIndexTemplateService {
         return matchedTemplates;
     }
 
-    private static void validateAndAddTemplate(final PutRequest request, IndexTemplateMetadata.Builder templateBuilder,
-            IndicesService indicesService, NamedXContentRegistry xContentRegistry) throws Exception {
+    private static void validateAndAddTemplate(final PutRequest request,
+                                               IndexTemplateMetadata.Builder templateBuilder,
+                                               IndicesService indicesService,
+                                               NamedXContentRegistry xContentRegistry,
+                                               ClusterState currentState) throws Exception {
         Index createdIndex = null;
         final String temporaryIndexName = UUIDs.randomBase64UUID();
         try {
@@ -241,7 +247,12 @@ public class MetadataIndexTemplateService {
             templateBuilder.order(request.order);
             templateBuilder.version(request.version);
             templateBuilder.patterns(request.indexPatterns);
-            templateBuilder.settings(request.settings);
+
+            // inject `index.version.created` to the template settings to flag version of template creation (partitioned table)
+            var templateSettingsBuilder = Settings.builder().put(request.settings);
+            setIndexVersionCreatedSetting(templateSettingsBuilder, currentState);
+
+            templateBuilder.settings(templateSettingsBuilder.build());
 
             Map<String, Map<String, Object>> mappingsForValidation = new HashMap<>();
             for (Map.Entry<String, String> entry : request.mappings.entrySet()) {

@@ -225,4 +225,29 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
             table.getReference(new ColumnIdent("o1"))
         );
     }
+
+    @Test
+    public void test_version_created_is_read_from_partitioned_template() throws Exception {
+        var customSettings = Settings.builder()
+            .put(IndexMetadata.SETTING_VERSION_CREATED, Version.V_5_0_0)
+            .build();
+        var e = SQLExecutor.builder(clusterService)
+            .addPartitionedTable("CREATE TABLE p1 (id INT, p INT) PARTITIONED BY (p)", customSettings)
+            .build();
+
+        DocTableInfo tableInfo = e.resolveTableInfo("p1");
+        assertThat(IndexMetadata.SETTING_INDEX_VERSION_CREATED.get(tableInfo.parameters())).isEqualTo(Version.V_5_0_0);
+    }
+
+    @Test
+    public void test_version_created_is_set_to_current_version_if_unavailable_at_partitioned_template() throws Exception {
+        var customSettings = Settings.builder()
+            .build();
+        var e = SQLExecutor.builder(clusterService)
+            .addPartitionedTable("CREATE TABLE p1 (id INT, p INT) PARTITIONED BY (p)", customSettings)
+            .build();
+
+        DocTableInfo tableInfo = e.resolveTableInfo("p1");
+        assertThat(IndexMetadata.SETTING_INDEX_VERSION_CREATED.get(tableInfo.parameters())).isEqualTo(Version.CURRENT);
+    }
 }
