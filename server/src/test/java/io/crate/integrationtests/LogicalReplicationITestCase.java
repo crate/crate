@@ -38,7 +38,6 @@ import java.net.InetSocketAddress;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.StringJoiner;
@@ -53,10 +52,10 @@ import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.common.network.NetworkModule;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugins.Plugin;
-import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.test.ESTestCase;
+import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.test.InternalSettingsPlugin;
-import org.elasticsearch.test.InternalTestCluster;
+import org.elasticsearch.test.TestCluster;
 import org.elasticsearch.test.MockHttpTransport;
 import org.elasticsearch.test.NodeConfigurationSource;
 import org.elasticsearch.test.transport.MockTransportService;
@@ -77,10 +76,10 @@ import io.crate.user.User;
 
 public abstract class LogicalReplicationITestCase extends ESTestCase {
 
-    protected InternalTestCluster publisherCluster;
+    protected TestCluster publisherCluster;
     SQLTransportExecutor publisherSqlExecutor;
 
-    public InternalTestCluster subscriberCluster;
+    public TestCluster subscriberCluster;
     SQLTransportExecutor subscriberSqlExecutor;
 
     protected static final String SUBSCRIBING_USER = "subscriber";
@@ -100,7 +99,7 @@ public abstract class LogicalReplicationITestCase extends ESTestCase {
             InternalSettingsPlugin.class
         );
 
-        publisherCluster = new InternalTestCluster(
+        publisherCluster = new TestCluster(
             randomLong(),
             createTempDir(),
             getPublisherSupportsDedicatedMasters(),
@@ -119,7 +118,7 @@ public abstract class LogicalReplicationITestCase extends ESTestCase {
         publisherCluster.ensureAtLeastNumDataNodes(getPublisherNumberOfNodes());
         publisherSqlExecutor = publisherCluster.createSQLTransportExecutor();
 
-        subscriberCluster = new InternalTestCluster(
+        subscriberCluster = new TestCluster(
             randomLong(),
             createTempDir(),
             getSubscriberSupportsDedicatedMasters(),
@@ -150,7 +149,7 @@ public abstract class LogicalReplicationITestCase extends ESTestCase {
         publisherCluster = null;
     }
 
-    protected void stopCluster(InternalTestCluster cluster) throws Exception {
+    protected void stopCluster(TestCluster cluster) throws Exception {
         if (cluster != null) {
             try {
                 cluster.beforeIndexDeletion();
@@ -158,7 +157,7 @@ public abstract class LogicalReplicationITestCase extends ESTestCase {
                 cluster.assertSameDocIdsOnShards();
                 cluster.assertConsistentHistoryBetweenTranslogAndLuceneIndex();
             } finally {
-                cluster.wipe(Collections.emptySet());
+                cluster.wipe();
                 cluster.close();
             }
         }

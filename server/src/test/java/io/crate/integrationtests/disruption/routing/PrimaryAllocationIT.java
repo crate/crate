@@ -53,7 +53,7 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.IntegTestCase;
-import org.elasticsearch.test.InternalTestCluster;
+import org.elasticsearch.test.TestCluster;
 import org.elasticsearch.test.disruption.NetworkDisruption;
 import org.elasticsearch.test.disruption.NetworkDisruption.NetworkDisconnect;
 import org.elasticsearch.test.disruption.NetworkDisruption.TwoPartitions;
@@ -117,7 +117,7 @@ public class PrimaryAllocationIT extends IntegTestCase {
 
         logger.info("--> shut down node that has new acknowledged document");
         final Settings inSyncDataPathSettings = internalCluster().dataPathSettings(replicaNode);
-        internalCluster().stopRandomNode(InternalTestCluster.nameFilter(replicaNode));
+        internalCluster().stopRandomNode(TestCluster.nameFilter(replicaNode));
 
         ensureStableCluster(1, master);
 
@@ -165,11 +165,11 @@ public class PrimaryAllocationIT extends IntegTestCase {
         String replicaNode = internalCluster().startDataOnlyNode(Settings.EMPTY);
         ensureGreen();
         final Settings inSyncDataPathSettings = internalCluster().dataPathSettings(replicaNode);
-        internalCluster().stopRandomNode(InternalTestCluster.nameFilter(replicaNode));
+        internalCluster().stopRandomNode(TestCluster.nameFilter(replicaNode));
         ensureYellow();
         assertEquals(2, client().admin().cluster().state(new ClusterStateRequest()).get().getState().metadata().index(indexName)
             .inSyncAllocationIds(0).size());
-        internalCluster().restartRandomDataNode(new InternalTestCluster.RestartCallback() {
+        internalCluster().restartRandomDataNode(new TestCluster.RestartCallback() {
             @Override
             public boolean clearData(String nodeName) {
                 return true;
@@ -195,7 +195,7 @@ public class PrimaryAllocationIT extends IntegTestCase {
         String replicaNode = internalCluster().startDataOnlyNode(Settings.EMPTY);
         final Settings inSyncDataPathSettings = internalCluster().dataPathSettings(replicaNode);
         ensureGreen();
-        internalCluster().stopRandomNode(InternalTestCluster.nameFilter(replicaNode));
+        internalCluster().stopRandomNode(TestCluster.nameFilter(replicaNode));
         ensureYellow();
         assertEquals(2, client().admin().cluster().state(new ClusterStateRequest()).get().getState()
             .metadata().index(indexName).inSyncAllocationIds(0).size());
@@ -203,7 +203,7 @@ public class PrimaryAllocationIT extends IntegTestCase {
         execute("insert into t values ('value1')");
         assertEquals(1, client().admin().cluster().state(new ClusterStateRequest()).get().getState()
             .metadata().index(indexName).inSyncAllocationIds(0).size());
-        internalCluster().restartRandomDataNode(new InternalTestCluster.RestartCallback() {
+        internalCluster().restartRandomDataNode(new TestCluster.RestartCallback() {
             @Override
             public boolean clearData(String nodeName) {
                 return true;
@@ -232,8 +232,8 @@ public class PrimaryAllocationIT extends IntegTestCase {
         ensureGreen();
         execute("insert into t values ('value1')");
         logger.info("--> removing 2 nodes from cluster");
-        internalCluster().stopRandomNode(InternalTestCluster.nameFilter(nodes.get(1), nodes.get(2)));
-        internalCluster().stopRandomNode(InternalTestCluster.nameFilter(nodes.get(1), nodes.get(2)));
+        internalCluster().stopRandomNode(TestCluster.nameFilter(nodes.get(1), nodes.get(2)));
+        internalCluster().stopRandomNode(TestCluster.nameFilter(nodes.get(1), nodes.get(2)));
         internalCluster().restartRandomDataNode();
         logger.info("--> checking that index still gets allocated with only 1 shard copy being available");
         ensureYellow();
@@ -298,7 +298,7 @@ public class PrimaryAllocationIT extends IntegTestCase {
         internalCluster().setDisruptionScheme(partition);
         logger.info("--> isolating some replicas during primary-replica resync");
         partition.startDisrupting();
-        internalCluster().stopRandomNode(InternalTestCluster.nameFilter(oldPrimary));
+        internalCluster().stopRandomNode(TestCluster.nameFilter(oldPrimary));
         // Checks that we fail replicas in one side but not mark them as stale.
         assertBusy(() -> {
             ClusterState state = client(master).admin().cluster().state(new ClusterStateRequest()).get().getState();

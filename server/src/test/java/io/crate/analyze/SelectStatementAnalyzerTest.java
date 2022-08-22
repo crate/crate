@@ -2314,22 +2314,6 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
-    public void test_correlated_query_in_where_clause_is_not_supported() throws Exception {
-        var executor = SQLExecutor.builder(clusterService)
-            .addTable(T3.T1_DEFINITION)
-            .build();
-        SQLExecutor sqlExecutor2 = SQLExecutor.builder(clusterService)
-            .setSearchPath("foo")
-            .addTable("create table foo.t1 (id bigint primary key, name text)")
-            .build();
-
-        String statement = "select * from t1 where id = (select 1 from t1 as x where x.id = t1.id)";
-        assertThatThrownBy(() -> sqlExecutor2.plan(statement))
-            .isInstanceOf(UnsupportedOperationException.class)
-            .hasMessage("Using correlated subqueries in the WHERE clause is not supported");
-    }
-
-    @Test
     public void testContextForExplicitJoinsPrecedesImplicitJoins() throws Exception {
         var executor = SQLExecutor.builder(clusterService)
             .addTable(T3.T1_DEFINITION)

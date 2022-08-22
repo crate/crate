@@ -19,19 +19,19 @@
 package org.elasticsearch.test.disruption;
 
 import io.crate.common.unit.TimeValue;
-import org.elasticsearch.test.InternalTestCluster;
+import org.elasticsearch.test.TestCluster;
 
 public interface ServiceDisruptionScheme {
 
-    void applyToCluster(InternalTestCluster cluster);
+    void applyToCluster(TestCluster cluster);
 
-    void removeFromCluster(InternalTestCluster cluster);
+    void removeFromCluster(TestCluster cluster);
 
-    void removeAndEnsureHealthy(InternalTestCluster cluster);
+    void removeAndEnsureHealthy(TestCluster cluster);
 
-    void applyToNode(String node, InternalTestCluster cluster);
+    void applyToNode(String node, TestCluster cluster);
 
-    void removeFromNode(String node, InternalTestCluster cluster);
+    void removeFromNode(String node, TestCluster cluster);
 
     void startDisrupting();
 

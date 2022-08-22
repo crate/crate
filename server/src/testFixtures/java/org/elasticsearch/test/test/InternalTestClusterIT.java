@@ -28,7 +28,7 @@ import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.test.IntegTestCase.ClusterScope;
-import org.elasticsearch.test.InternalTestCluster;
+import org.elasticsearch.test.TestCluster;
 
 @ClusterScope(scope = IntegTestCase.Scope.TEST, numDataNodes = 0)
 public class InternalTestClusterIT extends IntegTestCase {
@@ -70,13 +70,13 @@ public class InternalTestClusterIT extends IntegTestCase {
     public void testOperationsDuringRestart() throws Exception {
         internalCluster().startMasterOnlyNode();
         internalCluster().startDataOnlyNodes(2);
-        internalCluster().restartRandomDataNode(new InternalTestCluster.RestartCallback() {
+        internalCluster().restartRandomDataNode(new TestCluster.RestartCallback() {
             @Override
             public Settings onNodeStopped(String nodeName) throws Exception {
                 ensureGreen();
                 internalCluster().validateClusterFormed();
                 assertNotNull(internalCluster().getInstance(NodeClient.class));
-                internalCluster().restartRandomDataNode(new InternalTestCluster.RestartCallback() {
+                internalCluster().restartRandomDataNode(new TestCluster.RestartCallback() {
                     @Override
                     public Settings onNodeStopped(String nodeName) throws Exception {
                         ensureGreen();

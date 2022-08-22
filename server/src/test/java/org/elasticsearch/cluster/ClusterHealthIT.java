@@ -37,7 +37,7 @@ import org.elasticsearch.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
-import org.elasticsearch.test.InternalTestCluster;
+import org.elasticsearch.test.TestCluster;
 import org.junit.Test;
 
 import org.elasticsearch.test.IntegTestCase;
@@ -257,7 +257,7 @@ public class ClusterHealthIT extends IntegTestCase {
         // without exceptions
         for (int i = 0; i < 20; ++i) {
             responseFutures.add(client(node).admin().cluster().health(new ClusterHealthRequest().waitForEvents(Priority.LANGUID)));
-            internalCluster().restartNode(internalCluster().getMasterName(), InternalTestCluster.EMPTY_CALLBACK);
+            internalCluster().restartNode(internalCluster().getMasterName(), TestCluster.EMPTY_CALLBACK);
         }
         for (var responseFuture : responseFutures) {
             assertSame(responseFuture.get().getStatus(), ClusterHealthStatus.GREEN);

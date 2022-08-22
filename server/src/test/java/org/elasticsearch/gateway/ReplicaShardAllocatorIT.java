@@ -49,7 +49,7 @@ import org.elasticsearch.indices.recovery.PeerRecoveryTargetService;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.test.InternalSettingsPlugin;
-import org.elasticsearch.test.InternalTestCluster;
+import org.elasticsearch.test.TestCluster;
 import org.elasticsearch.test.transport.MockTransportService;
 import org.elasticsearch.transport.TransportService;
 import org.hamcrest.Matchers;
@@ -99,7 +99,7 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
         }
 
         ensureActivePeerRecoveryRetentionLeasesAdvanced(indexName);
-        internalCluster().stopRandomNode(InternalTestCluster.nameFilter(nodeWithReplica));
+        internalCluster().stopRandomNode(TestCluster.nameFilter(nodeWithReplica));
         if (randomBoolean()) {
             execute("optimize table doc.test with(flush = true)");
         }
@@ -169,7 +169,7 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
                 .get(5, TimeUnit.SECONDS);
             assertThat(syncedFlushResponse.successfulShards(), equalTo(2));
         });
-        internalCluster().stopRandomNode(InternalTestCluster.nameFilter(nodeWithReplica));
+        internalCluster().stopRandomNode(TestCluster.nameFilter(nodeWithReplica));
         if (randomBoolean()) {
             execute("insert into doc.test (x) values (?)", new Object[][] {
                 new Object[] { randomIntBetween(10, 100) },
