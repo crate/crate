@@ -21,8 +21,9 @@
 
 package io.crate.data;
 
-import javax.annotation.Nullable;
 import java.util.concurrent.CompletableFuture;
+
+import javax.annotation.Nullable;
 
 public final class CapturingRowConsumer implements RowConsumer {
 
@@ -30,9 +31,11 @@ public final class CapturingRowConsumer implements RowConsumer {
     private final CompletableFuture<?> completionFuture;
     private final boolean requiresScroll;
 
-    public CapturingRowConsumer(boolean requiresScroll) {
-        this.batchIterator = new CompletableFuture<>();
-        this.completionFuture = batchIterator;
+    public CapturingRowConsumer(boolean requiresScroll,
+                                CompletableFuture<BatchIterator<Row>> batchIterator,
+                                CompletableFuture<?> completionFuture) {
+        this.batchIterator = batchIterator;
+        this.completionFuture = completionFuture;
         this.requiresScroll = requiresScroll;
     }
 
