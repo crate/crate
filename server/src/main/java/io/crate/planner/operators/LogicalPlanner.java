@@ -339,15 +339,13 @@ public class LogicalPlanner {
 
         @Override
         public LogicalPlan visitQueriedSelectRelation(QueriedSelectRelation relation, List<Symbol> outputs) {
-            if (Symbols.containsCorrelatedSubQuery(relation.where())) {
-                throw new UnsupportedOperationException(
-                    "Using correlated subqueries in the WHERE clause is not supported");
-            }
             SplitPoints splitPoints = SplitPointsBuilder.create(relation);
+            SubQueries subQueries = subqueryPlanner.planSubQueries(relation);
             LogicalPlan source = JoinPlanBuilder.buildJoinTree(
                 relation.from(),
                 relation.where(),
                 relation.joinPairs(),
+                subQueries,
                 rel -> {
                     if (relation.from().size() == 1) {
                         return rel.accept(this, splitPoints.toCollect());
@@ -386,16 +384,6 @@ public class LogicalPlanner {
                 },
                 txnCtx.sessionSettings().hashJoinsEnabled()
             );
-            SubQueries subQueries = subqueryPlanner.planSubQueries(relation);
-            for (var subQuery : subQueries.correlated()) {
-                var subQueryRelation = subQuery.relation();
-                LogicalPlan subQueryPlan = subQueryRelation.accept(this, subQueryRelation.outputs());
-                source = new CorrelatedJoin(
-                    source,
-                    subQuery,
-                    subQueryPlan
-                );
-            }
             Symbol having = relation.having();
             if (having != null && Symbols.containsCorrelatedSubQuery(having)) {
                 throw new UnsupportedOperationException("Cannot use correlated subquery in HAVING clause");

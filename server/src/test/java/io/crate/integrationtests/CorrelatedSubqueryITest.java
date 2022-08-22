@@ -49,7 +49,8 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
             "      └ Collect[sys.summits | [1, mountain] | true]\n" +
             "    └ SubPlan\n" +
             "      └ Eval[mountain]\n" +
-            "        └ TableFunction[empty_row | [] | true]\n"
+            "        └ Limit[2::bigint;0::bigint]\n" +
+            "          └ TableFunction[empty_row | [] | true]\n"
         );
         execute("SELECT 1, (SELECT t.mountain) FROM sys.summits t");
         Comparator<Object[]> compareMountain = Comparator.comparing((Object[] row) -> (String) row[1]);
@@ -100,7 +101,8 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
             "          └ Collect[sys.summits | [1, mountain] | true]\n" +
             "        └ SubPlan\n" +
             "          └ Eval[mountain]\n" +
-            "            └ TableFunction[empty_row | [] | true]\n"
+            "            └ Limit[2::bigint;0::bigint]\n" +
+            "              └ TableFunction[empty_row | [] | true]\n"
         );
         execute(statement);
         assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo(
@@ -186,6 +188,49 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
             "Mont Blanc| 4808\n" +
             "Monte Rosa| 4634\n" +
             "Dom| 4545\n"
+        );
+    }
+
+    @Test
+    public void test_can_use_correlated_subquery_in_where_clause() {
+        String stmt = "SELECT mountain, region FROM sys.summits t where mountain = (SELECT t.mountain) ORDER BY height desc limit 3";
+        execute("EXPLAIN " + stmt);
+        assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo(
+            "Eval[mountain, region]\n" +
+            "  └ Limit[3::bigint;0]\n" +
+            "    └ OrderBy[height DESC]\n" +
+            "      └ Filter[(mountain = (SELECT mountain FROM (empty_row)))]\n" +
+            "        └ CorrelatedJoin[mountain, region, height, (SELECT mountain FROM (empty_row))]\n" +
+            "          └ Rename[mountain, region, height] AS t\n" +
+            "            └ Collect[sys.summits | [mountain, region, height] | true]\n" +
+            "          └ SubPlan\n" +
+            "            └ Eval[mountain]\n" +
+            "              └ Limit[2::bigint;0::bigint]\n" +
+            "                └ TableFunction[empty_row | [] | true]\n"
+        );
+        execute(stmt);
+        assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo(
+            "Mont Blanc| Mont Blanc massif\n" +
+            "Monte Rosa| Monte Rosa Alps\n" +
+            "Dom| Mischabel\n"
+        );
+
+
+        stmt = """
+            SELECT
+                mountain,
+                region
+            FROM
+                sys.summits t,
+                sys.cluster
+            WHERE
+                mountain = (SELECT t.mountain) ORDER BY height desc limit 3
+            """;
+        execute(stmt);
+        assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo(
+            "Mont Blanc| Mont Blanc massif\n" +
+            "Monte Rosa| Monte Rosa Alps\n" +
+            "Dom| Mischabel\n"
         );
     }
 }

@@ -21,17 +21,8 @@
 
 package io.crate.planner.operators;
 
-import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.JoinPair;
-import io.crate.analyze.relations.QuerySplitter;
-import io.crate.common.collections.Lists2;
-import io.crate.execution.engine.join.JoinOperations;
-import io.crate.expression.operator.AndOperator;
-import io.crate.expression.symbol.FieldsVisitor;
-import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.RelationName;
-import io.crate.planner.node.dql.join.JoinType;
-import javax.annotation.Nullable;
+import static io.crate.planner.operators.EquiJoinDetector.isHashJoinPossible;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -45,7 +36,19 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static io.crate.planner.operators.EquiJoinDetector.isHashJoinPossible;
+import javax.annotation.Nullable;
+
+import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.JoinPair;
+import io.crate.analyze.relations.QuerySplitter;
+import io.crate.common.collections.Lists2;
+import io.crate.execution.engine.join.JoinOperations;
+import io.crate.expression.operator.AndOperator;
+import io.crate.expression.symbol.FieldsVisitor;
+import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.RelationName;
+import io.crate.planner.SubqueryPlanner.SubQueries;
+import io.crate.planner.node.dql.join.JoinType;
 
 /**
  * A logical plan builder for `Join` operations. It will also evaluate which `Join` operator to use and build the
@@ -60,10 +63,12 @@ public class JoinPlanBuilder {
     static LogicalPlan buildJoinTree(List<AnalyzedRelation> from,
                                      Symbol whereClause,
                                      List<JoinPair> joinPairs,
+                                     SubQueries subQueries,
                                      Function<AnalyzedRelation, LogicalPlan> plan,
                                      boolean hashJoinEnabled) {
         if (from.size() == 1) {
-            return Filter.create(plan.apply(from.get(0)), whereClause);
+            LogicalPlan source = subQueries.applyCorrelatedJoin(plan.apply(from.get(0)));
+            return Filter.create(source, whereClause);
         }
         Map<Set<RelationName>, Symbol> queryParts = QuerySplitter.split(whereClause);
         List<JoinPair> allJoinPairs = JoinOperations.convertImplicitJoinConditionsToJoinPairs(joinPairs, queryParts);
@@ -120,6 +125,7 @@ public class JoinPlanBuilder {
             query,
             hashJoinEnabled
         );
+        joinPlan = subQueries.applyCorrelatedJoin(joinPlan);
 
         joinPlan = Filter.create(joinPlan, query);
         while (it.hasNext()) {
@@ -141,7 +147,6 @@ public class JoinPlanBuilder {
             queryParts.clear();
         }
         assert joinPairsByRelations.isEmpty() : "Must've applied all joinPairs";
-
         return joinPlan;
     }
 
