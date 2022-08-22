@@ -130,3 +130,9 @@ Fixes
 
 - Fixed an issue that caused ``array_upper`` and ``array_lower`` scalar
   functions return wrong results on multidimensional arrays.
+
+- Fixed exposure of the correct version a partitioned table was created on at
+  the ``information_schema.tables.version.created`` column for newly created
+  partitioned tables. This won't fix it for existing tables as the version
+  information the table was created with was not stored and such is not
+  known. The issue doesn't affect the version exposed for individual partitions.

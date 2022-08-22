@@ -21,11 +21,16 @@
 
 package io.crate.execution.ddl.tables;
 
-import com.carrotsearch.hppc.cursors.IntObjectCursor;
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.cluster.DDLClusterStateHelpers;
-import io.crate.metadata.cluster.DDLClusterStateService;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Consumer;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
@@ -60,6 +65,7 @@ import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.collect.ImmutableOpenIntMap;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.AtomicArray;
 import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
@@ -74,15 +80,12 @@ import org.elasticsearch.snapshots.SnapshotsService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Consumer;
+import com.carrotsearch.hppc.cursors.IntObjectCursor;
+
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.cluster.DDLClusterStateHelpers;
+import io.crate.metadata.cluster.DDLClusterStateService;
 
 public final class TransportCloseTable extends TransportMasterNodeAction<CloseTableRequest, AcknowledgedResponse> {
 
@@ -241,8 +244,7 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
             metaMap,
             Collections.emptyMap(),
             Settings.EMPTY,
-            (n, s) -> {},
-            s -> true
+            IndexScopedSettings.DEFAULT_SCOPED_SETTINGS // Not used if new settings are empty
         );
     }
 

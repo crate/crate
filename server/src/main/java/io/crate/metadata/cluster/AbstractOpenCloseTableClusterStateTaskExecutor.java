@@ -21,9 +21,12 @@
 
 package io.crate.metadata.cluster;
 
-import io.crate.execution.ddl.tables.OpenCloseTableOrPartitionRequest;
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.RelationName;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Set;
+
+import javax.annotation.Nullable;
+
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -31,12 +34,12 @@ import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
+import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
 
-import javax.annotation.Nullable;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Set;
+import io.crate.execution.ddl.tables.OpenCloseTableOrPartitionRequest;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
 
 public abstract class AbstractOpenCloseTableClusterStateTaskExecutor extends DDLClusterStateTaskExecutor<OpenCloseTableOrPartitionRequest> {
 
@@ -105,8 +108,8 @@ public abstract class AbstractOpenCloseTableClusterStateTaskExecutor extends DDL
                 Collections.emptyMap(),
                 metaMap,
                 Settings.EMPTY,
-                (n, s) -> { },
-                s -> true);
+                IndexScopedSettings.DEFAULT_SCOPED_SETTINGS // Not used if new settings are empty
+            );
         } else {
             //Otherwise, add the mapping to the template.
             return DDLClusterStateHelpers.updateTemplate(
@@ -114,8 +117,8 @@ public abstract class AbstractOpenCloseTableClusterStateTaskExecutor extends DDL
                 metaMap,
                 Collections.emptyMap(),
                 Settings.EMPTY,
-                (n, s) -> { },
-                s -> true);
+                IndexScopedSettings.DEFAULT_SCOPED_SETTINGS // Not used if new settings are empty
+            );
         }
     }
 }
