@@ -310,7 +310,7 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
                ((Collect) source).tableInfo instanceof DocTableInfo &&
                GroupByConsumer.groupedByClusteredColumnOrPrimaryKeys(
                    ((DocTableInfo) ((Collect) source).tableInfo),
-                   ((Collect) source).where,
+                   ((Collect) source).mutableBoundWhere,
                    groupKeys);
     }
 
