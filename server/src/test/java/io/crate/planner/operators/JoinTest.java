@@ -62,6 +62,7 @@ import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.SubqueryPlanner;
+import io.crate.planner.SubqueryPlanner.SubQueries;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.join.Join;
 import io.crate.planner.node.dql.join.JoinType;
@@ -110,6 +111,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             mss.from(),
             mss.where(),
             mss.joinPairs(),
+            new SubQueries(Map.of(), Map.of()),
             rel -> logicalPlanner.plan(rel, plannerCtx, subqueryPlanner, true),
             txnCtx.sessionSettings().hashJoinsEnabled()
         );
@@ -200,6 +202,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             mss.from(),
             mss.where(),
             mss.joinPairs(),
+            new SubQueries(Map.of(), Map.of()),
             rel -> logicalPlanner.plan(rel, plannerCtx, subqueryPlanner, false),
             false
         );

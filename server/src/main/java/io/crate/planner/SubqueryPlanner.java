@@ -21,9 +21,7 @@
 
 package io.crate.planner;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -32,6 +30,7 @@ import io.crate.analyze.AnalyzedStatement;
 import io.crate.expression.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
+import io.crate.planner.operators.CorrelatedJoin;
 import io.crate.planner.operators.LogicalPlan;
 
 public class SubqueryPlanner {
@@ -42,7 +41,20 @@ public class SubqueryPlanner {
         this.planSubSelects = planSubSelects;
     }
 
-    public record SubQueries(Map<LogicalPlan, SelectSymbol> uncorrelated, List<SelectSymbol> correlated) {
+    public record SubQueries(Map<LogicalPlan, SelectSymbol> uncorrelated, Map<SelectSymbol, LogicalPlan> correlated) {
+
+        public LogicalPlan applyCorrelatedJoin(LogicalPlan source) {
+            for (var entry : correlated.entrySet()) {
+                LogicalPlan plannedSubQuery = entry.getValue();
+                SelectSymbol subQuery = entry.getKey();
+                source = new CorrelatedJoin(
+                    source,
+                    subQuery,
+                    plannedSubQuery
+                );
+            }
+            return source;
+        }
     }
 
     public SubQueries planSubQueries(AnalyzedStatement statement) {
@@ -53,8 +65,9 @@ public class SubqueryPlanner {
 
     private void planSubquery(SelectSymbol selectSymbol, SubQueries subQueries) {
         if (selectSymbol.isCorrelated()) {
-            if (!subQueries.correlated.contains(selectSymbol)) {
-                subQueries.correlated.add(selectSymbol);
+            if (!subQueries.correlated.containsKey(selectSymbol)) {
+                LogicalPlan subPlan = planSubSelects.apply(selectSymbol);
+                subQueries.correlated.put(selectSymbol, subPlan);
             }
         } else {
             LogicalPlan subPlan = planSubSelects.apply(selectSymbol);
@@ -64,7 +77,7 @@ public class SubqueryPlanner {
 
     private class Visitor extends DefaultTraversalSymbolVisitor<Symbol, Void> implements Consumer<Symbol> {
 
-        private final SubQueries subQueries = new SubQueries(new HashMap<>(), new ArrayList<>());
+        private final SubQueries subQueries = new SubQueries(new HashMap<>(), new HashMap<>());
 
         @Override
         public Void visitSelectSymbol(SelectSymbol selectSymbol, Symbol parent) {
