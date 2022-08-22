@@ -43,5 +43,6 @@ public class OperatorModule extends AbstractFunctionModule<FunctionImplementatio
         AnyOperator.register(this);
         AllOperator.register(this);
         LikeOperators.register(this);
+        ExistsOperator.register(this);
     }
 }

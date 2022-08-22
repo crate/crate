@@ -28,6 +28,7 @@ import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertNull;
@@ -778,5 +779,40 @@ public class SubSelectIntegrationTest extends IntegTestCase {
             "WHERE name LIKE 'Arthur'");
         assertThat(printedTable(response.rows()),
             is("4| Arthur\n"));
+    }
+
+    @Test
+    public void test_exists_with_subquery_returns_result_if_subquery_has_rows() {
+        String stmt = "SELECT mountain, height FROM sys.summits WHERE EXISTS (SELECT 1) order by height desc limit 2";
+        execute(stmt);
+        assertThat(printedTable(response.rows())).isEqualTo(
+            "Mont Blanc| 4808\n" +
+            "Monte Rosa| 4634\n"
+        );
+        stmt = """
+            SELECT mountain FROM sys.summits
+            WHERE EXISTS (SELECT 1 FROM sys.cluster WHERE 1 = 2) order by height desc limit 2
+            """;
+        execute(stmt);
+        assertThat(response.rowCount()).isEqualTo(0L);
+
+        stmt = """
+            SELECT
+                table_name
+            FROM
+                information_schema.tables t
+            WHERE
+                EXISTS
+                (
+                 SELECT 1
+                 FROM information_schema.columns c
+                 WHERE
+                    c.table_schema = t.table_schema AND
+                    c.table_name = t.table_name
+                )
+                LIMIT 15
+            """;
+        execute(stmt);
+        assertThat(response.rowCount()).isEqualTo(15L);
     }
 }

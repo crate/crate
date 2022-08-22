@@ -68,6 +68,8 @@ Deprecations
 Changes
 =======
 
+- Added support for the ``EXISTS`` expression.
+
 - Added support for ``'YES'``, ``'ON'`` and ``'1'`` as alternative way to
   specify a ``TRUE`` boolean constant and ``'NO'``, ``'OFF'`` and ``'0'`` as
   alternative way to specify ``FALSE`` boolean constant improving compatibility

@@ -627,6 +627,32 @@ This behaviour applies to:
     must configure the :ref:`indices.query.bool.max_clause_count
     <indices.query.bool.max_clause_count>` setting as appropriate on each node.
 
+.. _sql_dql_exists:
+
+EXISTS
+======
+
+``EXISTS`` takes a ``SELECT`` statement, or *subquery* as argument. It evaluates
+to ``TRUE`` if the subquery returns at least one row.
+
+The result only depends on the amount of rows, not on the actual values. Because
+of that it is common practice to use ``SELECT 1 [...]`` within the subquery.
+
+An example:
+
+::
+
+    cr> SELECT mountain FROM sys.summits t
+    ...   WHERE EXISTS (SELECT 1 FROM sys.summits WHERE mountain = t.mountain)
+    ...   ORDER BY height DESC
+    ...   LIMIT 2;
+    +------------+
+    | mountain   |
+    +------------+
+    | Mont Blanc |
+    | Monte Rosa |
+    +------------+
+    SELECT 2 rows in set (... sec)
 
 .. _sql_dql_container:
 
