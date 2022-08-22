@@ -27,7 +27,6 @@ import java.util.List;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import io.crate.data.Row;
-import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.planner.DependencyCarrier;
@@ -41,7 +40,6 @@ public class CorrelatedJoinProjection extends Projection {
     private final LogicalPlan subQueryPlan;
     private final SelectSymbol correlatedSubQuery;
     private final PlannerContext plannerContext;
-    private final ProjectionBuilder projectionBuilder;
     private final SubQueryResults subQueryResults;
     private final Row params;
     private final List<Symbol> inputPlanOutputs;
@@ -51,7 +49,6 @@ public class CorrelatedJoinProjection extends Projection {
                                     LogicalPlan subQueryPlan,
                                     SelectSymbol correlatedSubQuery,
                                     PlannerContext plannerContext,
-                                    ProjectionBuilder projectionBuilder,
                                     SubQueryResults subQueryResults,
                                     Row params,
                                     List<Symbol> inputPlanOutputs,
@@ -60,7 +57,6 @@ public class CorrelatedJoinProjection extends Projection {
         this.subQueryPlan = subQueryPlan;
         this.correlatedSubQuery = correlatedSubQuery;
         this.plannerContext = plannerContext;
-        this.projectionBuilder = projectionBuilder;
         this.subQueryResults = subQueryResults;
         this.params = params;
         this.inputPlanOutputs = inputPlanOutputs;
@@ -77,10 +73,6 @@ public class CorrelatedJoinProjection extends Projection {
 
     public PlannerContext plannerContext() {
         return plannerContext;
-    }
-
-    public ProjectionBuilder projectionBuilder() {
-        return projectionBuilder;
     }
 
     public SubQueryResults subQueryResults() {

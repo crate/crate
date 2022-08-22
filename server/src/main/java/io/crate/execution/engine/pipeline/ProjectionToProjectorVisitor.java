@@ -716,7 +716,6 @@ public class ProjectionToProjectorVisitor
             correlatedJoin.subQueryPlan(),
             correlatedJoin.correlatedSubQuery(),
             correlatedJoin.plannerContext(),
-            correlatedJoin.projectionBuilder(),
             correlatedJoin.executor(),
             correlatedJoin.subQueryResults(),
             correlatedJoin.params(),

@@ -111,7 +111,6 @@ public class CorrelatedJoin implements LogicalPlan {
             subQueryPlan,
             selectSymbol,
             plannerContext,
-            projectionBuilder,
             subQueryResults,
             params,
             inputPlan.outputs(),
