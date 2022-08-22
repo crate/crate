@@ -152,9 +152,15 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
                 END AS base_type
             FROM
                 pg_catalog.pg_type t
+            LIMIT 4
             """;
         execute(stmt);
-        assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo("");
+        assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo(
+            "NULL\n" +
+            "NULL\n" +
+            "NULL\n" +
+            "NULL\n"
+        );
     }
 
     @Test

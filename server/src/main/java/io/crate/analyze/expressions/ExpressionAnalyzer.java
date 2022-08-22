@@ -66,6 +66,7 @@ import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.operator.AllOperator;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.operator.EqOperator;
+import io.crate.expression.operator.ExistsOperator;
 import io.crate.expression.operator.LikeOperators;
 import io.crate.expression.operator.Operator;
 import io.crate.expression.operator.OrOperator;
@@ -119,6 +120,7 @@ import io.crate.sql.tree.ComparisonExpression;
 import io.crate.sql.tree.CurrentTime;
 import io.crate.sql.tree.DoubleLiteral;
 import io.crate.sql.tree.EscapedCharStringLiteral;
+import io.crate.sql.tree.ExistsPredicate;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.Extract;
 import io.crate.sql.tree.FrameBound;
@@ -656,6 +658,25 @@ public class ExpressionAnalyzer {
                         List.of(argument),
                         context)),
                 context);
+        }
+
+        @Override
+        protected Symbol visitExists(ExistsPredicate node, ExpressionAnalysisContext context) {
+            if (subQueryAnalyzer == null) {
+                throw new UnsupportedOperationException("Subquery not supported in this statement");
+            }
+            var relation = subQueryAnalyzer.analyze(node.getSubquery());
+            List<Symbol> fields = relation.outputs();
+            if (fields.size() > 1) {
+                throw new UnsupportedOperationException("Subqueries with more than 1 column are not supported");
+            }
+            DataType<?> innerType = fields.get(0).valueType();
+            SelectSymbol selectSymbol = new SelectSymbol(
+                relation,
+                new ArrayType<>(innerType),
+                SelectSymbol.ResultType.SINGLE_COLUMN_MULTIPLE_VALUES
+            );
+            return allocateFunction(ExistsOperator.NAME, List.of(selectSymbol), context);
         }
 
         @Override

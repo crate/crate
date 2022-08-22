@@ -28,6 +28,7 @@ import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.SymbolMatchers.isReference;
 import static io.crate.testing.TestingHelpers.isSQL;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
@@ -296,5 +297,11 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(queriedTable.outputs(), contains(
             isAlias("foo['bar']['me']", isReference("o['a']"))
         ));
+    }
+
+    @Test
+    public void test_exists_subquery_cannot_select_more_than_1_column() {
+        assertThatThrownBy(() -> analyze("select * from sys.summits where EXISTS (select 1, 2)"))
+            .hasMessage("Subqueries with more than 1 column are not supported");
     }
 }
