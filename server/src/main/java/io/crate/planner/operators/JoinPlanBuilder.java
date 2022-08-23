@@ -46,6 +46,7 @@ import io.crate.execution.engine.join.JoinOperations;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.FieldsVisitor;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.RelationName;
 import io.crate.planner.SubqueryPlanner.SubQueries;
 import io.crate.planner.node.dql.join.JoinType;
@@ -116,6 +117,7 @@ public class JoinPlanBuilder {
         LogicalPlan lhsPlan = plan.apply(lhs);
         LogicalPlan rhsPlan = plan.apply(rhs);
         Symbol query = removeParts(queryParts, lhsName, rhsName);
+        lhsPlan = subQueries.applyCorrelatedJoin(lhsPlan);
         LogicalPlan joinPlan = createJoinPlan(
             lhsPlan,
             rhsPlan,
@@ -125,7 +127,6 @@ public class JoinPlanBuilder {
             query,
             hashJoinEnabled
         );
-        joinPlan = subQueries.applyCorrelatedJoin(joinPlan);
 
         joinPlan = Filter.create(joinPlan, query);
         while (it.hasNext()) {

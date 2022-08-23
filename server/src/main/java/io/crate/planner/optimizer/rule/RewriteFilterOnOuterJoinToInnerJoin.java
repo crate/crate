@@ -36,11 +36,13 @@ import io.crate.analyze.relations.QuerySplitter;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.expression.operator.AndOperator;
-import io.crate.expression.symbol.FieldReplacer;
+import io.crate.expression.symbol.FunctionCopyVisitor;
 import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.RefReplacer;
+import io.crate.expression.symbol.OuterColumn;
+import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.node.dql.join.JoinType;
@@ -273,11 +275,23 @@ public final class RewriteFilterOnOuterJoinToInnerJoin implements Rule<Filter> {
         if (query == null) {
             return false;
         }
-        Symbol queryWithNulls = RefReplacer.replaceRefs(
-            FieldReplacer.replaceFields(query, ignored -> Literal.NULL),
-            ignored -> Literal.NULL
-        );
+        var visitor = new FunctionCopyVisitor<Void>() {
 
+            public Symbol visitReference(Reference reference, Void context) {
+                return Literal.NULL;
+            }
+
+            @Override
+            public Symbol visitField(ScopedSymbol field, Void context) {
+                return Literal.NULL;
+            }
+
+            @Override
+            public Symbol visitOuterColumn(OuterColumn outerColumn, Void context) {
+                return Literal.NULL;
+            }
+        };
+        Symbol queryWithNulls = query.accept(visitor, null);
         Input<?> input = queryWithNulls.accept(evaluator, ALL_NULL_ROW);
         return WhereClause.canMatch(input);
     }
