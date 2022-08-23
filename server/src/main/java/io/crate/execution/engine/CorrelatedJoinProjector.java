@@ -101,6 +101,9 @@ public final class CorrelatedJoinProjector implements Projector {
                 );
                 outputRow.firstCells(inputRow.materialize());
                 return subQueryResult.thenApply(result -> {
+                    assert batchIterator.isDone()
+                        : "BatchIterator is completed if subQueryResult.thenApply triggers";
+                    batchIterator.join().close();
                     secondCells[0] = result;
                     return CloseableIterator.fromIterator(outputRows.iterator());
                 });
