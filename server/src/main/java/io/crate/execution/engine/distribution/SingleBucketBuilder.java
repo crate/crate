@@ -52,7 +52,6 @@ public class SingleBucketBuilder implements RowConsumer, CompletionListenable<St
     @Override
     public void accept(BatchIterator<Row> iterator, @Nullable Throwable failure) {
         if (failure == null) {
-            bucketFuture.whenComplete((ignored, t) -> iterator.close());
             StreamBucketCollector streamBucketCollector = new StreamBucketCollector(streamers, ramAccounting);
             BatchIterators.collect(iterator, streamBucketCollector.supplier().get(), streamBucketCollector, bucketFuture);
         } else {

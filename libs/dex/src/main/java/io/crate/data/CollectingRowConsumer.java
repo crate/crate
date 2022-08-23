@@ -37,9 +37,7 @@ public class CollectingRowConsumer<S, R> implements RowConsumer {
     @Override
     public void accept(BatchIterator<Row> iterator, @Nullable Throwable failure) {
         if (failure == null) {
-            BatchIterators
-                .collect(iterator, collector.supplier().get(), collector, resultFuture)
-                .whenComplete((r, f) -> iterator.close());
+            BatchIterators.collect(iterator, collector.supplier().get(), collector, resultFuture);
         } else {
             if (iterator != null) {
                 iterator.close();

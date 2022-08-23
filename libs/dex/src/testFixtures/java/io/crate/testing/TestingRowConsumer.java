@@ -21,42 +21,83 @@
 
 package io.crate.testing;
 
-import io.crate.data.BatchIterator;
-import io.crate.data.BatchIterators;
-import io.crate.data.Bucket;
-import io.crate.data.CollectingRowConsumer;
-import io.crate.data.CollectionBucket;
-import io.crate.data.Row;
-import io.crate.data.RowConsumer;
-import io.crate.exceptions.Exceptions;
-
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
+
+import io.crate.data.BatchIterator;
+import io.crate.data.Bucket;
+import io.crate.data.CollectionBucket;
+import io.crate.data.Row;
+import io.crate.data.RowConsumer;
+import io.crate.exceptions.Exceptions;
 
 public final class TestingRowConsumer implements RowConsumer {
 
-    private final CollectingRowConsumer<?, List<Object[]>> consumer;
+    private final ArrayList<Object[]> rows = new ArrayList<>();
+    private final CompletableFuture<List<Object[]>> result = new CompletableFuture<>();
+    private final boolean autoClose;
 
     static CompletionStage<?> moveToEnd(BatchIterator<Row> it) {
-        return BatchIterators.collect(it, Collectors.counting());
+        try {
+            while (it.moveNext()) {
+                // just moving it to the end
+            }
+            if (it.allLoaded()) {
+                return CompletableFuture.completedFuture(null);
+            } else {
+                return it.loadNextBatch().thenCompose(ignored -> moveToEnd(it));
+            }
+        } catch (Throwable t) {
+            return CompletableFuture.failedFuture(t);
+        }
     }
 
     public TestingRowConsumer() {
-        consumer = new CollectingRowConsumer<>(Collectors.mapping(Row::materialize, Collectors.toList()));
+        this.autoClose = true;
+    }
+
+    public TestingRowConsumer(boolean autoClose) {
+        this.autoClose = autoClose;
     }
 
     @Override
     public void accept(BatchIterator<Row> it, Throwable failure) {
-        consumer.accept(it, failure);
+        if (failure == null) {
+            try {
+                while (it.moveNext()) {
+                    rows.add(it.currentElement().materialize());
+                }
+                if (it.allLoaded()) {
+                    if (autoClose) {
+                        it.close();
+                    }
+                    result.complete(rows);
+                } else {
+                    it.loadNextBatch().whenComplete((res, err) -> {
+                        accept(it, err);
+                    });
+                }
+            } catch (Throwable t) {
+                if (autoClose) {
+                    it.close();
+                }
+                result.completeExceptionally(t);
+            }
+        } else {
+            if (it != null && autoClose) {
+                it.close();
+            }
+            result.completeExceptionally(failure);
+        }
     }
 
     @Override
     public CompletableFuture<?> completionFuture() {
-        return consumer.completionFuture();
+        return result;
     }
 
     public List<Object[]> getResult() throws Exception {
@@ -65,7 +106,7 @@ public final class TestingRowConsumer implements RowConsumer {
 
     public List<Object[]> getResult(int timeoutInMs) throws Exception {
         try {
-            return consumer.completionFuture().get(timeoutInMs, TimeUnit.MILLISECONDS);
+            return result.get(timeoutInMs, TimeUnit.MILLISECONDS);
         } catch (ExecutionException e) {
             Throwable cause = e.getCause();
             if (cause != null) {
