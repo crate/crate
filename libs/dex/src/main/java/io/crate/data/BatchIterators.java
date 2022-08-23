@@ -33,8 +33,6 @@ public class BatchIterators {
     /**
      * Use {@code collector} to consume all elements from {@code it}
      *
-     * This does *not* automatically close the BatchIterator when the end is reached.
-     *
      * @param <T> element type
      * @param <A> state type
      * @param <R> result type
@@ -46,8 +44,6 @@ public class BatchIterators {
 
     /**
      * Use {@code collector} to consume all elements from {@code it}
-     *
-     * This does *not* automatically close the BatchIterator when the end is reached.
      *
      * @param <T> element type
      * @param <A> state type
@@ -89,6 +85,7 @@ public class BatchIterators {
                         accumulator.accept(state, it.currentElement());
                     }
                     if (it.allLoaded()) {
+                        it.close();
                         resultFuture.complete(finisher.apply(state));
                         return;
                     } else {
@@ -104,12 +101,14 @@ public class BatchIterators {
                             if (err == null) {
                                 collect();
                             } else {
+                                it.close();
                                 resultFuture.completeExceptionally(err);
                             }
                         });
                         return;
                     }
                 } catch (Throwable t) {
+                    it.close();
                     resultFuture.completeExceptionally(t);
                     return;
                 }

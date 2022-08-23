@@ -35,12 +35,10 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
 import io.crate.data.BatchIterator;
-import io.crate.data.BatchIterators;
 import io.crate.data.Row;
 import io.crate.exceptions.Exceptions;
 
@@ -104,13 +102,16 @@ public class BatchIteratorTester {
     }
 
     private void testMoveToStartAndReConsumptionMatchesRowsOnFirstConsumption(BatchIterator<Row> it) throws Exception {
-        List<Object[]> firstResult = BatchIterators.collect(
-            it, Collectors.mapping(Row::materialize, Collectors.toList())).get(10, TimeUnit.SECONDS);
+        var firstConsumer = new TestingRowConsumer(false);
+        firstConsumer.accept(it, null);
+        final List<Object[]> firstResult = firstConsumer.getResult();
 
         it.moveToStart();
 
-        List<Object[]> secondResult = BatchIterators.collect(
-            it, Collectors.mapping(Row::materialize, Collectors.toList())).get(10, TimeUnit.SECONDS);
+        var secondConsumer = new TestingRowConsumer(false);
+        secondConsumer.accept(it, null);
+
+        List<Object[]> secondResult = secondConsumer.getResult();
         it.close();
         checkResult(firstResult, secondResult);
     }
