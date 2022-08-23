@@ -172,8 +172,10 @@ public class DocTableInfoFactory {
                 indexTemplateMetadata.getMappings().get(Constants.DEFAULT_MAPPING_TYPE).toString());
 
             Settings.Builder settingsBuilder = Settings.builder()
-                .put(indexTemplateMetadata.settings())
-                .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT);
+                .put(indexTemplateMetadata.settings());
+            if (indexTemplateMetadata.settings().get(IndexMetadata.SETTING_VERSION_CREATED) == null) {
+                settingsBuilder.put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT);
+            }
 
             Settings settings = settingsBuilder.build();
             builder.settings(settings);

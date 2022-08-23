@@ -21,12 +21,7 @@
 
 package io.crate.metadata.doc;
 
-import static org.hamcrest.Matchers.contains;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -34,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.Version;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
@@ -98,27 +94,27 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
         );
         final ColumnIdent col = new ColumnIdent("o", List.of("foobar"));
         Reference foobar = info.getReference(col);
-        assertNull(foobar);
+        assertThat(foobar).isNull();
 
         // forWrite: false, errorOnUnknownObjectKey: true, parentPolicy: dynamic
         DynamicReference reference = info.getDynamic(col, false, true);
-        assertNull(reference);
+        assertThat(reference).isNull();
 
         // forWrite: true, errorOnUnknownObjectKey: true, parentPolicy: dynamic
         reference = info.getDynamic(col, true, true);
-        assertNotNull(reference);
-        assertSame(reference.valueType(), DataTypes.UNDEFINED);
+        assertThat(reference).isNotNull();
+        assertThat(reference.valueType()).isEqualTo(DataTypes.UNDEFINED);
 
         // forWrite: true, errorOnUnknownObjectKey: false, parentPolicy: dynamic
         reference = info.getDynamic(col, true, false);
-        assertNotNull(reference);
-        assertSame(reference.valueType(), DataTypes.UNDEFINED);
+        assertThat(reference).isNotNull();
+        assertThat(reference.valueType()).isEqualTo(DataTypes.UNDEFINED);
 
         // forWrite: false, errorOnUnknownObjectKey: false, parentPolicy: dynamic
         reference = info.getDynamic(col, false, false);
-        assertNotNull(reference);
-        assertTrue(reference instanceof VoidReference);
-        assertSame(reference.valueType(), DataTypes.UNDEFINED);
+        assertThat(reference).isNotNull();
+        assertThat(reference).isInstanceOf(VoidReference.class);
+        assertThat(reference.valueType()).isEqualTo(DataTypes.UNDEFINED);
     }
 
     @Test
@@ -167,10 +163,10 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
         );
 
         final ColumnIdent columnIdent = new ColumnIdent("foobar", Arrays.asList("foo", "bar"));
-        assertNull(info.getReference(columnIdent));
+        assertThat(info.getReference(columnIdent)).isNull();
 
         // forWrite: false, errorOnUnknownObjectKey: true, parentPolicy: strict
-        assertNull(info.getDynamic(columnIdent, false, true));
+        assertThat(info.getDynamic(columnIdent, false, true)).isNull();
 
         // forWrite: true, errorOnUnknownObjectKey: true, parentPolicy: strict
         Asserts.assertThrowsMatches(
@@ -180,40 +176,40 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
         );
 
         // forWrite: false, errorOnUnknownObjectKey: false, parentPolicy: strict
-        assertNull(info.getDynamic(columnIdent, false, false));
+        assertThat(info.getDynamic(columnIdent, false, false)).isNull();
 
         // forWrite: true, errorOnUnknownObjectKey: false, parentPolicy: strict
         Asserts.assertThrowsMatches(
-            () -> assertNull(info.getDynamic(columnIdent, true, false)),
+            () -> assertThat(info.getDynamic(columnIdent, true, false)).isNull(),
             ColumnUnknownException.class,
             "Column foobar['foo']['bar'] unknown"
         );
 
         final ColumnIdent columnIdent2 = new ColumnIdent("foobar", Collections.singletonList("foo"));
-        assertNull(info.getReference(columnIdent2));
+        assertThat(info.getReference(columnIdent2)).isNull();
 
         // forWrite: false, errorOnUnknownObjectKey: true, parentPolicy: strict
-        assertNull(info.getDynamic(columnIdent2, false, true));
+        assertThat(info.getDynamic(columnIdent2, false, true)).isNull();
 
         // forWrite: true, errorOnUnknownObjectKey: true, parentPolicy: strict
         Asserts.assertThrowsMatches(
-            () -> assertNull(info.getDynamic(columnIdent2, true, true)),
+            () -> assertThat(info.getDynamic(columnIdent2, true, true)).isNull(),
             ColumnUnknownException.class,
             "Column foobar['foo'] unknown"
         );
 
         // forWrite: false, errorOnUnknownObjectKey: false, parentPolicy: strict
-        assertNull(info.getDynamic(columnIdent2, false, false));
+        assertThat(info.getDynamic(columnIdent2, false, false)).isNull();
 
         // forWrite: true, errorOnUnknownObjectKey: false, parentPolicy: strict
         Asserts.assertThrowsMatches(
-            () -> assertNull(info.getDynamic(columnIdent2, true, false)),
+            () -> assertThat(info.getDynamic(columnIdent2, true, false)).isNull(),
             ColumnUnknownException.class,
             "Column foobar['foo'] unknown"
         );
 
         Reference colInfo = info.getReference(new ColumnIdent("foobar"));
-        assertNotNull(colInfo);
+        assertThat(colInfo).isNotNull();
     }
 
     @Test
@@ -224,9 +220,34 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
 
         TableInfo table = e.resolveTableInfo("tbl");
         Iterable<Reference> parents = table.getParents(new ColumnIdent("o1", List.of("o2", "x")));
-        assertThat(parents, contains(
+        assertThat(parents).containsExactly(
             table.getReference(new ColumnIdent("o1", "o2")),
             table.getReference(new ColumnIdent("o1"))
-        ));
+        );
+    }
+
+    @Test
+    public void test_version_created_is_read_from_partitioned_template() throws Exception {
+        var customSettings = Settings.builder()
+            .put(IndexMetadata.SETTING_VERSION_CREATED, Version.V_5_0_0)
+            .build();
+        var e = SQLExecutor.builder(clusterService)
+            .addPartitionedTable("CREATE TABLE p1 (id INT, p INT) PARTITIONED BY (p)", customSettings)
+            .build();
+
+        DocTableInfo tableInfo = e.resolveTableInfo("p1");
+        assertThat(IndexMetadata.SETTING_INDEX_VERSION_CREATED.get(tableInfo.parameters())).isEqualTo(Version.V_5_0_0);
+    }
+
+    @Test
+    public void test_version_created_is_set_to_current_version_if_unavailable_at_partitioned_template() throws Exception {
+        var customSettings = Settings.builder()
+            .build();
+        var e = SQLExecutor.builder(clusterService)
+            .addPartitionedTable("CREATE TABLE p1 (id INT, p INT) PARTITIONED BY (p)", customSettings)
+            .build();
+
+        DocTableInfo tableInfo = e.resolveTableInfo("p1");
+        assertThat(IndexMetadata.SETTING_INDEX_VERSION_CREATED.get(tableInfo.parameters())).isEqualTo(Version.CURRENT);
     }
 }
