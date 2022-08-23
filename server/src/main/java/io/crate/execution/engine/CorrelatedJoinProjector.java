@@ -23,9 +23,7 @@ package io.crate.execution.engine;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Function;
 import java.util.stream.Collector;
-import java.util.stream.Collectors;
 
 import io.crate.data.AsyncFlatMapBatchIterator;
 import io.crate.data.AsyncFlatMapper;
@@ -50,6 +48,7 @@ public final class CorrelatedJoinProjector implements Projector {
     private final DependencyCarrier executor;
     private final SubQueryResults subQueryResults;
     private final Row params;
+    private final SelectSymbol correlatedSubQuery;
 
     public CorrelatedJoinProjector(LogicalPlan subQueryPlan,
                                    SelectSymbol correlatedSubQuery,
@@ -58,6 +57,7 @@ public final class CorrelatedJoinProjector implements Projector {
                                    SubQueryResults subQueryResults,
                                    Row params,
                                    List<Symbol> inputPlanOutputs) {
+        this.correlatedSubQuery = correlatedSubQuery;
         this.subQueryPlan = subQueryPlan;
         this.plannerContext = plannerContext;
         this.executor = executor;
@@ -74,18 +74,24 @@ public final class CorrelatedJoinProjector implements Projector {
     private final class BindAndExecuteSubQuery implements AsyncFlatMapper<Row, Row> {
 
         // See `CorrelatedJoin` operator. The output is the output of the left relation + the sub-query result
-        final BiArrayRow outputRow = new BiArrayRow();
-        final Function<Row, Row> materialize = subQueryRow -> {
-            outputRow.secondCells(subQueryRow.materialize());
-            return outputRow;
-        };
-        final Collector<Row, ?, List<Row>> toList = Collectors.mapping(materialize, Collectors.toList());
+        private final BiArrayRow outputRow = new BiArrayRow();
+        private final Object[] secondCells = new Object[1];
+        private final List<Row> outputRows = List.of(outputRow);
+        private final Collector<Row, ?, ?> collector;
+
+        public BindAndExecuteSubQuery() {
+            this.outputRow.secondCells(secondCells);
+            this.collector = FirstColumnConsumers.getCollector(correlatedSubQuery.getResultType());
+        }
 
         @Override
         public CompletableFuture<? extends CloseableIterator<Row>> apply(Row inputRow, boolean isLastCall) {
             try {
                 subQueryResults.bindOuterColumnInputRow(inputRow);
-                var capturingRowConsumer = new CapturingRowConsumer(false);
+                var batchIterator = new CompletableFuture<BatchIterator<Row>>();
+                var subQueryResult = batchIterator
+                    .thenCompose(it -> BatchIterators.collect(it, collector));
+                var capturingRowConsumer = new CapturingRowConsumer(false, batchIterator, subQueryResult);
                 subQueryPlan.execute(
                     executor,
                     PlannerContext.forSubPlan(plannerContext),
@@ -93,18 +99,11 @@ public final class CorrelatedJoinProjector implements Projector {
                     params,
                     subQueryResults
                 );
-
-                // Scalar sub-query returns 1 row, the materialization here shouldn't be too bad
                 outputRow.firstCells(inputRow.materialize());
-                return capturingRowConsumer.capturedBatchIterator()
-                    .thenCompose(it -> BatchIterators.collect(it, toList))
-                    .thenApply(rows -> {
-                        if (rows.size() > 1) {
-                            throw new UnsupportedOperationException(
-                                "Subquery returned more than 1 row when it shouldn't.");
-                        }
-                        return CloseableIterator.fromIterator(rows.iterator());
-                    });
+                return subQueryResult.thenApply(result -> {
+                    secondCells[0] = result;
+                    return CloseableIterator.fromIterator(outputRows.iterator());
+                });
             } catch (Throwable t) {
                 return CompletableFuture.failedFuture(t);
             }

@@ -67,15 +67,6 @@ public final class MultiPhaseExecutor {
     }
 
     private static CollectingRowConsumer<?, ?> getConsumer(SelectSymbol.ResultType resultType) {
-        switch (resultType) {
-            case SINGLE_COLUMN_SINGLE_VALUE:
-                return FirstColumnConsumers.createSingleRowConsumer();
-
-            case SINGLE_COLUMN_MULTIPLE_VALUES:
-                return FirstColumnConsumers.createAllRowsConsumer();
-
-            default:
-                throw new IllegalStateException("Can't create consumer: Unknown ResultType");
-        }
+        return new CollectingRowConsumer<>(FirstColumnConsumers.getCollector(resultType));
     }
 }

@@ -21,12 +21,9 @@
 
 package io.crate.execution.engine;
 
-import io.crate.data.CollectingRowConsumer;
-import io.crate.data.Row;
-
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.BinaryOperator;
@@ -34,38 +31,41 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
 
+import io.crate.data.Row;
+import io.crate.expression.symbol.SelectSymbol.ResultType;
+
 /**
  * Collectors to retrieve either {@link AllValues} or a {@link SingleValue} of the first column of each row.
  */
 public class FirstColumnConsumers {
 
-    private static class AllValues implements Collector<Row, Collection<Object>, Object[]> {
+    private static class AllValues implements Collector<Row, List<Object>, List<Object>> {
 
-        private static final AllValues INSTANCE = new AllValues();
+        public static final AllValues INSTANCE = new AllValues();
 
         private AllValues() {
         }
 
         @Override
-        public Supplier<Collection<Object>> supplier() {
+        public Supplier<List<Object>> supplier() {
             return () -> new ArrayList<>(1);
         }
 
         @Override
-        public BiConsumer<Collection<Object>, Row> accumulator() {
+        public BiConsumer<List<Object>, Row> accumulator() {
             return (agg, row) -> {
                 agg.add(row.get(0));
             };
         }
 
         @Override
-        public BinaryOperator<Collection<Object>> combiner() {
+        public BinaryOperator<List<Object>> combiner() {
             throw new IllegalStateException("Combine is not implemented on this collector");
         }
 
         @Override
-        public Function<Collection<Object>, Object[]> finisher() {
-            return Collection::toArray;
+        public Function<List<Object>, List<Object>> finisher() {
+            return Function.identity();
         }
 
         @Override
@@ -77,7 +77,7 @@ public class FirstColumnConsumers {
 
     private static class SingleValue implements Collector<Row, Object[], Object> {
 
-        private static final SingleValue INSTANCE = new SingleValue();
+        public static final SingleValue INSTANCE = new SingleValue();
 
         /* We need this Object to differentiate null values */
         private static final Object SENTINEL = new Object();
@@ -122,11 +122,10 @@ public class FirstColumnConsumers {
 
     }
 
-    public static CollectingRowConsumer<Object[], Object> createSingleRowConsumer() {
-        return new CollectingRowConsumer<>(SingleValue.INSTANCE);
-    }
-
-    public static CollectingRowConsumer<Collection<Object>, Object[]> createAllRowsConsumer() {
-        return new CollectingRowConsumer<>(AllValues.INSTANCE);
+    public static Collector<Row, ?, ?> getCollector(ResultType resultType) {
+        return switch (resultType) {
+            case SINGLE_COLUMN_MULTIPLE_VALUES -> AllValues.INSTANCE;
+            case SINGLE_COLUMN_SINGLE_VALUE -> SingleValue.INSTANCE;
+        };
     }
 }
