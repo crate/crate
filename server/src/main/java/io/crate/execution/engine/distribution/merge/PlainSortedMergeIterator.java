@@ -38,11 +38,12 @@ import static io.crate.common.collections.Iterators.peekingIterator;
  * <p>
  * And it also has a merge function with which additional backing iterators can be added to enable paging
  */
-final class PlainSortedMergeIterator<TKey, TRow> implements SortedMergeIterator<TKey, TRow> {
+final class PlainSortedMergeIterator<TKey, TRow> implements PagingIterator<TKey, TRow> {
 
     private final Queue<NumberedPeekingIterator<TKey, TRow>> queue;
     private NumberedPeekingIterator<TKey, TRow> lastUsedIter = null;
     private boolean leastExhausted = false;
+    private boolean ignoreLeastExhausted = false;
     private TKey exhausted;
 
     PlainSortedMergeIterator(final Comparator<? super TRow> itemComparator) {
@@ -60,9 +61,14 @@ final class PlainSortedMergeIterator<TKey, TRow> implements SortedMergeIterator<
     }
 
     @Override
+    public void finish() {
+        ignoreLeastExhausted = true;
+    }
+
+    @Override
     public boolean hasNext() {
         reAddLastIterator();
-        return !queue.isEmpty();
+        return !queue.isEmpty() && (ignoreLeastExhausted || !leastExhausted);
     }
 
     private void reAddLastIterator() {

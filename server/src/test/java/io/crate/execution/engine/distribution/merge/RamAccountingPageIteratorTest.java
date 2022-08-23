@@ -93,7 +93,7 @@ public class RamAccountingPageIteratorTest extends ESTestCase {
 
         assertThat(repeatingSortedPagingIterator, instanceOf(RamAccountingPageIterator.class));
         assertThat(((RamAccountingPageIterator) repeatingSortedPagingIterator).delegatePagingIterator,
-            instanceOf(SortedPagingIterator.class));
+            instanceOf(RecordingSortedMergeIterator.class));
 
         PagingIterator<Integer, Row> nonRepeatingSortedPagingIterator = PagingIterator.create(
             2,
@@ -102,7 +102,7 @@ public class RamAccountingPageIteratorTest extends ESTestCase {
             () -> null);
         assertThat(nonRepeatingSortedPagingIterator, instanceOf(RamAccountingPageIterator.class));
         assertThat(((RamAccountingPageIterator) nonRepeatingSortedPagingIterator).delegatePagingIterator,
-            instanceOf(SortedPagingIterator.class));
+            instanceOf(PlainSortedMergeIterator.class));
     }
 
     @Test

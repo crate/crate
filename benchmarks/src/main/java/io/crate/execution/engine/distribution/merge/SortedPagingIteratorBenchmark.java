@@ -74,7 +74,7 @@ public class SortedPagingIteratorBenchmark {
 
     @Benchmark
     public void measurePagingIteratorWithRepeat(Blackhole blackhole) {
-        SortedPagingIterator<Integer, Row> pagingIterator = new SortedPagingIterator<>(compareOnFirstColumn, true);
+        PagingIterator<Integer, Row> pagingIterator = PagingIterator.createSorted(compareOnFirstColumn, true);
         pagingIterator.merge(Arrays.asList(new KeyIterable<>(1, sortedFirst), new KeyIterable<>(2, sortedSecond)));
         pagingIterator.finish();
 
@@ -85,7 +85,7 @@ public class SortedPagingIteratorBenchmark {
 
     @Benchmark
     public void measurePagingIteratorWithoutRepeat(Blackhole blackhole) {
-        SortedPagingIterator<Integer, Row> pagingIterator = new SortedPagingIterator<>(compareOnFirstColumn, false);
+        PagingIterator<Integer, Row> pagingIterator = PagingIterator.createSorted(compareOnFirstColumn, false);
         pagingIterator.merge(Arrays.asList(new KeyIterable<>(1, sortedFirst), new KeyIterable<>(2, sortedSecond)));
         pagingIterator.finish();
 
@@ -99,7 +99,7 @@ public class SortedPagingIteratorBenchmark {
         unsortedFirst.sort(compareOnFirstColumn);
         unsortedSecond.sort(compareOnFirstColumn);
 
-        SortedPagingIterator<Integer, Row> pagingIterator = new SortedPagingIterator<>(compareOnFirstColumn, false);
+        PagingIterator<Integer, Row> pagingIterator = PagingIterator.createSorted(compareOnFirstColumn, false);
         pagingIterator.merge(Arrays.asList(new KeyIterable<>(1, sortedFirst), new KeyIterable<>(2, sortedSecond)));
         pagingIterator.finish();
 

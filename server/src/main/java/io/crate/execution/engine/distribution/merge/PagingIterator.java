@@ -21,14 +21,16 @@
 
 package io.crate.execution.engine.distribution.merge;
 
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.function.Supplier;
+
+import javax.annotation.Nullable;
+
 import io.crate.breaker.RowAccounting;
 import io.crate.data.Row;
 import io.crate.execution.engine.sort.OrderingByPosition;
 import io.crate.planner.PositionalOrderBy;
-
-import javax.annotation.Nullable;
-import java.util.Iterator;
-import java.util.function.Supplier;
 
 public interface PagingIterator<TKey, TRow> extends Iterator<TRow> {
 
@@ -73,11 +75,22 @@ public interface PagingIterator<TKey, TRow> extends Iterator<TRow> {
                 pagingIterator = PassThroughPagingIterator.oneShot();
             }
         } else {
+            Comparator<Row> rowOrdering = OrderingByPosition.rowOrdering(orderBy);
             pagingIterator = new RamAccountingPageIterator<>(
-                new SortedPagingIterator<>(OrderingByPosition.rowOrdering(orderBy), requiresRepeat), rowAccountingSupplier.get()
+                createSorted(rowOrdering, requiresRepeat),
+                rowAccountingSupplier.get()
             );
         }
 
         return pagingIterator;
+    }
+
+    static <TKey, TRow> PagingIterator<TKey, TRow> createSorted(Comparator<? super TRow> comparator,
+                                                                boolean requiresRepeat) {
+        if (requiresRepeat) {
+            return new RecordingSortedMergeIterator<>(comparator);
+        } else {
+            return new PlainSortedMergeIterator<>(comparator);
+        }
     }
 }
