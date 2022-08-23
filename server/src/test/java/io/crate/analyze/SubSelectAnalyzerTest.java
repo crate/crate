@@ -304,4 +304,9 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThatThrownBy(() -> analyze("select * from sys.summits where EXISTS (select 1, 2)"))
             .hasMessage("Subqueries with more than 1 column are not supported");
     }
+
+    @Test
+    public void test_exists_is_printed_as_exists_keyword() {
+        QueriedSelectRelation relation = analyze("select * from sys.summits where EXISTS (select 1)");
+        assertThat(relation.where().toString(), is("EXISTS (SELECT 1 FROM (empty_row))")); }
 }
