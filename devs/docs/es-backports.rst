@@ -466,20 +466,20 @@ should be crossed out as well.
 - [ ] 960d1fb578d Revert "Introduce system index APIs for Kibana (#53035)" (#53992)
 - [ ] 5b9864db2c3 Better Incrementality for Snapshots of Unchanged Shards (#52182) (#53984)
 - [ ] efd18382066 Handle properly indexing rectangles that crosses the dateline (#53810) (#53947)
-- [ ] 879e26ec067 Describe STALE_STATE_CONFIG in ClusterFormationFH (#53878)
-- [ ] adfeb50a534 Use consistent threadpools in CoordinatorTests (#53868)
-- [ ] 4e6bbf6e3c5 Execute retention lease syncs under system context (#53838)
-- [ ] 7d3ac4f57d3 Revert "Apply cluster states in system context (#53785)"
-- [ ] 4178c57410f Apply cluster states in system context (#53785)
-- [ ] 4f1b2fd2b15 Add support for distance queries on geo_shape queries (#53466) (#53795)
-- [ ] b0884baf466 Geo shape query vs geo point backport (#53774)
+- [x] 879e26ec067 Describe STALE_STATE_CONFIG in ClusterFormationFH (#53878)
+- [s] adfeb50a534 Use consistent threadpools in CoordinatorTests (#53868)
+- [s] 4e6bbf6e3c5 Execute retention lease syncs under system context (#53838)
+- [s] 7d3ac4f57d3 Revert "Apply cluster states in system context (#53785)"
+- [s] 4178c57410f Apply cluster states in system context (#53785)
+- [s] 4f1b2fd2b15 Add support for distance queries on geo_shape queries (#53466) (#53795)
+- [s] b0884baf466 Geo shape query vs geo point backport (#53774)
 - [x] 1615c4b3790 Fix testKeepTranslogAfterGlobalCheckpoint (#53704)
-- [ ] 9b3b08318d3 Remove unused import
-- [ ] bc5dae2713b Fix compilation in RoutingNode
+- [s] 9b3b08318d3 Remove unused import
+- [s] bc5dae2713b Fix compilation in RoutingNode
 - [x] 90ab949415e Improve performance of shards limits decider (#53577)
 - [s] 6cc564d677a Restore off-heap loading for term dictionary in ReadOnlyEngine (#53713)
 - [x] e7ae9ae596e Deprecate delaying state recovery for master nodes (#53646)
-- [ ] 71b703edd1e Rename AtomicFieldData to LeafFieldData (#53554)
+- [s] 71b703edd1e Rename AtomicFieldData to LeafFieldData (#53554)
 - [x] 01d2339883d Invoke response handler on failure to send (#53631)
 - [s] 881d0bfa8a8 Add server name to remote info API (#53634)
 - [s] a906f8a0e4a Highlighters skip ignored keyword values (#53408) (#53604)
