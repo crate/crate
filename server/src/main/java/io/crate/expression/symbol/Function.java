@@ -36,6 +36,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import io.crate.exceptions.ConversionException;
 import io.crate.execution.engine.aggregation.impl.CountAggregation;
+import io.crate.expression.operator.ExistsOperator;
 import io.crate.expression.operator.Operator;
 import io.crate.expression.operator.any.AnyOperator;
 import io.crate.expression.predicate.IsNullPredicate;
@@ -246,6 +247,11 @@ public class Function implements Symbol, Cloneable {
 
             case SubscriptRecordFunction.NAME:
                 printSubscriptRecord(builder, style);
+                break;
+
+            case ExistsOperator.NAME:
+                builder.append("EXISTS ");
+                builder.append(arguments.get(0).toString(style));
                 break;
 
             case "current_user":
