@@ -140,7 +140,6 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         assertThat(response.rows()[1][0], is("04732e1g60qj0dpl6csjicpo"));
     }
 
-
     @Test
     public void testCopyFromIntoPartitionedTable() throws Exception {
         execute("create table quotes (" +
@@ -265,7 +264,6 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
             "   quote string," +
             "   timestamp timestamp with time zone" +
             ") partitioned by(timestamp) with (number_of_replicas=0)");
-
         execute("select * from information_schema.tables where table_schema = ? order by table_name", new Object[]{sqlExecutor.getCurrentSchema()});
         assertThat(response.rowCount(), is(1L));
         assertThat(response.rows()[0][12], is("quotes"));

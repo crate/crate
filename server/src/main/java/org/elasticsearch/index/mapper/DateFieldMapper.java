@@ -92,7 +92,7 @@ public class DateFieldMapper extends FieldMapper {
         @Override
         public DateFieldMapper build(BuilderContext context) {
             DateFieldType ft = setupFieldType(context);
-            return new DateFieldMapper(
+            var mapper = new DateFieldMapper(
                 name,
                 position,
                 defaultExpression,
@@ -101,6 +101,8 @@ public class DateFieldMapper extends FieldMapper {
                 ignoreTimezone,
                 context.indexSettings(),
                 copyTo);
+            context.putPositionInfo(mapper, position);
+            return mapper;
         }
     }
 
@@ -156,7 +158,7 @@ public class DateFieldMapper extends FieldMapper {
 
     private DateFieldMapper(
             String simpleName,
-            Integer position,
+            int position,
             @Nullable String defaultExpression,
             FieldType fieldType,
             MappedFieldType mappedFieldType,

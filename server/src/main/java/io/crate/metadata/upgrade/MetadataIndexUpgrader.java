@@ -24,17 +24,21 @@ package io.crate.metadata.upgrade;
 import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.function.UnaryOperator;
+import java.util.function.BiFunction;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
 
 import io.crate.Constants;
 import io.crate.common.annotations.VisibleForTesting;
+import org.elasticsearch.cluster.metadata.MetadataMappingService;
 
-public class MetadataIndexUpgrader implements UnaryOperator<IndexMetadata> {
+import javax.annotation.Nullable;
+
+public class MetadataIndexUpgrader implements BiFunction<IndexMetadata, IndexTemplateMetadata, IndexMetadata> {
 
     private final Logger logger;
 
@@ -43,30 +47,33 @@ public class MetadataIndexUpgrader implements UnaryOperator<IndexMetadata> {
     }
 
     @Override
-    public IndexMetadata apply(IndexMetadata indexMetadata) {
-        return createUpdatedIndexMetadata(indexMetadata);
+    public IndexMetadata apply(IndexMetadata indexMetadata,
+                               IndexTemplateMetadata indexTemplateMetadata) {
+        return createUpdatedIndexMetadata(indexMetadata, indexTemplateMetadata);
     }
 
     /**
      * Purges any dynamic template from the index metadata because they might be out-dated and the general default
      * template will apply any defaults for all indices.
      */
-    private IndexMetadata createUpdatedIndexMetadata(IndexMetadata indexMetadata) {
+    private IndexMetadata createUpdatedIndexMetadata(IndexMetadata indexMetadata, @Nullable IndexTemplateMetadata indexTemplateMetadata) {
         return IndexMetadata.builder(indexMetadata)
             .putMapping(
                 createUpdatedIndexMetadata(
                     indexMetadata.mapping(),
-                    indexMetadata.getIndex().getName()
+                    indexMetadata.getIndex().getName(),
+                    indexTemplateMetadata
                 ))
             .build();
     }
 
     @VisibleForTesting
-    MappingMetadata createUpdatedIndexMetadata(MappingMetadata mappingMetadata, String indexName) {
+    MappingMetadata createUpdatedIndexMetadata(MappingMetadata mappingMetadata, String indexName, @Nullable IndexTemplateMetadata indexTemplateMetadata) {
         if (mappingMetadata == null) { // blobs have no mappingMetadata
             return null;
         }
         Map<String, Object> oldMapping = mappingMetadata.sourceAsMap();
+        upgradeColumnPositions(oldMapping, indexTemplateMetadata);
         LinkedHashMap<String, Object> newMapping = new LinkedHashMap<>(oldMapping.size());
         for (Map.Entry<String, Object> entry : oldMapping.entrySet()) {
             String fieldName = entry.getKey();
@@ -88,6 +95,19 @@ public class MetadataIndexUpgrader implements UnaryOperator<IndexMetadata> {
         } catch (IOException e) {
             logger.error("Failed to upgrade mapping for index '" + indexName + "'", e);
             return mappingMetadata;
+        }
+    }
+
+    /**
+     * Fixes index mappings such that all columns contain unique column positions.
+     * @param defaultMap An index mapping that may contain duplicates or null positions.
+     * @param indexTemplateMetadata if the table is partitioned, it should contain correct column positions.
+     */
+    private void upgradeColumnPositions(Map<String, Object> defaultMap, @Nullable IndexTemplateMetadata indexTemplateMetadata) {
+        if (indexTemplateMetadata != null) {
+            MetadataMappingService.populateColumnPositions(defaultMap, indexTemplateMetadata.getMappings().get("default"));
+        } else {
+            IndexTemplateUpgrader.populateColumnPositions(defaultMap);
         }
     }
 }

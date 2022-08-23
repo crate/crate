@@ -44,6 +44,8 @@ import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import io.crate.metadata.IndexParts;
+import io.crate.metadata.PartitionName;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
@@ -283,8 +285,13 @@ public class RestoreService implements ClusterStateApplier {
                                                 snapshotIndexMetadata = updateIndexSettings(snapshotIndexMetadata,
                                                                                             request.indexSettings(), request.ignoreIndexSettings());
                                                 try {
-                                                    snapshotIndexMetadata = metadataIndexUpgradeService.upgradeIndexMetadata(snapshotIndexMetadata,
-                                                                                                                             minIndexCompatibilityVersion);
+                                                    String indexName = snapshotIndexMetadata.getIndex().getName();
+                                                    snapshotIndexMetadata = metadataIndexUpgradeService.upgradeIndexMetadata(
+                                                        snapshotIndexMetadata,
+                                                        IndexParts.isPartitioned(indexName) ?
+                                                            currentState.metadata().getTemplates().get(PartitionName.templateName(indexName)) :
+                                                            null,
+                                                        minIndexCompatibilityVersion);
                                                 } catch (Exception ex) {
                                                     throw new SnapshotRestoreException(snapshot, "cannot restore index [" + index +
                                                                                                  "] because it cannot be upgraded", ex);

@@ -39,7 +39,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.UnaryOperator;
+import java.util.function.BiFunction;
 
 /**
  * This service is responsible for upgrading legacy index metadata to the current version
@@ -57,21 +57,21 @@ public class MetadataIndexUpgradeService {
     private final NamedXContentRegistry xContentRegistry;
     private final MapperRegistry mapperRegistry;
     private final IndexScopedSettings indexScopedSettings;
-    private final UnaryOperator<IndexMetadata> upgraders;
+    private final BiFunction<IndexMetadata, IndexTemplateMetadata, IndexMetadata> upgraders;
 
     public MetadataIndexUpgradeService(Settings settings,
                                        NamedXContentRegistry xContentRegistry,
                                        MapperRegistry mapperRegistry,
                                        IndexScopedSettings indexScopedSettings,
-                                       Collection<UnaryOperator<IndexMetadata>> indexMetadataUpgraders) {
+                                       Collection<BiFunction<IndexMetadata, IndexTemplateMetadata, IndexMetadata>> indexMetadataUpgraders) {
         this.settings = settings;
         this.xContentRegistry = xContentRegistry;
         this.mapperRegistry = mapperRegistry;
         this.indexScopedSettings = indexScopedSettings;
-        this.upgraders = indexMetadata -> {
+        this.upgraders = (indexMetadata, indexTemplateMetadata) -> {
             IndexMetadata newIndexMetadata = indexMetadata;
-            for (UnaryOperator<IndexMetadata> upgrader : indexMetadataUpgraders) {
-                newIndexMetadata = upgrader.apply(newIndexMetadata);
+            for (BiFunction<IndexMetadata, IndexTemplateMetadata, IndexMetadata> upgrader : indexMetadataUpgraders) {
+                newIndexMetadata = upgrader.apply(newIndexMetadata, indexTemplateMetadata);
             }
             return newIndexMetadata;
         };
@@ -84,7 +84,7 @@ public class MetadataIndexUpgradeService {
      * If the index does not need upgrade it returns the index metadata unchanged, otherwise it returns a modified index metadata. If index
      * cannot be updated the method throws an exception.
      */
-    public IndexMetadata upgradeIndexMetadata(IndexMetadata indexMetadata, Version minimumIndexCompatibilityVersion) {
+    public IndexMetadata upgradeIndexMetadata(IndexMetadata indexMetadata, IndexTemplateMetadata indexTemplateMetadata, Version minimumIndexCompatibilityVersion) {
         // Throws an exception if there are too-old segments:
         if (isUpgraded(indexMetadata)) {
             return indexMetadata;
@@ -94,7 +94,7 @@ public class MetadataIndexUpgradeService {
         // we have to run this first otherwise in we try to create IndexSettings
         // with broken settings and fail in checkMappingsCompatibility
         newMetadata = archiveBrokenIndexSettings(newMetadata);
-        newMetadata = upgraders.apply(newMetadata);
+        newMetadata = upgraders.apply(newMetadata, indexTemplateMetadata);
         checkMappingsCompatibility(newMetadata);
         return markAsUpgraded(newMetadata);
     }

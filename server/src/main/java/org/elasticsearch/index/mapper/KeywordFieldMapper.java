@@ -120,7 +120,7 @@ public final class KeywordFieldMapper extends FieldMapper {
 
         @Override
         public KeywordFieldMapper build(BuilderContext context) {
-            return new KeywordFieldMapper(
+            var mapper = new KeywordFieldMapper(
                 name,
                 position,
                 defaultExpression,
@@ -133,6 +133,8 @@ public final class KeywordFieldMapper extends FieldMapper {
                 context.indexSettings(),
                 copyTo
             );
+            context.putPositionInfo(mapper, position);
+            return mapper;
         }
     }
 
@@ -196,7 +198,7 @@ public final class KeywordFieldMapper extends FieldMapper {
 
 
     private KeywordFieldMapper(String simpleName,
-                               Integer position,
+                               int position,
                                @Nullable String defaultExpression,
                                FieldType fieldType,
                                MappedFieldType mappedFieldType,

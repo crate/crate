@@ -46,7 +46,6 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
         protected boolean hasDocValues = true;
         protected boolean indexed = true;
         protected CopyTo copyTo = CopyTo.empty();
-        protected Integer position;
         @Nullable
         protected String defaultExpression;
 
@@ -88,10 +87,6 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
             return context.path().pathAsText(name);
         }
 
-        public void position(int position) {
-            this.position = position;
-        }
-
         public void defaultExpression(String defaultExpression) {
             this.defaultExpression = defaultExpression;
         }
@@ -103,20 +98,12 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
     protected CopyTo copyTo;
 
     /**
-     * Position of the field in the original CREATE TABLE statement
-     *
-     * This is null for system field mappers or for mappers within object fields.
-     */
-    @Nullable
-    protected Integer position;
-
-    /**
      * Expression that is used as the default value for a field
      */
     @Nullable String defaultExpression;
 
     protected FieldMapper(String simpleName,
-                          @Nullable Integer position,
+                          int position,
                           @Nullable String defaultExpression,
                           FieldType fieldType,
                           MappedFieldType mappedFieldType,
@@ -136,7 +123,12 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
         this.copyTo = Objects.requireNonNull(copyTo);
     }
 
-    public Integer position() {
+    public int position() {
+        return position;
+    }
+
+    @Override
+    public int maxColumnPosition() {
         return position;
     }
 
@@ -317,7 +309,7 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
         if (includeDefaults || mappedFieldType.hasDocValues() != docValuesByDefault()) {
             builder.field("doc_values", mappedFieldType.hasDocValues());
         }
-        if (position != null) {
+        if (position != NOT_TO_BE_POSITIONED) {
             builder.field("position", position);
         }
         if (defaultExpression != null) {

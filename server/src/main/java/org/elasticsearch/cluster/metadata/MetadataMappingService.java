@@ -19,6 +19,7 @@
 
 package org.elasticsearch.cluster.metadata;
 
+import io.crate.common.annotations.VisibleForTesting;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
@@ -35,8 +36,15 @@ import javax.annotation.Nullable;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.inject.Inject;
+
+import io.crate.Constants;
+import io.crate.common.collections.Maps;
 import io.crate.common.unit.TimeValue;
 import io.crate.common.io.IOUtils;
+import io.crate.metadata.IndexParts;
+import io.crate.metadata.PartitionName;
+
+import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.mapper.DocumentMapper;
@@ -44,13 +52,13 @@ import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.mapper.MapperService.MergeReason;
 import org.elasticsearch.indices.IndicesService;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static io.crate.metadata.doc.DocIndexMetadata.furtherColumnProperties;
 import static org.elasticsearch.indices.cluster.IndicesClusterStateService.AllocatedIndices.IndexRemovalReason.NO_LONGER_ASSIGNED;
 
 /**
@@ -239,7 +247,7 @@ public class MetadataMappingService {
         }
 
         public ClusterState applyRequest(ClusterState currentState, PutMappingClusterStateUpdateRequest request,
-                                          Map<Index, MapperService> indexMapperServices) throws IOException {
+                                          Map<Index, MapperService> indexMapperServices) throws Exception {
             CompressedXContent mappingUpdateSource = new CompressedXContent(request.source());
             final Metadata metadata = currentState.metadata();
             final List<IndexMetadata> updateList = new ArrayList<>();
@@ -267,6 +275,19 @@ public class MetadataMappingService {
                 // do the actual merge here on the master, and update the mapping source
                 // we use the exact same indexService and metadata we used to validate above here to actually apply the update
                 final Index index = indexMetadata.getIndex();
+
+                Map<String, Object> updatedSourceMap = null;
+                if (IndexParts.isPartitioned(index.getName())) {
+                    String partitionName = PartitionName.templateName(index.getName());
+                    IndexTemplateMetadata indexTemplateMetadata = currentState.metadata().templates().get(partitionName);
+                    updatedSourceMap = XContentHelper.convertToMap(mappingUpdateSource.compressedReference(), true).map();
+                    populateColumnPositions(updatedSourceMap,
+                                            // if partitioned, template-mapping should contain the latest column positions
+                                            indexTemplateMetadata.mappings().get(Constants.DEFAULT_MAPPING_TYPE)
+                    );
+                }
+
+
                 final MapperService mapperService = indexMapperServices.get(index);
 
                 CompressedXContent existingSource = null;
@@ -274,8 +295,10 @@ public class MetadataMappingService {
                 if (existingMapper != null) {
                     existingSource = existingMapper.mappingSource();
                 }
-                DocumentMapper mergedMapper
-                    = mapperService.merge(mappingUpdateSource, MergeReason.MAPPING_UPDATE);
+                DocumentMapper mergedMapper =
+                    (updatedSourceMap == null /* if partitioned */) ?
+                        mapperService.merge(mappingUpdateSource, MergeReason.MAPPING_UPDATE) :
+                        mapperService.merge(updatedSourceMap, MergeReason.MAPPING_UPDATE);
                 CompressedXContent updatedSource = mergedMapper.mappingSource();
 
                 if (existingSource != null) {
@@ -359,5 +382,44 @@ public class MetadataMappingService {
                         return request.ackTimeout();
                     }
                 });
+    }
+
+    public static void populateColumnPositions(Map<String, Object> mapping, CompressedXContent mappingToReference) {
+        Map<String, Object> parsedTemplateMapping = XContentHelper.convertToMap(mappingToReference.compressedReference(), true).map();
+        populateColumnPositionsImpl(
+            Maps.getOrDefault(mapping, "default", mapping),
+            Maps.getOrDefault(parsedTemplateMapping, "default", parsedTemplateMapping)
+        );
+    }
+
+    // template mappings must contain up-to-date and correct column positions that all relevant index mappings can reference.
+    @VisibleForTesting
+    static void populateColumnPositionsImpl(Map<String, Object> indexMapping, Map<String, Object> templateMapping) {
+        Map<String, Object> indexProperties = Maps.get(indexMapping, "properties");
+        if (indexProperties == null) {
+            return;
+        }
+        Map<String, Object> templateProperties = Maps.get(templateMapping, "properties");
+        if (templateProperties == null) {
+            templateProperties = Map.of();
+        }
+        for (var e : indexProperties.entrySet()) {
+            String key = e.getKey();
+            Map<String, Object> indexColumnProperties = (Map<String, Object>) e.getValue();
+            Map<String, Object> templateColumnProperties = (Map<String, Object>) templateProperties.get(key);
+
+            if (templateColumnProperties == null) {
+                templateColumnProperties = Map.of();
+            }
+            templateColumnProperties = furtherColumnProperties(templateColumnProperties);
+            indexColumnProperties = furtherColumnProperties(indexColumnProperties);
+
+            Integer templateChildPosition = (Integer) templateColumnProperties.get("position");
+            assert templateChildPosition != null : "the template mapping is missing column positions";
+            // since template mapping and index mapping should be consistent, simply override (this will resolve any duplicates in index mappings)
+            indexColumnProperties.put("position", templateChildPosition);
+
+            populateColumnPositionsImpl(indexColumnProperties, templateColumnProperties);
+        }
     }
 }
