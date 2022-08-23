@@ -47,7 +47,7 @@ public class SortedPagingIteratorTest extends ESTestCase {
 
     @Test
     public void testTwoBucketsAndTwoPagesAreSortedCorrectly() throws Exception {
-        SortedPagingIterator<Void, Row> pagingIterator = new SortedPagingIterator<>(ORDERING, randomBoolean());
+        PagingIterator<Void, Row> pagingIterator = PagingIterator.createSorted(ORDERING, randomBoolean());
 
         pagingIterator.merge(numberedBuckets(List.of(
             new ArrayBucket(new Object[][]{
@@ -102,7 +102,7 @@ public class SortedPagingIteratorTest extends ESTestCase {
 
     @Test
     public void testReplayReplaysCorrectly() throws Exception {
-        SortedPagingIterator<Void, Row> pagingIterator = new SortedPagingIterator<>(ORDERING, true);
+        PagingIterator<Void, Row> pagingIterator = PagingIterator.createSorted(ORDERING, true);
         pagingIterator.merge(numberedBuckets(List.of(
             new ArrayBucket(new Object[][]{
                 new Object[]{"a"},
@@ -141,7 +141,7 @@ public class SortedPagingIteratorTest extends ESTestCase {
 
     @Test
     public void testReplayOnEmptyIterators() {
-        SortedPagingIterator<Void, Row> pagingIterator = new SortedPagingIterator<>(ORDERING, true);
+        PagingIterator<Void, Row> pagingIterator = PagingIterator.createSorted(ORDERING, true);
         pagingIterator.merge(numberedBuckets(List.of(new ArrayBucket(new Object[][]{}))));
         List<Object> rows = new ArrayList<>();
         consumeSingleColumnRows(pagingIterator, rows);

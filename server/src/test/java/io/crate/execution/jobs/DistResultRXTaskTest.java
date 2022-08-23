@@ -56,7 +56,6 @@ import io.crate.data.Row;
 import io.crate.execution.engine.distribution.merge.KeyIterable;
 import io.crate.execution.engine.distribution.merge.PagingIterator;
 import io.crate.execution.engine.distribution.merge.PassThroughPagingIterator;
-import io.crate.execution.engine.distribution.merge.SortedPagingIterator;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.TestingRowConsumer;
 
@@ -128,7 +127,7 @@ public class DistResultRXTaskTest extends ESTestCase {
         TestingRowConsumer batchConsumer = new TestingRowConsumer();
         DistResultRXTask ctx = getPageDownstreamContext(
             batchConsumer,
-            new SortedPagingIterator<>(Comparator.comparingInt(r -> (int)r.get(0)), false),
+            PagingIterator.createSorted(Comparator.comparingInt(r -> (int)r.get(0)), false),
             2
         );
 

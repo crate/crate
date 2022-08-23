@@ -31,7 +31,6 @@ import io.crate.execution.engine.distribution.merge.KeyIterable;
 import io.crate.execution.engine.distribution.merge.PagingIterator;
 import io.crate.execution.engine.distribution.merge.PassThroughPagingIterator;
 import io.crate.execution.engine.distribution.merge.RamAccountingPageIterator;
-import io.crate.execution.engine.distribution.merge.SortedPagingIterator;
 import io.crate.execution.support.ThreadPools;
 import org.elasticsearch.index.shard.ShardId;
 
@@ -88,7 +87,7 @@ public class OrderedLuceneBatchIteratorFactory {
             } else {
                 collectorsByShardId = toMapByShardId(orderedDocCollectors);
                 pagingIterator = new RamAccountingPageIterator<>(
-                    new SortedPagingIterator<>(rowComparator, requiresScroll),
+                    PagingIterator.createSorted(rowComparator, requiresScroll),
                     rowAccounting
                 );
             }

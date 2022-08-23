@@ -43,11 +43,12 @@ import static io.crate.common.collections.Iterators.peekingIterator;
 /**
  * records sort order in order to repeat it later without having to sort everything again
  */
-final class RecordingSortedMergeIterator<TKey, TRow> implements SortedMergeIterator<TKey, TRow> {
+final class RecordingSortedMergeIterator<TKey, TRow> implements PagingIterator<TKey, TRow> {
 
     private final Queue<Indexed<TKey, PeekingIterator<TRow>>> queue;
     private Indexed<TKey, PeekingIterator<TRow>> lastUsedIter = null;
     private boolean leastExhausted = false;
+    private boolean ignoreLeastExhausted = false;
 
     private final IntArrayList sortRecording = new IntArrayList();
     private final List<Iterable<TRow>> storedIterables = new ArrayList<>();
@@ -61,9 +62,14 @@ final class RecordingSortedMergeIterator<TKey, TRow> implements SortedMergeItera
     }
 
     @Override
+    public void finish() {
+        ignoreLeastExhausted = true;
+    }
+
+    @Override
     public boolean hasNext() {
         reAddLastIterator();
-        return !queue.isEmpty();
+        return !queue.isEmpty() && (ignoreLeastExhausted || !leastExhausted);
     }
 
     private void reAddLastIterator() {
@@ -107,11 +113,6 @@ final class RecordingSortedMergeIterator<TKey, TRow> implements SortedMergeItera
         }
         addIterators(numberedIterables);
         leastExhausted = false;
-    }
-
-    @Override
-    public boolean isLeastExhausted() {
-        return leastExhausted;
     }
 
     @Override
