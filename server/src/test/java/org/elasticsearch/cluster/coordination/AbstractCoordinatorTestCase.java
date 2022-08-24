@@ -254,7 +254,6 @@ public class AbstractCoordinatorTestCase extends ESTestCase {
 
         final List<ClusterNode> clusterNodes;
         final DeterministicTaskQueue deterministicTaskQueue = new DeterministicTaskQueue(
-            // TODO does ThreadPool need a node name any more?
             Settings.builder().put(NODE_NAME_SETTING.getKey(), "deterministic-task-queue").build(), random());
         private boolean disruptStorage;
 
@@ -303,8 +302,13 @@ public class AbstractCoordinatorTestCase extends ESTestCase {
                 initialNodeCount, masterEligibleNodeIds, initialConfiguration);
         }
 
-        List<ClusterNode> addNodesAndStabilise(int newNodesCount) {
-            final List<ClusterNode> addedNodes = addNodes(newNodesCount);
+        void addNodesAndStabilise(int newNodesCount) {
+
+            // The stabilisation time bound is O(#new nodes) which isn't ideal; it's possible that the real bound is O(1) since node-join
+            // events are batched together, but in practice we have not seen problems in this area so have not invested the time needed to
+            // investigate this more closely.
+
+            addNodes(newNodesCount);
             stabilise(
                 // The first pinging discovers the master
                 defaultMillis(DISCOVERY_FIND_PEERS_INTERVAL_SETTING)
@@ -313,8 +317,6 @@ public class AbstractCoordinatorTestCase extends ESTestCase {
                     // Commit a new cluster state with the new node(s). Might be split into multiple commits, and each might need a
                     // followup reconfiguration
                     + newNodesCount * 2 * DEFAULT_CLUSTER_STATE_UPDATE_DELAY);
-            // TODO Investigate whether 4 publications is sufficient due to batching? A bound linear in the number of nodes isn't great.
-            return addedNodes;
         }
 
         List<ClusterNode> addNodes(int newNodesCount) {
@@ -345,7 +347,6 @@ public class AbstractCoordinatorTestCase extends ESTestCase {
          */
         void runRandomly(boolean allowReboots, boolean coolDown, long delayVariability) {
 
-            // TODO supporting (preserving?) existing disruptions needs implementing if needed, for now we just forbid it
             assertThat("may reconnect disconnected nodes, probably unexpected", disconnectedNodes, empty());
             assertThat("may reconnect blackholed nodes, probably unexpected", blackholedNodes, empty());
 
@@ -463,11 +464,6 @@ public class AbstractCoordinatorTestCase extends ESTestCase {
                             deterministicTaskQueue.runRandomTask();
                         }
                     }
-
-                    // TODO other random steps:
-                    // - reboot a node
-                    // - abdicate leadership
-
                 } catch (CoordinationStateRejectedException | UncheckedIOException ignored) {
                     // This is ok: it just means a message couldn't currently be handled.
                 }
@@ -1272,7 +1268,6 @@ public class AbstractCoordinatorTestCase extends ESTestCase {
 
         @Override
         public void onCommit(TimeValue commitTime) {
-            // TODO we only currently care about per-node acks
         }
 
         @Override
