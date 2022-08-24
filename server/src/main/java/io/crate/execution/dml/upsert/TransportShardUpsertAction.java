@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -368,7 +369,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                        UpdateSourceGen updateSourceGen) throws Exception {
         assert updateSourceGen != null : "UpdateSourceGen must not be null";
         Doc fetchedDoc = getDocument(indexShard, item.id(), item.version(), item.seqNo(), item.primaryTerm());
-        Map<String, Object> source = updateSourceGen.generateSource(
+        LinkedHashMap<String, Object> source = updateSourceGen.generateSource(
             fetchedDoc,
             item.updateAssignments(),
             item.insertValues()

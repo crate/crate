@@ -39,13 +39,12 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
-
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.index.shard.ShardId;
 
 import javax.annotation.Nullable;
-
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -60,7 +59,7 @@ public final class UpdateById implements Plan {
     private final Symbol[] returnValues;
 
     public UpdateById(DocTableInfo table,
-                      Map<Reference, Symbol> assignmentByTargetCol,
+                      LinkedHashMap<Reference, Symbol> assignmentByTargetCol,
                       DocKeys docKeys,
                       @Nullable List<Symbol> returnValues,
                       NodeContext nodeCtx) {

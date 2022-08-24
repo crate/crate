@@ -24,6 +24,7 @@ package io.crate.integrationtests;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
