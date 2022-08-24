@@ -1612,9 +1612,9 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
         for (final SnapshotsInProgress.Entry entry : snapshots.entries()) {
             if (entry.partial() == false) {
                 for (IndexId index : entry.indices()) {
-                    IndexMetadata indexMetaData = currentState.metadata().index(index.getName());
-                    if (indexMetaData != null && indicesToCheck.contains(indexMetaData.getIndex())) {
-                        indices.add(indexMetaData.getIndex());
+                    IndexMetadata indexMetadata = currentState.metadata().index(index.getName());
+                    if (indexMetadata != null && indicesToCheck.contains(indexMetadata.getIndex())) {
+                        indices.add(indexMetadata.getIndex());
                     }
                 }
             }

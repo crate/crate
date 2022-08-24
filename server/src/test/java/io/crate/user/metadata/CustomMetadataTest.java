@@ -47,7 +47,7 @@ import io.crate.metadata.view.ViewsMetadataTest;
 public class CustomMetadataTest {
 
     @Test
-    public void testAllMetaDataXContentRoundtrip() throws IOException {
+    public void testAllMetadataXContentRoundtrip() throws IOException {
         Metadata metadata = Metadata.builder()
             .putCustom(UsersMetadata.TYPE,
                 new UsersMetadata(UserDefinitions.DUMMY_USERS))
