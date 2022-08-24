@@ -158,24 +158,13 @@ public class DynamicMappingUpdateITest extends SQLIntegrationTestCase {
         execute("update t set o = {q={r={s=1}}}");
 
         execute("select column_name, ordinal_position from information_schema.columns where table_name = 't'");
-        assertThat(printedTable(response.rows())).containsAnyOf(
+        assertThat(printedTable(response.rows())).isEqualTo(
             """
             id| 1
             name| 2
             o| 3
             o['a']| 4
             o['b']| 5
-            o['a']['b']| 6
-            o['q']| 7
-            o['q']['r']| 8
-            o['q']['r']['s']| 9
-            """,
-            """
-            id| 1
-            name| 2
-            o| 3
-            o['b']| 4
-            o['a']| 5
             o['a']['b']| 6
             o['q']| 7
             o['q']['r']| 8

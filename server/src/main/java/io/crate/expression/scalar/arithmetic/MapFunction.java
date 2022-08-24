@@ -21,6 +21,8 @@
 
 package io.crate.expression.scalar.arithmetic;
 
+import static io.crate.metadata.functions.TypeVariableConstraint.typeVariableOfAnyType;
+import static io.crate.types.TypeSignature.parseTypeSignature;
 import io.crate.data.Input;
 import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.metadata.FunctionName;
@@ -30,12 +32,8 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
-
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariableOfAnyType;
-import static io.crate.types.TypeSignature.parseTypeSignature;
 
 /**
  * _map(k, v, [...]) -> object
@@ -92,7 +90,7 @@ public class MapFunction extends Scalar<Object, Object> {
     @SafeVarargs
     @Override
     public final Object evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object>... args) {
-        Map<String, Object> m = new HashMap<>(args.length / 2, 1.0f);
+        LinkedHashMap<String, Object> m = new LinkedHashMap<>(args.length / 2, 1.0f);
         for (int i = 0; i < args.length - 1; i += 2) {
             m.put((String) args[i].value(), args[i + 1].value());
         }
