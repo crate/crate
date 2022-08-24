@@ -21,6 +21,7 @@
 
 package io.crate.planner.node.dml;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -59,7 +60,7 @@ public final class UpdateById implements Plan {
     private final Symbol[] returnValues;
 
     public UpdateById(DocTableInfo table,
-                      Map<Reference, Symbol> assignmentByTargetCol,
+                      LinkedHashMap<Reference, Symbol> assignmentByTargetCol,
                       DocKeys docKeys,
                       @Nullable List<Symbol> returnValues,
                       NodeContext nodeCtx) {

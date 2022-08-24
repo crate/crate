@@ -21,9 +21,8 @@
 
 package io.crate.analyze;
 
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.RandomAccess;
 import java.util.function.Predicate;
@@ -115,7 +114,7 @@ public final class UpdateAnalyzer {
         );
         ExpressionAnalysisContext exprCtx = new ExpressionAnalysisContext(txnCtx.sessionSettings());
 
-        Map<Reference, Symbol> assignmentByTargetCol = getAssignments(
+        LinkedHashMap<Reference, Symbol> assignmentByTargetCol = getAssignments(
             update.assignments(), typeHints, txnCtx, table, normalizer, subqueryAnalyzer, sourceExprAnalyzer, exprCtx);
 
         Symbol query = Objects.requireNonNullElse(
@@ -140,15 +139,15 @@ public final class UpdateAnalyzer {
         );
     }
 
-    private HashMap<Reference, Symbol> getAssignments(List<Assignment<Expression>> assignments,
-                                                      ParamTypeHints typeHints,
-                                                      CoordinatorTxnCtx txnCtx,
-                                                      AbstractTableRelation<?> table,
-                                                      EvaluatingNormalizer normalizer,
-                                                      SubqueryAnalyzer subqueryAnalyzer,
-                                                      ExpressionAnalyzer sourceExprAnalyzer,
-                                                      ExpressionAnalysisContext exprCtx) {
-        HashMap<Reference, Symbol> assignmentByTargetCol = new HashMap<>();
+    private LinkedHashMap<Reference, Symbol> getAssignments(List<Assignment<Expression>> assignments,
+                                                            ParamTypeHints typeHints,
+                                                            CoordinatorTxnCtx txnCtx,
+                                                            AbstractTableRelation<?> table,
+                                                            EvaluatingNormalizer normalizer,
+                                                            SubqueryAnalyzer subqueryAnalyzer,
+                                                            ExpressionAnalyzer sourceExprAnalyzer,
+                                                            ExpressionAnalysisContext exprCtx) {
+        LinkedHashMap<Reference, Symbol> assignmentByTargetCol = new LinkedHashMap<>();
         ExpressionAnalyzer targetExprAnalyzer = new ExpressionAnalyzer(
             txnCtx,
             nodeCtx,

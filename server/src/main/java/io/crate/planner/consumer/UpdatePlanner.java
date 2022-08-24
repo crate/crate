@@ -25,6 +25,7 @@ import static java.util.Collections.singletonList;
 import static java.util.Objects.requireNonNull;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -124,7 +125,7 @@ public final class UpdatePlanner {
     }
 
     private static Plan plan(DocTableRelation docTable,
-                             Map<Reference, Symbol> assignmentByTargetCol,
+                             LinkedHashMap<Reference, Symbol> assignmentByTargetCol,
                              Symbol query,
                              PlannerContext plannerCtx,
                              @Nullable List<Symbol> returnValues) {
@@ -251,7 +252,7 @@ public final class UpdatePlanner {
 
     private static ExecutionPlan updateByQuery(PlannerContext plannerCtx,
                                                DocTableRelation table,
-                                               Map<Reference, Symbol> assignmentByTargetCol,
+                                               LinkedHashMap<Reference, Symbol> assignmentByTargetCol,
                                                WhereClauseOptimizer.DetailedQuery detailedQuery,
                                                Row params,
                                                SubQueryResults subQueryResults,

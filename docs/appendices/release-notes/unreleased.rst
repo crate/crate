@@ -141,3 +141,6 @@ Fixes
 
 - Fixed a column positions issue that caused an ``INSERT`` or any other
   statements that adds columns dynamically to throw an exception.
+
+- Fixed ``UPDATE`` to preserve the column order implied by its ``SET`` clause
+  when adding columns dynamically.
