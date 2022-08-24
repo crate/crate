@@ -444,7 +444,7 @@ should be crossed out as well.
 - [ ] 4d36917e526  Merge feature/searchable-snapshots branch into 7.x (#54803)  (#54825)
 - [ ] 2fdbed7797a Broadcast cancellation to only nodes have outstanding child tasks (#54312)
 - [ ] 5fb76022276 Disallow changing 'enabled' on the root mapper. (#54681)
-- [ ] 6d976e14684 Resolve some coordination-layer TODOs (#54511)
+- [x] 6d976e14684 Resolve some coordination-layer TODOs (#54511)
 - [x] 5e3b6ab82b8 Use VotingConfiguration#of where possible (#54507)
 - [x] 63e5f2b765f Rename META_DATA to METADATA
 - [sa] 5fcda57b37f Rename MetaData to Metadata in all of the places (#54519)
