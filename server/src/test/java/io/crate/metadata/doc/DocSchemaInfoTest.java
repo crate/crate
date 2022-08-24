@@ -171,63 +171,63 @@ public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_remove_all_tables() throws Exception {
         var state = docTablesByName("t1", "t2", "t3", "t4");
-        var prevMetaData = publicationsMetadata("pub1", true, List.of());
-        var newMetaData = publicationsMetadata("pub1", false, List.of());
+        var prevMetadata = publicationsMetadata("pub1", true, List.of());
+        var newMetadata = publicationsMetadata("pub1", false, List.of());
 
-        assertThat(getTablesAffectedByPublicationsChange(prevMetaData, newMetaData, state), containsInAnyOrder("t1", "t2", "t3", "t4"));
+        assertThat(getTablesAffectedByPublicationsChange(prevMetadata, newMetadata, state), containsInAnyOrder("t1", "t2", "t3", "t4"));
     }
 
     @Test
     public void test_add_and_remove_tables() throws Exception {
         var state = docTablesByName("t1", "t2", "t3", "t4");
         // publish t3, t4 drop t1, t2
-        var prevMetaData = publicationsMetadata("pub1", false, List.of("t1", "t2"));
-        var newMetaData = publicationsMetadata("pub1", false, List.of("t1", "t2", "t3", "t4"));
+        var prevMetadata = publicationsMetadata("pub1", false, List.of("t1", "t2"));
+        var newMetadata = publicationsMetadata("pub1", false, List.of("t1", "t2", "t3", "t4"));
 
-        assertThat(getTablesAffectedByPublicationsChange(prevMetaData, newMetaData, state), containsInAnyOrder("t3", "t4"));
+        assertThat(getTablesAffectedByPublicationsChange(prevMetadata, newMetadata, state), containsInAnyOrder("t3", "t4"));
 
         // publish t3, t4 drop t2
-        prevMetaData = publicationsMetadata("pub1", false, List.of("t1", "t2"));
-        newMetaData = publicationsMetadata("pub1", false, List.of("t1", "t3", "t4"));
+        prevMetadata = publicationsMetadata("pub1", false, List.of("t1", "t2"));
+        newMetadata = publicationsMetadata("pub1", false, List.of("t1", "t3", "t4"));
 
-        assertThat(getTablesAffectedByPublicationsChange(prevMetaData, newMetaData, state), containsInAnyOrder("t2", "t3", "t4"));
+        assertThat(getTablesAffectedByPublicationsChange(prevMetadata, newMetadata, state), containsInAnyOrder("t2", "t3", "t4"));
     }
 
     @Test
     public void test_publish_all_tables_when_tables_have_been_previously_published() throws Exception {
         var state = docTablesByName("t1", "t2", "t3", "t4");
         // publish t3, t4 drop t1, t2
-        var prevMetaData = publicationsMetadata("pub1", false, List.of("t1", "t2"));
-        var newMetaData = publicationsMetadata("pub1", true, List.of());
+        var prevMetadata = publicationsMetadata("pub1", false, List.of("t1", "t2"));
+        var newMetadata = publicationsMetadata("pub1", true, List.of());
 
-        assertThat(getTablesAffectedByPublicationsChange(prevMetaData, newMetaData, state), containsInAnyOrder("t3", "t4"));
+        assertThat(getTablesAffectedByPublicationsChange(prevMetadata, newMetadata, state), containsInAnyOrder("t3", "t4"));
     }
 
     @Test
     public void test_unpublish_all_tables_when_tables_have_been_previously_published() throws Exception {
         var state = docTablesByName("t1", "t2", "t3", "t4");
-        var prevMetaData = publicationsMetadata("pub1", false, List.of("t1", "t2"));
-        var newMetaData = publicationsMetadata("pub1", false, List.of());
+        var prevMetadata = publicationsMetadata("pub1", false, List.of("t1", "t2"));
+        var newMetadata = publicationsMetadata("pub1", false, List.of());
 
-        assertThat(getTablesAffectedByPublicationsChange(prevMetaData, newMetaData, state), containsInAnyOrder("t1", "t2"));
+        assertThat(getTablesAffectedByPublicationsChange(prevMetadata, newMetadata, state), containsInAnyOrder("t1", "t2"));
     }
 
     @Test
     public void test_drop_all_previous_published_tables() throws Exception {
         var state = docTablesByName("t1", "t2", "t3", "t4");
-        var prevMetaData = publicationsMetadata("pub1", false, List.of("t1", "t2"));
-        var newMetaData = publicationsMetadata("pub1", false, List.of());
+        var prevMetadata = publicationsMetadata("pub1", false, List.of("t1", "t2"));
+        var newMetadata = publicationsMetadata("pub1", false, List.of());
 
-        assertThat(getTablesAffectedByPublicationsChange(prevMetaData, newMetaData, state), containsInAnyOrder("t1", "t2"));
+        assertThat(getTablesAffectedByPublicationsChange(prevMetadata, newMetadata, state), containsInAnyOrder("t1", "t2"));
     }
 
     @Test
     public void test_nothing_changed() throws Exception {
         var state = docTablesByName("t1", "t2", "t3", "t4");
-        var prevMetaData = publicationsMetadata("pub1", false, List.of("t1", "t2"));
-        var newMetaData = publicationsMetadata("pub1", false, List.of("t1", "t2"));
+        var prevMetadata = publicationsMetadata("pub1", false, List.of("t1", "t2"));
+        var newMetadata = publicationsMetadata("pub1", false, List.of("t1", "t2"));
 
-        assertThat(getTablesAffectedByPublicationsChange(prevMetaData, newMetaData, state), containsInAnyOrder());
+        assertThat(getTablesAffectedByPublicationsChange(prevMetadata, newMetadata, state), containsInAnyOrder());
         assertThat(getTablesAffectedByPublicationsChange(null, null, state), containsInAnyOrder());
     }
 

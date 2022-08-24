@@ -273,11 +273,11 @@ public class TransportVerifyShardBeforeCloseActionTests extends ESTestCase {
         setState(clusterService, clusterState);
 
         IndexShardRoutingTable shardRoutingTable = clusterState.routingTable().index(index).shard(shardId.id());
-        IndexMetadata indexMetaData = clusterState.getMetadata().index(index);
+        IndexMetadata indexMetadata = clusterState.getMetadata().index(index);
         ShardRouting primaryRouting = shardRoutingTable.primaryShard();
-        long primaryTerm = indexMetaData.primaryTerm(0);
+        long primaryTerm = indexMetadata.primaryTerm(0);
 
-        Set<String> inSyncAllocationIds = indexMetaData.inSyncAllocationIds(0);
+        Set<String> inSyncAllocationIds = indexMetadata.inSyncAllocationIds(0);
         Set<String> trackedShards = shardRoutingTable.getAllAllocationIds();
 
         List<ShardRouting> unavailableShards = randomSubsetOf(

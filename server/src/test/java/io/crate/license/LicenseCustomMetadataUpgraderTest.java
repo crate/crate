@@ -51,7 +51,7 @@ public class LicenseCustomMetadataUpgraderTest {
 
     @Test
     public void test_remove_license_custom_metadata() {
-        var metadata = randomMetadata(new LicenseCustomMetaData("license_key"));
+        var metadata = randomMetadata(new LicenseCustomMetadata("license_key"));
         var customMetadataUpgraderLoader = new CustomMetadataUpgraderLoader(Settings.EMPTY);
         var metadataUpgrader = new MetadataUpgrader(
             List.of(customs -> customMetadataUpgraderLoader.apply(customs)),
@@ -60,13 +60,13 @@ public class LicenseCustomMetadataUpgraderTest {
         var upgrade = GatewayMetaState.upgradeMetadata(metadata, new GatewayMetaStateTests.MockMetadataIndexUpgradeService(false), metadataUpgrader);
         assertThat(upgrade != metadata, is(true));
         assertThat(Metadata.isGlobalStateEquals(upgrade, metadata), is(false));
-        assertThat(upgrade.custom(LicenseCustomMetaData.TYPE), is(nullValue()));
+        assertThat(upgrade.custom(LicenseCustomMetadata.TYPE), is(nullValue()));
     }
 
-    private static class LicenseCustomMetaData extends TestCustomMetadata {
+    private static class LicenseCustomMetadata extends TestCustomMetadata {
         public static final String TYPE = License.WRITEABLE_TYPE;
 
-        protected LicenseCustomMetaData(String data) {
+        protected LicenseCustomMetadata(String data) {
             super(data);
         }
 
