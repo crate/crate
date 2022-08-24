@@ -458,7 +458,7 @@ public class IndicesService extends AbstractLifecycleComponent
             closeables.add(indicesQueryCache);
             // this will also fail if some plugin fails etc. which is nice since we can verify that early
             final IndexService service = createIndexService(
-                IndexCreationContext.META_DATA_VERIFICATION,
+                IndexCreationContext.METADATA_VERIFICATION,
                 metadata,
                 indicesQueryCache,
                 emptyList()
