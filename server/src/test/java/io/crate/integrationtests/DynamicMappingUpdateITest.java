@@ -205,8 +205,7 @@ public class DynamicMappingUpdateITest extends SQLIntegrationTestCase {
         execute("alter table t add column o['q']['r']['s'] int");
 
         execute("select column_name, ordinal_position from information_schema.columns where table_name = 't'");
-        assertThat(printedTable(response.rows()), anyOf(
-            is(
+        assertThat(printedTable(response.rows()), is(
             """
             id| 1
             name| 2
@@ -217,19 +216,7 @@ public class DynamicMappingUpdateITest extends SQLIntegrationTestCase {
             o['q']| 7
             o['q']['r']| 8
             o['q']['r']['s']| 9
-            """),
-            is(
-            """
-            id| 1
-            name| 2
-            o| 3
-            o['b']| 4
-            o['a']| 5
-            o['a']['b']| 6
-            o['q']| 7
-            o['q']['r']| 8
-            o['q']['r']['s']| 9
-            """)));
+            """));
     }
 
     @Test
