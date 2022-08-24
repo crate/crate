@@ -552,7 +552,7 @@ public class IndexSettingsTests extends ESTestCase {
                     assertThat(
                         ex,
                         hasToString(containsString(
-                            "failed to parse value [-200] for setting [index.refresh_interval], must be >= [-1]")
+                            "failed to parse setting [index.refresh_interval] with value [-200] as a time value: negative durations are not supported")
                         )
                     );
                 });
