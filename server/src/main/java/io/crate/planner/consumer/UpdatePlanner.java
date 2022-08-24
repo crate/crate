@@ -21,6 +21,8 @@
 
 package io.crate.planner.consumer;
 
+import static java.util.Collections.singletonList;
+import static java.util.Objects.requireNonNull;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.AnalyzedUpdateStatement;
 import io.crate.analyze.WhereClause;
@@ -71,12 +73,10 @@ import org.elasticsearch.Version;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-
-import static java.util.Collections.singletonList;
-import static java.util.Objects.requireNonNull;
 
 public final class UpdatePlanner {
 
@@ -123,7 +123,7 @@ public final class UpdatePlanner {
     }
 
     private static Plan plan(DocTableRelation docTable,
-                             Map<Reference, Symbol> assignmentByTargetCol,
+                             LinkedHashMap<Reference, Symbol> assignmentByTargetCol,
                              Symbol query,
                              PlannerContext plannerCtx,
                              @Nullable List<Symbol> returnValues) {
@@ -250,7 +250,7 @@ public final class UpdatePlanner {
 
     private static ExecutionPlan updateByQuery(PlannerContext plannerCtx,
                                                DocTableRelation table,
-                                               Map<Reference, Symbol> assignmentByTargetCol,
+                                               LinkedHashMap<Reference, Symbol> assignmentByTargetCol,
                                                WhereClauseOptimizer.DetailedQuery detailedQuery,
                                                Row params,
                                                SubQueryResults subQueryResults,

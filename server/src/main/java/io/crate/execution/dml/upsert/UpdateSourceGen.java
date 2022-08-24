@@ -40,6 +40,7 @@ import io.crate.metadata.doc.DocTableInfo;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
@@ -105,7 +106,7 @@ final class UpdateSourceGen {
         }
     }
 
-    Map<String, Object> generateSource(Doc result, Symbol[] updateAssignments, Object[] insertValues) {
+    LinkedHashMap<String, Object> generateSource(Doc result, Symbol[] updateAssignments, Object[] insertValues) {
         /* We require a new HashMap because all evaluations of the updateAssignments need to be based on the
          * values *before* the update. For example:
          *
@@ -115,7 +116,7 @@ final class UpdateSourceGen {
          * Must result in y = 10, not 15
          */
         Values values = new Values(result, insertValues);
-        HashMap<String, Object> updatedSource = new HashMap<>(result.getSource());
+        LinkedHashMap<String, Object> updatedSource = new LinkedHashMap<>(result.getSource());
         Doc updatedDoc = result.withUpdatedSource(updatedSource);
         for (int i = 0; i < updateColumns.size(); i++) {
             Reference ref = updateColumns.get(i);
