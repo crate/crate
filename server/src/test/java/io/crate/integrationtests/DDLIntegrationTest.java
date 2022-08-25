@@ -397,7 +397,7 @@ public class DDLIntegrationTest extends SQLIntegrationTestCase {
         execute("alter table t add column bazinga integer constraint bazinga_check check(bazinga <> 42)");
         execute("insert into t(id, qty, bazinga) values(0, 1, 100)");
         assertThrowsMatches(() -> execute("insert into t(id, qty, bazinga) values(0, 1, 42)"),
-                     isSQLError(containsString("Failed CONSTRAINT bazinga_check CHECK (\"bazinga\" <> 42) and values {qty=1, id=0, bazinga=42}"),
+                     isSQLError(containsString("Failed CONSTRAINT bazinga_check CHECK (\"bazinga\" <> 42) and values {id=0, qty=1, bazinga=42}"),
                                 INTERNAL_ERROR,
                                 BAD_REQUEST,
                                 4000));
@@ -431,7 +431,7 @@ public class DDLIntegrationTest extends SQLIntegrationTestCase {
         ));
         execute("insert into t(id, qty) values(-42, 100)");
         assertThrowsMatches(() -> execute("insert into t(id, qty) values(0, 0)"),
-                     isSQLError(is("Failed CONSTRAINT check_qty_gt_zero CHECK (\"qty\" > 0) and values {qty=0, id=0}"),
+                     isSQLError(is("Failed CONSTRAINT check_qty_gt_zero CHECK (\"qty\" > 0) and values {id=0, qty=0}"),
                          INTERNAL_ERROR,
                          BAD_REQUEST,
                          4000));
