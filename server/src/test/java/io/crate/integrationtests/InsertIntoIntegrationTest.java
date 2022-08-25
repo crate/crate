@@ -41,6 +41,7 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.HashMap;
 import java.util.List;
@@ -1663,5 +1664,51 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         assertThat(printedTable(response.rows()), is(
             "1\n"
         ));
+    }
+
+    @Test
+    public void test_insert_preserves_the_implied_top_level_column_order() {
+        execute(
+            """
+                create table t (
+                    p int
+                ) partitioned by (p) with (column_policy = 'dynamic');
+                """
+        );
+        execute("insert into t(p, b, a, d, c) values (1, 2, 3, 4, 5)");
+        execute("refresh table t");
+        execute("select * from t");
+        assertThat(response.cols())
+            // follow the same order as provided by 'insert into t(p, b, a, d, c) ..'
+            .isEqualTo(new String[] {"p", "b", "a", "d", "c"});
+    }
+
+    @Test
+    public void test_insert_preserves_the_implied_sub_column_order() {
+        execute(
+            """
+                create table doc.t (
+                    o object
+                ) with (column_policy = 'dynamic');
+                """
+        );
+        execute("insert into doc.t(o) values ({c=1, a={d=1, b=1, c=1, a=1}, b=1})");
+        execute("refresh table doc.t");
+        execute("show create table doc.t");
+        assertThat(printedTable(response.rows()))
+            // the same order as provided by '.. values ({c=1, a={d=1, b=1, c=1, a=1}, b=1})'
+            .contains(
+                "CREATE TABLE IF NOT EXISTS \"doc\".\"t\" (\n" +
+                "   \"o\" OBJECT(DYNAMIC) AS (\n" +
+                "      \"c\" BIGINT,\n" +
+                "      \"a\" OBJECT(DYNAMIC) AS (\n" +
+                "         \"d\" BIGINT,\n" +
+                "         \"b\" BIGINT,\n" +
+                "         \"c\" BIGINT,\n" +
+                "         \"a\" BIGINT\n" +
+                "      ),\n" +
+                "      \"b\" BIGINT\n" +
+                "   )"
+            );
     }
 }
