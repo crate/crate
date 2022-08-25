@@ -236,7 +236,7 @@ public class DynamicMappingUpdateITest extends SQLIntegrationTestCase {
         execute("refresh table t");
         execute("select column_name, ordinal_position, data_type from information_schema.columns where table_name = 't' order by 2");
 
-        assertThat(printedTable(response.rows())).containsAnyOf(
+        assertThat(printedTable(response.rows())).isEqualTo(
             """
             tb| 1| object_array
             p| 2| integer
@@ -249,20 +249,6 @@ public class DynamicMappingUpdateITest extends SQLIntegrationTestCase {
             o| 9| object
             o['a']| 10| object
             o['b']| 11| bigint
-            o['a']['b']| 12| bigint
-            """,
-            """
-            tb| 1| object_array
-            p| 2| integer
-            tb['t1']| 3| object_array
-            tb['t2']| 4| object
-            tb['t1']['t3']| 5| object
-            tb['t1']['t6']| 6| bigint_array
-            tb['t1']['t3']['t4']| 7| object
-            tb['t1']['t3']['t4']['t5']| 8| bigint
-            o| 9| object
-            o['b']| 10| bigint
-            o['a']| 11| object
             o['a']['b']| 12| bigint
             """
         );
