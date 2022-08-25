@@ -160,7 +160,7 @@ public class CreateTableIntegrationTest extends SQLIntegrationTestCase {
                 """);
         assertThrowsMatches(
             () -> execute("INSERT INTO test(col1) VALUES(0)"),
-            isSQLError(startsWith("Failed CONSTRAINT gt_zero CHECK (\"col2\" > 0) and values {col2=0, col1=0}"),
+            isSQLError(startsWith("Failed CONSTRAINT gt_zero CHECK (\"col2\" > 0) and values {col1=0, col2=0}"),
                        INTERNAL_ERROR,
                        BAD_REQUEST,
                        4000));

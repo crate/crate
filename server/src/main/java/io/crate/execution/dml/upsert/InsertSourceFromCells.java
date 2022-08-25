@@ -22,7 +22,7 @@
 package io.crate.execution.dml.upsert;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -108,7 +108,7 @@ public final class InsertSourceFromCells implements InsertSourceGen {
         row.firstCells(values);
         evaluateDefaultValues();
 
-        HashMap<String, Object> source = new HashMap<>();
+        LinkedHashMap<String, Object> source = new LinkedHashMap<>();
         for (int i = 0; i < targets.size(); i++) {
             Reference target = targets.get(i);
             Object valueForInsert = target
