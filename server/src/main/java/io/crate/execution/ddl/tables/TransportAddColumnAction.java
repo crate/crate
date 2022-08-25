@@ -171,12 +171,36 @@ public class TransportAddColumnAction extends AbstractDDLTransportAction<AddColu
             );
         }
 
-        // properties field (columnstore, index flags and column type specific properties)
-        Maps.mergeInto(existingMapping, "properties", List.of(), request.columnProperties(),
-            (map, key, value) -> {
-                LinkedHashMap<String, Object> colProps = (LinkedHashMap) value;
+        /*
+        properties field (contains position, columnstore flag, index flag and column type specific properties).
+        In case of the nested object 'properties' field is repeated,
+        and thus 'a.b.c' object col path is 'properties.a.properties.b.properties.c'
 
-                ((LinkedHashMap) map.computeIfAbsent(key, k -> new LinkedHashMap<>())).put(request.columnRef().column().fqn(), colProps);
+        format:
+        {
+            col1: {
+               position: some_position
+               type: some_type
+               ...
+
+               * optional, only for nested objects *
+               properties: {
+                   nested_col1: {...},
+                   nested_col2: {...},
+               }
+            },
+            col2: {...}
+        }
+        */
+
+        Map currentProperties = (Map) existingMapping.get("properties");
+        assert currentProperties != null : "Mapping metadata must have 'properties field'";
+        currentProperties.merge(
+            request.columnRef().column().name(),
+            request.columnProperties(),
+            (oldMap, newMap) -> {
+                Maps.extendRecursive((Map<String, Object>) oldMap, (Map<String, Object>) newMap);
+                return oldMap;
             }
         );
     }
