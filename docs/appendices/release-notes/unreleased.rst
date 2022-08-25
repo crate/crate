@@ -107,3 +107,6 @@ Fixes
 
 - Fixed ``UPDATE`` to preserve the column order implied by its ``SET`` clause
   when adding columns dynamically.
+
+- Updated the Admin UI to version 1.22.2. It includes a fix for a rendering
+  issue causing jumping behavior on selected views in view list.
