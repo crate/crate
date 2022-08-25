@@ -164,7 +164,7 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
             return map;
         }
 
-        HashMap<String, Object> newMap = new HashMap<>(map);
+        HashMap<String, Object> newMap = (map instanceof LinkedHashMap<String, Object>) ? new LinkedHashMap<>(map) : new HashMap<>(map);
         for (Map.Entry<String, Object> entry : map.entrySet()) {
             String key = entry.getKey();
             DataType<?> targetType = innerTypes.getOrDefault(key, UndefinedType.INSTANCE);
