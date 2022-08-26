@@ -31,12 +31,13 @@ import org.elasticsearch.common.xcontent.XContentType;
 
 import javax.annotation.Nullable;
 import java.net.URI;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class LineContext {
 
     private byte[] rawSource;
-    private Map<String, Object> parsedSource;
+    private LinkedHashMap<String, Object> parsedSource;
     private String currentUri;
     private String currentUriFailure;
     private String currentParsingFailure;
@@ -53,11 +54,12 @@ public class LineContext {
     }
 
     @Nullable
-    Map<String, Object> sourceAsMap() {
+    LinkedHashMap<String, Object> sourceAsMap() {
         if (parsedSource == null) {
             if (rawSource != null) {
                 try {
-                    parsedSource = XContentHelper.toMap(new BytesArray(rawSource), XContentType.JSON);
+                    // preserve the order of the rawSource
+                    parsedSource = (LinkedHashMap<String, Object>) XContentHelper.convertToMap(new BytesArray(rawSource), true, XContentType.JSON).v2();
                 } catch (ElasticsearchParseException | NotXContentException e) {
                     throw new RuntimeException("JSON parser error: " + e.getMessage(), e);
                 }

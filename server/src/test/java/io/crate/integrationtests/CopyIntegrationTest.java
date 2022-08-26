@@ -37,6 +37,16 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.startsWith;
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import com.carrotsearch.randomizedtesting.LifecycleScope;
+import io.crate.testing.SQLResponse;
+import io.crate.testing.UseJdbc;
+import org.elasticsearch.test.ESIntegTestCase;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -56,16 +66,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
-
-import org.elasticsearch.test.ESIntegTestCase;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
-
-import com.carrotsearch.randomizedtesting.LifecycleScope;
-
-import io.crate.testing.SQLResponse;
-import io.crate.testing.UseJdbc;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2)
 public class CopyIntegrationTest extends SQLHttpIntegrationTest {
@@ -1075,5 +1075,68 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         assertThat(response.rows()[0][2], is(2L));
         assertThat(response.rows()[0][3], is(9L));
 
+    }
+
+    @Test
+    public void test_copy_preserves_implied_top_level_column_order() throws IOException {
+        execute(
+            """
+                create table t (
+                    p int
+                ) partitioned by (p) with (column_policy = 'dynamic');
+                """
+        );
+        var lines = List.of(
+            """
+            {"b":1, "a":1, "d":1, "c":1}
+            """
+        );
+        var file = folder.newFile(UUID.randomUUID().toString());
+        Files.write(file.toPath(), lines, StandardCharsets.UTF_8);
+        execute("copy t from ? ", new Object[]{Paths.get(file.toURI()).toUri().toString()});
+        execute("refresh table t");
+        execute("select * from t");
+        assertThat(response.cols(),
+            // follow the same order as provided by '{"b":1, "a":1, "d":1, "c":1}'
+            is(new String[] {"p", "b", "a", "d", "c"}));
+    }
+
+    @Test
+    public void test_copy_preserves_the_implied_sub_column_order() throws IOException {
+        execute(
+            """
+                create table doc.t (
+                    p int,
+                    o object
+                ) partitioned by (p) with (column_policy = 'dynamic');
+                """
+        );
+        var lines = List.of(
+            """
+            {"o":{"c":1, "a":{"d":1, "b":1, "c":1, "a":1}, "b":1}}
+            """
+        );
+        var file = folder.newFile(UUID.randomUUID().toString());
+        Files.write(file.toPath(), lines, StandardCharsets.UTF_8);
+        execute("copy doc.t from ? ", new Object[]{Paths.get(file.toURI()).toUri().toString()});
+        execute("refresh table doc.t");
+        execute("show create table doc.t");
+        assertThat(printedTable(response.rows()),
+            // follow the same order as provided by '{"o":{"c":1, "a":{"d":1, "b":1, "c":1, "a":1}, "b":1}}'
+            containsString(
+                "CREATE TABLE IF NOT EXISTS \"doc\".\"t\" (\n" +
+                "   \"p\" INTEGER,\n" +
+                "   \"o\" OBJECT(DYNAMIC) AS (\n" +
+                "      \"c\" BIGINT,\n" +
+                "      \"a\" OBJECT(DYNAMIC) AS (\n" +
+                "         \"d\" BIGINT,\n" +
+                "         \"b\" BIGINT,\n" +
+                "         \"c\" BIGINT,\n" +
+                "         \"a\" BIGINT\n" +
+                "      ),\n" +
+                "      \"b\" BIGINT\n" +
+                "   )\n" +
+                ")"
+            ));
     }
 }
