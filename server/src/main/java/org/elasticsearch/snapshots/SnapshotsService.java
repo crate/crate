@@ -1045,7 +1045,8 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                     // will try ending this snapshot again
                     LOGGER.debug(() -> new ParameterizedMessage(
                         "[{}] failed to update cluster state during snapshot finalization", snapshot), e);
-                    endingSnapshots.remove(snapshot);
+                    failSnapshotCompletionListeners(snapshot,
+                        new SnapshotException(snapshot, "Failed to update cluster state during snapshot finalization", e));
                 } else {
                     LOGGER.warn(() -> new ParameterizedMessage("[{}] failed to finalize snapshot", snapshot), e);
                     removeSnapshotFromClusterState(snapshot, null, e);
@@ -1099,7 +1100,8 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
             @Override
             public void onFailure(String source, Exception e) {
                 LOGGER.warn(() -> new ParameterizedMessage("[{}] failed to remove snapshot metadata", snapshot), e);
-                endingSnapshots.remove(snapshot);
+                failSnapshotCompletionListeners(
+                    snapshot, new SnapshotException(snapshot, "Failed to remove snapshot from cluster state", e));
                 if (listener != null) {
                     listener.onFailure(e);
                 }
@@ -1107,7 +1109,8 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
 
             @Override
             public void onNoLongerMaster(String source) {
-                endingSnapshots.remove(snapshot);
+                failSnapshotCompletionListeners(
+                    snapshot, ExceptionsHelper.useOrSuppress(failure, new SnapshotException(snapshot, "no longer master")));
                 if (listener != null) {
                     listener.onNoLongerMaster();
                 }
@@ -1115,24 +1118,36 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
 
             @Override
             public void clusterStateProcessed(String source, ClusterState oldState, ClusterState newState) {
-                final List<ActionListener<SnapshotInfo>> completionListeners = snapshotCompletionListeners.remove(snapshot);
-                if (completionListeners != null) {
-                    try {
-                        if (snapshotInfo == null) {
-                            ActionListener.onFailure(completionListeners, failure);
-                        } else {
+                if (snapshotInfo == null) {
+                    failSnapshotCompletionListeners(snapshot, failure);
+                } else {
+                    final List<ActionListener<SnapshotInfo>> completionListeners = snapshotCompletionListeners.remove(snapshot);
+                    if (completionListeners != null) {
+                        try {
                             ActionListener.onResponse(completionListeners, snapshotInfo);
+                        } catch (Exception e) {
+                            LOGGER.warn("Failed to notify listeners", e);
                         }
-                    } catch (Exception e) {
-                        LOGGER.warn("Failed to notify listeners", e);
                     }
+                    endingSnapshots.remove(snapshot);
                 }
-                endingSnapshots.remove(snapshot);
                 if (listener != null) {
                     listener.onResponse(snapshotInfo);
                 }
             }
         });
+    }
+
+    private void failSnapshotCompletionListeners(Snapshot snapshot, Exception e) {
+        final List<ActionListener<SnapshotInfo>> completionListeners = snapshotCompletionListeners.remove(snapshot);
+        if (completionListeners != null) {
+            try {
+                ActionListener.onFailure(completionListeners, e);
+            } catch (Exception ex) {
+                LOGGER.warn("Failed to notify listeners", ex);
+            }
+        }
+        endingSnapshots.remove(snapshot);
     }
 
     /**
