@@ -194,15 +194,28 @@ public class TransportAddColumnAction extends AbstractDDLTransportAction<AddColu
         */
 
         Map currentProperties = (Map) existingMapping.get("properties");
-        assert currentProperties != null : "Mapping metadata must have 'properties field'";
-        currentProperties.merge(
-            request.columnRef().column().name(),
-            request.columnProperties(),
-            (oldMap, newMap) -> {
-                Maps.extendRecursive((Map<String, Object>) oldMap, (Map<String, Object>) newMap);
-                return oldMap;
-            }
-        );
+        if (currentProperties == null) {
+            // existingMapping passed as an empty map in case of partitioned tables as template gets all changes unfiltered.
+            // Nothing to merge to the empty map, just put all incoming mappings according to the format specified above.
+            var props = new LinkedHashMap<String, Object>();
+            props.put(request.columnRef().column().name(), request.columnProperties());
+            existingMapping.put("properties", props);
+        } else {
+            currentProperties.merge(
+                // in case of adding a nested object, say, a.b.c,
+                // actual column being added is c (column().leafName()) and full name is column.fqn().
+                // However, we intentionally use outermost object column 'a' returned by column().name()
+                // so that we don't need to compute overlap of (existingMap, request.columnProperties()) and mutate request.columnProperties() to exclude overlap.
+                // We insert request.columnProperties() which contains correct chain with all nested maps
+                // but we need to keep existing sibling sub-cols (say, a.b1, a.b.c1) on each level and thus we use extendRecursive.
+                request.columnRef().column().name(),
+                request.columnProperties(),
+                (oldMap, newMap) -> {
+                    Maps.extendRecursive((Map<String, Object>) oldMap, (Map<String, Object>) newMap);
+                    return oldMap;
+                }
+            );
+        }
     }
 
     @Override
