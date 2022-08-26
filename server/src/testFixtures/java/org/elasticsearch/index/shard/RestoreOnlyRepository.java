@@ -50,6 +50,8 @@ import java.util.Set;
 
 import static org.elasticsearch.repositories.RepositoryData.EMPTY_REPO_GEN;
 
+import javax.annotation.Nullable;
+
 public abstract class RestoreOnlyRepository implements Repository {
 
     private final String indexName;
@@ -144,6 +146,7 @@ public abstract class RestoreOnlyRepository implements Repository {
                               SnapshotId snapshotId,
                               IndexId indexId,
                               IndexCommit snapshotIndexCommit,
+                              @Nullable String shardStateIdentifier,
                               IndexShardSnapshotStatus snapshotStatus,
                               Version repositoryMetaVersion,
                               ActionListener<String> listener) {

@@ -464,7 +464,7 @@ should be crossed out as well.
 - [s] 1c1730facd4 Mask wildcard query special characters on keyword queries (#53127) (#53512)
 - [s] d3cc5bff17d Give helpful message on remote connections disabled (#53690)
 - [s] 960d1fb578d Revert "Introduce system index APIs for Kibana (#53035)" (#53992)
-- [ ] 5b9864db2c3 Better Incrementality for Snapshots of Unchanged Shards (#52182) (#53984)
+- [x] 5b9864db2c3 Better Incrementality for Snapshots of Unchanged Shards (#52182) (#53984)
 - [s] efd18382066 Handle properly indexing rectangles that crosses the dateline (#53810) (#53947)
 - [x] 879e26ec067 Describe STALE_STATE_CONFIG in ClusterFormationFH (#53878)
 - [s] adfeb50a534 Use consistent threadpools in CoordinatorTests (#53868)

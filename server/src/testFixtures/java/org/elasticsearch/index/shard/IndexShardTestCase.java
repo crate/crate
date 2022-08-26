@@ -967,7 +967,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
         final String shardGen;
         try (Engine.IndexCommitRef indexCommitRef = shard.acquireLastIndexCommit(true)) {
             repository.snapshotShard(shard.store(), shard.mapperService(), snapshot.getSnapshotId(), indexId,
-                                     indexCommitRef.getIndexCommit(), snapshotStatus, Version.CURRENT, future);
+                                     indexCommitRef.getIndexCommit(), null, snapshotStatus, Version.CURRENT, future);
             shardGen = future.actionGet();
         }
 
