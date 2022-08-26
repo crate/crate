@@ -105,8 +105,8 @@ Fixes
 - Fixed a column positions issue that caused an ``INSERT`` or any other
   statements that adds columns dynamically to throw an exception.
 
-- Fixed ``UPDATE`` to preserve the column order implied by its ``SET`` clause
-  when adding columns dynamically.
-
 - Updated the Admin UI to version 1.22.2. It includes a fix for a rendering
   issue causing jumping behavior on selected views in view list.
+
+- Fixed ``UPDATE``, ``INSERT`` and ``COPY FROM`` to preserve the implied column
+  order when columns are added.
