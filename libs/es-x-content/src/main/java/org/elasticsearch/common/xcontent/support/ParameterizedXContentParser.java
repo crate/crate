@@ -21,13 +21,11 @@
 
 package org.elasticsearch.common.xcontent.support;
 
-import static org.elasticsearch.common.xcontent.support.AbstractXContentParser.SIMPLE_MAP_FACTORY;
 import static org.elasticsearch.common.xcontent.support.AbstractXContentParser.readValue;
+import org.elasticsearch.common.xcontent.XContentParser;
 
 import java.io.IOException;
-import java.util.Map;
-
-import org.elasticsearch.common.xcontent.XContentParser;
+import java.util.LinkedHashMap;
 
 public class ParameterizedXContentParser {
 
@@ -39,8 +37,8 @@ public class ParameterizedXContentParser {
      * Replication of {@link AbstractXContentParser#readMap(XContentParser, AbstractXContentParser.MapFactory)}
      * with an additional field parsing before inserting into the resulting map.
      */
-    public static Map<String, Object> parse(XContentParser parser, FieldParser fieldParser) throws IOException {
-        Map<String, Object> map = SIMPLE_MAP_FACTORY.newMap();
+    public static LinkedHashMap<String, Object> parse(XContentParser parser, FieldParser fieldParser) throws IOException {
+        LinkedHashMap<String, Object> map = new LinkedHashMap<>();
         XContentParser.Token token = parser.currentToken();
         if (token == null) {
             token = parser.nextToken();
@@ -53,7 +51,7 @@ public class ParameterizedXContentParser {
             String fieldName = parser.currentName();
             // And then the value...
             token = parser.nextToken();
-            Object value = readValue(parser, SIMPLE_MAP_FACTORY, token);
+            Object value = readValue(parser, LinkedHashMap::new, token);
             map.put(fieldName, fieldParser.parse(fieldName, value));
         }
         return map;

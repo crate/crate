@@ -43,6 +43,6 @@ public class RawInsertSource implements InsertSourceGen {
             NamedXContentRegistry.EMPTY,
             DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
             new BytesArray(((String) values[0])).array()
-        ).map();
+        ).mapOrdered();
     }
 }
