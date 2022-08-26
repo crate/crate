@@ -26,6 +26,8 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
+import javax.annotation.Nullable;
+
 import org.apache.lucene.index.IndexCommit;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
@@ -227,12 +229,16 @@ public interface Repository extends LifecycleComponent {
      * @param snapshotId            snapshot id
      * @param indexId               id for the index being snapshotted
      * @param snapshotIndexCommit   commit point
+     * @param shardStateIdentifier  a unique identifier of the state of the shard that is stored with the shard's snapshot and used
+     *                              to detect if the shard has changed between snapshots. If {@code null} is passed as the identifier
+     *                              snapshotting will be done by inspecting the physical files referenced by {@code snapshotIndexCommit}
      * @param snapshotStatus        snapshot status
      * @param repositoryMetaVersion version of the updated repository metadata to write
      * @param listener              listener invoked on completion
      */
     void snapshotShard(Store store, MapperService mapperService, SnapshotId snapshotId, IndexId indexId, IndexCommit snapshotIndexCommit,
-                       IndexShardSnapshotStatus snapshotStatus, Version repositoryMetaVersion, ActionListener<String> listener);
+                       @Nullable String shardStateIdentifier, IndexShardSnapshotStatus snapshotStatus, Version repositoryMetaVersion,
+                       ActionListener<String> listener);
 
     /**
      * Restores snapshot of the shard.

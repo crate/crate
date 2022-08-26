@@ -25,6 +25,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.annotation.Nullable;
+
 /**
  * Contains a list of files participating in a snapshot
  */
@@ -33,6 +35,9 @@ public class SnapshotFiles {
     private final String snapshot;
 
     private final List<FileInfo> indexFiles;
+
+    @Nullable
+    private final String shardStateIdentifier;
 
     private Map<String, FileInfo> physicalFiles = null;
 
@@ -46,12 +51,23 @@ public class SnapshotFiles {
     }
 
     /**
-     * @param snapshot   snapshot name
-     * @param indexFiles index files
+     * @param snapshot             snapshot name
+     * @param indexFiles           index files
+     * @param shardStateIdentifier unique identifier for the state of the shard that this snapshot was taken from
      */
-    public SnapshotFiles(String snapshot, List<FileInfo> indexFiles) {
+    public SnapshotFiles(String snapshot, List<FileInfo> indexFiles, @Nullable String shardStateIdentifier) {
         this.snapshot = snapshot;
         this.indexFiles = indexFiles;
+        this.shardStateIdentifier = shardStateIdentifier;
+    }
+
+    /**
+     * Returns an identifier for the shard state that can be used to check whether a shard has changed between
+     * snapshots or not.
+     */
+    @Nullable
+    public String shardStateIdentifier() {
+        return shardStateIdentifier;
     }
 
     /**
