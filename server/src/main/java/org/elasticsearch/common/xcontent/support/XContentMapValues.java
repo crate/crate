@@ -32,6 +32,7 @@ import org.elasticsearch.common.regex.Regex;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -197,7 +198,7 @@ public class XContentMapValues {
             CharacterRunAutomaton includeAutomaton, int initialIncludeState,
             CharacterRunAutomaton excludeAutomaton, int initialExcludeState,
             CharacterRunAutomaton matchAllAutomaton) {
-        Map<String, Object> filtered = new HashMap<>();
+        Map<String, Object> filtered = (map instanceof LinkedHashMap) ? new LinkedHashMap<>() : new HashMap<>();
         for (Map.Entry<String, ?> entry : map.entrySet()) {
             String key = entry.getKey();
 
