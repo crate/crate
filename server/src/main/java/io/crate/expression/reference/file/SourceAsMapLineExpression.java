@@ -24,6 +24,7 @@ package io.crate.expression.reference.file;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.execution.engine.collect.files.LineCollectorExpression;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class SourceAsMapLineExpression extends LineCollectorExpression<Map<String, Object>> {
@@ -32,7 +33,7 @@ public class SourceAsMapLineExpression extends LineCollectorExpression<Map<Strin
     private LineContext context;
 
     @Override
-    public Map<String, Object> value() {
+    public LinkedHashMap<String, Object> value() {
         return context.sourceAsMap();
     }
 

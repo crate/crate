@@ -22,6 +22,7 @@
 package io.crate.execution.engine.indexing;
 
 import java.io.IOException;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -185,6 +186,7 @@ public class IndexWriterProjector implements Projector {
             if (value == null) {
                 return null;
             }
+            assert value instanceof LinkedHashMap<String, Object> : "the raw source order should be preserved";
             Map<String, Object> filteredMap = XContentMapValues.filter(value, includes, excludes);
             try {
                 BytesReference bytes = BytesReference.bytes(new XContentBuilder(XContentType.JSON.xContent(),
