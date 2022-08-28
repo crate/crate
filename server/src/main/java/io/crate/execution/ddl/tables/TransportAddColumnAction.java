@@ -131,6 +131,11 @@ public class TransportAddColumnAction extends AbstractDDLTransportAction<AddColu
             mergeDeltaIntoExistingMapping(indexMapping, request);
 
             MapperService mapperService = indicesService.createIndexMapperService(indexMetadata);
+
+            // Add current mapping and initialize DocumentMapper, so that mapperService.documentMapper()
+            // is not null. It's needed to trigger ColumnPositionResolver and publish cluster state with non-negative calculated column positions
+            mapperService.merge(indexMetadata, MapperService.MergeReason.MAPPING_RECOVERY);
+
             mapperService.merge(indexMapping, MapperService.MergeReason.MAPPING_UPDATE);
             DocumentMapper mapper = mapperService.documentMapper();
 
