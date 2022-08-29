@@ -39,30 +39,29 @@ public class DateTypeTest {
 
     @Test
     public void testCastString() {
-        assertThat(DateType.INSTANCE.implicitCast("123"), is(123L));
+        assertThat(DateType.INSTANCE.implicitCast("86500000"), is(86400000L));
     }
 
     @Test
     public void testCastDateString() {
         assertThat(DateType.INSTANCE.implicitCast("2020-02-09"), is(1581206400000L));
+        assertThat(DateType.INSTANCE.implicitCast("2020-02-09T17:50:44"), is(1581206400000L));
     }
 
     @Test
     public void testCastFloatValue() {
-        assertThat(DateType.INSTANCE.implicitCast(123.123f), is(123123L));
+        assertThat(DateType.INSTANCE.implicitCast(1422294644.581f), is(1422230400000L));
     }
 
     @Test
     public void testCastNumericNonFloatValue() {
-        assertThat(DateType.INSTANCE.implicitCast(123), is(123L));
+        assertThat(DateType.INSTANCE.implicitCast(123), is(0L));
+        assertThat(DateType.INSTANCE.implicitCast(86500000), is(86400000L));
+        assertThat(DateType.INSTANCE.implicitCast(1422294644581L), is(1422230400000L));
     }
 
     @Test
     public void testCastNull() {
         assertThat(DateType.INSTANCE.implicitCast(null), is(nullValue()));
     }
-
-
-
-
 }
