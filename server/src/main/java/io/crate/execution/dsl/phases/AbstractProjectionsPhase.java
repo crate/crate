@@ -41,14 +41,14 @@ public abstract class AbstractProjectionsPhase implements ExecutionPhase {
     private UUID jobId;
     private int executionPhaseId;
     private String name;
-    protected List<Projection> projections = List.of();
+    protected final List<Projection> projections;
     protected List<DataType<?>> outputTypes = List.of();
 
     protected AbstractProjectionsPhase(UUID jobId, int executionPhaseId, String name, List<Projection> projections) {
         this.jobId = jobId;
         this.executionPhaseId = executionPhaseId;
         this.name = name;
-        this.projections = projections;
+        this.projections = projections == null ? new ArrayList<>() : new ArrayList<>(projections);
     }
 
     protected static List<DataType<?>> extractOutputTypes(List<Symbol> outputs, List<Projection> projections) {
@@ -75,7 +75,7 @@ public abstract class AbstractProjectionsPhase implements ExecutionPhase {
     }
 
     public boolean hasProjections() {
-        return projections != null && projections.size() > 0;
+        return projections.size() > 0;
     }
 
     public List<Projection> projections() {
@@ -83,9 +83,7 @@ public abstract class AbstractProjectionsPhase implements ExecutionPhase {
     }
 
     public void addProjection(Projection projection) {
-        List<Projection> projections = new ArrayList<>(this.projections);
-        projections.add(projection);
-        this.projections = List.copyOf(projections);
+        this.projections.add(projection);
         outputTypes = Symbols.typeView(projection.outputs());
     }
 
@@ -120,6 +118,8 @@ public abstract class AbstractProjectionsPhase implements ExecutionPhase {
             for (int i = 0; i < numProjections; i++) {
                 projections.add(Projection.fromStream(in));
             }
+        } else {
+            projections = List.of();
         }
     }
 
