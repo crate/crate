@@ -223,14 +223,16 @@ public class CollectTask implements Task {
 
     @Override
     public String toString() {
-        return "CollectTask{" +
-               "id=" + collectPhase.phaseId() +
-               ", sharedContexts=" + sharedShardContexts +
-               ", consumer=" + consumer +
-               ", searchContexts=" + searchers.keys() +
-               ", batchIterator=" + batchIterator +
-               ", finished=" + consumerCompleted.isDone() +
-               '}';
+        synchronized (searchers) {
+            return "CollectTask{" +
+                "id=" + collectPhase.phaseId() +
+                ", sharedContexts=" + sharedShardContexts +
+                ", consumer=" + consumer +
+                ", searchContexts=" + searchers.keys() +
+                ", batchIterator=" + batchIterator +
+                ", finished=" + consumerCompleted.isDone() +
+                '}';
+        }
     }
 
     public TransactionContext txnCtx() {
