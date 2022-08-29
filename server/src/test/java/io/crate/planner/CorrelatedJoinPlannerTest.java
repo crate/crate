@@ -36,13 +36,18 @@ public class CorrelatedJoinPlannerTest extends CrateDummyClusterServiceUnitTest 
     @Test
     public void test_correlated_subquery_without_using_alias_can_use_outer_column_in_where_clause() {
         SQLExecutor e = SQLExecutor.builder(clusterService).build();
-        // In PostgreSQL this is supported.
-        // We currently have a limitation in the FullQualifiedNameFieldProvider
-        // Test case ensures that if we remove the limitation from FullQualifiedNameFieldProvider
-        // the planner must be able to handle it
-        String statement = "SELECT (SELECT mountain) FROM sys.summits t ORDER BY 1 ASC LIMIT 5";
-        assertThatThrownBy(() -> e.plan(statement))
-            .hasMessage("Column mountain unknown");
+        String statement = "SELECT (SELECT mountain) FROM sys.summits ORDER BY 1 ASC LIMIT 5";
+        assertThat(printPlan(e.logicalPlan(statement))).isEqualTo(
+            "Eval[(SELECT mountain FROM (empty_row))]\n" +
+            "  └ Limit[5::bigint;0]\n" +
+            "    └ OrderBy[(SELECT mountain FROM (empty_row)) ASC]\n" +
+            "      └ CorrelatedJoin[mountain, (SELECT mountain FROM (empty_row))]\n" +
+            "        └ Collect[sys.summits | [mountain] | true]\n" +
+            "        └ SubPlan\n" +
+            "          └ Eval[mountain]\n" +
+            "            └ Limit[2::bigint;0::bigint]\n" +
+            "              └ TableFunction[empty_row | [] | true]"
+        );
     }
 
     @Test

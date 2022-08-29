@@ -173,15 +173,15 @@ public class IndexSettingsTests extends ESTestCase {
         settings.getScopedSettings().addSettingsUpdateConsumer(notUpdated, builder::append);
         assertThat(integer.get(), is(0));
         assertThat(builder.toString(), is(""));
-        IndexMetadata newMetaData = newIndexMeta(
+        IndexMetadata newMetadata = newIndexMeta(
             "index",
             Settings.builder()
                 .put(settings.getIndexMetadata().getSettings())
                 .put("index.test.setting.int", 42)
                 .build()
         );
-        assertTrue(settings.updateIndexMetadata(newMetaData));
-        assertSame(settings.getIndexMetadata(), newMetaData);
+        assertTrue(settings.updateIndexMetadata(newMetadata));
+        assertSame(settings.getIndexMetadata(), newMetadata);
         assertThat(integer.get(), is(42));
         assertThat(builder.toString(), is(""));
         integer.set(0);
@@ -552,7 +552,7 @@ public class IndexSettingsTests extends ESTestCase {
                     assertThat(
                         ex,
                         hasToString(containsString(
-                            "failed to parse value [-200] for setting [index.refresh_interval], must be >= [-1]")
+                            "failed to parse setting [index.refresh_interval] with value [-200] as a time value: negative durations are not supported")
                         )
                     );
                 });

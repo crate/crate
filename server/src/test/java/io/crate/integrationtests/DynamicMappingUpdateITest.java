@@ -159,24 +159,13 @@ public class DynamicMappingUpdateITest extends IntegTestCase {
         execute("update t set o = {q={r={s=1}}}");
 
         execute("select column_name, ordinal_position from information_schema.columns where table_name = 't'");
-        assertThat(printedTable(response.rows())).containsAnyOf(
+        assertThat(printedTable(response.rows())).isEqualTo(
             """
             id| 1
             name| 2
             o| 3
             o['a']| 4
             o['b']| 5
-            o['a']['b']| 6
-            o['q']| 7
-            o['q']['r']| 8
-            o['q']['r']['s']| 9
-            """,
-            """
-            id| 1
-            name| 2
-            o| 3
-            o['b']| 4
-            o['a']| 5
             o['a']['b']| 6
             o['q']| 7
             o['q']['r']| 8
@@ -202,24 +191,13 @@ public class DynamicMappingUpdateITest extends IntegTestCase {
         execute("alter table t add column o['q']['r']['s'] int");
 
         execute("select column_name, ordinal_position from information_schema.columns where table_name = 't'");
-        assertThat(printedTable(response.rows())).containsAnyOf(
+        assertThat(printedTable(response.rows())).isEqualTo(
             """
             id| 1
             name| 2
             o| 3
             o['a']| 4
             o['b']| 5
-            o['a']['b']| 6
-            o['q']| 7
-            o['q']['r']| 8
-            o['q']['r']['s']| 9
-            """,
-            """
-            id| 1
-            name| 2
-            o| 3
-            o['b']| 4
-            o['a']| 5
             o['a']['b']| 6
             o['q']| 7
             o['q']['r']| 8
@@ -259,7 +237,7 @@ public class DynamicMappingUpdateITest extends IntegTestCase {
         execute("refresh table t");
         execute("select column_name, ordinal_position, data_type from information_schema.columns where table_name = 't' order by 2");
 
-        assertThat(printedTable(response.rows())).containsAnyOf(
+        assertThat(printedTable(response.rows())).isEqualTo(
             """
             tb| 1| object_array
             p| 2| integer
@@ -272,20 +250,6 @@ public class DynamicMappingUpdateITest extends IntegTestCase {
             o| 9| object
             o['a']| 10| object
             o['b']| 11| bigint
-            o['a']['b']| 12| bigint
-            """,
-            """
-            tb| 1| object_array
-            p| 2| integer
-            tb['t1']| 3| object_array
-            tb['t2']| 4| object
-            tb['t1']['t3']| 5| object
-            tb['t1']['t6']| 6| bigint_array
-            tb['t1']['t3']['t4']| 7| object
-            tb['t1']['t3']['t4']['t5']| 8| bigint
-            o| 9| object
-            o['b']| 10| bigint
-            o['a']| 11| object
             o['a']['b']| 12| bigint
             """
         );
@@ -341,7 +305,7 @@ public class DynamicMappingUpdateITest extends IntegTestCase {
         execute("refresh table t");
 
         execute("select column_name, ordinal_position from information_schema.columns where table_name='t' order by ordinal_position");
-        assertThat(printedTable(response.rows())).containsAnyOf(
+        assertThat(printedTable(response.rows())).isEqualTo(
             """
             tb| 1
             p| 2
@@ -354,20 +318,6 @@ public class DynamicMappingUpdateITest extends IntegTestCase {
             o| 9
             o['a']| 10
             o['b']| 11
-            o['a']['b']| 12
-            """,
-            """
-            tb| 1
-            p| 2
-            tb['t1']| 3
-            tb['t2']| 4
-            tb['t1']['t3']| 5
-            tb['t1']['t6']| 6
-            tb['t1']['t3']['t4']| 7
-            tb['t1']['t3']['t4']['t5']| 8
-            o| 9
-            o['b']| 10
-            o['a']| 11
             o['a']['b']| 12
             """);
     }

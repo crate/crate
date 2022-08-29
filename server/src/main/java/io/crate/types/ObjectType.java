@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -163,7 +164,7 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
             return map;
         }
 
-        HashMap<String, Object> newMap = new HashMap<>(map);
+        HashMap<String, Object> newMap = (map instanceof LinkedHashMap<String, Object>) ? new LinkedHashMap<>(map) : new HashMap<>(map);
         for (Map.Entry<String, Object> entry : map.entrySet()) {
             String key = entry.getKey();
             DataType<?> targetType = innerTypes.getOrDefault(key, UndefinedType.INSTANCE);
@@ -203,7 +204,7 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
     public Map<String, Object> readValueFrom(StreamInput in) throws IOException {
         if (in.readBoolean()) {
             int size = in.readInt();
-            HashMap<String, Object> m = new HashMap<>(size);
+            LinkedHashMap<String, Object> m = new LinkedHashMap<>(size);
             for (int i = 0; i < size; i++) {
                 String key = in.readString();
                 DataType innerType = innerTypes.getOrDefault(key, UndefinedType.INSTANCE);
@@ -278,7 +279,8 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
 
     public ObjectType(StreamInput in) throws IOException {
         int typesSize = in.readVInt();
-        Map<String, DataType<?>> builder = new HashMap<>();
+        // recover the order it was streamed out
+        LinkedHashMap<String, DataType<?>> builder = new LinkedHashMap<>();
         for (int i = 0; i < typesSize; i++) {
             String key = in.readString();
             DataType<?> type = DataTypes.fromStream(in);

@@ -246,10 +246,10 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
         return internalMerge(mappingSource, reason);
     }
 
-    private synchronized DocumentMapper internalMerge(IndexMetadata indexMetaData,
+    private synchronized DocumentMapper internalMerge(IndexMetadata indexMetadata,
                                                       MergeReason reason,
                                                       boolean onlyUpdateIfNeeded) {
-        MappingMetadata mappingMetadata = indexMetaData.mapping();
+        MappingMetadata mappingMetadata = indexMetadata.mapping();
         if (mappingMetadata != null) {
             if (onlyUpdateIfNeeded) {
                 DocumentMapper existingMapper = documentMapper();

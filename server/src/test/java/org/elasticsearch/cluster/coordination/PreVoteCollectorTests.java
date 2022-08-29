@@ -32,14 +32,12 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
@@ -119,7 +117,7 @@ public class PreVoteCollectorTests extends ESTestCase {
             assert electionOccurred == false;
             electionOccurred = true;
         }, l -> {
-        }); // TODO need tests that check that the max term seen is updated
+        });
         preVoteCollector.update(getLocalPreVoteResponse(), null);
     }
 
@@ -140,8 +138,7 @@ public class PreVoteCollectorTests extends ESTestCase {
     }
 
     private ClusterState makeClusterState(DiscoveryNode[] votingNodes) {
-        final VotingConfiguration votingConfiguration
-            = new VotingConfiguration(Arrays.stream(votingNodes).map(DiscoveryNode::getId).collect(Collectors.toSet()));
+        final VotingConfiguration votingConfiguration = VotingConfiguration.of(votingNodes);
         return CoordinationStateTests.clusterState(lastAcceptedTerm, lastAcceptedVersion, localNode,
             votingConfiguration, votingConfiguration, 0);
     }

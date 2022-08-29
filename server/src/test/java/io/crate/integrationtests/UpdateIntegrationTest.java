@@ -35,6 +35,7 @@ import static org.hamcrest.core.IsNot.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.HashMap;
 import java.util.List;
@@ -1040,5 +1041,44 @@ public class UpdateIntegrationTest extends IntegTestCase {
             assertThat(response.rows()[i][1], is(IsNull.notNullValue()));
             assertThat(response.rows()[i][2], is(true));
         }
+    }
+
+    @Test
+    public void test_update_preserves_the_top_level_order_implied_by_set_clause_while_dynamically_adding_columns() {
+        execute("create table t (x int) partitioned by (x) with (column_policy='dynamic')");
+        execute("insert into t values (1)");
+        refresh();
+        execute("update t set b=1, a=1, d=1, c=1");
+        execute("select * from t");
+        assertThat(response.cols())
+            // the same order as provided by 'update t set b=1, a=1, d=1, c=1'
+            .isEqualTo(new String[] {"x", "b", "a", "d", "c"});
+    }
+
+    @Test
+    public void test_update_preserves_the_sub_column_order_implied_by_set_clause_while_dynamically_adding_columns() {
+        execute("create table doc.t (id int primary key) with (column_policy='dynamic')");
+        execute("insert into doc.t values (1)");
+        refresh();
+        execute("update doc.t set o = {c=1, a={d=1, b=1, c=1, a=1}, b=1}");
+        execute("show create table doc.t");
+        assertThat(printedTable(response.rows()))
+            // the same order as provided by 'update t set o = {c=1, a={d=1, b=1, c=1, a=1}, b=1}'
+            .contains(
+                "CREATE TABLE IF NOT EXISTS \"doc\".\"t\" (\n" +
+                "   \"id\" INTEGER NOT NULL,\n" +
+                "   \"o\" OBJECT(DYNAMIC) AS (\n" +
+                "      \"c\" BIGINT,\n" +
+                "      \"a\" OBJECT(DYNAMIC) AS (\n" +
+                "         \"d\" BIGINT,\n" +
+                "         \"b\" BIGINT,\n" +
+                "         \"c\" BIGINT,\n" +
+                "         \"a\" BIGINT\n" +
+                "      ),\n" +
+                "      \"b\" BIGINT\n" +
+                "   ),\n" +
+                "   PRIMARY KEY (\"id\")\n" +
+                ")"
+            );
     }
 }

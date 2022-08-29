@@ -1289,14 +1289,14 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata>, To
      * State format for {@link Metadata} to write to and load from disk
      */
 
-    public static final MetadataStateFormat<Metadata> FORMAT = createMetaDataStateFormat(false);
+    public static final MetadataStateFormat<Metadata> FORMAT = createMetadataStateFormat(false);
 
     /**
      * Special state format for {@link Metadata} to write to and load from disk, preserving unknown customs
      */
-    public static final MetadataStateFormat<Metadata> FORMAT_PRESERVE_CUSTOMS = createMetaDataStateFormat(true);
+    public static final MetadataStateFormat<Metadata> FORMAT_PRESERVE_CUSTOMS = createMetadataStateFormat(true);
 
-    private static MetadataStateFormat<Metadata> createMetaDataStateFormat(boolean preserveUnknownCustoms) {
+    private static MetadataStateFormat<Metadata> createMetadataStateFormat(boolean preserveUnknownCustoms) {
         return new MetadataStateFormat<Metadata>(GLOBAL_STATE_FILE_PREFIX) {
 
             @Override

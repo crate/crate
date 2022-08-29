@@ -209,21 +209,21 @@ public class IndexShardTests extends IndexShardTestCase {
             AllocationId allocationId = randomBoolean() ? null : randomAllocationId();
             ShardStateMetadata state1 = new ShardStateMetadata(primary, "fooUUID", allocationId);
             ShardStateMetadata.FORMAT.writeAndCleanup(state1, env.availableShardPaths(id));
-            ShardStateMetadata shardStateMetaData = ShardStateMetadata.FORMAT
+            ShardStateMetadata shardStateMetadata = ShardStateMetadata.FORMAT
                 .loadLatestState(logger, NamedXContentRegistry.EMPTY, env.availableShardPaths(id));
-            assertThat(shardStateMetaData, is(state1));
+            assertThat(shardStateMetadata, is(state1));
 
             ShardStateMetadata state2 = new ShardStateMetadata(primary, "fooUUID", allocationId);
             ShardStateMetadata.FORMAT.writeAndCleanup(state2, env.availableShardPaths(id));
-            shardStateMetaData = ShardStateMetadata.FORMAT
+            shardStateMetadata = ShardStateMetadata.FORMAT
                 .loadLatestState(logger, NamedXContentRegistry.EMPTY, env.availableShardPaths(id));
-            assertEquals(shardStateMetaData, state1);
+            assertEquals(shardStateMetadata, state1);
 
             ShardStateMetadata state3 = new ShardStateMetadata(primary, "fooUUID", allocationId);
             ShardStateMetadata.FORMAT.writeAndCleanup(state3, env.availableShardPaths(id));
-            shardStateMetaData = ShardStateMetadata.FORMAT
+            shardStateMetadata = ShardStateMetadata.FORMAT
                 .loadLatestState(logger, NamedXContentRegistry.EMPTY, env.availableShardPaths(id));
-            assertThat(shardStateMetaData, is(state3));
+            assertThat(shardStateMetadata, is(state3));
             assertThat("fooUUID", is(state3.indexUUID));
         }
     }
@@ -232,17 +232,17 @@ public class IndexShardTests extends IndexShardTestCase {
     public void testPersistenceStateMetadataPersistence() throws Exception {
         IndexShard shard = newStartedShard();
         Path shardStatePath = shard.shardPath().getShardStatePath();
-        ShardStateMetadata shardStateMetaData  = ShardStateMetadata.FORMAT
+        ShardStateMetadata shardStateMetadata  = ShardStateMetadata.FORMAT
             .loadLatestState(logger, NamedXContentRegistry.EMPTY, shardStatePath);
-        assertThat(getShardStateMetadata(shard), is(shardStateMetaData));
+        assertThat(getShardStateMetadata(shard), is(shardStateMetadata));
         ShardRouting routing = shard.shardRouting;
         IndexShardTestCase.updateRoutingEntry(shard, routing);
 
-        shardStateMetaData  = ShardStateMetadata.FORMAT
+        shardStateMetadata  = ShardStateMetadata.FORMAT
             .loadLatestState(logger, NamedXContentRegistry.EMPTY, shardStatePath);
-        assertThat(shardStateMetaData, is(getShardStateMetadata(shard)));
+        assertThat(shardStateMetadata, is(getShardStateMetadata(shard)));
         assertThat(
-            shardStateMetaData,
+            shardStateMetadata,
             is(new ShardStateMetadata(
                 routing.primary(),
                 shard.indexSettings().getUUID(),
@@ -251,11 +251,11 @@ public class IndexShardTests extends IndexShardTestCase {
 
         routing = TestShardRouting.relocate(shard.shardRouting, "some node", 42L);
         IndexShardTestCase.updateRoutingEntry(shard, routing);
-        shardStateMetaData  = ShardStateMetadata.FORMAT
+        shardStateMetadata  = ShardStateMetadata.FORMAT
             .loadLatestState(logger, NamedXContentRegistry.EMPTY, shardStatePath);
-        assertEquals(shardStateMetaData, getShardStateMetadata(shard));
+        assertEquals(shardStateMetadata, getShardStateMetadata(shard));
         assertThat(
-            shardStateMetaData,
+            shardStateMetadata,
             is(new ShardStateMetadata(
                 routing.primary(),
                 shard.indexSettings().getUUID(),
@@ -275,10 +275,10 @@ public class IndexShardTests extends IndexShardTestCase {
         shard.close("do not assert history", false);
         shard.store().close();
         // check state file still exists
-        ShardStateMetadata shardStateMetaData  = ShardStateMetadata.FORMAT
+        ShardStateMetadata shardStateMetadata  = ShardStateMetadata.FORMAT
             .loadLatestState(logger, NamedXContentRegistry.EMPTY, shardPath.getShardStatePath());
 
-        assertThat(shardStateMetaData, equalTo(getShardStateMetadata(shard)));
+        assertThat(shardStateMetadata, equalTo(getShardStateMetadata(shard)));
         // but index can't be opened for a failed shard
         assertThat(
             "store index should be corrupted",
@@ -1169,10 +1169,10 @@ public class IndexShardTests extends IndexShardTestCase {
         closeShards(indexShard);
 
         final IndexShard newShard = reinitShard(indexShard);
-        Store.MetadataSnapshot storeFileMetaDatas = newShard.snapshotStoreMetadata();
+        Store.MetadataSnapshot storeFileMetadatas = newShard.snapshotStoreMetadata();
         assertThat(
-            "at least 2 files, commit and data: " + storeFileMetaDatas.toString(),
-            storeFileMetaDatas.size(),
+            "at least 2 files, commit and data: " + storeFileMetadatas.toString(),
+            storeFileMetadatas.size(),
             greaterThan(1)
         );
         AtomicBoolean stop = new AtomicBoolean(false);
@@ -1183,11 +1183,11 @@ public class IndexShardTests extends IndexShardTestCase {
             while (stop.get() == false) {
                 try {
                     Store.MetadataSnapshot readMeta = newShard.snapshotStoreMetadata();
-                    assertThat(storeFileMetaDatas.recoveryDiff(readMeta).different.size(), is(0));
-                    assertThat(storeFileMetaDatas.recoveryDiff(readMeta).missing.size(), is(0));
+                    assertThat(storeFileMetadatas.recoveryDiff(readMeta).different.size(), is(0));
+                    assertThat(storeFileMetadatas.recoveryDiff(readMeta).missing.size(), is(0));
                     assertThat(
-                        storeFileMetaDatas.recoveryDiff(readMeta).identical.size(),
-                        is(storeFileMetaDatas.size())
+                        storeFileMetadatas.recoveryDiff(readMeta).identical.size(),
+                        is(storeFileMetadatas.size())
                     );
                 } catch (IOException e) {
                     throw new AssertionError(e);
@@ -1199,7 +1199,7 @@ public class IndexShardTests extends IndexShardTestCase {
 
         int iters = iterations(10, 100);
         for (int i = 0; i < iters; i++) {
-            newShard.store().cleanupAndVerify("test", storeFileMetaDatas);
+            newShard.store().cleanupAndVerify("test", storeFileMetadatas);
         }
         assertTrue(stop.compareAndSet(false, true));
         thread.join();
@@ -1241,7 +1241,7 @@ public class IndexShardTests extends IndexShardTestCase {
             RecoverySource.ExistingStoreRecoverySource.INSTANCE
         );
         // start shard and perform index check on startup. It enforce shard to fail due to corrupted index files
-        IndexMetadata indexMetaData = IndexMetadata.builder(
+        IndexMetadata indexMetadata = IndexMetadata.builder(
             indexShard.indexSettings().getIndexMetadata()).settings(
                 Settings.builder()
                     .put(indexShard.indexSettings.getSettings())
@@ -1251,7 +1251,7 @@ public class IndexShardTests extends IndexShardTestCase {
         IndexShard corruptedShard = newShard(
             shardRouting,
             shardPath,
-            indexMetaData,
+            indexMetadata,
             null,
             indexShard.engineFactoryProviders(),
             indexShard.getGlobalCheckpointSyncer(),
@@ -1290,7 +1290,7 @@ public class IndexShardTests extends IndexShardTestCase {
         ShardRouting shardRouting = ShardRoutingHelper.initWithSameId(
             indexShard.routingEntry(), RecoverySource.ExistingStoreRecoverySource.INSTANCE
         );
-        IndexMetadata indexMetaData = indexShard.indexSettings().getIndexMetadata();
+        IndexMetadata indexMetadata = indexShard.indexSettings().getIndexMetadata();
 
         Path indexPath = shardPath.getDataPath().resolve(ShardPath.INDEX_FOLDER_NAME);
 
@@ -1304,7 +1304,7 @@ public class IndexShardTests extends IndexShardTestCase {
         IndexShard corruptedShard = newShard(
             shardRouting,
             shardPath,
-            indexMetaData,
+            indexMetadata,
             null,
             indexShard.engineFactoryProviders,
             indexShard.getGlobalCheckpointSyncer(),
@@ -1337,7 +1337,7 @@ public class IndexShardTests extends IndexShardTestCase {
         IndexShard corruptedShard2 = newShard(
             shardRouting,
             shardPath,
-            indexMetaData,
+            indexMetadata,
             null,
             indexShard.engineFactoryProviders,
             indexShard.getGlobalCheckpointSyncer(),
@@ -1382,7 +1382,7 @@ public class IndexShardTests extends IndexShardTestCase {
                 ? RecoverySource.ExistingStoreRecoverySource.INSTANCE
                 : RecoverySource.PeerRecoverySource.INSTANCE
         );
-        IndexMetadata indexMetaData = IndexMetadata
+        IndexMetadata indexMetadata = IndexMetadata
             .builder(indexShard.indexSettings().getIndexMetadata())
             .settings(
                 Settings.builder()
@@ -1392,7 +1392,7 @@ public class IndexShardTests extends IndexShardTestCase {
         IndexShard newShard = newShard(
             shardRouting,
             indexShard.shardPath(),
-            indexMetaData,
+            indexMetadata,
             null,
             indexShard.engineFactoryProviders,
             indexShard.getGlobalCheckpointSyncer(),
@@ -1400,10 +1400,10 @@ public class IndexShardTests extends IndexShardTestCase {
             EMPTY_EVENT_LISTENER
         );
 
-        Store.MetadataSnapshot storeFileMetaDatas = newShard.snapshotStoreMetadata();
+        Store.MetadataSnapshot storeFileMetadatas = newShard.snapshotStoreMetadata();
         assertThat(
-            "at least 2 files, commit and data: " + storeFileMetaDatas.toString(),
-            storeFileMetaDatas.size(),
+            "at least 2 files, commit and data: " + storeFileMetadatas.toString(),
+            storeFileMetadatas.size(),
             greaterThan(1)
         );
         AtomicBoolean stop = new AtomicBoolean(false);
@@ -1414,10 +1414,10 @@ public class IndexShardTests extends IndexShardTestCase {
                 try {
                     Store.MetadataSnapshot readMeta = newShard.snapshotStoreMetadata();
                     assertThat(readMeta.getNumDocs(), equalTo(numDocs));
-                    assertThat(storeFileMetaDatas.recoveryDiff(readMeta).different.size(), equalTo(0));
-                    assertThat(storeFileMetaDatas.recoveryDiff(readMeta).missing.size(), equalTo(0));
-                    assertThat(storeFileMetaDatas.recoveryDiff(readMeta).identical.size(),
-                               equalTo(storeFileMetaDatas.size()));
+                    assertThat(storeFileMetadatas.recoveryDiff(readMeta).different.size(), equalTo(0));
+                    assertThat(storeFileMetadatas.recoveryDiff(readMeta).missing.size(), equalTo(0));
+                    assertThat(storeFileMetadatas.recoveryDiff(readMeta).identical.size(),
+                               equalTo(storeFileMetadatas.size()));
                 } catch (IOException e) {
                     throw new AssertionError(e);
                 }

@@ -28,6 +28,7 @@ import static org.junit.Assert.assertThat;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -217,12 +218,12 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testObjectLiteral() {
-        Literal<Map<String, Object>> l = Literal.of(Map.ofEntries(
-            Map.entry("field", "value"),
-            Map.entry("array", List.of(1, 2, 3)),
-            Map.entry("nestedMap", Map.of("inner", -0.00005d))
-        ));
-        assertPrint(l, "{\"array\"=[1, 2, 3], \"field\"='value', \"nestedMap\"={\"inner\"=-5.0E-5}}");
+        LinkedHashMap<String, Object> map = new LinkedHashMap<>();
+        map.put("field", "value");
+        map.put("array", List.of(1, 2, 3));
+        map.put("nestedMap", Map.of("inner", -0.00005d));
+        Literal<Map<String, Object>> l = Literal.of(map);
+        assertPrint(l, "{\"field\"='value', \"array\"=[1, 2, 3], \"nestedMap\"={\"inner\"=-5.0E-5}}");
     }
 
     @Test
@@ -292,16 +293,15 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testNativeArray() {
+        LinkedHashMap<String, Object> map = new LinkedHashMap<>();
+        map.put("type", "Point");
+        map.put("coordinates", new double[] {1.0d, 2.0d});
         assertPrint(
             Literal.of(
                 DataTypes.GEO_SHAPE,
-                DataTypes.GEO_SHAPE.sanitizeValue(
-                    Map.of(
-                        "type", "Point",
-                        "coordinates", new double[] {1.0d, 2.0d})
-                )
+                DataTypes.GEO_SHAPE.sanitizeValue(map)
             ),
-            "{\"coordinates\"=[1.0, 2.0], \"type\"='Point'}"
+            "{\"type\"='Point', \"coordinates\"=[1.0, 2.0]}"
         );
     }
 

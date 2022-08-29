@@ -26,13 +26,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.io.IOException;
 import java.util.List;
 
-import io.crate.sql.tree.CollectionColumnType;
 import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.metadata.RelationName;
+import io.crate.sql.tree.CollectionColumnType;
 import io.crate.sql.tree.ColumnDefinition;
 import io.crate.sql.tree.ColumnType;
+import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.ObjectColumnType;
 import io.crate.sql.tree.TableElement;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -49,54 +50,55 @@ public class TableElementsAnalyzerTest extends CrateDummyClusterServiceUnitTest 
 
     @Test
     public void test_analyze_method_assigned_proper_column_positions_to_nested_objects() {
-        TableElement e1 = new ColumnDefinition(
+        TableElement<Expression> e1 = new ColumnDefinition<>(
             "nested",
             null,
             null,
-            new ObjectColumnType(
+            new ObjectColumnType<>(
                 "dynamic",
-                         List.of(
-                             new ColumnDefinition(
-                                 "nested2",
-                                 null,
-                                 null,
-                                 new ObjectColumnType(
-                                     "dynamic",
-                                              List.of(
-                                                  new ColumnDefinition(
-                                                      "sub1",
-                                                      null,
-                                                      null,
-                                                      new CollectionColumnType<>(
-                                                          new ColumnType<>("integer")
-                                                      ),
-                                                      List.of())
-                                              )
-                                 ),
-                                 List.of())
-                         )
+                List.of(
+                    new ColumnDefinition<>(
+                        "nested2",
+                        null,
+                        null,
+                        new ObjectColumnType<>(
+                            "dynamic",
+                            List.of(
+                                new ColumnDefinition<>(
+                                    "sub1",
+                                    null,
+                                    null,
+                                    new CollectionColumnType<>(
+                                        new ColumnType<Expression>("integer")
+                                    ),
+                                    List.of())
+                                )
+                            ),
+                        List.of())
+                )
             ),
             List.of());
 
-        TableElement e2 = new ColumnDefinition(
+        TableElement<Expression> e2 = new ColumnDefinition<>(
             "notNested",
             null,
             null,
-            new ColumnType("integer"),
+            new ColumnType<Expression>("integer"),
             List.of()
         );
-        var analyzed = TableElementsAnalyzer.analyze(List.of(e1, e2), new RelationName(null, "dummy"), null, true);
+        List<TableElement<Expression>> tableElements = List.of(e1, e2);
+        var analyzed = TableElementsAnalyzer.analyze(tableElements, new RelationName(null, "dummy"), null, true);
 
-        var nested = (AnalyzedColumnDefinition) analyzed.columns().get(0);
+        var nested = analyzed.columns().get(0);
         assertThat(nested.position).isEqualTo(-1);
 
-        var nested2 = (AnalyzedColumnDefinition) nested.children().get(0);
+        var nested2 = nested.children().get(0);
         assertThat(nested2.position).isEqualTo(-2);
 
-        var sub1 = (AnalyzedColumnDefinition) nested2.children().get(0);
+        var sub1 = nested2.children().get(0);
         assertThat(sub1.position).isEqualTo(-3);
 
-        var notNested = (AnalyzedColumnDefinition) analyzed.columns().get(1);
+        var notNested = analyzed.columns().get(1);
         assertThat(notNested.position).isEqualTo(-4);
 
         // -1 ~ -4 represents column ordering, which will be used to re-calculated actual column positions.

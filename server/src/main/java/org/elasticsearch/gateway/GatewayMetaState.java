@@ -19,9 +19,21 @@
 
 package org.elasticsearch.gateway;
 
-import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
-import io.crate.common.io.IOUtils;
-import io.crate.exceptions.Exceptions;
+import static org.elasticsearch.common.util.concurrent.EsExecutors.daemonThreadFactory;
+
+import java.io.Closeable;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
@@ -44,7 +56,6 @@ import org.elasticsearch.cluster.metadata.MetadataIndexUpgradeService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
-import io.crate.common.collections.Tuple;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.AbstractRunnable;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
@@ -55,21 +66,11 @@ import org.elasticsearch.plugins.MetadataUpgrader;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import java.io.Closeable;
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.UnaryOperator;
+import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
-import static org.elasticsearch.common.util.concurrent.EsExecutors.daemonThreadFactory;
+import io.crate.common.collections.Tuple;
+import io.crate.common.io.IOUtils;
+import io.crate.exceptions.Exceptions;
 
 /**
  * Loads (and maybe upgrades) cluster metadata at startup, and persistently stores cluster metadata for future restarts.
@@ -80,6 +81,13 @@ import static org.elasticsearch.common.util.concurrent.EsExecutors.daemonThreadF
  * non-stale state, and master-ineligible nodes receive the real cluster state from the elected master after joining the cluster.
  */
 public class GatewayMetaState implements Closeable {
+
+    /**
+     * Fake node ID for a voting configuration written by a master-ineligible data node to indicate that its on-disk state is potentially
+     * stale (since it is written asynchronously after application, rather than before acceptance). This node ID means that if the node is
+     * restarted as a master-eligible node then it does not win any elections until it has received a fresh cluster state.
+     */
+    public static final String STALE_STATE_CONFIG_NODE_ID = "STALE_STATE_CONFIG";
 
     // Set by calling start()
     private final SetOnce<PersistedState> persistedState = new SetOnce<>();
@@ -380,7 +388,7 @@ public class GatewayMetaState implements Closeable {
         }
 
         static final CoordinationMetadata.VotingConfiguration STALE_STATE_CONFIG =
-            new CoordinationMetadata.VotingConfiguration(Collections.singleton("STALE_STATE_CONFIG"));
+            new CoordinationMetadata.VotingConfiguration(Collections.singleton(STALE_STATE_CONFIG_NODE_ID));
 
         static ClusterState resetVotingConfiguration(ClusterState clusterState) {
             CoordinationMetadata newCoordinationMetadata = CoordinationMetadata.builder(clusterState.coordinationMetadata())

@@ -21,8 +21,8 @@
 
 package io.crate.analyze;
 
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
@@ -34,7 +34,7 @@ import io.crate.metadata.Reference;
 public final class AnalyzedUpdateStatement implements AnalyzedStatement {
 
     private final AbstractTableRelation<?> table;
-    private final Map<Reference, Symbol> assignmentByTargetCol;
+    private final LinkedHashMap<Reference, Symbol> assignmentByTargetCol;
     private final Symbol query;
 
     /**
@@ -44,7 +44,7 @@ public final class AnalyzedUpdateStatement implements AnalyzedStatement {
     private final List<Symbol> returnValues;
 
     public AnalyzedUpdateStatement(AbstractTableRelation<?> table,
-                                   Map<Reference, Symbol> assignmentByTargetCol,
+                                   LinkedHashMap<Reference, Symbol> assignmentByTargetCol,
                                    Symbol query,
                                    @Nullable List<Symbol> returnValues) {
         this.table = table;
@@ -57,7 +57,7 @@ public final class AnalyzedUpdateStatement implements AnalyzedStatement {
         return table;
     }
 
-    public Map<Reference, Symbol> assignmentByTargetCol() {
+    public LinkedHashMap<Reference, Symbol> assignmentByTargetCol() {
         return assignmentByTargetCol;
     }
 

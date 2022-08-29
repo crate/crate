@@ -91,20 +91,17 @@ public class FullQualifiedNameFieldProvider implements FieldProvider<Symbol> {
 
         for (var entry : sources.entrySet()) {
             RelationName relName = entry.getKey();
-            String sourceSchema = relName.schema();
-            String sourceTableOrAlias = relName.name();
-
-            if (columnSchema != null && !columnSchema.equals(sourceSchema)) {
+            if (columnSchema != null && !columnSchema.equals(relName.schema())) {
                 continue;
             }
             schemaMatched = true;
-            if (columnTableName != null && !sourceTableOrAlias.equals(columnTableName)) {
+            if (columnTableName != null && !relName.name().equals(columnTableName)) {
                 continue;
             }
             tableNameMatched = true;
 
-            AnalyzedRelation sourceRelation = entry.getValue();
-            Symbol newField = sourceRelation.getField(columnIdent, operation, errorOnUnknownObjectKey);
+            AnalyzedRelation relation = entry.getValue();
+            Symbol newField = relation.getField(columnIdent, operation, errorOnUnknownObjectKey);
             if (newField != null) {
                 if (lastField != null) {
                     if (errorOnUnknownObjectKey == false) {
@@ -120,51 +117,47 @@ public class FullQualifiedNameFieldProvider implements FieldProvider<Symbol> {
                 lastField = newField;
             }
         }
-        if (lastField == null) {
-            if (!schemaMatched || !tableNameMatched) {
-                String schema = columnSchema == null ? defaultSchema : columnSchema;
-                Symbol fieldFromParent = fieldFromParent(columnSchema, columnTableName, schema, columnIdent, operation, errorOnUnknownObjectKey);
-                if (fieldFromParent != null) {
-                    return fieldFromParent;
-                }
-                raiseUnsupportedFeatureIfInAncestorScope(columnSchema, columnTableName, schema);
-                RelationName relationName = new RelationName(schema, columnTableName);
-                throw new RelationUnknown(relationName);
-            }
-            RelationName relationName = sources.entrySet().iterator().next().getKey();
-            throw new ColumnUnknownException(columnIdent.sqlFqn(), relationName);
+        if (lastField != null) {
+            return lastField;
         }
-        return lastField;
-    }
+        for (var relation : parents.getParents()) {
+            RelationName relName = relation.relationName();
+            if (columnSchema != null && !columnSchema.equals(relName.schema())) {
+                continue;
+            }
+            schemaMatched = true;
+            if (columnTableName != null && !relName.name().equals(columnTableName)) {
+                continue;
+            }
+            tableNameMatched = true;
 
-    @Nullable
-    private Symbol fieldFromParent(String columnSchema,
-                                   String columnTableName,
-                                   String schema,
-                                   ColumnIdent column,
-                                   Operation operation,
-                                   boolean errorOnUnknownObjectKey) {
-        RelationName name = new RelationName(schema, columnTableName);
-        AnalyzedRelation parentRelation = parents.getParent(name);
-        if (parentRelation != null) {
-            Symbol field = parentRelation.getField(column, operation, errorOnUnknownObjectKey);
-            if (field != null) {
-                return new OuterColumn(parentRelation, field);
-            }
-            return null;
-        }
-        if (columnSchema == null) {
-            name = new RelationName(null, columnTableName);
-            parentRelation = parents.getParent(name);
-            if (parentRelation != null) {
-                Symbol field = parentRelation.getField(column, operation, errorOnUnknownObjectKey);
-                if (field != null) {
-                    return new OuterColumn(parentRelation, field);
+            Symbol newField = relation.getField(columnIdent, operation, errorOnUnknownObjectKey);
+            if (newField != null) {
+                if (lastField != null) {
+                    if (errorOnUnknownObjectKey == false) {
+                        /* ex) CREATE TABLE c1 (obj object as (x int));
+                        *     CREATE TABLE c2 (obj object as (y int));
+                        *     select obj['x'] from c1, c2;
+                        *     --> ambiguous because c2.obj['x'] is another candidate with errorOnUnknownObjectKey = false
+                        */
+                        return resolveField(qualifiedName, path, operation, true);
+                    }
+                    throw new AmbiguousColumnException(columnIdent, newField);
                 }
-                return null;
+                lastField = new OuterColumn(relation, newField);
             }
         }
-        return null;
+        if (lastField != null) {
+            return lastField;
+        }
+        if (!schemaMatched || !tableNameMatched) {
+            String schema = columnSchema == null ? defaultSchema : columnSchema;
+            raiseUnsupportedFeatureIfInAncestorScope(columnSchema, columnTableName, schema);
+            RelationName relationName = new RelationName(schema, columnTableName);
+            throw new RelationUnknown(relationName);
+        }
+        RelationName relationName = sources.entrySet().iterator().next().getKey();
+        throw new ColumnUnknownException(columnIdent.sqlFqn(), relationName);
     }
 
     private void raiseUnsupportedFeatureIfInAncestorScope(String columnSchema, String columnTableName, String schema) {

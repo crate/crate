@@ -83,7 +83,6 @@ public class LiteralValueFormatter {
         var it = map
             .entrySet()
             .stream()
-            .sorted(Map.Entry.comparingByKey())
             .iterator();
         while (it.hasNext()) {
             var entry = it.next();

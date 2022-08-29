@@ -928,11 +928,11 @@ public class Node implements Closeable {
         if (Assertions.ENABLED) {
             try {
                 assert injector.getInstance(MetaStateService.class).loadFullState().v1().isEmpty();
-                final NodeMetadata nodeMetaData = NodeMetadata.FORMAT.loadLatestState(logger, NamedXContentRegistry.EMPTY,
+                final NodeMetadata nodeMetadata = NodeMetadata.FORMAT.loadLatestState(logger, NamedXContentRegistry.EMPTY,
                                                                                       nodeEnvironment.nodeDataPaths());
-                assert nodeMetaData != null;
-                assert nodeMetaData.nodeVersion().equals(Version.CURRENT);
-                assert nodeMetaData.nodeId().equals(localNodeFactory.getNode().getId());
+                assert nodeMetadata != null;
+                assert nodeMetadata.nodeVersion().equals(Version.CURRENT);
+                assert nodeMetadata.nodeId().equals(localNodeFactory.getNode().getId());
             } catch (IOException e) {
                 assert false : e;
             }

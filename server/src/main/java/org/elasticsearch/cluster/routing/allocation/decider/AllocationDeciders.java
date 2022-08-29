@@ -137,10 +137,10 @@ public class AllocationDeciders extends AllocationDecider {
     }
 
     @Override
-    public Decision shouldAutoExpandToNode(IndexMetadata indexMetaData, DiscoveryNode node, RoutingAllocation allocation) {
+    public Decision shouldAutoExpandToNode(IndexMetadata indexMetadata, DiscoveryNode node, RoutingAllocation allocation) {
         Decision.Multi ret = new Decision.Multi();
         for (AllocationDecider allocationDecider : allocations) {
-            Decision decision = allocationDecider.shouldAutoExpandToNode(indexMetaData, node, allocation);
+            Decision decision = allocationDecider.shouldAutoExpandToNode(indexMetadata, node, allocation);
             // short track if a NO is returned.
             if (decision == Decision.NO) {
                 if (!allocation.debugDecision()) {
