@@ -24,6 +24,7 @@ package io.crate.execution.ddl.tables;
 import io.crate.analyze.AnalyzedTableElements;
 import io.crate.common.collections.Maps;
 import io.crate.execution.ddl.AbstractDDLTransportAction;
+import io.crate.execution.ddl.TransportSchemaUpdateAction;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.cluster.DDLClusterStateHelpers;
@@ -129,12 +130,9 @@ public class TransportAddColumnAction extends AbstractDDLTransportAction<AddColu
 
             Map<String, Object> indexMapping = indexMetadata.mapping().sourceAsMap();
             mergeDeltaIntoExistingMapping(indexMapping, request);
+            TransportSchemaUpdateAction.populateColumnPositions(indexMapping);
 
             MapperService mapperService = indicesService.createIndexMapperService(indexMetadata);
-
-            // Add current mapping and initialize DocumentMapper, so that mapperService.documentMapper()
-            // is not null. It's needed to trigger ColumnPositionResolver and publish cluster state with non-negative calculated column positions
-            mapperService.merge(indexMetadata, MapperService.MergeReason.MAPPING_RECOVERY);
 
             mapperService.merge(indexMapping, MapperService.MergeReason.MAPPING_UPDATE);
             DocumentMapper mapper = mapperService.documentMapper();
