@@ -21,21 +21,20 @@
 
 package io.crate.types;
 
-import io.crate.Streamer;
+import static io.crate.types.TimestampType.TIMESTAMP_PARSER;
+
+import java.io.IOException;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeParseException;
+import java.time.temporal.TemporalAccessor;
+
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
-import java.io.IOException;
-import java.time.LocalDate;
-import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeFormatterBuilder;
-import java.time.format.DateTimeParseException;
-import java.time.format.ResolverStyle;
-import java.util.Locale;
-
-import static java.time.format.DateTimeFormatter.ISO_LOCAL_DATE;
+import io.crate.Streamer;
 
 public class DateType extends DataType<Long>
     implements FixedWidthType, Streamer<Long> {
@@ -43,11 +42,6 @@ public class DateType extends DataType<Long>
     public static final int ID = 24;
     public static final DateType INSTANCE = new DateType();
     public static final int DATE_SIZE = (int) RamUsageEstimator.shallowSizeOfInstance(Long.class);
-
-    private static final DateTimeFormatter ISO_FORMATTER = new DateTimeFormatterBuilder()
-        .parseCaseInsensitive()
-        .append(ISO_LOCAL_DATE)
-        .toFormatter(Locale.ENGLISH).withResolverStyle(ResolverStyle.STRICT);
 
     @Override
     public int id() {
@@ -71,34 +65,36 @@ public class DateType extends DataType<Long>
 
     @Override
     public Long implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
+        long longVal;
         if (value == null) {
             return null;
-        } else if (value instanceof String) {
-
-            var stringVal = (String) value;
-
+        } else if (value instanceof String stringVal) {
             try {
-                LocalDate dt = LocalDate.parse(stringVal, ISO_FORMATTER);
-                return dt.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli();
+                TemporalAccessor dt = TIMESTAMP_PARSER.parseBest(stringVal, LocalDateTime::from, LocalDate::from);
+                LocalDate localDate = LocalDate.from(dt);
+                return localDate.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli();
             } catch (DateTimeParseException ex) {
                 try {
-                    return Long.parseLong(stringVal);
+                    longVal = Long.parseLong(stringVal);
                 } catch (NumberFormatException e) {
                     throw new ClassCastException("Can't cast '" + value + "' to " + getName());
                 }
             }
-
         } else if (value instanceof Double) {
             // we treat float and double values as seconds with milliseconds as fractions
             // see timestamp documentation
-            return ((Number) (((Double) value) * 1000)).longValue();
+            longVal = ((Number) (((Double) value) * 1000)).longValue();
         } else if (value instanceof Float) {
-            return ((Number) (((Float) value) * 1000)).longValue();
+            longVal = ((Number) (((Float) value) * 1000)).longValue();
         } else if (value instanceof Number) {
-            return ((Number) value).longValue();
+            longVal = ((Number) value).longValue();
         } else {
             throw new ClassCastException("Can't cast '" + value + "' to " + getName());
         }
+
+        var epochDay = longVal / 1000 / 86400;
+        var localDate = LocalDate.ofEpochDay(epochDay);
+        return localDate.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli();
     }
 
     @Override

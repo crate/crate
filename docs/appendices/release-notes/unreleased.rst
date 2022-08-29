@@ -147,3 +147,9 @@ Fixes
 
 - Fixed ``UPDATE``, ``INSERT`` and ``COPY FROM`` to preserve the implied column
   order when columns are added.
+
+- Fixed casts of strings to the ``DATE`` type, any possible time parts
+  of a timestamp formatted will be ignored instead of raising a cast error.
+
+- Fixed casts of numeric and timestamp values to the ``DATE`` type, any time
+  values weren't removed from the returning epoch in milliseconds.
