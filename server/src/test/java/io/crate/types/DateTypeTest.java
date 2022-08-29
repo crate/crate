@@ -22,9 +22,7 @@
 package io.crate.types;
 
 import static io.crate.testing.Asserts.assertThrowsMatches;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.Test;
 
@@ -39,30 +37,26 @@ public class DateTypeTest {
 
     @Test
     public void testCastString() {
-        assertThat(DateType.INSTANCE.implicitCast("123"), is(123L));
+        assertThat(DateType.INSTANCE.implicitCast("123")).isEqualTo(123L);
     }
 
     @Test
     public void testCastDateString() {
-        assertThat(DateType.INSTANCE.implicitCast("2020-02-09"), is(1581206400000L));
+        assertThat(DateType.INSTANCE.implicitCast("2020-02-09")).isEqualTo(1581206400000L);
     }
 
     @Test
     public void testCastFloatValue() {
-        assertThat(DateType.INSTANCE.implicitCast(123.123f), is(123123L));
+        assertThat(DateType.INSTANCE.implicitCast(123.123f)).isEqualTo(123123L);
     }
 
     @Test
     public void testCastNumericNonFloatValue() {
-        assertThat(DateType.INSTANCE.implicitCast(123), is(123L));
+        assertThat(DateType.INSTANCE.implicitCast(123)).isEqualTo(123L);
     }
 
     @Test
     public void testCastNull() {
-        assertThat(DateType.INSTANCE.implicitCast(null), is(nullValue()));
+        assertThat(DateType.INSTANCE.implicitCast(null)).isNull();
     }
-
-
-
-
 }
