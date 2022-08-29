@@ -106,13 +106,13 @@ public final class AutoExpandReplicas {
         return Math.min(maxReplicas, numDataNodes - 1);
     }
 
-    private OptionalInt getDesiredNumberOfReplicas(IndexMetadata indexMetaData, RoutingAllocation allocation) {
+    private OptionalInt getDesiredNumberOfReplicas(IndexMetadata indexMetadata, RoutingAllocation allocation) {
         if (enabled) {
             int numMatchingDataNodes = 0;
             // Only start using new logic once all nodes are migrated to 4.4.0, avoiding disruption during an upgrade
             if (allocation.nodes().getMinNodeVersion().onOrAfter(Version.V_4_4_0)) {
                 for (ObjectCursor<DiscoveryNode> cursor : allocation.nodes().getDataNodes().values()) {
-                    Decision decision = allocation.deciders().shouldAutoExpandToNode(indexMetaData, cursor.value, allocation);
+                    Decision decision = allocation.deciders().shouldAutoExpandToNode(indexMetadata, cursor.value, allocation);
                     if (decision.type() != Decision.Type.NO) {
                         numMatchingDataNodes ++;
                     }

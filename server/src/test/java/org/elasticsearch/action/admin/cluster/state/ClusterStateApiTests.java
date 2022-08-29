@@ -34,7 +34,7 @@ import io.crate.common.unit.TimeValue;
 public class ClusterStateApiTests extends IntegTestCase {
 
     @Test
-    public void testWaitForMetaDataVersion() throws Exception {
+    public void testWaitForMetadataVersion() throws Exception {
         ClusterStateRequest clusterStateRequest = new ClusterStateRequest();
         clusterStateRequest.waitForTimeout(TimeValue.timeValueHours(1));
         CompletableFuture<ClusterStateResponse> future1 = client().admin().cluster().state(clusterStateRequest);

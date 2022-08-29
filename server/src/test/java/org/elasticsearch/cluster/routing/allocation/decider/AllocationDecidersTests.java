@@ -76,7 +76,7 @@ public class AllocationDecidersTests extends ESTestCase {
             }
 
             @Override
-            public Decision canAllocate(IndexMetadata indexMetaData, RoutingNode node, RoutingAllocation allocation) {
+            public Decision canAllocate(IndexMetadata indexMetadata, RoutingNode node, RoutingAllocation allocation) {
                 return Decision.YES;
             }
 
@@ -86,7 +86,7 @@ public class AllocationDecidersTests extends ESTestCase {
             }
 
             @Override
-            public Decision shouldAutoExpandToNode(IndexMetadata indexMetaData, DiscoveryNode node, RoutingAllocation allocation) {
+            public Decision shouldAutoExpandToNode(IndexMetadata indexMetadata, DiscoveryNode node, RoutingAllocation allocation) {
                 return Decision.YES;
             }
 

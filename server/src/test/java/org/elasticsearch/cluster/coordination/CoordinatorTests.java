@@ -51,7 +51,6 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -456,7 +455,6 @@ public class CoordinatorTests extends AbstractCoordinatorTestCase {
             logger.info("--> blackholing leader {}", originalLeader);
             originalLeader.blackhole();
 
-            // This stabilisation time bound is undesirably long. TODO try and reduce it.
             cluster.stabilise(Math.max(
                 // first wait for all the followers to notice the leader has gone
                 (defaultMillis(LEADER_CHECK_INTERVAL_SETTING) + defaultMillis(LEADER_CHECK_TIMEOUT_SETTING))
@@ -693,7 +691,7 @@ public class CoordinatorTests extends AbstractCoordinatorTestCase {
             // cluster has two nodes in mode LEADER, in different terms ofc, and the one in the lower term won’t be able to publish anything
             leader.heal();
             AckCollector ackCollector = leader.submitValue(randomLong());
-            cluster.stabilise(); // TODO: check if can find a better bound here
+            cluster.stabilise();
             assertTrue("expected nack from " + leader, ackCollector.hasAckedUnsuccessfully(leader));
             assertTrue("expected nack from " + follower0, ackCollector.hasAckedUnsuccessfully(follower0));
             assertTrue("expected nack from " + follower1, ackCollector.hasAckedUnsuccessfully(follower1));
@@ -746,14 +744,13 @@ public class CoordinatorTests extends AbstractCoordinatorTestCase {
             cluster.stabilise(
                 // the first election should succeed, because only one node knows of the initial configuration and therefore can win a
                 // pre-voting round and proceed to an election, so there cannot be any collisions
-                defaultMillis(ELECTION_INITIAL_TIMEOUT_SETTING) // TODO this wait is unnecessary, we could trigger the election immediately
+                defaultMillis(ELECTION_INITIAL_TIMEOUT_SETTING)
                     // Allow two round-trip for pre-voting and voting
                     + 4 * DEFAULT_DELAY_VARIABILITY
                     // Then a commit of the new leader's first cluster state
                     + DEFAULT_CLUSTER_STATE_UPDATE_DELAY
                     // Then allow time for all the other nodes to join, each of which might cause a reconfiguration
                     + (cluster.size() - 1) * 2 * DEFAULT_CLUSTER_STATE_UPDATE_DELAY
-                // TODO Investigate whether 4 publications is sufficient due to batching? A bound linear in the number of nodes isn't great.
             );
         }
     }
@@ -781,8 +778,7 @@ public class CoordinatorTests extends AbstractCoordinatorTestCase {
             assertThat(exceptionMessage, containsString(coordinator.getLocalNode().toString()));
 
             // This is VERY BAD: setting a _different_ initial configuration. Yet it works if the first attempt will never be a quorum.
-            assertTrue(coordinator.setInitialConfiguration(
-                new VotingConfiguration(Collections.singleton(coordinator.getLocalNode().getId()))));
+            assertTrue(coordinator.setInitialConfiguration(VotingConfiguration.of(coordinator.getLocalNode())));
             cluster.stabilise();
         }
     }
