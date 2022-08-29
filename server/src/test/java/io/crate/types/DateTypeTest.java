@@ -37,22 +37,25 @@ public class DateTypeTest {
 
     @Test
     public void testCastString() {
-        assertThat(DateType.INSTANCE.implicitCast("123")).isEqualTo(123L);
+        assertThat(DateType.INSTANCE.implicitCast("86500000")).isEqualTo(86400000L);
     }
 
     @Test
     public void testCastDateString() {
         assertThat(DateType.INSTANCE.implicitCast("2020-02-09")).isEqualTo(1581206400000L);
+        assertThat(DateType.INSTANCE.implicitCast("2020-02-09T17:50:44")).isEqualTo(1581206400000L);
     }
 
     @Test
     public void testCastFloatValue() {
-        assertThat(DateType.INSTANCE.implicitCast(123.123f)).isEqualTo(123123L);
+        assertThat(DateType.INSTANCE.implicitCast(1422294644.581f)).isEqualTo(1422230400000L);
     }
 
     @Test
     public void testCastNumericNonFloatValue() {
-        assertThat(DateType.INSTANCE.implicitCast(123)).isEqualTo(123L);
+        assertThat(DateType.INSTANCE.implicitCast(123)).isEqualTo(0L);
+        assertThat(DateType.INSTANCE.implicitCast(86500000)).isEqualTo(86400000L);
+        assertThat(DateType.INSTANCE.implicitCast(1422294644581L)).isEqualTo(1422230400000L);
     }
 
     @Test
