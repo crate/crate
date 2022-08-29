@@ -64,6 +64,9 @@ public final class Exceptions {
         if (t instanceof CompletionException | t instanceof ExecutionException) {
             t = t.getCause();
         }
+        if (t instanceof StackOverflowError) {
+            t.printStackTrace();
+        }
         if (t instanceof RuntimeException) {
             return (RuntimeException) t;
         } else {

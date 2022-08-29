@@ -253,11 +253,13 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
             WHERE
                 mountain = (SELECT t.mountain) ORDER BY height desc limit 3
             """;
-        execute(stmt);
-        assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo(
-            "Mont Blanc| Mont Blanc massif\n" +
-            "Monte Rosa| Monte Rosa Alps\n" +
-            "Dom| Mischabel\n"
-        );
+        for (int index = 0; index < 2000; index++) {
+            execute(stmt);
+            assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo(
+                "Mont Blanc| Mont Blanc massif\n" +
+                "Monte Rosa| Monte Rosa Alps\n" +
+                "Dom| Mischabel\n"
+            );
+        }
     }
 }
