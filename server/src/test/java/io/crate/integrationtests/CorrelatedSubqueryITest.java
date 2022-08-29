@@ -219,6 +219,18 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
     }
 
     @Test
+    public void test_foo() {
+        String stmt = """
+            select
+               x
+            from generate_series(1, 500000) as t (x)
+            where x = (select t.x)
+            order by 1 desc limit 1000
+        """;
+        execute(stmt);
+    }
+
+    @Test
     public void test_can_use_correlated_subquery_in_where_clause() {
         String stmt = "SELECT mountain, region FROM sys.summits t where mountain = (SELECT t.mountain) ORDER BY height desc limit 3";
         execute("EXPLAIN " + stmt);
