@@ -224,6 +224,13 @@ public class CollectTask implements Task {
     @Override
     public String toString() {
         synchronized (searchers) {
+            if (batchIterator.isCompletedExceptionally()) {
+                try {
+                    batchIterator.join();
+                } catch (Throwable t) {
+                    t.printStackTrace();
+                }
+            }
             return "CollectTask{" +
                 "id=" + collectPhase.phaseId() +
                 ", sharedContexts=" + sharedShardContexts +
