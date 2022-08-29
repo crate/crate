@@ -31,14 +31,6 @@ public final class CapturingRowConsumer implements RowConsumer {
     private final CompletableFuture<?> completionFuture;
     private final boolean requiresScroll;
 
-    public CapturingRowConsumer(boolean requiresScroll,
-                                CompletableFuture<BatchIterator<Row>> batchIterator,
-                                CompletableFuture<?> completionFuture) {
-        this.batchIterator = batchIterator;
-        this.completionFuture = completionFuture;
-        this.requiresScroll = requiresScroll;
-    }
-
     public CapturingRowConsumer(boolean requiresScroll, CompletableFuture<?> completionFuture) {
         this.batchIterator = new CompletableFuture<>();
         this.completionFuture = completionFuture;

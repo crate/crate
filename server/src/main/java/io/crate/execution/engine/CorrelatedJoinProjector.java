@@ -28,10 +28,9 @@ import java.util.stream.Collector;
 import io.crate.data.AsyncFlatMapBatchIterator;
 import io.crate.data.AsyncFlatMapper;
 import io.crate.data.BatchIterator;
-import io.crate.data.BatchIterators;
 import io.crate.data.BiArrayRow;
-import io.crate.data.CapturingRowConsumer;
 import io.crate.data.CloseableIterator;
+import io.crate.data.CollectingRowConsumer;
 import io.crate.data.Projector;
 import io.crate.data.Row;
 import io.crate.expression.symbol.SelectSymbol;
@@ -73,14 +72,9 @@ public final class CorrelatedJoinProjector implements Projector {
 
     private final class BindAndExecuteSubQuery implements AsyncFlatMapper<Row, Row> {
 
-        // See `CorrelatedJoin` operator. The output is the output of the left relation + the sub-query result
-        private final BiArrayRow outputRow = new BiArrayRow();
-        private final Object[] secondCells = new Object[1];
-        private final List<Row> outputRows = List.of(outputRow);
         private final Collector<Row, ?, ?> collector;
 
         public BindAndExecuteSubQuery() {
-            this.outputRow.secondCells(secondCells);
             this.collector = FirstColumnConsumers.getCollector(correlatedSubQuery.getResultType());
         }
 
@@ -88,24 +82,20 @@ public final class CorrelatedJoinProjector implements Projector {
         public CompletableFuture<? extends CloseableIterator<Row>> apply(Row inputRow, boolean isLastCall) {
             try {
                 subQueryResults.bindOuterColumnInputRow(inputRow);
-                var batchIterator = new CompletableFuture<BatchIterator<Row>>();
-                var subQueryResult = batchIterator
-                    .thenCompose(it -> BatchIterators.collect(it, collector));
-                var capturingRowConsumer = new CapturingRowConsumer(false, batchIterator, subQueryResult);
+                CollectingRowConsumer<?, ?> rowConsumer = new CollectingRowConsumer<>(collector);
                 subQueryPlan.execute(
                     executor,
                     PlannerContext.forSubPlan(plannerContext),
-                    capturingRowConsumer,
+                    rowConsumer,
                     params,
                     subQueryResults
                 );
-                outputRow.firstCells(inputRow.materialize());
-                return subQueryResult.thenApply(result -> {
-                    assert batchIterator.isDone()
-                        : "BatchIterator is completed if subQueryResult.thenApply triggers";
-                    batchIterator.join().close();
+                // See `CorrelatedJoin` operator. The output is the output of the left relation + the sub-query result
+                final Object[] secondCells = new Object[1];
+                final BiArrayRow outputRow = new BiArrayRow(inputRow.materialize(), secondCells);
+                return rowConsumer.completionFuture().thenApply(result -> {
                     secondCells[0] = result;
-                    return CloseableIterator.fromIterator(outputRows.iterator());
+                    return CloseableIterator.fromIterator(List.<Row>of(outputRow).iterator());
                 });
             } catch (Throwable t) {
                 return CompletableFuture.failedFuture(t);
