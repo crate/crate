@@ -21,11 +21,9 @@
 
 package io.crate.types;
 
-import io.crate.Streamer;
-import io.crate.common.StringUtils;
-
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
+import static java.time.ZoneOffset.UTC;
+import static java.time.format.DateTimeFormatter.ISO_LOCAL_DATE;
+import static java.time.format.DateTimeFormatter.ISO_LOCAL_TIME;
 
 import java.io.IOException;
 import java.time.LocalDate;
@@ -39,9 +37,11 @@ import java.time.temporal.TemporalAccessor;
 import java.util.Locale;
 import java.util.function.Function;
 
-import static java.time.ZoneOffset.UTC;
-import static java.time.format.DateTimeFormatter.ISO_LOCAL_DATE;
-import static java.time.format.DateTimeFormatter.ISO_LOCAL_TIME;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+
+import io.crate.Streamer;
+import io.crate.common.StringUtils;
 
 public final class TimestampType extends DataType<Long>
     implements FixedWidthType, Streamer<Long> {
@@ -196,7 +196,7 @@ public final class TimestampType extends DataType<Long>
         return localDateTime.toInstant(UTC).toEpochMilli();
     }
 
-    private static final DateTimeFormatter TIMESTAMP_PARSER = new DateTimeFormatterBuilder()
+    public static final DateTimeFormatter TIMESTAMP_PARSER = new DateTimeFormatterBuilder()
         .parseCaseInsensitive()
         .append(ISO_LOCAL_DATE)
         .optionalStart()
