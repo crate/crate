@@ -54,30 +54,55 @@ public class BatchIterators {
      * @param <R> result type
      * @return future containing the result, this is the future that has been provided as argument.
      */
+    @SuppressWarnings({"rawtypes", "unchecked"})
     public static <T, A, R> CompletableFuture<R> collect(BatchIterator<T> it,
                                                          A state,
                                                          Collector<T, A, R> collector,
                                                          CompletableFuture<R> resultFuture) {
-        BiConsumer<A, T> accumulator = collector.accumulator();
-        try {
-            while (it.moveNext()) {
-                accumulator.accept(state, it.currentElement());
-            }
-            if (it.allLoaded()) {
-                resultFuture.complete(collector.finisher().apply(state));
-            } else {
-                it.loadNextBatch().whenComplete((r, t) -> {
-                    if (t == null) {
-                        collect(it, state, collector, resultFuture);
-                    } else {
-                        resultFuture.completeExceptionally(t);
-                    }
-                });
-            }
-        } catch (Throwable t) {
-            resultFuture.completeExceptionally(t);
-        }
+        var biCollector = new BiCollector(it, state, collector, resultFuture);
+        biCollector.collect();
         return resultFuture;
+    }
+
+    static class BiCollector<T, A, R> {
+
+        private final BiConsumer<A, T> accumulator;
+        private final Function<A, R> finisher;
+        private final BatchIterator<T> it;
+        private final A state;
+        private final CompletableFuture<R> resultFuture;
+
+        public BiCollector(BatchIterator<T> it,
+                           A state,
+                           Collector<T, A, R> collector,
+                           CompletableFuture<R> resultFuture) {
+            this.it = it;
+            this.state = state;
+            this.resultFuture = resultFuture;
+            this.accumulator = collector.accumulator();
+            this.finisher = collector.finisher();
+        }
+
+        public void collect() {
+            try {
+                while (it.moveNext()) {
+                    accumulator.accept(state, it.currentElement());
+                }
+                if (it.allLoaded()) {
+                    resultFuture.complete(finisher.apply(state));
+                } else {
+                    it.loadNextBatch().whenComplete((res, err) -> {
+                        if (err == null) {
+                            collect();
+                        } else {
+                            resultFuture.completeExceptionally(err);
+                        }
+                    });
+                }
+            } catch (Throwable t) {
+                resultFuture.completeExceptionally(t);
+            }
+        }
     }
 
     /**
