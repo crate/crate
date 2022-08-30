@@ -54,12 +54,11 @@ public class BatchIterators {
      * @param <R> result type
      * @return future containing the result, this is the future that has been provided as argument.
      */
-    @SuppressWarnings({"rawtypes", "unchecked"})
     public static <T, A, R> CompletableFuture<R> collect(BatchIterator<T> it,
                                                          A state,
                                                          Collector<T, A, R> collector,
                                                          CompletableFuture<R> resultFuture) {
-        var biCollector = new BiCollector(it, state, collector, resultFuture);
+        var biCollector = new BiCollector<>(it, state, collector, resultFuture);
         biCollector.collect();
         return resultFuture;
     }
