@@ -226,7 +226,7 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
             from generate_series(1, 10) as t (x)
             where x = (select t.x)
             order by 1 desc limit 10000
-        """;
+            """;
         execute(stmt);
     }
 
