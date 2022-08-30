@@ -93,6 +93,8 @@ Changes
 
 - Added support of ``GROUP BY`` on ``ARRAY`` typed columns.
 
+- Added support for casting ``TIMESTAMP`` and ``TIMESTAMP WITHOUT TIME ZONE``
+  values to the ``DATE`` data type and vice versa.
 
 Fixes
 =====

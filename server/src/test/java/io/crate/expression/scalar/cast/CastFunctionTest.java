@@ -314,4 +314,16 @@ public class CastFunctionTest extends ScalarTestCase {
         assertEvaluate("10::bigint::regclass",
             RegclassType.INSTANCE.explicitCast(10L, CoordinatorTxnCtx.systemTransactionContext().sessionSettings()));
     }
+
+    @Test
+    public void test_can_cast_timestamp_to_date() {
+        assertEvaluate("'2020-02-09T17:50:44+0100'::timestamp::date", 1581206400000L);
+        assertEvaluate("'2020-02-09T17:50:44+0100'::timestamp without time zone::date", 1581206400000L);
+    }
+
+    @Test
+    public void test_can_cast_date_to_timestamp() {
+        assertEvaluate("'2020-02-09T17:50:44+0100'::date::timestamp", 1581206400000L);
+        assertEvaluate("'2020-02-09T17:50:44+0100'::date::timestamp without time zone", 1581206400000L);
+    }
 }
