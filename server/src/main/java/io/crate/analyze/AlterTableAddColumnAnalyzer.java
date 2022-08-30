@@ -164,19 +164,36 @@ class AlterTableAddColumnAnalyzer {
             } catch (ColumnUnknownException cue) {
                 ColumnIdent colIdent = ColumnIdent.fromNameSafe(qualifiedName, path);
                 for (int i = 0; i < columnDefinitions.size(); i++) {
-                    AnalyzedColumnDefinition<Symbol> def = columnDefinitions.get(i);
-                    if (def.ident().equals(colIdent)) {
+                    AnalyzedColumnDefinition<Symbol> matchingNode = resolveColumn(columnDefinitions.get(i), colIdent);
+                    if (matchingNode != null) {
                         return new SimpleReference(
                             new ReferenceIdent(relationName, colIdent),
                             RowGranularity.DOC,
-                            def.dataType(),
-                            def.position,
-                            def.defaultExpression()
+                            matchingNode.dataType(),
+                            matchingNode.position,
+                            matchingNode.defaultExpression()
                         );
                     }
                 }
                 throw new ColumnUnknownException(colIdent.sqlFqn(), relationName);
             }
+        }
+
+        @Nullable
+        private static AnalyzedColumnDefinition<Symbol> resolveColumn(AnalyzedColumnDefinition<Symbol> column, ColumnIdent colToCompare) {
+            if (column.ident().equals(colToCompare)) {
+                return column;
+            }
+            if (column.children().isEmpty()) {
+                return null;
+            }
+            for (AnalyzedColumnDefinition<Symbol> child: column.children()) {
+                var matchingNode = resolveColumn(child, colToCompare);
+                if (matchingNode != null) {
+                    return matchingNode;
+                }
+            }
+            return null;
         }
     }
 }
