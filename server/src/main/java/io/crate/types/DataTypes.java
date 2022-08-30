@@ -236,9 +236,9 @@ public final class DataTypes {
             NUMBER_CONVERSIONS.stream()
         ).collect(toSet())),
         entry(IP.id(), Set.of(STRING.id(), CHARACTER.id())),
-        entry(TIMESTAMPZ.id(), Set.of(DOUBLE.id(), LONG.id(), STRING.id(), TIMESTAMP.id(), CHARACTER.id())),
-        entry(TIMESTAMP.id(), Set.of(DOUBLE.id(), LONG.id(), STRING.id(), TIMESTAMPZ.id(), CHARACTER.id())),
-        entry(DATE.id(), Set.of(DOUBLE.id(), LONG.id(), STRING.id(), TIMESTAMPZ.id(), CHARACTER.id())),
+        entry(TIMESTAMPZ.id(), Set.of(DOUBLE.id(), LONG.id(), STRING.id(), TIMESTAMP.id(), CHARACTER.id(), DATE.id())),
+        entry(TIMESTAMP.id(), Set.of(DOUBLE.id(), LONG.id(), STRING.id(), TIMESTAMPZ.id(), CHARACTER.id(), DATE.id())),
+        entry(DATE.id(), Set.of(DOUBLE.id(), LONG.id(), STRING.id(), TIMESTAMP.id(), TIMESTAMPZ.id(), CHARACTER.id())),
         entry(UNDEFINED.id(), Set.of()), // actually convertible to every type, see NullType
         entry(GEO_POINT.id(), Set.of()),
         entry(GEO_SHAPE.id(), Set.of(ObjectType.ID)),
