@@ -155,3 +155,6 @@ Fixes
 
 - Fixed casts of numeric and timestamp values to the ``DATE`` type, any time
   values weren't removed from the returning epoch in milliseconds.
+
+- Fixed an issue causing error when adding a check constraint to a nested
+  object sub column.
