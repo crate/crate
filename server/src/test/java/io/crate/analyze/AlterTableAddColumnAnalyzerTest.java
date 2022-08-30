@@ -275,6 +275,50 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
     }
 
     @Test
+    public void test_check_constraint_can_be_added_to_nested_non_existing_object_sub_column() throws Exception {
+        e = SQLExecutor.builder(clusterService)
+            .addTable("create table t (i int, o object)")
+            .build();
+
+        BoundAddColumn analysis = analyze("alter table t add column o2['a']['b'] text " +
+            "constraint nested_col_check check (o2['a']['b']!='test')");
+
+        Map<String, Object> meta = (Map<String, Object>) analysis.mapping().get("_meta");
+        Map<String, String> checks = (Map<String, String>) meta.get("check_constraints");
+        assertThat(checks.get("nested_col_check"), is("\"o2\"['a']['b'] <> 'test'"));
+    }
+
+
+    @Test
+    public void test_check_constraint_can_be_added_to_nested_existing_object_sub_column() throws Exception {
+        e = SQLExecutor.builder(clusterService)
+            .addTable("create table t (i int, o object)")
+            .build();
+
+        BoundAddColumn analysis = analyze("alter table t add column o['a']['b'] text " +
+            "constraint nested_col_check check (o['a']['b']!='test')");
+
+        Map<String, Object> meta = (Map<String, Object>) analysis.mapping().get("_meta");
+        Map<String, String> checks = (Map<String, String>) meta.get("check_constraints");
+        assertThat(checks.get("nested_col_check"), is("\"o\"['a']['b'] <> 'test'"));
+    }
+
+
+    @Test
+    public void test_check_constraint_can_be_added_to_nested_existing_object_one_of_sub_columns() throws Exception {
+        e = SQLExecutor.builder(clusterService)
+            .addTable("create table t (i int, o object)")
+            .build();
+
+        BoundAddColumn analysis = analyze("alter table t add column o3 object as (a object as (b text), c text) " +
+            "constraint nested_col_check check (o3['a']['b']!='test')");
+
+        Map<String, Object> meta = (Map<String, Object>) analysis.mapping().get("_meta");
+        Map<String, String> checks = (Map<String, String>) meta.get("check_constraints");
+        assertThat(checks.get("nested_col_check"), is("\"o3\"['a']['b'] <> 'test'"));
+    }
+
+    @Test
     public void testAddNewNestedColumnToObjectArray() throws Exception {
         e = SQLExecutor.builder(clusterService)
             .addTable("""
