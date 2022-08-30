@@ -223,7 +223,7 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
         String stmt = """
             select
                x
-            from generate_series(1, 500000) as t (x)
+            from generate_series(1, 10) as t (x)
             where x = (select t.x)
             order by 1 desc limit 10000
         """;
