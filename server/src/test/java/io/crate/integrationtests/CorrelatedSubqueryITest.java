@@ -198,6 +198,26 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
     }
 
     @Test
+    public void test_where_exists_with_correlated_subquery() {
+        String stmt = "select x from generate_series(1, 2) as t (x) where exists (select t.x)";
+        execute("EXPLAIN " + stmt);
+        assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo(
+            "Eval[x]\n" +
+            "  └ Filter[EXISTS (SELECT x FROM (empty_row))]\n" +
+            "    └ CorrelatedJoin[x, (SELECT x FROM (empty_row))]\n" +
+            "      └ Rename[x] AS t\n" +
+            "        └ TableFunction[generate_series | [generate_series] | true]\n" +
+            "      └ SubPlan\n" +
+            "        └ Eval[x]\n" +
+            "          └ TableFunction[empty_row | [] | true]\n");
+        execute(stmt);
+        assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo(
+            "1\n" +
+            "2\n"
+        );
+    }
+
+    @Test
     public void test_can_use_correlated_subquery_in_where_clause() {
         String stmt = "SELECT mountain, region FROM sys.summits t where mountain = (SELECT t.mountain) ORDER BY height desc limit 3";
         execute("EXPLAIN " + stmt);
