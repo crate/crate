@@ -209,7 +209,8 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
             "        └ TableFunction[generate_series | [generate_series] | true]\n" +
             "      └ SubPlan\n" +
             "        └ Eval[x]\n" +
-            "          └ TableFunction[empty_row | [] | true]\n");
+            "          └ Limit[1;0]\n" +
+            "            └ TableFunction[empty_row | [] | true]\n");
         execute(stmt);
         assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo(
             "1\n" +

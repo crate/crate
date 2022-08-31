@@ -21,8 +21,6 @@
 
 package io.crate.planner.operators;
 
-import static io.crate.expression.symbol.SelectSymbol.ResultType.SINGLE_COLUMN_SINGLE_VALUE;
-
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashSet;
@@ -66,6 +64,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.SelectSymbol;
+import io.crate.expression.symbol.SelectSymbol.ResultType;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -176,16 +175,26 @@ public class LogicalPlanner {
 
         final int fetchSize;
         final java.util.function.Function<LogicalPlan, LogicalPlan> maybeApplySoftLimit;
-        if (selectSymbol.getResultType() == SINGLE_COLUMN_SINGLE_VALUE) {
-            // SELECT (SELECT foo FROM t)
-            //         ^^^^^^^^^^^^^^^^^
-            // The subquery must return at most 1 row, if more than 1 row is returned semantics require us to throw an error.
-            // So we limit the query to 2 if there is no limit to avoid retrieval of many rows while being able to validate max1row
-            fetchSize = 2;
-            maybeApplySoftLimit = plan -> new Limit(plan, Literal.of(2L), Literal.of(0L));
-        } else {
-            fetchSize = 0;
-            maybeApplySoftLimit = plan -> plan;
+        ResultType resultType = selectSymbol.getResultType();
+        switch (resultType) {
+            case SINGLE_COLUMN_EXISTS:
+                // Exists only needs to know if there are any rows
+                fetchSize = 1;
+                maybeApplySoftLimit = plan -> new Limit(plan, Literal.of(1), Literal.of(0));
+                break;
+            case SINGLE_COLUMN_SINGLE_VALUE:
+                // SELECT (SELECT foo FROM t)
+                //         ^^^^^^^^^^^^^^^^^
+                // The subquery must return at most 1 row, if more than 1 row is returned semantics require us to throw an error.
+                // So we limit the query to 2 if there is no limit to avoid retrieval of many rows while being able to validate max1row
+                fetchSize = 2;
+                maybeApplySoftLimit = plan -> new Limit(plan, Literal.of(2L), Literal.of(0L));
+                break;
+            case SINGLE_COLUMN_MULTIPLE_VALUES:
+            default:
+                fetchSize = 0;
+                maybeApplySoftLimit = plan -> plan;
+                break;
         }
         PlannerContext subSelectPlannerContext = PlannerContext.forSubPlan(plannerContext, fetchSize);
         SubqueryPlanner subqueryPlanner = new SubqueryPlanner(s -> planSubSelect(s, subSelectPlannerContext));
@@ -210,6 +219,7 @@ public class LogicalPlanner {
         if (selectSymbol.isCorrelated()) {
             return planBuilder;
         }
+
         if (selectSymbol.getResultType() == SelectSymbol.ResultType.SINGLE_COLUMN_MULTIPLE_VALUES && relation instanceof QueriedSelectRelation) {
             QueriedSelectRelation queriedRelation = (QueriedSelectRelation) relation;
             OrderBy relationOrderBy = queriedRelation.orderBy();
