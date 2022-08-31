@@ -21,9 +21,17 @@
 
 package io.crate.execution.ddl.tables;
 
-import io.crate.metadata.Reference;
-import io.crate.metadata.RelationName;
+import io.crate.analyze.AnalyzedColumnDefinition;
+import io.crate.analyze.AnalyzedTableElements;
+import io.crate.metadata.*;
+import io.crate.metadata.table.ColumnPolicies;
 import io.crate.sql.tree.CheckColumnConstraint;
+import io.crate.sql.tree.ColumnPolicy;
+import io.crate.sql.tree.GenericProperties;
+import io.crate.types.ArrayType;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -33,90 +41,72 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-/**
- * Contains all supported for ADD COLUMN configurations such as constraints,
- * doc values enabled flag, column type properties (bit length, text analyzer e.t.c).
- */
+import static org.elasticsearch.index.mapper.TypeParsers.DOC_VALUES;
+
 public class AddColumnRequest extends AcknowledgedRequest<AddColumnRequest> {
 
     private final RelationName relationName;
     private final boolean isPartitioned;
-    private final Reference columnRef; // Contains isNullable and hasDocValues which reflects NOT-NULL and STORAGE WITH.
-    private final Map<String, Object> columnProperties = new LinkedHashMap<>();
-    private final boolean isPrimaryKey;
 
-    @Nullable
-    private final String generatedExpression;
+    // Used only with ADD COLUMN.
+    // Not included into StreamableColumnInfo to avoid adding empty list in most cases.
+    // Checks are merged into mapping without knowing column name as it's contained in expression itself
+    // and thus we can keep them separately which is not the case for other constraints.
     private final List<StreamableCheckConstraint> checkConstraints = new ArrayList<>();
+
+    private final List<StreamableColumnInfo> columns = new ArrayList<>();
 
     public AddColumnRequest(StreamInput in) throws IOException {
         super(in);
         relationName = new RelationName(in);
         isPartitioned = in.readBoolean();
-        columnRef = Reference.fromStream(in);
-        columnProperties.putAll(in.readMap(StreamInput::readString, StreamInput::readGenericValue));
-        isPrimaryKey = in.readBoolean();
-        generatedExpression = in.readOptionalString();
+
         int count = in.readVInt();
         for (int i = 0; i < count; i++) {
             checkConstraints.add(StreamableCheckConstraint.readFrom(in));
         }
+
+        count = in.readVInt();
+        for (int i = 0; i < count; i++) {
+            columns.add(StreamableColumnInfo.readFrom(in));
+        }
     }
 
+    /**
+     * For ADD COLUMN.
+     */
     public AddColumnRequest(RelationName relationName,
                             boolean isPartitioned,
-                            Reference column,
-                            @Nonnull Map<String, Object> columnTypeProperties,
-                            boolean isPrimaryKey,
-                            @Nullable String generatedExpression,
-                            @Nonnull Map<String, String> checkConstraints) {
+                            AnalyzedColumnDefinition colToAdd,
+                            Map<String, String> checkConstraints) {
         this.relationName = relationName;
         this.isPartitioned = isPartitioned;
-        this.columnRef = column;
-        this.columnProperties.putAll(columnTypeProperties);
-        this.isPrimaryKey = isPrimaryKey;
-        this.generatedExpression = generatedExpression;
+        this.columns.add(new StreamableColumnInfo(colToAdd));
         this.checkConstraints.addAll(checkConstraints.entrySet()
             .stream()
             .map(nameExprEntry -> new StreamableCheckConstraint(nameExprEntry.getKey(), nameExprEntry.getValue()))
             .collect(Collectors.toList()));
     }
 
-    @Nonnull
     public RelationName relationName() {
         return this.relationName;
-    }
-
-    @Nonnull
-    public Reference columnRef() {
-        return this.columnRef;
-    }
-
-    public boolean isPrimaryKey() {
-        return this.isPrimaryKey;
     }
 
     public boolean isPartitioned() {
         return isPartitioned;
     }
 
-    @Nullable
-    public String generatedExpression() {
-        return this.generatedExpression;
-    }
-
-    @Nonnull
-    List<StreamableCheckConstraint> checkConstraints() {
+    public List<StreamableCheckConstraint> checkConstraints() {
         return this.checkConstraints;
     }
 
-    public Map<String, Object> columnProperties() {
-        return this.columnProperties;
+    public List<StreamableColumnInfo> columns() {
+        return this.columns;
     }
 
     @Override
@@ -124,19 +114,160 @@ public class AddColumnRequest extends AcknowledgedRequest<AddColumnRequest> {
         super.writeTo(out);
         relationName.writeTo(out);
         out.writeBoolean(isPartitioned);
-        Reference.toStream(columnRef, out);
-        out.writeMap(columnProperties, (o, v) -> o.writeString(v), (o, v) -> out.writeGenericValue(v));
-        out.writeBoolean(isPrimaryKey);
-        out.writeOptionalString(generatedExpression);
+
         out.writeVInt(checkConstraints.size());
         for (int i = 0; i < checkConstraints.size(); i++) {
             checkConstraints.get(i).writeTo(out);
+        }
+
+        out.writeVInt(columns.size());
+        for (int i = 0; i < columns.size(); i++) {
+            columns.get(i).writeTo(out);
+        }
+    }
+
+    /**
+     * @param name is NOT an FQN of a nested object, it's a leaf name. FQN is defined by accessing children.
+     */
+    public record StreamableColumnInfo(@Nonnull String name,
+                                       @Nonnull DataType type,
+                                       int position,
+                                       boolean isPrimaryKey,
+                                       boolean isNullable,
+                                       boolean hasDocValues,
+                                       boolean isIndex,
+                                       boolean isArrayType,
+                                       @Nullable String analyzer,
+                                       @Nullable String genExpression,
+                                       @Nullable ColumnPolicy columnPolicy,
+                                       @Nullable String geoTree,
+                                       @Nonnull Map<String, Object> geoProperties,
+                                       @Nonnull List<String> copyToTargets,
+                                       @Nonnull List<StreamableColumnInfo> children) implements Writeable {
+
+        public StreamableColumnInfo(AnalyzedColumnDefinition<Object> colToAdd) {
+             this(
+                 colToAdd.name(),
+                 AnalyzedTableElements.realType(colToAdd),
+                 colToAdd.position,
+                 colToAdd.hasPrimaryKeyConstraint(),
+                 colToAdd.hasNotNullConstraint(),
+                 !AnalyzedColumnDefinition.docValuesSpecifiedAndDisabled(colToAdd),
+                 colToAdd.isIndexColumn(),
+                 ArrayType.NAME.equals(colToAdd.collectionType()),
+                 colToAdd.analyzer(),
+                 colToAdd.formattedGeneratedExpression(),
+                 colToAdd.objectType(),
+                 colToAdd.geoTree(),
+                 colToAdd.geoProperties() == null ? new HashMap<>(): colToAdd.geoProperties().properties(),
+                 colToAdd.copyToTargets() == null ? new ArrayList<>() : colToAdd.copyToTargets(),
+                 colToAdd.children().stream().map(child -> new StreamableColumnInfo(child)).collect(Collectors.toList())
+            );
+        }
+
+        /**
+         * Columns can have nested objects. We read/write column structure according to writeTo traversal order.
+         * StreamInput looks like: (single column info) --> (subtrees_amount) --> (repeat structure for subtrees).
+         * It's guaranteed that each readFrom() call has a single column values - on the first call we are adding some column
+         * and then we repeat only if subtree(s) exist.
+         */
+        public static StreamableColumnInfo readFrom(StreamInput in) throws IOException {
+            String policy;
+            return new StreamableColumnInfo(
+                in.readString(),
+                DataTypes.fromStream(in),
+                in.readInt(),
+                in.readBoolean(),
+                in.readBoolean(),
+                in.readBoolean(),
+                in.readBoolean(),
+                in.readBoolean(),
+                in.readOptionalString(),
+                in.readOptionalString(),
+                (policy = in.readOptionalString()) == null ? null : ColumnPolicy.valueOf(policy),
+                in.readOptionalString(),
+                in.readMap(StreamInput::readString, StreamInput::readGenericValue),
+                in.readList(StreamInput::readString),
+                readChildren(in)
+            );
+        }
+
+        @Override
+        public void writeTo(StreamOutput out) throws IOException {
+            out.writeString(name);
+            DataTypes.toStream(type, out);
+            out.writeInt(position);
+            out.writeBoolean(isPrimaryKey);
+            out.writeBoolean(isNullable);
+            out.writeBoolean(hasDocValues);
+            out.writeBoolean(isIndex);
+            out.writeBoolean(isArrayType);
+            out.writeOptionalString(analyzer);
+            out.writeOptionalString(genExpression);
+            out.writeOptionalString(columnPolicy != null ? columnPolicy.name() : null);
+            out.writeOptionalString(geoTree);
+            out.writeMap(geoProperties, (o, k) -> out.writeString(k), (o, v) -> out.writeGenericValue(v));
+            out.writeStringCollection(copyToTargets);
+            writeChildren(out);
+        }
+
+        private static List<StreamableColumnInfo> readChildren(StreamInput in) throws IOException {
+            ArrayList<StreamableColumnInfo> children = new ArrayList();
+            int count = in.readVInt();
+            for (int i = 0; i < count; i++) {
+                children.add(readFrom(in));
+            }
+            return children;
+        }
+
+        private void writeChildren(StreamOutput out) throws IOException {
+            out.writeVInt(children.size());
+            for (int i = 0; i < children.size(); i++) {
+                children.get(i).writeTo(out);
+            }
+        }
+
+        /**
+         * Aligned with {@link AnalyzedColumnDefinition#toMapping(AnalyzedColumnDefinition)} )
+         */
+        public HashMap<String, Object> propertiesMap() {
+            HashMap<String, Object> properties = new HashMap<>();
+            AnalyzedColumnDefinition.addTypeOptions(properties, type, new GenericProperties(geoProperties), geoTree, analyzer);
+            properties.put("type", AnalyzedColumnDefinition.typeNameForESMapping(type, analyzer, isIndex));
+
+            properties.put("position", position);
+
+            if (isIndex == false) {
+                // we must use a boolean <p>false</p> and NO string "false", otherwise parser support for old indices will fail
+                properties.put("index", false);
+            }
+            if (copyToTargets.isEmpty() == false) {
+                properties.put("copy_to", copyToTargets);
+            }
+
+            if (isArrayType) {
+                HashMap<String, Object> outerMapping = new HashMap<>();
+                outerMapping.put("type", "array");
+                if (type().id() == ObjectType.ID) {
+                    properties.put("dynamic", ColumnPolicies.encodeMappingValue(columnPolicy));
+                }
+                outerMapping.put("inner", properties);
+                return outerMapping;
+            } else if (type().id() == ObjectType.ID) {
+                properties.put("dynamic", ColumnPolicies.encodeMappingValue(columnPolicy));
+            }
+
+            if (hasDocValues == false) {
+                properties.put(DOC_VALUES, "false");
+            }
+
+            return properties;
         }
     }
 
     /**
      * Streamable version of the {@link CheckColumnConstraint}.
-     * We don't need to stream columnName as it's already contained in the columnRef.
+     * We don't need to stream columnName as it's already contained in StreamableColumnInfo.
      * We don't stream parsed expression, only raw string.
      */
     public record StreamableCheckConstraint(String name, String expression) implements Writeable {

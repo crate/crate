@@ -1014,4 +1014,6 @@ public class DDLIntegrationTest extends IntegTestCase {
                 )""".stripIndent()
         ));
     }
+
+
 }

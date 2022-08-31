@@ -200,8 +200,16 @@ public class AnalyzedTableElements<T> {
         if (partitionedBy == null) {
             partitionedBy = new ArrayList<>(partitionedByColumns.size());
             for (AnalyzedColumnDefinition<T> partitionedByColumn : partitionedByColumns) {
-                partitionedBy.add(List.of(
-                    partitionedByColumn.ident().fqn(), partitionedByColumn.typeNameForESMapping()));
+                partitionedBy.add(
+                    List.of(
+                        partitionedByColumn.ident().fqn(),
+                        AnalyzedColumnDefinition.typeNameForESMapping(
+                            partitionedByColumn.dataType(),
+                            partitionedByColumn.analyzer(),
+                            partitionedByColumn.isIndexColumn()
+                        )
+                    )
+                );
             }
         }
 
@@ -417,19 +425,23 @@ public class AnalyzedTableElements<T> {
         formattedExpressionConsumer.accept(formattedExpression);
     }
 
+    public static <T> DataType realType(AnalyzedColumnDefinition<T> columnDefinition) {
+        DataType<?> type = columnDefinition.dataType() == null ? DataTypes.UNDEFINED : columnDefinition.dataType();
+        return ArrayType.NAME.equals(columnDefinition.collectionType())
+            ? new ArrayType<>(type)
+            : type;
+    }
+
     private static <T> void buildReference(RelationName relationName,
                                            AnalyzedColumnDefinition<T> columnDefinition,
                                            List<Reference> references) {
 
-        DataType<?> type = columnDefinition.dataType() == null ? DataTypes.UNDEFINED : columnDefinition.dataType();
-        DataType<?> realType = ArrayType.NAME.equals(columnDefinition.collectionType())
-            ? new ArrayType<>(type)
-            : type;
+
 
         SimpleReference simpleRef = new SimpleReference(
             new ReferenceIdent(relationName, columnDefinition.ident()),
             RowGranularity.DOC,
-            realType,
+            realType(columnDefinition),
             columnDefinition.position,
             null // not required in this context
         );

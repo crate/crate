@@ -23,6 +23,7 @@ package io.crate.analyze;
 
 import static org.elasticsearch.index.mapper.TypeParsers.DOC_VALUES;
 
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -298,6 +299,18 @@ public class AnalyzedColumnDefinition<T> {
         return isIndex;
     }
 
+    public String geoTree() {
+        return this.geoTree;
+    };
+
+    public GenericProperties<T> geoProperties() {
+        return this.geoProperties;
+    }
+
+    public ArrayList<String> copyToTargets() {
+        return this.copyToTargets;
+    }
+
     void setAsIndexColumn() {
         this.isIndex = true;
     }
@@ -420,8 +433,9 @@ public class AnalyzedColumnDefinition<T> {
 
     public static Map<String, Object> toMapping(AnalyzedColumnDefinition<Object> definition) {
         Map<String, Object> mapping = new HashMap<>();
-        addTypeOptions(mapping, definition);
-        mapping.put("type", definition.typeNameForESMapping());
+        String analyzer = DataTypes.STRING.sanitizeValue(definition.analyzer);
+        addTypeOptions(mapping, definition.dataType, definition.geoProperties, definition.geoTree, analyzer);
+        mapping.put("type", AnalyzedColumnDefinition.typeNameForESMapping(definition.dataType, analyzer, definition.isIndex));
 
         assert definition.position != 0 : "position should not be 0";
         mapping.put("position", definition.position);
@@ -460,15 +474,19 @@ public class AnalyzedColumnDefinition<T> {
         return mapping;
     }
 
-    String typeNameForESMapping() {
+    public static String typeNameForESMapping(DataType dataType, String analyzer, boolean isIndex) {
         if (StringType.ID == dataType.id()) {
             return analyzer == null && !isIndex ? "keyword" : "text";
         }
         return DataTypes.esMappingNameFrom(dataType.id());
     }
 
-    private static void addTypeOptions(Map<String, Object> mapping, AnalyzedColumnDefinition<Object> definition) {
-        switch (definition.dataType.id()) {
+    public static void addTypeOptions(Map<String, Object> mapping,
+                                      DataType dataType,
+                                      @Nullable GenericProperties geoProperties,
+                                      @Nullable String geoTree,
+                                      @Nullable String analyzer) {
+        switch (dataType.id()) {
             case TimestampType.ID_WITH_TZ:
                 /*
                  * We want 1000 not be be interpreted as year 1000AD but as 1970-01-01T00:00:01.000
@@ -481,28 +499,28 @@ public class AnalyzedColumnDefinition<T> {
                 mapping.put("ignore_timezone", true);
                 break;
             case GeoShapeType.ID:
-                if (definition.geoProperties != null) {
-                    GeoSettingsApplier.applySettings(mapping, definition.geoProperties, definition.geoTree);
+                if (geoProperties != null) {
+                    GeoSettingsApplier.applySettings(mapping, geoProperties, geoTree);
                 }
                 break;
 
             case StringType.ID:
-                if (definition.analyzer != null) {
-                    mapping.put("analyzer", DataTypes.STRING.sanitizeValue(definition.analyzer));
+                if (analyzer != null) {
+                    mapping.put("analyzer", analyzer);
                 }
-                var stringType = (StringType) definition.dataType;
+                var stringType = (StringType) dataType;
                 if (!stringType.unbound()) {
                     mapping.put("length_limit", stringType.lengthLimit());
                 }
                 break;
             case CharacterType.ID:
-                var type = (CharacterType) definition.dataType;
+                var type = (CharacterType) dataType;
                 mapping.put("length_limit", type.lengthLimit());
                 mapping.put("blank_padding", true);
                 break;
 
             case BitStringType.ID:
-                int length = ((BitStringType) definition.dataType).length();
+                int length = ((BitStringType) dataType).length();
                 mapping.put("length", length);
                 break;
 
@@ -634,6 +652,10 @@ public class AnalyzedColumnDefinition<T> {
 
     public void defaultExpression(T defaultExpression) {
         this.defaultExpression = defaultExpression;
+    }
+
+    public String analyzer() {
+        return DataTypes.STRING.sanitizeValue(analyzer);
     }
 
     void setStorageProperties(GenericProperties<T> storageProperties) {

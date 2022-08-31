@@ -21,7 +21,6 @@
 
 package io.crate.execution.ddl.tables;
 
-import io.crate.analyze.AnalyzedTableElements;
 import io.crate.common.collections.Maps;
 import io.crate.execution.ddl.AbstractDDLTransportAction;
 import io.crate.execution.ddl.TransportSchemaUpdateAction;
@@ -86,18 +85,83 @@ public class TransportAddColumnAction extends AbstractDDLTransportAction<AddColu
         this.indicesService = indicesService;
     }
 
+    /**
+     * Class for gathering mapping data in metadata compatible format.
+     * AddColumnRequest has multiple columns and each of them can be a root of an object column tree and thus
+     * can have many not-null/primary key/generated constraints.
+     * We gather everything here in order to do only one column-tree traversal and call mergeInto only once for each type of constraint.
+     */
+    private final class ConvertedRequest {
+
+        private final ArrayList<String> primaryKeys = new ArrayList<>();
+        private final ArrayList<String> notNullColumns = new ArrayList<>();
+        private final LinkedHashMap<String, String> generatedColumns = new LinkedHashMap<>();
+        private final HashMap<String, Object> topColumns = new HashMap<>();
+
+        public ConvertedRequest(AddColumnRequest request) {
+            for (var column: request.columns()) {
+                topColumns.put(column.name(), collectColumnInfo(column));
+            }
+        }
+
+        /**
+         * Returns properties map including all nested sub-columns if there any.
+         * Fills constraints along the way - each leaf of the object columns tree might have a constraint on it.
+         * Format of the top level properties field:
+         * {
+         *     col1: {
+         *        position: some_position
+         *        type: some_type
+         *        ...
+         *
+         *        * optional, only for nested objects *
+         *        properties: {
+         *            nested_col1: {...},
+         *            nested_col2: {...},
+         *        }
+         *     },
+         *     col2: {...}
+         * }
+         */
+        private HashMap<String, Object> collectColumnInfo(AddColumnRequest.StreamableColumnInfo columnInfo) {
+            if (columnInfo.isPrimaryKey()) {
+                primaryKeys.add(columnInfo.name());
+            }
+            if (columnInfo.isNullable()) {
+                notNullColumns.add(columnInfo.name());
+            }
+            if (columnInfo.genExpression() != null) {
+                generatedColumns.put(columnInfo.name(), columnInfo.genExpression());
+            }
+            HashMap<String, Object> propertiesMap = columnInfo.propertiesMap();
+
+            if (columnInfo.children().isEmpty() == false) {
+                HashMap<String, Object> nestedColumnsProperties = new HashMap<>();
+                for (var column : columnInfo.children()) {
+                    var nestedColumnMap = collectColumnInfo(column);
+                    nestedColumnsProperties.put(column.name(), nestedColumnMap);
+                }
+                propertiesMap.put("properties", nestedColumnsProperties);
+            }
+            return propertiesMap;
+        }
+    }
+
     @Override
     public ClusterStateTaskExecutor<AddColumnRequest> clusterStateTaskExecutor(AddColumnRequest request) {
         return new DDLClusterStateTaskExecutor<>() {
             @Override
             protected ClusterState execute(ClusterState currentState, AddColumnRequest request) throws Exception {
                 Metadata.Builder metadataBuilder = Metadata.builder(currentState.metadata());
+                ConvertedRequest requestConverter = new ConvertedRequest(request);
+
                 if (request.isPartitioned()) {
                     String templateName = PartitionName.templateName(request.relationName().schema(), request.relationName().name());
                     IndexTemplateMetadata indexTemplateMetadata = currentState.metadata().templates().get(templateName);
 
                     Map<String, Object> existingTemplateMeta = new HashMap<>();
-                    mergeDeltaIntoExistingMapping(existingTemplateMeta, request);
+
+                    mergeDeltaIntoExistingMapping(existingTemplateMeta, request, requestConverter);
 
                     IndexTemplateMetadata newIndexTemplateMetadata = DDLClusterStateHelpers.updateTemplate(
                         indexTemplateMetadata,
@@ -109,7 +173,7 @@ public class TransportAddColumnAction extends AbstractDDLTransportAction<AddColu
                     metadataBuilder.put(newIndexTemplateMetadata);
                 }
 
-                currentState = updateMapping(currentState, request, metadataBuilder);
+                currentState = updateMapping(currentState, metadataBuilder, request, requestConverter);
                 // ensure the new table can still be parsed into a DocTableInfo to avoid breaking the table.
                 new DocTableInfoFactory(nodeContext).create(request.relationName(), currentState);
                 return currentState;
@@ -117,19 +181,17 @@ public class TransportAddColumnAction extends AbstractDDLTransportAction<AddColu
         };
     }
 
-    /**
-     * Structure of the metadata is aligned with {@link AnalyzedTableElements#toMapping(AnalyzedTableElements)}
-     */
     private ClusterState updateMapping(ClusterState currentState,
+                                       Metadata.Builder metadataBuilder,
                                        AddColumnRequest request,
-                                       Metadata.Builder metadataBuilder) throws IOException {
+                                       ConvertedRequest convertedRequest) throws IOException {
         Index[] concreteIndices = resolveIndices(currentState, request.relationName().indexNameOrAlias());
 
         for (Index index : concreteIndices) {
             final IndexMetadata indexMetadata = currentState.metadata().getIndexSafe(index);
 
             Map<String, Object> indexMapping = indexMetadata.mapping().sourceAsMap();
-            mergeDeltaIntoExistingMapping(indexMapping, request);
+            mergeDeltaIntoExistingMapping(indexMapping, request, convertedRequest);
             TransportSchemaUpdateAction.populateColumnPositions(indexMapping);
 
             MapperService mapperService = indicesService.createIndexMapperService(indexMetadata);
@@ -145,80 +207,39 @@ public class TransportAddColumnAction extends AbstractDDLTransportAction<AddColu
         return ClusterState.builder(currentState).metadata(metadataBuilder).build();
     }
 
-    private static void mergeDeltaIntoExistingMapping(Map<String, Object> existingMapping, AddColumnRequest request) {
+    private static void mergeDeltaIntoExistingMapping(Map<String, Object> existingMapping,
+                                                      AddColumnRequest request,
+                                                      ConvertedRequest convertedRequest) {
         // _meta fields
-        if (request.isPrimaryKey()) {
-            Maps.mergeInto(existingMapping, "_meta", List.of("primary_keys"), request.columnRef().column().fqn(),
-                (map, key, value) -> ((ArrayList) map.computeIfAbsent(key, k -> new ArrayList<>())).add(value)
+        if (convertedRequest.primaryKeys.isEmpty() == false) {
+            Maps.mergeInto(existingMapping, "_meta", List.of("primary_keys"), convertedRequest.primaryKeys,
+                (map, key, value) -> ((ArrayList) map.computeIfAbsent(key, k -> new ArrayList<>())).addAll(convertedRequest.primaryKeys)
             );
         }
-        if (request.columnRef().isNullable() == false) {
-            Maps.mergeInto(existingMapping, "_meta", List.of("constraints", "not_null"), request.columnRef().column().fqn(),
-                (map, key, value) -> ((ArrayList) map.computeIfAbsent(key, k -> new ArrayList<>())).add(value)
+        if (convertedRequest.notNullColumns.isEmpty() == false) {
+            Maps.mergeInto(existingMapping, "_meta", List.of("constraints", "not_null"), convertedRequest.notNullColumns,
+                (map, key, value) -> ((ArrayList) map.computeIfAbsent(key, k -> new ArrayList<>())).addAll(convertedRequest.notNullColumns)
             );
         }
-        if (request.generatedExpression() != null) {
-            Maps.mergeInto(existingMapping, "_meta", List.of("generated_columns"), Map.entry(request.columnRef().column().fqn(), request.generatedExpression()),
-                (map, key, value) -> {
-                    Map.Entry<String, String> nameAndExpression = (Map.Entry) value;
-                    ((LinkedHashMap) map.computeIfAbsent(key, k -> new LinkedHashMap<>())).put(nameAndExpression.getKey(), nameAndExpression.getValue());
-                }
+        if (convertedRequest.generatedColumns.isEmpty() == false) {
+            Maps.mergeInto(existingMapping, "_meta", List.of("generated_columns"), convertedRequest.generatedColumns,
+                (map, key, value) -> ((LinkedHashMap) map.computeIfAbsent(key, k -> new LinkedHashMap<>())).putAll(convertedRequest.generatedColumns)
             );
         }
-        for (AddColumnRequest.StreamableCheckConstraint checkConstraint: request.checkConstraints()) {
-            Maps.mergeInto(existingMapping, "_meta", List.of("check_constraints"), checkConstraint,
-                (map, key, value) -> {
-                    AddColumnRequest.StreamableCheckConstraint constraint = (AddColumnRequest.StreamableCheckConstraint) value;
-                    ((LinkedHashMap) map.computeIfAbsent(key, k -> new LinkedHashMap<>())).put(constraint.name(), constraint.expression());
-                }
+        for (var check: request.checkConstraints()) {
+            Maps.mergeInto(existingMapping, "_meta", List.of("check_constraints"), check,
+                (map, key, value) -> ((LinkedHashMap) map.computeIfAbsent(key, k -> new LinkedHashMap<>())).put(check.name(), check.expression())
             );
         }
 
-        /*
-        properties field (contains position, columnstore flag, index flag and column type specific properties).
-        In case of the nested object 'properties' field is repeated,
-        and thus 'a.b.c' object col path is 'properties.a.properties.b.properties.c'
-
-        format:
-        {
-            col1: {
-               position: some_position
-               type: some_type
-               ...
-
-               * optional, only for nested objects *
-               properties: {
-                   nested_col1: {...},
-                   nested_col2: {...},
-               }
-            },
-            col2: {...}
-        }
-        */
-
-        Map currentProperties = (Map) existingMapping.get("properties");
-        if (currentProperties == null) {
-            // existingMapping passed as an empty map in case of partitioned tables as template gets all changes unfiltered.
-            // Nothing to merge to the empty map, just put all incoming mappings according to the format specified above.
-            var props = new LinkedHashMap<String, Object>();
-            props.put(request.columnRef().column().name(), request.columnProperties());
-            existingMapping.put("properties", props);
-        } else {
-            currentProperties.merge(
-                // in case of adding a nested object, say, a.b.c,
-                // actual column being added is c (column().leafName()) and full name is column.fqn().
-                // However, we intentionally use outermost object column 'a' returned by column().name()
-                // so that we don't need to compute overlap of (existingMap, request.columnProperties()) and mutate request.columnProperties() to exclude overlap.
-                // We insert request.columnProperties() which contains correct chain with all nested maps
-                // but we need to keep existing sibling sub-cols (say, a.b1, a.b.c1) on each level and thus we use extendRecursive.
-                request.columnRef().column().name(),
-                request.columnProperties(),
-                (oldMap, newMap) -> {
-                    Maps.extendRecursive((Map<String, Object>) oldMap, (Map<String, Object>) newMap);
-                    return oldMap;
-                }
-            );
-        }
+        existingMapping.merge(
+            "properties",
+            convertedRequest.topColumns,
+            (oldMap, newMap) -> {
+                Maps.extendRecursive((Map<String, Object>) oldMap, (Map<String, Object>) newMap);
+                return oldMap;
+            }
+        );
     }
 
     @Override

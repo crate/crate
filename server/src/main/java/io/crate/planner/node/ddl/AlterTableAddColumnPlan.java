@@ -107,8 +107,15 @@ public class AlterTableAddColumnPlan implements Plan {
                 tableElementsEvaluated
             );
 
+            // Even if it's an object with many sub-columns, root is only one.
+            assert tableElementsEvaluated.columns().size() == 1 : "Add column must contain exactly one column";
+            AnalyzedColumnDefinition colToAdd = tableElementsEvaluated.columns().get(0);
 
-            var addColumnRequest = createRequest(alterTable.tableInfo(), tableElementsEvaluated);
+            var addColumnRequest = new AddColumnRequest(alterTable.tableInfo().ident(),
+                alterTable.tableInfo().isPartitioned(),
+                colToAdd,
+                tableElementsEvaluated.getCheckConstraints()
+            );
             dependencies.alterTableOperation().executeAlterTableAddColumn(addColumnRequest)
                 .whenComplete(new OneRowActionListener<>(consumer, rCount -> new Row1(rCount == null ? -1 : rCount)));
         } else {
@@ -126,45 +133,7 @@ public class AlterTableAddColumnPlan implements Plan {
         }
     }
 
-    @VisibleForTesting
-    public static AddColumnRequest createRequest(DocTableInfo docTableInfo, AnalyzedTableElements<Object> tableElementsEvaluated) {
-        assert tableElementsEvaluated.columns().size() == 1 : "Add column must contain exactly one column";
-        AnalyzedColumnDefinition colToAdd = tableElementsEvaluated.columns().get(0);
 
-        // Reference creation is similar to AnalyzedTableElements.buildReference()
-        // but cannot use it as it passes fixed values for some params: ColumnPolicy.DYNAMIC, IndexType.PLAIN, nullable:true, hasDocValues:false
-        // which cannot be constant in case of add column.
-
-        DataType<?> type = colToAdd.dataType() == null ? DataTypes.UNDEFINED : colToAdd.dataType();
-        DataType<?> realType = ArrayType.NAME.equals(colToAdd.collectionType())
-            ? new ArrayType<>(type)
-            : type;
-
-        Reference ref = new SimpleReference(
-            new ReferenceIdent(docTableInfo.ident(), colToAdd.ident()),
-            RowGranularity.DOC, // column in ADD COLUMN cannot be PARTITIONED BY, only one option is possible.
-            realType,
-            colToAdd.objectType(), // Relevant only if added column has OBJECT type
-            colToAdd.indexConstraint() != null ? colToAdd.indexConstraint() : IndexType.NONE, // cannot be null as streaming Reference would fail. redundant, we have it in AddColumnRequest column properties
-            !colToAdd.hasNotNullConstraint(),
-            !AnalyzedColumnDefinition.docValuesSpecifiedAndDisabled(colToAdd), // redundant, we have it in AddColumnRequest column properties
-            colToAdd.position, // redundant, we have it in AddColumnRequest column properties
-            null
-        );
-        if (colToAdd.formattedGeneratedExpression() != null) {
-            ref = new GeneratedReference(ref, colToAdd.formattedGeneratedExpression(), null);
-        }
-
-        return new AddColumnRequest(
-            docTableInfo.ident(),
-            docTableInfo.isPartitioned(),
-            ref,
-            AnalyzedColumnDefinition.toMapping(colToAdd),
-            colToAdd.hasPrimaryKeyConstraint(),
-            colToAdd.formattedGeneratedExpression(),
-            tableElementsEvaluated.getCheckConstraints()
-        );
-    }
 
     /**
      * Common validation required for pre-5.1.0 plan and post-5.1.0 plan.
