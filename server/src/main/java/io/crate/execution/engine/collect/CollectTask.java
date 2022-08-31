@@ -169,6 +169,9 @@ public class CollectTask implements Task {
                     if (err == null) {
                         batchIterator.complete(it);
                     } else {
+                        if (err instanceof StackOverflowError) {
+                            err.printStackTrace();
+                        }
                         batchIterator.completeExceptionally(err);
                     }
                 });
