@@ -42,7 +42,8 @@ public class SelectSymbol implements Symbol {
 
     public enum ResultType {
         SINGLE_COLUMN_SINGLE_VALUE,
-        SINGLE_COLUMN_MULTIPLE_VALUES
+        SINGLE_COLUMN_MULTIPLE_VALUES,
+        SINGLE_COLUMN_EXISTS
     }
 
     public SelectSymbol(AnalyzedRelation relation, ArrayType<?> dataType, ResultType resultType) {

@@ -126,6 +126,7 @@ public class FirstColumnConsumers {
         return switch (resultType) {
             case SINGLE_COLUMN_MULTIPLE_VALUES -> AllValues.INSTANCE;
             case SINGLE_COLUMN_SINGLE_VALUE -> SingleValue.INSTANCE;
+            case SINGLE_COLUMN_EXISTS -> AllValues.INSTANCE;
         };
     }
 }

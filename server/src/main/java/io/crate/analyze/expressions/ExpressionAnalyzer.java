@@ -674,7 +674,7 @@ public class ExpressionAnalyzer {
             SelectSymbol selectSymbol = new SelectSymbol(
                 relation,
                 new ArrayType<>(innerType),
-                SelectSymbol.ResultType.SINGLE_COLUMN_MULTIPLE_VALUES
+                SelectSymbol.ResultType.SINGLE_COLUMN_EXISTS
             );
             return allocateFunction(ExistsOperator.NAME, List.of(selectSymbol), context);
         }
