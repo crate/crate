@@ -207,6 +207,9 @@ public class LogicalPlanner {
     // See issue https://github.com/crate/crate/issues/6755
     // If the output values are already sorted (even in desc order) no optimization is needed
     private LogicalPlan tryOptimizeForInSubquery(SelectSymbol selectSymbol, AnalyzedRelation relation, LogicalPlan planBuilder) {
+        if (selectSymbol.isCorrelated()) {
+            return planBuilder;
+        }
         if (selectSymbol.getResultType() == SelectSymbol.ResultType.SINGLE_COLUMN_MULTIPLE_VALUES && relation instanceof QueriedSelectRelation) {
             QueriedSelectRelation queriedRelation = (QueriedSelectRelation) relation;
             OrderBy relationOrderBy = queriedRelation.orderBy();
