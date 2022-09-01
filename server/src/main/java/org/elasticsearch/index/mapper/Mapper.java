@@ -26,7 +26,6 @@ import org.elasticsearch.common.xcontent.ToXContentFragment;
 import org.elasticsearch.index.analysis.IndexAnalyzers;
 import org.elasticsearch.index.query.QueryShardContext;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
@@ -39,20 +38,13 @@ public abstract class Mapper implements ToXContentFragment, Iterable<Mapper> {
     public static class BuilderContext {
         private final Settings indexSettings;
         private final ContentPath contentPath;
-        private final ColumnPositionResolver<Mapper[]> columnPositionResolver;
-        private final Map<Integer, Map.Entry<Integer, Mapper[]>> takenColumnPositions;
+        private final ColumnPositionResolver<Mapper> columnPositionResolver;
 
         public BuilderContext(Settings indexSettings, ContentPath contentPath) {
             Objects.requireNonNull(indexSettings, "indexSettings is required");
             this.contentPath = contentPath;
             this.indexSettings = indexSettings;
             this.columnPositionResolver = new ColumnPositionResolver<>();
-            this.takenColumnPositions = new HashMap<>();
-            this.columnPositionResolver.completionFuture().whenComplete(
-                (res, err) -> {
-                    takenColumnPositions.clear();
-                }
-            );
         }
 
         public ContentPath path() {
@@ -64,24 +56,12 @@ public abstract class Mapper implements ToXContentFragment, Iterable<Mapper> {
         }
 
         public void putPositionInfo(Mapper mapper, Integer position) {
-            Mapper[] mapperContainer = new Mapper[]{mapper};
-            Map.Entry<Integer, Mapper[]> mapperWithDuplicatePosition = takenColumnPositions.get(position);
-            boolean isDuplicate = mapperWithDuplicatePosition != null;
-            if (position == null || position < 0) {
-                this.columnPositionResolver.addColumnToReposition(
-                    mapper.name(), // or contentPath.tote
-                    isDuplicate ? null : position,
-                    mapperContainer,
-                    (mContainer, p) -> mContainer[0].position = p,
-                    contentPath.currentDepth());
-            } else if (isDuplicate) {
-                // for the columns with duplicate positions, re-position the deeper columns
-                if (contentPath.currentDepth() < mapperWithDuplicatePosition.getKey()) {
-                    mapperWithDuplicatePosition.getValue()[0] = mapper;
-                }
-            } else {
-                takenColumnPositions.put(position, Map.entry(contentPath.currentDepth(), mapperContainer));
-            }
+            this.columnPositionResolver.addColumnToReposition(
+                new String[]{mapper.name()},
+                position,
+                mapper,
+                (m, p) -> m.position = p,
+                contentPath.currentDepth());
         }
 
         public void updateRootObjectMapperWithPositionInfo(RootObjectMapper rootObjectMapper) {

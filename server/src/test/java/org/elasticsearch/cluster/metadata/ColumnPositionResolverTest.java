@@ -21,16 +21,15 @@
 
 package org.elasticsearch.cluster.metadata;
 
-import org.junit.Test;
-
 import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.Test;
 
 public class ColumnPositionResolverTest {
 
     @Test
     public void test_column_positions_resolved_by_depths_first() {
-        var t1 = new TestColumn("a", -1, 1);
-        var t2 = new TestColumn("a", -1, 0);
+        var t1 = new TestColumn(new String[]{"a"}, -1, 1);
+        var t2 = new TestColumn(new String[]{"a"}, -1, 0);
         ColumnPositionResolver<TestColumn> resolver = new ColumnPositionResolver<>();
         addToResolver(resolver, t1);
         addToResolver(resolver, t2);
@@ -41,8 +40,8 @@ public class ColumnPositionResolverTest {
 
     @Test
     public void test_column_positions_resolved_by_column_order_if_depths_are_the_same() {
-        var t1 = new TestColumn("a", -2, 0);
-        var t2 = new TestColumn("a", -1, 0);
+        var t1 = new TestColumn(new String[]{"a"}, -2, 0);
+        var t2 = new TestColumn(new String[]{"a"}, -1, 0);
         ColumnPositionResolver<TestColumn> resolver = new ColumnPositionResolver<>();
         addToResolver(resolver, t1);
         addToResolver(resolver, t2);
@@ -53,8 +52,8 @@ public class ColumnPositionResolverTest {
 
     @Test
     public void test_column_positions_resolved_by_names_if_depths_and_column_orders_are_the_same() {
-        var t1 = new TestColumn("b", -2, 0);
-        var t2 = new TestColumn("a", -2, 0);
+        var t1 = new TestColumn(new String[]{"b"}, -2, 0);
+        var t2 = new TestColumn(new String[]{"a"}, -2, 0);
         ColumnPositionResolver<TestColumn> resolver = new ColumnPositionResolver<>();
         addToResolver(resolver, t1);
         addToResolver(resolver, t2);
@@ -64,12 +63,12 @@ public class ColumnPositionResolverTest {
     }
 
     private static class TestColumn {
-        String name;
+        String[] name;
         Integer columnOrder;
         int position;
         int depth;
 
-        public TestColumn(String name, Integer columnOrder, int depth) {
+        public TestColumn(String[] name, Integer columnOrder, int depth) {
             this.name = name;
             this.columnOrder = columnOrder;
             this.depth = depth;

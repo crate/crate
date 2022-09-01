@@ -146,18 +146,18 @@ public class IndexTemplateUpgraderTest {
 
     /*
      * test_populateColumnPositions_method_* variants are copied from TransportSchemaUpdateActionTest
-     * the only difference is that IndexTemplateUpgrader.populateColumnPositions traverses in Breadth-First order and also resolves duplicates.
+     * the only difference is that populateColumnPositions traverses in Breadth-First order and also resolves duplicates.
      */
 
     @Test
     public void test_populateColumnPositions_method_with_empty_map() {
-        assertThat(IndexTemplateUpgrader.populateColumnPositions(Map.of())).isFalse();
-        assertThat(IndexTemplateUpgrader.populateColumnPositions(Map.of("properties", Map.of()))).isFalse();
+        assertThat(populateColumnPositions(Map.of())).isFalse();
+        assertThat(populateColumnPositions(Map.of("properties", Map.of()))).isFalse();
     }
 
     @Test
     public void test_populateColumnPositions_method_without_missing_columns() {
-        assertThat(IndexTemplateUpgrader.populateColumnPositions(
+        assertThat(populateColumnPositions(
             Map.of("properties",
                    Map.of("a", Map.of("position", 1),
                           "b", Map.of("inner",
@@ -185,13 +185,13 @@ public class IndexTemplateUpgraderTest {
         map4.put("properties", map5);
         map5.put("d", map6);
 
-        assertThat(IndexTemplateUpgrader.populateColumnPositions(map)).isTrue();
+        assertThat(populateColumnPositions(map)).isTrue();
         assertThat(map2.get("position")).isEqualTo(1);
         assertThat(map4.get("position")).isEqualTo(2);
         assertThat(map6.get("position")).isEqualTo(3);
 
         Map<String, Object> d = new HashMap<>();
-        assertThat(IndexTemplateUpgrader.populateColumnPositions(
+        assertThat(populateColumnPositions(
             Map.of("properties",
                    Map.of("a", Map.of("position", 1),
                           "b", Map.of("inner",
@@ -259,7 +259,7 @@ public class IndexTemplateUpgraderTest {
         // see test_populateColumnPositions_method_orders_by_column_order_if_same_level() to understand column orders
         Map<String, Object> d = new HashMap<>();
         Map<String, Object> e = new HashMap<>();
-        assertThat(IndexTemplateUpgrader.populateColumnPositions(
+        assertThat(populateColumnPositions(
             Map.of("properties",
                    Map.of("a", Map.of("position", 1,
                                       "properties", Map.of(
@@ -280,7 +280,7 @@ public class IndexTemplateUpgraderTest {
         // swap d and e
         d = new HashMap<>();
         e = new HashMap<>();
-        assertThat(IndexTemplateUpgrader.populateColumnPositions(
+        assertThat(populateColumnPositions(
             Map.of("properties",
                    Map.of("a", Map.of("position", 1,
                                       "properties", Map.of(
@@ -303,7 +303,7 @@ public class IndexTemplateUpgraderTest {
     public void test_populateColumnPositions_method_with_missing_columns_order_by_level() {
         Map<String, Object> d = new HashMap<>();
         Map<String, Object> f = new HashMap<>();
-        assertThat(IndexTemplateUpgrader.populateColumnPositions(
+        assertThat(populateColumnPositions(
             Map.of("properties",
                    Map.of("a", Map.of("position", 1,
                                       "properties", Map.of(
@@ -327,7 +327,7 @@ public class IndexTemplateUpgraderTest {
         // swap d and f
         d = new HashMap<>();
         f = new HashMap<>();
-        assertThat(IndexTemplateUpgrader.populateColumnPositions(
+        assertThat(populateColumnPositions(
             Map.of("properties",
                    Map.of("a", Map.of("position", 1,
                                       "properties", Map.of(
@@ -360,7 +360,7 @@ public class IndexTemplateUpgraderTest {
         Map<String, Object> p3c = new HashMap<>();
         Map<String, Object> p3cc = new HashMap<>();
         Map<String, Object> p3ccc = new HashMap<>();
-        assertThat(IndexTemplateUpgrader.populateColumnPositions(
+        assertThat(populateColumnPositions(
             Map.of("properties",
                    Map.of("p1", Map.of("position", 3, "properties",
                                        Map.of(
@@ -497,7 +497,7 @@ public class IndexTemplateUpgraderTest {
 
         Map<String, Object> map = Map.of("properties", properties);
 
-        assertThat(IndexTemplateUpgrader.populateColumnPositions(map)).isTrue();
+        assertThat(populateColumnPositions(map)).isTrue();
         assertThat(a.get("position")).isEqualTo(1);
         assertThat(b.get("position")).isEqualTo(2);
         assertThat(c.get("position")).isEqualTo(3);
@@ -523,7 +523,7 @@ public class IndexTemplateUpgraderTest {
 
         Map<String, Object> map = Map.of("properties", properties);
 
-        assertThat(IndexTemplateUpgrader.populateColumnPositions(map)).isTrue();
+        assertThat(populateColumnPositions(map)).isTrue();
         assertThat(a.get("position")).isEqualTo(1);
         assertThat(b.get("position")).isEqualTo(2);
         assertThat(c.get("position")).isEqualTo(4);

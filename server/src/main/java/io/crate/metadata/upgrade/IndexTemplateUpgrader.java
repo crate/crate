@@ -38,13 +38,12 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.index.mapper.ContentPath;
 
 import java.io.IOException;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 import java.util.TreeMap;
 import java.util.function.UnaryOperator;
 
@@ -124,53 +123,42 @@ public class IndexTemplateUpgrader implements UnaryOperator<Map<String, IndexTem
 
     public static boolean populateColumnPositions(Map<String, Object> mapping) {
         var columnPositionResolver = new ColumnPositionResolver<Map<String, Object>>();
-        int[] maxColumnPosition = new int[]{0};
-        populateColumnPositions("", mapping, 1, columnPositionResolver, new HashSet<>(), maxColumnPosition);
+        populateColumnPositions(new ContentPath(), mapping, 1, columnPositionResolver);
         boolean isRepositioned = columnPositionResolver.numberOfColumnsToReposition() > 0;
-        columnPositionResolver.updatePositions(maxColumnPosition[0]);
+        columnPositionResolver.updatePositions();
         return isRepositioned;
     }
 
-    private static void populateColumnPositions(String parentName,
+    private static void populateColumnPositions(ContentPath contentPath,
                                                 Map<String, Object> mapping,
                                                 int currentDepth,
-                                                ColumnPositionResolver<Map<String, Object>> columnPositionResolver,
-                                                Set<Integer> takenPositions,
-                                                int[] maxColumnPosition) {
-
+                                                ColumnPositionResolver<Map<String, Object>> columnPositionResolver) {
         Map<String, Object> properties = Maps.get(mapping, "properties");
         if (properties == null) {
             return;
         }
-        Map<String, Map<String, Object>> childrenColumnProperties = new TreeMap<>(Comparator.naturalOrder());
-        for (var e : properties.entrySet()) {
-            String name = parentName + e.getKey();
+
+        // to make this method deterministic
+        TreeMap<String, Object> sortedProperties = new TreeMap<>(Comparator.naturalOrder());
+        sortedProperties.putAll(properties);
+
+        for (var e : sortedProperties.entrySet()) {
+            contentPath.add(e.getKey());
             //noinspection unchecked
             Map<String, Object> columnProperties = (Map<String, Object>) e.getValue();
             columnProperties = furtherColumnProperties(columnProperties);
-            Integer position = (Integer) columnProperties.get("position");
-            boolean isDuplicate = takenPositions.contains(position);
-            if (position == null || position < 0 || isDuplicate) {
-                columnPositionResolver.addColumnToReposition(
-                    name,
-                    isDuplicate ? null : position,
-                    columnProperties,
-                    (cp, p) -> cp.put("position", p),
-                    currentDepth);
-            } else {
-                takenPositions.add(position);
-                maxColumnPosition[0] = Math.max(maxColumnPosition[0], position);
-            }
-            childrenColumnProperties.put(name, columnProperties);
-        }
-        // Breadth-First traversal
-        for (var childColumnProperties : childrenColumnProperties.entrySet()) {
-            populateColumnPositions(childColumnProperties.getKey(),
-                                    childColumnProperties.getValue(),
-                                    currentDepth + 1,
-                                    columnPositionResolver,
-                                    takenPositions,
-                                    maxColumnPosition);
+            columnPositionResolver.addColumnToReposition(
+                contentPath.pathAsText("").split("\\" + ContentPath.DELIMITER),
+                (Integer) columnProperties.get("position"),
+                columnProperties,
+                (cp, p) -> cp.put("position", p),
+                currentDepth);
+            populateColumnPositions(
+                contentPath,
+                columnProperties,
+                currentDepth + 1,
+                columnPositionResolver);
+            contentPath.remove();
         }
     }
 }

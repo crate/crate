@@ -27,7 +27,7 @@ import org.elasticsearch.common.settings.Settings;
 
 public class RootObjectMapper extends ObjectMapper {
 
-    private ColumnPositionResolver<Mapper[]> columnPositionResolver = new ColumnPositionResolver<>();
+    private ColumnPositionResolver<Mapper> columnPositionResolver = new ColumnPositionResolver<>();
 
     public static class Builder extends ObjectMapper.Builder<Builder> {
 
@@ -87,7 +87,7 @@ public class RootObjectMapper extends ObjectMapper {
         return newMapper;
     }
 
-    public void updateColumnPositionResolver(ColumnPositionResolver<Mapper[]> columnPositionResolver) {
+    public void updateColumnPositionResolver(ColumnPositionResolver<Mapper> columnPositionResolver) {
         this.columnPositionResolver = columnPositionResolver;
     }
 }

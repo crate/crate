@@ -21,7 +21,7 @@ package org.elasticsearch.index.mapper;
 
 public final class ContentPath {
 
-    private static final char DELIMITER = '.';
+    public static final char DELIMITER = '.';
 
     private final StringBuilder sb;
 

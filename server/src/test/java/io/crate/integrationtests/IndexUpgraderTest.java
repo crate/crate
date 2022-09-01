@@ -98,23 +98,23 @@ public class IndexUpgraderTest extends IntegTestCase {
 
         // notice that duplicates and null positions are gone while keeping top-level positions (1, 2, 4, 6, 7)
         String expected = """
+            p1| 1
             nested| 2
-            nested2| 4
-            nested2['sub1']| 8
-            nested2['sub1']['sub2']| 10
-            nested2['sub1']['sub3']| 11
             nested['sub1']| 3
-            nested['sub1']['sub2']| 12
-            nested['sub1']['sub3']| 5
+            nested2| 4
+            nested2['sub1']| 5
             obj| 6
             obj2| 7
-            obj['a']| 9
-            p1| 1
+            obj['a']| 8
+            nested['sub1']['sub2']| 9
+            nested['sub1']['sub3']| 10
+            nested2['sub1']['sub2']| 11
+            nested2['sub1']['sub3']| 12
             """;
-        execute("select column_name, ordinal_position from information_schema.columns where table_name = 'partitioned' order by 1");
+        execute("select column_name, ordinal_position from information_schema.columns where table_name = 'partitioned' order by 2");
         assertThat(printedTable(response.rows())).isEqualTo(expected);
 
-        execute("select column_name, ordinal_position from information_schema.columns where table_name = 'testing' order by 1");
+        execute("select column_name, ordinal_position from information_schema.columns where table_name = 'testing' order by 2");
         assertThat(printedTable(response.rows())).isEqualTo(expected);
     }
 }
