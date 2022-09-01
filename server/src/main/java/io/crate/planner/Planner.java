@@ -435,6 +435,12 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     @Override
     public Plan visitSetStatement(AnalyzedSetStatement setStatement, PlannerContext context) {
         switch (setStatement.scope()) {
+            case TIME_ZONE:
+                var settings = setStatement.settings();
+                if (!settings.get(0).expression().toString().equalsIgnoreCase("'utc'")) {
+                    LOGGER.warn("SET TIME ZONE `{}` statement will be ignored. ", settings);
+                }
+                return NoopPlan.INSTANCE;
             case LICENSE:
                 throw new AssertionError(
                     "`AnalyzedSetStatement` with scope `LICENSE` should have been converted to `AnalyzedSetLicenseStatement` by the analyzer");
