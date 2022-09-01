@@ -583,6 +583,30 @@ public class TestStatementBuilder {
     }
 
     @Test
+    public void test_set_timezone_value() {
+        SetStatement<?> stmt = (SetStatement<?>) SqlParser.createStatement("SET TIME ZONE 'Europe/Vienna'");
+        assertThat(stmt.scope()).isEqualTo(SetStatement.Scope.TIME_ZONE);
+        assertThat(stmt.assignments()).hasSize(1);
+        assertThat(stmt.assignments().get(0).expressions().get(0).toString()).isEqualTo("'Europe/Vienna'");
+    }
+
+    @Test
+    public void test_set_timezone_local() {
+        SetStatement<?> stmt = (SetStatement<?>) SqlParser.createStatement("SET TIME ZONE LOCAL");
+        assertThat(stmt.scope()).isEqualTo(SetStatement.Scope.TIME_ZONE);
+        assertThat(stmt.assignments()).hasSize(1);
+        assertThat(stmt.assignments().get(0).expressions().get(0).toString()).isEqualTo("'LOCAL'");
+    }
+
+    @Test
+    public void test_set_timezone_default() {
+        SetStatement<?> stmt = (SetStatement<?>) SqlParser.createStatement("SET TIME ZONE DEFAULT");
+        assertThat(stmt.scope()).isEqualTo(SetStatement.Scope.TIME_ZONE);
+        assertThat(stmt.assignments()).hasSize(1);
+        assertThat(stmt.assignments().get(0).expressions().get(0).toString()).isEqualTo("'DEFAULT'");
+    }
+
+    @Test
     public void testResetGlobalStmtBuilder() {
         printStatement("reset global some_setting['nested'], other_setting");
     }

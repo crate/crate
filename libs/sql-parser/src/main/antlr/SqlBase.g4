@@ -67,6 +67,7 @@ statement
     | SET GLOBAL (PERSISTENT | TRANSIENT)?
         setGlobalAssignment (',' setGlobalAssignment)*                               #setGlobal
     | SET LICENSE stringLiteral                                                      #setLicense
+    | SET TIME ZONE (LOCAL | DEFAULT | stringLiteral)                                #setTimeZone
     | KILL (ALL | jobId=parameterOrString)                                           #kill
     | INSERT INTO table ('(' ident (',' ident)* ')')? insertSource
         onConflict?
