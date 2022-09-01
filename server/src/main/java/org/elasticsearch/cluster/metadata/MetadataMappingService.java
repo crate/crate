@@ -405,7 +405,9 @@ public class MetadataMappingService {
         }
         for (var e : indexProperties.entrySet()) {
             String key = e.getKey();
+            //noinspection unchecked
             Map<String, Object> indexColumnProperties = (Map<String, Object>) e.getValue();
+            //noinspection unchecked
             Map<String, Object> templateColumnProperties = (Map<String, Object>) templateProperties.get(key);
 
             if (templateColumnProperties == null) {

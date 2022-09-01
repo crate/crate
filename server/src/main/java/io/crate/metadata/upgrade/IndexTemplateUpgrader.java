@@ -21,6 +21,9 @@
 
 package io.crate.metadata.upgrade;
 
+import static io.crate.metadata.doc.DocIndexMetadata.furtherColumnProperties;
+import static org.elasticsearch.common.settings.AbstractScopedSettings.ARCHIVED_SETTINGS_PREFIX;
+import static org.elasticsearch.common.settings.IndexScopedSettings.DEFAULT_SCOPED_SETTINGS;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import io.crate.common.collections.Maps;
 import io.crate.metadata.IndexParts;
@@ -44,10 +47,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.function.UnaryOperator;
-
-import static io.crate.metadata.doc.DocIndexMetadata.furtherColumnProperties;
-import static org.elasticsearch.common.settings.AbstractScopedSettings.ARCHIVED_SETTINGS_PREFIX;
-import static org.elasticsearch.common.settings.IndexScopedSettings.DEFAULT_SCOPED_SETTINGS;
 
 public class IndexTemplateUpgrader implements UnaryOperator<Map<String, IndexTemplateMetadata>> {
 
@@ -145,15 +144,18 @@ public class IndexTemplateUpgrader implements UnaryOperator<Map<String, IndexTem
         Map<String, Map<String, Object>> childrenColumnProperties = new TreeMap<>(Comparator.naturalOrder());
         for (var e : properties.entrySet()) {
             String name = parentName + e.getKey();
+            //noinspection unchecked
             Map<String, Object> columnProperties = (Map<String, Object>) e.getValue();
             columnProperties = furtherColumnProperties(columnProperties);
             Integer position = (Integer) columnProperties.get("position");
-            if (position == null || takenPositions.contains(position)) {
-                columnPositionResolver.addColumnToReposition(name,
-                                                             null,
-                                                             columnProperties,
-                                                             (cp, p) -> cp.put("position", p),
-                                                             currentDepth);
+            boolean isDuplicate = takenPositions.contains(position);
+            if (position == null || position < 0 || isDuplicate) {
+                columnPositionResolver.addColumnToReposition(
+                    name,
+                    isDuplicate ? null : position,
+                    columnProperties,
+                    (cp, p) -> cp.put("position", p),
+                    currentDepth);
             } else {
                 takenPositions.add(position);
                 maxColumnPosition[0] = Math.max(maxColumnPosition[0], position);

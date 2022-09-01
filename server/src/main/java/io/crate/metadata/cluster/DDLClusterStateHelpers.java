@@ -21,14 +21,13 @@
 
 package io.crate.metadata.cluster;
 
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-
-import javax.annotation.Nullable;
-
+import static io.crate.metadata.upgrade.IndexTemplateUpgrader.populateColumnPositions;
+import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
+import io.crate.Constants;
+import io.crate.common.annotations.VisibleForTesting;
+import io.crate.common.collections.MapBuilder;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
@@ -44,15 +43,12 @@ import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 
-import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
-
-import io.crate.Constants;
-import io.crate.common.annotations.VisibleForTesting;
-import io.crate.common.collections.MapBuilder;
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.RelationName;
-
-import static io.crate.execution.ddl.TransportSchemaUpdateAction.populateColumnPositions;
+import javax.annotation.Nullable;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 public class DDLClusterStateHelpers {
 

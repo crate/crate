@@ -21,6 +21,8 @@
 
 package io.crate.execution.ddl;
 
+import static io.crate.metadata.upgrade.IndexTemplateUpgrader.populateColumnPositions;
+import static org.elasticsearch.index.mapper.MapperService.parseMapping;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import io.crate.Constants;
 import io.crate.action.FutureActionListener;
@@ -42,7 +44,6 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateUpdateTask;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
-import org.elasticsearch.cluster.metadata.ColumnPositionResolver;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -61,7 +62,6 @@ import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.index.Index;
-import org.elasticsearch.index.mapper.ContentPath;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
@@ -71,9 +71,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
-
-import static io.crate.metadata.doc.DocIndexMetadata.furtherColumnProperties;
-import static org.elasticsearch.index.mapper.MapperService.parseMapping;
 
 @Singleton
 public class TransportSchemaUpdateAction extends TransportMasterNodeAction<SchemaUpdateRequest, AcknowledgedResponse> {
@@ -278,43 +275,5 @@ public class TransportSchemaUpdateAction extends TransportMasterNodeAction<Schem
     @Override
     protected ClusterBlockException checkBlock(SchemaUpdateRequest request, ClusterState state) {
         return state.blocks().globalBlockedException(ClusterBlockLevel.METADATA_WRITE);
-    }
-
-    public static boolean populateColumnPositions(Map<String, Object> mapping) {
-        var columnPositionResolver = new ColumnPositionResolver<Map<String, Object>>();
-        int[] maxColumnPosition = new int[]{0};
-        populateColumnPositions(mapping, new ContentPath(), columnPositionResolver, maxColumnPosition);
-        columnPositionResolver.updatePositions(maxColumnPosition[0]);
-        return columnPositionResolver.numberOfColumnsToReposition() > 0;
-    }
-
-    private static void populateColumnPositions(Map<String, Object> mapping,
-                                                ContentPath contentPath,
-                                                ColumnPositionResolver<Map<String, Object>> columnPositionResolver,
-                                                int[] maxColumnPosition) {
-
-        Map<String, Object> properties = Maps.get(mapping, "properties");
-        if (properties == null) {
-            return;
-        }
-        for (var e : properties.entrySet()) {
-            String name = e.getKey();
-            contentPath.add(name);
-            Map<String, Object> columnProperties = (Map<String, Object>) e.getValue();
-            columnProperties = furtherColumnProperties(columnProperties);
-            Integer position = (Integer) columnProperties.get("position");
-            assert position != null : "position should not be null";
-            if (position < 0) {
-                columnPositionResolver.addColumnToReposition(contentPath.pathAsText(""),
-                                                             position,
-                                                             columnProperties,
-                                                             (cp, p) -> cp.put("position", p),
-                                                             contentPath.currentDepth());
-            } else {
-                maxColumnPosition[0] = Math.max(maxColumnPosition[0], position);
-            }
-            populateColumnPositions(columnProperties, contentPath, columnPositionResolver, maxColumnPosition);
-            contentPath.remove();
-        }
     }
 }

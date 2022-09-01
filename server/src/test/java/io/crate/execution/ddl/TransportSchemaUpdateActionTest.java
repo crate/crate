@@ -22,6 +22,7 @@
 package io.crate.execution.ddl;
 
 import static io.crate.metadata.PartitionName.templateName;
+import static io.crate.metadata.upgrade.IndexTemplateUpgrader.populateColumnPositions;
 import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -137,13 +138,13 @@ public class TransportSchemaUpdateActionTest extends CrateDummyClusterServiceUni
 
     @Test
     public void test_populateColumnPositions_method_with_empty_map() {
-        assertThat(TransportSchemaUpdateAction.populateColumnPositions(Map.of())).isFalse();
-        assertThat(TransportSchemaUpdateAction.populateColumnPositions(Map.of("properties", Map.of()))).isFalse();
+        assertThat(populateColumnPositions(Map.of())).isFalse();
+        assertThat(populateColumnPositions(Map.of("properties", Map.of()))).isFalse();
     }
 
     @Test
     public void test_populateColumnPositions_method_without_missing_columns() {
-        assertThat(TransportSchemaUpdateAction.populateColumnPositions(
+        assertThat(populateColumnPositions(
             Map.of("properties",
                    Map.of("a", Map.of("position", 1),
                           "b", Map.of("inner",
@@ -162,7 +163,7 @@ public class TransportSchemaUpdateActionTest extends CrateDummyClusterServiceUni
         // column order
         d.put("position", -2);
         e.put("position", -1);
-        assertThat(TransportSchemaUpdateAction.populateColumnPositions(
+        assertThat(populateColumnPositions(
             Map.of("properties",
                    Map.of("a", Map.of("position", 1,
                                       "properties", Map.of(
@@ -185,7 +186,7 @@ public class TransportSchemaUpdateActionTest extends CrateDummyClusterServiceUni
         // column order
         d.put("position", -1);
         e.put("position", -2);
-        assertThat(TransportSchemaUpdateAction.populateColumnPositions(
+        assertThat(populateColumnPositions(
             Map.of("properties",
                    Map.of("a", Map.of("position", 1,
                                       "properties", Map.of(
@@ -209,7 +210,7 @@ public class TransportSchemaUpdateActionTest extends CrateDummyClusterServiceUni
         Map<String, Object> f = new HashMap<>();
         d.put("position", -1);
         f.put("position", -2);
-        assertThat(TransportSchemaUpdateAction.populateColumnPositions(
+        assertThat(populateColumnPositions(
             Map.of("properties",
                    Map.of("a", Map.of("position", 1,
                                       "properties", Map.of(
@@ -235,7 +236,7 @@ public class TransportSchemaUpdateActionTest extends CrateDummyClusterServiceUni
         f = new HashMap<>();
         d.put("position", -1);
         f.put("position", -2);
-        assertThat(TransportSchemaUpdateAction.populateColumnPositions(
+        assertThat(populateColumnPositions(
             Map.of("properties",
                    Map.of("a", Map.of("position", 1,
                                       "properties", Map.of(
@@ -270,7 +271,7 @@ public class TransportSchemaUpdateActionTest extends CrateDummyClusterServiceUni
                                          )
         );
 
-        assertThat(TransportSchemaUpdateAction.populateColumnPositions(map)).isTrue();
+        assertThat(populateColumnPositions(map)).isTrue();
         assertThat(c.get("position")).isEqualTo(2);
     }
 
@@ -281,7 +282,7 @@ public class TransportSchemaUpdateActionTest extends CrateDummyClusterServiceUni
         Map<String, Object> b = new HashMap<>();
         a.put("position", -1);
         b.put("position", -1);
-        assertThat(TransportSchemaUpdateAction.populateColumnPositions(Map.of("properties", Map.of("a", a, "b", b)))).isTrue();
+        assertThat(populateColumnPositions(Map.of("properties", Map.of("a", a, "b", b)))).isTrue();
         assertThat(a.get("position")).isEqualTo(1);
         assertThat(b.get("position")).isEqualTo(2);
     }
