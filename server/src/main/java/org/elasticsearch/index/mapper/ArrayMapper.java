@@ -78,7 +78,7 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
     private Mapper innerMapper;
 
     ArrayMapper(String simpleName,
-                int position,
+                Integer position,
                 @Nullable String defaultExpression,
                 FieldType fieldType,
                 MappedFieldType defaultFieldType,

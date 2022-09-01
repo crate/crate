@@ -158,7 +158,7 @@ public class DateFieldMapper extends FieldMapper {
 
     private DateFieldMapper(
             String simpleName,
-            int position,
+            Integer position,
             @Nullable String defaultExpression,
             FieldType fieldType,
             MappedFieldType mappedFieldType,

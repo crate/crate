@@ -104,7 +104,7 @@ public class IpFieldMapper extends FieldMapper {
 
     private IpFieldMapper(
             String simpleName,
-            int position,
+            Integer position,
             String defaultExpression,
             FieldType fieldType,
             MappedFieldType mappedFieldType,

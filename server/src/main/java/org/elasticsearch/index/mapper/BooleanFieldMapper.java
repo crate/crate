@@ -107,7 +107,7 @@ public class BooleanFieldMapper extends FieldMapper {
     }
 
     protected BooleanFieldMapper(String simpleName,
-                                 int position,
+                                 Integer position,
                                  @Nullable String defaultExpression,
                                  FieldType fieldType,
                                  MappedFieldType defaultFieldType,

@@ -22,13 +22,8 @@
 package io.crate.execution.ddl;
 
 import static io.crate.metadata.PartitionName.templateName;
-import static io.crate.metadata.upgrade.IndexTemplateUpgrader.populateColumnPositions;
 import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
-
-import java.util.Arrays;
-import java.util.HashMap;
-
 import io.crate.Constants;
 import io.crate.analyze.BoundAddColumn;
 import io.crate.common.collections.Maps;
@@ -47,6 +42,8 @@ import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.junit.Test;
 
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Map;
 
 public class TransportSchemaUpdateActionTest extends CrateDummyClusterServiceUnitTest {
@@ -134,156 +131,5 @@ public class TransportSchemaUpdateActionTest extends CrateDummyClusterServiceUni
         );
 
         assertThat(source.get(versionKey)).isEqualTo(100);
-    }
-
-    @Test
-    public void test_populateColumnPositions_method_with_empty_map() {
-        assertThat(populateColumnPositions(Map.of())).isFalse();
-        assertThat(populateColumnPositions(Map.of("properties", Map.of()))).isFalse();
-    }
-
-    @Test
-    public void test_populateColumnPositions_method_without_missing_columns() {
-        assertThat(populateColumnPositions(
-            Map.of("properties",
-                   Map.of("a", Map.of("position", 1),
-                          "b", Map.of("inner",
-                                      Map.of("position", 2,
-                                             "properties", Map.of("c", Map.of("position", 3))
-                                      )
-                       )
-                   )
-            ))).isFalse();
-    }
-
-    @Test
-    public void test_populateColumnPositions_method_orders_by_column_order_if_same_level() {
-        Map<String, Object> d = new HashMap<>();
-        Map<String, Object> e = new HashMap<>();
-        // column order
-        d.put("position", -2);
-        e.put("position", -1);
-        assertThat(populateColumnPositions(
-            Map.of("properties",
-                   Map.of("a", Map.of("position", 1,
-                                      "properties", Map.of(
-                                  "e", e)),
-                          "b", Map.of("inner",
-                                      Map.of("position", 2,
-                                             "properties", Map.of(
-                                              "c", Map.of("position", 3),
-                                              "d", d)
-                                      )
-                       )
-                   )
-            ))).isTrue();
-        assertThat(e.get("position")).isEqualTo(4);
-        assertThat(d.get("position")).isEqualTo(5);
-
-        // swap d and e
-        d = new HashMap<>();
-        e = new HashMap<>();
-        // column order
-        d.put("position", -1);
-        e.put("position", -2);
-        assertThat(populateColumnPositions(
-            Map.of("properties",
-                   Map.of("a", Map.of("position", 1,
-                                      "properties", Map.of(
-                                  "d", d)),
-                          "b", Map.of("inner",
-                                      Map.of("position", 2,
-                                             "properties", Map.of(
-                                              "c", Map.of("position", 3),
-                                              "e", e)
-                                      )
-                       )
-                   )
-            ))).isTrue();
-        assertThat(d.get("position")).isEqualTo(4);
-        assertThat(e.get("position")).isEqualTo(5);
-    }
-
-    @Test
-    public void test_populateColumnPositions_method_orders_by_level() {
-        Map<String, Object> d = new HashMap<>();
-        Map<String, Object> f = new HashMap<>();
-        d.put("position", -1);
-        f.put("position", -2);
-        assertThat(populateColumnPositions(
-            Map.of("properties",
-                   Map.of("a", Map.of("position", 1,
-                                      "properties", Map.of(
-                                  "e", Map.of("position", 4,
-                                              "properties", Map.of(
-                                          "f", f) // deeper
-                                  ))),
-                          "b", Map.of("inner",
-                                      Map.of("position", 2,
-                                             "properties", Map.of(
-                                              "c", Map.of("position", 3),
-                                              "d", d)
-                                      )
-                       )
-                   )
-            ))).isTrue();
-        //check d < f
-        assertThat(d.get("position")).isEqualTo(5);
-        assertThat(f.get("position")).isEqualTo(6);
-
-        // swap d and f
-        d = new HashMap<>();
-        f = new HashMap<>();
-        d.put("position", -1);
-        f.put("position", -2);
-        assertThat(populateColumnPositions(
-            Map.of("properties",
-                   Map.of("a", Map.of("position", 1,
-                                      "properties", Map.of(
-                                  "e", Map.of("position", 4,
-                                              "properties", Map.of(
-                                          "d", d) // deeper
-                                  ))),
-                          "b", Map.of("inner",
-                                      Map.of("position", 2,
-                                             "properties", Map.of(
-                                              "c", Map.of("position", 3),
-                                              "f", f)
-                                      )
-                       )
-                   )
-            ))).isTrue();
-        // f < d
-        assertThat(d.get("position")).isEqualTo(6);
-        assertThat(f.get("position")).isEqualTo(5);
-    }
-
-    @Test
-    public void test_populateColumnPositions_method_ignores_duplicate_column_positions() {
-        // duplicates do not break anything
-        Map<String, Object> c = new HashMap<>();
-        c.put("position", -1);
-        Map<String, Object> map = Map.of("properties",
-                                         Map.of(
-                                             "a", Map.of("position", 1),
-                                             "b", Map.of("position", 1),
-                                             "c", c
-                                         )
-        );
-
-        assertThat(populateColumnPositions(map)).isTrue();
-        assertThat(c.get("position")).isEqualTo(2);
-    }
-
-    @Test
-    public void test_populateColumnPositions_method_ignores_column_orders() {
-        // duplicates do not break anything
-        Map<String, Object> a = new HashMap<>();
-        Map<String, Object> b = new HashMap<>();
-        a.put("position", -1);
-        b.put("position", -1);
-        assertThat(populateColumnPositions(Map.of("properties", Map.of("a", a, "b", b)))).isTrue();
-        assertThat(a.get("position")).isEqualTo(1);
-        assertThat(b.get("position")).isEqualTo(2);
     }
 }

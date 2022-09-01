@@ -27,7 +27,7 @@ import org.elasticsearch.common.settings.Settings;
 
 public class RootObjectMapper extends ObjectMapper {
 
-    private ColumnPositionResolver<Mapper> columnPositionResolver = new ColumnPositionResolver<>();
+    private ColumnPositionResolver<Mapper[]> columnPositionResolver = new ColumnPositionResolver<>();
 
     public static class Builder extends ObjectMapper.Builder<Builder> {
 
@@ -42,7 +42,7 @@ public class RootObjectMapper extends ObjectMapper {
         }
 
         @Override
-        protected ObjectMapper createMapper(String name, int position, String fullPath, Dynamic dynamic,
+        protected ObjectMapper createMapper(String name, Integer position, String fullPath, Dynamic dynamic,
                 Map<String, Mapper> mappers, Settings settings) {
             return new RootObjectMapper(
                 name,
@@ -87,7 +87,7 @@ public class RootObjectMapper extends ObjectMapper {
         return newMapper;
     }
 
-    public void updateColumnPositionResolver(ColumnPositionResolver<Mapper> columnPositionResolver) {
+    public void updateColumnPositionResolver(ColumnPositionResolver<Mapper[]> columnPositionResolver) {
         this.columnPositionResolver = columnPositionResolver;
     }
 }

@@ -42,7 +42,7 @@ public class BitStringFieldMapper extends FieldMapper {
     private Integer length;
 
     protected BitStringFieldMapper(String simpleName,
-                                   int position,
+                                   Integer position,
                                    Integer length,
                                    String defaultExpression,
                                    FieldType fieldType,

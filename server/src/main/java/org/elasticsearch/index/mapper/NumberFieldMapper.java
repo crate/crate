@@ -452,7 +452,7 @@ public class NumberFieldMapper extends FieldMapper {
 
     private NumberFieldMapper(
             String simpleName,
-            int position,
+            Integer position,
             @Nullable String defaultExpression,
             FieldType fieldType,
             MappedFieldType mappedFieldType,

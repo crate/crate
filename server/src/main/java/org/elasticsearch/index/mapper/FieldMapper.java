@@ -103,7 +103,7 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
     @Nullable String defaultExpression;
 
     protected FieldMapper(String simpleName,
-                          int position,
+                          Integer position,
                           @Nullable String defaultExpression,
                           FieldType fieldType,
                           MappedFieldType mappedFieldType,
@@ -123,13 +123,13 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
         this.copyTo = Objects.requireNonNull(copyTo);
     }
 
-    public int position() {
+    public Integer position() {
         return position;
     }
 
     @Override
     public int maxColumnPosition() {
-        return position;
+        return position == null ? 0 : position;
     }
 
     @Override
@@ -309,7 +309,7 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
         if (includeDefaults || mappedFieldType.hasDocValues() != docValuesByDefault()) {
             builder.field("doc_values", mappedFieldType.hasDocValues());
         }
-        if (position != NOT_TO_BE_POSITIONED) {
+        if (position != null && position != NOT_TO_BE_POSITIONED) {
             builder.field("position", position);
         }
         if (defaultExpression != null) {

@@ -29,11 +29,13 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
 
 public class ColumnPositionResolver<T> {
     // Depths of the columns are used as keys such that deeper columns take higher column positions. (parent's position < children's positions)
-    private final Map<Integer, List<Column<T>>> columnsToReposition = new TreeMap<>(Comparator.naturalOrder());
+    private Map<Integer, List<Column<T>>> columnsToReposition = new TreeMap<>(Comparator.naturalOrder());
+    private CompletableFuture<Void> resultFuture = new CompletableFuture<>();
 
     public void updatePositions(int startingColumnPosition) {
         for (var o : this.columnsToReposition.values()) {
@@ -42,10 +44,11 @@ public class ColumnPositionResolver<T> {
                 column.updatePosition(++startingColumnPosition);
             }
         }
+        this.clear();
     }
 
     public void addColumnToReposition(String name, @Nullable Integer columnOrdering, T column, BiConsumer<T, Integer> setPosition, int depth) {
-        // columnOrdering specifies column order whereas column position specifies exact positions.
+        // columnOrdering specifies column order (ex: a before b before c) whereas column position specifies exact positions. (ex: a = 4, b = 5, c = 6)
         Column<T> c = new Column<>(name, columnOrdering, setPosition, column);
         List<Column<T>> columnsPerDepths = columnsToReposition.get(depth);
         if (columnsPerDepths == null) {
@@ -61,6 +64,16 @@ public class ColumnPositionResolver<T> {
         return this.columnsToReposition.size();
     }
 
+    public CompletableFuture<Void> completionFuture() {
+        return this.resultFuture;
+    }
+
+    private void clear() {
+        this.columnsToReposition = new TreeMap<>(Comparator.naturalOrder());
+        this.resultFuture.complete(null);
+        this.resultFuture = new CompletableFuture<>();
+    }
+
     private record Column<T>(String name, Integer columnOrdering, BiConsumer<T, Integer> setPosition, T column) implements Comparable<Column<T>> {
 
         public void updatePosition(Integer position) {
@@ -69,13 +82,13 @@ public class ColumnPositionResolver<T> {
 
         @Override
         public int compareTo(@Nonnull Column<T> o) {
-            // column position calculation : by depth (ascending) first, columnOrdering (descending) second then by name third
+            // column position calculation : by depth (ascending) first, columnOrdering (nulls-first, descending) second then by name third
             if (this.columnOrdering == null && o.columnOrdering == null) {
                 return this.name.compareTo(o.name);
             } else if (this.columnOrdering == null) {
-                return 1;
-            } else if (o.columnOrdering == null) {
                 return -1;
+            } else if (o.columnOrdering == null) {
+                return 1;
             } else {
                 int comparison = o.columnOrdering.compareTo(this.columnOrdering);
                 if (comparison != 0) {
