@@ -143,12 +143,6 @@ public class IndexTemplateUpgraderTest {
         assertThat(compressedXContent.string(), is("{\"default\":{\"properties\":{\"name\":{\"position\":1,\"type\":\"keyword\"}}}}"));
     }
 
-
-    /*
-     * test_populateColumnPositions_method_* variants are copied from TransportSchemaUpdateActionTest
-     * the only difference is that populateColumnPositions traverses in Breadth-First order and also resolves duplicates.
-     */
-
     @Test
     public void test_populateColumnPositions_method_with_empty_map() {
         assertThat(populateColumnPositions(Map.of())).isFalse();

@@ -21,6 +21,8 @@
 
 package org.elasticsearch.cluster.metadata;
 
+import io.crate.common.annotations.VisibleForTesting;
+
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -34,8 +36,10 @@ import java.util.function.BiConsumer;
 
 public class ColumnPositionResolver<T> {
     // Depths of the columns are used as keys such that deeper columns take higher column positions. (parent's position < children's positions)
-    private Map<Integer, List<Column<T>>> columnsToReposition = new TreeMap<>(Comparator.naturalOrder());
-    private Map<Integer, Column<T>> takenPositions = new HashMap<>();
+    @VisibleForTesting
+    Map<Integer, List<Column<T>>> columnsToReposition = new TreeMap<>(Comparator.naturalOrder());
+    @VisibleForTesting
+    Map<Integer, Column<T>> takenPositions = new HashMap<>();
 
     public void updatePositions(int startingColumnPosition) {
         // by depths first

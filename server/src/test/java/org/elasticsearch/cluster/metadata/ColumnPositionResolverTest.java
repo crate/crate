@@ -24,42 +24,27 @@ package org.elasticsearch.cluster.metadata;
 import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.Test;
 
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.TreeMap;
+
 public class ColumnPositionResolverTest {
 
-    @Test
-    public void test_column_positions_resolved_by_depths_first() {
-        var t1 = new TestColumn(new String[]{"a"}, -1, 1);
-        var t2 = new TestColumn(new String[]{"a"}, -1, 0);
-        ColumnPositionResolver<TestColumn> resolver = new ColumnPositionResolver<>();
-        addToResolver(resolver, t1);
-        addToResolver(resolver, t2);
-        resolver.updatePositions(0);
-        assertThat(t2.position).isEqualTo(1);
-        assertThat(t1.position).isEqualTo(2);
-    }
+    // IndexTemplateUpgrader#populateColumnPositions is one of the main user of ColumnPositionResolver,
+    // where populateColumnPositions method is a simple wrapper over it.
+    // Therefore, see IndexTemplateUpgraderTest for more variations of ColumnPositionResolver tests.
 
     @Test
-    public void test_column_positions_resolved_by_column_order_if_depths_are_the_same() {
+    public void test_once_updatePositions_called_the_resolver_is_cleared() {
         var t1 = new TestColumn(new String[]{"a"}, -2, 0);
-        var t2 = new TestColumn(new String[]{"a"}, -1, 0);
         ColumnPositionResolver<TestColumn> resolver = new ColumnPositionResolver<>();
         addToResolver(resolver, t1);
-        addToResolver(resolver, t2);
+        assertThat(resolver.numberOfColumnsToReposition()).isEqualTo(1);
         resolver.updatePositions(0);
-        assertThat(t2.position).isEqualTo(1);
-        assertThat(t1.position).isEqualTo(2);
-    }
-
-    @Test
-    public void test_column_positions_resolved_by_names_if_depths_and_column_orders_are_the_same() {
-        var t1 = new TestColumn(new String[]{"b"}, -2, 0);
-        var t2 = new TestColumn(new String[]{"a"}, -2, 0);
-        ColumnPositionResolver<TestColumn> resolver = new ColumnPositionResolver<>();
-        addToResolver(resolver, t1);
-        addToResolver(resolver, t2);
-        resolver.updatePositions(0);
-        assertThat(t2.position).isEqualTo(1);
-        assertThat(t1.position).isEqualTo(2);
+        assertThat(resolver.columnsToReposition).isEqualTo(new TreeMap<>(Comparator.naturalOrder()));
+        assertThat(resolver.takenPositions).isEqualTo(new HashMap<>());
+        assertThat(resolver.numberOfColumnsToReposition()).isEqualTo(0);
+        assertThat(t1.position).isEqualTo(1);
     }
 
     private static class TestColumn {
