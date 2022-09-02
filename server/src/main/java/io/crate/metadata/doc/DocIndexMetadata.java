@@ -435,8 +435,9 @@ public class DocIndexMetadata {
 
             boolean nullable = !notNullColumns.contains(newIdent) && !primaryKey.contains(newIdent);
             columnProperties = furtherColumnProperties(columnProperties);
-            assert columnProperties.containsKey("position") : "Column position is missing: " + newIdent.fqn();
-            int position = (int) columnProperties.get("position");
+            assert columnProperties.containsKey("position") && columnProperties.get("position") != null : "Column position is missing: " + newIdent.fqn();
+            // BWC compatibility with nodes < 5.1, position could be NULL if column is created on that nodes
+            int position = (int) columnProperties.getOrDefault("position", 0);
             assert !takenPositions.containsKey(position) : "Duplicate column position assigned to " + newIdent.fqn() + " and " + takenPositions.get(position);
             takenPositions.put(position, newIdent.fqn());
             String defaultExpression = (String) columnProperties.getOrDefault("default_expr", null);
