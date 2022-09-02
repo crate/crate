@@ -41,7 +41,7 @@ public class RestoreSnapshotResponse extends TransportResponse implements ToXCon
     @Nullable
     private final RestoreInfo restoreInfo;
 
-    RestoreSnapshotResponse(@Nullable RestoreInfo restoreInfo) {
+    public RestoreSnapshotResponse(@Nullable RestoreInfo restoreInfo) {
         this.restoreInfo = restoreInfo;
     }
 

@@ -40,6 +40,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
+import javax.annotation.Nullable;
+
 /**
  * In memory storage for unit tests
  */
@@ -73,7 +75,9 @@ public class AzureStorageServiceMock extends AzureStorageService {
     }
 
     @Override
-    public InputStream getInputStream(String container, String blob) throws IOException {
+    public InputStream getInputStream(String container, String blob, long position, @Nullable Long length)
+        throws IOException {
+
         if (!blobExists(container, blob)) {
             throw new NoSuchFileException("missing blob [" + blob + "]");
         }

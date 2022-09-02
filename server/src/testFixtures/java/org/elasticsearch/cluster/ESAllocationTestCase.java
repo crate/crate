@@ -34,7 +34,9 @@ import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodeRole;
 import org.elasticsearch.cluster.routing.RoutingNode;
 import org.elasticsearch.cluster.routing.ShardRouting;
+import org.elasticsearch.cluster.routing.UnassignedInfo;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
+import org.elasticsearch.cluster.routing.allocation.FailedShard;
 import org.elasticsearch.cluster.routing.allocation.RoutingAllocation;
 import org.elasticsearch.cluster.routing.allocation.allocator.BalancedShardsAllocator;
 import org.elasticsearch.cluster.routing.allocation.allocator.ShardsAllocator;
@@ -243,6 +245,44 @@ public abstract class ESAllocationTestCase extends ESTestCase {
         @Override
         protected long currentNanoTime() {
             return nanoTimeOverride == -1L ? super.currentNanoTime() : nanoTimeOverride;
+        }
+    }
+
+    /**
+     * Mocks behavior in ReplicaShardAllocator to remove delayed shards from list of unassigned shards so they don't get reassigned yet.
+     */
+    protected static class DelayedShardsMockGatewayAllocator extends GatewayAllocator {
+        public DelayedShardsMockGatewayAllocator() {}
+
+        @Override
+        public void applyStartedShards(List<ShardRouting> startedShards, RoutingAllocation allocation) {
+            // no-op
+        }
+
+        @Override
+        public void applyFailedShards(List<FailedShard> failedShards, RoutingAllocation allocation) {
+            // no-op
+        }
+
+        @Override
+        public void beforeAllocation(RoutingAllocation allocation) {
+            // no-op
+        }
+
+        @Override
+        public void afterPrimariesBeforeReplicas(RoutingAllocation allocation) {
+            // no-op
+        }
+
+        @Override
+        public void allocateUnassigned(ShardRouting shardRouting, RoutingAllocation allocation,
+                                       UnassignedAllocationHandler unassignedAllocationHandler) {
+            if (shardRouting.primary() || shardRouting.unassignedInfo().getReason() == UnassignedInfo.Reason.INDEX_CREATED) {
+                return;
+            }
+            if (shardRouting.unassignedInfo().isDelayed()) {
+                unassignedAllocationHandler.removeAndIgnore(UnassignedInfo.AllocationStatus.DELAYED_ALLOCATION, allocation.changes());
+            }
         }
     }
 }

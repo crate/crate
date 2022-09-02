@@ -19,6 +19,36 @@
 
 package org.elasticsearch.repositories.s3;
 
+import static org.elasticsearch.repositories.s3.S3RepositorySettings.MAX_FILE_SIZE;
+import static org.elasticsearch.repositories.s3.S3RepositorySettings.MAX_FILE_SIZE_USING_MULTIPART;
+import static org.elasticsearch.repositories.s3.S3RepositorySettings.MIN_PART_SIZE_USING_MULTIPART;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.NoSuchFileException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import javax.annotation.Nullable;
+
+import org.apache.lucene.util.SetOnce;
+import org.elasticsearch.ExceptionsHelper;
+import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.blobstore.BlobContainer;
+import org.elasticsearch.common.blobstore.BlobMetadata;
+import org.elasticsearch.common.blobstore.BlobPath;
+import org.elasticsearch.common.blobstore.support.AbstractBlobContainer;
+import org.elasticsearch.common.blobstore.support.PlainBlobMetadata;
+import org.elasticsearch.common.unit.ByteSizeUnit;
+import org.elasticsearch.common.unit.ByteSizeValue;
+
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.services.s3.model.AbortMultipartUploadRequest;
 import com.amazonaws.services.s3.model.AmazonS3Exception;
@@ -35,32 +65,8 @@ import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.amazonaws.services.s3.model.UploadPartRequest;
 import com.amazonaws.services.s3.model.UploadPartResult;
-import org.apache.lucene.util.SetOnce;
-import org.elasticsearch.ExceptionsHelper;
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.blobstore.BlobContainer;
-import org.elasticsearch.common.blobstore.BlobMetadata;
-import org.elasticsearch.common.blobstore.BlobPath;
-import org.elasticsearch.common.blobstore.support.AbstractBlobContainer;
-import org.elasticsearch.common.blobstore.support.PlainBlobMetadata;
+
 import io.crate.common.collections.Tuple;
-
-import javax.annotation.Nullable;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.NoSuchFileException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import static org.elasticsearch.repositories.s3.S3RepositorySettings.MAX_FILE_SIZE;
-import static org.elasticsearch.repositories.s3.S3RepositorySettings.MAX_FILE_SIZE_USING_MULTIPART;
-import static org.elasticsearch.repositories.s3.S3RepositorySettings.MIN_PART_SIZE_USING_MULTIPART;
 
 class S3BlobContainer extends AbstractBlobContainer {
 
@@ -92,6 +98,27 @@ class S3BlobContainer extends AbstractBlobContainer {
             }
             throw e;
         }
+    }
+
+    @Override
+    public InputStream readBlob(String blobName, long position, long length) throws IOException {
+        if (position < 0L) {
+            throw new IllegalArgumentException("position must be non-negative");
+        }
+        if (length < 0) {
+            throw new IllegalArgumentException("length must be non-negative");
+        }
+        if (length == 0) {
+            return new ByteArrayInputStream(new byte[0]);
+        } else {
+            return new S3RetryingInputStream(blobStore, buildKey(blobName), position, Math.addExact(position, length - 1));
+        }
+    }
+
+    @Override
+    public long readBlobPreferredLength() {
+        // This container returns streams that must be fully consumed, so we tell consumers to make bounded requests.
+        return new ByteSizeValue(32, ByteSizeUnit.MB).getBytes();
     }
 
     /**

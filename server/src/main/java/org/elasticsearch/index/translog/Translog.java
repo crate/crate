@@ -19,32 +19,6 @@
 
 package org.elasticsearch.index.translog;
 
-import org.apache.logging.log4j.message.ParameterizedMessage;
-import org.apache.lucene.index.Term;
-import org.apache.lucene.store.AlreadyClosedException;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.UUIDs;
-import org.elasticsearch.common.bytes.BytesArray;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.io.stream.ReleasableBytesStreamOutput;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.lease.Releasable;
-import org.elasticsearch.common.lease.Releasables;
-import org.elasticsearch.common.lucene.uid.Versions;
-import org.elasticsearch.common.util.BigArrays;
-import org.elasticsearch.common.util.concurrent.ReleasableLock;
-
-import io.crate.Constants;
-import io.crate.common.io.IOUtils;
-import org.elasticsearch.index.IndexSettings;
-import org.elasticsearch.index.VersionType;
-import org.elasticsearch.index.engine.Engine;
-import org.elasticsearch.index.seqno.SequenceNumbers;
-import org.elasticsearch.index.shard.AbstractIndexShardComponent;
-import org.elasticsearch.index.shard.IndexShardComponent;
-import org.elasticsearch.index.shard.ShardId;
-
 import java.io.Closeable;
 import java.io.EOFException;
 import java.io.IOException;
@@ -70,6 +44,35 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import javax.annotation.Nullable;
+
+import org.apache.logging.log4j.message.ParameterizedMessage;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.store.AlreadyClosedException;
+import org.elasticsearch.Version;
+import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.UUIDs;
+import org.elasticsearch.common.bytes.BytesArray;
+import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.io.stream.ReleasableBytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.lease.Releasable;
+import org.elasticsearch.common.lease.Releasables;
+import org.elasticsearch.common.lucene.uid.Versions;
+import org.elasticsearch.common.util.BigArrays;
+import org.elasticsearch.common.util.concurrent.ReleasableLock;
+import org.elasticsearch.index.IndexSettings;
+import org.elasticsearch.index.VersionType;
+import org.elasticsearch.index.engine.Engine;
+import org.elasticsearch.index.seqno.SequenceNumbers;
+import org.elasticsearch.index.shard.AbstractIndexShardComponent;
+import org.elasticsearch.index.shard.IndexShardComponent;
+import org.elasticsearch.index.shard.ShardId;
+
+import io.crate.Constants;
+import io.crate.common.io.IOUtils;
 
 
 /**
@@ -1833,21 +1836,53 @@ public class Translog extends AbstractIndexShardComponent implements IndexShardC
 
     static String createEmptyTranslog(Path location, long initialGlobalCheckpoint, ShardId shardId,
                                       ChannelFactory channelFactory, long primaryTerm) throws IOException {
+        return createEmptyTranslog(location, shardId, initialGlobalCheckpoint, primaryTerm, null, channelFactory);
+    }
+
+    /**
+     * Creates a new empty translog within the specified {@code location} that contains the given {@code initialGlobalCheckpoint},
+     * {@code primaryTerm} and {@code translogUUID}.
+     *
+     * This method should be used directly under specific circumstances like for shards that will see no indexing. Specifying a non-unique
+     * translog UUID could cause a lot of issues and that's why in all (but one) cases the method
+     * {@link #createEmptyTranslog(Path, long, ShardId, long)} should be used instead.
+     *
+     * @param location                a {@link Path} to the directory that will contains the translog files (translog + translog checkpoint)
+     * @param shardId                 the {@link ShardId}
+     * @param initialGlobalCheckpoint the global checkpoint to initialize the translog with
+     * @param primaryTerm             the shard's primary term to initialize the translog with
+     * @param translogUUID            the unique identifier to initialize the translog with
+     * @param factory                 a {@link ChannelFactory} used to open translog files
+     * @return the translog's unique identifier
+     * @throws IOException if something went wrong during translog creation
+     */
+    public static String createEmptyTranslog(final Path location,
+                                             final ShardId shardId,
+                                             final long initialGlobalCheckpoint,
+                                             final long primaryTerm,
+                                             @Nullable final String translogUUID,
+                                             @Nullable final ChannelFactory factory) throws IOException {
         IOUtils.rm(location);
         Files.createDirectories(location);
-        final Checkpoint checkpoint = Checkpoint.emptyTranslogCheckpoint(0, 1, initialGlobalCheckpoint, 1);
+
+        final long generation = 1L;
+        final long minTranslogGeneration = 1L;
+        final ChannelFactory channelFactory = factory != null ? factory : FileChannel::open;
+        final String uuid = Strings.hasLength(translogUUID) ? translogUUID : UUIDs.randomBase64UUID();
         final Path checkpointFile = location.resolve(CHECKPOINT_FILE_NAME);
+        final Path translogFile = location.resolve(getFilename(generation));
+        final Checkpoint checkpoint = Checkpoint.emptyTranslogCheckpoint(0, generation, initialGlobalCheckpoint, minTranslogGeneration);
+
         Checkpoint.write(channelFactory, checkpointFile, checkpoint, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW);
         IOUtils.fsync(checkpointFile, false);
-        final String translogUUID = UUIDs.randomBase64UUID();
         TranslogWriter writer = TranslogWriter.create(
             shardId,
-            translogUUID,
-            1,
-            location.resolve(getFilename(1)),
+            uuid,
+            generation,
+            translogFile,
             channelFactory,
             TranslogConfig.DEFAULT_BUFFER_SIZE,
-            1,
+            minTranslogGeneration,
             initialGlobalCheckpoint,
             () -> {
                 throw new UnsupportedOperationException();
@@ -1863,6 +1898,6 @@ public class Translog extends AbstractIndexShardComponent implements IndexShardC
             BigArrays.NON_RECYCLING_INSTANCE
         );
         writer.close();
-        return translogUUID;
+        return uuid;
     }
 }

@@ -1022,7 +1022,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
         return blobStore().blobContainer(indicesPath().add(indexId.getId()).add(Integer.toString(shardId.getId())));
     }
 
-    private BlobContainer shardContainer(IndexId indexId, int shardId) {
+    public BlobContainer shardContainer(IndexId indexId, int shardId) {
         return blobStore().blobContainer(indicesPath().add(indexId.getId()).add(Integer.toString(shardId)));
     }
 
@@ -1044,10 +1044,10 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
     }
 
     protected void assertSnapshotOrGenericThread() {
-        assert Thread.currentThread().getName().contains(ThreadPool.Names.SNAPSHOT)
-            || Thread.currentThread().getName().contains(ThreadPool.Names.GENERIC)
-            || Thread.currentThread().getName().contains(ThreadPool.Names.SEARCH) :
-                "Expected current thread [" + Thread.currentThread() + "] to be the snapshot or generic thread.";
+        assert Thread.currentThread().getName().contains('[' + ThreadPool.Names.SNAPSHOT + ']')
+               || Thread.currentThread().getName().contains('[' + ThreadPool.Names.SEARCH + ']')
+               || Thread.currentThread().getName().contains(ThreadPool.Names.GENERIC) :
+            "Expected current thread [" + Thread.currentThread() + "] to be the snapshot or generic thread.";
     }
 
     @Override
@@ -2017,7 +2017,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
     /**
      * Loads information about shard snapshot
      */
-    private BlobStoreIndexShardSnapshot loadShardSnapshot(BlobContainer shardContainer, SnapshotId snapshotId) {
+    public BlobStoreIndexShardSnapshot loadShardSnapshot(BlobContainer shardContainer, SnapshotId snapshotId) {
         try {
             return indexShardSnapshotFormat.read(shardContainer, snapshotId.getUUID());
         } catch (IOException ex) {

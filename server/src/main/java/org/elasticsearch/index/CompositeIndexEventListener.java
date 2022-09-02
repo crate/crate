@@ -19,6 +19,11 @@
 
 package org.elasticsearch.index;
 
+import java.util.Collection;
+import java.util.List;
+
+import javax.annotation.Nullable;
+
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.cluster.routing.ShardRouting;
@@ -29,10 +34,6 @@ import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.IndexShardState;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.cluster.IndicesClusterStateService.AllocatedIndices.IndexRemovalReason;
-
-import javax.annotation.Nullable;
-import java.util.Collection;
-import java.util.List;
 
 /**
  * A composite {@link IndexEventListener} that forwards all callbacks to an immutable list of IndexEventListener
@@ -266,6 +267,19 @@ final class CompositeIndexEventListener implements IndexEventListener {
                 listener.beforeIndexSettingsChangesApplied(indexShard, oldSettings, newSettings);
             } catch (Exception e) {
                 logger.warn("failed to invoke before index settings changes applied", e);
+                throw e;
+            }
+        }
+    }
+
+    @Override
+    public void beforeIndexShardRecovery(final IndexShard indexShard, final IndexSettings indexSettings) {
+        for (IndexEventListener listener : listeners) {
+            try {
+                listener.beforeIndexShardRecovery(indexShard, indexSettings);
+            } catch (Exception e) {
+                logger.warn(() -> new ParameterizedMessage("failed to invoke the listener before the shard recovery starts for {}",
+                    indexShard.shardId()), e);
                 throw e;
             }
         }
