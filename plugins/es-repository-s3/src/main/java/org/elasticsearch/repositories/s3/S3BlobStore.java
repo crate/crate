@@ -19,6 +19,8 @@
 
 package org.elasticsearch.repositories.s3;
 
+import static org.elasticsearch.repositories.s3.S3RepositorySettings.MAX_RETRIES_SETTING;
+
 import com.amazonaws.services.s3.model.CannedAccessControlList;
 import com.amazonaws.services.s3.model.StorageClass;
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
@@ -64,6 +66,10 @@ class S3BlobStore implements BlobStore {
 
     public AmazonS3Reference clientReference() {
         return service.client(metadata);
+    }
+
+    int getMaxRetries() {
+        return MAX_RETRIES_SETTING.get(metadata.settings());
     }
 
     public String bucket() {

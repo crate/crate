@@ -19,15 +19,6 @@
 
 package org.elasticsearch.repositories.azure;
 
-import com.microsoft.azure.storage.LocationMode;
-import com.microsoft.azure.storage.StorageException;
-import org.elasticsearch.cluster.metadata.RepositoryMetadata;
-import org.elasticsearch.common.blobstore.BlobContainer;
-import org.elasticsearch.common.blobstore.BlobMetadata;
-import org.elasticsearch.common.blobstore.BlobPath;
-import org.elasticsearch.common.blobstore.BlobStore;
-import org.elasticsearch.repositories.azure.AzureRepository.Repository;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URISyntaxException;
@@ -35,6 +26,18 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
+import javax.annotation.Nullable;
+
+import org.elasticsearch.cluster.metadata.RepositoryMetadata;
+import org.elasticsearch.common.blobstore.BlobContainer;
+import org.elasticsearch.common.blobstore.BlobMetadata;
+import org.elasticsearch.common.blobstore.BlobPath;
+import org.elasticsearch.common.blobstore.BlobStore;
+import org.elasticsearch.repositories.azure.AzureRepository.Repository;
+
+import com.microsoft.azure.storage.LocationMode;
+import com.microsoft.azure.storage.StorageException;
 
 public class AzureBlobStore implements BlobStore {
 
@@ -98,8 +101,10 @@ public class AzureBlobStore implements BlobStore {
             Collectors.toMap(Function.identity(), name -> new AzureBlobContainer(path.add(name), this))));
     }
 
-    public InputStream getInputStream(String blob) throws URISyntaxException, StorageException, IOException {
-        return service.getInputStream(container, blob);
+    public InputStream getInputStream(String blob, long position, @Nullable Long length)
+        throws URISyntaxException, StorageException, IOException {
+
+        return service.getInputStream(container, blob, position, length);
     }
 
     public Map<String, BlobMetadata> listBlobsByPrefix(String keyPath, String prefix)

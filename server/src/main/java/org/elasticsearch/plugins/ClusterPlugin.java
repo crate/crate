@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.function.Supplier;
 
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.routing.allocation.ExistingShardsAllocator;
 import org.elasticsearch.cluster.routing.allocation.allocator.ShardsAllocator;
 import org.elasticsearch.cluster.routing.allocation.decider.AllocationDecider;
 import org.elasticsearch.common.settings.ClusterSettings;
@@ -57,6 +58,15 @@ public interface ClusterPlugin {
      * @return A map of allocator implementations
      */
     default Map<String, Supplier<ShardsAllocator>> getShardsAllocators(Settings settings, ClusterSettings clusterSettings) {
+        return Collections.emptyMap();
+    }
+
+    /**
+     * Return {@link ExistingShardsAllocator} implementations added by this plugin; the index setting
+     * {@link ExistingShardsAllocator#EXISTING_SHARDS_ALLOCATOR_SETTING} sets the key of the allocator to use to allocate its shards. The
+     * default allocator is {@link org.elasticsearch.gateway.GatewayAllocator}.
+     */
+    default Map<String, ExistingShardsAllocator> getExistingShardsAllocators() {
         return Collections.emptyMap();
     }
 

@@ -21,14 +21,15 @@
 
 package io.crate.expression.reference.sys.shard;
 
-import io.crate.metadata.IndexParts;
+import java.util.Iterator;
+import java.util.function.Supplier;
+
 import org.elasticsearch.cluster.ClusterInfo;
 import org.elasticsearch.cluster.ClusterInfoService;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.routing.RoutingNodes;
 import org.elasticsearch.cluster.routing.ShardRouting;
-import org.elasticsearch.cluster.routing.allocation.AllocateUnassignedDecision;
-import org.elasticsearch.cluster.routing.allocation.MoveDecision;
+import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.routing.allocation.RoutingAllocation;
 import org.elasticsearch.cluster.routing.allocation.ShardAllocationDecision;
 import org.elasticsearch.cluster.routing.allocation.allocator.ShardsAllocator;
@@ -36,10 +37,8 @@ import org.elasticsearch.cluster.routing.allocation.decider.AllocationDeciders;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.gateway.GatewayAllocator;
 
-import java.util.Iterator;
-import java.util.function.Supplier;
+import io.crate.metadata.IndexParts;
 
 @Singleton
 public class SysAllocations implements Iterable<SysAllocation> {
@@ -48,19 +47,19 @@ public class SysAllocations implements Iterable<SysAllocation> {
     private final ClusterInfoService clusterInfoService;
     private final AllocationDeciders allocationDeciders;
     private final ShardsAllocator shardAllocator;
-    private final GatewayAllocator gatewayAllocator;
+    private final AllocationService allocationService;
 
     @Inject
     public SysAllocations(ClusterService clusterService,
                           ClusterInfoService clusterInfoService,
                           AllocationDeciders allocationDeciders,
                           ShardsAllocator shardAllocator,
-                          GatewayAllocator gatewayAllocator) {
+                          AllocationService allocationService) {
         this.clusterService = clusterService;
         this.clusterInfoService = clusterInfoService;
         this.allocationDeciders = allocationDeciders;
         this.shardAllocator = shardAllocator;
-        this.gatewayAllocator = gatewayAllocator;
+        this.allocationService = allocationService;
     }
 
     @Override
@@ -83,14 +82,7 @@ public class SysAllocations implements Iterable<SysAllocation> {
             if (shardRouting.initializing() || shardRouting.relocating()) {
                 return ShardAllocationDecision.NOT_TAKEN;
             } else {
-                AllocateUnassignedDecision allocateDecision = shardRouting.unassigned()
-                    ? gatewayAllocator.decideUnassignedShardAllocation(shardRouting, allocation)
-                    : AllocateUnassignedDecision.NOT_TAKEN;
-                if (allocateDecision.isDecisionTaken() == false) {
-                    return shardAllocator.decideShardAllocation(shardRouting, allocation);
-                } else {
-                    return new ShardAllocationDecision(allocateDecision, MoveDecision.NOT_TAKEN);
-                }
+                return allocationService.explainShardAllocation(shardRouting, allocation);
             }
         };
         return new SysAllocation(

@@ -102,6 +102,7 @@ public class RepositoriesModule extends AbstractModule {
 
         Map<String, Repository.Factory> repositoryTypes = Collections.unmodifiableMap(factories);
         repositoriesService = new RepositoriesService(env.settings(), clusterService, transportService, repositoryTypes, threadPool);
+        repoPlugins.forEach(rp -> rp.onRepositoriesModule(this));
     }
 
     @Override

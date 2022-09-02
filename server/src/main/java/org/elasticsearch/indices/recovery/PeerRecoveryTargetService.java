@@ -205,10 +205,12 @@ public class PeerRecoveryTargetService implements IndexEventListener {
             timer = recoveryTarget.state().getTimer();
             cancellableThreads = recoveryTarget.cancellableThreads();
             try {
+                final IndexShard indexShard = recoveryTarget.indexShard();
+                indexShard.preRecovery();
                 assert recoveryTarget.sourceNode() != null : "can not do a recovery without a source node";
                 LOGGER.trace("{} preparing shard for peer recovery", recoveryTarget.shardId());
-                recoveryTarget.indexShard().prepareForIndexRecovery();
-                final long startingSeqNo = recoveryTarget.indexShard().recoverLocallyUpToGlobalCheckpoint();
+                indexShard.prepareForIndexRecovery();
+                final long startingSeqNo = indexShard.recoverLocallyUpToGlobalCheckpoint();
                 assert startingSeqNo == UNASSIGNED_SEQ_NO || recoveryTarget.state().getStage() == RecoveryState.Stage.TRANSLOG :
                     "unexpected recovery stage [" + recoveryTarget.state().getStage() + "] starting seqno [ " + startingSeqNo + "]";
                 request = getStartRecoveryRequest(LOGGER, clusterService.localNode(), recoveryTarget, startingSeqNo);

@@ -19,22 +19,6 @@
 
 package org.elasticsearch.cluster.routing;
 
-import com.carrotsearch.hppc.ObjectIntHashMap;
-import com.carrotsearch.hppc.cursors.ObjectCursor;
-import org.apache.logging.log4j.Logger;
-import org.apache.lucene.util.CollectionUtil;
-import org.elasticsearch.Assertions;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.cluster.routing.UnassignedInfo.AllocationStatus;
-import javax.annotation.Nullable;
-import org.elasticsearch.common.Randomness;
-import io.crate.common.collections.Tuple;
-import org.elasticsearch.index.Index;
-import org.elasticsearch.index.shard.ShardId;
-
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -50,6 +34,26 @@ import java.util.NoSuchElementException;
 import java.util.Queue;
 import java.util.Set;
 import java.util.function.Predicate;
+
+import javax.annotation.Nullable;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.lucene.util.CollectionUtil;
+import org.elasticsearch.Assertions;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.routing.UnassignedInfo.AllocationStatus;
+import org.elasticsearch.cluster.routing.allocation.ExistingShardsAllocator;
+import org.elasticsearch.common.Randomness;
+import org.elasticsearch.index.Index;
+import org.elasticsearch.index.shard.ShardId;
+
+import com.carrotsearch.hppc.ObjectIntHashMap;
+import com.carrotsearch.hppc.cursors.ObjectCursor;
+
+import io.crate.common.collections.Tuple;
 
 /**
  * {@link RoutingNodes} represents a copy the routing information contained in the {@link ClusterState cluster state}.
@@ -893,7 +897,7 @@ public class RoutingNodes implements Iterable<RoutingNode> {
             ignored.add(shard);
         }
 
-        public class UnassignedIterator implements Iterator<ShardRouting> {
+        public class UnassignedIterator implements Iterator<ShardRouting>, ExistingShardsAllocator.UnassignedAllocationHandler {
 
             private final ListIterator<ShardRouting> iterator;
             private ShardRouting current;
@@ -917,6 +921,7 @@ public class RoutingNodes implements Iterable<RoutingNode> {
              *
              * @param existingAllocationId allocation id to use. If null, a fresh allocation id is generated.
              */
+            @Override
             public ShardRouting initialize(String nodeId, @Nullable String existingAllocationId, long expectedShardSize,
                                            RoutingChangesObserver routingChangesObserver) {
                 nodes.ensureMutable();
@@ -932,6 +937,7 @@ public class RoutingNodes implements Iterable<RoutingNode> {
              *
              * @param attempt the result of the allocation attempt
              */
+            @Override
             public void removeAndIgnore(AllocationStatus attempt, RoutingChangesObserver changes) {
                 nodes.ensureMutable();
                 innerRemove();
@@ -950,6 +956,7 @@ public class RoutingNodes implements Iterable<RoutingNode> {
              * @param  recoverySource the new recovery source to use
              * @return the shard with unassigned info updated
              */
+            @Override
             public ShardRouting updateUnassigned(UnassignedInfo unassignedInfo, RecoverySource recoverySource,
                                                  RoutingChangesObserver changes) {
                 nodes.ensureMutable();
