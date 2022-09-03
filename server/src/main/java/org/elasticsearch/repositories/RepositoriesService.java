@@ -19,7 +19,15 @@
 
 package org.elasticsearch.repositories;
 
-import io.crate.common.io.IOUtils;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
@@ -31,6 +39,9 @@ import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateApplier;
+import org.elasticsearch.cluster.RestoreInProgress;
+import org.elasticsearch.cluster.SnapshotDeletionsInProgress;
+import org.elasticsearch.cluster.SnapshotsInProgress;
 import org.elasticsearch.cluster.ack.ClusterStateUpdateResponse;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.RepositoriesMetadata;
@@ -40,18 +51,10 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.regex.Regex;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
-import org.elasticsearch.snapshots.RestoreService;
-import org.elasticsearch.snapshots.SnapshotsService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import io.crate.common.io.IOUtils;
 
 /**
  * Service responsible for maintaining and providing access to snapshot repositories on nodes.
@@ -351,6 +354,21 @@ public class RepositoriesService implements ClusterStateApplier {
     }
 
     /**
+     * Gets the {@link RepositoryData} for the given repository.
+     *
+     * @param repositoryName repository name
+     * @return repository data
+     */
+    public CompletableFuture<RepositoryData> getRepositoryData(final String repositoryName) {
+        try {
+            Repository repository = repository(repositoryName);
+            return repository.getRepositoryData();
+        } catch (Exception e) {
+            return CompletableFuture.failedFuture(e);
+        }
+    }
+
+    /**
      * Returns registered repository
      * <p>
      * This method is called only on the master node
@@ -454,7 +472,7 @@ public class RepositoriesService implements ClusterStateApplier {
     }
 
     private void ensureRepositoryNotInUse(ClusterState clusterState, String repository) {
-        if (SnapshotsService.isRepositoryInUse(clusterState, repository) || RestoreService.isRepositoryInUse(clusterState, repository)) {
+        if (isRepositoryInUse(clusterState, repository)) {
             throw new IllegalStateException("trying to modify or unregister repository that is currently used ");
         }
     }
@@ -465,5 +483,41 @@ public class RepositoriesService implements ClusterStateApplier {
 
     public Map<String, Repository.Factory> typesRegistry() {
         return typesRegistry;
+    }
+
+
+    /**
+     * Checks if a repository is currently in use by one of the snapshots
+     *
+     * @param clusterState cluster state
+     * @param repository   repository id
+     * @return true if repository is currently in use by one of the running snapshots
+     */
+    private static boolean isRepositoryInUse(ClusterState clusterState, String repository) {
+        SnapshotsInProgress snapshots = clusterState.custom(SnapshotsInProgress.TYPE);
+        if (snapshots != null) {
+            for (SnapshotsInProgress.Entry snapshot : snapshots.entries()) {
+                if (repository.equals(snapshot.snapshot().getRepository())) {
+                    return true;
+                }
+            }
+        }
+        SnapshotDeletionsInProgress deletionsInProgress = clusterState.custom(SnapshotDeletionsInProgress.TYPE);
+        if (deletionsInProgress != null) {
+            for (SnapshotDeletionsInProgress.Entry entry : deletionsInProgress.getEntries()) {
+                if (entry.getSnapshot().getRepository().equals(repository)) {
+                    return true;
+                }
+            }
+        }
+        RestoreInProgress restoreInProgress = clusterState.custom(RestoreInProgress.TYPE);
+        if (restoreInProgress != null) {
+            for (RestoreInProgress.Entry entry : restoreInProgress) {
+                if (repository.equals(entry.snapshot().getRepository())) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 }
