@@ -51,7 +51,7 @@ public class TransportDeleteSnapshotAction extends TransportMasterNodeAction<Del
 
     @Override
     protected String executor() {
-        return ThreadPool.Names.GENERIC;
+        return ThreadPool.Names.SAME;
     }
 
     @Override
@@ -70,6 +70,6 @@ public class TransportDeleteSnapshotAction extends TransportMasterNodeAction<Del
                                    final ClusterState state,
                                    final ActionListener<AcknowledgedResponse> listener) {
         snapshotsService.deleteSnapshot(request.repository(), request.snapshot(),
-            ActionListener.map(listener, v -> new AcknowledgedResponse(true)), false);
+            ActionListener.map(listener, v -> new AcknowledgedResponse(true)));
     }
 }
