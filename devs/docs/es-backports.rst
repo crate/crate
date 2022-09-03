@@ -431,7 +431,7 @@ should be crossed out as well.
 - [ ] 2f91e2aab78 Fix Race in Snapshot Abort (#54873) (#55233)
 - [ ] d8b43c62838 Make Snapshot Deletes Less Racy (#54765) (#55226)
 - [x] 156e5aa77f0 Fix testKeepTranslogAfterGlobalCheckpoint (#55868)
-- [ ] e164c9aaee5 Remove Redundant Cluster State during Snapshot INIT + Master Failover (#54420) (#55208)
+- [x] e164c9aaee5 Remove Redundant Cluster State during Snapshot INIT + Master Failover (#54420) (#55208)
 - [x] 48048646e79 Move Snapshot Status Related Method to Appropriate Places (#54558) (#55209)
 - [s] a610513ec76 Provide repository-level stats for searchable snapshots (#55051)
 - [s] 52bebec51f6 NodeInfo response should use a collection rather than fields (#54460) (#55132)
