@@ -183,7 +183,7 @@ public class BlobStoreRepositoryTest extends IntegTestCase {
     }
 
     private static void writeIndexGen(BlobStoreRepository repository, RepositoryData repositoryData, long generation) {
-        final PlainActionFuture<Void> future = PlainActionFuture.newFuture();
+        final PlainActionFuture<RepositoryData> future = PlainActionFuture.newFuture();
         repository.writeIndexGen(repositoryData, generation, true, future);
         future.actionGet();
     }

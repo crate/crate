@@ -428,7 +428,7 @@ should be crossed out as well.
 - [ ] d7cded8d7a5 Fix updating include_in_parent/include_in_root of nested field. (#55326)
 - [ ] 7941f4a47e4 Add RepositoriesService to createComponents() args (#54814)
 - [ ] 8a565c4fa61 Voting config exclusions should work with absent nodes (#55291)
-- [ ] 2f91e2aab78 Fix Race in Snapshot Abort (#54873) (#55233)
+- [x] 2f91e2aab78 Fix Race in Snapshot Abort (#54873) (#55233)
 - [x] d8b43c62838 Make Snapshot Deletes Less Racy (#54765) (#55226)
 - [x] 156e5aa77f0 Fix testKeepTranslogAfterGlobalCheckpoint (#55868)
 - [x] e164c9aaee5 Remove Redundant Cluster State during Snapshot INIT + Master Failover (#54420) (#55208)

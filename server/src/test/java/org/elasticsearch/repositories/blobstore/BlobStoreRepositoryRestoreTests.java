@@ -57,12 +57,14 @@ import org.elasticsearch.index.store.Store;
 import org.elasticsearch.index.store.StoreFileMetadata;
 import org.elasticsearch.repositories.IndexId;
 import org.elasticsearch.repositories.Repository;
+import org.elasticsearch.repositories.RepositoryData;
 import org.elasticsearch.repositories.ShardGenerations;
 import org.elasticsearch.repositories.fs.FsRepository;
 import org.elasticsearch.snapshots.Snapshot;
 import org.elasticsearch.snapshots.SnapshotId;
 import org.elasticsearch.snapshots.SnapshotInfo;
 
+import io.crate.common.collections.Tuple;
 import io.crate.common.io.IOUtils;
 
 /**
@@ -151,7 +153,7 @@ public class BlobStoreRepositoryRestoreTests extends IndexShardTestCase {
         }
     }
 
-    public void testSnapshotWithConflictingName() throws IOException {
+    public void testSnapshotWithConflictingName() throws Exception {
         final IndexId indexId = new IndexId(randomAlphaOfLength(10), UUIDs.randomBase64UUID());
         final ShardId shardId = new ShardId(indexId.getName(), indexId.getId(), 0);
 
@@ -175,22 +177,12 @@ public class BlobStoreRepositoryRestoreTests extends IndexShardTestCase {
             assertNotNull(shardGen);
             final Snapshot snapshotWithSameName = new Snapshot(repository.getMetadata().name(), new SnapshotId(
                 snapshot.getSnapshotId().getName(), "_uuid2"));
-            final PlainActionFuture<SnapshotInfo> future = PlainActionFuture.newFuture();
-
-            repository.finalizeSnapshot(
-                snapshot.getSnapshotId(),
-                ShardGenerations.builder().put(indexId, 0, shardGen).build(),
-                0L,
-                null,
-                1,
-                Collections.emptyList(),
-                -1L,
-                false,
-                Metadata.builder().put(shard.indexSettings().getIndexMetadata(), false).build(),
-                Version.CURRENT,
-                future
-            );
-            future.actionGet();
+            PlainActionFuture.<Tuple<RepositoryData, SnapshotInfo>, Exception>get(f ->
+                repository.finalizeSnapshot(snapshot.getSnapshotId(),
+                    ShardGenerations.builder().put(indexId, 0, shardGen).build(),
+                    0L, null, 1, Collections.emptyList(), -1L, false,
+                    Metadata.builder().put(shard.indexSettings().getIndexMetadata(), false).build(),
+                    Version.CURRENT, f));
             IndexShardSnapshotFailedException isfe = expectThrows(IndexShardSnapshotFailedException.class,
                                                                   () -> snapshotShard(shard, snapshotWithSameName, repository));
             assertThat(isfe.getMessage(), containsString("Duplicate snapshot name"));
