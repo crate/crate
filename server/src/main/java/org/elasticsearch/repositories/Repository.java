@@ -48,6 +48,7 @@ import org.elasticsearch.snapshots.SnapshotShardFailure;
 
 import io.crate.action.FutureActionListener;
 import io.crate.analyze.repositories.TypeSettings;
+import io.crate.common.collections.Tuple;
 
 /**
  * An interface for interacting with a repository in snapshot and restore.
@@ -167,12 +168,13 @@ public interface Repository extends LifecycleComponent {
      * @param includeGlobalState    include cluster global state
      * @param clusterMetadata       cluster metadata
      * @param repositoryMetaVersion version of the updated repository metadata to write
-     * @param listener              listener to be called on completion of the snapshot
+     * @param listener              listener to be invoked with the new {@link RepositoryData} and the snapshot's {@link SnapshotInfo}
+     *                              completion of the snapshot
      */
     void finalizeSnapshot(SnapshotId snapshotId, ShardGenerations shardGenerations, long startTime, String failure,
                           int totalShards, List<SnapshotShardFailure> shardFailures, long repositoryStateId,
                           boolean includeGlobalState, Metadata clusterMetadata,
-                          Version repositoryMetaVersion, ActionListener<SnapshotInfo> listener);
+                          Version repositoryMetaVersion, ActionListener<Tuple<RepositoryData, SnapshotInfo>> listener);
 
     /**
      * Deletes snapshot

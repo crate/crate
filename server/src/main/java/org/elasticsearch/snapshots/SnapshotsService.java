@@ -133,7 +133,8 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
 
     private final ThreadPool threadPool;
 
-    private final Map<Snapshot, List<ActionListener<SnapshotInfo>>> snapshotCompletionListeners = new ConcurrentHashMap<>();
+    private final Map<Snapshot, List<ActionListener<Tuple<RepositoryData, SnapshotInfo>>>> snapshotCompletionListeners =
+        new ConcurrentHashMap<>();
 
     // Set of snapshots that are currently being initialized by this node
     private final Set<Snapshot> initializingSnapshots = Collections.synchronizedSet(new HashSet<>());
@@ -161,7 +162,8 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
      * @param listener snapshot completion listener
      */
     public void executeSnapshot(final CreateSnapshotRequest request, final ActionListener<SnapshotInfo> listener) {
-        createSnapshot(request, ActionListener.wrap(snapshot -> addListener(snapshot, listener), listener::onFailure));
+        createSnapshot(request,
+            ActionListener.wrap(snapshot -> addListener(snapshot, ActionListener.map(listener, Tuple::v2)), listener::onFailure));
     }
 
     /**
@@ -459,7 +461,7 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
         });
     }
 
-    private class CleanupAfterErrorListener implements ActionListener<SnapshotInfo> {
+    private class CleanupAfterErrorListener {
 
         private final SnapshotsInProgress.Entry snapshot;
         private final boolean snapshotCreated;
@@ -474,12 +476,6 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
             this.e = e;
         }
 
-        @Override
-        public void onResponse(SnapshotInfo snapshotInfo) {
-            cleanupAfterError(this.e);
-        }
-
-        @Override
         public void onFailure(@Nullable Exception e) {
             if (snapshotCreated) {
                 cleanupAfterError(ExceptionsHelper.useOrSuppress(e, this.e));
@@ -909,8 +905,9 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                     entry.includeGlobalState(),
                     metadataForSnapshot(entry, metadata),
                     entry.version(),
-                    ActionListener.wrap(snapshotInfo -> {
-                        removeSnapshotFromClusterState(snapshot, snapshotInfo, null);
+                    ActionListener.wrap(result -> {
+                        final SnapshotInfo snapshotInfo = result.v2();
+                        removeSnapshotFromClusterState(snapshot, result, null);
                         LOGGER.info("snapshot [{}] completed with state [{}]", snapshot, snapshotInfo.state());
                     }, this::onFailure));
             }
@@ -936,11 +933,12 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
     /**
      * Removes record of running snapshot from cluster state
      * @param snapshot       snapshot
-     * @param snapshotInfo   snapshot info if snapshot was successful
+     * @param snapshotResult new {@link RepositoryData} and {@link SnapshotInfo} info if snapshot was successful
      * @param e              exception if snapshot failed, {@code null} otherwise
      */
-    private void removeSnapshotFromClusterState(final Snapshot snapshot, final SnapshotInfo snapshotInfo, @Nullable Exception e) {
-        removeSnapshotFromClusterState(snapshot, snapshotInfo, e, null);
+    private void removeSnapshotFromClusterState(final Snapshot snapshot, @Nullable Tuple<RepositoryData, SnapshotInfo> snapshotResult,
+                                                @Nullable Exception e) {
+        removeSnapshotFromClusterState(snapshot, snapshotResult, e, null);
     }
 
     /**
@@ -949,9 +947,9 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
      * @param failure    exception if snapshot failed, {@code null} otherwise
      * @param listener   listener to notify when snapshot information is removed from the cluster state
      */
-    private void removeSnapshotFromClusterState(final Snapshot snapshot, @Nullable SnapshotInfo snapshotInfo, @Nullable Exception failure,
-                                                @Nullable CleanupAfterErrorListener listener) {
-        assert snapshotInfo != null || failure != null : "Either snapshotInfo or failure must be supplied";
+    private void removeSnapshotFromClusterState(final Snapshot snapshot, @Nullable Tuple<RepositoryData, SnapshotInfo> snapshotResult,
+                                                @Nullable Exception failure, @Nullable CleanupAfterErrorListener listener) {
+        assert snapshotResult != null || failure != null : "Either snapshotInfo or failure must be supplied";
         clusterService.submitStateUpdateTask("remove snapshot metadata", new ClusterStateUpdateTask() {
 
             @Override
@@ -996,13 +994,14 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
 
             @Override
             public void clusterStateProcessed(String source, ClusterState oldState, ClusterState newState) {
-                if (snapshotInfo == null) {
+                if (snapshotResult == null) {
                     failSnapshotCompletionListeners(snapshot, failure);
                 } else {
-                    final List<ActionListener<SnapshotInfo>> completionListeners = snapshotCompletionListeners.remove(snapshot);
+                    final List<ActionListener<Tuple<RepositoryData, SnapshotInfo>>> completionListeners =
+                        snapshotCompletionListeners.remove(snapshot);
                     if (completionListeners != null) {
                         try {
-                            ActionListener.onResponse(completionListeners, snapshotInfo);
+                            ActionListener.onResponse(completionListeners, snapshotResult);
                         } catch (Exception e) {
                             LOGGER.warn("Failed to notify listeners", e);
                         }
@@ -1017,7 +1016,7 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
     }
 
     private void failSnapshotCompletionListeners(Snapshot snapshot, Exception e) {
-        final List<ActionListener<SnapshotInfo>> completionListeners = snapshotCompletionListeners.remove(snapshot);
+        final List<ActionListener<Tuple<RepositoryData, SnapshotInfo>>> completionListeners = snapshotCompletionListeners.remove(snapshot);
         if (completionListeners != null) {
             try {
                 ActionListener.onFailure(completionListeners, e);
@@ -1118,14 +1117,30 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
             @Override
             public void clusterStateProcessed(String source, ClusterState oldState, ClusterState newState) {
                 if (runningSnapshot == null) {
-                    tryDeleteExisting(Priority.NORMAL);
+                    threadPool.generic().execute(ActionRunnable.wrap(listener, l ->
+                        repositoriesService.repository(repositoryName).getRepositoryData(
+                            ActionListener.wrap(repositoryData -> {
+                                Optional<SnapshotId> matchedEntry = repositoryData.getSnapshotIds()
+                                    .stream()
+                                    .filter(s -> s.getName().equals(snapshotName))
+                                    .findFirst();
+                                // If we can't find the snapshot by the given name in the repository at all or if the snapshot we find in
+                                // the repository is not the one we expected to find when waiting for a finishing snapshot we fail.
+                                if (matchedEntry.isPresent()) {
+                                    deleteCompletedSnapshot(
+                                        new Snapshot(repositoryName, matchedEntry.get()), repositoryData.getGenId(), Priority.NORMAL, l);
+                                } else {
+                                    l.onFailure(new SnapshotMissingException(repositoryName, snapshotName));
+                                }
+                            }, l::onFailure))));
                     return;
                 }
                 LOGGER.trace("adding snapshot completion listener to wait for deleted snapshot to finish");
                 addListener(runningSnapshot, ActionListener.wrap(
-                    snapshotInfo -> {
+                    result -> {
                         LOGGER.debug("deleted snapshot completed - deleting files");
-                        tryDeleteExisting(Priority.IMMEDIATE);
+                        deleteCompletedSnapshot(
+                            new Snapshot(repositoryName, result.v2().snapshotId()), result.v1().getGenId(), Priority.IMMEDIATE, listener);
                     },
                     e -> {
                         if (abortedDuringInit) {
@@ -1522,7 +1537,7 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
      * @param snapshot Snapshot to listen for
      * @param listener listener
      */
-    private void addListener(Snapshot snapshot, ActionListener<SnapshotInfo> listener) {
+    private void addListener(Snapshot snapshot, ActionListener<Tuple<RepositoryData, SnapshotInfo>> listener) {
         snapshotCompletionListeners.computeIfAbsent(snapshot, k -> new CopyOnWriteArrayList<>()).add(listener);
     }
 

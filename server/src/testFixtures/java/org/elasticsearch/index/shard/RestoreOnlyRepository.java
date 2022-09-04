@@ -52,6 +52,8 @@ import static org.elasticsearch.repositories.RepositoryData.EMPTY_REPO_GEN;
 
 import javax.annotation.Nullable;
 
+import io.crate.common.collections.Tuple;
+
 public abstract class RestoreOnlyRepository implements Repository {
 
     private final String indexName;
@@ -108,7 +110,7 @@ public abstract class RestoreOnlyRepository implements Repository {
                                  boolean includeGlobalState,
                                  Metadata clusterMetadata,
                                  Version repositoryMetaVersion,
-                                 ActionListener<SnapshotInfo> listener) {
+                                 ActionListener<Tuple<RepositoryData, SnapshotInfo>> listener) {
         listener.onResponse(null);
     }
 
