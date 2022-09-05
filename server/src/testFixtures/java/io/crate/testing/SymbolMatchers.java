@@ -24,6 +24,7 @@ package io.crate.testing;
 import static io.crate.testing.MoreMatchers.withFeature;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.both;
+import static org.hamcrest.Matchers.closeTo;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
@@ -53,6 +54,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
 public class SymbolMatchers {
 
@@ -73,6 +75,12 @@ public class SymbolMatchers {
             return Matchers.allOf(Matchers.instanceOf(Literal.class), hasValue(expectedValue));
         }
         return Matchers.allOf(Matchers.instanceOf(Literal.class), hasValue(expectedValue), hasDataType(type));
+    }
+
+    public static Matcher<Symbol> isLiteral(Double expectedValue, double precisionError) {
+        return Matchers.allOf(Matchers.instanceOf(Literal.class),
+                              withFeature(s -> (Double) ((Input<?>) s).value(), "value", closeTo(expectedValue, precisionError)),
+                              hasDataType(DataTypes.DOUBLE));
     }
 
     public static Matcher<Symbol> isInputColumn(final Integer index) {
