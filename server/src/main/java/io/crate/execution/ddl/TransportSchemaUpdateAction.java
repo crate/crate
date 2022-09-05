@@ -302,16 +302,19 @@ public class TransportSchemaUpdateAction extends TransportMasterNodeAction<Schem
             contentPath.add(name);
             Map<String, Object> columnProperties = (Map<String, Object>) e.getValue();
             columnProperties = furtherColumnProperties(columnProperties);
+            assert columnProperties.containsKey("position") && columnProperties.get("position") != null : "Column position is missing: " + name;
+            // BWC compatibility with nodes < 5.1, position could be NULL if column is created on that nodes
             Integer position = (Integer) columnProperties.get("position");
-            assert position != null : "position should not be null";
-            if (position < 0) {
-                columnPositionResolver.addColumnToReposition(contentPath.pathAsText(""),
-                                                             position,
-                                                             columnProperties,
-                                                             (cp, p) -> cp.put("position", p),
-                                                             contentPath.currentDepth());
-            } else {
-                maxColumnPosition[0] = Math.max(maxColumnPosition[0], position);
+            if (position != null) {
+                if (position < 0) {
+                    columnPositionResolver.addColumnToReposition(contentPath.pathAsText(""),
+                                                                 position,
+                                                                 columnProperties,
+                                                                 (cp, p) -> cp.put("position", p),
+                                                                 contentPath.currentDepth());
+                } else {
+                    maxColumnPosition[0] = Math.max(maxColumnPosition[0], position);
+                }
             }
             populateColumnPositions(columnProperties, contentPath, columnPositionResolver, maxColumnPosition);
             contentPath.remove();
