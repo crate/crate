@@ -83,23 +83,36 @@ public class BatchIterators {
         }
 
         public void collect() {
-            try {
-                while (it.moveNext()) {
-                    accumulator.accept(state, it.currentElement());
-                }
-                if (it.allLoaded()) {
-                    resultFuture.complete(finisher.apply(state));
-                } else {
-                    it.loadNextBatch().whenComplete((res, err) -> {
-                        if (err == null) {
-                            collect();
-                        } else {
-                            resultFuture.completeExceptionally(err);
+            while (true) {
+                try {
+                    while (it.moveNext()) {
+                        accumulator.accept(state, it.currentElement());
+                    }
+                    if (it.allLoaded()) {
+                        resultFuture.complete(finisher.apply(state));
+                        return;
+                    } else {
+                        var nextBatch = it.loadNextBatch().toCompletableFuture();
+                        if (nextBatch.isDone()) {
+                            // need to fail resultFuture if nextBatch failed; this triggers exception
+                            if (nextBatch.isCompletedExceptionally()) {
+                                nextBatch.join();
+                            }
+                            continue;
                         }
-                    });
+                        nextBatch.whenComplete((res, err) -> {
+                            if (err == null) {
+                                collect();
+                            } else {
+                                resultFuture.completeExceptionally(err);
+                            }
+                        });
+                        return;
+                    }
+                } catch (Throwable t) {
+                    resultFuture.completeExceptionally(t);
+                    return;
                 }
-            } catch (Throwable t) {
-                resultFuture.completeExceptionally(t);
             }
         }
     }
