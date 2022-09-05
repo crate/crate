@@ -47,4 +47,9 @@ public class FilteringBatchIterator<T> extends ForwardingBatchIterator<T> {
         }
         return false;
     }
+
+    @Override
+    public String toString() {
+        return "FilteringBatchIterator{" + delegate + "}";
+    }
 }

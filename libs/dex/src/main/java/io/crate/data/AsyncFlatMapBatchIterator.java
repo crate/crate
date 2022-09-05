@@ -127,4 +127,14 @@ public final class AsyncFlatMapBatchIterator<I, O> implements BatchIterator<O> {
     public boolean hasLazyResultSet() {
         return true;
     }
+
+    @Override
+    public String toString() {
+        return "AsyncFlatMapBatchIterator{" +
+            "current=" + current +
+            ", mappedElements=" + mappedElements +
+            ", nextAction=" + nextAction +
+            ", source=" + source +
+            ", sourceExhausted=" + sourceExhausted + "}";
+    }
 }

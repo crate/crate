@@ -91,6 +91,12 @@ public class BatchIterators {
                     resultFuture.complete(finisher.apply(state));
                 } else {
                     it.loadNextBatch().whenComplete((res, err) -> {
+                        StackTraceElement[] trace = Thread.currentThread().getStackTrace();
+                        if (trace.length > 50) {
+                            System.out.println("loadNextBatch loop on " + it);
+                            Thread.dumpStack();
+                            throw new IllegalStateException("stack too large");
+                        }
                         if (err == null) {
                             collect();
                         } else {
