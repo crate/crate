@@ -33,12 +33,12 @@ import java.util.function.Consumer;
 public class RowConsumerToResultReceiver implements RowConsumer {
 
     private final CompletableFuture<?> completionFuture = new CompletableFuture<>();
-    private ResultReceiver resultReceiver;
+    private ResultReceiver<?> resultReceiver;
     private int maxRows;
     private long rowCount = 0;
     private BatchIterator<Row> activeIt;
 
-    public RowConsumerToResultReceiver(ResultReceiver resultReceiver, int maxRows, Consumer<Throwable> onCompletion) {
+    public RowConsumerToResultReceiver(ResultReceiver<?> resultReceiver, int maxRows, Consumer<Throwable> onCompletion) {
         this.resultReceiver = resultReceiver;
         this.maxRows = maxRows;
         completionFuture.whenComplete((res, err) -> {
@@ -65,37 +65,50 @@ public class RowConsumerToResultReceiver implements RowConsumer {
     }
 
     private void consumeIt(BatchIterator<Row> iterator) {
-        try {
-            while (iterator.moveNext()) {
-                rowCount++;
-                resultReceiver.setNextRow(iterator.currentElement());
+        while (true) {
+            try {
+                while (iterator.moveNext()) {
+                    rowCount++;
+                    resultReceiver.setNextRow(iterator.currentElement());
 
-                if (maxRows > 0 && rowCount % maxRows == 0) {
-                    activeIt = iterator;
-                    resultReceiver.batchFinished();
-                    return; // resumed via postgres protocol, close is done later
-                }
-            }
-            if (iterator.allLoaded()) {
-                completionFuture.complete(null);
-                iterator.close();
-                resultReceiver.allFinished(false);
-            } else {
-                iterator.loadNextBatch().whenComplete((r, f) -> {
-                    if (f == null) {
-                        consumeIt(iterator);
-                    } else {
-                        Throwable t = SQLExceptions.unwrap(f);
-                        iterator.close();
-                        completionFuture.completeExceptionally(t);
-                        resultReceiver.fail(t);
+                    if (maxRows > 0 && rowCount % maxRows == 0) {
+                        activeIt = iterator;
+                        resultReceiver.batchFinished();
+                        return; // resumed via postgres protocol, close is done later
                     }
-                });
+                }
+                if (iterator.allLoaded()) {
+                    completionFuture.complete(null);
+                    iterator.close();
+                    resultReceiver.allFinished(false);
+                    return;
+                } else {
+                    var nextBatch = iterator.loadNextBatch().toCompletableFuture();
+                    if (nextBatch.isDone()) {
+                        if (nextBatch.isCompletedExceptionally()) {
+                            // trigger exception
+                            nextBatch.join();
+                        }
+                        continue;
+                    }
+                    nextBatch.whenComplete((r, f) -> {
+                        if (f == null) {
+                            consumeIt(iterator);
+                        } else {
+                            Throwable t = SQLExceptions.unwrap(f);
+                            iterator.close();
+                            completionFuture.completeExceptionally(t);
+                            resultReceiver.fail(t);
+                        }
+                    });
+                    return;
+                }
+            } catch (Throwable t) {
+                iterator.close();
+                completionFuture.completeExceptionally(t);
+                resultReceiver.fail(t);
+                return;
             }
-        } catch (Throwable t) {
-            iterator.close();
-            completionFuture.completeExceptionally(t);
-            resultReceiver.fail(t);
         }
     }
 
@@ -115,7 +128,7 @@ public class RowConsumerToResultReceiver implements RowConsumer {
         return activeIt != null;
     }
 
-    public void replaceResultReceiver(ResultReceiver resultReceiver, int maxRows) {
+    public void replaceResultReceiver(ResultReceiver<?> resultReceiver, int maxRows) {
         if (!this.resultReceiver.completionFuture().isDone()) {
             // interrupt previous resultReceiver before replacing it, to ensure future triggers
             this.resultReceiver.allFinished(true);
