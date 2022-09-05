@@ -19,8 +19,11 @@
 
 package org.elasticsearch.action.admin.cluster.snapshots.get;
 
+import static java.util.Collections.unmodifiableList;
+
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -30,6 +33,11 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
+import javax.annotation.Nullable;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.util.CollectionUtil;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
@@ -42,6 +50,8 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.regex.Regex;
 import org.elasticsearch.repositories.IndexId;
+import org.elasticsearch.repositories.RepositoriesService;
+import org.elasticsearch.repositories.Repository;
 import org.elasticsearch.repositories.RepositoryData;
 import org.elasticsearch.snapshots.SnapshotId;
 import org.elasticsearch.snapshots.SnapshotInfo;
@@ -50,6 +60,7 @@ import org.elasticsearch.snapshots.SnapshotsService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
+import io.crate.concurrent.CompletableFutures;
 import io.crate.exceptions.Exceptions;
 import io.crate.exceptions.SQLExceptions;
 
@@ -57,13 +68,16 @@ import io.crate.exceptions.SQLExceptions;
  * Transport Action for get snapshots operation
  */
 public class TransportGetSnapshotsAction extends TransportMasterNodeAction<GetSnapshotsRequest, GetSnapshotsResponse> {
-    private final SnapshotsService snapshotsService;
+
+    private static final Logger LOGGER = LogManager.getLogger(TransportGetSnapshotsAction.class);
+
+    private final RepositoriesService repositoriesService;
 
     @Inject
     public TransportGetSnapshotsAction(TransportService transportService,
                                        ClusterService clusterService,
                                        ThreadPool threadPool,
-                                       SnapshotsService snapshotsService) {
+                                       RepositoriesService repositoriesService) {
         super(
             GetSnapshotsAction.NAME,
             transportService,
@@ -71,7 +85,7 @@ public class TransportGetSnapshotsAction extends TransportMasterNodeAction<GetSn
             threadPool,
             GetSnapshotsRequest::new
         );
-        this.snapshotsService = snapshotsService;
+        this.repositoriesService = repositoriesService;
     }
 
     @Override
@@ -96,7 +110,7 @@ public class TransportGetSnapshotsAction extends TransportMasterNodeAction<GetSn
         String repository = request.repository();
         var futureRepositoryData = isCurrentSnapshotsOnly(request.snapshots())
             ? CompletableFuture.<RepositoryData>completedFuture(null)
-            : snapshotsService.getRepositoryData(repository);
+            : repositoriesService.getRepositoryData(repository);
         futureRepositoryData.whenComplete((repositoryData, err) -> {
             if (err != null) {
                 listener.onFailure(Exceptions.toException(SQLExceptions.unwrap(err)));
@@ -119,7 +133,7 @@ public class TransportGetSnapshotsAction extends TransportMasterNodeAction<GetSn
             final SnapshotsInProgress snapshotsInProgress = state.custom(SnapshotsInProgress.TYPE);
             final Map<String, SnapshotId> allSnapshotIds = new HashMap<>();
             final List<SnapshotInfo> currentSnapshots = new ArrayList<>();
-            for (SnapshotInfo snapshotInfo : SnapshotsService.currentSnapshots(snapshotsInProgress, repository)) {
+            for (SnapshotInfo snapshotInfo : sortedCurrentSnapshots(snapshotsInProgress, repository)) {
                 SnapshotId snapshotId = snapshotInfo.snapshotId();
                 allSnapshotIds.put(snapshotId.getName(), snapshotId);
                 currentSnapshots.add(snapshotInfo);
@@ -158,7 +172,7 @@ public class TransportGetSnapshotsAction extends TransportMasterNodeAction<GetSn
             }
 
             if (request.verbose()) {
-                snapshotsService.snapshots(
+                snapshots(
                     snapshotsInProgress,
                     repository,
                     new ArrayList<>(toResolve),
@@ -183,6 +197,121 @@ public class TransportGetSnapshotsAction extends TransportMasterNodeAction<GetSn
         } catch (Exception e) {
             listener.onFailure(e);
         }
+    }
+
+    /**
+     * Returns a list of currently running snapshots from repository sorted by snapshot creation date
+     *
+     * @param snapshotsInProgress snapshots in progress in the cluster state
+     * @param repositoryName repository name
+     * @return list of snapshots
+     */
+    private static List<SnapshotInfo> sortedCurrentSnapshots(@Nullable SnapshotsInProgress snapshotsInProgress, String repositoryName) {
+        List<SnapshotInfo> snapshotList = new ArrayList<>();
+        List<SnapshotsInProgress.Entry> entries =
+                SnapshotsService.currentSnapshots(snapshotsInProgress, repositoryName, Collections.emptyList());
+        for (SnapshotsInProgress.Entry entry : entries) {
+            snapshotList.add(new SnapshotInfo(entry));
+        }
+        CollectionUtil.timSort(snapshotList);
+        return unmodifiableList(snapshotList);
+    }
+
+    /**
+     * Retrieves snapshot from repository
+     *
+     * @param snapshotsInProgress snapshots in progress in the cluster state
+     * @param repositoryName      repository name
+     * @param snapshotId          snapshot id
+     * @return snapshot
+     * @throws SnapshotMissingException if snapshot is not found
+     */
+    private CompletableFuture<SnapshotInfo> snapshot(@Nullable SnapshotsInProgress snapshotsInProgress,
+                                                     String repositoryName, SnapshotId snapshotId) {
+        List<SnapshotsInProgress.Entry> entries =
+            SnapshotsService.currentSnapshots(snapshotsInProgress, repositoryName, Collections.singletonList(snapshotId.getName()));
+        if (!entries.isEmpty()) {
+            return CompletableFuture.completedFuture(new SnapshotInfo(entries.iterator().next()));
+        }
+        return repositoriesService.repository(repositoryName).getSnapshotInfo(snapshotId);
+    }
+
+    private static SnapshotInfo inProgressSnapshot(SnapshotsInProgress.Entry entry) {
+        return new SnapshotInfo(
+            entry.snapshot().getSnapshotId(),
+            entry.indices().stream().map(IndexId::getName).collect(Collectors.toList()),
+            entry.startTime(),
+            entry.includeGlobalState()
+        );
+    }
+
+
+    /**
+     * Gets the {@link RepositoryData} for the given repository.
+     *
+     * @param repositoryName repository name
+     * @return repository data
+     */
+    public CompletableFuture<RepositoryData> getRepositoryData(final String repositoryName) {
+        try {
+            Repository repository = repositoriesService.repository(repositoryName);
+            return repository.getRepositoryData();
+        } catch (Exception e) {
+            return CompletableFuture.failedFuture(e);
+        }
+    }
+
+    /**
+     * Returns a list of snapshots from repository sorted by snapshot creation date
+     *
+     * @param snapshotsInProgress snapshots in progress in the cluster state
+     * @param repositoryName      repository name
+     * @param snapshotIds         snapshots for which to fetch snapshot information
+     * @param ignoreUnavailable   if true, snapshots that could not be read will only be logged with a warning,
+     *                            if false, they will throw an error
+     * @return list of snapshots
+     */
+    public void snapshots(@Nullable SnapshotsInProgress snapshotsInProgress,
+                          String repositoryName,
+                          List<SnapshotId> snapshotIds,
+                          boolean ignoreUnavailable,
+                          ActionListener<Collection<SnapshotInfo>> listener) {
+        final Set<SnapshotInfo> snapshotSet = new HashSet<>();
+        final Set<SnapshotId> snapshotIdsToIterate = new HashSet<>(snapshotIds);
+        // first, look at the snapshots in progress
+        final List<SnapshotsInProgress.Entry> entries = SnapshotsService.currentSnapshots(
+            snapshotsInProgress, repositoryName, snapshotIdsToIterate.stream().map(SnapshotId::getName).collect(Collectors.toList()));
+        for (SnapshotsInProgress.Entry entry : entries) {
+            snapshotSet.add(new SnapshotInfo(entry));
+            snapshotIdsToIterate.remove(entry.snapshot().getSnapshotId());
+        }
+        // then, look in the repository
+        final Repository repository = repositoriesService.repository(repositoryName);
+        List<CompletableFuture<SnapshotInfo>> futureSnapshotInfos = new ArrayList<>(snapshotIdsToIterate.size());
+        for (SnapshotId snapshotId : snapshotIdsToIterate) {
+            if (ignoreUnavailable) {
+                futureSnapshotInfos.add(repository.getSnapshotInfo(snapshotId).exceptionally(ex -> {
+                    LOGGER.warn(() -> new ParameterizedMessage("failed to get snapshot [{}]", snapshotId), ex);
+                    return null;
+                }));
+            } else {
+                futureSnapshotInfos.add(repository.getSnapshotInfo(snapshotId));
+            }
+        }
+        CompletableFutures.allAsList(futureSnapshotInfos).whenComplete((snapshotInfos, e) -> {
+            if (e != null) {
+                listener.onFailure(Exceptions.toException(SQLExceptions.unwrap(e)));
+                return;
+            }
+            ArrayList<SnapshotInfo> snapshotList = new ArrayList<>(snapshotSet);
+            for (SnapshotInfo snapshotInfo : snapshotInfos) {
+                if (snapshotInfo != null) {
+                    snapshotList.add(snapshotInfo);
+                }
+            }
+            CollectionUtil.timSort(snapshotList);
+            listener.onResponse(unmodifiableList(snapshotList));
+        });
     }
 
     private boolean isAllSnapshots(String[] snapshots) {

@@ -45,7 +45,6 @@ import javax.annotation.Nullable;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
-import org.apache.lucene.util.CollectionUtil;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
@@ -97,7 +96,6 @@ import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
 import io.crate.common.collections.Tuple;
 import io.crate.common.unit.TimeValue;
-import io.crate.concurrent.CompletableFutures;
 import io.crate.exceptions.Exceptions;
 import io.crate.exceptions.SQLExceptions;
 
@@ -153,99 +151,6 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
             // addLowPriorityApplier to make sure that Repository will be created before snapshot
             clusterService.addLowPriorityApplier(this);
         }
-    }
-
-    /**
-     * Gets the {@link RepositoryData} for the given repository.
-     *
-     * @param repositoryName repository name
-     * @return repository data
-     */
-    public CompletableFuture<RepositoryData> getRepositoryData(final String repositoryName) {
-        try {
-            Repository repository = repositoriesService.repository(repositoryName);
-            return repository.getRepositoryData();
-        } catch (Exception e) {
-            return CompletableFuture.failedFuture(e);
-        }
-    }
-
-    /**
-     * Returns a list of snapshots from repository sorted by snapshot creation date
-     *
-     * @param snapshotsInProgress snapshots in progress in the cluster state
-     * @param repositoryName      repository name
-     * @param snapshotIds         snapshots for which to fetch snapshot information
-     * @param ignoreUnavailable   if true, snapshots that could not be read will only be logged with a warning,
-     *                            if false, they will throw an error
-     * @return list of snapshots
-     */
-    public void snapshots(@Nullable SnapshotsInProgress snapshotsInProgress,
-                          String repositoryName,
-                          List<SnapshotId> snapshotIds,
-                          boolean ignoreUnavailable,
-                          ActionListener<Collection<SnapshotInfo>> listener) {
-        final Set<SnapshotInfo> snapshotSet = new HashSet<>();
-        final Set<SnapshotId> snapshotIdsToIterate = new HashSet<>(snapshotIds);
-        // first, look at the snapshots in progress
-        final List<SnapshotsInProgress.Entry> entries = currentSnapshots(
-            snapshotsInProgress,
-            repositoryName,
-            snapshotIdsToIterate.stream().map(SnapshotId::getName).collect(Collectors.toList())
-        );
-        for (SnapshotsInProgress.Entry entry : entries) {
-            snapshotSet.add(inProgressSnapshot(entry));
-            snapshotIdsToIterate.remove(entry.snapshot().getSnapshotId());
-        }
-        if (snapshotIdsToIterate.isEmpty()) {
-            listener.onResponse(snapshotSet);
-            return;
-        }
-        // then, look in the repository
-        final Repository repository = repositoriesService.repository(repositoryName);
-
-        List<CompletableFuture<SnapshotInfo>> futureSnapshotInfos = new ArrayList<>(snapshotIdsToIterate.size());
-        for (var snapshotId : snapshotIdsToIterate) {
-            if (ignoreUnavailable) {
-                futureSnapshotInfos.add(repository.getSnapshotInfo(snapshotId).exceptionally(ex -> {
-                    LOGGER.warn(() -> new ParameterizedMessage("failed to get snapshot [{}]", snapshotId), ex);
-                    return null;
-                }));
-            } else {
-                futureSnapshotInfos.add(repository.getSnapshotInfo(snapshotId));
-            }
-        }
-        CompletableFutures.allAsList(futureSnapshotInfos).whenComplete((snapshotInfos, e) -> {
-            if (e != null) {
-                listener.onFailure(Exceptions.toException(SQLExceptions.unwrap(e)));
-                return;
-            }
-            ArrayList<SnapshotInfo> snapshotList = new ArrayList<>(snapshotSet);
-            for (SnapshotInfo snapshotInfo : snapshotInfos) {
-                if (snapshotInfo != null) {
-                    snapshotList.add(snapshotInfo);
-                }
-            }
-            CollectionUtil.timSort(snapshotList);
-            listener.onResponse(unmodifiableList(snapshotList));
-        });
-    }
-
-    /**
-     * Returns a list of currently running snapshots from repository sorted by snapshot creation date
-     *
-     * @param snapshotsInProgress snapshots in progress in the cluster state
-     * @param repositoryName repository name
-     * @return list of snapshots
-     */
-    public static List<SnapshotInfo> currentSnapshots(@Nullable SnapshotsInProgress snapshotsInProgress, String repositoryName) {
-        List<SnapshotInfo> snapshotList = new ArrayList<>();
-        List<SnapshotsInProgress.Entry> entries = currentSnapshots(snapshotsInProgress, repositoryName, Collections.emptyList());
-        for (SnapshotsInProgress.Entry entry : entries) {
-            snapshotList.add(inProgressSnapshot(entry));
-        }
-        CollectionUtil.timSort(snapshotList);
-        return unmodifiableList(snapshotList);
     }
 
     /**
@@ -651,15 +556,6 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
             metadata = builder.build();
         }
         return metadata;
-    }
-
-    private static SnapshotInfo inProgressSnapshot(SnapshotsInProgress.Entry entry) {
-        return new SnapshotInfo(
-            entry.snapshot().getSnapshotId(),
-            entry.indices().stream().map(IndexId::getName).collect(Collectors.toList()),
-            entry.startTime(),
-            entry.includeGlobalState()
-        );
     }
 
     /**
@@ -1415,33 +1311,6 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
      */
     public static boolean useShardGenerations(Version repositoryMetaVersion) {
         return repositoryMetaVersion.onOrAfter(SHARD_GEN_IN_REPO_DATA_VERSION);
-    }
-
-    /**
-     * Checks if a repository is currently in use by one of the snapshots
-     *
-     * @param clusterState cluster state
-     * @param repository   repository id
-     * @return true if repository is currently in use by one of the running snapshots
-     */
-    public static boolean isRepositoryInUse(ClusterState clusterState, String repository) {
-        SnapshotsInProgress snapshots = clusterState.custom(SnapshotsInProgress.TYPE);
-        if (snapshots != null) {
-            for (SnapshotsInProgress.Entry snapshot : snapshots.entries()) {
-                if (repository.equals(snapshot.snapshot().getRepository())) {
-                    return true;
-                }
-            }
-        }
-        SnapshotDeletionsInProgress deletionsInProgress = clusterState.custom(SnapshotDeletionsInProgress.TYPE);
-        if (deletionsInProgress != null) {
-            for (SnapshotDeletionsInProgress.Entry entry : deletionsInProgress.getEntries()) {
-                if (entry.getSnapshot().getRepository().equals(repository)) {
-                    return true;
-                }
-            }
-        }
-        return false;
     }
 
     /**
