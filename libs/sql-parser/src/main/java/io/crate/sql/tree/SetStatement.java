@@ -31,7 +31,7 @@ import java.util.function.Function;
 public class SetStatement<T> extends Statement {
 
     public enum Scope {
-        GLOBAL, SESSION, LOCAL, LICENSE
+        GLOBAL, SESSION, LOCAL, LICENSE, TIME_ZONE
     }
 
     public enum SettingType {

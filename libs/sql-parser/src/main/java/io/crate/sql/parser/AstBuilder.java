@@ -750,6 +750,20 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     }
 
     @Override
+    public Node visitSetTimeZone(SqlBaseParser.SetTimeZoneContext ctx) {
+        Expression value;
+        if (ctx.DEFAULT() != null) {
+            value = new StringLiteral((ctx.DEFAULT().getText()));
+        } else if (ctx.LOCAL() != null) {
+            value = new StringLiteral((ctx.LOCAL().getText()));
+        } else {
+            value = (Expression) visit(ctx.stringLiteral());
+        }
+        Assignment<Expression> assignment = new Assignment<>(new StringLiteral("time zone"), value);
+        return new SetStatement<>(SetStatement.Scope.TIME_ZONE, List.of(assignment));
+    }
+
+    @Override
     public Node visitSetTransaction(SetTransactionContext ctx) {
         List<TransactionMode> modes = Lists2.map(ctx.transactionMode(), AstBuilder::getTransactionMode);
         return new SetTransactionStatement(modes);

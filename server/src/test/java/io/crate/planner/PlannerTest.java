@@ -79,6 +79,12 @@ public class PlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void testSetTimeZone() throws Exception {
+        Plan plan = e.plan("SET TIME ZONE 'Europe/Vienna'");
+        assertThat(plan, instanceOf(NoopPlan.class));
+    }
+
+    @Test
     public void testExecutionPhaseIdSequence() throws Exception {
         PlannerContext plannerContext = new PlannerContext(
             clusterService.state(),

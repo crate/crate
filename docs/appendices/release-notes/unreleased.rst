@@ -68,6 +68,9 @@ Deprecations
 Changes
 =======
 
+- Added support for ``SET TIME ZONE`` to improve PostgreSQL Compatibility.
+  Timezone will be ignored on the server side.
+
 - Added support for the ``EXISTS`` expression.
 
 - Added support for ``'YES'``, ``'ON'`` and ``'1'`` as alternative way to
