@@ -415,9 +415,13 @@ public class MetadataMappingService {
             indexColumnProperties = furtherColumnProperties(indexColumnProperties);
 
             Integer templateChildPosition = (Integer) templateColumnProperties.get("position");
-            assert templateChildPosition != null : "the template mapping is missing column positions";
-            // since template mapping and index mapping should be consistent, simply override (this will resolve any duplicates in index mappings)
-            indexColumnProperties.put("position", templateChildPosition);
+            assert templateColumnProperties.containsKey("position") && templateChildPosition != null : "the template mapping is missing column positions";
+
+            // BWC compatibility with nodes < 5.1, position could be NULL if column is created on that nodes
+            if (templateChildPosition != null) {
+                // since template mapping and index mapping should be consistent, simply override (this will resolve any duplicates in index mappings)
+                indexColumnProperties.put("position", templateChildPosition);
+            }
 
             populateColumnPositionsImpl(indexColumnProperties, templateColumnProperties);
         }
