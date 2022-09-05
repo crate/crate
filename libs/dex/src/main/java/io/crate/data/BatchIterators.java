@@ -22,6 +22,7 @@
 package io.crate.data;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -83,29 +84,41 @@ public class BatchIterators {
         }
 
         public void collect() {
-            try {
-                while (it.moveNext()) {
-                    accumulator.accept(state, it.currentElement());
-                }
-                if (it.allLoaded()) {
-                    resultFuture.complete(finisher.apply(state));
-                } else {
-                    it.loadNextBatch().whenComplete((res, err) -> {
-                        StackTraceElement[] trace = Thread.currentThread().getStackTrace();
-                        if (trace.length > 50) {
-                            System.out.println("loadNextBatch loop on " + it);
-                            Thread.dumpStack();
-                            throw new IllegalStateException("stack too large");
+            while (true) {
+                try {
+                    while (it.moveNext()) {
+                        accumulator.accept(state, it.currentElement());
+                    }
+                    if (it.allLoaded()) {
+                        resultFuture.complete(finisher.apply(state));
+                        return;
+                    } else {
+                        var nextBatch = it.loadNextBatch().toCompletableFuture();
+                        if (nextBatch.isDone()) {
+                            if (nextBatch.isCompletedExceptionally()) {
+                                nextBatch.join();
+                            }
+                            continue;
                         }
-                        if (err == null) {
-                            collect();
-                        } else {
-                            resultFuture.completeExceptionally(err);
-                        }
-                    });
+                        nextBatch.whenComplete((res, err) -> {
+                            StackTraceElement[] trace = Thread.currentThread().getStackTrace();
+                            if (trace.length > 50) {
+                                System.out.println("loadNextBatch loop on " + it);
+                                Thread.dumpStack();
+                                throw new IllegalStateException("stack too large");
+                            }
+                            if (err == null) {
+                                collect();
+                            } else {
+                                resultFuture.completeExceptionally(err);
+                            }
+                        });
+                        return;
+                    }
+                } catch (Throwable t) {
+                    resultFuture.completeExceptionally(t);
+                    return;
                 }
-            } catch (Throwable t) {
-                resultFuture.completeExceptionally(t);
             }
         }
     }
