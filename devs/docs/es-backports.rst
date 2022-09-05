@@ -441,7 +441,7 @@ should be crossed out as well.
 - [s] 475b210eec4 Improve guidance on removing default mappings. (#54915)
 - [x] c7053ef824f Use TransportChannel in TransportHandshaker (#54921)
 - [x] 9cf2406cf14 Move network stats marking into InboundPipeline (#54908)
-- [ ] 4d36917e526  Merge feature/searchable-snapshots branch into 7.x (#54803)  (#54825)
+- [x] 4d36917e526  Merge feature/searchable-snapshots branch into 7.x (#54803)  (#54825)
 - [s] 2fdbed7797a Broadcast cancellation to only nodes have outstanding child tasks (#54312)
 - [s] 5fb76022276 Disallow changing 'enabled' on the root mapper. (#54681)
 - [x] 6d976e14684 Resolve some coordination-layer TODOs (#54511)

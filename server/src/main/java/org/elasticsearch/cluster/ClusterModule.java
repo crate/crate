@@ -42,6 +42,7 @@ import org.elasticsearch.cluster.metadata.MetadataUpdateSettingsService;
 import org.elasticsearch.cluster.metadata.RepositoriesMetadata;
 import org.elasticsearch.cluster.routing.DelayedAllocationService;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
+import org.elasticsearch.cluster.routing.allocation.ExistingShardsAllocator;
 import org.elasticsearch.cluster.routing.allocation.allocator.BalancedShardsAllocator;
 import org.elasticsearch.cluster.routing.allocation.allocator.ShardsAllocator;
 import org.elasticsearch.cluster.routing.allocation.decider.AllocationDecider;
@@ -91,11 +92,13 @@ public class ClusterModule extends AbstractModule {
     private final ClusterService clusterService;
     private final AllocationDeciders allocationDeciders;
     private final AllocationService allocationService;
+    private final List<ClusterPlugin> clusterPlugins;
     private final Collection<AllocationDecider> deciderList;
     private final ShardsAllocator shardsAllocator;
 
     public ClusterModule(Settings settings, ClusterService clusterService, List<ClusterPlugin> clusterPlugins,
                          ClusterInfoService clusterInfoService) {
+        this.clusterPlugins = clusterPlugins;
         this.deciderList = createAllocationDeciders(settings, clusterService.getClusterSettings(), clusterPlugins);
         this.allocationDeciders = new AllocationDeciders(deciderList);
         this.shardsAllocator = createShardsAllocator(settings, clusterService.getClusterSettings(), clusterPlugins);
@@ -250,4 +253,22 @@ public class ClusterModule extends AbstractModule {
         bind(AllocationDeciders.class).toInstance(allocationDeciders);
         bind(ShardsAllocator.class).toInstance(shardsAllocator);
     }
+
+    public void setExistingShardsAllocators(GatewayAllocator gatewayAllocator) {
+        final Map<String, ExistingShardsAllocator> existingShardsAllocators = new HashMap<>();
+        existingShardsAllocators.put(GatewayAllocator.ALLOCATOR_NAME, gatewayAllocator);
+
+        for (ClusterPlugin clusterPlugin : clusterPlugins) {
+            for (Map.Entry<String, ExistingShardsAllocator> existingShardsAllocatorEntry
+                : clusterPlugin.getExistingShardsAllocators().entrySet()) {
+                final String allocatorName = existingShardsAllocatorEntry.getKey();
+                if (existingShardsAllocators.put(allocatorName, existingShardsAllocatorEntry.getValue()) != null) {
+                    throw new IllegalArgumentException("ExistingShardsAllocator [" + allocatorName + "] from [" +
+                        clusterPlugin.getClass().getName() + "] was already defined");
+                }
+            }
+        }
+        allocationService.setExistingShardsAllocators(existingShardsAllocators);
+    }
+
 }

@@ -19,12 +19,7 @@
 
 package org.elasticsearch.common.io;
 
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.io.stream.BytesStream;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import io.crate.common.io.IOUtils;
-
+import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -32,6 +27,13 @@ import java.io.Reader;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.util.Objects;
+
+import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.io.stream.BytesStream;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+
+import io.crate.common.io.IOUtils;
 
 /**
  * Simple utility methods for file and stream copying.
@@ -140,6 +142,20 @@ public abstract class Streams {
     }
 
     /**
+     * Fully consumes the input stream, throwing the bytes away. Returns the number of bytes consumed.
+     */
+    public static long consumeFully(InputStream inputStream) throws IOException {
+        return io.crate.common.io.Streams.copy(inputStream, NULL_OUTPUT_STREAM);
+    }
+
+    /**
+     * Limits the given input stream to the provided number of bytes
+     */
+    public static InputStream limitStream(InputStream in, long limit) {
+        return new LimitedInputStream(in, limit);
+    }
+
+    /**
      * Wraps the given {@link BytesStream} in a {@link StreamOutput} that simply flushes when
      * close is called.
      */
@@ -188,6 +204,79 @@ public abstract class Streams {
         @Override
         public BytesReference bytes() {
             return delegate.bytes();
+        }
+    }
+
+    /**
+     * A wrapper around an {@link InputStream} that limits the number of bytes that can be read from the stream.
+     */
+    static class LimitedInputStream extends FilterInputStream {
+
+        private static final long NO_MARK = -1L;
+
+        private long currentLimit; // is always non-negative
+        private long limitOnLastMark;
+
+        LimitedInputStream(InputStream in, long limit) {
+            super(in);
+            if (limit < 0L) {
+                throw new IllegalArgumentException("limit must be non-negative");
+            }
+            this.currentLimit = limit;
+            this.limitOnLastMark = NO_MARK;
+        }
+
+        @Override
+        public int read() throws IOException {
+            final int result;
+            if (currentLimit == 0 || (result = in.read()) == -1) {
+                return -1;
+            } else {
+                currentLimit--;
+                return result;
+            }
+        }
+
+        @Override
+        public int read(byte[] b, int off, int len) throws IOException {
+            final int result;
+            if (currentLimit == 0 || (result = in.read(b, off, Math.toIntExact(Math.min(len, currentLimit)))) == -1) {
+                return -1;
+            } else {
+                currentLimit -= result;
+                return result;
+            }
+        }
+
+        @Override
+        public long skip(long n) throws IOException {
+            final long skipped = in.skip(Math.min(n, currentLimit));
+            currentLimit -= skipped;
+            return skipped;
+        }
+
+        @Override
+        public int available() throws IOException {
+            return Math.toIntExact(Math.min(in.available(), currentLimit));
+        }
+
+        @Override
+        public void close() throws IOException {
+            in.close();
+        }
+
+        @Override
+        public synchronized void mark(int readlimit) {
+            in.mark(readlimit);
+            limitOnLastMark = currentLimit;
+        }
+
+        @Override
+        public synchronized void reset() throws IOException {
+            in.reset();
+            if (limitOnLastMark != NO_MARK) {
+                currentLimit = limitOnLastMark;
+            }
         }
     }
 }

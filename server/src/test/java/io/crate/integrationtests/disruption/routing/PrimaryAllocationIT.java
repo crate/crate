@@ -44,8 +44,8 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.routing.ShardRoutingState;
+import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.gateway.GatewayAllocator;
 import org.elasticsearch.index.engine.EngineTestCase;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.IndexShardTestCase;
@@ -129,7 +129,7 @@ public class PrimaryAllocationIT extends IntegTestCase {
         logger.info("--> check that old primary shard does not get promoted to primary again");
         // kick reroute and wait for all shard states to be fetched
         client(master).admin().cluster().execute(ClusterRerouteAction.INSTANCE, new ClusterRerouteRequest()).get();
-        assertBusy(() -> assertThat(internalCluster().getInstance(GatewayAllocator.class, master).getNumberOfInFlightFetch(),
+        assertBusy(() -> assertThat(internalCluster().getInstance(AllocationService.class, master).getNumberOfInFlightFetches(),
             equalTo(0)));
         // kick reroute a second time and check that all shards are unassigned
         var clusterRerouteResponse = client(master).admin().cluster().execute(ClusterRerouteAction.INSTANCE, new ClusterRerouteRequest()).get();

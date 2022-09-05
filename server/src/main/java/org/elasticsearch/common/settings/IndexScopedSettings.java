@@ -25,6 +25,7 @@ import java.util.function.Predicate;
 
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.routing.UnassignedInfo;
+import org.elasticsearch.cluster.routing.allocation.ExistingShardsAllocator;
 import org.elasticsearch.cluster.routing.allocation.decider.EnableAllocationDecider;
 import org.elasticsearch.cluster.routing.allocation.decider.MaxRetryAllocationDecider;
 import org.elasticsearch.cluster.routing.allocation.decider.ShardsLimitAllocationDecider;
@@ -120,6 +121,7 @@ public final class IndexScopedSettings extends AbstractScopedSettings {
         Setting.groupSetting("index.analysis.", Property.IndexScope),
         BlobIndicesService.SETTING_INDEX_BLOBS_ENABLED,
         BlobIndicesService.SETTING_INDEX_BLOBS_PATH,
+        ExistingShardsAllocator.EXISTING_SHARDS_ALLOCATOR_SETTING,
         LogicalReplicationSettings.REPLICATION_SUBSCRIPTION_NAME,
         LogicalReplicationSettings.PUBLISHER_INDEX_UUID
     );

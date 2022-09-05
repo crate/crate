@@ -19,13 +19,13 @@
 
 package org.elasticsearch.gateway;
 
+import java.util.Comparator;
+
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.routing.allocation.RoutingAllocation;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
-
-import java.util.Comparator;
 
 /**
  * A comparator that compares ShardRouting based on it's indexes priority (index.priority),
