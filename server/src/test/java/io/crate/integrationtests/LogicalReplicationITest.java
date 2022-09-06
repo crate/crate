@@ -23,8 +23,8 @@ package io.crate.integrationtests;
 
 import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.TestingHelpers.printedTable;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.Matchers.contains;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertThrows;
@@ -469,14 +469,15 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
         assertBusy(
             () -> {
                 synchronized (subscriptionStates) {
-                    assertThat(
-                        subscriptionStates,
-                        contains(Subscription.State.INITIALIZING,
-                                Subscription.State.RESTORING,
-                                Subscription.State.MONITORING)
+                    assertThat(subscriptionStates).contains(
+                        Subscription.State.INITIALIZING,
+                        Subscription.State.RESTORING,
+                        Subscription.State.MONITORING
                     );
                 }
-            }
+            },
+            30,
+            TimeUnit.SECONDS
         );
 
         // check final exposed `r`(MONITORING) state
