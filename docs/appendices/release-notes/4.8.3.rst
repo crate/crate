@@ -4,7 +4,7 @@
 Version 4.8.3
 =============
 
-Released on 2022-09-02.
+Released on 2022-09-06.
 
 .. NOTE::
 
@@ -46,7 +46,7 @@ Fixes
     CREATE TABLE test(
         col1 INT,
         col2 INT GENERATED ALWAYS AS col1*2 CHECK (col2 > 0)
-   )
+    )
 
 - Fixed an issue causing ``IndexOutOfBoundsException`` to be thrown when using
   ``LEFT``/``RIGHT`` or ``FULL`` ``OUTER JOIN`` and one of the tables (or
