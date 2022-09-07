@@ -51,7 +51,7 @@ Breaking Changes
   correctly mapped to the PostgreSQL ``point`` type. This means that
   applications using clients like ``JDBC`` will have to be adapted to use
   ``PgPoint``. (See `Geometric DataTypes in JDBC
-  <https://jdbc.postgresql.org/documentation/head/geometric.html>`_)
+  <https://jdbc.postgresql.org/documentation/server-prepare/#geometric-data-types>`_)
 
 - Changed the behavior of ``unnest`` to fully unnest multi dimensional arrays
   to their innermost type to be compatible with PostgreSQL.
