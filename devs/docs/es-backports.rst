@@ -365,7 +365,7 @@ should be crossed out as well.
 - [ ] dde75b0f64e Fix Confusing Exception on Shard Snapshot Abort (#57116) (#57117)
 - [x] 5569137ae3c Flatten ReleaseableBytesReference Object Trees (#57092) (#57109)
 - [ ] 9fa60f7367b Add History UUID Index Setting (#56930) (#57104)
-- [ ] d8165a3439b Turn off translog retention only when shard started (#57063)
+- [x] d8165a3439b Turn off translog retention only when shard started (#57063)
 - [x] 1dabdd9a201 Close channel on handshake error with old version (#56989) (#57025)
 - [s] 99f7115f228 Revert "Close channel on handshake error with old version (#56989)"
 - [s] c81a189da95 Close channel on handshake error with old version (#56989)
