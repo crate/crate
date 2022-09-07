@@ -135,7 +135,7 @@ public class AddColumnRequest extends AcknowledgedRequest<AddColumnRequest> {
                                        boolean isPrimaryKey,
                                        boolean isNullable,
                                        boolean hasDocValues,
-                                       boolean isIndex,
+                                       IndexType indexType,
                                        boolean isArrayType,
                                        @Nullable String analyzer,
                                        @Nullable String genExpression,
@@ -153,7 +153,7 @@ public class AddColumnRequest extends AcknowledgedRequest<AddColumnRequest> {
                  colToAdd.hasPrimaryKeyConstraint(),
                  colToAdd.hasNotNullConstraint(),
                  !AnalyzedColumnDefinition.docValuesSpecifiedAndDisabled(colToAdd),
-                 colToAdd.isIndexColumn(),
+                 colToAdd.indexConstraint(),
                  ArrayType.NAME.equals(colToAdd.collectionType()),
                  colToAdd.analyzer(),
                  colToAdd.formattedGeneratedExpression(),
@@ -173,6 +173,7 @@ public class AddColumnRequest extends AcknowledgedRequest<AddColumnRequest> {
          */
         public static StreamableColumnInfo readFrom(StreamInput in) throws IOException {
             String policy;
+            String indexType;
             return new StreamableColumnInfo(
                 in.readString(),
                 DataTypes.fromStream(in),
@@ -180,7 +181,7 @@ public class AddColumnRequest extends AcknowledgedRequest<AddColumnRequest> {
                 in.readBoolean(),
                 in.readBoolean(),
                 in.readBoolean(),
-                in.readBoolean(),
+                (indexType = in.readOptionalString()) == null ? null : IndexType.valueOf(indexType),
                 in.readBoolean(),
                 in.readOptionalString(),
                 in.readOptionalString(),
@@ -200,7 +201,7 @@ public class AddColumnRequest extends AcknowledgedRequest<AddColumnRequest> {
             out.writeBoolean(isPrimaryKey);
             out.writeBoolean(isNullable);
             out.writeBoolean(hasDocValues);
-            out.writeBoolean(isIndex);
+            out.writeOptionalString(indexType != null ? indexType.name() : null);
             out.writeBoolean(isArrayType);
             out.writeOptionalString(analyzer);
             out.writeOptionalString(genExpression);
@@ -233,11 +234,11 @@ public class AddColumnRequest extends AcknowledgedRequest<AddColumnRequest> {
         public HashMap<String, Object> propertiesMap() {
             HashMap<String, Object> properties = new HashMap<>();
             AnalyzedColumnDefinition.addTypeOptions(properties, type, new GenericProperties(geoProperties), geoTree, analyzer);
-            properties.put("type", AnalyzedColumnDefinition.typeNameForESMapping(type, analyzer, isIndex));
+            properties.put("type", AnalyzedColumnDefinition.typeNameForESMapping(type, analyzer, indexType == IndexType.FULLTEXT));
 
             properties.put("position", position);
 
-            if (isIndex == false) {
+            if (indexType == IndexType.NONE) {
                 // we must use a boolean <p>false</p> and NO string "false", otherwise parser support for old indices will fail
                 properties.put("index", false);
             }
