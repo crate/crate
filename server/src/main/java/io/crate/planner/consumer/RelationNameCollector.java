@@ -24,9 +24,13 @@ package io.crate.planner.consumer;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
+import io.crate.analyze.QueriedSelectRelation;
+import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.common.collections.Lists2;
 import io.crate.expression.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.expression.symbol.MatchPredicate;
 import io.crate.expression.symbol.ScopedSymbol;
+import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
@@ -50,6 +54,15 @@ public class RelationNameCollector extends DefaultTraversalSymbolVisitor<Set<Rel
     @Override
     public Void visitReference(Reference symbol, Set<RelationName> context) {
         context.add(symbol.ident().tableIdent());
+        return null;
+    }
+
+    @Override
+    public Void visitSelectSymbol(SelectSymbol selectSymbol, Set<RelationName> context) {
+        AnalyzedRelation relation = selectSymbol.relation();
+        if (relation instanceof QueriedSelectRelation q) {
+            context.addAll(Lists2.map(q.from(), AnalyzedRelation::relationName));
+        }
         return null;
     }
 

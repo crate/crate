@@ -45,10 +45,11 @@ import io.crate.common.collections.Lists2;
 import io.crate.execution.engine.join.JoinOperations;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.FieldsVisitor;
+import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.RelationName;
 import io.crate.planner.SubqueryPlanner.SubQueries;
+import io.crate.planner.consumer.RelationNameCollector;
 import io.crate.planner.node.dql.join.JoinType;
 
 /**
@@ -117,16 +118,70 @@ public class JoinPlanBuilder {
         LogicalPlan lhsPlan = plan.apply(lhs);
         LogicalPlan rhsPlan = plan.apply(rhs);
         Symbol query = removeParts(queryParts, lhsName, rhsName);
-        lhsPlan = subQueries.applyCorrelatedJoin(lhsPlan);
-        LogicalPlan joinPlan = createJoinPlan(
-            lhsPlan,
-            rhsPlan,
-            joinType,
-            joinCondition,
-            lhs,
-            query,
-            hashJoinEnabled
-        );
+        LogicalPlan joinPlan = null;
+        Set<RelationName> subQueriesRelationNames = subQueries.getCorrelatedRelationNames();
+        Set<RelationName> split = RelationNameCollector.collect(joinCondition);
+        boolean isRhs = false;
+        boolean isLhs = false;
+            if (split.contains(rhsName)) {
+                isRhs = true;
+            } if (split.contains(lhsName)) {
+                isLhs = true;
+            }
+
+        if (isRhs && isLhs) {
+            Map<Set<RelationName>, Symbol> split1 = QuerySplitter.split(joinCondition);
+            Set<Symbol> validSymbols = new HashSet<>();
+            for (Map.Entry<Set<RelationName>, Symbol> setSymbolEntry : split1.entrySet()) {
+                var key = setSymbolEntry.getKey();
+                var value = setSymbolEntry.getValue();
+                if (value instanceof io.crate.expression.symbol.Function f) {
+                    var isSelect = false;
+                    for (Symbol argument : f.arguments()) {
+                        if (argument instanceof SelectSymbol) {
+                            isSelect = true;
+                        }
+                    }
+                    if (isSelect == false) {
+                        validSymbols.add(value);
+                    }
+                }
+            }
+
+            joinPlan = createJoinPlan(
+                lhsPlan,
+                rhsPlan,
+                joinType,
+                AndOperator.join(validSymbols),
+                lhs,
+                query,
+                hashJoinEnabled
+            );
+            joinPlan = subQueries.applyCorrelatedJoin(joinPlan);
+        }
+        if (isRhs) {
+            lhsPlan = subQueries.applyCorrelatedJoin(lhsPlan);
+            joinPlan = createJoinPlan(
+                lhsPlan,
+                rhsPlan,
+                joinType,
+                joinCondition,
+                lhs,
+                query,
+                hashJoinEnabled
+            );
+        } else if (isLhs) {
+            rhsPlan = subQueries.applyCorrelatedJoin(rhsPlan);
+            joinPlan = createJoinPlan(
+                lhsPlan,
+                rhsPlan,
+                joinType,
+                joinCondition,
+                lhs,
+                query,
+                hashJoinEnabled
+            );
+        }
 
         joinPlan = Filter.create(joinPlan, query);
         while (it.hasNext()) {

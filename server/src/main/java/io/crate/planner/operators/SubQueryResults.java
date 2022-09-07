@@ -46,7 +46,7 @@ public class SubQueryResults {
 
     public SubQueryResults(Map<SelectSymbol, Object> valuesBySubQuery) {
         this.valuesBySubQuery = valuesBySubQuery;
-        this.boundOuterColumns = EMPTY_OUTER_COLUMNS;
+        this.boundOuterColumns = new ObjectIntHashMap<>();
     }
 
     public SubQueryResults(Map<SelectSymbol, Object> valuesBySubQuery,

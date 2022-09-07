@@ -33,6 +33,7 @@ import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseJdbc;
 
 public class CorrelatedSubqueryITest extends IntegTestCase {
 
@@ -240,6 +241,7 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
         );
     }
 
+    @UseJdbc(0)
     @Test
     public void test_correlated_subquery_without_table_alias_within_join_condition() {
         String stmt = """
@@ -287,9 +289,13 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
             "allocations| table_name\n" +
             "allocations| shard_id\n"
         );
-        execute(stmt);
 
-        stmt = """
+    }
+
+    @UseJdbc(0)
+    @Test
+    public void test_correlated_subquery_without_table_alias_within_join_condition_failed() {
+        var stmt = """
             SELECT
                 columns.table_name,
                 columns.column_name
@@ -312,6 +318,8 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
             ORDER BY 1, 2 DESC
             LIMIT 3
             """;
+        execute("EXPLAIN " + stmt);
+        System.out.println(TestingHelpers.printedTable(response.rows()));
         execute(stmt);
     }
 }
