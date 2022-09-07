@@ -222,7 +222,9 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
         //      - If present in delta, NEW indices are present
         //
         //   - check_constraints can be added OR removed
-        //      If removed, delta contains *ALL* but the one to remove
+        //      If removed:
+        //          Delta contains *ALL* but the one to remove
+        //          Empty if the last constraint was dropped
         //      If added:
         //          Empty if new column doesn't have a constraint
         //          All constraints present if new column has a constraint
@@ -244,6 +246,9 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
 
             Map<String, Object> checkConstraints = (Map<String, Object>) metaDelta.get("check_constraints");
             if (checkConstraints == null || checkConstraints.isEmpty()) {
+                // We need to differentiate whether incoming []/null means
+                // DROP last check OR add new column without CHECK
+
                 var curCheckConstraints = currentMeta.get("check_constraints");
                 if (curCheckConstraints != null) {
                     metaDelta.put("check_constraints", curCheckConstraints);

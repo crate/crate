@@ -438,6 +438,17 @@ public class DDLIntegrationTest extends IntegTestCase {
                          INTERNAL_ERROR,
                          BAD_REQUEST,
                          4000));
+
+        // Remove last constraint
+        execute("alter table t drop constraint check_qty_gt_zero");
+
+        execute("alter table t add column col1 int");
+        execute("insert into t(id, qty) values(-1, -1)");
+        execute(selectCheckConstraintsStmt);
+        assertThat(printedTable(response.rows()), is(
+            "doc| t| CHECK| doc_t_id_not_null\n" +
+                "doc| t| PRIMARY KEY| t_pk\n"
+        ));
     }
 
     @Test

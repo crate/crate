@@ -106,4 +106,5 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
-None
+- Fixed an issue with ``ALTER TABLE DROP CONSTRAINT`` not dropping last CHECK
+  constraint.
