@@ -174,7 +174,7 @@ are analyzed and not the test sources.
 
 After setting up code style, it can be checked by running::
 
-    ./gradlew checkstyleMain checkstyleTest checkstyleTextFixtures
+    ./gradlew checkstyleMain checkstyleTest checkstyleTestFixtures
 
 Test Coverage
 --------------
