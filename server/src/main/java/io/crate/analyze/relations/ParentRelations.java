@@ -71,6 +71,13 @@ public class ParentRelations {
         return sourcesTree.get(sourcesTree.size() - 2).values();
     }
 
+    public Iterable<AnalyzedRelation> getGrandParents() {
+        if (sourcesTree.isEmpty() || sourcesTree.size() < 2) {
+            return Collections.emptyList();
+        }
+        return sourcesTree.get(sourcesTree.size() - 1).values();
+    }
+
     @Nullable
     public AnalyzedRelation getAncestor(RelationName relationName) {
         AnalyzedRelation relation = null;

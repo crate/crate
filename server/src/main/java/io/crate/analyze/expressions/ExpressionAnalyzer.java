@@ -616,7 +616,7 @@ public class ExpressionAnalyzer {
             /*
              * convert where x IN (values)
              *
-             * where values = a list of expressions or a subquery
+             * where values = a list of expressions or a StatementAnalysisContext
              *
              * into
              *
@@ -1106,6 +1106,7 @@ public class ExpressionAnalyzer {
             /* note: This does not support analysis columns in the subquery which belong to the parent relation
              * this would require {@link StatementAnalysisContext#startRelation} to somehow inherit the parent context
              */
+
             AnalyzedRelation relation = subQueryAnalyzer.analyze(node.getQuery());
             List<Symbol> fields = relation.outputs();
             if (fields.size() > 1) {
