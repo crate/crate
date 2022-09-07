@@ -73,7 +73,7 @@ public class AddColumnRequest extends AcknowledgedRequest<AddColumnRequest> {
 
         count = in.readVInt();
         for (int i = 0; i < count; i++) {
-            columns.add(StreamableColumnInfo.readFrom(in));
+            columns.add(StreamableColumnInfo.readFrom(in, ""));
         }
     }
 
@@ -127,9 +127,13 @@ public class AddColumnRequest extends AcknowledgedRequest<AddColumnRequest> {
     }
 
     /**
-     * @param name is NOT an FQN of a nested object, it's a leaf name. FQN is defined by accessing children.
+     * @param name is a non-fqn name of a column.
+     * @param fqn is not streamed but constructed in readFrom() based on name and hierarchy.
+     * We create StreamableColumnInfo from the root, name == fqn on the first call and then update prefix on traversing children.
+     * FQN is available when created from AnalyzedColumnDefinition.
      */
     public record StreamableColumnInfo(@Nonnull String name,
+                                       @Nonnull String fqn,
                                        @Nonnull DataType type,
                                        int position,
                                        boolean isPrimaryKey,
@@ -148,6 +152,7 @@ public class AddColumnRequest extends AcknowledgedRequest<AddColumnRequest> {
         public StreamableColumnInfo(AnalyzedColumnDefinition<Object> colToAdd) {
              this(
                  colToAdd.name(),
+                 colToAdd.ident().fqn(),
                  AnalyzedTableElements.realType(colToAdd),
                  colToAdd.position,
                  colToAdd.hasPrimaryKeyConstraint(),
@@ -171,11 +176,14 @@ public class AddColumnRequest extends AcknowledgedRequest<AddColumnRequest> {
          * It's guaranteed that each readFrom() call has a single column values - on the first call we are adding some column
          * and then we repeat only if subtree(s) exist.
          */
-        public static StreamableColumnInfo readFrom(StreamInput in) throws IOException {
+        public static StreamableColumnInfo readFrom(StreamInput in, String fqnPrefix) throws IOException {
             String policy;
             String indexType;
+            var name = in.readString();
+            var updatedPrefix = fqnPrefix.isEmpty() ? name : fqnPrefix + "." + name;
             return new StreamableColumnInfo(
-                in.readString(),
+                name,
+                updatedPrefix,
                 DataTypes.fromStream(in),
                 in.readInt(),
                 in.readBoolean(),
@@ -189,7 +197,7 @@ public class AddColumnRequest extends AcknowledgedRequest<AddColumnRequest> {
                 in.readOptionalString(),
                 in.readMap(StreamInput::readString, StreamInput::readGenericValue),
                 in.readList(StreamInput::readString),
-                readChildren(in)
+                readChildren(in, updatedPrefix)
             );
         }
 
@@ -212,11 +220,11 @@ public class AddColumnRequest extends AcknowledgedRequest<AddColumnRequest> {
             writeChildren(out);
         }
 
-        private static List<StreamableColumnInfo> readChildren(StreamInput in) throws IOException {
+        private static List<StreamableColumnInfo> readChildren(StreamInput in, String fqnPrefix) throws IOException {
             ArrayList<StreamableColumnInfo> children = new ArrayList();
             int count = in.readVInt();
             for (int i = 0; i < count; i++) {
-                children.add(readFrom(in));
+                children.add(readFrom(in, fqnPrefix));
             }
             return children;
         }

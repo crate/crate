@@ -125,13 +125,13 @@ public class TransportAddColumnAction extends AbstractDDLTransportAction<AddColu
          */
         private HashMap<String, Object> collectColumnInfo(AddColumnRequest.StreamableColumnInfo columnInfo) {
             if (columnInfo.isPrimaryKey()) {
-                primaryKeys.add(columnInfo.name());
+                primaryKeys.add(columnInfo.fqn());
             }
             if (columnInfo.isNullable()) {
-                notNullColumns.add(columnInfo.name());
+                notNullColumns.add(columnInfo.fqn());
             }
             if (columnInfo.genExpression() != null) {
-                generatedColumns.put(columnInfo.name(), columnInfo.genExpression());
+                generatedColumns.put(columnInfo.fqn(), columnInfo.genExpression());
             }
             HashMap<String, Object> propertiesMap = columnInfo.propertiesMap();
 
