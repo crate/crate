@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.RandomAccess;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
@@ -1410,7 +1411,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     @Nullable
     private String getIdentText(@Nullable SqlBaseParser.IdentContext ident) {
         if (ident != null) {
-            StringLiteral literal = (StringLiteral) visit(ident);
+            StringLiteral literal = (StringLiteral) ident.accept(this);
             return literal.getValue();
         }
         return null;
@@ -2091,16 +2092,25 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     }
 
     private <T> Optional<T> visitIfPresent(@Nullable ParserRuleContext context, Class<T> clazz) {
-        return Optional.ofNullable(context)
-            .map(this::visit)
-            .map(clazz::cast);
+        if (context == null) {
+            return Optional.empty();
+        }
+        Node node = context.accept(this);
+        if (node == null) {
+            return Optional.empty();
+        }
+        return Optional.of(clazz.cast(node));
     }
 
     private <T> List<T> visitCollection(List<? extends ParserRuleContext> contexts, Class<T> clazz) {
-        return contexts.stream()
-            .map(this::visit)
-            .map(clazz::cast)
-            .collect(toList());
+        ArrayList<T> result = new ArrayList<>(contexts.size());
+        assert contexts instanceof RandomAccess : "Index access must be fast";
+        for (int i = 0; i < contexts.size(); i++) {
+            ParserRuleContext parserRuleContext = contexts.get(i);
+            T item = clazz.cast(parserRuleContext.accept(this));
+            result.add(item);
+        }
+        return result;
     }
 
     private static String unquote(String value) {
@@ -2137,9 +2147,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     }
 
     private List<String> identsToStrings(List<SqlBaseParser.IdentContext> idents) {
-        return idents.stream()
-            .map(this::getIdentText)
-            .collect(toList());
+        return Lists2.map(idents, this::getIdentText);
     }
 
     private static boolean isDistinct(SqlBaseParser.SetQuantContext setQuantifier) {
