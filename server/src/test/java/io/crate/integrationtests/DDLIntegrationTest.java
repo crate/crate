@@ -1015,5 +1015,56 @@ public class DDLIntegrationTest extends IntegTestCase {
         ));
     }
 
+    @Test
+    public void test_add_column_not_null_constraint_added_to_a_nested_column() {
+        // non-existing object
+        execute("create table t (o object)");
+        execute("alter table t add column o2['a']['b'] text not null");
+        assertThrowsMatches(
+            () -> execute("insert into t (o2) values ({\"a\" = {\"b\" = null}})"),
+            isSQLError(
+                containsString("\"o2['a']['b']\" must not be null"),
+                INTERNAL_ERROR,
+                BAD_REQUEST,
+                4000
+            )
+        );
+
+        // existing object
+        execute("alter table t add column o['a']['b'] text not null");
+        assertThrowsMatches(
+            () -> execute("insert into t (o) values ({\"a\" = {\"b\" = null}})"),
+            isSQLError(
+                containsString("\"o['a']['b']\" must not be null"),
+                INTERNAL_ERROR,
+                BAD_REQUEST,
+                4000
+            )
+        );
+
+        // object with multiple children
+        execute("alter table t add column o3 object as (a object as (b text not null), c int not null)");
+        // one leaf of o3
+        assertThrowsMatches(
+            () -> execute("insert into t (o, o2) values ({\"a\" = {\"b\" = 'test'}}, {\"a\" = {\"b\" = 'test'}})"),
+            isSQLError(
+                containsString("\"o3['a']['b']\" must not be null"),
+                INTERNAL_ERROR,
+                BAD_REQUEST,
+                4000
+            )
+        );
+        // another leaf of o3
+        assertThrowsMatches(
+            () -> execute("insert into t (o, o2, o3) values ({\"a\" = {\"b\" = 'test'}}, {\"a\" = {\"b\" = 'test'}}, {\"a\" = {\"b\" = 'test'}, \"c\" = null})"),
+            isSQLError(
+                containsString("\"o3['c']\" must not be null"),
+                INTERNAL_ERROR,
+                BAD_REQUEST,
+                4000
+            )
+        );
+    }
+
 
 }

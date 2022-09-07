@@ -218,7 +218,18 @@ public class TransportAddColumnAction extends AbstractDDLTransportAction<AddColu
         }
         if (convertedRequest.notNullColumns.isEmpty() == false) {
             Maps.mergeInto(existingMapping, "_meta", List.of("constraints", "not_null"), convertedRequest.notNullColumns,
-                (map, key, value) -> ((ArrayList) map.computeIfAbsent(key, k -> new ArrayList<>())).addAll(convertedRequest.notNullColumns)
+                (map, key, value) -> {
+                    if ("not_null".equals(key)) {
+                        // we are merging on the end pf the path, i.e adding to the list
+                        ((ArrayList) map.computeIfAbsent(key, k -> new ArrayList<>())).addAll(convertedRequest.notNullColumns);
+                    } else {
+                        // When adding not-null for the first time,
+                        // Maps.mergeInto stops mid-path and transforms value (list) into chain of maps (to complement the remaining path) and adds value to the end.
+                        // There is no existing constraints in this case so we can take value (convertedRequest.notNullColumns) as is.
+                        map.put(key, value);
+                    }
+
+                }
             );
         }
         if (convertedRequest.generatedColumns.isEmpty() == false) {
