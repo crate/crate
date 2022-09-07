@@ -21,14 +21,19 @@
 
 package io.crate.execution.ddl.tables;
 
+import io.crate.analyze.AnalyzedColumnDefinition;
 import io.crate.common.collections.Maps;
 import io.crate.execution.ddl.AbstractDDLTransportAction;
 import io.crate.execution.ddl.TransportSchemaUpdateAction;
+import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.cluster.DDLClusterStateHelpers;
 import io.crate.metadata.cluster.DDLClusterStateTaskExecutor;
 import io.crate.metadata.doc.DocTableInfoFactory;
+import io.crate.metadata.table.ColumnPolicies;
+import io.crate.sql.tree.GenericProperties;
+import io.crate.types.ObjectType;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateTaskExecutor;
@@ -59,6 +64,7 @@ import java.util.List;
 import java.util.Map;
 
 import static io.crate.metadata.cluster.AlterTableClusterStateExecutor.resolveIndices;
+import static org.elasticsearch.index.mapper.TypeParsers.DOC_VALUES;
 
 @Singleton
 public class TransportAddColumnAction extends AbstractDDLTransportAction<AddColumnRequest, AcknowledgedResponse> {
@@ -122,6 +128,7 @@ public class TransportAddColumnAction extends AbstractDDLTransportAction<AddColu
          *     },
          *     col2: {...}
          * }
+         * Aligned with {@link AnalyzedColumnDefinition#toMapping(AnalyzedColumnDefinition)} )
          */
         private HashMap<String, Object> collectColumnInfo(AddColumnRequest.StreamableColumnInfo columnInfo) {
             if (columnInfo.isPrimaryKey()) {
@@ -133,7 +140,52 @@ public class TransportAddColumnAction extends AbstractDDLTransportAction<AddColu
             if (columnInfo.genExpression() != null) {
                 generatedColumns.put(columnInfo.fqn(), columnInfo.genExpression());
             }
-            HashMap<String, Object> propertiesMap = columnInfo.propertiesMap();
+            HashMap<String, Object> properties = new HashMap<>();
+            AnalyzedColumnDefinition.addTypeOptions(properties,
+                                                    columnInfo.type(),
+                                                    new GenericProperties(columnInfo.geoProperties()),
+                                                    columnInfo.geoTree(),
+                                                    columnInfo.analyzer()
+            );
+            properties.put("type",
+                AnalyzedColumnDefinition.typeNameForESMapping(
+                    columnInfo.type(),
+                    columnInfo.analyzer(),
+                    columnInfo.indexType() == IndexType.FULLTEXT
+                )
+            );
+
+            properties.put("position", columnInfo.position());
+
+            if (columnInfo.indexType() == IndexType.NONE) {
+                // we must use a boolean <p>false</p> and NO string "false", otherwise parser support for old indices will fail
+                properties.put("index", false);
+            }
+            if (columnInfo.copyToTargets().isEmpty() == false) {
+                properties.put("copy_to", columnInfo.copyToTargets());
+            }
+
+            if (columnInfo.isArrayType()) {
+                HashMap<String, Object> outerMapping = new HashMap<>();
+                outerMapping.put("type", "array");
+                if (columnInfo.type().id() == ObjectType.ID) {
+                    objectMapping(properties, columnInfo);
+                }
+                outerMapping.put("inner", properties);
+                return outerMapping;
+            } else if (columnInfo.type().id() == ObjectType.ID) {
+                objectMapping(properties, columnInfo);
+            }
+
+            if (columnInfo.hasDocValues() == false) {
+                properties.put(DOC_VALUES, "false");
+            }
+
+            return properties;
+        }
+
+        private void objectMapping(Map<String, Object> propertiesMap, AddColumnRequest.StreamableColumnInfo columnInfo) {
+            propertiesMap.put("dynamic", ColumnPolicies.encodeMappingValue(columnInfo.columnPolicy()));
 
             if (columnInfo.children().isEmpty() == false) {
                 HashMap<String, Object> nestedColumnsProperties = new HashMap<>();
@@ -143,9 +195,10 @@ public class TransportAddColumnAction extends AbstractDDLTransportAction<AddColu
                 }
                 propertiesMap.put("properties", nestedColumnsProperties);
             }
-            return propertiesMap;
         }
     }
+
+
 
     @Override
     public ClusterStateTaskExecutor<AddColumnRequest> clusterStateTaskExecutor(AddColumnRequest request) {

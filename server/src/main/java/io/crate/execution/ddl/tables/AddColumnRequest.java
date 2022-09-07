@@ -153,7 +153,7 @@ public class AddColumnRequest extends AcknowledgedRequest<AddColumnRequest> {
              this(
                  colToAdd.name(),
                  colToAdd.ident().fqn(),
-                 AnalyzedTableElements.realType(colToAdd),
+                 colToAdd.dataType(),
                  colToAdd.position,
                  colToAdd.hasPrimaryKeyConstraint(),
                  colToAdd.hasNotNullConstraint(),
@@ -234,43 +234,6 @@ public class AddColumnRequest extends AcknowledgedRequest<AddColumnRequest> {
             for (int i = 0; i < children.size(); i++) {
                 children.get(i).writeTo(out);
             }
-        }
-
-        /**
-         * Aligned with {@link AnalyzedColumnDefinition#toMapping(AnalyzedColumnDefinition)} )
-         */
-        public HashMap<String, Object> propertiesMap() {
-            HashMap<String, Object> properties = new HashMap<>();
-            AnalyzedColumnDefinition.addTypeOptions(properties, type, new GenericProperties(geoProperties), geoTree, analyzer);
-            properties.put("type", AnalyzedColumnDefinition.typeNameForESMapping(type, analyzer, indexType == IndexType.FULLTEXT));
-
-            properties.put("position", position);
-
-            if (indexType == IndexType.NONE) {
-                // we must use a boolean <p>false</p> and NO string "false", otherwise parser support for old indices will fail
-                properties.put("index", false);
-            }
-            if (copyToTargets.isEmpty() == false) {
-                properties.put("copy_to", copyToTargets);
-            }
-
-            if (isArrayType) {
-                HashMap<String, Object> outerMapping = new HashMap<>();
-                outerMapping.put("type", "array");
-                if (type().id() == ObjectType.ID) {
-                    properties.put("dynamic", ColumnPolicies.encodeMappingValue(columnPolicy));
-                }
-                outerMapping.put("inner", properties);
-                return outerMapping;
-            } else if (type().id() == ObjectType.ID) {
-                properties.put("dynamic", ColumnPolicies.encodeMappingValue(columnPolicy));
-            }
-
-            if (hasDocValues == false) {
-                properties.put(DOC_VALUES, "false");
-            }
-
-            return properties;
         }
     }
 
