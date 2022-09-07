@@ -200,7 +200,7 @@ By default, ``psql`` attempts to use SSL if available on the node. For further
 information including the different SSL modes please visit the
 `PSQL documentation`_.
 
-.. _JDBC SSL documentation: https://jdbc.postgresql.org/documentation/head/ssl-client.html
+.. _JDBC SSL documentation: https://jdbc.postgresql.org/documentation/ssl/#configuring-the-client
 .. _PSQL documentation: https://www.postgresql.org/docs/current/static/app-psql.html
 
 
