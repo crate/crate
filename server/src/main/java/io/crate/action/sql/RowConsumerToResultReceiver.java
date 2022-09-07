@@ -21,17 +21,22 @@
 
 package io.crate.action.sql;
 
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
+
+import javax.annotation.Nullable;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.exceptions.SQLExceptions;
 
-import javax.annotation.Nullable;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.Consumer;
-
 public class RowConsumerToResultReceiver implements RowConsumer {
 
+    private static final Logger LOGGER = LogManager.getLogger(RowConsumerToResultReceiver.class);
     private final CompletableFuture<?> completionFuture = new CompletableFuture<>();
     private ResultReceiver<?> resultReceiver;
     private int maxRows;
@@ -48,6 +53,7 @@ public class RowConsumerToResultReceiver implements RowConsumer {
 
     @Override
     public void accept(BatchIterator<Row> iterator, @Nullable Throwable failure) {
+        LOGGER.debug("accept iterator={} failure={}", iterator, failure);
         if (failure == null) {
             consumeIt(iterator);
         } else {

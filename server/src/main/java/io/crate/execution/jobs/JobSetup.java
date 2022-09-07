@@ -651,6 +651,7 @@ public class JobSetup {
             });
 
             if (upstreamOnSameNode && phase.numInputs() == 1) {
+                LOGGER.error("Using same node optimization");
                 RowConsumer projectingRowConsumer = ProjectingRowConsumer.create(
                     finalRowConsumer,
                     phase.projections(),

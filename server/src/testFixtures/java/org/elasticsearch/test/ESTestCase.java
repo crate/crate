@@ -226,7 +226,7 @@ public abstract class ESTestCase extends CrateLuceneTestCase {
         System.setProperty("log4j2.disable.jmx", "true");
 
         // Enable Netty leak detection and monitor logger for logged leak errors
-        System.setProperty("io.netty.leakDetection.level", "paranoid");
+        //System.setProperty("io.netty.leakDetection.level", "paranoid");
     }
 
     protected final Logger logger = LogManager.getLogger(getClass());

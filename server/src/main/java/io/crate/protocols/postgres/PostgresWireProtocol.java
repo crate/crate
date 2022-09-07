@@ -275,6 +275,8 @@ public class PostgresWireProtocol {
                                         || (t != null && t.getCause() instanceof ClientInterrupted);
             if (!clientInterrupted) {
                 sendReadyForQuery(channel, transactionState);
+            } else {
+                LOGGER.debug("Got ClientInterrupted exception, not firing ready-for-query");
             }
         }
     }
@@ -650,7 +652,7 @@ public class PostgresWireProtocol {
             return;
         }
         List<? extends DataType> outputTypes = session.getOutputTypes(portalName);
-        ResultReceiver resultReceiver;
+        ResultReceiver<?> resultReceiver;
         if (outputTypes == null) {
             // this is a DML query
             maxRows = 0;

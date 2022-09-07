@@ -28,8 +28,14 @@ import static org.junit.Assert.assertThat;
 import java.util.List;
 
 import org.elasticsearch.test.IntegTestCase;
+import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.hamcrest.Matchers;
 import org.junit.Test;
+
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
+
+import io.crate.common.unit.TimeValue;
+import io.crate.testing.UseJdbc;
 
 public class CastIntegrationTest extends IntegTestCase {
 
@@ -53,13 +59,18 @@ public class CastIntegrationTest extends IntegTestCase {
     }
 
     @Test
+    @UseJdbc(1)
+    @Repeat(iterations = 100)
+    @TestLogging("io.crate.action.sql:TRACE,io.crate.protocols.postgres:TRACE,io.crate.execution.engine.collect:TRACE,io.crate.execution.engine.distribution:TRACE,io.crate.execution.jobs:TRACE")
     public void testTryCastReturnNullWhenCastingFailsOnRows() {
         execute("create table types (i integer, str string, arr array(long))");
         execute("insert into types (i, str, arr) values (?, ?, ?)", new Object[]{1, null, new Object[]{1, 2}});
         execute("insert into types (i, str, arr) values (?, ?, ?)", new Object[]{2, "3d", new Object[]{1, 128}});
         refresh();
-        execute("select try_cast(i as integer), try_cast(str as integer), try_cast(arr as array(byte))" +
-                " from types order by i asc");
+        for (int index = 0; index < 300; index++) {
+            execute("select try_cast(i as integer), try_cast(str as integer), try_cast(arr as array(byte))" +
+                    " from types order by i asc", new Object[0], TimeValue.timeValueSeconds(5));
+        }
         assertThat(response.rowCount(), is(2L));
         assertThat(response.rows()[0][0], is(1));
         assertThat((response.rows()[0][1]), is(nullValue()));

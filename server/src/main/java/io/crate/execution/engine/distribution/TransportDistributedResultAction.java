@@ -168,6 +168,8 @@ public class TransportDistributedResultAction extends TransportAction<NodeReques
         Throwable throwable = request.throwable();
         if (throwable == null) {
             SendResponsePageResultListener pageResultListener = new SendResponsePageResultListener();
+            LOGGER.debug("pageBucketReceiver.setBucket receiver={}, bucket={}",
+                pageBucketReceiver, request.bucketIdx());
             pageBucketReceiver.setBucket(
                 request.bucketIdx(),
                 request.readRows(pageBucketReceiver.streamers()),
@@ -176,6 +178,8 @@ public class TransportDistributedResultAction extends TransportAction<NodeReques
             );
             return pageResultListener.future;
         } else {
+            LOGGER.debug("received failure={}",
+                pageBucketReceiver, request.bucketIdx());
             pageBucketReceiver.kill(throwable);
             return CompletableFuture.completedFuture(new DistributedResultResponse(false));
         }

@@ -37,6 +37,7 @@ import java.util.function.BiConsumer;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import io.crate.common.annotations.VisibleForTesting;
@@ -50,6 +51,7 @@ import io.crate.profile.Timer;
 
 public class RootTask implements CompletionListenable<Void> {
 
+    private static final Logger LOGGER = LogManager.getLogger(RootTask.class);
     private final UUID jobId;
     private final AtomicInteger numActiveTasks;
     private final AtomicBoolean closed = new AtomicBoolean(false);
@@ -200,6 +202,7 @@ public class RootTask implements CompletionListenable<Void> {
                     return started.thenCompose(ignored -> start(taskIndex + 1));
                 }
             } catch (Throwable t) {
+                LOGGER.error("start failed={}", t);
                 return CompletableFuture.failedFuture(t);
             }
         }

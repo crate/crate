@@ -409,6 +409,9 @@ public class Session implements AutoCloseable {
         if (isReadOnly && analyzedStmt.isWriteOperation()) {
             throw new ReadOnlyException(portal.preparedStmt().rawStatement());
         }
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("method=execute ... continued portal={} analyzedStmt={}", portal, analyzedStmt);
+        }
         if (analyzedStmt instanceof AnalyzedBegin) {
             currentTransactionState = TransactionState.IN_TRANSACTION;
             resultReceiver.allFinished(false);
@@ -469,8 +472,14 @@ public class Session implements AutoCloseable {
                     "Only write operations are allowed in Batch statements");
             }
             if (activeExecution == null) {
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug("method=execute ... executing query portal={}", portal);
+                }
                 activeExecution = singleExec(portal, resultReceiver, maxRows);
             } else {
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug("method=execute ... composing query portal={}", portal);
+                }
                 activeExecution = activeExecution
                     .thenCompose(ignored -> singleExec(portal, resultReceiver, maxRows));
             }
@@ -497,6 +506,7 @@ public class Session implements AutoCloseable {
         if (activeExecution == null) {
             return triggerDeferredExecutions();
         } else {
+            LOGGER.debug("method=sync returning activeExection={}", activeExecution);
             var result = activeExecution;
             activeExecution = null;
             return result;
@@ -504,16 +514,19 @@ public class Session implements AutoCloseable {
     }
 
     private CompletableFuture<?> triggerDeferredExecutions() {
-        switch (deferredExecutionsByStmt.size()) {
+        int numDeferred = deferredExecutionsByStmt.size();
+        switch (numDeferred) {
             case 0:
                 LOGGER.debug("method=sync deferredExecutions=0");
                 return CompletableFuture.completedFuture(null);
             case 1: {
+                LOGGER.debug("method=sync deferredExecutions=0");
                 var entry = deferredExecutionsByStmt.entrySet().iterator().next();
                 deferredExecutionsByStmt.clear();
                 return exec(entry.getKey(), entry.getValue());
             }
             default: {
+                LOGGER.debug("method=sync deferredExecutions={}", numDeferred);
                 // sequentiallize execution to ensure client receives row counts in correct order
                 CompletableFuture<?> allCompleted = null;
                 for (var entry : deferredExecutionsByStmt.entrySet()) {
@@ -621,6 +634,7 @@ public class Session implements AutoCloseable {
     CompletableFuture<?> singleExec(Portal portal, ResultReceiver<?> resultReceiver, int maxRows) {
         var activeConsumer = portal.activeConsumer();
         if (activeConsumer != null && activeConsumer.suspended()) {
+            LOGGER.debug("Got active consumer, resuming");
             activeConsumer.replaceResultReceiver(resultReceiver, maxRows);
             activeConsumer.resume();
             return resultReceiver.completionFuture();
@@ -674,6 +688,7 @@ public class Session implements AutoCloseable {
         RowConsumerToResultReceiver consumer = new RowConsumerToResultReceiver(
             resultReceiver, maxRows, new JobsLogsUpdateListener(mostRecentJobID, jobsLogs));
         portal.setActiveConsumer(consumer);
+        LOGGER.debug("plan.execute");
         plan.execute(executor, plannerContext, consumer, params, SubQueryResults.EMPTY);
         return resultReceiver.completionFuture();
     }

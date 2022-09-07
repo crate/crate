@@ -329,7 +329,7 @@ public abstract class IntegTestCase extends ESTestCase {
     private static Long SUITE_SEED = null;
 
     @Rule
-    public Timeout globalTimeout = new Timeout(5, TimeUnit.MINUTES);
+    public Timeout globalTimeout = new Timeout(2, TimeUnit.MINUTES);
 
     @Rule
     public TestName testName = new TestName();

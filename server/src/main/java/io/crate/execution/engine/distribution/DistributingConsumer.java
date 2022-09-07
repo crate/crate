@@ -138,7 +138,7 @@ public class DistributingConsumer implements RowConsumer {
         }
     }
 
-    private void forwardFailure(@Nullable final BatchIterator it, final Throwable f) {
+    private void forwardFailure(@Nullable final BatchIterator<?> it, final Throwable f) {
         Throwable failure = SQLExceptions.unwrap(f); // make sure it's streamable
         AtomicInteger numActiveRequests = new AtomicInteger(downstreams.size());
         var builder = new DistributedResultRequest.Builder(jobId, targetPhaseId, inputId, bucketIdx, failure, false);
@@ -178,7 +178,7 @@ public class DistributingConsumer implements RowConsumer {
         }
     }
 
-    private void countdownAndMaybeCloseIt(AtomicInteger numActiveRequests, @Nullable BatchIterator it) {
+    private void countdownAndMaybeCloseIt(AtomicInteger numActiveRequests, @Nullable BatchIterator<?> it) {
         if (numActiveRequests.decrementAndGet() == 0) {
             if (it != null) {
                 it.close();

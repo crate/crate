@@ -30,11 +30,13 @@ import java.util.function.Function;
 
 import javax.annotation.concurrent.GuardedBy;
 
-import com.carrotsearch.hppc.IntObjectHashMap;
-
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.lucene.search.IndexSearcher;
 import org.elasticsearch.Version;
 import org.elasticsearch.threadpool.ThreadPool;
+
+import com.carrotsearch.hppc.IntObjectHashMap;
 
 import io.crate.breaker.BlockBasedRamAccounting;
 import io.crate.breaker.RamAccounting;
@@ -55,6 +57,7 @@ import io.crate.metadata.TransactionContext;
 
 public class CollectTask implements Task {
 
+    private static final Logger LOGGER = LogManager.getLogger(CollectTask.class);
 
     private final CollectPhase collectPhase;
     private final TransactionContext txnCtx;
@@ -101,7 +104,14 @@ public class CollectTask implements Task {
             if (err == null) {
                 try {
                     String threadPoolName = threadPoolName(collectPhase, it.hasLazyResultSet());
-                    collectOperation.launch(() -> consumer.accept(it, null), threadPoolName);
+                    collectOperation.launch(() -> {
+                        LOGGER.debug(
+                            "collectOperation.launch consumer.accept(it, null) it={}, consumer={}",
+                            it,
+                            consumer
+                        );
+                        consumer.accept(it, null);
+                    }, threadPoolName);
                 } catch (Throwable t) {
                     consumer.accept(null, t);
                 }
@@ -157,6 +167,7 @@ public class CollectTask implements Task {
 
     @Override
     public CompletableFuture<Void> start() {
+        LOGGER.debug("CollectTask.start");
         if (started.compareAndSet(false, true)) {
             try {
                 var futureIt = collectOperation.createIterator(
@@ -166,6 +177,7 @@ public class CollectTask implements Task {
                     this
                 );
                 futureIt.whenComplete((it, err) -> {
+                    LOGGER.debug("futureIt completed it={} err={}", it, err);
                     if (err == null) {
                         batchIterator.complete(it);
                     } else {
