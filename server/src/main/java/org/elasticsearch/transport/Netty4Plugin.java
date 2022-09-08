@@ -44,6 +44,7 @@ import org.elasticsearch.http.netty4.Netty4HttpServerTransport;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.plugins.NetworkPlugin;
 import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.netty4.Netty4Transport;
 
@@ -82,7 +83,8 @@ public class Netty4Plugin extends Plugin implements NetworkPlugin {
                                                NamedXContentRegistry xContentRegistry,
                                                Environment environment,
                                                NodeEnvironment nodeEnvironment,
-                                               NamedWriteableRegistry namedWriteableRegistry) {
+                                               NamedWriteableRegistry namedWriteableRegistry,
+                                               Supplier<RepositoriesService> repositoriesServiceSupplier) {
         // pipelineRegistry is returned here so that it's bound in guice and can be injected in other places
         return Collections.singletonList(pipelineRegistry);
     }

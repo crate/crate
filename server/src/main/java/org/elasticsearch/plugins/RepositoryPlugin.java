@@ -25,7 +25,6 @@ import java.util.Map;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.env.Environment;
-import org.elasticsearch.repositories.RepositoriesModule;
 import org.elasticsearch.repositories.Repository;
 
 /**
@@ -60,12 +59,4 @@ public interface RepositoryPlugin {
         return Collections.emptyMap();
     }
 
-    /**
-     * Passes down the current {@link RepositoriesModule} to repository plugins.
-     *
-     * @param module the current {@link RepositoriesModule}
-     */
-    default void onRepositoriesModule(RepositoriesModule module) {
-        // NORELEASE
-    }
 }

@@ -514,10 +514,11 @@ public class Node implements Closeable {
                 forbidPrivateIndexSettings
             );
 
+            final SetOnce<RepositoriesService> repositoriesServiceReference = new SetOnce<>();
             final Collection<Object> pluginComponents = pluginsService.filterPlugins(Plugin.class).stream()
                 .flatMap(p -> p.createComponents(client, clusterService, threadPool,
                                                  xContentRegistry, environment, nodeEnvironment,
-                                                 namedWriteableRegistry).stream())
+                                                 namedWriteableRegistry, repositoriesServiceReference::get).stream())
                 .collect(Collectors.toList());
 
             ActionModule actionModule = new ActionModule(
@@ -642,6 +643,7 @@ public class Node implements Closeable {
             modules.add(copyModule);
 
             RepositoriesService repositoryService = repositoriesModule.repositoryService();
+            repositoriesServiceReference.set(repositoryService);
             logicalReplicationService.repositoriesService(repositoryService);
 
             final SnapshotsService snapshotsService = new SnapshotsService(

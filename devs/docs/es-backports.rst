@@ -426,7 +426,7 @@ should be crossed out as well.
 - [ ] 417d5f20099 Make data streams in APIs resolvable. (#55337)
 - [ ] 22c55180c11 [7.x] Backport ValuesSourceRegistry and related work (#54922)
 - [ ] d7cded8d7a5 Fix updating include_in_parent/include_in_root of nested field. (#55326)
-- [ ] 7941f4a47e4 Add RepositoriesService to createComponents() args (#54814)
+- [x] 7941f4a47e4 Add RepositoriesService to createComponents() args (#54814)
 - [x] 8a565c4fa61 Voting config exclusions should work with absent nodes (#55291)
 - [x] 2f91e2aab78 Fix Race in Snapshot Abort (#54873) (#55233)
 - [x] d8b43c62838 Make Snapshot Deletes Less Racy (#54765) (#55226)
