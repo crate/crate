@@ -327,7 +327,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     @Override
     protected AnalyzedRelation visitQuerySpecification(QuerySpecification node,
                                                        StatementAnalysisContext statementContext) {
-        if (node.getFrom().isEmpty()) {
+        if (node.getFrom().isEmpty() && statementContext.parentRelationAnalysisContext != null) {
             Select select = node.getSelect();
             for (SelectItem selectItem : select.getSelectItems()) {
                 if (selectItem instanceof SingleColumn column) {

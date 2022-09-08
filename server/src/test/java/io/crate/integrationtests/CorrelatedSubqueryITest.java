@@ -360,7 +360,19 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
             LIMIT 3
             """;
         execute("EXPLAIN " + stmt);
-        System.out.println(TestingHelpers.printedTable(response.rows()));
+        assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo(
+            "Eval[table_name, column_name]\n" +
+            "  └ Limit[3::bigint;0]\n" +
+            "    └ OrderBy[table_name ASC column_name DESC]\n" +
+            "      └ NestedLoopJoin[LEFT | (attrelid = (SELECT attrelid FROM (col_attr)))]\n" +
+            "        ├ CorrelatedJoin[table_name, column_name, (SELECT attrelid FROM (col_attr)), attrelid]\n" +
+            "        │  └ Collect[information_schema.columns | [table_name, column_name] | true]\n" +
+            "        │  └ SubPlan\n" +
+            "        │    └ Rename[attrelid] AS col_attr\n" +
+            "        │      └ Limit[2::bigint;0::bigint]\n" +
+            "        │        └ Collect[pg_catalog.pg_attribute | [attrelid] | true]\n" +
+            "        └ Rename[attrelid] AS col_attr\n" +
+            "          └ Collect[pg_catalog.pg_attribute | [attrelid] | true]\n");
         execute(stmt);
     }
 }
