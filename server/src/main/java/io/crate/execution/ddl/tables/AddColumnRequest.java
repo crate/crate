@@ -22,7 +22,9 @@
 package io.crate.execution.ddl.tables;
 
 import io.crate.analyze.AnalyzedColumnDefinition;
+import io.crate.metadata.GeoReference;
 import io.crate.metadata.IndexType;
+import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.sql.tree.CheckColumnConstraint;
 import io.crate.sql.tree.ColumnPolicy;
@@ -70,6 +72,47 @@ public class AddColumnRequest extends AcknowledgedRequest<AddColumnRequest> {
         for (int i = 0; i < count; i++) {
             columns.add(StreamableColumnInfo.readFrom(in, ""));
         }
+    }
+
+    /**
+     * For dynamic mapping updates.
+     * Fields which cannot be resolved using Reference are initialized with default or null values.
+     */
+    public AddColumnRequest(RelationName relationName,
+                            boolean isPartitioned,
+                            List<Reference> columnRefs) {
+        this.relationName = relationName;
+        this.isPartitioned = isPartitioned;
+        this.columns.addAll(columnRefs.stream().map(this::refToStreamableColumnInfo).collect(Collectors.toList()));
+    }
+
+    private StreamableColumnInfo refToStreamableColumnInfo(Reference reference) {
+        String geoTree = null;
+        Map<String, Object> geoProperties = new HashMap<>();
+        if (reference instanceof GeoReference geoRef) {
+            geoTree = geoRef.geoTree();
+            geoProperties.put("precision", geoRef.precision());
+            geoProperties.put("tree_levels", geoRef.treeLevels());
+            geoProperties.put("distance_error_pct", geoRef.distanceErrorPct());
+        }
+        return new StreamableColumnInfo(
+            reference.column().name(),
+            reference.column().fqn(),
+            reference.valueType(),
+            reference.position(),
+            false, // A primary key can be specified only on ADD COLUMN
+            true, // not-null can be specified only on ADD COLUMN
+            true, // Use default, can be specified only on ADD COLUMN
+            reference.indexType(),
+            reference.valueType().id() == ArrayType.ID,
+            null, // INDEX USING FULLTEXT can be specified only on ADD COLUMN
+            null, // generated expression can be specified only on ADD COLUMN
+            reference.columnPolicy(),
+            geoTree,
+            geoProperties,
+            List.of(), // copyToTargets is used when INDEX is specified, only for ADD COLUMN
+            List.of() // there is no tree-like Ref hierarchy in target.valueType().valueForInsert(row.get(i)), it's a single map
+        );
     }
 
     /**
