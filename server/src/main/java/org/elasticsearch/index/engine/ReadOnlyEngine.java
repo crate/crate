@@ -167,6 +167,7 @@ public class ReadOnlyEngine extends Engine {
     }
 
     protected DirectoryReader open(IndexCommit commit) throws IOException {
+        assert Transports.assertNotTransportThread("opening index commit of a read-only engine");
         return DirectoryReader.open(commit);
     }
 

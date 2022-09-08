@@ -418,7 +418,7 @@ should be crossed out as well.
 - [ ] db7eb8e8fff Remove Redundant CS Update on Snapshot Finalization (#55276) (#55528)
 - [ ] be60d504520 Allow searching of snapshot taken while indexing (#55511)
 - [ ] 3cc4e0dd09b Retry follow task when remote connection queue full (#55314)
-- [ ] 9e3b813b629 Ensure not to open directory reader on transport thread (#55419)
+- [x] 9e3b813b629 Ensure not to open directory reader on transport thread (#55419)
 - [ ] a0763d958d1 Make RepositoryData Less Memory Heavy (#55293) (#55468)
 - [ ] 4d543a569fa Add Snapshot Resiliency Test for Master Failover during Delete (#54866) (#55456)
 - [ ] 258f4b3be3c Fix Incorrect Concurrent SnapshotException on Master Failover (#54877) (#55448)
