@@ -125,6 +125,23 @@ public class TestStatementBuilder {
         printStatement("BEGIN ISOLATION LEVEL SERIALIZABLE, " +
                        "      READ WRITE," +
                        "      NOT DEFERRABLE");
+        // PG supports leaving out the `,` separator for BWC reasons. Let's support it as well.
+        printStatement("BEGIN ISOLATION LEVEL SERIALIZABLE " +
+            "      READ WRITE" +
+            "      NOT DEFERRABLE");
+    }
+
+    @Test
+    public void testStartTransaction() {
+        printStatement("START TRANSACTION");
+        printStatement("START TRANSACTION DEFERRABLE");
+        printStatement("START TRANSACTION ISOLATION LEVEL SERIALIZABLE, " +
+                       "      READ WRITE," +
+                       "      NOT DEFERRABLE");
+        // PG supports leaving out the `,` separator for BWC reasons. Let's support it as well.
+        printStatement("START TRANSACTION ISOLATION LEVEL SERIALIZABLE " +
+            "      READ WRITE" +
+            "      NOT DEFERRABLE");
     }
 
     @Test
