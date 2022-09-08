@@ -40,6 +40,11 @@ Description
 
 CrateDB will silently ignore the ``START TRANSACTION`` statement.
 
+.. NOTE::
+
+  For backwards compatibility reasons, the commas between successive
+  ``transaction_modes`` can be omitted.
+
 Parameters
 ==========
 

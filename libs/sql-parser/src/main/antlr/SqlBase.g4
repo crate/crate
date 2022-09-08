@@ -36,8 +36,8 @@ singleExpression
 
 statement
     : query                                                                          #default
-    | BEGIN (WORK | TRANSACTION)? (transactionMode (',' transactionMode)*)?          #begin
-    | START TRANSACTION (transactionMode (',' transactionMode)*)?                    #startTransaction
+    | BEGIN (WORK | TRANSACTION)? (transactionMode (','? transactionMode)*)?         #begin
+    | START TRANSACTION (transactionMode (','? transactionMode)*)?                   #startTransaction
     | COMMIT (WORK | TRANSACTION)?                                                   #commit
     | END (WORK | TRANSACTION)?                                                      #commit
     | EXPLAIN (ANALYZE)? statement                                                   #explain
