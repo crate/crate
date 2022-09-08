@@ -421,7 +421,7 @@ should be crossed out as well.
 - [ ] 9e3b813b629 Ensure not to open directory reader on transport thread (#55419)
 - [ ] a0763d958d1 Make RepositoryData Less Memory Heavy (#55293) (#55468)
 - [ ] 4d543a569fa Add Snapshot Resiliency Test for Master Failover during Delete (#54866) (#55456)
-- [ ] 258f4b3be3c Fix Incorrect Concurrent SnapshotException on Master Failover (#54877) (#55448)
+- [x] 258f4b3be3c Fix Incorrect Concurrent SnapshotException on Master Failover (#54877) (#55448)
 - [ ] 60b8a5dabab Exclude Snapshot Shard Status Update Requests from Circuit Breaker (#55376) (#55383)
 - [ ] 417d5f20099 Make data streams in APIs resolvable. (#55337)
 - [ ] 22c55180c11 [7.x] Backport ValuesSourceRegistry and related work (#54922)
