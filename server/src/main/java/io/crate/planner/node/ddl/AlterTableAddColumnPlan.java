@@ -32,9 +32,6 @@ import java.util.Objects;
 import java.util.function.Function;
 
 import io.crate.execution.ddl.tables.AddColumnRequest;
-import io.crate.types.ArrayType;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.settings.Settings;
 
@@ -52,13 +49,8 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FulltextAnalyzerResolver;
-import io.crate.metadata.GeneratedReference;
-import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.RowGranularity;
-import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;

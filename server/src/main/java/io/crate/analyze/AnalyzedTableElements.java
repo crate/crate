@@ -425,23 +425,19 @@ public class AnalyzedTableElements<T> {
         formattedExpressionConsumer.accept(formattedExpression);
     }
 
-    public static <T> DataType realType(AnalyzedColumnDefinition<T> columnDefinition) {
-        DataType<?> type = columnDefinition.dataType() == null ? DataTypes.UNDEFINED : columnDefinition.dataType();
-        return ArrayType.NAME.equals(columnDefinition.collectionType())
-            ? new ArrayType<>(type)
-            : type;
-    }
-
     private static <T> void buildReference(RelationName relationName,
                                            AnalyzedColumnDefinition<T> columnDefinition,
                                            List<Reference> references) {
 
-
+        DataType<?> type = columnDefinition.dataType() == null ? DataTypes.UNDEFINED : columnDefinition.dataType();
+        DataType<?> realType = ArrayType.NAME.equals(columnDefinition.collectionType())
+            ? new ArrayType<>(type)
+            : type;
 
         SimpleReference simpleRef = new SimpleReference(
             new ReferenceIdent(relationName, columnDefinition.ident()),
             RowGranularity.DOC,
-            realType(columnDefinition),
+            realType,
             columnDefinition.position,
             null // not required in this context
         );

@@ -22,16 +22,13 @@
 package io.crate.execution.ddl.tables;
 
 import io.crate.analyze.AnalyzedColumnDefinition;
-import io.crate.analyze.AnalyzedTableElements;
-import io.crate.metadata.*;
-import io.crate.metadata.table.ColumnPolicies;
+import io.crate.metadata.IndexType;
+import io.crate.metadata.RelationName;
 import io.crate.sql.tree.CheckColumnConstraint;
 import io.crate.sql.tree.ColumnPolicy;
-import io.crate.sql.tree.GenericProperties;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.ObjectType;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -45,8 +42,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-
-import static org.elasticsearch.index.mapper.TypeParsers.DOC_VALUES;
 
 public class AddColumnRequest extends AcknowledgedRequest<AddColumnRequest> {
 
@@ -150,23 +145,23 @@ public class AddColumnRequest extends AcknowledgedRequest<AddColumnRequest> {
                                        @Nonnull List<StreamableColumnInfo> children) implements Writeable {
 
         public StreamableColumnInfo(AnalyzedColumnDefinition<Object> colToAdd) {
-             this(
-                 colToAdd.name(),
-                 colToAdd.ident().fqn(),
-                 colToAdd.dataType(),
-                 colToAdd.position,
-                 colToAdd.hasPrimaryKeyConstraint(),
-                 colToAdd.hasNotNullConstraint(),
-                 !AnalyzedColumnDefinition.docValuesSpecifiedAndDisabled(colToAdd),
-                 colToAdd.indexConstraint(),
-                 ArrayType.NAME.equals(colToAdd.collectionType()),
-                 colToAdd.analyzer(),
-                 colToAdd.formattedGeneratedExpression(),
-                 colToAdd.objectType(),
-                 colToAdd.geoTree(),
-                 colToAdd.geoProperties() == null ? new HashMap<>(): colToAdd.geoProperties().properties(),
-                 colToAdd.copyToTargets() == null ? new ArrayList<>() : colToAdd.copyToTargets(),
-                 colToAdd.children().stream().map(child -> new StreamableColumnInfo(child)).collect(Collectors.toList())
+            this(
+                colToAdd.name(),
+                colToAdd.ident().fqn(),
+                colToAdd.dataType(),
+                colToAdd.position,
+                colToAdd.hasPrimaryKeyConstraint(),
+                colToAdd.hasNotNullConstraint(),
+                !AnalyzedColumnDefinition.docValuesSpecifiedAndDisabled(colToAdd),
+                colToAdd.indexConstraint(),
+                ArrayType.NAME.equals(colToAdd.collectionType()),
+                colToAdd.analyzer(),
+                colToAdd.formattedGeneratedExpression(),
+                colToAdd.objectType(),
+                colToAdd.geoTree(),
+                colToAdd.geoProperties() == null ? new HashMap<>() : colToAdd.geoProperties().properties(),
+                colToAdd.copyToTargets() == null ? new ArrayList<>() : colToAdd.copyToTargets(),
+                colToAdd.children().stream().map(child -> new StreamableColumnInfo(child)).collect(Collectors.toList())
             );
         }
 

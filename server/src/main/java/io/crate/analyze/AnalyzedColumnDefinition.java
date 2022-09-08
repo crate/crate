@@ -23,7 +23,6 @@ package io.crate.analyze;
 
 import static org.elasticsearch.index.mapper.TypeParsers.DOC_VALUES;
 
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -301,7 +300,7 @@ public class AnalyzedColumnDefinition<T> {
 
     public String geoTree() {
         return this.geoTree;
-    };
+    }
 
     public GenericProperties<T> geoProperties() {
         return this.geoProperties;
