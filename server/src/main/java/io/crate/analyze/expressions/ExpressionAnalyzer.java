@@ -616,7 +616,7 @@ public class ExpressionAnalyzer {
             /*
              * convert where x IN (values)
              *
-             * where values = a list of expressions or a subquery
+             * where values = a list of expressions or a StatementAnalysisContext
              *
              * into
              *
@@ -665,7 +665,7 @@ public class ExpressionAnalyzer {
             if (subQueryAnalyzer == null) {
                 throw new UnsupportedOperationException("Subquery not supported in this statement");
             }
-            var relation = subQueryAnalyzer.analyze(node.getSubquery());
+            var relation = subQueryAnalyzer.analyze(node.getSubquery(), context.relationAnalysisContext);
             List<Symbol> fields = relation.outputs();
             if (fields.size() > 1) {
                 throw new UnsupportedOperationException("Subqueries with more than 1 column are not supported");
@@ -1107,7 +1107,7 @@ public class ExpressionAnalyzer {
              * this would require {@link StatementAnalysisContext#startRelation} to somehow inherit the parent context
              */
 
-            AnalyzedRelation relation = subQueryAnalyzer.analyze(node.getQuery());
+            AnalyzedRelation relation = subQueryAnalyzer.analyze(node.getQuery(), context.relationAnalysisContext);
             List<Symbol> fields = relation.outputs();
             if (fields.size() > 1) {
                 throw new UnsupportedOperationException("Subqueries with more than 1 column are not supported.");

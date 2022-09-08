@@ -92,8 +92,12 @@ import io.crate.sql.tree.Node;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.QualifiedNameReference;
 import io.crate.sql.tree.Query;
+import io.crate.sql.tree.QueryBody;
 import io.crate.sql.tree.QuerySpecification;
 import io.crate.sql.tree.Relation;
+import io.crate.sql.tree.Select;
+import io.crate.sql.tree.SelectItem;
+import io.crate.sql.tree.SingleColumn;
 import io.crate.sql.tree.SortItem;
 import io.crate.sql.tree.Table;
 import io.crate.sql.tree.TableFunction;
@@ -142,7 +146,9 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             var with = node.getWith().get();
             with.withQueries().forEach(wq -> wq.accept(this, statementContext));
         }
-        AnalyzedRelation childRelation = node.getQueryBody().accept(this, statementContext);
+//        statementContext.relationAnalysisContext.sources().get()
+        QueryBody queryBody = node.getQueryBody();
+        AnalyzedRelation childRelation = queryBody.accept(this, statementContext);
         statementContext.endRelation();
 
         if (node.getOrderBy().isEmpty() && node.getLimit().isEmpty() && node.getOffset().isEmpty()) {
@@ -300,6 +306,8 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                         ((JoinUsing) joinCriteria).getColumns());
                 }
                 try {
+                    ExpressionAnalysisContext expressionAnalysisContext = relationContext.expressionAnalysisContext();
+                    expressionAnalysisContext.relationAnalysisContext = relationContext;
                     joinCondition = expressionAnalyzer.convert(expr, relationContext.expressionAnalysisContext());
                 } catch (RelationUnknown e) {
                     throw new RelationValidationException(e.getTableIdents(),
@@ -317,9 +325,103 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     }
 
     @Override
-    protected AnalyzedRelation visitQuerySpecification(QuerySpecification node, StatementAnalysisContext statementContext) {
+    protected AnalyzedRelation visitQuerySpecification(QuerySpecification node,
+                                                       StatementAnalysisContext statementContext) {
+        if (node.getFrom().isEmpty()) {
+            Select select = node.getSelect();
+            for (SelectItem selectItem : select.getSelectItems()) {
+                if (selectItem instanceof SingleColumn column) {
+                    Expression expression = column.getExpression();
+                    if (expression instanceof QualifiedNameReference q) {
+                        String columnName = q.getName().getParts().get(0);
+                        AnalyzedRelation analyzedRelation = statementContext.parentRelationAnalysisContext.sources().get(
+                            new RelationName(null, columnName));
+                        if (analyzedRelation != null) {
+                            RelationAnalysisContext context = statementContext.startRelation(statementContext.parentRelationAnalysisContext);
+                            CoordinatorTxnCtx coordinatorTxnCtx = statementContext.transactionContext();
+                            ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
+                                coordinatorTxnCtx,
+                                nodeCtx,
+                                statementContext.paramTyeHints(),
+                                new FullQualifiedNameFieldProvider(
+                                    context.sources(),
+                                    context.parentSources(),
+                                    coordinatorTxnCtx.sessionSettings().searchPath().currentSchema()),
+                                new SubqueryAnalyzer(this, statementContext));
+
+                            ExpressionAnalysisContext expressionAnalysisContext = context.expressionAnalysisContext();
+                            expressionAnalysisContext.windows(node.getWindows());
+
+                            SelectAnalysis selectAnalysis = SelectAnalyzer.analyzeSelectItems(
+                                node.getSelect().getSelectItems(),
+                                context.sources(),
+                                expressionAnalyzer,
+                                expressionAnalysisContext);
+
+                            List<Symbol> groupBy = analyzeGroupBy(
+                                selectAnalysis,
+                                node.getGroupBy(),
+                                expressionAnalyzer,
+                                expressionAnalysisContext);
+
+                            if (!node.getGroupBy().isEmpty() || expressionAnalysisContext.hasAggregates()) {
+                                GroupAndAggregateSemantics.validate(selectAnalysis.outputSymbols(), groupBy);
+                            }
+
+                            boolean isDistinct = node.getSelect().isDistinct();
+                            Symbol where = expressionAnalyzer.generateQuerySymbol(node.getWhere(), expressionAnalysisContext);
+                            WhereClauseValidator.validate(where);
+
+                            var normalizer = EvaluatingNormalizer.functionOnlyNormalizer(
+                                nodeCtx,
+                                f -> expressionAnalysisContext.isEagerNormalizationAllowed() && f.signature().isDeterministic()
+                            );
+
+                            QueriedSelectRelation relation = new QueriedSelectRelation(
+                                isDistinct,
+                                List.of(analyzedRelation),
+                                context.joinPairs(),
+                                selectAnalysis.outputSymbols(),
+                                where,
+                                groupBy,
+                                analyzeHaving(
+                                    node.getHaving(),
+                                    groupBy,
+                                    expressionAnalyzer,
+                                    context.expressionAnalysisContext()
+                                ),
+                                analyzeOrderBy(
+                                    selectAnalysis,
+                                    node.getOrderBy(),
+                                    expressionAnalyzer,
+                                    expressionAnalysisContext,
+                                    expressionAnalysisContext.hasAggregates() || !groupBy.isEmpty(),
+                                    isDistinct
+                                ),
+                                longSymbolOrNull(
+                                    node.getLimit(),
+                                    expressionAnalyzer,
+                                    expressionAnalysisContext,
+                                    normalizer,
+                                    coordinatorTxnCtx),
+                                longSymbolOrNull(
+                                    node.getOffset(),
+                                    expressionAnalyzer,
+                                    expressionAnalysisContext,
+                                    normalizer,
+                                    coordinatorTxnCtx
+                                )
+                            );
+                            return relation;
+                        }
+                    }
+                }
+            }
+        }
+
         List<Relation> from = node.getFrom().isEmpty() ? EMPTY_ROW_TABLE_RELATION : node.getFrom();
         RelationAnalysisContext currentRelationContext = statementContext.startRelation();
+
 
         for (Relation relation : from) {
             // different from relations have to be isolated from each other

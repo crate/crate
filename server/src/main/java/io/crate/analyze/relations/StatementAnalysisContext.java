@@ -37,6 +37,7 @@ public class StatementAnalysisContext {
     private final CoordinatorTxnCtx coordinatorTxnCtx;
     private final List<? extends Symbol> parentOutputColumns;
     private final List<RelationAnalysisContext> lastRelationContextQueue = new ArrayList<>();
+    public RelationAnalysisContext parentRelationAnalysisContext;
 
     public StatementAnalysisContext(ParamTypeHints paramTypeHints,
                                     Operation currentOperation,
@@ -76,6 +77,20 @@ public class StatementAnalysisContext {
         }
         RelationAnalysisContext currentRelationContext =
             new RelationAnalysisContext(aliasedRelation, parentRelations, sessionSettings());
+        lastRelationContextQueue.add(currentRelationContext);
+        return currentRelationContext;
+    }
+
+    RelationAnalysisContext startRelation(RelationAnalysisContext relationAnalysisContext) {
+        ParentRelations parentRelations;
+        if (lastRelationContextQueue.isEmpty()) {
+            parentRelations = ParentRelations.NO_PARENTS;
+        } else {
+            RelationAnalysisContext parentCtx = relationAnalysisContext;
+            parentRelations = parentCtx.parentSources().newLevel(parentCtx.sources());
+        }
+        RelationAnalysisContext currentRelationContext =
+            new RelationAnalysisContext(true, parentRelations, sessionSettings());
         lastRelationContextQueue.add(currentRelationContext);
         return currentRelationContext;
     }

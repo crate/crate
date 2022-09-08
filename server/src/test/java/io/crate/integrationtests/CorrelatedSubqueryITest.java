@@ -343,4 +343,24 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
         System.out.println(TestingHelpers.printedTable(response.rows()));
         execute(stmt);
     }
+
+    @UseJdbc(0)
+    @Test
+    public void test_correlated_subquery_without_table_alias_within_join_condition_failed_more_simplified() {
+        var stmt = """
+            SELECT
+                columns.table_name,
+                columns.column_name
+            FROM
+                information_schema.columns
+                LEFT JOIN pg_catalog.pg_attribute AS col_attr
+                ON col_attr.attrelid = (SELECT col_attr.attrelid)
+
+            ORDER BY 1, 2 DESC
+            LIMIT 3
+            """;
+        execute("EXPLAIN " + stmt);
+        System.out.println(TestingHelpers.printedTable(response.rows()));
+        execute(stmt);
+    }
 }

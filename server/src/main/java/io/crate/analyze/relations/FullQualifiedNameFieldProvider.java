@@ -120,7 +120,8 @@ public class FullQualifiedNameFieldProvider implements FieldProvider<Symbol> {
         if (lastField != null) {
             return lastField;
         }
-        for (var relation : parents.getParents()) {
+
+        for (var relation : parents.getGrandParents()) {
             RelationName relName = relation.relationName();
             if (columnSchema != null && !columnSchema.equals(relName.schema())) {
                 continue;
@@ -147,6 +148,35 @@ public class FullQualifiedNameFieldProvider implements FieldProvider<Symbol> {
                 lastField = new OuterColumn(relation, newField);
             }
         }
+
+        for (var relation : parents.getParents()) {
+            RelationName relName = relation.relationName();
+            if (columnSchema != null && !columnSchema.equals(relName.schema())) {
+                continue;
+            }
+            schemaMatched = true;
+            if (columnTableName != null && !relName.name().equals(columnTableName)) {
+                continue;
+            }
+            tableNameMatched = true;
+
+            Symbol newField = relation.getField(columnIdent, operation, errorOnUnknownObjectKey);
+            if (newField != null) {
+                if (lastField != null) {
+                    if (errorOnUnknownObjectKey == false) {
+                        /* ex) CREATE TABLE c1 (obj object as (x int));
+                         *     CREATE TABLE c2 (obj object as (y int));
+                         *     select obj['x'] from c1, c2;
+                         *     --> ambiguous because c2.obj['x'] is another candidate with errorOnUnknownObjectKey = false
+                         */
+                        return resolveField(qualifiedName, path, operation, true);
+                    }
+                    throw new AmbiguousColumnException(columnIdent, newField);
+                }
+                lastField = new OuterColumn(relation, newField);
+            }
+        }
+
         if (lastField != null) {
             return lastField;
         }

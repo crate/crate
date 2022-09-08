@@ -24,6 +24,7 @@ package io.crate.analyze.expressions;
 import java.util.IdentityHashMap;
 import java.util.Map;
 
+import io.crate.analyze.relations.RelationAnalysisContext;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.sql.tree.ArrayComparisonExpression;
 import io.crate.sql.tree.DefaultTraversalVisitor;
@@ -36,6 +37,7 @@ import io.crate.sql.tree.Window;
  */
 public class ExpressionAnalysisContext {
 
+    public RelationAnalysisContext relationAnalysisContext;
     private final ArrayChildVisitor arrayChildVisitor = new ArrayChildVisitor();
     private final Map<SubqueryExpression, Object> arrayExpressionsChildren = new IdentityHashMap<>();
 
