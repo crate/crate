@@ -29,6 +29,7 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
+import io.crate.protocols.postgres.Portals;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.analyze.LogicalReplicationAnalyzer;
 import io.crate.sql.tree.AlterBlobTable;
@@ -44,6 +45,7 @@ import io.crate.sql.tree.AlterUser;
 import io.crate.sql.tree.AnalyzeStatement;
 import io.crate.sql.tree.AstVisitor;
 import io.crate.sql.tree.BeginStatement;
+import io.crate.sql.tree.CloseCursor;
 import io.crate.sql.tree.CommitStatement;
 import io.crate.sql.tree.CopyFrom;
 import io.crate.sql.tree.CopyTo;
@@ -59,6 +61,7 @@ import io.crate.sql.tree.CreateTableAs;
 import io.crate.sql.tree.CreateUser;
 import io.crate.sql.tree.CreateView;
 import io.crate.sql.tree.DeallocateStatement;
+import io.crate.sql.tree.DeclareCursor;
 import io.crate.sql.tree.DecommissionNodeStatement;
 import io.crate.sql.tree.Delete;
 import io.crate.sql.tree.DenyPrivilege;
@@ -76,6 +79,7 @@ import io.crate.sql.tree.DropUser;
 import io.crate.sql.tree.DropView;
 import io.crate.sql.tree.Explain;
 import io.crate.sql.tree.Expression;
+import io.crate.sql.tree.FetchFromCursor;
 import io.crate.sql.tree.GCDanglingArtifacts;
 import io.crate.sql.tree.GrantPrivilege;
 import io.crate.sql.tree.Insert;
@@ -145,6 +149,7 @@ public class Analyzer {
     private final SetStatementAnalyzer setStatementAnalyzer;
     private final ResetStatementAnalyzer resetStatementAnalyzer;
     private final LogicalReplicationAnalyzer logicalReplicationAnalyzer;
+    private final DeclareCursorAnalyzer declareCursorAnalyzer;
 
     /**
      * @param relationAnalyzer is injected because we also need to inject it in
@@ -204,16 +209,19 @@ public class Analyzer {
             logicalReplicationService,
             nodeCtx
         );
+        this.declareCursorAnalyzer = new DeclareCursorAnalyzer(relationAnalyzer);
     }
 
     public AnalyzedStatement analyze(Statement statement,
                                      CoordinatorSessionSettings sessionSettings,
+                                     Portals portals,
                                      ParamTypeHints paramTypeHints) {
         var analyzedStatement = statement.accept(
             dispatcher,
             new Analysis(
                 new CoordinatorTxnCtx(sessionSettings),
-                paramTypeHints));
+                paramTypeHints,
+                portals));
         userManager.getAccessControl(sessionSettings).ensureMayExecute(analyzedStatement);
         return analyzedStatement;
     }
@@ -680,6 +688,29 @@ public class Analyzer {
         public AnalyzedStatement visitAlterSubscription(AlterSubscription alterSubscription,
                                                         Analysis context) {
             return logicalReplicationAnalyzer.analyze(alterSubscription, context.sessionSettings());
+        }
+
+        @Override
+        public AnalyzedStatement visitDeclareCursor(DeclareCursor declareCursor,
+                                                    Analysis context) {
+            return declareCursorAnalyzer.analyze(declareCursor, context.paramTypeHints(), context.transactionContext(), context.portals());
+        }
+
+        @Override
+        public AnalyzedStatement visitFetchFromCursor(FetchFromCursor fetchFromCursor, Analysis context) {
+            return AnalyzedFetchFromCursor.safeCreate(
+                fetchFromCursor.count(),
+                context.portals().safeGet(fetchFromCursor.getCursorName()).analyzedStatement()
+            );
+        }
+
+        @Override
+        public AnalyzedStatement visitCloseCursor(CloseCursor closeCursor, Analysis context) {
+            String cursorName = closeCursor.getCursorName();
+            if (cursorName != null) {
+                context.portals().safeGet(cursorName);
+            }
+            return new AnalyzedCloseCursor(context.portals(), cursorName);
         }
     }
 }

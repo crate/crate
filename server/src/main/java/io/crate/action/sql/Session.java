@@ -33,6 +33,8 @@ import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
+import io.crate.protocols.postgres.Cursor;
+import io.crate.protocols.postgres.Portals;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.ClusterState;
@@ -126,7 +128,7 @@ public class Session implements AutoCloseable {
     @VisibleForTesting
     final Map<String, PreparedStmt> preparedStatements = new HashMap<>();
     @VisibleForTesting
-    final Map<String, Portal> portals = new HashMap<>();
+    final Portals portals = new Portals();
 
     @VisibleForTesting
     final Map<Statement, List<DeferredExecution>> deferredExecutionsByStmt = new LinkedHashMap<>();
@@ -180,7 +182,7 @@ public class Session implements AutoCloseable {
     public void quickExec(String statement, Function<String, Statement> parse, ResultReceiver<?> resultReceiver, Row params) {
         CoordinatorTxnCtx txnCtx = new CoordinatorTxnCtx(sessionSettings);
         Statement parsedStmt = parse.apply(statement);
-        AnalyzedStatement analyzedStatement = analyzer.analyze(parsedStmt, sessionSettings, ParamTypeHints.EMPTY);
+        AnalyzedStatement analyzedStatement = analyzer.analyze(parsedStmt, sessionSettings, portals, ParamTypeHints.EMPTY);
         RoutingProvider routingProvider = new RoutingProvider(Randomness.get().nextInt(), planner.getAwarenessAttributes());
         mostRecentJobID = UUIDs.dirtyUUID();
         ClusterState clusterState = planner.currentClusterState();
@@ -248,19 +250,11 @@ public class Session implements AutoCloseable {
         plan.execute(executor, plannerContext, consumer, params, SubQueryResults.EMPTY);
     }
 
-    private Portal getSafePortal(String portalName) {
-        Portal portal = portals.get(portalName);
-        if (portal == null) {
-            throw new IllegalArgumentException("Cannot find portal: " + portalName);
-        }
-        return portal;
-    }
-
     public CoordinatorSessionSettings sessionSettings() {
         return sessionSettings;
     }
 
-    public void parse(String statementName, String query, List<DataType> paramTypes) {
+    public Statement parse(String statementName, String query, List<DataType> paramTypes) {
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug("method=parse stmtName={} query={} paramTypes={}", statementName, query, paramTypes);
         }
@@ -277,6 +271,7 @@ public class Session implements AutoCloseable {
             }
         }
         analyze(statementName, statement, paramTypes, query);
+        return statement;
     }
 
     public void analyze(String statementName,
@@ -289,6 +284,7 @@ public class Session implements AutoCloseable {
             analyzedStatement = analyzer.analyze(
                 statement,
                 sessionSettings,
+                portals,
                 new ParamTypeHints(paramTypes));
 
             parameterTypes = parameterTypeExtractor.getParameterTypes(
@@ -322,14 +318,17 @@ public class Session implements AutoCloseable {
             throw t;
         }
 
-        Portal portal = new Portal(
+        Portal oldPortal = portals.put(
             portalName,
-            preparedStmt,
-            params,
-            preparedStmt.analyzedStatement(),
-            resultFormatCodes);
-        Portal oldPortal = portals.put(portalName, portal);
-        if (oldPortal != null) {
+            portals.create(
+                portalName,
+                preparedStmt,
+                params,
+                preparedStmt.analyzedStatement(),
+                resultFormatCodes
+            )
+        );
+        if (oldPortal != null && !(oldPortal instanceof Cursor)) {
             // According to the wire protocol spec named portals should be removed explicitly and only
             // unnamed portals are implicitly closed/overridden.
             // We don't comply with the spec because we allow batching of statements, see #execute
@@ -342,15 +341,16 @@ public class Session implements AutoCloseable {
             LOGGER.debug("method=describe type={} portalOrStatement={}", type, portalOrStatement);
         }
         switch (type) {
-            case 'P':
-                Portal portal = getSafePortal(portalOrStatement);
+            case 'P' -> {
+                Portal portal = portals.safeGet(portalOrStatement);
                 var analyzedStmt = portal.analyzedStatement();
                 return new DescribeResult(
                     portal.preparedStmt().parameterTypes(),
                     analyzedStmt.outputs(),
                     resolveTableFromSelect(analyzedStmt)
                 );
-            case 'S':
+            }
+            case 'S' -> {
                 /*
                  * describe might be called without prior bind call.
                  *
@@ -379,8 +379,8 @@ public class Session implements AutoCloseable {
                     analyzedStatement.outputs(),
                     resolveTableFromSelect(analyzedStatement)
                 );
-            default:
-                throw new AssertionError("Unsupported type: " + type);
+            }
+            default -> throw new AssertionError("Unsupported type: " + type);
         }
     }
 
@@ -404,7 +404,7 @@ public class Session implements AutoCloseable {
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug("method=execute portalName={} maxRows={}", portalName, maxRows);
         }
-        Portal portal = getSafePortal(portalName);
+        Portal portal = portals.safeGet(portalName);
         var analyzedStmt = portal.analyzedStatement();
         if (isReadOnly && analyzedStmt.isWriteOperation()) {
             throw new ReadOnlyException(portal.preparedStmt().rawStatement());
@@ -620,10 +620,17 @@ public class Session implements AutoCloseable {
     @VisibleForTesting
     CompletableFuture<?> singleExec(Portal portal, ResultReceiver<?> resultReceiver, int maxRows) {
         var activeConsumer = portal.activeConsumer();
-        if (activeConsumer != null && activeConsumer.suspended()) {
-            activeConsumer.replaceResultReceiver(resultReceiver, maxRows);
-            activeConsumer.resume();
-            return resultReceiver.completionFuture();
+        if (activeConsumer != null) {
+            if (activeConsumer.completionFuture().isDone()) {
+                resultReceiver.allFinished(false);
+                return resultReceiver.completionFuture();
+            }
+            if (activeConsumer.suspended()) {
+                // TODO: no longer wrapped by RetryOnFailureResultReceiver
+                activeConsumer.replaceResultReceiver(resultReceiver, maxRows);
+                activeConsumer.resume();
+                return resultReceiver.completionFuture();
+            }
         }
 
         mostRecentJobID = UUIDs.dirtyUUID();
@@ -680,7 +687,7 @@ public class Session implements AutoCloseable {
 
     @Nullable
     public List<? extends DataType> getOutputTypes(String portalName) {
-        Portal portal = getSafePortal(portalName);
+        Portal portal = portals.safeGet(portalName);
         var analyzedStatement = portal.analyzedStatement();
         List<Symbol> fields = analyzedStatement.outputs();
         if (fields != null) {
@@ -690,7 +697,7 @@ public class Session implements AutoCloseable {
     }
 
     public String getQuery(String portalName) {
-        return getSafePortal(portalName).preparedStmt().rawStatement();
+        return portals.safeGet(portalName).preparedStmt().rawStatement();
     }
 
     public DataType<?> getParamType(String statementName, int idx) {
@@ -708,7 +715,7 @@ public class Session implements AutoCloseable {
 
     @Nullable
     public FormatCodes.FormatCode[] getResultFormatCodes(String portal) {
-        return getSafePortal(portal).resultFormatCodes();
+        return portals.safeGet(portal).resultFormatCodes();
     }
 
     /**
@@ -734,14 +741,13 @@ public class Session implements AutoCloseable {
         }
 
         switch (type) {
-            case 'P': {
+            case 'P' -> {
                 Portal portal = portals.remove(name);
                 if (portal != null) {
                     portal.closeActiveConsumer();
                 }
-                return;
             }
-            case 'S': {
+            case 'S' -> {
                 PreparedStmt preparedStmt = preparedStatements.remove(name);
                 if (preparedStmt != null) {
                     Iterator<Map.Entry<String, Portal>> it = portals.entrySet().iterator();
@@ -754,10 +760,8 @@ public class Session implements AutoCloseable {
                         }
                     }
                 }
-                return;
             }
-            default:
-                throw new IllegalArgumentException("Invalid type: " + type + ", valid types are: [P, S]");
+            default -> throw new IllegalArgumentException("Invalid type: " + type + ", valid types are: [P, S]");
         }
     }
 

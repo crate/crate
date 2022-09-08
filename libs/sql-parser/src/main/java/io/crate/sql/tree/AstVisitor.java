@@ -675,4 +675,16 @@ public abstract class AstVisitor<R, C> {
     public R visitWith(With with, C context) {
         return visitStatement(with, context);
     }
+
+    public R visitDeclareCursor(DeclareCursor declareCursor, C context) {
+        return visitStatement(declareCursor, context);
+    }
+
+    public R visitFetchFromCursor(FetchFromCursor fetchFromCursor, C context) {
+        return visitStatement(fetchFromCursor, context);
+    }
+
+    public R visitCloseCursor(CloseCursor closeCursor, C context) {
+        return visitStatement(closeCursor, context);
+    }
 }

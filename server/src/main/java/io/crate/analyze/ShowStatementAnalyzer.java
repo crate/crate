@@ -201,6 +201,7 @@ class ShowStatementAnalyzer {
         return analyzer.analyze(
             query,
             analysis.sessionSettings(),
+            null,
             analysis.paramTypeHints());
     }
 

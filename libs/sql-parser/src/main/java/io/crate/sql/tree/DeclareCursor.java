@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,37 +19,41 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.analyze;
+package io.crate.sql.tree;
 
-import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.settings.CoordinatorSessionSettings;
-import io.crate.protocols.postgres.Portals;
+public class DeclareCursor extends Cursor {
 
-public class Analysis {
+    private final Query query;
 
-    private final CoordinatorTxnCtx coordinatorTxnCtx;
-    private final ParamTypeHints paramTypeHints;
-    private final Portals portals;
-
-    public Analysis(CoordinatorTxnCtx coordinatorTxnCtx, ParamTypeHints paramTypeHints, Portals portals) {
-        this.paramTypeHints = paramTypeHints;
-        this.coordinatorTxnCtx = coordinatorTxnCtx;
-        this.portals = portals;
+    public DeclareCursor(String cursorName, Query query) {
+        super(cursorName);
+        this.query = query;
     }
 
-    public Portals portals() {
-        return portals;
+    public Query getQuery() {
+        return query;
     }
 
-    public CoordinatorTxnCtx transactionContext() {
-        return coordinatorTxnCtx;
+    @Override
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+        return visitor.visitDeclareCursor(this, context);
     }
 
-    public CoordinatorSessionSettings sessionSettings() {
-        return coordinatorTxnCtx.sessionSettings();
+    @Override
+    public int hashCode() {
+        return 0;
     }
 
-    public ParamTypeHints paramTypeHints() {
-        return paramTypeHints;
+    @Override
+    public boolean equals(Object obj) {
+        return false;
+    }
+
+    @Override
+    public String toString() {
+        return "DeclareCursor{" +
+               "cursorName=" + getCursorName() +
+               ", query=" + query +
+               '}';
     }
 }

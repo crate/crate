@@ -1810,6 +1810,7 @@ public abstract class IntegTestCase extends ESTestCase {
             analyzer.analyze(
                 SqlParser.createStatement(stmt),
                 coordinatorTxnCtx.sessionSettings(),
+                null,
                 ParamTypeHints.EMPTY),
             plannerContext);
         return new PlanForNode(plan, nodeName, plannerContext);

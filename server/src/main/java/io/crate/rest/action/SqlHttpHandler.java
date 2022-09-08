@@ -26,27 +26,6 @@ import static io.crate.breaker.BlockBasedRamAccounting.MAX_BLOCK_SIZE_IN_BYTES;
 import static io.crate.protocols.http.Headers.isCloseConnection;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
-
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.Function;
-
-import javax.annotation.Nullable;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.breaker.CircuitBreaker;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
-import org.elasticsearch.http.netty4.cors.Netty4CorsConfig;
-import org.elasticsearch.http.netty4.cors.Netty4CorsHandler;
-import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
-import org.elasticsearch.transport.netty4.Netty4Utils;
-
 import io.crate.action.sql.DescribeResult;
 import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.SQLOperations;
@@ -59,11 +38,14 @@ import io.crate.breaker.BlockBasedRamAccounting;
 import io.crate.breaker.RamAccounting;
 import io.crate.breaker.RowAccountingWithEstimators;
 import io.crate.common.annotations.VisibleForTesting;
+import io.crate.common.resolvers.MaxRowsResolver;
+import io.crate.common.resolvers.PortalNameResolver;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.protocols.http.Headers;
+import io.crate.sql.tree.Statement;
 import io.crate.user.User;
 import io.crate.user.UserLookup;
 import io.netty.buffer.ByteBuf;
@@ -77,6 +59,24 @@ import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.QueryStringDecoder;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.common.breaker.CircuitBreaker;
+import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
+import org.elasticsearch.http.netty4.cors.Netty4CorsConfig;
+import org.elasticsearch.http.netty4.cors.Netty4CorsHandler;
+import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
+import org.elasticsearch.transport.netty4.Netty4Utils;
+
+import javax.annotation.Nullable;
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
 
 public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
 
@@ -234,9 +234,11 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
                                                                     List<Object> args,
                                                                     boolean includeTypes) throws IOException {
         long startTimeInNs = System.nanoTime();
-        session.parse(UNNAMED, stmt, emptyList());
-        session.bind(UNNAMED, UNNAMED, args == null ? emptyList() : args, null);
-        DescribeResult description = session.describe('P', UNNAMED);
+        Statement parsedStmt = session.parse(UNNAMED, stmt, emptyList());
+        String portalName = parsedStmt.accept(PortalNameResolver.INSTANCE, "");
+        int maxRows = parsedStmt.accept(MaxRowsResolver.INSTANCE, 0);
+        session.bind(portalName, UNNAMED, args == null ? emptyList() : args, null);
+        DescribeResult description = session.describe('P', portalName);
         List<Symbol> resultFields = description.getFields();
         ResultReceiver<XContentBuilder> resultReceiver;
         if (resultFields == null) {
@@ -258,7 +260,7 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
             );
             resultReceiver.completionFuture().whenComplete((result, error) -> ramAccounting.close());
         }
-        session.execute(UNNAMED, 0, resultReceiver);
+        session.execute(portalName, maxRows, resultReceiver);
         return session.sync()
             .thenCompose(ignored -> resultReceiver.completionFuture());
     }
@@ -267,15 +269,17 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
                                                                   String stmt,
                                                                   List<List<Object>> bulkArgs) {
         final long startTimeInNs = System.nanoTime();
-        session.parse(UNNAMED, stmt, emptyList());
+        Statement parsedStmt = session.parse(UNNAMED, stmt, emptyList());
+        String portalName = parsedStmt.accept(PortalNameResolver.INSTANCE, "");
+        int maxRows = parsedStmt.accept(MaxRowsResolver.INSTANCE, 0);
         final RestBulkRowCountReceiver.Result[] results = new RestBulkRowCountReceiver.Result[bulkArgs.size()];
         for (int i = 0; i < bulkArgs.size(); i++) {
-            session.bind(UNNAMED, UNNAMED, bulkArgs.get(i), null);
+            session.bind(portalName, UNNAMED, bulkArgs.get(i), null);
             ResultReceiver resultReceiver = new RestBulkRowCountReceiver(results, i);
-            session.execute(UNNAMED, 0, resultReceiver);
+            session.execute(portalName, maxRows, resultReceiver);
         }
         if (results.length > 0) {
-            DescribeResult describeResult = session.describe('P', UNNAMED);
+            DescribeResult describeResult = session.describe('P', portalName);
             if (describeResult.getFields() != null) {
                 return CompletableFuture.failedFuture(new UnsupportedOperationException(
                             "Bulk operations for statements that return result sets is not supported"));

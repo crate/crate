@@ -111,7 +111,7 @@ public class PreExecutionBenchmark {
     public AnalyzedStatement measure_parse_and_analyze_simple_select() throws Exception {
         String sql = "select name from users";
         CoordinatorTxnCtx systemTransactionContext = CoordinatorTxnCtx.systemTransactionContext();
-        Analysis analysis = new Analysis(systemTransactionContext, ParamTypeHints.EMPTY);
+        Analysis analysis = new Analysis(systemTransactionContext, ParamTypeHints.EMPTY, null);
         return analyzer.analyzedStatement(SqlParser.createStatement(sql), analysis);
     }
 
@@ -119,7 +119,7 @@ public class PreExecutionBenchmark {
     public Plan measure_parse_analyze_and_plan_simple_select() throws Exception {
         String sql = "select name from users";
         CoordinatorTxnCtx systemTransactionContext = CoordinatorTxnCtx.systemTransactionContext();
-        Analysis analysis = new Analysis(systemTransactionContext, ParamTypeHints.EMPTY);
+        Analysis analysis = new Analysis(systemTransactionContext, ParamTypeHints.EMPTY, null);
         AnalyzedStatement analyzedStatement = analyzer.analyzedStatement(SqlParser.createStatement(sql), analysis);
         var jobId = UUID.randomUUID();
         var routingProvider = new RoutingProvider(Randomness.get().nextInt(), planner.getAwarenessAttributes());

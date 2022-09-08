@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -28,71 +28,60 @@ import io.crate.analyze.AnalyzedStatement;
 import javax.annotation.Nullable;
 import java.util.List;
 
-public class Portal {
+public class Cursor extends Portal {
 
-    private final String portalName;
-    private final PreparedStmt preparedStmt;
-    private final List<Object> params;
-    private final AnalyzedStatement analyzedStatement;
+    private enum State {
+        Declare, Fetch;
+    }
 
-    @Nullable
-    private final FormatCodes.FormatCode[] resultFormatCodes;
+    private PreparedStmt pStmtOfFetch;
+    private State state;
 
-    private RowConsumerToResultReceiver consumer;
-
-    Portal(String portalName,
+    Cursor(String portalName,
            PreparedStmt preparedStmt,
            List<Object> params,
            AnalyzedStatement analyzedStatement,
            @Nullable FormatCodes.FormatCode[] resultFormatCodes) {
-        this.portalName = portalName;
-        this.preparedStmt = preparedStmt;
-        this.params = params;
-        this.analyzedStatement = analyzedStatement;
-        this.resultFormatCodes = resultFormatCodes;
+        super(portalName, preparedStmt, params, analyzedStatement, resultFormatCodes);
+        this.pStmtOfFetch = preparedStmt;
+        this.state = State.Declare;
     }
 
-    public String name() {
-        return portalName;
-    }
+    public void bindFetch(PreparedStmt preparedStmt) {
+        this.pStmtOfFetch = preparedStmt;
+        this.state = State.Fetch;
 
-    public PreparedStmt preparedStmt() {
-        return preparedStmt;
-    }
-
-    public List<Object> params() {
-        return params;
-    }
-
-    @Nullable
-    public FormatCodes.FormatCode[] resultFormatCodes() {
-        return resultFormatCodes;
-    }
-
-    public AnalyzedStatement analyzedStatement() {
-        return analyzedStatement;
-    }
-
-    public void setActiveConsumer(RowConsumerToResultReceiver consumer) {
-        this.consumer = consumer;
-    }
-
-    @Nullable
-    public RowConsumerToResultReceiver activeConsumer() {
-        return consumer;
-    }
-
-    public void closeActiveConsumer() {
-        if (consumer != null) {
-            consumer.closeAndFinishIfSuspended();
+        // ex) fetch x from cursor; fetch y from cursor;
+        // if rowCount is not reset, y is affected by x because the consumer is reused
+        var activeConsumer = this.activeConsumer();
+        if (activeConsumer != null) {
+            activeConsumer.resetRowCount(0);
         }
     }
 
     @Override
-    public String toString() {
-        return "Portal{" +
-               "portalName=" + portalName +
-               ", preparedStmt=" + preparedStmt.rawStatement() +
-               '}';
+    public PreparedStmt preparedStmt() {
+        return pStmtOfFetch;
+    }
+
+    @Override
+    public AnalyzedStatement analyzedStatement() {
+        return pStmtOfFetch.analyzedStatement();
+    }
+
+    public void close() {
+
+    }
+
+    @Override
+    public void setActiveConsumer(RowConsumerToResultReceiver consumer) {
+        super.setActiveConsumer(consumer);
+        if (consumer != null) {
+            consumer.completionFuture().whenComplete((r, t) -> {
+                if (this.state == State.Declare) {
+                    super.setActiveConsumer(null);
+                }
+            });
+        }
     }
 }

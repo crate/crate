@@ -31,14 +31,19 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.RandomAccess;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
+import io.crate.sql.tree.CloseCursor;
+import io.crate.sql.tree.FetchFromCursor;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
+import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
 import io.crate.common.collections.Lists2;
@@ -106,6 +111,7 @@ import io.crate.sql.tree.CreateUser;
 import io.crate.sql.tree.CreateView;
 import io.crate.sql.tree.CurrentTime;
 import io.crate.sql.tree.DeallocateStatement;
+import io.crate.sql.tree.DeclareCursor;
 import io.crate.sql.tree.DecommissionNodeStatement;
 import io.crate.sql.tree.Delete;
 import io.crate.sql.tree.DenyPrivilege;
@@ -2048,6 +2054,49 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
                 .map(c -> c.getText().toLowerCase(Locale.ENGLISH))
                 .collect(Collectors.joining(" "))
         );
+    }
+
+    @Override
+    public Node visitDeclareCursor(SqlBaseParser.DeclareCursorContext ctx) {
+        var cursorParams = ctx.declareCursorParams();
+        if (cursorParams.BINARY().size() > 0) {
+            throw new IllegalArgumentException("Cursors do not yet support returning data in binary format");
+        }
+        if (cursorParams.ASENSITIVE().size() > 0) {
+            throw new IllegalArgumentException("Asensitive cursors are not yet supported");
+        }
+        // none specified or only 'no scroll' any number of times, 'no-scroll' by default
+        if (cursorParams.NO().size() != cursorParams.SCROLL().size()) {
+            throw new IllegalArgumentException("Cursors do not yet support scroll");
+        }
+        return new DeclareCursor(getIdentText(ctx.ident()), (Query) visit(ctx.queryNoWith()));
+    }
+
+    @Override
+    public Node visitFetchFromCursor(SqlBaseParser.FetchFromCursorContext ctx) {
+        var count = ctx.count();
+        if (count == null) {
+            return new FetchFromCursor(getIdentText(ctx.ident()), getSelectorText(ctx.selector()));
+        }
+        return new FetchFromCursor(
+            Integer.parseInt(count.getText()),
+            getIdentText(ctx.ident()),
+            getSelectorText(ctx.selector()));
+    }
+
+    @Override
+    public Node visitCloseCursor(SqlBaseParser.CloseCursorContext ctx) {
+        return new CloseCursor(ctx.ALL() == null ? getIdentText(ctx.ident()) : null);
+    }
+
+    private static String getSelectorText(SqlBaseParser.SelectorContext selectorContext) {
+        if (selectorContext == null) {
+            return null;
+        }
+        return Stream.of(selectorContext.RELATIVE(), selectorContext.FORWARD(), selectorContext.BACKWARD())
+            .filter(Objects::nonNull)
+            .map(ParseTree::getText)
+            .findFirst().get();
     }
 
     private static String getObjectType(Token type) {

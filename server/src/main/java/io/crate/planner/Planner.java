@@ -30,6 +30,7 @@ import io.crate.analyze.AnalyzedAlterTableRename;
 import io.crate.analyze.AnalyzedAlterUser;
 import io.crate.analyze.AnalyzedAnalyze;
 import io.crate.analyze.AnalyzedBegin;
+import io.crate.analyze.AnalyzedCloseCursor;
 import io.crate.analyze.AnalyzedCommit;
 import io.crate.analyze.AnalyzedCopyFrom;
 import io.crate.analyze.AnalyzedCopyTo;
@@ -42,6 +43,7 @@ import io.crate.analyze.AnalyzedCreateTable;
 import io.crate.analyze.AnalyzedCreateTableAs;
 import io.crate.analyze.AnalyzedCreateUser;
 import io.crate.analyze.AnalyzedDeallocate;
+import io.crate.analyze.AnalyzedDeclareCursor;
 import io.crate.analyze.AnalyzedDecommissionNode;
 import io.crate.analyze.AnalyzedDeleteStatement;
 import io.crate.analyze.AnalyzedDiscard;
@@ -52,6 +54,7 @@ import io.crate.analyze.AnalyzedDropSnapshot;
 import io.crate.analyze.AnalyzedDropTable;
 import io.crate.analyze.AnalyzedDropUser;
 import io.crate.analyze.AnalyzedDropView;
+import io.crate.analyze.AnalyzedFetchFromCursor;
 import io.crate.analyze.AnalyzedGCDanglingArtifacts;
 import io.crate.analyze.AnalyzedInsertStatement;
 import io.crate.analyze.AnalyzedKill;
@@ -577,6 +580,24 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     public Plan visitDropSubscription(AnalyzedDropSubscription dropSubscription,
                                       PlannerContext context) {
         return new DropSubscriptionPlan(dropSubscription);
+    }
+
+    @Override
+    public Plan visitDeclareCursor(AnalyzedDeclareCursor declareCursor,
+                                   PlannerContext context) {
+        return NoopPlan.INSTANCE;
+    }
+
+    @Override
+    public Plan visitFetchFromCursor(AnalyzedFetchFromCursor fetchFromCursor,
+                                     PlannerContext context) {
+        return fetchFromCursor.query().accept(this, context);
+    }
+
+    @Override
+    public Plan visitCloseCursor(AnalyzedCloseCursor closeCursor,
+                                 PlannerContext context) {
+        return new CloseCursorPlan(closeCursor);
     }
 }
 

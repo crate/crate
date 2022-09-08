@@ -60,6 +60,7 @@ import io.crate.sql.tree.CreateSnapshot;
 import io.crate.sql.tree.CreateSubscription;
 import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.CreateUser;
+import io.crate.sql.tree.DeclareCursor;
 import io.crate.sql.tree.DecommissionNodeStatement;
 import io.crate.sql.tree.DenyPrivilege;
 import io.crate.sql.tree.DropAnalyzer;
@@ -75,6 +76,7 @@ import io.crate.sql.tree.DropView;
 import io.crate.sql.tree.EscapedCharStringLiteral;
 import io.crate.sql.tree.Explain;
 import io.crate.sql.tree.Expression;
+import io.crate.sql.tree.FetchFromCursor;
 import io.crate.sql.tree.FunctionArgument;
 import io.crate.sql.tree.GCDanglingArtifacts;
 import io.crate.sql.tree.GenericProperties;
@@ -1216,6 +1218,26 @@ public final class SqlFormatter {
                 .append(node.scope())
                 .append(" SESSION AUTHORIZATION ")
                 .append(user != null ? quoteIdentifierIfNeeded(user) : "DEFAULT");
+            return null;
+        }
+
+        @Override
+        public Void visitDeclareCursor(DeclareCursor declareCursor, Integer context) {
+            builder
+                .append("DECLARE ")
+                .append(declareCursor.getCursorName())
+                .append(" CURSOR FOR ")
+                .append(declareCursor.getQuery().accept(this, context));
+            return null;
+        }
+
+        @Override
+        public Void visitFetchFromCursor(FetchFromCursor fetchFromCursor, Integer context) {
+            builder
+                .append("FETCH FORWARD")
+                .append(fetchFromCursor.count())
+                .append(" FROM ")
+                .append(fetchFromCursor.getCursorName());
             return null;
         }
 

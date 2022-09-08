@@ -90,6 +90,10 @@ statement
     | DEALLOCATE (PREPARE)? (ALL | prepStmt=stringLiteralOrIdentifierOrQname)        #deallocate
     | ANALYZE                                                                        #analyze
     | DISCARD (ALL | PLANS | SEQUENCES | TEMPORARY | TEMP)                           #discard
+    | DECLARE ident declareCursorParams
+        CURSOR ((WITH | WITHOUT) HOLD)? FOR queryNoWith                              #declareCursor
+    | FETCH (selector)? (count)? (IN | FROM) ident                                   #fetchFromCursor
+    | CLOSE (ident | ALL)?                                                           #closeCursor
     ;
 
 dropStmt
@@ -727,6 +731,25 @@ isolationLevel
     | READ UNCOMMITTED
     ;
 
+selector
+    : FORWARD
+    | BACKWARD
+    | RELATIVE
+    ;
+
+count
+    : integerLiteral
+    | ALL
+    | NEXT
+    | PRIOR
+    ;
+
+// https://www.postgresql.org/docs/current/sql-declare.html
+// The key words ASENSITIVE, BINARY, INSENSITIVE, and SCROLL can appear in any order.
+declareCursorParams
+    : (ASENSITIVE | BINARY | INSENSITIVE | (NO)? SCROLL)*
+    ;
+
 nonReserved
     : ALIAS | ANALYZE | ANALYZER | AT | AUTHORIZATION | BERNOULLI | BLOB | CATALOGS | CHAR_FILTERS | CHECK | CLUSTERED
     | COLUMNS | COPY | CURRENT |  DAY | DEALLOCATE | DISTRIBUTED | DUPLICATE | DYNAMIC | EXPLAIN
@@ -746,7 +769,8 @@ nonReserved
     | REPLACE | RETURNING | SWAP | GC | DANGLING | ARTIFACTS | DECOMMISSION | LEADING | TRAILING | BOTH | TRIM
     | CURRENT_SCHEMA | PROMOTE | CHARACTER | VARYING | SUBSTRING
     | DISCARD | PLANS | SEQUENCES | TEMPORARY | TEMP | METADATA
-    | PUBLICATION | SUBSCRIPTION | ENABLE | DISABLE | CONNECTION
+    | PUBLICATION | SUBSCRIPTION | ENABLE | DISABLE | CONNECTION | DECLARE | CURSOR | HOLD | FORWARD | BACKWARD
+    | RELATIVE | PRIOR
     ;
 
 AUTHORIZATION: 'AUTHORIZATION';
@@ -1025,6 +1049,19 @@ SUBSCRIPTION: 'SUBSCRIPTION';
 CONNECTION: 'CONNECTION';
 ENABLE: 'ENABLE';
 DISABLE: 'DISABLE';
+
+DECLARE: 'DECLARE';
+CURSOR: 'CURSOR';
+ASENSITIVE: 'ASENSITIVE';
+INSENSITIVE: 'INSENSITIVE';
+BINARY: 'BINARY';
+NO: 'NO';
+SCROLL: 'SCROLL';
+HOLD: 'HOLD';
+FORWARD: 'FORWARD';
+BACKWARD: 'BACKWARD';
+RELATIVE: 'RELATIVE';
+PRIOR: 'PRIOR';
 
 EQ  : '=';
 NEQ : '<>' | '!=';

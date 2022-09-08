@@ -827,6 +827,7 @@ public class SQLExecutor {
         return (T) analyzer.analyze(
             SqlParser.createStatement(stmt),
             coordinatorTxnCtx.sessionSettings(),
+            null,
             typeHints);
     }
 

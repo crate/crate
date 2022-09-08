@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,37 +19,17 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.analyze;
+package io.crate.sql.tree;
 
-import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.settings.CoordinatorSessionSettings;
-import io.crate.protocols.postgres.Portals;
+public abstract class Cursor extends Statement {
 
-public class Analysis {
+    private final String cursorName;
 
-    private final CoordinatorTxnCtx coordinatorTxnCtx;
-    private final ParamTypeHints paramTypeHints;
-    private final Portals portals;
-
-    public Analysis(CoordinatorTxnCtx coordinatorTxnCtx, ParamTypeHints paramTypeHints, Portals portals) {
-        this.paramTypeHints = paramTypeHints;
-        this.coordinatorTxnCtx = coordinatorTxnCtx;
-        this.portals = portals;
+    protected Cursor(String cursorName) {
+        this.cursorName = cursorName;
     }
 
-    public Portals portals() {
-        return portals;
-    }
-
-    public CoordinatorTxnCtx transactionContext() {
-        return coordinatorTxnCtx;
-    }
-
-    public CoordinatorSessionSettings sessionSettings() {
-        return coordinatorTxnCtx.sessionSettings();
-    }
-
-    public ParamTypeHints paramTypeHints() {
-        return paramTypeHints;
+    public String getCursorName() {
+        return cursorName;
     }
 }

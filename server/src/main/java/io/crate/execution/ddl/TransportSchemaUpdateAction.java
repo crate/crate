@@ -226,6 +226,7 @@ public class TransportSchemaUpdateAction extends TransportMasterNodeAction<Schem
             Object updateValue = updateEntry.getValue();
             if (source.containsKey(key)) {
                 Object sourceValue = source.get(key);
+                assert !key.equals("position") || sourceValue instanceof Integer sourceInt && sourceInt > 0;
                 if (sourceValue instanceof Map && updateValue instanceof Map) {
                     //noinspection unchecked
                     mergeIntoSource((Map) sourceValue, (Map) updateValue, Lists2.concat(path, key));

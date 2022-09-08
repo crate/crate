@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,37 +19,32 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.analyze;
+package io.crate.common.resolvers;
 
-import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.settings.CoordinatorSessionSettings;
-import io.crate.protocols.postgres.Portals;
+import io.crate.sql.tree.AstVisitor;
+import io.crate.sql.tree.DeclareCursor;
+import io.crate.sql.tree.FetchFromCursor;
+import io.crate.sql.tree.Node;
 
-public class Analysis {
+public class MaxRowsResolver extends AstVisitor<Integer, Integer> {
 
-    private final CoordinatorTxnCtx coordinatorTxnCtx;
-    private final ParamTypeHints paramTypeHints;
-    private final Portals portals;
+    public static final MaxRowsResolver INSTANCE = new MaxRowsResolver();
 
-    public Analysis(CoordinatorTxnCtx coordinatorTxnCtx, ParamTypeHints paramTypeHints, Portals portals) {
-        this.paramTypeHints = paramTypeHints;
-        this.coordinatorTxnCtx = coordinatorTxnCtx;
-        this.portals = portals;
+    private MaxRowsResolver() {
     }
 
-    public Portals portals() {
-        return portals;
+    @Override
+    protected Integer visitNode(Node node, Integer defaultValue) {
+        return defaultValue;
     }
 
-    public CoordinatorTxnCtx transactionContext() {
-        return coordinatorTxnCtx;
+    @Override
+    public Integer visitDeclareCursor(DeclareCursor declareCursor, Integer defaultValue) {
+        return 0;
     }
 
-    public CoordinatorSessionSettings sessionSettings() {
-        return coordinatorTxnCtx.sessionSettings();
-    }
-
-    public ParamTypeHints paramTypeHints() {
-        return paramTypeHints;
+    @Override
+    public Integer visitFetchFromCursor(FetchFromCursor fetchFromCursor, Integer defaultValue) {
+        return fetchFromCursor.count();
     }
 }

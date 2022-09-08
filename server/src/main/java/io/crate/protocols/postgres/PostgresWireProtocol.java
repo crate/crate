@@ -59,6 +59,8 @@ import io.crate.auth.AuthenticationMethod;
 import io.crate.auth.Protocol;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists2;
+import io.crate.common.resolvers.MaxRowsResolver;
+import io.crate.common.resolvers.PortalNameResolver;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.protocols.postgres.DelayableWriteChannel.DelayedWrites;
@@ -769,10 +771,12 @@ public class PostgresWireProtocol {
             query = statement.toString();
         }
         AccessControl accessControl = getAccessControl.apply(session.sessionSettings());
+        String portalName = statement.accept(PortalNameResolver.INSTANCE, "");
+        int maxRows = statement.accept(MaxRowsResolver.INSTANCE, 0);
         try {
             session.analyze("", statement, Collections.emptyList(), query);
-            session.bind("", "", Collections.emptyList(), null);
-            DescribeResult describeResult = session.describe('P', "");
+            session.bind(portalName, "", Collections.emptyList(), null);
+            DescribeResult describeResult = session.describe('P', portalName);
             List<Symbol> fields = describeResult.getFields();
 
             if (fields == null) {
@@ -783,7 +787,7 @@ public class PostgresWireProtocol {
                     delayedWrites,
                     accessControl
                 );
-                session.execute("", 0, rowCountReceiver);
+                session.execute(portalName, maxRows, rowCountReceiver);
             } else {
                 Messages.sendRowDescription(channel, fields, null, describeResult.relation());
                 DelayedWrites delayedWrites = channel.delayWrites();
@@ -796,7 +800,7 @@ public class PostgresWireProtocol {
                     Lists2.map(fields, x -> PGTypes.get(x.valueType())),
                     null
                 );
-                session.execute("", 0, resultSetReceiver);
+                session.execute(portalName, maxRows, resultSetReceiver);
             }
             return session.sync();
         } catch (Throwable t) {
