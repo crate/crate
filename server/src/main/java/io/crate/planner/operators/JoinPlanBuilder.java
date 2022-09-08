@@ -119,7 +119,9 @@ public class JoinPlanBuilder {
         LogicalPlan rhsPlan = plan.apply(rhs);
         Symbol query = removeParts(queryParts, lhsName, rhsName);
         LogicalPlan joinPlan = null;
-        Set<RelationName> subQueriesRelationNames = subQueries.getCorrelatedRelationNames();
+        if (joinCondition == null) {
+
+        }
         Set<RelationName> split = RelationNameCollector.collect(joinCondition);
         boolean isRhs = false;
         boolean isLhs = false;
@@ -133,8 +135,8 @@ public class JoinPlanBuilder {
             Map<Set<RelationName>, Symbol> split1 = QuerySplitter.split(joinCondition);
             Set<Symbol> validSymbols = new HashSet<>();
             for (Map.Entry<Set<RelationName>, Symbol> setSymbolEntry : split1.entrySet()) {
-                var key = setSymbolEntry.getKey();
                 var value = setSymbolEntry.getValue();
+                // use a visitor here
                 if (value instanceof io.crate.expression.symbol.Function f) {
                     var isSelect = false;
                     for (Symbol argument : f.arguments()) {
