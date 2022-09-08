@@ -21,6 +21,15 @@
 
 package org.elasticsearch.index.shard;
 
+import static org.elasticsearch.repositories.RepositoryData.EMPTY_REPO_GEN;
+
+import java.io.IOException;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Nullable;
+
 import org.apache.lucene.index.IndexCommit;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
@@ -41,16 +50,6 @@ import org.elasticsearch.repositories.ShardGenerations;
 import org.elasticsearch.snapshots.SnapshotId;
 import org.elasticsearch.snapshots.SnapshotInfo;
 import org.elasticsearch.snapshots.SnapshotShardFailure;
-
-import java.io.IOException;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import static org.elasticsearch.repositories.RepositoryData.EMPTY_REPO_GEN;
-
-import javax.annotation.Nullable;
 
 import io.crate.common.collections.Tuple;
 
@@ -96,7 +95,7 @@ public abstract class RestoreOnlyRepository implements Repository {
     public void getRepositoryData(ActionListener<RepositoryData> listener) {
         final IndexId indexId = new IndexId(indexName, "blah");
             listener.onResponse(new RepositoryData(EMPTY_REPO_GEN, Map.of(), Map.of(), Map.of(),
-            Map.of(indexId, Set.of()), ShardGenerations.EMPTY));
+            Map.of(indexId, List.of()), ShardGenerations.EMPTY));
     }
 
     @Override
