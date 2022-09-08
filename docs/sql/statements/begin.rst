@@ -35,6 +35,11 @@ The statement starts a transaction block until it committed or rolled back.
 As CrateDB does not support transactions, this command has no effect and will
 be ignored.
 
+.. NOTE::
+
+  For backwards compatibility reasons, the commas between successive
+  ``transaction_modes`` can be omitted.
+
 Parameters
 ==========
 

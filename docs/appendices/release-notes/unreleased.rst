@@ -99,6 +99,10 @@ Changes
 - Added support for casting ``TIMESTAMP`` and ``TIMESTAMP WITHOUT TIME ZONE``
   values to the ``DATE`` data type and vice versa.
 
+- Made the commas between successive ``transaction_modes`` of the ``BEGIN`` and
+  its SQL equivalent ``START TRANSACTION`` statement optional to support
+  compatibility with clients and tools using an older (< 8.0) PostgreSQL syntax.
+
 Fixes
 =====
 
