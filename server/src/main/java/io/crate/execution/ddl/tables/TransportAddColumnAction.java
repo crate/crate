@@ -143,7 +143,7 @@ public class TransportAddColumnAction extends AbstractDDLTransportAction<AddColu
             HashMap<String, Object> properties = new HashMap<>();
             AnalyzedColumnDefinition.addTypeOptions(properties,
                                                     columnInfo.type(),
-                                                    new GenericProperties(columnInfo.geoProperties()),
+                                                    new GenericProperties<>(columnInfo.geoProperties()),
                                                     columnInfo.geoTree(),
                                                     columnInfo.analyzer()
             );
@@ -266,7 +266,7 @@ public class TransportAddColumnAction extends AbstractDDLTransportAction<AddColu
         // _meta fields
         if (convertedRequest.primaryKeys.isEmpty() == false) {
             Maps.mergeInto(existingMapping, "_meta", List.of("primary_keys"), convertedRequest.primaryKeys,
-                (map, key, value) -> ((ArrayList) map.computeIfAbsent(key, k -> new ArrayList<>())).addAll(convertedRequest.primaryKeys)
+                (map, key, value) -> ((ArrayList<String>) map.computeIfAbsent(key, k -> new ArrayList<String>())).addAll(convertedRequest.primaryKeys)
             );
         }
         if (convertedRequest.notNullColumns.isEmpty() == false) {
@@ -274,7 +274,7 @@ public class TransportAddColumnAction extends AbstractDDLTransportAction<AddColu
                 (map, key, value) -> {
                     if ("not_null".equals(key)) {
                         // we are merging on the end pf the path, i.e adding to the list
-                        ((ArrayList) map.computeIfAbsent(key, k -> new ArrayList<>())).addAll(convertedRequest.notNullColumns);
+                        ((ArrayList<String>) map.computeIfAbsent(key, k -> new ArrayList<String>())).addAll(convertedRequest.notNullColumns);
                     } else {
                         // When adding not-null for the first time,
                         // Maps.mergeInto stops mid-path and transforms value (list) into chain of maps (to complement the remaining path) and adds value to the end.
@@ -287,12 +287,12 @@ public class TransportAddColumnAction extends AbstractDDLTransportAction<AddColu
         }
         if (convertedRequest.generatedColumns.isEmpty() == false) {
             Maps.mergeInto(existingMapping, "_meta", List.of("generated_columns"), convertedRequest.generatedColumns,
-                (map, key, value) -> ((LinkedHashMap) map.computeIfAbsent(key, k -> new LinkedHashMap<>())).putAll(convertedRequest.generatedColumns)
+                (map, key, value) -> ((LinkedHashMap<String, String>) map.computeIfAbsent(key, k -> new LinkedHashMap<String, String>())).putAll(convertedRequest.generatedColumns)
             );
         }
         for (var check: request.checkConstraints()) {
             Maps.mergeInto(existingMapping, "_meta", List.of("check_constraints"), check,
-                (map, key, value) -> ((LinkedHashMap) map.computeIfAbsent(key, k -> new LinkedHashMap<>())).put(check.name(), check.expression())
+                (map, key, value) -> ((LinkedHashMap<String, String>) map.computeIfAbsent(key, k -> new LinkedHashMap<String, String>())).put(check.name(), check.expression())
             );
         }
 
