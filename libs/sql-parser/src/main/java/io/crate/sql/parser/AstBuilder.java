@@ -31,19 +31,18 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.RandomAccess;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
 import io.crate.sql.tree.CloseCursor;
+import io.crate.sql.tree.FetchAllFromCursor;
 import io.crate.sql.tree.FetchFromCursor;
+import io.crate.sql.tree.FetchNoneFromCursor;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
-import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
 import io.crate.common.collections.Lists2;
@@ -2065,7 +2064,8 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         if (cursorParams.ASENSITIVE().size() > 0) {
             throw new IllegalArgumentException("Asensitive cursors are not yet supported");
         }
-        // none specified or only 'no scroll' any number of times, 'no-scroll' by default
+        // none specified or only 'no scroll' is allowed any number of times.
+        // The default is 'no scroll'.
         if (cursorParams.NO().size() != cursorParams.SCROLL().size()) {
             throw new IllegalArgumentException("Cursors do not yet support scroll");
         }
@@ -2074,14 +2074,29 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     @Override
     public Node visitFetchFromCursor(SqlBaseParser.FetchFromCursorContext ctx) {
-        var count = ctx.count();
-        if (count == null) {
-            return new FetchFromCursor(getIdentText(ctx.ident()), getSelectorText(ctx.selector()));
+        //
+        var directionCtx = ctx.direction();
+        var cursorName = getIdentText(ctx.ident());
+        if (directionCtx == null) {
+            return new FetchFromCursor(1, cursorName, "FORWARD");
+        } else {
+            var countCtx = directionCtx.integerLiteral();
+            var allCtx = directionCtx.ALL();
+            if (countCtx == null) {
+                if (allCtx == null) {
+                    return new FetchFromCursor(1, cursorName, getDirectionText(directionCtx));
+                } else {
+                    return new FetchAllFromCursor(cursorName, getDirectionText(directionCtx));
+                }
+            } else {
+                int count = Integer.parseInt(countCtx.getText());
+                if (count == 0) {
+                    return new FetchNoneFromCursor(cursorName);
+                } else {
+                    return new FetchFromCursor(count, cursorName, getDirectionText(directionCtx));
+                }
+            }
         }
-        return new FetchFromCursor(
-            Integer.parseInt(count.getText()),
-            getIdentText(ctx.ident()),
-            getSelectorText(ctx.selector()));
     }
 
     @Override
@@ -2089,14 +2104,17 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         return new CloseCursor(ctx.ALL() == null ? getIdentText(ctx.ident()) : null);
     }
 
-    private static String getSelectorText(SqlBaseParser.SelectorContext selectorContext) {
-        if (selectorContext == null) {
-            return null;
+    private static String getDirectionText(SqlBaseParser.DirectionContext ctx) {
+        if (ctx.NEXT() != null ||
+            ctx.PRIOR() != null ||
+            ctx.FIRST() != null ||
+            ctx.LAST() != null ||
+            ctx.ABSOLUTE() != null ||
+            ctx.RELATIVE() != null ||
+            ctx.BACKWARD() != null) {
+            throw new IllegalArgumentException("Only cursors in forward directions are supported");
         }
-        return Stream.of(selectorContext.RELATIVE(), selectorContext.FORWARD(), selectorContext.BACKWARD())
-            .filter(Objects::nonNull)
-            .map(ParseTree::getText)
-            .findFirst().get();
+        return "FORWARD";
     }
 
     private static String getObjectType(Token type) {

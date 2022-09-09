@@ -32,7 +32,6 @@ public class AnalyzedFetchFromCursor extends AnalyzedCursor {
 
     private final int count;
 
-    //TODO: is this safe version needed?
     public static AnalyzedFetchFromCursor safeCreate(int count, AnalyzedStatement analyzedStatement) {
         if (analyzedStatement instanceof AnalyzedCursor analyzedCursor) {
             return new AnalyzedFetchFromCursor(count, analyzedCursor);

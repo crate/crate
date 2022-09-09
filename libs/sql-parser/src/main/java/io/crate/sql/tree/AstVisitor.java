@@ -684,6 +684,10 @@ public abstract class AstVisitor<R, C> {
         return visitStatement(fetchFromCursor, context);
     }
 
+    public R visitFetchNoneFromCursor(FetchNoneFromCursor fetchNoneFromCursor, C context) {
+        return visitStatement(fetchNoneFromCursor, context);
+    }
+
     public R visitCloseCursor(CloseCursor closeCursor, C context) {
         return visitStatement(closeCursor, context);
     }

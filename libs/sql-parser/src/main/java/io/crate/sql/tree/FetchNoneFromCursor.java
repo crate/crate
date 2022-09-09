@@ -21,35 +21,15 @@
 
 package io.crate.sql.tree;
 
-import javax.annotation.Nullable;
+public class FetchNoneFromCursor extends Cursor {
 
-public class FetchFromCursor extends Cursor {
-
-    // TODO: currently only supports FORWARD so this is meaningless
-    enum Direction {
-        FORWARD, BACKWARD, RELATIVE;
-    }
-
-    private final int count;
-    private final Direction direction;
-
-    public FetchFromCursor(int count, String cursorName, @Nullable String direction) {
+    public FetchNoneFromCursor(String cursorName) {
         super(cursorName);
-        this.count = count;
-        this.direction = direction == null ? Direction.FORWARD : Direction.valueOf(direction);
-    }
-
-    public Direction direction() {
-        return direction;
-    }
-
-    public int count() {
-        return count;
     }
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitFetchFromCursor(this, context);
+        return visitor.visitFetchNoneFromCursor(this, context);
     }
 
     @Override

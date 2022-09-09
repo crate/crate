@@ -92,8 +92,8 @@ statement
     | DISCARD (ALL | PLANS | SEQUENCES | TEMPORARY | TEMP)                           #discard
     | DECLARE ident declareCursorParams
         CURSOR ((WITH | WITHOUT) HOLD)? FOR queryNoWith                              #declareCursor
-    | FETCH (selector)? (count)? (IN | FROM) ident                                   #fetchFromCursor
-    | CLOSE (ident | ALL)?                                                           #closeCursor
+    | FETCH (direction)? (IN | FROM)? ident                                          #fetchFromCursor
+    | CLOSE (ident | ALL)                                                            #closeCursor
     ;
 
 dropStmt
@@ -731,17 +731,21 @@ isolationLevel
     | READ UNCOMMITTED
     ;
 
-selector
-    : FORWARD
-    | BACKWARD
-    | RELATIVE
-    ;
-
-count
-    : integerLiteral
-    | ALL
-    | NEXT
+direction
+    : NEXT
     | PRIOR
+    | FIRST
+    | LAST
+    | ABSOLUTE integerLiteral
+    | RELATIVE integerLiteral
+    | integerLiteral
+    | ALL
+    | FORWARD
+    | FORWARD integerLiteral
+    | FORWARD ALL
+    | BACKWARD
+    | BACKWARD integerLiteral
+    | BACKWARD ALL
     ;
 
 // https://www.postgresql.org/docs/current/sql-declare.html
@@ -1058,6 +1062,7 @@ BINARY: 'BINARY';
 NO: 'NO';
 SCROLL: 'SCROLL';
 HOLD: 'HOLD';
+ABSOLUTE: 'ABSOLUTE';
 FORWARD: 'FORWARD';
 BACKWARD: 'BACKWARD';
 RELATIVE: 'RELATIVE';

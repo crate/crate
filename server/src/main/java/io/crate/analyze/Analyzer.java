@@ -80,6 +80,7 @@ import io.crate.sql.tree.DropView;
 import io.crate.sql.tree.Explain;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.FetchFromCursor;
+import io.crate.sql.tree.FetchNoneFromCursor;
 import io.crate.sql.tree.GCDanglingArtifacts;
 import io.crate.sql.tree.GrantPrivilege;
 import io.crate.sql.tree.Insert;
@@ -149,7 +150,6 @@ public class Analyzer {
     private final SetStatementAnalyzer setStatementAnalyzer;
     private final ResetStatementAnalyzer resetStatementAnalyzer;
     private final LogicalReplicationAnalyzer logicalReplicationAnalyzer;
-    private final DeclareCursorAnalyzer declareCursorAnalyzer;
 
     /**
      * @param relationAnalyzer is injected because we also need to inject it in
@@ -209,7 +209,6 @@ public class Analyzer {
             logicalReplicationService,
             nodeCtx
         );
-        this.declareCursorAnalyzer = new DeclareCursorAnalyzer(relationAnalyzer);
     }
 
     public AnalyzedStatement analyze(Statement statement,
@@ -693,7 +692,13 @@ public class Analyzer {
         @Override
         public AnalyzedStatement visitDeclareCursor(DeclareCursor declareCursor,
                                                     Analysis context) {
-            return declareCursorAnalyzer.analyze(declareCursor, context.paramTypeHints(), context.transactionContext(), context.portals());
+            String cursorName = declareCursor.getCursorName();
+            if (context.portals().containsKey(cursorName)) {
+                throw new IllegalArgumentException("The cursor '" + cursorName + "' already declared.");
+            }
+            return new AnalyzedDeclareCursor(
+                declareCursor.getCursorName(),
+                relationAnalyzer.analyze(declareCursor.getQuery(), context.transactionContext(), context.paramTypeHints()));
         }
 
         @Override
@@ -702,6 +707,13 @@ public class Analyzer {
                 fetchFromCursor.count(),
                 context.portals().safeGet(fetchFromCursor.getCursorName()).analyzedStatement()
             );
+        }
+
+        @Override
+        public AnalyzedStatement visitFetchNoneFromCursor(FetchNoneFromCursor fetchNoneFromCursor, Analysis context) {
+            String cursorName = fetchNoneFromCursor.getCursorName();
+            context.portals().safeGet(cursorName);
+            return new AnalyzedFetchNoneFromCursor(cursorName);
         }
 
         @Override

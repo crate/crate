@@ -21,29 +21,31 @@
 
 package io.crate.analyze;
 
-import io.crate.analyze.relations.RelationAnalyzer;
-import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.protocols.postgres.Portals;
-import io.crate.sql.tree.DeclareCursor;
+import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.expression.symbol.Symbol;
 
-public class DeclareCursorAnalyzer {
+import java.util.function.Consumer;
 
-    private final RelationAnalyzer relationAnalyzer;
+public class AnalyzedFetchNoneFromCursor implements AnalyzedStatement {
 
-    public DeclareCursorAnalyzer(RelationAnalyzer relationAnalyzer) {
-        this.relationAnalyzer = relationAnalyzer;
+    private final String cursorName;
+
+    public AnalyzedFetchNoneFromCursor(String cursorName) {
+        this.cursorName = cursorName;
     }
 
-    public AnalyzedDeclareCursor analyze(DeclareCursor declareCursor,
-                                         ParamTypeHints paramTypeHints,
-                                         CoordinatorTxnCtx txnCtx,
-                                         Portals portals) {
-        String cursorName = declareCursor.getCursorName();
-        if (portals.containsKey(cursorName)) {
-            throw new IllegalArgumentException("The cursor '" + cursorName + "' already declared.");
-        }
-        return new AnalyzedDeclareCursor(
-            declareCursor.getCursorName(),
-            relationAnalyzer.analyze(declareCursor.getQuery(), txnCtx, paramTypeHints));
+    @Override
+    public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
+        return analyzedStatementVisitor.visitFetchNonFromCursor(this, context);
+    }
+
+    @Override
+    public boolean isWriteOperation() {
+        return false;
+    }
+
+    @Override
+    public void visitSymbols(Consumer<? super Symbol> consumer) {
+
     }
 }
