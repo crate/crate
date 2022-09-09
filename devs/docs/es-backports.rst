@@ -409,9 +409,9 @@ should be crossed out as well.
 - [ ] 4bfd65a3750 Remove TODO around aggregating on _index.
 - [ ] b5916ac455c Ignore closed exception on refresh pending location listener (#55799)
 - [ ] fe9904fbea7 More Efficient Blobstore Metdata IO (#55777) (#55788)
-- [ ] 4403b690485 Fix NPE in Partial Snapshot Without Global State (#55776) (#55783)
-- [ ] 1a3f9e5a07c Return true for can_match on idle search shards (#55428)
-- [ ] b0e8a8a4d12 [Backport] Refactor Spatial Field Mappers (#55696)
+- [x] 4403b690485 Fix NPE in Partial Snapshot Without Global State (#55776) (#55783)
+- [x] 1a3f9e5a07c Return true for can_match on idle search shards (#55428)
+- [s] b0e8a8a4d12 [Backport] Refactor Spatial Field Mappers (#55696)
 - [x] dc899781f23 Fix Broken ExistingStoreRecoverySource Deserialization (#55657) (#55665)
 - [x] d66af46724c Always use deprecateAndMaybeLog for deprecation warnings (#55319)
 - [s] 08444555058 Add geo_shape mapper supporting doc-values in Spatial Plugin (#55037) (#55500)
