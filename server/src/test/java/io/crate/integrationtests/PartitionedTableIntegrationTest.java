@@ -90,6 +90,8 @@ import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseRandomizedSchema;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 @IntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 2)
 public class PartitionedTableIntegrationTest extends IntegTestCase {
 
@@ -2363,5 +2365,25 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
             "1| Arthur\n" +
             "1| Trillian\n"
         ));
+    }
+
+    @Test
+    @UseRandomizedSchema(random = false)
+    public void test_alter_table_drop_constraint_on_partitioned_table() throws Exception {
+        // Dropping a constraint on a partitioned table used to fail before 5.1
+        execute("create table t (id int primary key constraint check_id_gt_zero check(id > 0), " +
+            "x int constraint check_x_gt_zero check(x > 0)) " +
+            "partitioned by (id) " +
+            "clustered into 1 shards " +
+            "with (number_of_replicas=0)");
+        String selectCheckConstraintStmt =
+            "select table_schema, table_name, constraint_type, constraint_name " +
+                "from information_schema.table_constraints " +
+                "where table_name='t' and constraint_name = 'check_x_gt_zero' ";
+
+        execute("alter table t drop constraint check_x_gt_zero");
+
+        execute(selectCheckConstraintStmt);
+        assertThat(response.rows()).isEmpty();
     }
 }

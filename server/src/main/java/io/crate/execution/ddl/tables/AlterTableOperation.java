@@ -79,6 +79,7 @@ public class AlterTableOperation {
 
     private final ClusterService clusterService;
     private final TransportAlterTableAction transportAlterTableAction;
+    private final TransportDropConstraintAction transportDropConstraintAction;
     private final TransportRenameTableAction transportRenameTableAction;
     private final TransportOpenCloseTableOrPartitionAction transportOpenCloseTableOrPartitionAction;
     private final TransportResizeAction transportResizeAction;
@@ -101,6 +102,7 @@ public class AlterTableOperation {
                                TransportDeleteIndexAction transportDeleteIndexAction,
                                TransportSwapAndDropIndexNameAction transportSwapAndDropIndexNameAction,
                                TransportAlterTableAction transportAlterTableAction,
+                               TransportDropConstraintAction transportDropConstraintAction,
                                SQLOperations sqlOperations,
                                IndexScopedSettings indexScopedSettings,
                                LogicalReplicationService logicalReplicationService) {
@@ -113,6 +115,7 @@ public class AlterTableOperation {
         this.transportOpenCloseTableOrPartitionAction = transportOpenCloseTableOrPartitionAction;
         this.transportCloseTable = transportCloseTable;
         this.transportAlterTableAction = transportAlterTableAction;
+        this.transportDropConstraintAction = transportDropConstraintAction;
         this.sqlOperations = sqlOperations;
         this.indexScopedSettings = indexScopedSettings;
         this.logicalReplicationService = logicalReplicationService;
@@ -403,4 +406,9 @@ public class AlterTableOperation {
             return CompletableFuture.failedFuture(e);
         }
     }
+
+    public CompletableFuture<Long> executeAlterTableDropConstraint(DropConstraintRequest request) {
+        return transportDropConstraintAction.execute(request).thenApply(resp -> -1L);
+    }
+
 }
