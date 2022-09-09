@@ -403,11 +403,11 @@ should be crossed out as well.
 - [ ] 9eb67365002 Fix NullPointer when message shortcircuited (#55945)
 - [x] 06b33457878 Avoid double-recovery when state recovery delayed
 - [x] cd228095dfe Retry failed peer recovery due to transient errors (#55883)
-- [ ] cab7bcc1562 Disk decider respect watermarks for single data node (#55805) (#55847)
+- [x] cab7bcc1562 Disk decider respect watermarks for single data node (#55805) (#55847)
 - [x] f38385ee257 Fix Leaking Listener When Closing NodeClient (#55676) (#55864)
 - [x] 80662f31a1c Introduce mechanism to stub request handling (#55832)
-- [ ] 4bfd65a3750 Remove TODO around aggregating on _index.
-- [ ] b5916ac455c Ignore closed exception on refresh pending location listener (#55799)
+- [s] 4bfd65a3750 Remove TODO around aggregating on _index.
+- [x] b5916ac455c Ignore closed exception on refresh pending location listener (#55799)
 - [x] fe9904fbea7 More Efficient Blobstore Metdata IO (#55777) (#55788)
 - [x] 4403b690485 Fix NPE in Partial Snapshot Without Global State (#55776) (#55783)
 - [x] 1a3f9e5a07c Return true for can_match on idle search shards (#55428)
