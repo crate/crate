@@ -29,6 +29,7 @@ import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
@@ -271,6 +272,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                                  boolean includeGlobalState,
                                  Metadata clusterMetadata,
                                  Version repositoryMetaVersion,
+                                 Function<ClusterState, ClusterState> stateTransformer,
                                  ActionListener<Tuple<RepositoryData, SnapshotInfo>> listener) {
         throw new UnsupportedOperationException("Operation not permitted");
     }

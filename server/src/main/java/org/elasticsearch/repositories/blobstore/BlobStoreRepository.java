@@ -43,6 +43,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 import java.util.stream.Stream;
@@ -610,7 +611,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                     builder.put(newGen.indexId, newGen.shardId, newGen.newGeneration);
                 }
                 final RepositoryData updatedRepoData = repositoryData.removeSnapshot(snapshotId, builder.build());
-                writeIndexGen(updatedRepoData, repositoryStateId, true,
+                writeIndexGen(updatedRepoData, repositoryStateId, true, Function.identity(),
                     ActionListener.wrap(v -> writeUpdatedRepoDataStep.onResponse(updatedRepoData), listener::onFailure));
             }, listener::onFailure);
             // Once we have updated the repository, run the clean-ups
@@ -624,7 +625,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
         } else {
             // Write the new repository data first (with the removed snapshot), using no shard generations
             final RepositoryData updatedRepoData = repositoryData.removeSnapshot(snapshotId, ShardGenerations.EMPTY);
-            writeIndexGen(updatedRepoData, repositoryStateId, false, ActionListener.wrap(v -> {
+            writeIndexGen(updatedRepoData, repositoryStateId, false, Function.identity(), ActionListener.wrap(v -> {
                 // Run unreferenced blobs cleanup in parallel to shard-level snapshot deletion
                 final ActionListener<Void> afterCleanupsListener =
                     new GroupedActionListener<>(ActionListener.wrap(() -> listener.onResponse(null)), 2);
@@ -895,6 +896,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                                  final boolean includeGlobalState,
                                  final Metadata clusterMetadata,
                                  Version repositoryMetaVersion,
+                                 Function<ClusterState, ClusterState> stateTransformer,
                                  final ActionListener<Tuple<RepositoryData, SnapshotInfo>> listener) {
         assert repositoryStateId > RepositoryData.UNKNOWN_REPO_GEN :
             "Must finalize based on a valid repository generation but received [" + repositoryStateId + "]";
@@ -913,12 +915,13 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                 getRepositoryData(ActionListener.wrap(existingRepositoryData -> {
                     final RepositoryData updatedRepositoryData =
                         existingRepositoryData.addSnapshot(snapshotId, snapshotInfo.state(), Version.CURRENT, shardGenerations);
-                    writeIndexGen(updatedRepositoryData, repositoryStateId, writeShardGens, ActionListener.wrap(writtenRepoData -> {
-                        if (writeShardGens) {
-                            cleanupOldShardGens(existingRepositoryData, updatedRepositoryData);
-                        }
-                        listener.onResponse(new Tuple<>(writtenRepoData, snapshotInfo));
-                    }, onUpdateFailure));
+                    writeIndexGen(updatedRepositoryData, repositoryStateId, writeShardGens, stateTransformer,
+                            ActionListener.wrap(writtenRepoData -> {
+                                if (writeShardGens) {
+                                    cleanupOldShardGens(existingRepositoryData, updatedRepositoryData);
+                                }
+                                listener.onResponse(new Tuple<>(writtenRepoData, snapshotInfo));
+                            }, onUpdateFailure));
                 }, onUpdateFailure));
             }, onUpdateFailure), 2 + indices.size());
         final Executor executor = threadPool.executor(ThreadPool.Names.SNAPSHOT);
@@ -1324,10 +1327,11 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
      * @param repositoryData RepositoryData to write
      * @param expectedGen    expected repository generation at the start of the operation
      * @param writeShardGens whether to write {@link ShardGenerations} to the new {@link RepositoryData} blob
+     * @param stateFilter    filter for the last cluster state update executed by this method
      * @param listener       completion listener
      */
     protected void writeIndexGen(RepositoryData repositoryData, long expectedGen, boolean writeShardGens,
-                                 ActionListener<RepositoryData> listener) {
+                                 Function<ClusterState, ClusterState> stateFilter, ActionListener<RepositoryData> listener) {
         assert isReadOnly() == false; // can not write to a read only repository
         final long currentGen = repositoryData.getGenId();
         if (currentGen != expectedGen) {
@@ -1473,13 +1477,10 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                                 "Tried to update from unexpected pending repo generation [" + meta.pendingGeneration() +
                                 "] after write to generation [" + newGen + "]");
                         }
-                        return ClusterState.builder(currentState)
-                            .metadata(Metadata.builder(currentState.getMetadata())
-                                .putCustom(RepositoriesMetadata.TYPE,
-                                    currentState.metadata().<RepositoriesMetadata>custom(RepositoriesMetadata.TYPE)
-                                        .withUpdatedGeneration(metadata.name(), newGen, newGen))
-                                          .build()
-                            ).build();
+                        return stateFilter.apply(ClusterState.builder(currentState).metadata(Metadata.builder(currentState.getMetadata())
+                            .putCustom(RepositoriesMetadata.TYPE,
+                                currentState.metadata().<RepositoriesMetadata>custom(RepositoriesMetadata.TYPE).withUpdatedGeneration(
+                                    metadata.name(), newGen, newGen))).build());
                     }
 
                     @Override

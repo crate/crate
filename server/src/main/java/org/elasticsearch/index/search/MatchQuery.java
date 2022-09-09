@@ -326,7 +326,7 @@ public class MatchQuery {
                 throw e;
             } catch (IllegalArgumentException e) {
                 if (lenient == false) {
-                    DEPRECATION_LOGGER.deprecated(e.getMessage());
+                    DEPRECATION_LOGGER.deprecatedAndMaybeLog("match_query_analyze_phrase_not_lenient", e.getMessage());
                 }
                 return newLenientFieldQuery(field, e);
             }
@@ -344,7 +344,7 @@ public class MatchQuery {
                 throw e;
             } catch (IllegalArgumentException e) {
                 if (lenient == false) {
-                    DEPRECATION_LOGGER.deprecated(e.getMessage());
+                    DEPRECATION_LOGGER.deprecatedAndMaybeLog("match_query_analyze_multiphrase_not_lenient", e.getMessage());
                 }
                 return newLenientFieldQuery(field, e);
             }

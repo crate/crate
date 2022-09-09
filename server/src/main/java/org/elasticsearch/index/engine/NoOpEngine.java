@@ -50,7 +50,7 @@ public final class NoOpEngine extends ReadOnlyEngine {
     private final DocsStats docsStats;
 
     public NoOpEngine(EngineConfig config) {
-        super(config, null, null, true, Function.identity());
+        super(config, null, null, true, Function.identity(), true);
         Directory directory = store.directory();
         try (DirectoryReader reader = openDirectory(directory, config.getIndexSettings().isSoftDeleteEnabled())) {
             this.docsStats = docsStats(reader);

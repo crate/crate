@@ -29,11 +29,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.SuppressLoggerChecks;
 import org.elasticsearch.common.util.CollectionUtils;
-import org.elasticsearch.common.util.concurrent.ThreadContext;
 
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.RingBuffer;
-
 
 /**
  * A logger that logs deprecation notices.
@@ -61,7 +59,7 @@ public class DeprecationLogger {
     }
 
     // LRU set of keys used to determine if a deprecation message should be emitted to the deprecation logs
-    private Set<String> keys = Collections.newSetFromMap(Collections.synchronizedMap(new LinkedHashMap<String, Boolean>() {
+    private final Set<String> keys = Collections.newSetFromMap(Collections.synchronizedMap(new LinkedHashMap<String, Boolean>() {
         @Override
         protected boolean removeEldestEntry(final Map.Entry<String, Boolean> eldest) {
             return size() > 128;
@@ -85,21 +83,9 @@ public class DeprecationLogger {
         deprecated(msg, keys.add(key), params);
     }
 
-
-    /**
-     * Logs a deprecated message to the deprecation log, as well as to the local {@link ThreadContext}.
-     *
-     * @param threadContexts The node's {@link ThreadContext} (outside of concurrent tests, this should only ever have one context).
-     * @param message The deprecation message.
-     * @param params The parameters used to fill in the message, if any exist.
-     */
-    public void deprecated(final String message, final Object... params) {
-        deprecated(message, true, params);
-    }
-
     @SuppressLoggerChecks(reason = "safely delegates to logger")
-    void deprecated(final String message, final boolean log, final Object... params) {
-        if (log) {
+    void deprecated(final String message, final boolean shouldLog, final Object... params) {
+        if (shouldLog) {
             logger.warn(message, params);
             var msg = LoggerMessageFormat.format(message, params);
             RECENT_WARNINGS.get().add(msg);

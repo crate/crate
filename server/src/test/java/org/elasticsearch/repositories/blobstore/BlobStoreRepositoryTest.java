@@ -37,6 +37,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Executor;
+import java.util.function.Function;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionRunnable;
@@ -184,7 +185,7 @@ public class BlobStoreRepositoryTest extends IntegTestCase {
 
     private static void writeIndexGen(BlobStoreRepository repository, RepositoryData repositoryData, long generation) {
         final PlainActionFuture<RepositoryData> future = PlainActionFuture.newFuture();
-        repository.writeIndexGen(repositoryData, generation, true, future);
+        repository.writeIndexGen(repositoryData, generation, true, Function.identity(), future);
         future.actionGet();
     }
 
