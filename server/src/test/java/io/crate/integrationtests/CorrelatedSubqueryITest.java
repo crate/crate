@@ -365,7 +365,7 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
             "  └ Limit[3::bigint;0]\n" +
             "    └ OrderBy[table_name ASC column_name DESC]\n" +
             "      └ NestedLoopJoin[LEFT | (attrelid = (SELECT attrelid FROM (col_attr)))]\n" +
-            "        ├ CorrelatedJoin[table_name, column_name, (SELECT attrelid FROM (col_attr)), attrelid]\n" +
+            "        ├ CorrelatedJoin[table_name, column_name, (SELECT attrelid FROM (col_attr))]\n" +
             "        │  └ Collect[information_schema.columns | [table_name, column_name] | true]\n" +
             "        │  └ SubPlan\n" +
             "        │    └ Rename[attrelid] AS col_attr\n" +
