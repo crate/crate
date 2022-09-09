@@ -28,13 +28,16 @@ import io.crate.analyze.AnalyzedStatement;
 import javax.annotation.Nullable;
 import java.util.List;
 
+/**
+ * Cursor is created by Declare and reused throughout successive Fetches then removed when Close is called.
+ */
 public class Cursor extends Portal {
 
     private enum State {
         Declare, Fetch;
     }
 
-    private PreparedStmt pStmtOfFetch;
+    private PreparedStmt preparedStmt; // hides Portal.preparedStmt
     private State state;
 
     Cursor(String portalName,
@@ -43,30 +46,30 @@ public class Cursor extends Portal {
            AnalyzedStatement analyzedStatement,
            @Nullable FormatCodes.FormatCode[] resultFormatCodes) {
         super(portalName, preparedStmt, params, analyzedStatement, resultFormatCodes);
-        this.pStmtOfFetch = preparedStmt;
+        this.preparedStmt = preparedStmt;
         this.state = State.Declare;
     }
 
     public void bindFetch(PreparedStmt preparedStmt) {
-        this.pStmtOfFetch = preparedStmt;
+        this.preparedStmt = preparedStmt;
         this.state = State.Fetch;
 
         // ex) fetch x from cursor; fetch y from cursor;
         // if rowCount is not reset, y is affected by x because the consumer is reused
         var activeConsumer = this.activeConsumer();
         if (activeConsumer != null) {
-            activeConsumer.resetRowCount(0);
+            activeConsumer.resetRowCount();
         }
     }
 
     @Override
     public PreparedStmt preparedStmt() {
-        return pStmtOfFetch;
+        return preparedStmt;
     }
 
     @Override
     public AnalyzedStatement analyzedStatement() {
-        return pStmtOfFetch.analyzedStatement();
+        return preparedStmt.analyzedStatement();
     }
 
     public void close() {

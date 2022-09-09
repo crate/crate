@@ -144,8 +144,8 @@ public class RowConsumerToResultReceiver implements RowConsumer {
         consumeIt(iterator);
     }
 
-    public void resetRowCount(int rowCount) {
-        this.rowCount = rowCount;
+    public void resetRowCount() {
+        this.rowCount = 0;
     }
 
     @Override

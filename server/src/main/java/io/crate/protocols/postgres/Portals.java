@@ -65,8 +65,14 @@ public class Portals {
         return portal;
     }
 
-    public Portal put(String portalName, Portal portal) {
-        return portals.put(portalName, portal);
+    public void put(String portalName, Portal portal) {
+        Portal oldPortal = portals.put(portalName, portal);
+        if (oldPortal != null && !(oldPortal instanceof Cursor)) {
+            // According to the wire protocol spec named portals should be removed explicitly and only
+            // unnamed portals are implicitly closed/overridden.
+            // We don't comply with the spec because we allow batching of statements, see #execute
+            oldPortal.closeActiveConsumer();
+        }
     }
 
     public Portal remove(String name) {

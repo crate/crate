@@ -22,7 +22,6 @@
 package io.crate.common.resolvers;
 
 import io.crate.sql.tree.AstVisitor;
-import io.crate.sql.tree.DeclareCursor;
 import io.crate.sql.tree.FetchFromCursor;
 import io.crate.sql.tree.Node;
 
@@ -36,11 +35,6 @@ public class MaxRowsResolver extends AstVisitor<Integer, Integer> {
     @Override
     protected Integer visitNode(Node node, Integer defaultValue) {
         return defaultValue;
-    }
-
-    @Override
-    public Integer visitDeclareCursor(DeclareCursor declareCursor, Integer defaultValue) {
-        return 0;
     }
 
     @Override

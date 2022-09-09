@@ -33,7 +33,6 @@ import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
-import io.crate.protocols.postgres.Cursor;
 import io.crate.protocols.postgres.Portals;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -318,7 +317,7 @@ public class Session implements AutoCloseable {
             throw t;
         }
 
-        Portal oldPortal = portals.put(
+        portals.put(
             portalName,
             portals.create(
                 portalName,
@@ -328,12 +327,6 @@ public class Session implements AutoCloseable {
                 resultFormatCodes
             )
         );
-        if (oldPortal != null && !(oldPortal instanceof Cursor)) {
-            // According to the wire protocol spec named portals should be removed explicitly and only
-            // unnamed portals are implicitly closed/overridden.
-            // We don't comply with the spec because we allow batching of statements, see #execute
-            oldPortal.closeActiveConsumer();
-        }
     }
 
     public DescribeResult describe(char type, String portalOrStatement) {
