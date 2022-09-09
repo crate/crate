@@ -415,7 +415,7 @@ should be crossed out as well.
 - [x] dc899781f23 Fix Broken ExistingStoreRecoverySource Deserialization (#55657) (#55665)
 - [ ] d66af46724c Always use deprecateAndMaybeLog for deprecation warnings (#55319)
 - [ ] 08444555058 Add geo_shape mapper supporting doc-values in Spatial Plugin (#55037) (#55500)
-- [ ] db7eb8e8fff Remove Redundant CS Update on Snapshot Finalization (#55276) (#55528)
+- [x] db7eb8e8fff Remove Redundant CS Update on Snapshot Finalization (#55276) (#55528)
 - [x] be60d504520 Allow searching of snapshot taken while indexing (#55511)
 - [s] 3cc4e0dd09b Retry follow task when remote connection queue full (#55314)
 - [x] 9e3b813b629 Ensure not to open directory reader on transport thread (#55419)
