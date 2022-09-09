@@ -438,6 +438,30 @@ public class DDLIntegrationTest extends IntegTestCase {
                          INTERNAL_ERROR,
                          BAD_REQUEST,
                          4000));
+
+
+    }
+
+    @Test
+    public void test_can_drop_single_check_constraint() {
+        // Dropping a single constraint used to fail before 5.1
+        execute("create table t (id int primary key constraint check_id_ge_zero check (id >= 0))");
+        execute("alter table t drop constraint check_id_ge_zero");
+        String selectCheckConstraintsStmt =
+            "select table_schema, table_name, constraint_type, constraint_name " +
+                "from information_schema.table_constraints " +
+                "where table_name='t'" +
+                "order by constraint_name";
+        execute(selectCheckConstraintsStmt);
+        assertThat(printedTable(response.rows()), is(
+            "doc| t| CHECK| doc_t_id_not_null\n" +
+                "doc| t| PRIMARY KEY| t_pk\n"
+        ));
+
+        execute("insert into t(id) values(-1)");
+        refresh();
+        execute("select id from t");
+        assertThat(printedTable(response.rows()), is("-1\n"));
     }
 
     @Test

@@ -21,20 +21,17 @@
 
 package io.crate.analyze;
 
-import static io.crate.testing.TestingHelpers.mapToSortedString;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
-
 import java.io.IOException;
-import java.util.Map;
 
 import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.planner.PlannerContext;
-import io.crate.planner.node.ddl.AlterTableDropCheckConstraintPlan;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
+
+import static io.crate.testing.Asserts.assertThrowsMatches;
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class AlterTableDropCheckConstraintAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -53,24 +50,20 @@ public class AlterTableDropCheckConstraintAnalyzerTest extends CrateDummyCluster
         plannerContext = e.getPlannerContext(clusterService.state());
     }
 
-    private BoundAddColumn analyze(String stmt) {
-        return AlterTableDropCheckConstraintPlan.bind(e.analyze(stmt));
-    }
 
     @Test
-    public void testDropCheckConstraint() throws Exception {
-        BoundAddColumn analysis = analyze(
-            "alter table t drop constraint check_qty_gt_zero");
-        assertThat(analysis.analyzedTableElements().getCheckConstraints(), is(Map.of("check_id_ge_zero", "\"id\" >= 0")));
-        Map<String, Object> mapping = analysis.mapping();
-        assertThat(mapToSortedString(mapping),
-                   is("_meta={check_constraints={check_id_ge_zero=\"id\" >= 0}, primary_keys=[id]}, properties={id={position=1, type=integer}}"));
+    public void testDropCheckConstraint() {
+        AnalyzedAlterTableDropCheckConstraint analysis = e.analyze("alter table t drop constraint check_qty_gt_zero");
+        assertThat(analysis.name()).isEqualTo("check_qty_gt_zero");
+        assertThat(analysis.tableInfo().ident().name()).isEqualTo("t");
     }
 
     @Test
     public void testDropCheckConstraintFailsBecauseTheNameDoesNotReferToAnExistingConstraint() {
-        expectedException.expectMessage(
-            "Cannot find a CHECK CONSTRAINT named [bazinga], available constraints are: [check_qty_gt_zero, check_id_ge_zero]");
-        analyze("alter table t drop constraint bazinga");
+        assertThrowsMatches(
+            () -> e.analyze("alter table t drop constraint bazinga"),
+            IllegalArgumentException.class,
+            "Cannot find a CHECK CONSTRAINT named [bazinga], available constraints are: [check_qty_gt_zero, check_id_ge_zero]"
+        );
     }
 }

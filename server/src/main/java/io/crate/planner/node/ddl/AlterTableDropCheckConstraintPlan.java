@@ -28,12 +28,14 @@ import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
+import io.crate.execution.ddl.tables.DropConstraintRequest;
 import io.crate.execution.support.OneRowActionListener;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.settings.Settings;
 
 public class AlterTableDropCheckConstraintPlan implements Plan {
@@ -55,9 +57,22 @@ public class AlterTableDropCheckConstraintPlan implements Plan {
                               RowConsumer consumer,
                               Row params,
                               SubQueryResults subQueryResults) {
-        dependencies.alterTableOperation()
-            .executeAlterTableAddColumn(bind(dropCheckConstraint))
-            .whenComplete(new OneRowActionListener<>(consumer, rCount -> new Row1(rCount == null ? -1 : rCount)));
+
+        if (plannerContext.clusterState().getNodes().getMinNodeVersion().before(Version.V_5_1_0)) {
+            // TODO: Remove this in 5.2
+            dependencies.alterTableOperation()
+                .executeAlterTableAddColumn(bind(dropCheckConstraint))
+                .whenComplete(new OneRowActionListener<>(consumer, rCount -> new Row1(rCount == null ? -1 : rCount)));
+        } else {
+            var request = new DropConstraintRequest(
+                dropCheckConstraint.tableInfo().ident(),
+                dropCheckConstraint.name()
+            );
+
+            dependencies.alterTableOperation()
+                .executeAlterTableDropConstraint(request)
+                .whenComplete(new OneRowActionListener<>(consumer, rCount -> new Row1(rCount == null ? -1 : rCount)));
+        }
     }
 
     @VisibleForTesting

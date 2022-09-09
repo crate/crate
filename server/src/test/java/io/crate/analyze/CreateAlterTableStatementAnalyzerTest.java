@@ -87,7 +87,6 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.node.ddl.AlterTableAddColumnPlan;
-import io.crate.planner.node.ddl.AlterTableDropCheckConstraintPlan;
 import io.crate.planner.node.ddl.AlterTablePlan;
 import io.crate.planner.node.ddl.CreateBlobTablePlan;
 import io.crate.planner.node.ddl.CreateTablePlan;
@@ -155,10 +154,6 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
                 new RowN(arguments),
                 SubQueryResults.EMPTY,
                 null
-            );
-        } else if (analyzedStatement instanceof AnalyzedAlterTableDropCheckConstraint) {
-            return (S) AlterTableDropCheckConstraintPlan.bind(
-                (AnalyzedAlterTableDropCheckConstraint) analyzedStatement
             );
         } else {
             return (S) analyzedStatement;
