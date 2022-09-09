@@ -408,7 +408,7 @@ should be crossed out as well.
 - [x] 80662f31a1c Introduce mechanism to stub request handling (#55832)
 - [ ] 4bfd65a3750 Remove TODO around aggregating on _index.
 - [ ] b5916ac455c Ignore closed exception on refresh pending location listener (#55799)
-- [ ] fe9904fbea7 More Efficient Blobstore Metdata IO (#55777) (#55788)
+- [x] fe9904fbea7 More Efficient Blobstore Metdata IO (#55777) (#55788)
 - [x] 4403b690485 Fix NPE in Partial Snapshot Without Global State (#55776) (#55783)
 - [x] 1a3f9e5a07c Return true for can_match on idle search shards (#55428)
 - [s] b0e8a8a4d12 [Backport] Refactor Spatial Field Mappers (#55696)
