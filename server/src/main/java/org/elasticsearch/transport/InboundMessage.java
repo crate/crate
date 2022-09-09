@@ -88,7 +88,11 @@ public class InboundMessage implements Releasable {
     public Releasable takeBreakerReleaseControl() {
         final Releasable toReturn = breakerRelease;
         breakerRelease = null;
-        return toReturn;
+        if (toReturn != null) {
+            return toReturn;
+        } else {
+            return () -> {};
+        }
     }
 
     public StreamInput openOrGetStreamInput() throws IOException {
