@@ -27,12 +27,14 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
 import org.apache.lucene.index.IndexCommit;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
@@ -109,6 +111,7 @@ public abstract class RestoreOnlyRepository implements Repository {
                                  boolean includeGlobalState,
                                  Metadata clusterMetadata,
                                  Version repositoryMetaVersion,
+                                 Function<ClusterState, ClusterState> stateTransformer,
                                  ActionListener<Tuple<RepositoryData, SnapshotInfo>> listener) {
         listener.onResponse(null);
     }
