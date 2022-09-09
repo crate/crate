@@ -39,8 +39,6 @@ import java.util.function.BiFunction;
 import java.util.function.Predicate;
 import java.util.stream.IntStream;
 
-import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
@@ -94,6 +92,8 @@ import org.elasticsearch.indices.InvalidIndexNameException;
 import org.elasticsearch.indices.ShardLimitValidator;
 import org.elasticsearch.indices.cluster.IndicesClusterStateService.AllocatedIndices.IndexRemovalReason;
 import org.elasticsearch.threadpool.ThreadPool;
+
+import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
 import io.crate.Constants;
 import io.crate.metadata.IndexParts;
@@ -179,9 +179,9 @@ public class MetadataCreateIndexService {
             throw exceptionCtor.apply(index, "must not contain '#'");
         }
         if (index.contains(":")) {
-            DEPRECATION_LOGGER.deprecated("index or alias name [" + index +
-                            "] containing ':' is deprecated. CrateDB 4.x will read, " +
-                            "but not allow creation of new indices containing ':'");
+            DEPRECATION_LOGGER.deprecatedAndMaybeLog("index_name_contains_colon",
+                "index or alias name [" + index + "] containing ':' is deprecated. CrateDB 4.x will read, " +
+                    "but not allow creation of new indices containing ':'");
         }
         if (index.charAt(0) == '_' || index.charAt(0) == '-' || index.charAt(0) == '+') {
             throw exceptionCtor.apply(index, "must not start with '_', '-', or '+'");

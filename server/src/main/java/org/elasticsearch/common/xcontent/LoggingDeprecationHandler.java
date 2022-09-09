@@ -52,11 +52,13 @@ public class LoggingDeprecationHandler implements DeprecationHandler {
 
     @Override
     public void usedDeprecatedName(String usedName, String modernName) {
-        DEPRECATION_LOGGER.deprecated("Deprecated field [{}] used, expected [{}] instead", usedName, modernName);
+        DEPRECATION_LOGGER.deprecatedAndMaybeLog(
+            "deprecated_field", "Deprecated field [{}] used, expected [{}] instead", usedName, modernName);
     }
 
     @Override
     public void usedDeprecatedField(String usedName, String replacedWith) {
-        DEPRECATION_LOGGER.deprecated("Deprecated field [{}] used, replaced by [{}]", usedName, replacedWith);
+        DEPRECATION_LOGGER.deprecatedAndMaybeLog(
+            "deprecated_field", "Deprecated field [{}] used, replaced by [{}]", usedName, replacedWith);
     }
 }
