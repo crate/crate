@@ -208,9 +208,10 @@ public class TransportAddColumnAction extends AbstractDDLTransportAction<AddColu
                 Metadata.Builder metadataBuilder = Metadata.builder(currentState.metadata());
                 ConvertedRequest requestConverter = new ConvertedRequest(request);
 
-                if (request.isPartitioned()) {
-                    String templateName = PartitionName.templateName(request.relationName().schema(), request.relationName().name());
-                    IndexTemplateMetadata indexTemplateMetadata = currentState.metadata().templates().get(templateName);
+                String templateName = PartitionName.templateName(request.relationName().schema(), request.relationName().name());
+                IndexTemplateMetadata indexTemplateMetadata = currentState.metadata().templates().get(templateName);
+
+                if (indexTemplateMetadata != null) {
 
                     Map<String, Object> existingTemplateMeta = new HashMap<>();
 

@@ -48,7 +48,6 @@ import java.util.stream.Collectors;
 public class AddColumnRequest extends AcknowledgedRequest<AddColumnRequest> {
 
     private final RelationName relationName;
-    private final boolean isPartitioned;
 
     // Used only with ADD COLUMN.
     // Not included into StreamableColumnInfo to avoid adding empty list in most cases.
@@ -61,7 +60,6 @@ public class AddColumnRequest extends AcknowledgedRequest<AddColumnRequest> {
     public AddColumnRequest(StreamInput in) throws IOException {
         super(in);
         relationName = new RelationName(in);
-        isPartitioned = in.readBoolean();
 
         int count = in.readVInt();
         for (int i = 0; i < count; i++) {
@@ -79,10 +77,8 @@ public class AddColumnRequest extends AcknowledgedRequest<AddColumnRequest> {
      * Fields which cannot be resolved using Reference are initialized with default or null values.
      */
     public AddColumnRequest(RelationName relationName,
-                            boolean isPartitioned,
                             List<Reference> columnRefs) {
         this.relationName = relationName;
-        this.isPartitioned = isPartitioned;
         this.columns.addAll(columnRefs.stream().map(this::refToStreamableColumnInfo).collect(Collectors.toList()));
     }
 
@@ -119,11 +115,9 @@ public class AddColumnRequest extends AcknowledgedRequest<AddColumnRequest> {
      * For ADD COLUMN.
      */
     public AddColumnRequest(RelationName relationName,
-                            boolean isPartitioned,
                             AnalyzedColumnDefinition colToAdd,
                             Map<String, String> checkConstraints) {
         this.relationName = relationName;
-        this.isPartitioned = isPartitioned;
         this.columns.add(new StreamableColumnInfo(colToAdd));
         this.checkConstraints.addAll(checkConstraints.entrySet()
             .stream()
@@ -133,10 +127,6 @@ public class AddColumnRequest extends AcknowledgedRequest<AddColumnRequest> {
 
     public RelationName relationName() {
         return this.relationName;
-    }
-
-    public boolean isPartitioned() {
-        return isPartitioned;
     }
 
     public List<StreamableCheckConstraint> checkConstraints() {
@@ -151,7 +141,6 @@ public class AddColumnRequest extends AcknowledgedRequest<AddColumnRequest> {
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
         relationName.writeTo(out);
-        out.writeBoolean(isPartitioned);
 
         out.writeVInt(checkConstraints.size());
         for (int i = 0; i < checkConstraints.size(); i++) {

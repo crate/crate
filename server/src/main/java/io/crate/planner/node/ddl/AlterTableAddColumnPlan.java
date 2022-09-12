@@ -104,7 +104,6 @@ public class AlterTableAddColumnPlan implements Plan {
             AnalyzedColumnDefinition colToAdd = tableElementsEvaluated.columns().get(0);
 
             var addColumnRequest = new AddColumnRequest(alterTable.tableInfo().ident(),
-                alterTable.tableInfo().isPartitioned(),
                 colToAdd,
                 tableElementsEvaluated.getCheckConstraints()
             );
