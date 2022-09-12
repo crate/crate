@@ -324,8 +324,12 @@ public class DelayableWriteChannel implements Channel {
     public void delayWritesUntil(CompletableFuture<?> future) {
         DelayedWrites currentDelay = delay.updateAndGet(DelayedWrites::new);
         future.whenComplete((res, err) -> {
-            currentDelay.writeDelayed();
+            int numWritten = currentDelay.writeDelayed();
             delay.compareAndSet(currentDelay, null);
+            if (numWritten > 0) {
+                LOGGER.debug("force flush");
+                delegate.flush();
+            }
         });
     }
 
@@ -364,7 +368,7 @@ public class DelayableWriteChannel implements Channel {
             }
         }
 
-        private void writeDelayed() {
+        private int writeDelayed() {
             LOGGER.debug("Writing delayed messages");
             DelayedMsg delayedMsg;
             synchronized (delayed) {
@@ -374,6 +378,7 @@ public class DelayableWriteChannel implements Channel {
                     num++;
                 }
                 LOGGER.debug("Wrote {} delayed messages", num);
+                return num;
             }
         }
     }
