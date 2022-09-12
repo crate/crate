@@ -28,6 +28,9 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nullable;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelConfig;
@@ -47,6 +50,7 @@ import io.netty.util.ReferenceCountUtil;
  **/
 public class DelayableWriteChannel implements Channel {
 
+    private static final Logger LOGGER = LogManager.getLogger(DelayableWriteChannel.class);
     private final Channel delegate;
     private final AtomicReference<DelayedWrites> delay = new AtomicReference<>(null);
 
@@ -339,6 +343,7 @@ public class DelayableWriteChannel implements Channel {
 
         public void discard() {
             DelayedMsg delayedMsg;
+            LOGGER.debug("Discarding delayed messages");
             synchronized (delayed) {
                 while ((delayedMsg = delayed.poll()) != null) {
                     ReferenceCountUtil.safeRelease(delayedMsg.msg);
@@ -353,11 +358,15 @@ public class DelayableWriteChannel implements Channel {
         }
 
         private void writeDelayed() {
+            LOGGER.debug("Writing delayed messages");
             DelayedMsg delayedMsg;
             synchronized (delayed) {
+                int num = 0;
                 while ((delayedMsg = delayed.poll()) != null) {
                     delayedMsg.runnable.run();
+                    num++;
                 }
+                LOGGER.debug("Wrote {} delayed messages", num);
             }
         }
     }
