@@ -65,8 +65,8 @@ public class DropSnapshotPlan implements Plan {
                 response -> {
                     if (!response.isAcknowledged()) {
                         LOGGER.info(
-                            "delete snapshot '{}.{}' not acknowledged",
-                            request.repository(), request.snapshot());
+                            "delete snapshots '{}.[{}]' not acknowledged",
+                            request.repository(), request.snapshots());
                     }
                     return new Row1(1L);
                 }));

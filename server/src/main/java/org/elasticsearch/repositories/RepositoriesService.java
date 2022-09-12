@@ -505,7 +505,7 @@ public class RepositoriesService implements ClusterStateApplier {
         SnapshotDeletionsInProgress deletionsInProgress = clusterState.custom(SnapshotDeletionsInProgress.TYPE);
         if (deletionsInProgress != null) {
             for (SnapshotDeletionsInProgress.Entry entry : deletionsInProgress.getEntries()) {
-                if (entry.getSnapshot().getRepository().equals(repository)) {
+                if (entry.repository().equals(repository)) {
                     return true;
                 }
             }

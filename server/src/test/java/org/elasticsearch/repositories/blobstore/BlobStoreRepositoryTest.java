@@ -208,8 +208,8 @@ public class BlobStoreRepositoryTest extends IntegTestCase {
         assertThat(repository.readSnapshotIndexLatestBlob(), equalTo(1L));
 
         // removing a snapshot and writing to a new index generational file
-        repositoryData = ESBlobStoreTestCase.getRepositoryData(repository).removeSnapshot(
-            repositoryData.getSnapshotIds().iterator().next(), ShardGenerations.EMPTY);
+        repositoryData = ESBlobStoreTestCase.getRepositoryData(repository).removeSnapshots(
+            repositoryData.getSnapshotIds(), ShardGenerations.EMPTY);
         writeIndexGen(repository, repositoryData, repositoryData.getGenId());
         assertEquals(ESBlobStoreTestCase.getRepositoryData(repository), repositoryData);
         assertThat(repository.latestIndexBlobId(), equalTo(2L));
