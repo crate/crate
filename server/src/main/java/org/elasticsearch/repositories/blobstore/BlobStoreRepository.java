@@ -1939,12 +1939,12 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                             indexOutput.writeBytes(hash.bytes, hash.offset, hash.length);
                             recoveryState.getIndex().addRecoveredBytesToFile(fileInfo.physicalName(), hash.length);
                         } else {
-                            try (InputStream stream = maybeRateLimit(new SlicedInputStream(fileInfo.numberOfParts()) {
+                            try (InputStream stream = maybeRateLimitRestores(new SlicedInputStream(fileInfo.numberOfParts()) {
                                 @Override
                                 protected InputStream openSlice(long slice) throws IOException {
                                     return container.readBlob(fileInfo.partName(slice));
                                 }
-                            }, restoreRateLimiter, restoreRateLimitingTimeInNanos)) {
+                            })) {
                                 final byte[] buffer = new byte[BUFFER_SIZE];
                                 int length;
                                 while ((length = stream.read(buffer)) > 0) {
@@ -1984,6 +1984,14 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
 
     private static InputStream maybeRateLimit(InputStream stream, @Nullable RateLimiter rateLimiter, CounterMetric metric) {
         return rateLimiter == null ? stream : new RateLimitingInputStream(stream, rateLimiter, metric::inc);
+    }
+
+    private InputStream maybeRateLimitRestores(InputStream stream) {
+        return maybeRateLimit(stream, restoreRateLimiter, restoreRateLimitingTimeInNanos);
+    }
+
+    public InputStream maybeRateLimitSnapshots(InputStream stream) {
+        return maybeRateLimit(stream, snapshotRateLimiter, snapshotRateLimitingTimeInNanos);
     }
 
     @Override
@@ -2158,7 +2166,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                                                               snapshotRateLimitingTimeInNanos::inc);
                 }
                 // Make reads abortable by mutating the snapshotStatus object
-                inputStream = new FilterInputStream(inputStream) {
+                inputStream = new FilterInputStream(maybeRateLimitSnapshots(inputStream)) {
                     @Override
                     public int read() throws IOException {
                         checkAborted();
