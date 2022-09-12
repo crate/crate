@@ -60,6 +60,7 @@ import java.util.UUID;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.IntegTestCase;
+import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -687,36 +688,39 @@ public class PostgresITest extends IntegTestCase {
     }
 
     @Test
+    @TestLogging("io.crate.action.sql:TRACE,io.crate.protocols.postgres:TRACE")
     public void testExecuteBatchWithDifferentStatements() throws Exception {
         try (Connection conn = DriverManager.getConnection(url(RW), properties)) {
             conn.setAutoCommit(true);
             Statement stmt = conn.createStatement();
             stmt.executeUpdate("create table t (x int) with (number_of_replicas = 0)");
             ensureYellow();
+        }
+        for (int index = 0; index < 200; index++) {
+            try (Connection conn = DriverManager.getConnection(url(RW), properties)) {
+                conn.setAutoCommit(true);
+                Statement statement = conn.createStatement();
+                statement.addBatch("insert into t (x) values (1)");
+                statement.addBatch("insert into t (x) values (2), (3)");
 
-            Statement statement = conn.createStatement();
-            statement.addBatch("insert into t (x) values (1)");
-            statement.addBatch("insert into t (x) values (2), (3)");
+                int[] results = statement.executeBatch();
+                assertThat(results, is(new int[]{1, 2}));
 
-            int[] results = statement.executeBatch();
-            assertThat(results, is(new int[]{1, 2}));
+                statement.executeUpdate("refresh table t");
+                ResultSet resultSet = statement.executeQuery("select * from t order by x");
+                assertThat(resultSet.next(), is(true));
 
-            statement.executeUpdate("refresh table t");
-            ResultSet resultSet = statement.executeQuery("select * from t order by x");
-            assertThat(resultSet.next(), is(true));
-            assertThat(resultSet.getInt(1), is(1));
+                // add another batch
+                statement.addBatch("insert into t (x) values (3)");
 
-            // add another batch
-            statement.addBatch("insert into t (x) values (3)");
+                // only the batches after last execution will be executed
+                results = statement.executeBatch();
+                assertThat(results, is(new int[]{1}));
 
-            // only the batches after last execution will be executed
-            results = statement.executeBatch();
-            assertThat(results, is(new int[]{1}));
-
-            statement.executeUpdate("refresh table t");
-            resultSet = statement.executeQuery("select * from t order by x desc");
-            assertThat(resultSet.next(), is(true));
-            assertThat(resultSet.getInt(1), is(3));
+                statement.executeUpdate("refresh table t");
+                resultSet = statement.executeQuery("select * from t order by x desc");
+                assertThat(resultSet.next(), is(true));
+            }
         }
     }
 
