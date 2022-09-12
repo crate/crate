@@ -23,6 +23,7 @@ package io.crate.planner.operators;
 
 import static io.crate.planner.operators.EquiJoinDetector.isHashJoinPossible;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -45,11 +46,11 @@ import io.crate.common.collections.Lists2;
 import io.crate.execution.engine.join.JoinOperations;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.FieldsVisitor;
+import io.crate.expression.symbol.OuterColumn;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RelationName;
 import io.crate.planner.SubqueryPlanner.SubQueries;
-import io.crate.planner.consumer.RelationNameCollector;
 import io.crate.planner.node.dql.join.JoinType;
 
 /**
@@ -118,59 +119,32 @@ public class JoinPlanBuilder {
         LogicalPlan lhsPlan = plan.apply(lhs);
         LogicalPlan rhsPlan = plan.apply(rhs);
         Symbol query = removeParts(queryParts, lhsName, rhsName);
-        LogicalPlan joinPlan = null;
-        if (joinCondition == null) {
 
-        }
-        Set<RelationName> split = RelationNameCollector.collect(joinCondition);
-        boolean isRhs = false;
-        boolean isLhs = false;
-
-
-//        if (isRhs && isLhs) {
-            Map<Set<RelationName>, Symbol> split1 = QuerySplitter.split(joinCondition);
-            Set<Symbol> validSymbols = new HashSet<>();
-            for (Map.Entry<Set<RelationName>, Symbol> setSymbolEntry : split1.entrySet()) {
-                var value = setSymbolEntry.getValue();
-                // use a visitor here
-                if (value instanceof io.crate.expression.symbol.Function f) {
-                    var isSelect = false;
-                    for (Symbol argument : f.arguments()) {
-                        if (argument instanceof SelectSymbol s) {
-                            isSelect = true;
-                            List<Symbol> outputs = s.relation().outputs();
-                            if (lhsPlan.outputs().containsAll(outputs) && rhsPlan.outputs().containsAll(outputs)) {
-                                isRhs = true;
-                                isLhs = true;
-                            }
-                            if (lhsPlan.outputs().containsAll(outputs)) {
-                                isLhs = true;
-                            }
-                            if (rhsPlan.outputs().containsAll(outputs)) {
-                                isRhs = true;
+        Map<Set<RelationName>, Symbol> split1 = QuerySplitter.split(joinCondition);
+        List<OuterColumn> outerColumns = new ArrayList<>();
+        for (Map.Entry<Set<RelationName>, Symbol> setSymbolEntry : split1.entrySet()) {
+            var value = setSymbolEntry.getValue();
+            if (value instanceof io.crate.expression.symbol.Function f) {
+                for (Symbol argument : f.arguments()) {
+                    if (argument instanceof SelectSymbol s) {
+                        for (Symbol output : s.relation().outputs()) {
+                            if (output instanceof OuterColumn o) {
+                                outerColumns.add(o);
                             }
                         }
-                        if (isSelect == false) {
-                            validSymbols.add(value);
-                        }
+
                     }
                 }
             }
-        if (isLhs && isRhs) {
-            joinPlan = createJoinPlan(
-                lhsPlan,
-                rhsPlan,
-                joinType,
-                AndOperator.join(validSymbols),
-                lhs,
-                query,
-                hashJoinEnabled
-            );
-            joinPlan = subQueries.applyCorrelatedJoin(joinPlan);
         }
-        else if (isRhs) {
-            rhsPlan = subQueries.applyCorrelatedJoin(rhsPlan);
-            joinPlan = createJoinPlan(
+
+        LogicalPlan joinPlan;
+
+        boolean isRhsPlan = rhs.relationName().equals(outerColumns.get(0).relation().relationName());
+        boolean isLhsPlan = lhs.relationName().equals(outerColumns.get(0).relation().relationName());
+
+        if (isRhsPlan && isLhsPlan) {
+             joinPlan = createJoinPlan(
                 lhsPlan,
                 rhsPlan,
                 joinType,
@@ -179,9 +153,22 @@ public class JoinPlanBuilder {
                 query,
                 hashJoinEnabled
             );
-        } else if (isLhs) {
+            joinPlan = subQueries.applyCorrelatedJoin(joinPlan);
+        } else if (isRhsPlan) {
+            rhsPlan = subQueries.applyCorrelatedJoin(rhsPlan);
+             joinPlan = createJoinPlan(
+                lhsPlan,
+                rhsPlan,
+                joinType,
+                joinCondition,
+                lhs,
+                query,
+                hashJoinEnabled
+            );
+
+        } else if (isLhsPlan) {
             lhsPlan = subQueries.applyCorrelatedJoin(lhsPlan);
-            joinPlan = createJoinPlan(
+             joinPlan = createJoinPlan(
                 lhsPlan,
                 rhsPlan,
                 joinType,
@@ -191,11 +178,11 @@ public class JoinPlanBuilder {
                 hashJoinEnabled
             );
         } else {
-            joinPlan = createJoinPlan(
+             joinPlan = createJoinPlan(
                 lhsPlan,
                 rhsPlan,
                 joinType,
-                AndOperator.join(validSymbols),
+                joinCondition,
                 lhs,
                 query,
                 hashJoinEnabled
