@@ -110,4 +110,6 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
-None
+- Fixed ``EXPLAIN`` plan output for queries with a ``WHERE`` clause containing
+  implicit cast symbols. A possible optimization of our planner/optimizer was
+  not used, resulting in different output than actually used on plan execution.
