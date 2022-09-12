@@ -66,3 +66,5 @@ Fixes
 
 - Fixed a file descriptor leak that was triggered by querying the ``os`` column
   of the ``sys.nodes`` table.
+
+- Fixed an issue that could lead to stuck queries.
