@@ -81,7 +81,7 @@ public class SysAllocationsTest extends IntegTestCase {
         assertNotNull("nodeId must not be null", decision.get("node_id"));
         assertNotNull("nodeName must not be null", decision.get("node_name"));
         assertThat(((List<String>) decision.get("explanations")).get(0),
-            startsWith("the shard cannot be allocated to the same node on which a copy of the shard already exists"));
+            startsWith("a copy of this shard is already allocated to this node"));
 
         // second row: STARTED shard
         row = response.rows()[1];
