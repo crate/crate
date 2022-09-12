@@ -303,14 +303,21 @@ public class DelayableWriteChannel implements Channel {
     }
 
     public void writePendingMessages() {
+        LOGGER.debug("writePendingMessages");
+        int num = 0;
         DelayedWrites currentDelay = delay.getAndSet(null);
         if (currentDelay != null) {
             var parent = currentDelay.parent;
             while (parent != null) {
+                num++;
                 parent.writeDelayed();
                 parent = parent.parent;
             }
+            num++;
             currentDelay.writeDelayed();
+        }
+        if (num > 0) {
+            LOGGER.debug("writePendingMessages triggered {} writeDelayed");
         }
     }
 

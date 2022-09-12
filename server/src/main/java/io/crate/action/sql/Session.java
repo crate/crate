@@ -509,11 +509,13 @@ public class Session implements AutoCloseable {
                 LOGGER.debug("method=sync deferredExecutions=0");
                 return CompletableFuture.completedFuture(null);
             case 1: {
+                LOGGER.debug("method=sync deferredExecutions=1");
                 var entry = deferredExecutionsByStmt.entrySet().iterator().next();
                 deferredExecutionsByStmt.clear();
                 return exec(entry.getKey(), entry.getValue());
             }
             default: {
+                LOGGER.debug("method=sync deferredExecutions={}", deferredExecutionsByStmt.size());
                 // sequentiallize execution to ensure client receives row counts in correct order
                 CompletableFuture<?> allCompleted = null;
                 for (var entry : deferredExecutionsByStmt.entrySet()) {
