@@ -395,7 +395,7 @@ should be crossed out as well.
 - [ ] 2ac32db6076 Move includeDataStream flag from IndicesOptions to IndexNameExpressionResolver.Context (#56151)
 - [ ] 6b5cf1b0318 For constant_keyword, make sure exists query handles missing values. (#55757)
 - [ ] e8ef44ce78a Allow Bulk Snapshot Deletes to Abort (#56009) (#56111)
-- [ ] e01b999ef03 Add Functionality to Consistently Read RepositoryData For CS Updates (#55773) (#56091)
+- [x] e01b999ef03 Add Functionality to Consistently Read RepositoryData For CS Updates (#55773) (#56091)
 - [x] 3a64ecb6bfe Allow Deleting Multiple Snapshots at Once (#55474) (#56083)
 - [x] 69f50fe79f9 Improve same-shard allocation explanations (#56010)
 - [s] 54dbea6c65c Improve RemoteConnectionManager consistency (#55759)
