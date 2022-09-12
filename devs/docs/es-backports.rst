@@ -397,10 +397,10 @@ should be crossed out as well.
 - [ ] e8ef44ce78a Allow Bulk Snapshot Deletes to Abort (#56009) (#56111)
 - [ ] e01b999ef03 Add Functionality to Consistently Read RepositoryData For CS Updates (#55773) (#56091)
 - [ ] 3a64ecb6bfe Allow Deleting Multiple Snapshots at Once (#55474) (#56083)
-- [ ] 69f50fe79f9 Improve same-shard allocation explanations (#56010)
-- [ ] 54dbea6c65c Improve RemoteConnectionManager consistency (#55759)
+- [x] 69f50fe79f9 Improve same-shard allocation explanations (#56010)
+- [s] 54dbea6c65c Improve RemoteConnectionManager consistency (#55759)
 - [x] a508d3303d5 Ensure no circular reference in translog tragic exception (#55959)
-- [ ] 9eb67365002 Fix NullPointer when message shortcircuited (#55945)
+- [x] 9eb67365002 Fix NullPointer when message shortcircuited (#55945)
 - [x] 06b33457878 Avoid double-recovery when state recovery delayed
 - [x] cd228095dfe Retry failed peer recovery due to transient errors (#55883)
 - [x] cab7bcc1562 Disk decider respect watermarks for single data node (#55805) (#55847)
