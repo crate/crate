@@ -23,7 +23,9 @@ package io.crate.planner;
 
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
+import io.crate.planner.node.ddl.AlterTableAddColumnPlan;
 import io.crate.planner.operators.SubQueryResults;
+import org.elasticsearch.Version;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -70,6 +72,14 @@ public interface Plan {
                          Row params,
                          SubQueryResults subQueryResults) {
         try {
+            // From 5.1 we forbid DDL operations on mixed clusters.
+            // ADD COLUMN is an exception as it can be implicitly caused by dynamic mapping updates.
+            if (type() == StatementType.DDL &&
+                (this instanceof AlterTableAddColumnPlan == false) &&
+                plannerContext.clusterState().getNodes().getMinNodeVersion().before(Version.V_5_1_0))
+            {
+                throw new UnsupportedOperationException("DDL operations on a mixed cluster are not supported.");
+            }
             executeOrFail(dependencies, plannerContext, consumer, params, subQueryResults);
         } catch (Throwable t) {
             consumer.accept(null, t);
