@@ -68,3 +68,7 @@ Fixes
   of the ``sys.nodes`` table.
 
 - Fixed an issue that could lead to stuck queries.
+
+- Fixed ``EXPLAIN`` plan output for queries with a ``WHERE`` clause containing
+  implicit cast symbols. A possible optimization of our planner/optimizer was
+  not used, resulting in different output than actually used on plan execution.

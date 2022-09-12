@@ -21,24 +21,29 @@
 
 package io.crate.planner;
 
-import io.crate.data.BatchIterator;
-import io.crate.data.Row;
-import io.crate.data.RowConsumer;
-import io.crate.planner.node.management.ExplainPlan;
-import io.crate.planner.operators.SubQueryResults;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.SQLExecutor;
-import org.junit.Before;
-import org.junit.Test;
 
-import javax.annotation.Nullable;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.is;
+
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static org.hamcrest.Matchers.containsString;
+import javax.annotation.Nullable;
+
+import org.junit.Before;
+import org.junit.Test;
+
+import io.crate.data.BatchIterator;
+import io.crate.data.Row;
+import io.crate.data.RowConsumer;
+import io.crate.planner.node.management.ExplainPlan;
+import io.crate.planner.operators.LogicalPlan;
+import io.crate.planner.operators.SubQueryResults;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
 
 public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -107,5 +112,18 @@ public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertNull(itRef.get());
         assertNotNull(failureRef.get());
         assertThat(failureRef.get().getMessage(), containsString("EXPLAIN ANALYZE does not support profiling multi-phase plans, such as queries with scalar subselects."));
+    }
+
+    @Test
+    public void test_explain_on_collect_uses_cast_optimizer_for_query_symbol() throws Exception {
+        var e = SQLExecutor.builder(clusterService)
+            .addTable("CREATE TABLE ts1 (ts TIMESTAMP WITHOUT TIME ZONE)")
+            .build();
+
+        ExplainPlan plan = e.plan("EXPLAIN SELECT * FROM ts1 WHERE ts = 1662740986992");
+        var printedPlan = ExplainPlan.printLogicalPlan((LogicalPlan) plan.subPlan(), e.getPlannerContext(clusterService.state()));
+        assertThat(printedPlan, is(
+            "Collect[doc.ts1 | [ts] | (ts = _cast(1662740986992::bigint, 'timestamp without time zone'))]"
+        ));
     }
 }
