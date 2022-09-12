@@ -226,7 +226,12 @@ public class FetchTask implements Task {
             for (Routing routing : routingIterable) {
                 Map<String, Map<String, IntIndexedContainer>> locations = routing.locations();
                 Map<String, IntIndexedContainer> indexShards = locations.get(localNodeId);
-                refreshActions.add(sharedShardContexts.maybeRefreshReaders(metadata, indexShards, phase.bases()));
+                try {
+                    refreshActions.add(sharedShardContexts.maybeRefreshReaders(metadata, indexShards, phase.bases()));
+                } catch (Throwable t) {
+                    result.completeExceptionally(t);
+                    throw t;
+                }
             }
             return CompletableFuture.allOf(refreshActions.toArray(CompletableFuture[]::new))
                 .thenApply(ignored -> {
