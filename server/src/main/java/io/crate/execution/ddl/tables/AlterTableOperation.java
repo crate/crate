@@ -140,20 +140,17 @@ public class AlterTableOperation {
     }
 
     public CompletableFuture<Long> executeAlterTableAddColumn(AddColumnRequest addColumnRequest) {
-        if (addColumnRequest.columns().size() == 1) {
-            // Either ADD COLUMN or dynamic mapping update of a single column.
-            // In case of the latter PK and generated are false/null and we fall to regular request without extra rowCount check.
-            var colToAdd = addColumnRequest.columns().get(0);
-            if (colToAdd.isPrimaryKey() || colToAdd.genExpression() != null) {
-                return getRowCount(addColumnRequest.relationName()).thenCompose(rowCount -> {
-                    if (rowCount > 0) {
-                        String subject = colToAdd.isPrimaryKey() ? "primary key" : "generated";
-                        throw new UnsupportedOperationException("Cannot add a " + subject + " column to a table that isn't empty");
-                    } else {
-                        return transportAddColumnAction.execute(addColumnRequest).thenApply(resp -> -1L);
-                    }
-                });
-            }
+        // Assertion for ADD COLUMN column size ==1 is already done before.
+        var colToAdd = addColumnRequest.columns().get(0);
+        if (colToAdd.isPrimaryKey() || colToAdd.genExpression() != null) {
+            return getRowCount(addColumnRequest.relationName()).thenCompose(rowCount -> {
+                if (rowCount > 0) {
+                    String subject = colToAdd.isPrimaryKey() ? "primary key" : "generated";
+                    throw new UnsupportedOperationException("Cannot add a " + subject + " column to a table that isn't empty");
+                } else {
+                    return transportAddColumnAction.execute(addColumnRequest).thenApply(resp -> -1L);
+                }
+            });
         }
         return transportAddColumnAction.execute(addColumnRequest).thenApply(resp -> -1L);
     }
