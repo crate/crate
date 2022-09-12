@@ -117,7 +117,7 @@ public abstract class RestoreOnlyRepository implements Repository {
     }
 
     @Override
-    public void deleteSnapshot(SnapshotId snapshotId,
+    public void deleteSnapshots(Collection<SnapshotId> snapshotIds,
                                long repositoryStateId,
                                Version repositoryMetaVersion,
                                ActionListener<Void> listener) {

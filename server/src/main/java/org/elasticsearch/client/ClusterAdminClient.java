@@ -55,7 +55,6 @@ public interface ClusterAdminClient extends ElasticsearchClient {
      * Nodes stats of the cluster.
      *
      * @param request  The nodes info request
-     * @param listener A listener to be notified with a result
      */
     CompletableFuture<NodesStatsResponse> nodesStats(NodesStatsRequest request);
 }

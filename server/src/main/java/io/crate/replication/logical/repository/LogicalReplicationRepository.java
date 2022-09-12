@@ -278,7 +278,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
     }
 
     @Override
-    public void deleteSnapshot(SnapshotId snapshotId,
+    public void deleteSnapshots(Collection<SnapshotId> snapshotId,
                                long repositoryStateId,
                                Version repositoryMetaVersion,
                                ActionListener<Void> listener) {
