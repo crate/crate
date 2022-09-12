@@ -101,6 +101,7 @@ import org.elasticsearch.action.admin.indices.stats.CommonStats;
 import org.elasticsearch.action.admin.indices.stats.ShardStats;
 import org.elasticsearch.action.support.PlainActionFuture;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.ClusterStateUpdateTask;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -162,6 +163,7 @@ import org.elasticsearch.index.translog.TranslogTests;
 import org.elasticsearch.indices.recovery.RecoveryState;
 import org.elasticsearch.indices.recovery.RecoveryTarget;
 import org.elasticsearch.repositories.IndexId;
+import org.elasticsearch.repositories.RepositoryData;
 import org.elasticsearch.snapshots.Snapshot;
 import org.elasticsearch.snapshots.SnapshotId;
 import org.elasticsearch.test.CorruptionUtils;
@@ -3506,10 +3508,12 @@ public class IndexShardTests extends IndexShardTestCase {
                 }
 
             @Override
-            public void updateState(ClusterState state) {
+            public void updateState(ClusterState state) {}
 
-
-            }
+            @Override
+            public void executeConsistentStateUpdate(Function<RepositoryData, ClusterStateUpdateTask> createUpdateTask,
+                                                     String source,
+                                                     Consumer<Exception> onFailure) {}
         }, future);
         assertThat(future.actionGet(5, TimeUnit.SECONDS), is(true));
         assertThat(target.getLocalCheckpoint(), equalTo(2L));
