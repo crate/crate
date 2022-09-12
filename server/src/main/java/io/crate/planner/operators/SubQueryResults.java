@@ -82,7 +82,7 @@ public class SubQueryResults {
 
             @Override
             public Void visitOuterColumn(OuterColumn outerColumn, Void context) {
-                int index = subQueryOutputs.indexOf(outerColumn);
+                int index = subQueryOutputs.indexOf(outerColumn.symbol());
                 if (index < 0) {
                     throw new IllegalStateException(
                         "OuterColumn `" + outerColumn + "` must appear in input of CorrelatedJoin");

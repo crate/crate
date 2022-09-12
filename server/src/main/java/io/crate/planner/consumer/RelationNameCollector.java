@@ -57,14 +57,14 @@ public class RelationNameCollector extends DefaultTraversalSymbolVisitor<Set<Rel
         return null;
     }
 
-    @Override
-    public Void visitSelectSymbol(SelectSymbol selectSymbol, Set<RelationName> context) {
-        AnalyzedRelation relation = selectSymbol.relation();
-        if (relation instanceof QueriedSelectRelation q) {
-            context.addAll(Lists2.map(q.from(), AnalyzedRelation::relationName));
-        }
-        return null;
-    }
+//    @Override
+//    public Void visitSelectSymbol(SelectSymbol selectSymbol, Set<RelationName> context) {
+//        AnalyzedRelation relation = selectSymbol.relation();
+//        if (relation instanceof QueriedSelectRelation q) {
+//            context.addAll(Lists2.map(q.from(), AnalyzedRelation::relationName));
+//        }
+//        return null;
+//    }
 
     @Override
     public Void visitMatchPredicate(MatchPredicate matchPredicate, Set<RelationName> context) {

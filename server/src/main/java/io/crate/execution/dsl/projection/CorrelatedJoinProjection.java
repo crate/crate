@@ -60,7 +60,8 @@ public class CorrelatedJoinProjection extends Projection {
         this.plannerContext = plannerContext;
         this.subQueryResults = subQueryResults;
         this.params = params;
-        this.inputPlanOutputs = Lists2.concat(Lists2.concat(inputPlanOutputs, subQueryPlan.outputs()), subQueryPlan.outputs());
+        this.inputPlanOutputs = inputPlanOutputs;
+//        this.inputPlanOutputs = Lists2.concat(Lists2.concat(inputPlanOutputs, subQueryPlan.outputs()), subQueryPlan.outputs());
         this.outputs = outputs;
     }
 

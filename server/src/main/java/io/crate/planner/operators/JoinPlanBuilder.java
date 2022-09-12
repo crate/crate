@@ -125,13 +125,9 @@ public class JoinPlanBuilder {
         Set<RelationName> split = RelationNameCollector.collect(joinCondition);
         boolean isRhs = false;
         boolean isLhs = false;
-            if (split.contains(rhsName)) {
-                isRhs = true;
-            } if (split.contains(lhsName)) {
-                isLhs = true;
-            }
 
-        if (isRhs && isLhs) {
+
+//        if (isRhs && isLhs) {
             Map<Set<RelationName>, Symbol> split1 = QuerySplitter.split(joinCondition);
             Set<Symbol> validSymbols = new HashSet<>();
             for (Map.Entry<Set<RelationName>, Symbol> setSymbolEntry : split1.entrySet()) {
@@ -140,16 +136,27 @@ public class JoinPlanBuilder {
                 if (value instanceof io.crate.expression.symbol.Function f) {
                     var isSelect = false;
                     for (Symbol argument : f.arguments()) {
-                        if (argument instanceof SelectSymbol) {
+                        if (argument instanceof SelectSymbol s) {
                             isSelect = true;
+                            List<Symbol> outputs = s.relation().outputs();
+                            if (lhsPlan.outputs().containsAll(outputs) && rhsPlan.outputs().containsAll(outputs)) {
+                                isRhs = true;
+                                isLhs = true;
+                            }
+                            if (lhsPlan.outputs().containsAll(outputs)) {
+                                isLhs = true;
+                            }
+                            if (rhsPlan.outputs().containsAll(outputs)) {
+                                isRhs = true;
+                            }
                         }
-                    }
-                    if (isSelect == false) {
-                        validSymbols.add(value);
+                        if (isSelect == false) {
+                            validSymbols.add(value);
+                        }
                     }
                 }
             }
-
+        if (isLhs && isRhs) {
             joinPlan = createJoinPlan(
                 lhsPlan,
                 rhsPlan,
@@ -161,8 +168,8 @@ public class JoinPlanBuilder {
             );
             joinPlan = subQueries.applyCorrelatedJoin(joinPlan);
         }
-        if (isRhs) {
-            lhsPlan = subQueries.applyCorrelatedJoin(lhsPlan);
+        else if (isRhs) {
+            rhsPlan = subQueries.applyCorrelatedJoin(rhsPlan);
             joinPlan = createJoinPlan(
                 lhsPlan,
                 rhsPlan,
@@ -173,12 +180,22 @@ public class JoinPlanBuilder {
                 hashJoinEnabled
             );
         } else if (isLhs) {
-            rhsPlan = subQueries.applyCorrelatedJoin(rhsPlan);
+            lhsPlan = subQueries.applyCorrelatedJoin(lhsPlan);
             joinPlan = createJoinPlan(
                 lhsPlan,
                 rhsPlan,
                 joinType,
                 joinCondition,
+                lhs,
+                query,
+                hashJoinEnabled
+            );
+        } else {
+            joinPlan = createJoinPlan(
+                lhsPlan,
+                rhsPlan,
+                joinType,
+                AndOperator.join(validSymbols),
                 lhs,
                 query,
                 hashJoinEnabled

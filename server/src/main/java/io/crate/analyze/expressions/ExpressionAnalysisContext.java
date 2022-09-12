@@ -37,7 +37,6 @@ import io.crate.sql.tree.Window;
  */
 public class ExpressionAnalysisContext {
 
-    public RelationAnalysisContext relationAnalysisContext;
     private final ArrayChildVisitor arrayChildVisitor = new ArrayChildVisitor();
     private final Map<SubqueryExpression, Object> arrayExpressionsChildren = new IdentityHashMap<>();
 
