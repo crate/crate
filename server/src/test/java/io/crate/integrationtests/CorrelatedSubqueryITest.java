@@ -321,6 +321,8 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
         execute("EXPLAIN " + stmt);
         System.out.println(TestingHelpers.printedTable(response.rows()));
         execute(stmt);
+        System.out.println(TestingHelpers.printedTable(response.rows()));
+
     }
 
     @UseJdbc(0)
@@ -360,6 +362,8 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
             LIMIT 3
             """;
         execute("EXPLAIN " + stmt);
+        System.out.println(TestingHelpers.printedTable(response.rows()));
+
         assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo(
             "Eval[table_name, column_name]\n" +
             "  └ Limit[3::bigint;0]\n" +
@@ -374,5 +378,10 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
             "        └ Rename[attrelid] AS col_attr\n" +
             "          └ Collect[pg_catalog.pg_attribute | [attrelid] | true]\n");
         execute(stmt);
+        assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo(
+            "allocations| table_schema\n" +
+            "allocations| table_name\n" +
+            "allocations| shard_id\n"
+        );
     }
 }

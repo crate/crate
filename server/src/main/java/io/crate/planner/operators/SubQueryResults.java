@@ -33,6 +33,7 @@ import io.crate.expression.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.expression.symbol.OuterColumn;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
+import io.crate.sql.tree.Except;
 
 public class SubQueryResults {
 
@@ -68,7 +69,11 @@ public class SubQueryResults {
         if (index == -1) {
             throw new IllegalArgumentException("Couldn't resolve value for OuterColumn: " + key);
         }
-        return inputRow.get(index);
+        try {
+            return inputRow.get(index);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     public SubQueryResults forCorrelation(SelectSymbol correlatedSubQuery, List<Symbol> subQueryOutputs) {
@@ -77,7 +82,7 @@ public class SubQueryResults {
 
             @Override
             public Void visitOuterColumn(OuterColumn outerColumn, Void context) {
-                int index = subQueryOutputs.indexOf(outerColumn.symbol());
+                int index = subQueryOutputs.indexOf(outerColumn);
                 if (index < 0) {
                     throw new IllegalStateException(
                         "OuterColumn `" + outerColumn + "` must appear in input of CorrelatedJoin");

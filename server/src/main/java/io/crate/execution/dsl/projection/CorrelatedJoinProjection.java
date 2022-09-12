@@ -26,6 +26,7 @@ import java.util.List;
 
 import org.elasticsearch.common.io.stream.StreamOutput;
 
+import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
@@ -59,7 +60,7 @@ public class CorrelatedJoinProjection extends Projection {
         this.plannerContext = plannerContext;
         this.subQueryResults = subQueryResults;
         this.params = params;
-        this.inputPlanOutputs = inputPlanOutputs;
+        this.inputPlanOutputs = Lists2.concat(Lists2.concat(inputPlanOutputs, subQueryPlan.outputs()), subQueryPlan.outputs());
         this.outputs = outputs;
     }
 
