@@ -612,7 +612,7 @@ public class SnapshotShardsService extends AbstractLifecycleComponent implements
 
         UpdateSnapshotStatusAction(TransportService transportService, ClusterService clusterService, ThreadPool threadPool) {
             super(
-                SnapshotShardsService.UPDATE_SNAPSHOT_STATUS_ACTION_NAME, transportService, clusterService, threadPool, UpdateIndexShardSnapshotStatusRequest::new
+                SnapshotShardsService.UPDATE_SNAPSHOT_STATUS_ACTION_NAME, false, transportService, clusterService, threadPool, UpdateIndexShardSnapshotStatusRequest::new
             );
         }
 

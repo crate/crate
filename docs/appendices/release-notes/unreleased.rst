@@ -99,6 +99,10 @@ Changes
 - Added support for casting ``TIMESTAMP`` and ``TIMESTAMP WITHOUT TIME ZONE``
   values to the ``DATE`` data type and vice versa.
 
+- Made the commas between successive ``transaction_modes`` of the ``BEGIN`` and
+  its SQL equivalent ``START TRANSACTION`` statement optional to support
+  compatibility with clients and tools using an older (< 8.0) PostgreSQL syntax.
+
 Fixes
 =====
 
@@ -106,4 +110,8 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
-None
+- Fixed an issue that could lead to stuck queries.
+
+- Fixed ``EXPLAIN`` plan output for queries with a ``WHERE`` clause containing
+  implicit cast symbols. A possible optimization of our planner/optimizer was
+  not used, resulting in different output than actually used on plan execution.

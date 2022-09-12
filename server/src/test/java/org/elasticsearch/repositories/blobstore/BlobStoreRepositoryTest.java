@@ -37,6 +37,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Executor;
+import java.util.function.Function;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionRunnable;
@@ -183,8 +184,8 @@ public class BlobStoreRepositoryTest extends IntegTestCase {
     }
 
     private static void writeIndexGen(BlobStoreRepository repository, RepositoryData repositoryData, long generation) {
-        final PlainActionFuture<Void> future = PlainActionFuture.newFuture();
-        repository.writeIndexGen(repositoryData, generation, true, future);
+        final PlainActionFuture<RepositoryData> future = PlainActionFuture.newFuture();
+        repository.writeIndexGen(repositoryData, generation, true, Function.identity(), future);
         future.actionGet();
     }
 
@@ -207,8 +208,8 @@ public class BlobStoreRepositoryTest extends IntegTestCase {
         assertThat(repository.readSnapshotIndexLatestBlob(), equalTo(1L));
 
         // removing a snapshot and writing to a new index generational file
-        repositoryData = ESBlobStoreTestCase.getRepositoryData(repository).removeSnapshot(
-            repositoryData.getSnapshotIds().iterator().next(), ShardGenerations.EMPTY);
+        repositoryData = ESBlobStoreTestCase.getRepositoryData(repository).removeSnapshots(
+            repositoryData.getSnapshotIds(), ShardGenerations.EMPTY);
         writeIndexGen(repository, repositoryData, repositoryData.getGenId());
         assertEquals(ESBlobStoreTestCase.getRepositoryData(repository), repositoryData);
         assertThat(repository.latestIndexBlobId(), equalTo(2L));

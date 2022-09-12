@@ -21,6 +21,24 @@
 
 package io.crate.planner.node.management;
 
+import static io.crate.data.SentinelRow.SENTINEL;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiConsumer;
+
+import javax.annotation.Nullable;
+
 import io.crate.action.sql.BaseResultReceiver;
 import io.crate.action.sql.RowConsumerToResultReceiver;
 import io.crate.analyze.BoundCopyFrom;
@@ -46,32 +64,21 @@ import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Plan;
 import io.crate.planner.PlanPrinter;
 import io.crate.planner.PlannerContext;
+import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.LogicalPlan;
+import io.crate.planner.operators.LogicalPlanVisitor;
 import io.crate.planner.operators.LogicalPlanner;
 import io.crate.planner.operators.PrintContext;
 import io.crate.planner.operators.SubQueryResults;
+import io.crate.planner.optimizer.symbol.Optimizer;
 import io.crate.planner.statement.CopyFromPlan;
 import io.crate.profile.ProfilingContext;
 import io.crate.profile.Timer;
 import io.crate.types.DataTypes;
 
-import javax.annotation.Nullable;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.BiConsumer;
-
-import static io.crate.data.SentinelRow.SENTINEL;
-
 public class ExplainPlan implements Plan {
+
+    private static final CastOptimizer CAST_OPTIMIZER = new CastOptimizer();
 
     public enum Phase {
         Analyze,
@@ -137,10 +144,9 @@ public class ExplainPlan implements Plan {
                                                       "such as queries with scalar subselects."));
             }
         } else {
-            if (subPlan instanceof LogicalPlan) {
-                PrintContext printContext = new PrintContext();
-                ((LogicalPlan) subPlan).print(printContext);
-                consumer.accept(InMemoryBatchIterator.of(new Row1(printContext.toString()), SENTINEL), null);
+            if (subPlan instanceof LogicalPlan logicalPlan) {
+                var planAsString = printLogicalPlan(logicalPlan, plannerContext);
+                consumer.accept(InMemoryBatchIterator.of(new Row1(planAsString), SENTINEL), null);
             } else if (subPlan instanceof CopyFromPlan) {
                 BoundCopyFrom boundCopyFrom = CopyFromPlan.bind(
                     ((CopyFromPlan) subPlan).copyFrom(),
@@ -162,6 +168,14 @@ public class ExplainPlan implements Plan {
                     new Row1("EXPLAIN not supported for " + subPlan.getClass().getSimpleName()), SENTINEL), null);
             }
         }
+    }
+
+    @VisibleForTesting
+    public static String printLogicalPlan(LogicalPlan logicalPlan, PlannerContext plannerContext) {
+        PrintContext printContext = new PrintContext();
+        var optimizedLogicalPlan = logicalPlan.accept(CAST_OPTIMIZER, plannerContext);
+        optimizedLogicalPlan.print(printContext);
+        return printContext.toString();
     }
 
     private BiConsumer<Void, Throwable> createResultConsumer(DependencyCarrier executor,
@@ -328,5 +342,34 @@ public class ExplainPlan implements Plan {
     @VisibleForTesting
     public boolean doAnalyze() {
         return context != null;
+    }
+
+    /**
+     * Optimize casts of the {@link io.crate.analyze.WhereClause} query symbol. For executions, this is done while
+     * building an {@link ExecutionPlan} to take subquery and parameter symbols into account.
+     * See also {@link Collect}.
+     */
+    private static class CastOptimizer extends LogicalPlanVisitor<PlannerContext, LogicalPlan> {
+
+        @Override
+        protected LogicalPlan visitPlan(LogicalPlan logicalPlan, PlannerContext context) {
+            ArrayList<LogicalPlan> newSources = new ArrayList<>(logicalPlan.sources().size());
+            for (var source : logicalPlan.sources()) {
+                newSources.add(source.accept(this, context));
+            }
+            return logicalPlan.replaceSources(newSources);
+        }
+
+        @Override
+        public LogicalPlan visitCollect(Collect collect, PlannerContext context) {
+            var optimizedCollect = new Collect(
+                collect.relation(),
+                collect.outputs(),
+                collect.where().map(s -> Optimizer.optimizeCasts(s, context)),
+                collect.numExpectedRows(),
+                collect.estimatedRowSize()
+            );
+            return visitPlan(optimizedCollect, context);
+        }
     }
 }

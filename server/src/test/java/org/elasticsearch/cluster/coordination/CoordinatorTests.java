@@ -18,6 +18,8 @@
  */
 package org.elasticsearch.cluster.coordination;
 
+import static java.util.Collections.emptyMap;
+import static java.util.Collections.singleton;
 import static org.elasticsearch.cluster.coordination.AbstractCoordinatorTestCase.Cluster.DEFAULT_DELAY_VARIABILITY;
 import static org.elasticsearch.cluster.coordination.AbstractCoordinatorTestCase.Cluster.EXTREME_DELAY_VARIABILITY;
 import static org.elasticsearch.cluster.coordination.Coordinator.Mode.CANDIDATE;
@@ -74,6 +76,8 @@ import org.elasticsearch.cluster.coordination.CoordinationMetadata.VotingConfigu
 import org.elasticsearch.cluster.coordination.Coordinator.Mode;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.node.DiscoveryNodeRole;
+import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.regex.Regex;
@@ -1418,6 +1422,46 @@ public class CoordinatorTests extends AbstractCoordinatorTestCase {
                 assertThat("term should not change", cluster.getAnyNode().coordinator.getCurrentTerm(), is(expectedTerm));
             }
         }
+    }
+
+    public void testImproveConfigurationPerformsVotingConfigExclusionStateCheck() {
+        try (Cluster cluster = new Cluster(1)) {
+            cluster.runRandomly();
+            cluster.stabilise();
+
+            final Coordinator coordinator = cluster.getAnyLeader().coordinator;
+            final ClusterState currentState = coordinator.getLastAcceptedState();
+
+            Set<CoordinationMetadata.VotingConfigExclusion> newVotingConfigExclusion1 =
+                singleton(new CoordinationMetadata.VotingConfigExclusion("resolvableNodeId",
+                    CoordinationMetadata.VotingConfigExclusion.MISSING_VALUE_MARKER));
+
+            ClusterState newState1 = buildNewClusterStateWithVotingConfigExclusion(currentState, newVotingConfigExclusion1);
+
+            assertFalse(Coordinator.validVotingConfigExclusionState(newState1));
+
+            Set<CoordinationMetadata.VotingConfigExclusion> newVotingConfigExclusion2 =
+                singleton(new CoordinationMetadata.VotingConfigExclusion(
+                    CoordinationMetadata.VotingConfigExclusion.MISSING_VALUE_MARKER, "resolvableNodeName"));
+
+            ClusterState newState2 = buildNewClusterStateWithVotingConfigExclusion(currentState, newVotingConfigExclusion2);
+
+            assertFalse(Coordinator.validVotingConfigExclusionState(newState2));
+        }
+    }
+
+    private ClusterState buildNewClusterStateWithVotingConfigExclusion(ClusterState currentState,
+                                                                Set<CoordinationMetadata.VotingConfigExclusion> newVotingConfigExclusion) {
+        DiscoveryNodes newNodes = DiscoveryNodes.builder(currentState.nodes())
+                                        .add(new DiscoveryNode("resolvableNodeName", "resolvableNodeId", buildNewFakeTransportAddress(),
+                                                                emptyMap(), singleton(DiscoveryNodeRole.MASTER_ROLE), Version.CURRENT))
+                                        .build();
+
+        CoordinationMetadata.Builder coordMetadataBuilder = CoordinationMetadata.builder(currentState.coordinationMetadata());
+        newVotingConfigExclusion.forEach(coordMetadataBuilder::addVotingConfigExclusion);
+        Metadata newMetadata = Metadata.builder(currentState.metadata()).coordinationMetadata(coordMetadataBuilder.build()).build();
+
+        return ClusterState.builder(currentState).nodes(newNodes).metadata(newMetadata).build();
     }
 
 }

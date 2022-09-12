@@ -4110,7 +4110,7 @@ public class IndexShardTests extends IndexShardTestCase {
             shard.indexSettings.getIndexMetadata(),
             List.of(idxSettings -> Optional.of(
                 engineConfig ->
-                    new ReadOnlyEngine(engineConfig, null, null, true, Function.identity()) {
+                    new ReadOnlyEngine(engineConfig, null, null, true, Function.identity(), true) {
 
                         @Override
                         protected void ensureMaxSeqNoEqualsToGlobalCheckpoint(SeqNoStats seqNoStats) {

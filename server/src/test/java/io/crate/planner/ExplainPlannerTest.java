@@ -21,12 +21,7 @@
 
 package io.crate.planner;
 
-import static org.hamcrest.Matchers.containsString;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.List;
@@ -36,6 +31,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nullable;
 
+import org.assertj.core.api.Assertions;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -43,6 +39,7 @@ import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.planner.node.management.ExplainPlan;
+import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -71,9 +68,9 @@ public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testExplain() {
         for (String statement : EXPLAIN_TEST_STATEMENTS) {
             ExplainPlan plan = e.plan("EXPLAIN " + statement);
-            assertNotNull(plan);
-            assertNotNull(plan.subPlan());
-            assertFalse(plan.doAnalyze());
+            assertThat(plan).isNotNull();
+            assertThat(plan.subPlan()).isNotNull();
+            assertThat(plan.doAnalyze()).isFalse();
         }
     }
 
@@ -81,9 +78,9 @@ public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testExplainAnalyze() {
         for (String statement : EXPLAIN_TEST_STATEMENTS) {
             ExplainPlan plan = e.plan("EXPLAIN ANALYZE " + statement);
-            assertNotNull(plan);
-            assertNotNull(plan.subPlan());
-            assertTrue(plan.doAnalyze());
+            assertThat(plan).isNotNull();
+            assertThat(plan.subPlan()).isNotNull();
+            assertThat(plan.doAnalyze()).isTrue();
         }
     }
 
@@ -111,8 +108,21 @@ public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
             }
         }, Row.EMPTY, SubQueryResults.EMPTY);
 
-        assertNull(itRef.get());
-        assertNotNull(failureRef.get());
-        assertThat(failureRef.get().getMessage(), containsString("EXPLAIN ANALYZE does not support profiling multi-phase plans, such as queries with scalar subselects."));
+        assertThat(itRef.get()).isNull();
+        assertThat(failureRef.get()).isNotNull();
+        assertThat(failureRef.get().getMessage()).isEqualTo("EXPLAIN ANALYZE does not support profiling multi-phase plans, such as queries with scalar subselects.");
+    }
+
+    @Test
+    public void test_explain_on_collect_uses_cast_optimizer_for_query_symbol() throws Exception {
+        var e = SQLExecutor.builder(clusterService)
+            .addTable("CREATE TABLE ts1 (ts TIMESTAMP)")
+            .build();
+
+        ExplainPlan plan = e.plan("EXPLAIN SELECT * FROM ts1 WHERE ts = 1662740986992");
+        var printedPlan = ExplainPlan.printLogicalPlan((LogicalPlan) plan.subPlan(), e.getPlannerContext(clusterService.state()));
+        Assertions.assertThat(printedPlan).isEqualTo(
+            "Collect[doc.ts1 | [ts] | (ts = _cast(1662740986992::bigint, 'timestamp without time zone'))]"
+        );
     }
 }

@@ -25,10 +25,9 @@ import static org.elasticsearch.cluster.routing.allocation.DiskThresholdSettings
 import java.util.List;
 import java.util.Set;
 
-import com.carrotsearch.hppc.cursors.ObjectCursor;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterInfo;
 import org.elasticsearch.cluster.DiskUsage;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -44,10 +43,13 @@ import org.elasticsearch.cluster.routing.allocation.RoutingAllocation;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.settings.ClusterSettings;
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.shard.ShardId;
+
+import com.carrotsearch.hppc.cursors.ObjectCursor;
 
 /**
  * The {@link DiskThresholdDecider} checks that the node a shard is potentially
@@ -78,10 +80,16 @@ public class DiskThresholdDecider extends AllocationDecider {
 
     public static final String NAME = "disk_threshold";
 
+    public static final Setting<Boolean> ENABLE_FOR_SINGLE_DATA_NODE =
+        Setting.boolSetting("cluster.routing.allocation.disk.watermark.enable_for_single_data_node", false, Setting.Property.NodeScope);
+
     private final DiskThresholdSettings diskThresholdSettings;
+    private final boolean enableForSingleDataNode;
 
     public DiskThresholdDecider(Settings settings, ClusterSettings clusterSettings) {
         this.diskThresholdSettings = new DiskThresholdSettings(settings, clusterSettings);
+        assert Version.CURRENT.major < 9 : "remove enable_for_single_data_node in 9";
+        this.enableForSingleDataNode = ENABLE_FOR_SINGLE_DATA_NODE.get(settings);
     }
 
     /**
@@ -448,7 +456,7 @@ public class DiskThresholdDecider extends AllocationDecider {
         }
 
         // Allow allocation regardless if only a single data node is available
-        if (allocation.nodes().getDataNodes().size() <= 1) {
+        if (enableForSingleDataNode == false && allocation.nodes().getDataNodes().size() <= 1) {
             if (LOGGER.isTraceEnabled()) {
                 LOGGER.trace("only a single data node is present, allowing allocation");
             }

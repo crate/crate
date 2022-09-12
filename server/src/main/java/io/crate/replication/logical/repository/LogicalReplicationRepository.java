@@ -29,6 +29,7 @@ import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
@@ -68,6 +69,7 @@ import org.elasticsearch.snapshots.SnapshotState;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.RemoteClusters;
 
+import io.crate.common.collections.Tuple;
 import io.crate.common.unit.TimeValue;
 import io.crate.exceptions.Exceptions;
 import io.crate.exceptions.SQLExceptions;
@@ -270,12 +272,13 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                                  boolean includeGlobalState,
                                  Metadata clusterMetadata,
                                  Version repositoryMetaVersion,
-                                 ActionListener<SnapshotInfo> listener) {
+                                 Function<ClusterState, ClusterState> stateTransformer,
+                                 ActionListener<Tuple<RepositoryData, SnapshotInfo>> listener) {
         throw new UnsupportedOperationException("Operation not permitted");
     }
 
     @Override
-    public void deleteSnapshot(SnapshotId snapshotId,
+    public void deleteSnapshots(Collection<SnapshotId> snapshotId,
                                long repositoryStateId,
                                Version repositoryMetaVersion,
                                ActionListener<Void> listener) {

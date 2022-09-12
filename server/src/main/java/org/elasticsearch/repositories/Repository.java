@@ -48,6 +48,7 @@ import org.elasticsearch.snapshots.SnapshotShardFailure;
 
 import io.crate.action.FutureActionListener;
 import io.crate.analyze.repositories.TypeSettings;
+import io.crate.common.collections.Tuple;
 
 /**
  * An interface for interacting with a repository in snapshot and restore.
@@ -167,22 +168,27 @@ public interface Repository extends LifecycleComponent {
      * @param includeGlobalState    include cluster global state
      * @param clusterMetadata       cluster metadata
      * @param repositoryMetaVersion version of the updated repository metadata to write
-     * @param listener              listener to be called on completion of the snapshot
+     * @param stateTransformer      a function that filters the last cluster state update that the snapshot finalization will execute and
+     *                              is used to remove any state tracked for the in-progress snapshot from the cluster state
+     * @param listener              listener to be invoked with the new {@link RepositoryData} and the snapshot's {@link SnapshotInfo}
+     *                              completion of the snapshot
      */
     void finalizeSnapshot(SnapshotId snapshotId, ShardGenerations shardGenerations, long startTime, String failure,
                           int totalShards, List<SnapshotShardFailure> shardFailures, long repositoryStateId,
                           boolean includeGlobalState, Metadata clusterMetadata,
-                          Version repositoryMetaVersion, ActionListener<SnapshotInfo> listener);
+                          Version repositoryMetaVersion, Function<ClusterState, ClusterState> stateTransformer,
+                          ActionListener<Tuple<RepositoryData, SnapshotInfo>> listener);
 
     /**
-     * Deletes snapshot
+     * Deletes snapshots
      *
-     * @param snapshotId            snapshot id
+     * @param snapshotIds           snapshot ids
      * @param repositoryStateId     the unique id identifying the state of the repository when the snapshot deletion began
      * @param repositoryMetaVersion version of the updated repository metadata to write
      * @param listener              completion listener
      */
-    void deleteSnapshot(SnapshotId snapshotId, long repositoryStateId, Version repositoryMetaVersion, ActionListener<Void> listener);
+    void deleteSnapshots(Collection<SnapshotId> snapshotIds, long repositoryStateId, Version repositoryMetaVersion,
+                         ActionListener<Void> listener);
 
     /**
      * Verifies repository on the master node and returns the verification token.

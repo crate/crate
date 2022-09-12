@@ -576,8 +576,8 @@ CrateDB and we love to hear feedback.
 .. _PostgreSQL Arrays: https://www.postgresql.org/docs/14/static/arrays.html
 .. _PostgreSQL extended query: https://www.postgresql.org/docs/14/static/protocol-flow.html#PROTOCOL-FLOW-EXT-QUERY
 .. _PostgreSQL Fulltext Search: https://www.postgresql.org/docs/14/static/functions-textsearch.html
-.. _PostgreSQL JDBC connection failover: https://jdbc.postgresql.org/documentation/head/connect.html#connection-failover
-.. _PostgreSQL JDBC Query docs: https://jdbc.postgresql.org/documentation/head/query.html
+.. _PostgreSQL JDBC connection failover: https://jdbc.postgresql.org/documentation/use/#connection-fail-over
+.. _PostgreSQL JDBC Query docs: https://jdbc.postgresql.org/documentation/query
 .. _PostgreSQL simple query: https://www.postgresql.org/docs/14/static/protocol-flow.html#id-1.10.5.7.4
 .. _PostgreSQL value expressions: https://www.postgresql.org/docs/14/static/sql-expressions.html
 .. _PostgreSQL wire protocol v3: https://www.postgresql.org/docs/14/static/protocol.html

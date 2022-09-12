@@ -40,8 +40,9 @@ public class ShingleTokenFilterFactory extends AbstractTokenFilterFactory {
 
         int shingleDiff = maxShingleSize - minShingleSize + (outputUnigrams ? 1 : 0);
         if (shingleDiff > maxAllowedShingleDiff) {
-            deprecationLogger.deprecated("Deprecated big difference between maxShingleSize and minShingleSize in Shingle TokenFilter,"
-                + "expected difference must be less than or equal to: [" + maxAllowedShingleDiff + "]");
+            deprecationLogger.deprecatedAndMaybeLog("excessive_shingle_diff",
+                "Deprecated big difference between maxShingleSize and minShingleSize in Shingle TokenFilter,"
+                    + "expected difference must be less than or equal to: [" + maxAllowedShingleDiff + "]");
         }
         String tokenSeparator = settings.get("token_separator", ShingleFilter.DEFAULT_TOKEN_SEPARATOR);
         String fillerToken = settings.get("filler_token", ShingleFilter.DEFAULT_FILLER_TOKEN);
