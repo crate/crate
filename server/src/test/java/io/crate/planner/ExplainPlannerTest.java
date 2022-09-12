@@ -21,12 +21,7 @@
 
 package io.crate.planner;
 
-import static org.hamcrest.Matchers.containsString;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.List;
@@ -71,9 +66,9 @@ public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testExplain() {
         for (String statement : EXPLAIN_TEST_STATEMENTS) {
             ExplainPlan plan = e.plan("EXPLAIN " + statement);
-            assertNotNull(plan);
-            assertNotNull(plan.subPlan());
-            assertFalse(plan.doAnalyze());
+            assertThat(plan).isNotNull();
+            assertThat(plan.subPlan()).isNotNull();
+            assertThat(plan.doAnalyze()).isFalse();
         }
     }
 
@@ -81,9 +76,9 @@ public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testExplainAnalyze() {
         for (String statement : EXPLAIN_TEST_STATEMENTS) {
             ExplainPlan plan = e.plan("EXPLAIN ANALYZE " + statement);
-            assertNotNull(plan);
-            assertNotNull(plan.subPlan());
-            assertTrue(plan.doAnalyze());
+            assertThat(plan).isNotNull();
+            assertThat(plan.subPlan()).isNotNull();
+            assertThat(plan.doAnalyze()).isTrue();
         }
     }
 
@@ -111,8 +106,8 @@ public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
             }
         }, Row.EMPTY, SubQueryResults.EMPTY);
 
-        assertNull(itRef.get());
-        assertNotNull(failureRef.get());
-        assertThat(failureRef.get().getMessage(), containsString("EXPLAIN ANALYZE does not support profiling multi-phase plans, such as queries with scalar subselects."));
+        assertThat(itRef.get()).isNull();
+        assertThat(failureRef.get()).isNotNull();
+        assertThat(failureRef.get().getMessage()).isEqualTo("EXPLAIN ANALYZE does not support profiling multi-phase plans, such as queries with scalar subselects.");
     }
 }
