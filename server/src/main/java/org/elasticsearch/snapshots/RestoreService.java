@@ -23,6 +23,7 @@ import static java.util.Collections.emptySet;
 import static java.util.Collections.unmodifiableSet;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_CREATION_DATE;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_HISTORY_UUID;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_INDEX_UUID;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_REPLICAS;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_SHARDS;
@@ -44,8 +45,6 @@ import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import io.crate.metadata.IndexParts;
-import io.crate.metadata.PartitionName;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
@@ -103,6 +102,8 @@ import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
 import io.crate.common.unit.TimeValue;
+import io.crate.metadata.IndexParts;
+import io.crate.metadata.PartitionName;
 
 /**
  * Service responsible for restoring snapshots
@@ -133,7 +134,8 @@ public class RestoreService implements ClusterStateApplier {
             SETTING_VERSION_CREATED,
             SETTING_INDEX_UUID,
             SETTING_CREATION_DATE,
-            IndexSettings.INDEX_SOFT_DELETES_SETTING.getKey());
+            IndexSettings.INDEX_SOFT_DELETES_SETTING.getKey(),
+            SETTING_HISTORY_UUID);
 
     // It's OK to change some settings, but we shouldn't allow simply removing them
     private static final Set<String> UNREMOVABLE_SETTINGS;
@@ -311,7 +313,8 @@ public class RestoreService implements ClusterStateApplier {
                                                         .index(renamedIndexName);
                                                     indexMdBuilder.settings(Settings.builder()
                                                                                 .put(snapshotIndexMetadata.getSettings())
-                                                                                .put(IndexMetadata.SETTING_INDEX_UUID, UUIDs.randomBase64UUID()));
+                                                                                .put(IndexMetadata.SETTING_INDEX_UUID, UUIDs.randomBase64UUID())
+                                                                                .put(IndexMetadata.SETTING_HISTORY_UUID, UUIDs.randomBase64UUID()));
 
                                                     shardLimitValidator.validateShardLimit(snapshotIndexMetadata.getSettings(), currentState);
                                                     if (!request.includeAliases() && !snapshotIndexMetadata.getAliases().isEmpty()) {

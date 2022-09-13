@@ -22,11 +22,13 @@ package org.elasticsearch.indices.recovery;
 import static org.elasticsearch.cluster.metadata.IndexGraveyard.SETTING_MAX_TOMBSTONES;
 import static org.elasticsearch.gateway.DanglingIndicesState.AUTO_IMPORT_DANGLING_INDICES_SETTING;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import java.util.concurrent.TimeUnit;
 
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.test.IntegTestCase;
@@ -82,6 +84,8 @@ public class DanglingIndicesIT extends IntegTestCase {
                                     execute("select 1 from information_schema.tables where table_name='test'").rowCount(),
                                     is((1L))));
         ensureGreen("test");
+        final IndexMetadata indexMetadata = clusterService().state().metadata().index("test");
+        assertThat(indexMetadata.getSettings().get(IndexMetadata.SETTING_HISTORY_UUID), notNullValue());
     }
 
     /**
