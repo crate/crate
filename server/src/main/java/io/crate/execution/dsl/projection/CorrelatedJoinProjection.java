@@ -43,7 +43,7 @@ public class CorrelatedJoinProjection extends Projection {
     private final PlannerContext plannerContext;
     private final SubQueryResults subQueryResults;
     private final Row params;
-    private final List<Symbol> inputPlanOutputs;
+    private final List<Symbol> inputs;
     private final DependencyCarrier executor;
 
     public CorrelatedJoinProjection(DependencyCarrier executor,
@@ -52,7 +52,7 @@ public class CorrelatedJoinProjection extends Projection {
                                     PlannerContext plannerContext,
                                     SubQueryResults subQueryResults,
                                     Row params,
-                                    List<Symbol> inputPlanOutputs,
+                                    List<Symbol> inputs,
                                     List<Symbol> outputs) {
         this.executor = executor;
         this.subQueryPlan = subQueryPlan;
@@ -60,8 +60,7 @@ public class CorrelatedJoinProjection extends Projection {
         this.plannerContext = plannerContext;
         this.subQueryResults = subQueryResults;
         this.params = params;
-        this.inputPlanOutputs = inputPlanOutputs;
-//        this.inputPlanOutputs = Lists2.concat(Lists2.concat(inputPlanOutputs, subQueryPlan.outputs()), subQueryPlan.outputs());
+        this.inputs = inputs;
         this.outputs = outputs;
     }
 
@@ -86,7 +85,7 @@ public class CorrelatedJoinProjection extends Projection {
     }
 
     public List<Symbol> inputPlanOutputs() {
-        return inputPlanOutputs;
+        return inputs;
     }
 
     @Override

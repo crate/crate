@@ -68,16 +68,19 @@ public class CorrelatedJoin implements LogicalPlan {
     private final LogicalPlan inputPlan;
     private final LogicalPlan subQueryPlan;
 
+    private final List<Symbol> inputs;
     private final List<Symbol> outputs;
     private final SelectSymbol selectSymbol;
 
     public CorrelatedJoin(LogicalPlan inputPlan,
                           SelectSymbol selectSymbol,
                           LogicalPlan subQueryPlan,
+                          List<Symbol> inputs,
                           List<Symbol> outputs) {
         this.inputPlan = inputPlan;
         this.subQueryPlan = subQueryPlan;
         this.selectSymbol = selectSymbol;
+        this.inputs = inputs;
         this.outputs = outputs;
     }
 
@@ -114,7 +117,7 @@ public class CorrelatedJoin implements LogicalPlan {
             plannerContext,
             subQueryResults,
             params,
-            inputPlan.outputs(),
+            inputs,
             outputs
         );
         sourcePlan.addProjection(projection);

@@ -288,6 +288,8 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
             LIMIT 3
             """;
         execute("EXPLAIN " + stmt);
+        System.out.println(TestingHelpers.printedTable(response.rows()));
+
 //        assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo(
 //            "Eval[table_name, column_name]\n" +
 //            "  └ Limit[3::bigint;0]\n" +
@@ -346,63 +348,4 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
 
     }
 
-    @UseJdbc(1)
-    @Test
-    public void test_correlated_subquery_without_table_alias_within_join_condition_failed_simplified() {
-        var stmt = """
-            SELECT
-                columns.table_name,
-                columns.column_name
-            FROM
-                information_schema.columns
-                LEFT JOIN pg_catalog.pg_attribute AS col_attr
-                    ON col_attr.attname = columns.column_name
-                    AND col_attr.attrelid = (SELECT col_attr.attrelid)
-
-            ORDER BY 1, 2 DESC
-            LIMIT 3
-            """;
-        execute("EXPLAIN " + stmt);
-        System.out.println(TestingHelpers.printedTable(response.rows()));
-        execute(stmt);
-    }
-
-    @UseJdbc(1)
-    @Test
-    public void test_correlated_subquery_without_table_alias_within_join_condition_failed_more_simplified() {
-        var stmt = """
-            SELECT
-                columns.table_name,
-                columns.column_name
-            FROM
-                information_schema.columns
-                LEFT JOIN pg_catalog.pg_attribute AS col_attr
-                ON col_attr.attrelid = (SELECT col_attr.attrelid)
-
-            ORDER BY 1, 2 DESC
-            LIMIT 3
-            """;
-        execute("EXPLAIN " + stmt);
-        System.out.println(TestingHelpers.printedTable(response.rows()));
-
-//        assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo(
-//            "Eval[table_name, column_name]\n" +
-//            "  └ Limit[3::bigint;0]\n" +
-//            "    └ OrderBy[table_name ASC column_name DESC]\n" +
-//            "      └ NestedLoopJoin[LEFT | (attrelid = (SELECT attrelid FROM (empty_row)))]\n" +
-//            "        ├ CorrelatedJoin[table_name, column_name, (SELECT attrelid FROM (empty_row))]\n" +
-//            "        │  └ Collect[information_schema.columns | [table_name, column_name] | true]\n" +
-//            "        │  └ SubPlan\n" +
-//            "        │    └ Eval[attrelid]\n" +
-//            "        │      └ Limit[2::bigint;0::bigint]\n" +
-//            "        │        └ TableFunction[empty_row | [] | true]\n" +
-//            "        └ Rename[attrelid] AS col_attr\n" +
-//            "          └ Collect[pg_catalog.pg_attribute | [attrelid] | true]\n");
-        execute(stmt);
-        assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo(
-            "allocations| table_schema\n" +
-            "allocations| table_schema\n" +
-            "allocations| table_schema\n"
-        );
-    }
 }
