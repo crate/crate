@@ -19,7 +19,12 @@
 
 package org.elasticsearch.action.admin.indices.mapping.put;
 
-import com.carrotsearch.hppc.ObjectHashSet;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UncheckedIOException;
+import java.util.Map;
+import java.util.Objects;
+
 import org.elasticsearch.ElasticsearchGenerationException;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.IndicesRequest;
@@ -39,13 +44,9 @@ import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.mapper.MapperService;
 
-import io.crate.Constants;
+import com.carrotsearch.hppc.ObjectHashSet;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.UncheckedIOException;
-import java.util.Map;
-import java.util.Objects;
+import io.crate.Constants;
 
 
 /**

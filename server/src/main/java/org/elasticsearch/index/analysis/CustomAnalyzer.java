@@ -19,11 +19,12 @@
 
 package org.elasticsearch.index.analysis;
 
+import java.io.Reader;
+
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.Tokenizer;
-
-import java.io.Reader;
+import org.elasticsearch.common.util.CollectionUtils;
 
 public final class CustomAnalyzer extends Analyzer {
 
@@ -96,7 +97,8 @@ public final class CustomAnalyzer extends Analyzer {
 
     @Override
     protected Reader initReader(String fieldName, Reader reader) {
-        if (charFilters != null && charFilters.length > 0) {
+        CharFilterFactory[] charFilters = charFilters();
+        if (CollectionUtils.isEmpty(charFilters) == false) {
             for (CharFilterFactory charFilter : charFilters) {
                 reader = charFilter.create(reader);
             }

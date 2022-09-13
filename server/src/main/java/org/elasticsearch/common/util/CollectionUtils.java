@@ -30,6 +30,17 @@ import java.util.RandomAccess;
 public class CollectionUtils {
 
     /**
+     * Checks if the given array contains any elements.
+     *
+     * @param array The array to check
+     *
+     * @return false if the array contains an element, true if not or the array is null.
+     */
+    public static boolean isEmpty(Object[] array) {
+        return array == null || array.length == 0;
+    }
+
+    /**
      * Return a rotated view of the given list with the given distance.
      */
     public static <T> List<T> rotate(final List<T> list, int distance) {
