@@ -31,6 +31,7 @@ import javax.annotation.Nullable;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelConfig;
@@ -140,6 +141,12 @@ public class DelayableWriteChannel implements Channel {
     public ChannelFuture write(Object msg, ChannelPromise promise) {
         DelayedWrites currentDelay = delay.get();
         if (currentDelay != null) {
+            if (LOGGER.isDebugEnabled()) {
+                if (msg instanceof ByteBuf buf) {
+                    byte msgType = buf.getByte(0);
+                    LOGGER.debug("Deferring msg={}", (char) msgType);
+                }
+            }
             currentDelay.add(msg, () -> delegate.write(msg, promise));
             return promise;
         }
