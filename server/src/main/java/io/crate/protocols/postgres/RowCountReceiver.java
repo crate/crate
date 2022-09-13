@@ -21,15 +21,19 @@
 
 package io.crate.protocols.postgres;
 
+import javax.annotation.Nonnull;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import io.crate.action.sql.BaseResultReceiver;
 import io.crate.auth.AccessControl;
 import io.crate.data.Row;
 import io.netty.channel.Channel;
 
-import javax.annotation.Nonnull;
-
 class RowCountReceiver extends BaseResultReceiver {
 
+    private static final Logger LOGGER = LogManager.getLogger(RowCountReceiver.class);
     private final Channel channel;
     private final String query;
     private final AccessControl accessControl;
@@ -55,6 +59,7 @@ class RowCountReceiver extends BaseResultReceiver {
 
     @Override
     public void allFinished(boolean interrupted) {
+        LOGGER.debug("query={} finished -> sending commandComplete", query);
         Messages.sendCommandComplete(channel, query, rowCount).addListener(f -> super.allFinished(interrupted));
     }
 

@@ -522,12 +522,16 @@ public class Session implements AutoCloseable {
                     var statement = entry.getKey();
                     var deferredExecutions = entry.getValue();
                     if (allCompleted == null) {
+                        LOGGER.debug("Triggering statement={}", statement);
                         allCompleted = exec(statement, deferredExecutions);
                     } else {
                         allCompleted = allCompleted
                             // individual rowReceiver will receive failure; must not break execution chain due to failures.
                             .exceptionally(swallowException -> null)
-                            .thenCompose(ignored -> exec(statement, deferredExecutions));
+                            .thenCompose(ignored -> {
+                                LOGGER.debug("Previous statement finished. Triggering statement={}", statement);
+                                return exec(statement, deferredExecutions);
+                            });
                     }
                 }
                 deferredExecutionsByStmt.clear();
