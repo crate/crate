@@ -20,23 +20,28 @@
 
 package org.elasticsearch.cluster.coordination;
 
-import io.crate.common.collections.Tuple;
-import joptsimple.OptionSet;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.Collections;
+import java.util.Locale;
+
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.cli.Terminal;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.gateway.PersistedClusterStateService;
 import org.elasticsearch.node.Node;
 
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.Collections;
-import java.util.Locale;
+import com.carrotsearch.hppc.cursors.ObjectCursor;
+
+import io.crate.common.collections.Tuple;
+import joptsimple.OptionSet;
 
 public class UnsafeBootstrapMasterCommand extends ElasticsearchNodeCommand {
 
@@ -106,13 +111,18 @@ public class UnsafeBootstrapMasterCommand extends ElasticsearchNodeCommand {
                 .put(metadata.persistentSettings())
                 .put(UNSAFE_BOOTSTRAP.getKey(), true)
                 .build();
-        Metadata newMetadata = Metadata.builder(metadata)
+        Metadata.Builder newMetadata = Metadata.builder(metadata)
                 .clusterUUID(Metadata.UNKNOWN_CLUSTER_UUID)
                 .generateClusterUuidIfNeeded()
                 .clusterUUIDCommitted(true)
                 .persistentSettings(persistentSettings)
-                .coordinationMetadata(newCoordinationMetadata)
-                .build();
+                .coordinationMetadata(newCoordinationMetadata);
+        for (ObjectCursor<IndexMetadata> idx : metadata.indices().values()) {
+            IndexMetadata indexMetadata = idx.value;
+            newMetadata.put(IndexMetadata.builder(indexMetadata).settings(
+                Settings.builder().put(indexMetadata.getSettings())
+                    .put(IndexMetadata.SETTING_HISTORY_UUID, UUIDs.randomBase64UUID())));
+        }
 
         final ClusterState newClusterState = ClusterState.builder(oldClusterState)
             .metadata(newMetadata).build();
