@@ -385,7 +385,7 @@ should be crossed out as well.
 - [ ] 8e96e5c936a Use CollectionUtils.isEmpty where appropriate (#55910)
 - [ ] 9ae09570d87 Allow a number of broadcast transport actions to resolve data streams (#55726) (#56502)
 - [ ] 83739b5806e Backport: allow cluster health api to resolve data streams (#56425)
-- [ ] 8e9b69bfd79 Use snapshot information to build searchable snapshot store MetadataSnapshot (#56289) (#56403)
+- [x] 8e9b69bfd79 Use snapshot information to build searchable snapshot store MetadataSnapshot (#56289) (#56403)
 - [x] 085ff8c404c Add More Trace Logging to BlobStoreRepository (#56336) (#56401)
 - [s] b84d1e2577b Improve logging around SniffConnectionStrategy (#56378)
 - [x] 3bad5b3c01a Fix Noisy Logging during Snapshot Delete (#56264) (#56329)
