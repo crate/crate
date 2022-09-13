@@ -114,7 +114,7 @@
          y="106.60093"
          x="14.376364"
          id="tspan38"
-         sodipodi:role="line">Enterprise</tspan></text>
+         sodipodi:role="line">Components</tspan></text>
     <rect
        y="171.9129"
        x="15.250381"
@@ -318,16 +318,11 @@
          id="tspan1186"
          x="87.054352"
          y="121.01394"
-         style="stroke-width:0.5291667;stroke-miterlimit:4;stroke-dasharray:none">MQTT Ingestion</tspan><tspan
+         style="stroke-width:0.5291667;stroke-miterlimit:4;stroke-dasharray:none">Hyperloglog</tspan><tspan
          sodipodi:role="line"
          x="87.054352"
          y="128.95143"
          style="stroke-width:0.5291667;stroke-miterlimit:4;stroke-dasharray:none"
-         id="tspan1190">Hyperloglog</tspan><tspan
-         sodipodi:role="line"
-         x="87.054352"
-         y="136.88893"
-         style="stroke-width:0.5291667;stroke-miterlimit:4;stroke-dasharray:none"
-         id="tspan1192">UDFs</tspan></text>
+         id="tspan1190">UDFs</tspan></text>
   </g>
 </svg>
