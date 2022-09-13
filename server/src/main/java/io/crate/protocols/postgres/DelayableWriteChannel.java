@@ -297,6 +297,11 @@ public class DelayableWriteChannel implements Channel {
         }
     }
 
+    public void writePendingMessages(DelayedWrites delayedWrites) {
+        delay.compareAndSet(delayedWrites, null);
+        delayedWrites.writeDelayed();
+    }
+
     public void writePendingMessages() {
         DelayedWrites currentDelay = delay.getAndSet(null);
         if (currentDelay != null) {
@@ -309,8 +314,8 @@ public class DelayableWriteChannel implements Channel {
         }
     }
 
-    public void delayWrites() {
-        delay.updateAndGet(DelayedWrites::new);
+    public DelayedWrites delayWrites() {
+        return delay.updateAndGet(DelayedWrites::new);
     }
 
     static class DelayedMsg {

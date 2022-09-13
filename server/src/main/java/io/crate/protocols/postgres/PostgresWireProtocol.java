@@ -61,6 +61,7 @@ import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists2;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
+import io.crate.protocols.postgres.DelayableWriteChannel.DelayedWrites;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.sql.SqlFormatter;
@@ -650,26 +651,7 @@ public class PostgresWireProtocol {
             return;
         }
         List<? extends DataType> outputTypes = session.getOutputTypes(portalName);
-        ResultReceiver<?> resultReceiver;
-        if (outputTypes == null) {
-            // this is a DML query
-            maxRows = 0;
-            resultReceiver = new RowCountReceiver(
-                query,
-                channel,
-                getAccessControl.apply(session.sessionSettings())
-            );
-        } else {
-            // query with resultSet
-            resultReceiver = new ResultSetReceiver(
-                query,
-                channel,
-                session.transactionState(),
-                getAccessControl.apply(session.sessionSettings()),
-                Lists2.map(outputTypes, PGTypes::get),
-                session.getResultFormatCodes(portalName)
-            );
-        }
+
         // .execute is going async and may execute the query in another thread-pool.
         // The results are later sent to the clients via the `ResultReceiver` created
         // above, The `channel.write` calls - which the `ResultReceiver` makes - may
@@ -687,7 +669,29 @@ public class PostgresWireProtocol {
         // To ensure clients receive messages in the correct order we delay all writes
         // The "finish" logic of the ResultReceivers writes out all pending writes/unblocks the channel
 
-        channel.delayWrites();
+        DelayedWrites delayedWrites = channel.delayWrites();
+        ResultReceiver<?> resultReceiver;
+        if (outputTypes == null) {
+            // this is a DML query
+            maxRows = 0;
+            resultReceiver = new RowCountReceiver(
+                query,
+                channel,
+                delayedWrites,
+                getAccessControl.apply(session.sessionSettings())
+            );
+        } else {
+            // query with resultSet
+            resultReceiver = new ResultSetReceiver(
+                query,
+                channel,
+                delayedWrites,
+                session.transactionState(),
+                getAccessControl.apply(session.sessionSettings()),
+                Lists2.map(outputTypes, PGTypes::get),
+                session.getResultFormatCodes(portalName)
+            );
+        }
         session.execute(portalName, maxRows, resultReceiver);
     }
 
@@ -772,15 +776,21 @@ public class PostgresWireProtocol {
             List<Symbol> fields = describeResult.getFields();
 
             if (fields == null) {
-                RowCountReceiver rowCountReceiver = new RowCountReceiver(query, channel, accessControl);
-                channel.delayWrites();
+                DelayedWrites delayedWrites = channel.delayWrites();
+                RowCountReceiver rowCountReceiver = new RowCountReceiver(
+                    query,
+                    channel,
+                    delayedWrites,
+                    accessControl
+                );
                 session.execute("", 0, rowCountReceiver);
             } else {
                 Messages.sendRowDescription(channel, fields, null, describeResult.relation());
-                channel.delayWrites();
+                DelayedWrites delayedWrites = channel.delayWrites();
                 ResultSetReceiver resultSetReceiver = new ResultSetReceiver(
                     query,
                     channel,
+                    delayedWrites,
                     TransactionState.IDLE,
                     accessControl,
                     Lists2.map(fields, x -> PGTypes.get(x.valueType())),

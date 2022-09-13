@@ -32,6 +32,7 @@ import org.mockito.Answers;
 
 import io.crate.auth.AccessControl;
 import io.crate.data.Row1;
+import io.crate.protocols.postgres.DelayableWriteChannel.DelayedWrites;
 import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.types.DataTypes;
 import io.netty.channel.Channel;
@@ -41,9 +42,12 @@ public class ResultSetReceiverTest {
     @Test
     public void testChannelIsPeriodicallyFlushedToAvoidConsumingTooMuchMemory() {
         Channel channel = mock(Channel.class, Answers.RETURNS_DEEP_STUBS);
+        DelayableWriteChannel delayableWriteChannel = new DelayableWriteChannel(channel);
+        DelayedWrites delayWrites = delayableWriteChannel.delayWrites();
         ResultSetReceiver resultSetReceiver = new ResultSetReceiver(
             "select * from t",
-            new DelayableWriteChannel(channel),
+            delayableWriteChannel,
+            delayWrites,
             TransactionState.IDLE,
             AccessControl.DISABLED,
             Collections.singletonList(PGTypes.get(DataTypes.INTEGER)),

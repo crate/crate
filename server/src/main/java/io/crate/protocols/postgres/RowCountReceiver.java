@@ -26,6 +26,7 @@ import javax.annotation.Nonnull;
 import io.crate.action.sql.BaseResultReceiver;
 import io.crate.auth.AccessControl;
 import io.crate.data.Row;
+import io.crate.protocols.postgres.DelayableWriteChannel.DelayedWrites;
 import io.netty.channel.ChannelFuture;
 
 class RowCountReceiver extends BaseResultReceiver {
@@ -33,11 +34,16 @@ class RowCountReceiver extends BaseResultReceiver {
     private final DelayableWriteChannel channel;
     private final String query;
     private final AccessControl accessControl;
+    private final DelayedWrites delayedWrites;
     private long rowCount;
 
-    RowCountReceiver(String query, DelayableWriteChannel channel, AccessControl accessControl) {
+    RowCountReceiver(String query,
+                     DelayableWriteChannel channel,
+                     DelayedWrites delayedWrites,
+                     AccessControl accessControl) {
         this.query = query;
         this.channel = channel;
+        this.delayedWrites = delayedWrites;
         this.accessControl = accessControl;
     }
 
@@ -56,7 +62,7 @@ class RowCountReceiver extends BaseResultReceiver {
     @Override
     public void allFinished(boolean interrupted) {
         ChannelFuture sendCommandComplete = Messages.sendCommandComplete(channel.bypassDelay(), query, rowCount);
-        channel.writePendingMessages();
+        channel.writePendingMessages(delayedWrites);
         channel.flush();
         sendCommandComplete.addListener(f -> super.allFinished(interrupted));
     }
@@ -64,7 +70,7 @@ class RowCountReceiver extends BaseResultReceiver {
     @Override
     public void fail(@Nonnull Throwable throwable) {
         ChannelFuture sendErrorResponse = Messages.sendErrorResponse(channel.bypassDelay(), accessControl, throwable);
-        channel.writePendingMessages();
+        channel.writePendingMessages(delayedWrites);
         channel.flush();
         sendErrorResponse.addListener(f -> super.fail(throwable));
     }
