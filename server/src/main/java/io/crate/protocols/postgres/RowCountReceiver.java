@@ -29,17 +29,17 @@ import org.apache.logging.log4j.Logger;
 import io.crate.action.sql.BaseResultReceiver;
 import io.crate.auth.AccessControl;
 import io.crate.data.Row;
-import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
 
 class RowCountReceiver extends BaseResultReceiver {
 
     private static final Logger LOGGER = LogManager.getLogger(RowCountReceiver.class);
-    private final Channel channel;
+    private final DelayableWriteChannel channel;
     private final String query;
     private final AccessControl accessControl;
     private long rowCount;
 
-    RowCountReceiver(String query, Channel channel, AccessControl accessControl) {
+    RowCountReceiver(String query, DelayableWriteChannel channel, AccessControl accessControl) {
         this.query = query;
         this.channel = channel;
         this.accessControl = accessControl;
@@ -60,11 +60,17 @@ class RowCountReceiver extends BaseResultReceiver {
     @Override
     public void allFinished(boolean interrupted) {
         LOGGER.debug("query={} finished -> sending commandComplete", query);
-        Messages.sendCommandComplete(channel, query, rowCount).addListener(f -> super.allFinished(interrupted));
+        ChannelFuture sendCommandComplete = Messages.sendCommandComplete(channel.bypassDelay(), query, rowCount);
+        channel.writePendingMessages();
+        channel.flush();
+        sendCommandComplete.addListener(f -> super.allFinished(interrupted));
     }
 
     @Override
     public void fail(@Nonnull Throwable throwable) {
-        Messages.sendErrorResponse(channel, accessControl, throwable).addListener(f -> super.fail(throwable));
+        ChannelFuture sendErrorResponse = Messages.sendErrorResponse(channel, accessControl, throwable);
+        channel.writePendingMessages();
+        channel.flush();
+        sendErrorResponse.addListener(f -> super.fail(throwable));
     }
 }

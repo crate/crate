@@ -328,6 +328,10 @@ public class DelayableWriteChannel implements Channel {
         }
     }
 
+    public void delayWrites() {
+        delay.updateAndGet(DelayedWrites::new);
+    }
+
     public void delayWritesUntil(CompletableFuture<?> future) {
         DelayedWrites currentDelay = delay.updateAndGet(DelayedWrites::new);
         future.whenComplete((res, err) -> {

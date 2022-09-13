@@ -43,7 +43,7 @@ public class ResultSetReceiverTest {
         Channel channel = mock(Channel.class, Answers.RETURNS_DEEP_STUBS);
         ResultSetReceiver resultSetReceiver = new ResultSetReceiver(
             "select * from t",
-            channel,
+            new DelayableWriteChannel(channel),
             TransactionState.IDLE,
             AccessControl.DISABLED,
             Collections.singletonList(PGTypes.get(DataTypes.INTEGER)),

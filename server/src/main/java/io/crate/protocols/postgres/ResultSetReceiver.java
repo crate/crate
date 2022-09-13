@@ -30,12 +30,12 @@ import io.crate.action.sql.BaseResultReceiver;
 import io.crate.auth.AccessControl;
 import io.crate.data.Row;
 import io.crate.protocols.postgres.types.PGType;
-import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
 
 class ResultSetReceiver extends BaseResultReceiver {
 
     private final String query;
-    private final Channel channel;
+    private final DelayableWriteChannel channel;
     private final List<PGType<?>> columnTypes;
     private final TransactionState transactionState;
     private final AccessControl accessControl;
@@ -46,7 +46,7 @@ class ResultSetReceiver extends BaseResultReceiver {
     private long rowCount = 0;
 
     ResultSetReceiver(String query,
-                      Channel channel,
+                      DelayableWriteChannel channel,
                       TransactionState transactionState,
                       AccessControl accessControl,
                       List<PGType<?>> columnTypes,
@@ -62,7 +62,7 @@ class ResultSetReceiver extends BaseResultReceiver {
     @Override
     public void setNextRow(Row row) {
         rowCount++;
-        Messages.sendDataRow(channel, row, columnTypes, formatCodes);
+        Messages.sendDataRow(channel.bypassDelay(), row, columnTypes, formatCodes);
         if (rowCount % 1000 == 0) {
             channel.flush();
         }
@@ -70,22 +70,30 @@ class ResultSetReceiver extends BaseResultReceiver {
 
     @Override
     public void batchFinished() {
-        Messages.sendPortalSuspended(channel);
-        Messages.sendReadyForQuery(channel, transactionState);
+        Messages.sendPortalSuspended(channel.bypassDelay());
+        Messages.sendReadyForQuery(channel.bypassDelay(), transactionState);
+        channel.writePendingMessages();
         super.allFinished(true);
     }
 
     @Override
     public void allFinished(boolean interrupted) {
         if (interrupted) {
+            channel.writePendingMessages();
             super.allFinished(true);
         } else {
-            Messages.sendCommandComplete(channel, query, rowCount).addListener(f -> super.allFinished(false));
+            ChannelFuture sendCommandComplete = Messages.sendCommandComplete(channel, query, rowCount);
+            channel.writePendingMessages();
+            channel.flush();
+            sendCommandComplete.addListener(f -> super.allFinished(false));
         }
     }
 
     @Override
     public void fail(@Nonnull Throwable throwable) {
-        Messages.sendErrorResponse(channel, accessControl, throwable).addListener(f -> super.fail(throwable));
+        ChannelFuture sendErrorResponse = Messages.sendErrorResponse(channel, accessControl, throwable);
+        channel.writePendingMessages();
+        channel.flush();
+        sendErrorResponse.addListener(f -> super.fail(throwable));
     }
 }
