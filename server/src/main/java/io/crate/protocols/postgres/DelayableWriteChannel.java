@@ -23,7 +23,6 @@ package io.crate.protocols.postgres;
 
 import java.net.SocketAddress;
 import java.util.ArrayDeque;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nullable;
@@ -298,6 +297,11 @@ public class DelayableWriteChannel implements Channel {
         }
     }
 
+    public void writePendingMessages(DelayedWrites delayedWrites) {
+        delay.compareAndSet(delayedWrites, null);
+        delayedWrites.writeDelayed();
+    }
+
     public void writePendingMessages() {
         DelayedWrites currentDelay = delay.getAndSet(null);
         if (currentDelay != null) {
@@ -310,12 +314,8 @@ public class DelayableWriteChannel implements Channel {
         }
     }
 
-    public void delayWritesUntil(CompletableFuture<?> future) {
-        DelayedWrites currentDelay = delay.updateAndGet(DelayedWrites::new);
-        future.whenComplete((res, err) -> {
-            currentDelay.writeDelayed();
-            delay.compareAndSet(currentDelay, null);
-        });
+    public DelayedWrites delayWrites() {
+        return delay.updateAndGet(DelayedWrites::new);
     }
 
     static class DelayedMsg {
