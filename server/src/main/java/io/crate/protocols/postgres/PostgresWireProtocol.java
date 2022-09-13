@@ -61,6 +61,7 @@ import io.crate.auth.Protocol;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists2;
 import io.crate.expression.symbol.Symbol;
+import io.crate.protocols.postgres.DelayableWriteChannel.DelayedWrites;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.sql.SqlFormatter;
@@ -650,26 +651,7 @@ public class PostgresWireProtocol {
             return;
         }
         List<? extends DataType> outputTypes = session.getOutputTypes(portalName);
-        ResultReceiver resultReceiver;
-        if (outputTypes == null) {
-            // this is a DML query
-            maxRows = 0;
-            resultReceiver = new RowCountReceiver(
-                query,
-                channel.bypassDelay(),
-                getAccessControl.apply(session.sessionContext())
-            );
-        } else {
-            // query with resultSet
-            resultReceiver = new ResultSetReceiver(
-                query,
-                channel.bypassDelay(),
-                session.transactionState(),
-                getAccessControl.apply(session.sessionContext()),
-                Lists2.map(outputTypes, PGTypes::get),
-                session.getResultFormatCodes(portalName)
-            );
-        }
+
         // .execute is going async and may execute the query in another thread-pool.
         // The results are later sent to the clients via the `ResultReceiver` created
         // above, The `channel.write` calls - which the `ResultReceiver` makes - may
@@ -685,11 +667,32 @@ public class PostgresWireProtocol {
         // been transmitted.
         //
         // To ensure clients receive messages in the correct order we delay all writes
-        // on the channel until the future below is finished.
-        CompletableFuture<?> execute = session.execute(portalName, maxRows, resultReceiver);
-        if (execute != null) {
-            channel.delayWritesUntil(execute);
+        // The "finish" logic of the ResultReceivers writes out all pending writes/unblocks the channel
+
+        DelayedWrites delayedWrites = channel.delayWrites();
+        ResultReceiver<?> resultReceiver;
+        if (outputTypes == null) {
+            // this is a DML query
+            maxRows = 0;
+            resultReceiver = new RowCountReceiver(
+                query,
+                channel,
+                delayedWrites,
+                getAccessControl.apply(session.sessionContext())
+            );
+        } else {
+            // query with resultSet
+            resultReceiver = new ResultSetReceiver(
+                query,
+                channel,
+                delayedWrites,
+                session.transactionState(),
+                getAccessControl.apply(session.sessionContext()),
+                Lists2.map(outputTypes, PGTypes::get),
+                session.getResultFormatCodes(portalName)
+            );
         }
+        session.execute(portalName, maxRows, resultReceiver);
     }
 
     private void handleSync(DelayableWriteChannel channel) {
@@ -772,24 +775,28 @@ public class PostgresWireProtocol {
             DescribeResult describeResult = session.describe('P', "");
             List<Symbol> fields = describeResult.getFields();
 
-            CompletableFuture<?> execute;
             if (fields == null) {
-                RowCountReceiver rowCountReceiver = new RowCountReceiver(query, channel.bypassDelay(), accessControl);
-                execute = session.execute("", 0, rowCountReceiver);
+                DelayedWrites delayedWrites = channel.delayWrites();
+                RowCountReceiver rowCountReceiver = new RowCountReceiver(
+                    query,
+                    channel,
+                    delayedWrites,
+                    accessControl
+                );
+                session.execute("", 0, rowCountReceiver);
             } else {
                 Messages.sendRowDescription(channel, fields, null, describeResult.relation());
+                DelayedWrites delayedWrites = channel.delayWrites();
                 ResultSetReceiver resultSetReceiver = new ResultSetReceiver(
                     query,
-                    channel.bypassDelay(),
+                    channel,
+                    delayedWrites,
                     TransactionState.IDLE,
                     accessControl,
                     Lists2.map(fields, x -> PGTypes.get(x.valueType())),
                     null
                 );
-                execute = session.execute("", 0, resultSetReceiver);
-            }
-            if (execute != null) {
-                channel.delayWritesUntil(execute);
+                session.execute("", 0, resultSetReceiver);
             }
             return session.sync();
         } catch (Throwable t) {

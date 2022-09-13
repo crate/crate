@@ -64,6 +64,10 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Fixed an issue that could lead to a ``NoSuchElementException`` when using the
+  JDBC client and mixing different DML statements using the ``addBatch``
+  functionality.
+
 - Fixed an issue that could lead to stuck queries.
 
 - Fixed ``EXPLAIN`` plan output for queries with a ``WHERE`` clause containing
