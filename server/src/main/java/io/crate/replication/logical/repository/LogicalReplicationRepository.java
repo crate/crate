@@ -29,6 +29,7 @@ import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 import javax.annotation.Nullable;
@@ -43,6 +44,7 @@ import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.ClusterStateUpdateTask;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -323,6 +325,13 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
         throw new UnsupportedOperationException("Operation not permitted");
     }
 
+
+    @Override
+    public void executeConsistentStateUpdate(Function<RepositoryData,
+                                      ClusterStateUpdateTask> createUpdateTask, String source,
+                                      Consumer<Exception> onFailure) {
+        throw new UnsupportedOperationException("Operation not permitted");
+    }
 
     @Override
     public void restoreShard(Store store,

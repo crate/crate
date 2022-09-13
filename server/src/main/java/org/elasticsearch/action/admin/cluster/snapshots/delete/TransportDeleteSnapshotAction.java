@@ -33,7 +33,6 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 import java.io.IOException;
-import java.util.Arrays;
 
 /**
  * Transport action for delete snapshot operation
@@ -70,7 +69,6 @@ public class TransportDeleteSnapshotAction extends TransportMasterNodeAction<Del
     protected void masterOperation(final DeleteSnapshotRequest request,
                                    final ClusterState state,
                                    final ActionListener<AcknowledgedResponse> listener) {
-        snapshotsService.deleteSnapshots(request.repository(), Arrays.asList(request.snapshots()),
-            ActionListener.map(listener, v -> new AcknowledgedResponse(true)));
+        snapshotsService.deleteSnapshots(request, ActionListener.map(listener, v -> new AcknowledgedResponse(true)));
     }
 }

@@ -138,6 +138,7 @@ import org.elasticsearch.snapshots.SnapshotsService;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import io.crate.common.collections.Tuple;
+import io.crate.common.unit.TimeValue;
 import io.crate.exceptions.InvalidArgumentException;
 
 
@@ -366,6 +367,67 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                 LOGGER.warn("cannot close blob store", t);
             }
         }
+    }
+
+    @Override
+    public void executeConsistentStateUpdate(Function<RepositoryData, ClusterStateUpdateTask> createUpdateTask, String source,
+                                             Consumer<Exception> onFailure) {
+        threadPool.generic().execute(new AbstractRunnable() {
+            @Override
+            protected void doRun() {
+                final RepositoryMetadata repositoryMetadataStart = metadata;
+                getRepositoryData(ActionListener.wrap(repositoryData -> {
+                    final ClusterStateUpdateTask updateTask = createUpdateTask.apply(repositoryData);
+                    clusterService.submitStateUpdateTask(source, new ClusterStateUpdateTask(updateTask.priority()) {
+
+                        private boolean executedTask = false;
+
+                        @Override
+                        public ClusterState execute(ClusterState currentState) throws Exception {
+                            // Comparing the full metadata here on purpose instead of simply comparing the safe generation.
+                            // If the safe generation has changed, then we have to reload repository data and start over.
+                            // If the pending generation has changed we are in the midst of a write operation and might pick up the
+                            // updated repository data and state on the retry. We don't want to wait for the write to finish though
+                            // because it could fail for any number of reasons so we just retry instead of waiting on the cluster state
+                            // to change in any form.
+                            if (repositoryMetadataStart.equals(getRepoMetadata(currentState))) {
+                                executedTask = true;
+                                return updateTask.execute(currentState);
+                            }
+                            return currentState;
+                        }
+
+                        @Override
+                        public void onFailure(String source, Exception e) {
+                            if (executedTask) {
+                                updateTask.onFailure(source, e);
+                            } else {
+                                onFailure.accept(e);
+                            }
+                        }
+
+                        @Override
+                        public void clusterStateProcessed(String source, ClusterState oldState, ClusterState newState) {
+                            if (executedTask) {
+                                updateTask.clusterStateProcessed(source, oldState, newState);
+                            } else {
+                                executeConsistentStateUpdate(createUpdateTask, source, onFailure);
+                            }
+                        }
+
+                        @Override
+                        public TimeValue timeout() {
+                            return updateTask.timeout();
+                        }
+                    });
+                }, onFailure));
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                onFailure.accept(e);
+            }
+        });
     }
 
     // Inspects all cluster state elements that contain a hint about what the current repository generation is and updates
@@ -1877,12 +1939,12 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                             indexOutput.writeBytes(hash.bytes, hash.offset, hash.length);
                             recoveryState.getIndex().addRecoveredBytesToFile(fileInfo.physicalName(), hash.length);
                         } else {
-                            try (InputStream stream = maybeRateLimit(new SlicedInputStream(fileInfo.numberOfParts()) {
+                            try (InputStream stream = maybeRateLimitRestores(new SlicedInputStream(fileInfo.numberOfParts()) {
                                 @Override
                                 protected InputStream openSlice(long slice) throws IOException {
                                     return container.readBlob(fileInfo.partName(slice));
                                 }
-                            }, restoreRateLimiter, restoreRateLimitingTimeInNanos)) {
+                            })) {
                                 final byte[] buffer = new byte[BUFFER_SIZE];
                                 int length;
                                 while ((length = stream.read(buffer)) > 0) {
@@ -1922,6 +1984,14 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
 
     private static InputStream maybeRateLimit(InputStream stream, @Nullable RateLimiter rateLimiter, CounterMetric metric) {
         return rateLimiter == null ? stream : new RateLimitingInputStream(stream, rateLimiter, metric::inc);
+    }
+
+    private InputStream maybeRateLimitRestores(InputStream stream) {
+        return maybeRateLimit(stream, restoreRateLimiter, restoreRateLimitingTimeInNanos);
+    }
+
+    public InputStream maybeRateLimitSnapshots(InputStream stream) {
+        return maybeRateLimit(stream, snapshotRateLimiter, snapshotRateLimitingTimeInNanos);
     }
 
     @Override
@@ -2096,7 +2166,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                                                               snapshotRateLimitingTimeInNanos::inc);
                 }
                 // Make reads abortable by mutating the snapshotStatus object
-                inputStream = new FilterInputStream(inputStream) {
+                inputStream = new FilterInputStream(maybeRateLimitSnapshots(inputStream)) {
                     @Override
                     public int read() throws IOException {
                         checkAborted();
