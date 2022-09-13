@@ -137,7 +137,7 @@ public abstract class AbstractSnapshotIntegTestCase extends IntegTestCase {
         internalCluster().stopRandomNode(settings -> settings.get("node.name").equals(node));
     }
 
-    public void waitForBlock(String node, String repository, TimeValue timeout) throws InterruptedException {
+    public static void waitForBlock(String node, String repository, TimeValue timeout) throws InterruptedException {
         long start = System.currentTimeMillis();
         RepositoriesService repositoriesService = internalCluster().getInstance(RepositoriesService.class, node);
         MockRepository mockRepository = (MockRepository) repositoriesService.repository(repository);
@@ -186,7 +186,7 @@ public abstract class AbstractSnapshotIntegTestCase extends IntegTestCase {
         }
     }
 
-    public void waitForBlockOnAnyDataNode(String repository, TimeValue timeout) throws InterruptedException {
+    public static void waitForBlockOnAnyDataNode(String repository, TimeValue timeout) throws InterruptedException {
         final boolean blocked = waitUntil(() -> {
             for (RepositoriesService repositoriesService : internalCluster().getDataNodeInstances(RepositoriesService.class)) {
                 MockRepository mockRepository = (MockRepository) repositoriesService.repository(repository);
