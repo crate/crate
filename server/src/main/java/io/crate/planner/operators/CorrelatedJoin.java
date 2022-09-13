@@ -73,12 +73,12 @@ public class CorrelatedJoin implements LogicalPlan {
 
     public CorrelatedJoin(LogicalPlan inputPlan,
                           SelectSymbol selectSymbol,
-                          LogicalPlan subQueryPlan) {
+                          LogicalPlan subQueryPlan,
+                          List<Symbol> outputs) {
         this.inputPlan = inputPlan;
         this.subQueryPlan = subQueryPlan;
         this.selectSymbol = selectSymbol;
-        this.outputs = Lists2.concat(inputPlan.outputs(), selectSymbol);
-//        this.outputs = Lists2.concat(Lists2.concat(inputPlan.outputs(), selectSymbol), subQueryPlan.outputs());
+        this.outputs = outputs;
     }
 
     @Override

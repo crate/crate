@@ -29,16 +29,16 @@ import com.carrotsearch.hppc.ObjectIntHashMap;
 import com.carrotsearch.hppc.ObjectIntMap;
 
 import io.crate.data.Row;
+import io.crate.expression.InputRow;
 import io.crate.expression.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.expression.symbol.OuterColumn;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
-import io.crate.sql.tree.Except;
 
 public class SubQueryResults {
 
-    public static final SubQueryResults EMPTY = new SubQueryResults(Collections.emptyMap());
     private static final ObjectIntHashMap<OuterColumn> EMPTY_OUTER_COLUMNS = new ObjectIntHashMap<>();
+    public static final SubQueryResults EMPTY = new SubQueryResults(Collections.emptyMap());
 
     private final Map<SelectSymbol, Object> valuesBySubQuery;
     private final ObjectIntMap<OuterColumn> boundOuterColumns;
@@ -47,7 +47,7 @@ public class SubQueryResults {
 
     public SubQueryResults(Map<SelectSymbol, Object> valuesBySubQuery) {
         this.valuesBySubQuery = valuesBySubQuery;
-        this.boundOuterColumns = new ObjectIntHashMap<>();
+        this.boundOuterColumns = EMPTY_OUTER_COLUMNS;
     }
 
     public SubQueryResults(Map<SelectSymbol, Object> valuesBySubQuery,
@@ -65,15 +65,14 @@ public class SubQueryResults {
     }
 
     public Object get(OuterColumn key) {
+//        if (boundOuterColumns == EMPTY_OUTER_COLUMNS) {
+//            return Row.EMPTY.materialize();
+//        }
         int index = boundOuterColumns.getOrDefault(key, -1);
         if (index == -1) {
             throw new IllegalArgumentException("Couldn't resolve value for OuterColumn: " + key);
         }
-        try {
-            return inputRow.get(index);
-        } catch (Exception e) {
-            return null;
-        }
+        return inputRow.get(index);
     }
 
     public SubQueryResults forCorrelation(SelectSymbol correlatedSubQuery, List<Symbol> subQueryOutputs) {
@@ -82,12 +81,14 @@ public class SubQueryResults {
 
             @Override
             public Void visitOuterColumn(OuterColumn outerColumn, Void context) {
-                int index = subQueryOutputs.indexOf(outerColumn.symbol());
-                if (index < 0) {
-                    throw new IllegalStateException(
-                        "OuterColumn `" + outerColumn + "` must appear in input of CorrelatedJoin");
-                }
-                outerColumnPositions.put(outerColumn, index);
+//                    outerColumnPositions.put(outerColumn, 0);
+                    int index = subQueryOutputs.indexOf(outerColumn.symbol());
+                    if (index < 0) {
+                        throw new IllegalStateException(
+                            "OuterColumn `" + outerColumn + "` must appear in input of CorrelatedJoin");
+                    }
+                    outerColumnPositions.put(outerColumn, index);
+
                 return null;
             }
         };

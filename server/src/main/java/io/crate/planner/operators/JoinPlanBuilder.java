@@ -29,6 +29,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -45,12 +46,18 @@ import io.crate.analyze.relations.QuerySplitter;
 import io.crate.common.collections.Lists2;
 import io.crate.execution.engine.join.JoinOperations;
 import io.crate.expression.operator.AndOperator;
+import io.crate.expression.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.expression.symbol.FieldsVisitor;
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.MatchPredicate;
 import io.crate.expression.symbol.OuterColumn;
+import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.planner.SubqueryPlanner.SubQueries;
+import io.crate.planner.consumer.RelationNameCollector;
 import io.crate.planner.node.dql.join.JoinType;
 
 /**
@@ -82,7 +89,8 @@ public class JoinPlanBuilder {
                 break;
             }
         }
-        LinkedHashMap<Set<RelationName>, JoinPair> joinPairsByRelations = JoinOperations.buildRelationsToJoinPairsMap(allJoinPairs);
+        LinkedHashMap<Set<RelationName>, JoinPair> joinPairsByRelations = JoinOperations.buildRelationsToJoinPairsMap(
+            allJoinPairs);
         Iterator<RelationName> it;
         if (optimizeOrder) {
             Collection<RelationName> orderedRelationNames = JoinOrdering.getOrderedRelationNames(
@@ -119,66 +127,81 @@ public class JoinPlanBuilder {
         LogicalPlan lhsPlan = plan.apply(lhs);
         LogicalPlan rhsPlan = plan.apply(rhs);
         Symbol query = removeParts(queryParts, lhsName, rhsName);
+        LogicalPlan joinPlan = null;
 
-        Map<Set<RelationName>, Symbol> split1 = QuerySplitter.split(joinCondition);
-        List<OuterColumn> outerColumns = new ArrayList<>();
-        for (Map.Entry<Set<RelationName>, Symbol> setSymbolEntry : split1.entrySet()) {
-            var value = setSymbolEntry.getValue();
-            if (value instanceof io.crate.expression.symbol.Function f) {
-                for (Symbol argument : f.arguments()) {
-                    if (argument instanceof SelectSymbol s) {
-                        for (Symbol output : s.relation().outputs()) {
-                            if (output instanceof OuterColumn o) {
-                                outerColumns.add(o);
-                            }
-                        }
+        if (joinCondition != null) {
+            Map<Set<RelationName>, Symbol> joinConditions = QuerySplitter.split(joinCondition);
+            Set<OuterColumn> outerColumns = new HashSet<>();
+            for (Map.Entry<Set<RelationName>, Symbol> setSymbolEntry : joinConditions.entrySet()) {
+                var value = setSymbolEntry.getValue();
+                value.accept(VISITOR, outerColumns);
+            }
 
+            boolean isRhsPlan = false;
+            boolean isLhsPlan = false;
+
+            if (outerColumns.isEmpty() == false) {
+                for (OuterColumn outerColumn : outerColumns) {
+                    if (rhsPlan.getRelationNames().contains(outerColumn.relation().relationName())) {
+                        isRhsPlan = true;
+                    }
+                    if (lhsPlan.getRelationNames().contains(outerColumn.relation().relationName())) {
+                        isLhsPlan = true;
                     }
                 }
             }
+
+            if (isRhsPlan && isLhsPlan) {
+                joinPlan = createJoinPlan(
+                    lhsPlan,
+                    rhsPlan,
+                    joinType,
+                    joinCondition,
+                    lhs,
+                    query,
+                    hashJoinEnabled
+                );
+                joinPlan = subQueries.applyCorrelatedJoin(joinPlan);
+            } else if (isRhsPlan) {
+                rhsPlan = subQueries.applyCorrelatedJoin(rhsPlan);
+
+                var validJoinConditions = new HashSet<Symbol>();
+//                joinCondition.accept(REMOVE_SELECT_WITH_FROM_VISTOR, validJoinConditions);
+                joinPlan = createJoinPlan(
+                    lhsPlan,
+                    rhsPlan,
+                    joinType,
+                    joinCondition,
+                    lhs,
+                    query,
+                    hashJoinEnabled
+                );
+
+            } else if (isLhsPlan) {
+                lhsPlan = subQueries.applyCorrelatedJoin(lhsPlan);
+                joinPlan = createJoinPlan(
+                    lhsPlan,
+                    rhsPlan,
+                    joinType,
+                    joinCondition,
+                    lhs,
+                    query,
+                    hashJoinEnabled
+                );
+            } else {
+                joinPlan = createJoinPlan(
+                    lhsPlan,
+                    rhsPlan,
+                    joinType,
+                    joinCondition,
+                    lhs,
+                    query,
+                    hashJoinEnabled
+                );
+            }
         }
-
-        LogicalPlan joinPlan;
-
-        boolean isRhsPlan = rhs.relationName().equals(outerColumns.get(0).relation().relationName());
-        boolean isLhsPlan = lhs.relationName().equals(outerColumns.get(0).relation().relationName());
-
-        if (isRhsPlan && isLhsPlan) {
-             joinPlan = createJoinPlan(
-                lhsPlan,
-                rhsPlan,
-                joinType,
-                joinCondition,
-                lhs,
-                query,
-                hashJoinEnabled
-            );
-            joinPlan = subQueries.applyCorrelatedJoin(joinPlan);
-        } else if (isRhsPlan) {
-            rhsPlan = subQueries.applyCorrelatedJoin(rhsPlan);
-             joinPlan = createJoinPlan(
-                lhsPlan,
-                rhsPlan,
-                joinType,
-                joinCondition,
-                lhs,
-                query,
-                hashJoinEnabled
-            );
-
-        } else if (isLhsPlan) {
-            lhsPlan = subQueries.applyCorrelatedJoin(lhsPlan);
-             joinPlan = createJoinPlan(
-                lhsPlan,
-                rhsPlan,
-                joinType,
-                joinCondition,
-                lhs,
-                query,
-                hashJoinEnabled
-            );
-        } else {
-             joinPlan = createJoinPlan(
+        else {
+            joinPlan = createJoinPlan(
                 lhsPlan,
                 rhsPlan,
                 joinType,
@@ -323,5 +346,70 @@ public class JoinPlanBuilder {
             }
         }
         return null;
+    }
+
+    private static final OuterColumnVisitor VISITOR = new OuterColumnVisitor();
+
+    private static class OuterColumnVisitor extends DefaultTraversalSymbolVisitor<Set<OuterColumn>, Void> {
+
+        @Override
+        public Void visitOuterColumn(OuterColumn outerColumn, Set<OuterColumn> context) {
+            context.add(outerColumn);
+            return null;
+        }
+
+        @Override
+        public Void visitSelectSymbol(SelectSymbol selectSymbol, Set<OuterColumn> context) {
+            for (Symbol outerColumn : selectSymbol.relation().outputs()) {
+                outerColumn.accept(this, context);
+            }
+            return null;
+        }
+    }
+
+    private static final RemoveSelectWithFromVistor REMOVE_SELECT_WITH_FROM_VISTOR = new RemoveSelectWithFromVistor();
+
+    private static class RemoveSelectWithFromVistor extends DefaultTraversalSymbolVisitor<Set<Symbol>, Void> {
+
+        @Override
+        public Void visitLiteral(Literal literal, Set<Symbol> ctx) {
+            ctx.add(literal);
+            return null;
+        }
+
+        @Override
+        public Void visitFunction(io.crate.expression.symbol.Function function, Set<Symbol> ctx) {
+            for (Symbol arg : function.arguments()) {
+                arg.accept(this, ctx);
+            }
+            return null;
+        }
+
+        @Override
+        public Void visitField(ScopedSymbol field, Set<Symbol> ctx) {
+            ctx.add(field);
+            return null;
+        }
+
+        @Override
+        public Void visitReference(Reference ref, Set<Symbol> ctx) {
+            ctx.add(ref);
+            return null;
+        }
+
+        @Override
+        public Void visitSelectSymbol(SelectSymbol selectSymbol, Set<Symbol> context) {
+            if (!selectSymbol.isCorrelated()) {
+                context.add(selectSymbol);
+            }
+            return null;
+        }
+
+        @Override
+        public Void visitMatchPredicate(MatchPredicate matchPredicate, Set<Symbol> context) {
+            context.add(matchPredicate);
+            return null;
+        }
+
     }
 }

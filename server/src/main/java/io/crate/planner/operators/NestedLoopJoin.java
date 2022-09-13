@@ -435,7 +435,7 @@ public class NestedLoopJoin implements LogicalPlan {
     public void print(PrintContext printContext) {
         printContext
             .text("NestedLoopJoin[")
-            .text(joinType.toString());
+            .text(joinType.toString() + ", [" + Lists2.joinOn(", ", outputs, Symbol::toString) + "]");
         if (joinCondition != null) {
             printContext
                 .text(" | ")

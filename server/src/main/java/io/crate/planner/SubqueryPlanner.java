@@ -30,6 +30,7 @@ import java.util.function.Function;
 
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.common.collections.Lists2;
 import io.crate.expression.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
@@ -47,14 +48,6 @@ public class SubqueryPlanner {
 
     public record SubQueries(Map<LogicalPlan, SelectSymbol> uncorrelated, Map<SelectSymbol, LogicalPlan> correlated) {
 
-        public Set<RelationName> getCorrelatedRelationNames() {
-            var result = new HashSet<RelationName>();
-            for  (var plan : correlated.values()) {
-              result.addAll(plan.getRelationNames());
-            }
-            return result;
-        }
-
         public LogicalPlan applyCorrelatedJoin(LogicalPlan source) {
             for (var entry : correlated.entrySet()) {
                 LogicalPlan plannedSubQuery = entry.getValue();
@@ -62,7 +55,8 @@ public class SubqueryPlanner {
                 source = new CorrelatedJoin(
                     source,
                     subQuery,
-                    plannedSubQuery
+                    plannedSubQuery,
+                    Lists2.concat(source.outputs(), subQuery)
                 );
             }
             return source;

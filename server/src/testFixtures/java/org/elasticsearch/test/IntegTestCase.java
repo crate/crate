@@ -435,11 +435,11 @@ public abstract class IntegTestCase extends ESTestCase {
             builder.put(IndexSettings.INDEX_CHECK_ON_STARTUP.getKey(), randomFrom("false", "checksum", "true"));
         }
 
-        if (randomBoolean()) {
-            // keep this low so we don't stall tests
-            builder.put(UnassignedInfo.INDEX_DELAYED_NODE_LEFT_TIMEOUT_SETTING.getKey(),
-                    RandomNumbers.randomIntBetween(random, 1, 15) + "ms");
-        }
+//        if (randomBoolean()) {
+//            // keep this low so we don't stall tests
+//            builder.put(UnassignedInfo.INDEX_DELAYED_NODE_LEFT_TIMEOUT_SETTING.getKey(),
+//                    RandomNumbers.randomIntBetween(random, 1, 15) + "ms");
+//        }
 
         return builder;
     }
