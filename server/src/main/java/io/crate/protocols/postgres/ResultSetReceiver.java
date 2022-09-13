@@ -31,14 +31,16 @@ import io.crate.auth.AccessControl;
 import io.crate.data.Row;
 import io.crate.protocols.postgres.types.PGType;
 import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
 
 class ResultSetReceiver extends BaseResultReceiver {
 
     private final String query;
-    private final Channel channel;
+    private final DelayableWriteChannel channel;
     private final List<PGType<?>> columnTypes;
     private final TransactionState transactionState;
     private final AccessControl accessControl;
+    private final Channel directChannel;
 
     @Nullable
     private final FormatCodes.FormatCode[] formatCodes;
@@ -46,13 +48,14 @@ class ResultSetReceiver extends BaseResultReceiver {
     private long rowCount = 0;
 
     ResultSetReceiver(String query,
-                      Channel channel,
+                      DelayableWriteChannel channel,
                       TransactionState transactionState,
                       AccessControl accessControl,
                       List<PGType<?>> columnTypes,
                       @Nullable FormatCodes.FormatCode[] formatCodes) {
         this.query = query;
         this.channel = channel;
+        this.directChannel = channel.bypassDelay();
         this.transactionState = transactionState;
         this.accessControl = accessControl;
         this.columnTypes = columnTypes;
@@ -62,30 +65,39 @@ class ResultSetReceiver extends BaseResultReceiver {
     @Override
     public void setNextRow(Row row) {
         rowCount++;
-        Messages.sendDataRow(channel, row, columnTypes, formatCodes);
+        Messages.sendDataRow(directChannel, row, columnTypes, formatCodes);
         if (rowCount % 1000 == 0) {
-            channel.flush();
+            directChannel.flush();
         }
     }
 
     @Override
     public void batchFinished() {
-        Messages.sendPortalSuspended(channel);
-        Messages.sendReadyForQuery(channel, transactionState);
+        Messages.sendPortalSuspended(directChannel);
+        Messages.sendReadyForQuery(directChannel, transactionState);
+        channel.writePendingMessages();
+        channel.flush();
         super.allFinished(true);
     }
 
     @Override
     public void allFinished(boolean interrupted) {
         if (interrupted) {
+            channel.writePendingMessages();
             super.allFinished(true);
         } else {
-            Messages.sendCommandComplete(channel, query, rowCount).addListener(f -> super.allFinished(false));
+            ChannelFuture sendCommandComplete = Messages.sendCommandComplete(directChannel, query, rowCount);
+            channel.writePendingMessages();
+            channel.flush();
+            sendCommandComplete.addListener(f -> super.allFinished(false));
         }
     }
 
     @Override
     public void fail(@Nonnull Throwable throwable) {
-        Messages.sendErrorResponse(channel, accessControl, throwable).addListener(f -> super.fail(throwable));
+        ChannelFuture sendErrorResponse = Messages.sendErrorResponse(directChannel, accessControl, throwable);
+        channel.writePendingMessages();
+        channel.flush();
+        sendErrorResponse.addListener(f -> super.fail(throwable));
     }
 }

@@ -650,20 +650,20 @@ public class PostgresWireProtocol {
             return;
         }
         List<? extends DataType> outputTypes = session.getOutputTypes(portalName);
-        ResultReceiver resultReceiver;
+        ResultReceiver<?> resultReceiver;
         if (outputTypes == null) {
             // this is a DML query
             maxRows = 0;
             resultReceiver = new RowCountReceiver(
                 query,
-                channel.bypassDelay(),
+                channel,
                 getAccessControl.apply(session.sessionSettings())
             );
         } else {
             // query with resultSet
             resultReceiver = new ResultSetReceiver(
                 query,
-                channel.bypassDelay(),
+                channel,
                 session.transactionState(),
                 getAccessControl.apply(session.sessionSettings()),
                 Lists2.map(outputTypes, PGTypes::get),
@@ -685,11 +685,10 @@ public class PostgresWireProtocol {
         // been transmitted.
         //
         // To ensure clients receive messages in the correct order we delay all writes
-        // on the channel until the future below is finished.
-        CompletableFuture<?> execute = session.execute(portalName, maxRows, resultReceiver);
-        if (execute != null) {
-            channel.delayWritesUntil(execute);
-        }
+        // The "finish" logic of the ResultReceivers writes out all pending writes/unblocks the channel
+
+        channel.delayWrites();
+        session.execute(portalName, maxRows, resultReceiver);
     }
 
     private void handleSync(DelayableWriteChannel channel) {
@@ -772,24 +771,22 @@ public class PostgresWireProtocol {
             DescribeResult describeResult = session.describe('P', "");
             List<Symbol> fields = describeResult.getFields();
 
-            CompletableFuture<?> execute;
             if (fields == null) {
-                RowCountReceiver rowCountReceiver = new RowCountReceiver(query, channel.bypassDelay(), accessControl);
-                execute = session.execute("", 0, rowCountReceiver);
+                RowCountReceiver rowCountReceiver = new RowCountReceiver(query, channel, accessControl);
+                channel.delayWrites();
+                session.execute("", 0, rowCountReceiver);
             } else {
                 Messages.sendRowDescription(channel, fields, null, describeResult.relation());
+                channel.delayWrites();
                 ResultSetReceiver resultSetReceiver = new ResultSetReceiver(
                     query,
-                    channel.bypassDelay(),
+                    channel,
                     TransactionState.IDLE,
                     accessControl,
                     Lists2.map(fields, x -> PGTypes.get(x.valueType())),
                     null
                 );
-                execute = session.execute("", 0, resultSetReceiver);
-            }
-            if (execute != null) {
-                channel.delayWritesUntil(execute);
+                session.execute("", 0, resultSetReceiver);
             }
             return session.sync();
         } catch (Throwable t) {
