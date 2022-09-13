@@ -42,6 +42,7 @@ import io.crate.analyze.AnalyzedCreateSnapshot;
 import io.crate.analyze.AnalyzedCreateTable;
 import io.crate.analyze.AnalyzedCreateTableAs;
 import io.crate.analyze.AnalyzedCreateUser;
+import io.crate.analyze.AnalyzedCursor;
 import io.crate.analyze.AnalyzedDeallocate;
 import io.crate.analyze.AnalyzedDeclareCursor;
 import io.crate.analyze.AnalyzedDecommissionNode;
@@ -586,7 +587,12 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     @Override
     public Plan visitDeclareCursor(AnalyzedDeclareCursor declareCursor,
                                    PlannerContext context) {
-        return NoopPlan.INSTANCE;
+        return declareCursor.query().accept(this, context);
+    }
+
+    @Override
+    public Plan visitCursor(AnalyzedCursor analyzedCursor, PlannerContext context) {
+        return analyzedCursor.query().accept(this, context);
     }
 
     @Override

@@ -21,20 +21,25 @@
 
 package io.crate.protocols.postgres;
 
-import io.crate.action.sql.PreparedStmt;
-import io.crate.action.sql.RowConsumerToResultReceiver;
-import io.crate.analyze.AnalyzedStatement;
+import java.util.List;
+import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
-import java.util.List;
+
+import io.crate.action.sql.PreparedStmt;
+import io.crate.action.sql.ResultReceiver;
+import io.crate.action.sql.RowConsumerToResultReceiver;
+import io.crate.analyze.AnalyzedStatement;
+import io.crate.data.BatchIterator;
+import io.crate.data.Row;
 
 /**
  * Cursor is created by Declare and reused throughout successive Fetches then removed when Close is called.
  */
 public class Cursor extends Portal {
 
-    private enum State {
-        Declare, Fetch;
+    public enum State {
+        Declare, Fetch
     }
 
     private PreparedStmt preparedStmt; // hides Portal.preparedStmt
@@ -62,6 +67,10 @@ public class Cursor extends Portal {
         }
     }
 
+    public State state() {
+        return state;
+    }
+
     @Override
     public PreparedStmt preparedStmt() {
         return preparedStmt;
@@ -76,15 +85,75 @@ public class Cursor extends Portal {
 
     }
 
+    public void setActiveConsumer(ResultReceiver<?> resultReceiver,
+                                  int maxRows,
+                                  JobsLogsUpdateListener jobsLogsUpdateListener) {
+        setActiveConsumer(
+            new StatefulRowConsumerToResultReceiver(
+                resultReceiver,
+                maxRows,
+                jobsLogsUpdateListener.stmtUpdateListener(),
+                jobsLogsUpdateListener.executionEndListener(),
+                this
+            )
+        );
+    }
+
     @Override
-    public void setActiveConsumer(RowConsumerToResultReceiver consumer) {
+    protected void setActiveConsumer(RowConsumerToResultReceiver consumer) {
         super.setActiveConsumer(consumer);
         if (consumer != null) {
-            consumer.completionFuture().whenComplete((r, t) -> {
-                if (this.state == State.Declare) {
-                    super.setActiveConsumer(null);
-                }
-            });
+            consumer.completionFuture().whenComplete((r, t) -> super.setActiveConsumer(null));
+        }
+    }
+
+    private static class StatefulRowConsumerToResultReceiver extends RowConsumerToResultReceiver {
+
+        private final Cursor cursor;
+        private final ResultReceiver<?> resultReceiver;
+        private BatchIterator<Row> iterator;
+        private final Consumer<String> onStatementUpdate;
+
+        public StatefulRowConsumerToResultReceiver(ResultReceiver<?> resultReceiver,
+                                                   int maxRows,
+                                                   Consumer<String> onStatementUpdate,
+                                                   Consumer<Throwable> onCompletion,
+                                                   Cursor cursor) {
+            super(resultReceiver, maxRows, onCompletion);
+            this.cursor = cursor;
+            this.resultReceiver = resultReceiver;
+            this.onStatementUpdate = onStatementUpdate;
+        }
+
+        @Override
+        public void accept(BatchIterator<Row> iterator, @Nullable Throwable failure) {
+            this.iterator = iterator;
+            if (cursor.state() == State.Declare) {
+                resultReceiver.batchFinished();
+            }
+            if (cursor.state() == State.Fetch) {
+                onStatementUpdate.accept(cursor.preparedStmt().rawStatement());
+                super.accept(iterator, failure);
+            }
+        }
+
+        @Override
+        public boolean suspended() {
+            if (cursor.state() == State.Declare) {
+                return false;
+            } else {
+                return true;
+            }
+        }
+
+        @Override
+        public void resume() {
+            onStatementUpdate.accept(cursor.preparedStmt().rawStatement());
+            if (super.suspended()) {
+                super.resume();
+            } else {
+                accept(iterator, null);
+            }
         }
     }
 }

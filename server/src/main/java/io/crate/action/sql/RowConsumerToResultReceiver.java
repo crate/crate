@@ -36,7 +36,7 @@ public class RowConsumerToResultReceiver implements RowConsumer {
     private ResultReceiver<?> resultReceiver;
     private int maxRows;
     private long rowCount = 0;
-    private BatchIterator<Row> activeIt;
+    protected BatchIterator<Row> activeIt;
 
     public RowConsumerToResultReceiver(ResultReceiver<?> resultReceiver, int maxRows, Consumer<Throwable> onCompletion) {
         this.resultReceiver = resultReceiver;

@@ -26,31 +26,17 @@ import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 
+import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.expression.symbol.Symbol;
 
 public class AnalyzedFetchFromCursor extends AnalyzedCursor {
 
-    private final int count;
-
-    public static AnalyzedFetchFromCursor safeCreate(int count, AnalyzedStatement analyzedStatement) {
-        if (analyzedStatement instanceof AnalyzedCursor analyzedCursor) {
-            return new AnalyzedFetchFromCursor(count, analyzedCursor);
-        }
-        throw new IllegalArgumentException("FetchFromCursor cannot be created");
-    }
-
-    private AnalyzedFetchFromCursor(int count, AnalyzedCursor analyzedCursor) {
-        super(analyzedCursor.cursorName(), analyzedCursor.query());
-        this.count = count;
-    }
-
-    public int count() {
-        return count;
+    public AnalyzedFetchFromCursor(String cursorName, AnalyzedRelation query) {
+        super(cursorName, query);
     }
 
     @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
-        //return this.query().accept(analyzedStatementVisitor, context);
         return analyzedStatementVisitor.visitFetchFromCursor(this, context);
     }
 

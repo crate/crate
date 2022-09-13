@@ -22,6 +22,7 @@
 package io.crate.protocols.postgres;
 
 import io.crate.action.sql.PreparedStmt;
+import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.RowConsumerToResultReceiver;
 import io.crate.analyze.AnalyzedStatement;
 
@@ -73,7 +74,11 @@ public class Portal {
         return analyzedStatement;
     }
 
-    public void setActiveConsumer(RowConsumerToResultReceiver consumer) {
+    public void setActiveConsumer(ResultReceiver<?> resultReceiver, int maxRows, JobsLogsUpdateListener jobsLogsUpdateListener) {
+        setActiveConsumer(new RowConsumerToResultReceiver(resultReceiver, maxRows, jobsLogsUpdateListener.executionEndListener()));
+    }
+
+    protected void setActiveConsumer(RowConsumerToResultReceiver consumer) {
         this.consumer = consumer;
     }
 

@@ -54,7 +54,8 @@ class RestRowCountReceiver implements ResultReceiver<XContentBuilder> {
 
     @Override
     public void batchFinished() {
-        fail(new IllegalStateException("Incremental result streaming not supported via HTTP"));
+        allFinished(false);
+        //fail(new IllegalStateException("Incremental result streaming not supported via HTTP"));
     }
 
     XContentBuilder finishBuilder() throws IOException {

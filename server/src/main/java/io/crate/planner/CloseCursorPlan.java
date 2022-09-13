@@ -66,7 +66,8 @@ public class CloseCursorPlan implements Plan {
                 }
             }
         } else {
-            portals.remove(cursorName);
+            Portal p = portals.remove(cursorName);
+            p.closeActiveConsumer();
         }
 
         // similar to NoopPlan

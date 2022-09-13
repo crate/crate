@@ -218,14 +218,14 @@ public class Session implements AutoCloseable {
                     newJobId,
                     analyzedStatement,
                     routingProvider,
-                    new RowConsumerToResultReceiver(retryResultReceiver, 0, jobsLogsUpdateListener),
+                    new RowConsumerToResultReceiver(retryResultReceiver, 0, jobsLogsUpdateListener.executionEndListener()),
                     params,
                     txnCtx,
                     nodeCtx
                 )
             );
         }
-        RowConsumerToResultReceiver consumer = new RowConsumerToResultReceiver(resultReceiver, 0, jobsLogsUpdateListener);
+        RowConsumerToResultReceiver consumer = new RowConsumerToResultReceiver(resultReceiver, 0, jobsLogsUpdateListener.executionEndListener());
         plan.execute(executor, plannerContext, consumer, params, SubQueryResults.EMPTY);
     }
 
@@ -662,7 +662,7 @@ public class Session implements AutoCloseable {
                     new RowConsumerToResultReceiver(
                         resultRec,
                         maxRows,
-                        new JobsLogsUpdateListener(newJobId, jobsLogs)),
+                        new JobsLogsUpdateListener(newJobId, jobsLogs).executionEndListener()),
                     params,
                     txnCtx,
                     nodeCtx
@@ -671,10 +671,8 @@ public class Session implements AutoCloseable {
         }
         jobsLogs.logExecutionStart(
             mostRecentJobID, rawStatement, sessionSettings.sessionUser(), StatementClassifier.classify(plan));
-        RowConsumerToResultReceiver consumer = new RowConsumerToResultReceiver(
-            resultReceiver, maxRows, new JobsLogsUpdateListener(mostRecentJobID, jobsLogs));
-        portal.setActiveConsumer(consumer);
-        plan.execute(executor, plannerContext, consumer, params, SubQueryResults.EMPTY);
+        portal.setActiveConsumer(resultReceiver, maxRows, new JobsLogsUpdateListener(mostRecentJobID, jobsLogs));
+        plan.execute(executor, plannerContext, portal.activeConsumer(), params, SubQueryResults.EMPTY);
         return resultReceiver.completionFuture();
     }
 

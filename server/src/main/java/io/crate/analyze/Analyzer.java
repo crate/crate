@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.execution.ddl.RepositoryService;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -696,6 +697,10 @@ public class Analyzer {
             if (context.portals().containsKey(cursorName)) {
                 throw new IllegalArgumentException("The cursor '" + cursorName + "' already declared.");
             }
+
+            // want to fetch 0 rows instead of NOOP
+            // count is only needed for RowConsumer/ResultReceiver
+
             return new AnalyzedDeclareCursor(
                 declareCursor.getCursorName(),
                 relationAnalyzer.analyze(declareCursor.getQuery(), context.transactionContext(), context.paramTypeHints()));
@@ -703,17 +708,18 @@ public class Analyzer {
 
         @Override
         public AnalyzedStatement visitFetchFromCursor(FetchFromCursor fetchFromCursor, Analysis context) {
-            return AnalyzedFetchFromCursor.safeCreate(
-                fetchFromCursor.count(),
-                context.portals().safeGet(fetchFromCursor.getCursorName()).analyzedStatement()
-            );
+
+            assert context.portals().safeGet(fetchFromCursor.getCursorName()).analyzedStatement() instanceof AnalyzedRelation;
+            AnalyzedCursor analyzedCursor = (AnalyzedCursor) context.portals().safeGet(fetchFromCursor.getCursorName()).analyzedStatement();
+
+            return new AnalyzedFetchFromCursor(fetchFromCursor.getCursorName(), analyzedCursor.query());
         }
 
         @Override
         public AnalyzedStatement visitFetchNoneFromCursor(FetchNoneFromCursor fetchNoneFromCursor, Analysis context) {
             String cursorName = fetchNoneFromCursor.getCursorName();
             context.portals().safeGet(cursorName);
-            return new AnalyzedFetchNoneFromCursor(cursorName);
+            return new AnalyzedFetchNoneFromCursor();
         }
 
         @Override

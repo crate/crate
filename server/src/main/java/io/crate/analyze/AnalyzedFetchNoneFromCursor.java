@@ -21,18 +21,11 @@
 
 package io.crate.analyze;
 
-import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.expression.symbol.Symbol;
 
 import java.util.function.Consumer;
 
 public class AnalyzedFetchNoneFromCursor implements AnalyzedStatement {
-
-    private final String cursorName;
-
-    public AnalyzedFetchNoneFromCursor(String cursorName) {
-        this.cursorName = cursorName;
-    }
 
     @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {

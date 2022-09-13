@@ -125,6 +125,13 @@ public class JobsLogs {
         }
     }
 
+    public void logJobContextStatementUpdate(UUID jobid, String newStmt) {
+        JobContext jobContext = jobsTable.get(jobid);
+        if (jobContext != null) {
+            jobContext.updateStatement(newStmt);
+        }
+    }
+
     private void recordMetrics(JobContextLog log) {
         StatementClassifier.Classification classification = log.classification();
         assert classification != null : "A job must have a classification";

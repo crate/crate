@@ -31,7 +31,7 @@ public class JobContext {
 
     private final UUID id;
     private final String username;
-    private final String stmt;
+    private String stmt;
     private final long started;
     @Nullable
     private final Classification classification;
@@ -58,6 +58,10 @@ public class JobContext {
 
     public long started() {
         return started;
+    }
+
+    public void updateStatement(String stmt) {
+        this.stmt = stmt;
     }
 
     @Nullable
