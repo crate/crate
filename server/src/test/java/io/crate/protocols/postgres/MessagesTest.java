@@ -105,12 +105,16 @@ public class MessagesTest extends ESTestCase {
             final String response = "SELECT 42";
 
             Messages.sendCommandComplete(channel, "Select 1", 42);
+            channel.flush();
             verifyResponse(channel, response);
             Messages.sendCommandComplete(channel, " Select 1", 42);
+            channel.flush();
             verifyResponse(channel, response);
             Messages.sendCommandComplete(channel, "  Select 1 ", 42);
+            channel.flush();
             verifyResponse(channel, response);
             Messages.sendCommandComplete(channel, "\n  Select 1", 42);
+            channel.flush();
             verifyResponse(channel, response);
         } finally {
             channel.finishAndReleaseAll();

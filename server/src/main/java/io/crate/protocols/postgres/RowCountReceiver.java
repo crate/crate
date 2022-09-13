@@ -21,23 +21,29 @@
 
 package io.crate.protocols.postgres;
 
+import javax.annotation.Nonnull;
+
 import io.crate.action.sql.BaseResultReceiver;
 import io.crate.auth.AccessControl;
 import io.crate.data.Row;
-import io.netty.channel.Channel;
-
-import javax.annotation.Nonnull;
+import io.crate.protocols.postgres.DelayableWriteChannel.DelayedWrites;
+import io.netty.channel.ChannelFuture;
 
 class RowCountReceiver extends BaseResultReceiver {
 
-    private final Channel channel;
+    private final DelayableWriteChannel channel;
     private final String query;
     private final AccessControl accessControl;
+    private final DelayedWrites delayedWrites;
     private long rowCount;
 
-    RowCountReceiver(String query, Channel channel, AccessControl accessControl) {
+    RowCountReceiver(String query,
+                     DelayableWriteChannel channel,
+                     DelayedWrites delayedWrites,
+                     AccessControl accessControl) {
         this.query = query;
         this.channel = channel;
+        this.delayedWrites = delayedWrites;
         this.accessControl = accessControl;
     }
 
@@ -55,11 +61,17 @@ class RowCountReceiver extends BaseResultReceiver {
 
     @Override
     public void allFinished(boolean interrupted) {
-        Messages.sendCommandComplete(channel, query, rowCount).addListener(f -> super.allFinished(interrupted));
+        ChannelFuture sendCommandComplete = Messages.sendCommandComplete(channel.bypassDelay(), query, rowCount);
+        channel.writePendingMessages(delayedWrites);
+        channel.flush();
+        sendCommandComplete.addListener(f -> super.allFinished(interrupted));
     }
 
     @Override
     public void fail(@Nonnull Throwable throwable) {
-        Messages.sendErrorResponse(channel, accessControl, throwable).addListener(f -> super.fail(throwable));
+        ChannelFuture sendErrorResponse = Messages.sendErrorResponse(channel.bypassDelay(), accessControl, throwable);
+        channel.writePendingMessages(delayedWrites);
+        channel.flush();
+        sendErrorResponse.addListener(f -> super.fail(throwable));
     }
 }

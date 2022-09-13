@@ -72,3 +72,8 @@ Fixes
 - Fixed ``EXPLAIN`` plan output for queries with a ``WHERE`` clause containing
   implicit cast symbols. A possible optimization of our planner/optimizer was
   not used, resulting in different output than actually used on plan execution.
+
+- Fixed an issue that could lead to a ``NoSuchElementException`` when using the
+  JDBC client and mixing different DML statements using the ``addBatch``
+  functionality.
+
