@@ -79,36 +79,7 @@ public class AddColumnRequest extends AcknowledgedRequest<AddColumnRequest> {
     public AddColumnRequest(RelationName relationName,
                             List<Reference> columnRefs) {
         this.relationName = relationName;
-        this.columns.addAll(columnRefs.stream().map(this::refToStreamableColumnInfo).collect(Collectors.toList()));
-    }
-
-    private StreamableColumnInfo refToStreamableColumnInfo(Reference reference) {
-        String geoTree = null;
-        Map<String, Object> geoProperties = new HashMap<>();
-        if (reference instanceof GeoReference geoRef) {
-            geoTree = geoRef.geoTree();
-            geoProperties.put("precision", geoRef.precision());
-            geoProperties.put("tree_levels", geoRef.treeLevels());
-            geoProperties.put("distance_error_pct", geoRef.distanceErrorPct());
-        }
-        return new StreamableColumnInfo(
-            reference.column().name(),
-            reference.column().fqn(),
-            reference.valueType(),
-            reference.position(),
-            false, // A primary key can be specified only on ADD COLUMN
-            true, // not-null can be specified only on ADD COLUMN
-            true, // Use default, can be specified only on ADD COLUMN
-            reference.indexType(),
-            reference.valueType().id() == ArrayType.ID,
-            null, // INDEX USING FULLTEXT can be specified only on ADD COLUMN
-            null, // generated expression can be specified only on ADD COLUMN
-            reference.columnPolicy(),
-            geoTree,
-            geoProperties,
-            List.of(), // copyToTargets is used when INDEX is specified, only for ADD COLUMN
-            List.of() // there is no tree-like Ref hierarchy in target.valueType().valueForInsert(row.get(i)), it's a single map
-        );
+        this.columns.addAll(columnRefs.stream().map(StreamableColumnInfo::of).collect(Collectors.toList()));
     }
 
     /**
@@ -261,6 +232,35 @@ public class AddColumnRequest extends AcknowledgedRequest<AddColumnRequest> {
             for (int i = 0; i < children.size(); i++) {
                 children.get(i).writeTo(out);
             }
+        }
+
+        public static StreamableColumnInfo of(Reference reference) {
+            String geoTree = null;
+            Map<String, Object> geoProperties = new HashMap<>();
+            if (reference instanceof GeoReference geoRef) {
+                geoTree = geoRef.geoTree();
+                geoProperties.put("precision", geoRef.precision());
+                geoProperties.put("tree_levels", geoRef.treeLevels());
+                geoProperties.put("distance_error_pct", geoRef.distanceErrorPct());
+            }
+            return new StreamableColumnInfo(
+                reference.column().name(),
+                reference.column().fqn(),
+                reference.valueType(),
+                reference.position(),
+                false, // A primary key can be specified only on ADD COLUMN
+                true, // not-null can be specified only on ADD COLUMN
+                true, // Use default, can be specified only on ADD COLUMN
+                reference.indexType(),
+                reference.valueType().id() == ArrayType.ID,
+                null, // INDEX USING FULLTEXT can be specified only on ADD COLUMN
+                null, // generated expression can be specified only on ADD COLUMN
+                reference.columnPolicy(),
+                geoTree,
+                geoProperties,
+                List.of(), // copyToTargets is used when INDEX is specified, only for ADD COLUMN
+                List.of() // there is no tree-like Ref hierarchy in target.valueType().valueForInsert(row.get(i)), it's a single map
+            );
         }
     }
 
