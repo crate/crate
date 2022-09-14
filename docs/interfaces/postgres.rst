@@ -438,16 +438,6 @@ CrateDB does not support the distinct sub-protocol that is used to serve
 data using the :ref:`sql-copy-from` and :ref:`sql-copy-to` statements.
 
 
-.. _postgres-expressions:
-
-Expressions
------------
-
-Unlike PostgreSQL, :ref:`expressions <gloss-expression>` are not
-:ref:`evaluated <gloss-evaluation>` if the query results in 0 rows, either
-because the table is empty or by not matching the ``WHERE`` clause.
-
-
 .. _postgres-types:
 
 Data types
@@ -499,19 +489,6 @@ shows::
     +---------------------+
     SELECT 1 row in set (... sec)
 
-
-.. _postgres-arrays-access:
-
-Accessing arrays
-................
-
-Fetching arbitrary rectangular slices of an array using
-``lower-bound:upper-bound`` :ref:`expression <gloss-expression>` in the array
-subscript is not supported.
-
-.. SEEALSO::
-
-    `PostgreSQL Arrays`_
 
 
 .. _postgres-type-casts:
