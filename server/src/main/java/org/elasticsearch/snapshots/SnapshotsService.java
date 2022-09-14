@@ -38,6 +38,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
@@ -620,11 +621,15 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
     private boolean assertConsistentWithClusterState(ClusterState state) {
         final SnapshotsInProgress snapshotsInProgress = state.custom(SnapshotsInProgress.TYPE);
         if (snapshotsInProgress != null && snapshotsInProgress.entries().isEmpty() == false) {
-            final Set<Snapshot> runningSnapshots =
-                snapshotsInProgress.entries().stream().map(SnapshotsInProgress.Entry::snapshot).collect(Collectors.toSet());
-            final Set<Snapshot> snapshotListenerKeys = snapshotCompletionListeners.keySet();
-            assert runningSnapshots.containsAll(snapshotListenerKeys) : "Saw completion listeners for unknown snapshots in "
-                + snapshotListenerKeys + " but running snapshots are " + runningSnapshots;
+            synchronized (endingSnapshots) {
+                final Set<Snapshot> runningSnapshots = Stream.concat(
+                        snapshotsInProgress.entries().stream().map(SnapshotsInProgress.Entry::snapshot),
+                        endingSnapshots.stream())
+                        .collect(Collectors.toSet());
+                final Set<Snapshot> snapshotListenerKeys = snapshotCompletionListeners.keySet();
+                assert runningSnapshots.containsAll(snapshotListenerKeys) : "Saw completion listeners for unknown snapshots in "
+                        + snapshotListenerKeys + " but running snapshots are " + runningSnapshots;
+            }
         }
         return true;
     }
