@@ -36,7 +36,7 @@ public class RowConsumerToResultReceiver implements RowConsumer {
     private ResultReceiver<?> resultReceiver;
     private int maxRows;
     private long rowCount = 0;
-    protected BatchIterator<Row> activeIt;
+    private BatchIterator<Row> activeIt;
 
     public RowConsumerToResultReceiver(ResultReceiver<?> resultReceiver, int maxRows, Consumer<Throwable> onCompletion) {
         this.resultReceiver = resultReceiver;
@@ -51,11 +51,7 @@ public class RowConsumerToResultReceiver implements RowConsumer {
         if (failure == null) {
             consumeIt(iterator);
         } else {
-            if (iterator != null) {
-                iterator.close();
-            }
-            completionFuture.completeExceptionally(failure);
-            resultReceiver.fail(failure);
+            handleFailure(iterator, failure);
         }
     }
 
@@ -64,7 +60,7 @@ public class RowConsumerToResultReceiver implements RowConsumer {
         return completionFuture;
     }
 
-    private void consumeIt(BatchIterator<Row> iterator) {
+    protected void consumeIt(BatchIterator<Row> iterator) {
         while (true) {
             try {
                 while (iterator.moveNext()) {
@@ -72,8 +68,7 @@ public class RowConsumerToResultReceiver implements RowConsumer {
                     resultReceiver.setNextRow(iterator.currentElement());
 
                     if (maxRows > 0 && rowCount % maxRows == 0) {
-                        activeIt = iterator;
-                        resultReceiver.batchFinished();
+                        suspend(iterator);
                         return; // resumed via postgres protocol, close is done later
                     }
                 }
@@ -156,5 +151,18 @@ public class RowConsumerToResultReceiver implements RowConsumer {
                ", rowCount=" + rowCount +
                ", activeIt=" + activeIt +
                '}';
+    }
+
+    protected void handleFailure(BatchIterator<Row> iterator, @Nullable Throwable failure) {
+        if (iterator != null) {
+            iterator.close();
+        }
+        completionFuture.completeExceptionally(failure);
+        resultReceiver.fail(failure);
+    }
+
+    protected void suspend(BatchIterator<Row> iterator) {
+        activeIt = iterator;
+        resultReceiver.batchFinished();
     }
 }

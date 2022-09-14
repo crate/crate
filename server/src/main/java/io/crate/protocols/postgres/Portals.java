@@ -33,7 +33,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-// TODO: make it iterable ?
 public class Portals {
 
     private final Map<String, Portal> portals = new HashMap<>();

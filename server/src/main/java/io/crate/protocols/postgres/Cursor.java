@@ -99,19 +99,9 @@ public class Cursor extends Portal {
         );
     }
 
-    @Override
-    protected void setActiveConsumer(RowConsumerToResultReceiver consumer) {
-        super.setActiveConsumer(consumer);
-        if (consumer != null) {
-            consumer.completionFuture().whenComplete((r, t) -> super.setActiveConsumer(null));
-        }
-    }
-
     private static class StatefulRowConsumerToResultReceiver extends RowConsumerToResultReceiver {
 
         private final Cursor cursor;
-        private final ResultReceiver<?> resultReceiver;
-        private BatchIterator<Row> iterator;
         private final Consumer<String> onStatementUpdate;
 
         public StatefulRowConsumerToResultReceiver(ResultReceiver<?> resultReceiver,
@@ -121,39 +111,30 @@ public class Cursor extends Portal {
                                                    Cursor cursor) {
             super(resultReceiver, maxRows, onCompletion);
             this.cursor = cursor;
-            this.resultReceiver = resultReceiver;
             this.onStatementUpdate = onStatementUpdate;
         }
 
         @Override
         public void accept(BatchIterator<Row> iterator, @Nullable Throwable failure) {
-            this.iterator = iterator;
-            if (cursor.state() == State.Declare) {
-                resultReceiver.batchFinished();
-            }
-            if (cursor.state() == State.Fetch) {
-                onStatementUpdate.accept(cursor.preparedStmt().rawStatement());
-                super.accept(iterator, failure);
-            }
-        }
-
-        @Override
-        public boolean suspended() {
-            if (cursor.state() == State.Declare) {
-                return false;
+            if (failure != null) {
+                handleFailure(iterator, failure);
             } else {
-                return true;
+                if (cursor.state() == State.Declare) {
+                    // Builds the pipeline for future 'fetches' but does not consume.
+                    // This will ensure the 'fetches' can only retrieve rows available at the time of 'declare'.
+                    suspend(iterator);
+                }
+                else if (cursor.state() == State.Fetch) {
+                    onStatementUpdate.accept(cursor.preparedStmt().rawStatement());
+                    consumeIt(iterator);
+                }
             }
         }
 
         @Override
         public void resume() {
             onStatementUpdate.accept(cursor.preparedStmt().rawStatement());
-            if (super.suspended()) {
-                super.resume();
-            } else {
-                accept(iterator, null);
-            }
+            super.resume();
         }
     }
 }
