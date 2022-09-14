@@ -209,35 +209,44 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
 
     @Test
     public void test_deleted_and_recreated_partition_is_also_deleted_and_restored_on_subscriber() throws Exception {
-        executeOnPublisher("CREATE TABLE t1 (id INT, p INT) PARTITIONED BY (p)");
-        executeOnPublisher("INSERT INTO t1 (id, p) VALUES (1, 1), (2, 2)");
-        createPublication("pub1", true, List.of("t1"));
-        createSubscription("sub1", "pub1");
+        executeOnPublisher("CREATE USER " + SUBSCRIBING_USER);
+        for (int i = 0; i < 50; i++) {
+            executeOnPublisher("CREATE TABLE t1 (id INT, p INT) PARTITIONED BY (p)");
+            executeOnPublisher("INSERT INTO t1 (id, p) VALUES (1, 1), (2, 2)");
+            executeOnPublisher("CREATE PUBLICATION pub1 FOR ALL TABLES");
+            executeOnPublisher("GRANT DQL ON TABLE t1 TO " + SUBSCRIBING_USER);
+            createSubscription("sub1", "pub1");
 
-        // Ensure tracker has started
-        assertBusy(() -> assertThat(isTrackerActive(), is(true)));
+            // Ensure tracker has started
+            assertBusy(() -> assertThat(isTrackerActive(), is(true)));
 
-        // Wait until table is replicated
-        assertBusy(() -> {
-            executeOnSubscriber("REFRESH TABLE t1");
-            var r = executeOnSubscriber("SELECT id, p FROM t1 ORDER BY id");
-            assertThat(printedTable(r.rows()), is(
-                "1| 1\n" +
-                "2| 2\n"));
-        });
+            // Wait until table is replicated
+            assertBusy(() -> {
+                executeOnSubscriber("REFRESH TABLE t1");
+                var r = executeOnSubscriber("SELECT id, p FROM t1 ORDER BY id");
+                assertThat(printedTable(r.rows()), is(
+                    "1| 1\n" +
+                    "2| 2\n"));
+            });
 
-        // Drop partition
-        executeOnPublisher("DELETE FROM t1 WHERE p = 1");
-        // Re-create same partition with different value
-        executeOnPublisher("INSERT INTO t1 (id, p) VALUES (11, 1)");
+            // Drop partition
+            executeOnPublisher("DELETE FROM t1 WHERE p = 1");
+            // Re-create same partition with different value
+            executeOnPublisher("INSERT INTO t1 (id, p) VALUES (11, 1)");
 
-        assertBusy(() -> {
-            executeOnSubscriber("REFRESH TABLE t1");
-            var r = executeOnSubscriber("SELECT id, p FROM t1 ORDER BY id");
-            assertThat(printedTable(r.rows()), is(
-                "2| 2\n" +
-                    "11| 1\n"));        // <- this must contain the id of the re-created partition
-        }, 50, TimeUnit.SECONDS);
+            assertBusy(() -> {
+                executeOnSubscriber("REFRESH TABLE t1");
+                var r = executeOnSubscriber("SELECT id, p FROM t1 ORDER BY id");
+                assertThat(printedTable(r.rows()), is(
+                    "2| 2\n" +
+                        "11| 1\n"));        // <- this must contain the id of the re-created partition
+            }, 50, TimeUnit.SECONDS);
+
+            executeOnSubscriber("drop subscription sub1");
+            executeOnSubscriber("drop table t1");
+            executeOnPublisher("drop publication pub1");
+            executeOnPublisher("drop table t1");
+        }
     }
 
     public void test_subscription_to_multiple_publications_should_not_stop_on_a_single_publication_drop() throws Exception {
