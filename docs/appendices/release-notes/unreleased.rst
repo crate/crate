@@ -103,6 +103,9 @@ Changes
   its SQL equivalent ``START TRANSACTION`` statement optional to support
   compatibility with clients and tools using an older (< 8.0) PostgreSQL syntax.
 
+- Updated to Admin UI 1.23.0, which improves scrolling behavior on wide result
+  sets.
+
 Fixes
 =====
 
