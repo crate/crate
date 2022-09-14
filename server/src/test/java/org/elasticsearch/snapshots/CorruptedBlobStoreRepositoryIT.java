@@ -18,8 +18,10 @@
  */
 package org.elasticsearch.snapshots;
 
+import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertFileExists;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
@@ -41,10 +43,16 @@ import org.elasticsearch.cluster.ClusterStateUpdateTask;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.RepositoriesMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
+import org.elasticsearch.common.xcontent.DeprecationHandler;
+import org.elasticsearch.common.xcontent.NamedXContentRegistry;
+import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
+import org.elasticsearch.repositories.IndexId;
 import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.repositories.Repository;
 import org.elasticsearch.repositories.RepositoryData;
@@ -330,6 +338,72 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
 
         logger.info("--> verify loading repository data from newly mounted repository throws RepositoryException");
         expectThrows(RepositoryException.class, () -> getRepositoryData(otherRepo));
+    }
+
+    public void testHandleSnapshotErrorWithBwCFormat() throws Exception {
+        final String repoName = "test-repo";
+        final Path repoPath = randomRepoPath();
+        execute("CREATE REPOSITORY \"" + repoName + "\" TYPE fs WITH (location = ?, compress = false, cache_repository_data = false)",
+                new Object[] { repoPath.toAbsolutePath().toString() });
+
+        // Workaround to simulate BwC situation: taking a snapshot without indices here so that we don't create any new version shard
+        // generations (the existence of which would short-circuit checks for the repo containing old version snapshots)
+        final String oldVersionSnapshot = "old-version-snapshot";
+        final Client client = client();
+        var createSnapshot = new CreateSnapshotRequest(repoName, oldVersionSnapshot)
+            .waitForCompletion(true);
+        var createSnapshotResponse = client.admin().cluster().execute(CreateSnapshotAction.INSTANCE, createSnapshot).get();
+        assertThat(createSnapshotResponse.getSnapshotInfo().totalShards(), is(0));
+
+        logger.info("--> writing downgraded RepositoryData");
+        final RepositoryData repositoryData = getRepositoryData(repoName);
+        final XContentBuilder jsonBuilder = JsonXContent.contentBuilder();
+        repositoryData.snapshotsToXContent(jsonBuilder, false);
+        final RepositoryData downgradedRepoData = RepositoryData.snapshotsFromXContent(JsonXContent.JSON_XCONTENT.createParser(
+                NamedXContentRegistry.EMPTY,
+                DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+                Strings.toString(jsonBuilder).replace(Version.CURRENT.toString(), SnapshotsService.OLD_SNAPSHOT_FORMAT.toString())),
+                repositoryData.getGenId());
+        Files.write(repoPath.resolve(BlobStoreRepository.INDEX_FILE_PREFIX + repositoryData.getGenId()),
+                BytesReference.toBytes(BytesReference.bytes(
+                        downgradedRepoData.snapshotsToXContent(XContentFactory.jsonBuilder(), false))),
+                StandardOpenOption.TRUNCATE_EXISTING);
+
+        logger.info("--> recreating repository to clear caches");
+        execute("DROP REPOSITORY \"" + repoName + "\"");
+        execute("CREATE REPOSITORY \"" + repoName + "\" TYPE fs WITH (location = ?, compress = false, cache_repository_data = false)",
+                new Object[] { repoPath.toAbsolutePath().toString() });
+
+        final String indexName = "test-index";
+        createIndex(indexName);
+
+        assertCreateSnapshotSuccess(repoName, "snapshot-1");
+
+        // In the old metadata version the shard level metadata could be moved to the next generation for all sorts of reasons, this should
+        // not break subsequent repository operations
+        logger.info("--> move shard level metadata to new generation");
+        final IndexId indexId = getRepositoryData(repoName).resolveIndexId(indexName);
+        final Path shardPath = repoPath.resolve("indices").resolve(indexId.getId()).resolve("0");
+        final Path initialShardMetaPath = shardPath.resolve(BlobStoreRepository.INDEX_FILE_PREFIX + "0");
+        assertFileExists(initialShardMetaPath);
+        Files.move(initialShardMetaPath, shardPath.resolve(BlobStoreRepository.INDEX_FILE_PREFIX + "1"));
+
+        logger.info("--> delete old version snapshot");
+        execute("DROP SNAPSHOT \"" + repoName + "\".\"" + oldVersionSnapshot + "\"");
+
+        assertCreateSnapshotSuccess(repoName, "snapshot-2");
+    }
+
+    private void assertCreateSnapshotSuccess(String repoName, String snapshotName) throws Exception {
+        logger.info("--> create another snapshot");
+        var createSnapshot = new CreateSnapshotRequest(repoName, snapshotName)
+            .waitForCompletion(true);
+        final SnapshotInfo snapshotInfo = client().admin().cluster().execute(CreateSnapshotAction.INSTANCE, createSnapshot)
+                .get().getSnapshotInfo();
+        assertThat(snapshotInfo.state(), is(SnapshotState.SUCCESS));
+        final int successfulShards = snapshotInfo.successfulShards();
+        assertThat(successfulShards, greaterThan(0));
+        assertThat(successfulShards, equalTo(snapshotInfo.totalShards()));
     }
 
     private void assertRepositoryBlocked(Client client, String repo, String existingSnapshot) {

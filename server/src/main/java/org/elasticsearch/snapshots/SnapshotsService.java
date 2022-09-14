@@ -128,7 +128,8 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
 
     public static final Version SHARD_GEN_IN_REPO_DATA_VERSION = Version.V_4_2_0;
 
-    public static final Version OLD_SNAPSHOT_FORMAT = Version.V_5_0_0;
+    // Just a marker version, older than SHARD_GEN_IN_REPO_DATA_VERSION
+    public static final Version OLD_SNAPSHOT_FORMAT = Version.V_4_1_0;
 
     public static final Version MULTI_DELETE_VERSION = Version.V_5_1_0;
 
