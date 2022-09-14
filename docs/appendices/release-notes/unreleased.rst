@@ -110,6 +110,9 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Fixed a file descriptor leak that was triggered by querying the ``os`` column
+  of the ``sys.nodes`` table.
+
 - Fixed an issue that could lead to a ``NoSuchElementException`` when using the
   JDBC client and mixing different DML statements using the ``addBatch``
   functionality.
