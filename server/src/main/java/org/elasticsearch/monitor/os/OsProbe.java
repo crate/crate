@@ -34,6 +34,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -481,13 +482,16 @@ public class OsProbe {
         if (V1_FILES.stream().allMatch(fileExists)) {
             return CGroupHierarchy.V1;
         }
+        Path cgroupPath = Paths.get("/sys/fs/cgroup");
         for (String v2Glob : V2_FILE_GLOBS) {
             PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher(v2Glob);
-            Iterator<Path> it = Files.walk(Paths.get("/sys/fs/cgroup")).iterator();
-            while (it.hasNext()) {
-                Path path = it.next();
-                if (pathMatcher.matches(path)) {
-                    return CGroupHierarchy.V2;
+            try (Stream<Path> walk = Files.walk(cgroupPath)) {
+                Iterator<Path> it = walk.iterator();
+                while (it.hasNext()) {
+                    Path path = it.next();
+                    if (pathMatcher.matches(path)) {
+                        return CGroupHierarchy.V2;
+                    }
                 }
             }
         }
