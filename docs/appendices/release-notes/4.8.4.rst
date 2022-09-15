@@ -1,0 +1,48 @@
+.. _version_4.8.4:
+
+=============
+Version 4.8.4
+=============
+
+Released on 2022-09-15.
+
+.. NOTE::
+
+    If you are upgrading a cluster, you must be running CrateDB 4.0.2 or higher
+    before you upgrade to 4.8.4.
+
+    We recommend that you upgrade to the latest 4.7 release before moving to
+    4.8.4.
+
+    A rolling upgrade from 4.7.x to 4.8.4 is supported.
+
+    Before upgrading, you should `back up your data`_.
+
+.. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
+
+
+
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+
+See the :ref:`version_4.8.0` release notes for a full list of changes in the
+4.8 series.
+
+Fixes
+=====
+
+- Fixed a file descriptor leak that was triggered by querying the ``os`` column
+  of the ``sys.nodes`` table.
+
+- Fixed an issue that could lead to stuck queries.
+
+- Fixed ``EXPLAIN`` plan output for queries with a ``WHERE`` clause containing
+  implicit cast symbols. A possible optimization of our planner/optimizer was
+  not used, resulting in different output than actually used on plan execution.
+
+- Fixed an issue that could lead to a ``NoSuchElementException`` when using the
+  JDBC client and mixing different DML statements using the ``addBatch``
+  functionality.
