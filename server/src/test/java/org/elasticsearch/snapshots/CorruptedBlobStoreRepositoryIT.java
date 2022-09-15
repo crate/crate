@@ -30,6 +30,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Collections;
 import java.util.Locale;
+import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -340,10 +341,11 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
         expectThrows(RepositoryException.class, () -> getRepositoryData(otherRepo));
     }
 
+    @Test
     public void testHandleSnapshotErrorWithBwCFormat() throws Exception {
         final String repoName = "test-repo";
         final Path repoPath = randomRepoPath();
-        execute("CREATE REPOSITORY \"" + repoName + "\" TYPE fs WITH (location = ?, compress = false, cache_repository_data = false)",
+        execute("CREATE REPOSITORY \"" + repoName + "\" TYPE fs WITH (location = ?)",
                 new Object[] { repoPath.toAbsolutePath().toString() });
 
         // Workaround to simulate BwC situation: taking a snapshot without indices here so that we don't create any new version shard
@@ -363,7 +365,7 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
                 NamedXContentRegistry.EMPTY,
                 DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
                 Strings.toString(jsonBuilder).replace(Version.CURRENT.toString(), SnapshotsService.OLD_SNAPSHOT_FORMAT.toString())),
-                repositoryData.getGenId());
+                repositoryData.getGenId(), randomBoolean());
         Files.write(repoPath.resolve(BlobStoreRepository.INDEX_FILE_PREFIX + repositoryData.getGenId()),
                 BytesReference.toBytes(BytesReference.bytes(
                         downgradedRepoData.snapshotsToXContent(XContentFactory.jsonBuilder(), false))),
@@ -390,6 +392,80 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
 
         logger.info("--> delete old version snapshot");
         execute("DROP SNAPSHOT \"" + repoName + "\".\"" + oldVersionSnapshot + "\"");
+
+        assertCreateSnapshotSuccess(repoName, "snapshot-2");
+    }
+
+    @Test
+    public void testRepairBrokenShardGenerations() throws Exception {
+        final String repoName = "test-repo";
+        final Path repoPath = randomRepoPath();
+        execute("CREATE REPOSITORY \"" + repoName + "\" TYPE fs WITH (location = ?)",
+                new Object[] { repoPath.toAbsolutePath().toString() });
+
+        // Workaround to simulate BwC situation: taking a snapshot without indices here so that we don't create any new version shard
+        // generations (the existence of which would short-circuit checks for the repo containing old version snapshots)
+        final String oldVersionSnapshot = "old-version-snapshot";
+        var createSnapshot = new CreateSnapshotRequest(repoName, oldVersionSnapshot)
+            .waitForCompletion(true);
+        final var createSnapshotResponse = client().admin().cluster().execute(CreateSnapshotAction.INSTANCE, createSnapshot).get();
+        assertThat(createSnapshotResponse.getSnapshotInfo().totalShards(), is(0));
+
+        logger.info("--> writing downgraded RepositoryData");
+        final RepositoryData repositoryData = getRepositoryData(repoName);
+        final XContentBuilder jsonBuilder = JsonXContent.contentBuilder();
+        repositoryData.snapshotsToXContent(jsonBuilder, false);
+        final RepositoryData downgradedRepoData = RepositoryData.snapshotsFromXContent(JsonXContent.JSON_XCONTENT.createParser(
+                NamedXContentRegistry.EMPTY,
+                DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+                Strings.toString(jsonBuilder).replace(Version.CURRENT.toString(), SnapshotsService.OLD_SNAPSHOT_FORMAT.toString())),
+                repositoryData.getGenId(), randomBoolean());
+        Files.write(repoPath.resolve(BlobStoreRepository.INDEX_FILE_PREFIX + repositoryData.getGenId()),
+                BytesReference.toBytes(BytesReference.bytes(
+                        downgradedRepoData.snapshotsToXContent(XContentFactory.jsonBuilder(), false))),
+                StandardOpenOption.TRUNCATE_EXISTING);
+
+        logger.info("--> recreating repository to clear caches");
+        execute("DROP REPOSITORY \"" + repoName + "\"");
+        execute("CREATE REPOSITORY \"" + repoName + "\" TYPE fs WITH (location = ?)",
+                new Object[] { repoPath.toAbsolutePath().toString() });
+
+        final String indexName = "test-index";
+        createIndex(indexName);
+
+        assertCreateSnapshotSuccess(repoName, "snapshot-1");
+
+        logger.info("--> delete old version snapshot");
+        execute("DROP SNAPSHOT \"" + repoName + "\".\"" + oldVersionSnapshot + "\"");
+
+        logger.info("--> move shard level metadata to new generation and make RepositoryData point at an older generation");
+        final IndexId indexId = getRepositoryData(repoName).resolveIndexId(indexName);
+        final Path shardPath = repoPath.resolve("indices").resolve(indexId.getId()).resolve("0");
+        final Path initialShardMetaPath = shardPath.resolve(BlobStoreRepository.INDEX_FILE_PREFIX + "0");
+        assertFileExists(initialShardMetaPath);
+        Files.move(initialShardMetaPath, shardPath.resolve(BlobStoreRepository.INDEX_FILE_PREFIX + randomIntBetween(1, 1000)));
+
+        final RepositoryData repositoryData1 = getRepositoryData(repoName);
+        final Map<String, SnapshotId> snapshotIds =
+                repositoryData1.getSnapshotIds().stream().collect(Collectors.toMap(SnapshotId::getUUID, Function.identity()));
+        final RepositoryData brokenRepoData = new RepositoryData(
+                repositoryData1.getGenId(), snapshotIds, snapshotIds.values().stream().collect(
+                Collectors.toMap(SnapshotId::getUUID, repositoryData1::getSnapshotState)),
+                snapshotIds.values().stream().collect(
+                        Collectors.toMap(SnapshotId::getUUID, repositoryData1::getVersion)),
+                repositoryData1.getIndices().values().stream().collect(
+                        Collectors.toMap(Function.identity(), repositoryData1::getSnapshots)
+                ),  ShardGenerations.builder().putAll(repositoryData1.shardGenerations()).put(indexId, 0, "0").build()
+        );
+        Files.write(repoPath.resolve(BlobStoreRepository.INDEX_FILE_PREFIX + repositoryData1.getGenId()),
+                BytesReference.toBytes(BytesReference.bytes(
+                        brokenRepoData.snapshotsToXContent(XContentFactory.jsonBuilder(), true))),
+                StandardOpenOption.TRUNCATE_EXISTING);
+
+        logger.info("--> recreating repository to clear caches");
+        execute("DROP REPOSITORY \"" + repoName + "\"");
+        execute("CREATE REPOSITORY \"" + repoName + "\" TYPE fs WITH (location = ?)",
+                new Object[] { repoPath.toAbsolutePath().toString() });
 
         assertCreateSnapshotSuccess(repoName, "snapshot-2");
     }
