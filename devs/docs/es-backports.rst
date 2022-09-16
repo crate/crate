@@ -331,9 +331,9 @@ should be crossed out as well.
 - [ ] a5bc5ae030b Don't log on RetentionLeaseSync error handler (#58157)
 - [ ] 1a48983a562 Fix Running TranslogOps on CS Thread (#58056) (#58076)
 - [ ] 8bd0147ba79 Correct how meta-field is defined for pre 7.8 hits (#57951)
-- [ ] f950c121bb6 Hide AlreadyClosedException on IndexCommit release (#57986)
-- [ ] 16e230dcb85 Update to lucene snapshot e7c625430ed (#57981)
-- [ ] 80f221e920d Use clean thread context for transport and applier service (#57792) (#57914)
+- [x] f950c121bb6 Hide AlreadyClosedException on IndexCommit release (#57986)
+- [s] 16e230dcb85 Update to lucene snapshot e7c625430ed (#57981)
+- [s] 80f221e920d Use clean thread context for transport and applier service (#57792) (#57914)
 - [x] fe85bdbe6f6 Fix Remote Recovery Being Retried for Removed Nodes (#57608) (#57913)
 - [x] d5794204525 Stop Serializing Exceptions in SnapshotInfo (#57866) (#57898)
 - [s] 9eec819c5b1 Revert "Use clean thread context for transport and applier service (#57792)"
