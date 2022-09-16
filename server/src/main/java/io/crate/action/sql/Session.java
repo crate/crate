@@ -33,7 +33,6 @@ import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
-import io.crate.protocols.postgres.Portals;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.ClusterState;
@@ -77,6 +76,7 @@ import io.crate.planner.operators.SubQueryResults;
 import io.crate.protocols.postgres.FormatCodes;
 import io.crate.protocols.postgres.JobsLogsUpdateListener;
 import io.crate.protocols.postgres.Portal;
+import io.crate.protocols.postgres.Portals;
 import io.crate.protocols.postgres.RetryOnFailureResultReceiver;
 import io.crate.protocols.postgres.TransactionState;
 import io.crate.sql.parser.SqlParser;
@@ -317,15 +317,17 @@ public class Session implements AutoCloseable {
             throw t;
         }
 
-        portals.put(
+        var portalOrCursor = portals.create(
             portalName,
-            portals.create(
-                portalName,
-                preparedStmt,
-                params,
-                preparedStmt.analyzedStatement(),
-                resultFormatCodes
-            )
+            preparedStmt,
+            params,
+            preparedStmt.analyzedStatement(),
+            resultFormatCodes
+        );
+
+        portals.put(
+            portalOrCursor.name(),
+            portalOrCursor
         );
     }
 

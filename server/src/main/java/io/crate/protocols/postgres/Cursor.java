@@ -55,8 +55,7 @@ public class Cursor extends Portal {
         this.state = State.Declare;
     }
 
-    public void bindFetch(PreparedStmt preparedStmt) {
-        this.preparedStmt = preparedStmt;
+    public void bindFetch() {
         this.state = State.Fetch;
 
         // ex) fetch x from cursor; fetch y from cursor;

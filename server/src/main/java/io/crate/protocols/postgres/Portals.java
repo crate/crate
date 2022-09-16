@@ -21,17 +21,19 @@
 
 package io.crate.protocols.postgres;
 
-import io.crate.action.sql.PreparedStmt;
-import io.crate.analyze.AnalyzedDeclareCursor;
-import io.crate.analyze.AnalyzedFetchFromCursor;
-import io.crate.analyze.AnalyzedStatement;
-
-import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import javax.annotation.Nullable;
+
+import io.crate.action.sql.PreparedStmt;
+import io.crate.analyze.AnalyzedDeclareCursor;
+import io.crate.analyze.AnalyzedFetchFromCursor;
+import io.crate.analyze.AnalyzedStatement;
+import io.crate.analyze.AnalyzedStatementVisitor;
 
 public class Portals {
 
@@ -42,18 +44,8 @@ public class Portals {
                          List<Object> params,
                          AnalyzedStatement analyzedStatement,
                          @Nullable FormatCodes.FormatCode[] resultFormatCodes) {
-        if (preparedStmt.analyzedStatement() instanceof AnalyzedDeclareCursor) {
-            return new Cursor(portalName, preparedStmt, params, analyzedStatement, resultFormatCodes);
-        }
-        if (preparedStmt.analyzedStatement() instanceof AnalyzedFetchFromCursor) {
-            var portal = portals.get(portalName);
-            if (portal instanceof Cursor cursor) {
-                cursor.bindFetch(preparedStmt);
-                return cursor;
-            }
-            throw new IllegalArgumentException("Cursor '" + portalName + "' has not been declared.");
-        }
-        return new Portal(portalName, preparedStmt, params, analyzedStatement, resultFormatCodes);
+        var ctx = new Context(this, portalName, preparedStmt, params, resultFormatCodes);
+        return analyzedStatement.accept(new PortalDecider(), ctx);
     }
 
     public Portal safeGet(String portalName) {
@@ -96,5 +88,35 @@ public class Portals {
 
     public int size() {
         return portals.size();
+    }
+
+    private record Context(Portals portals,
+                           String portalName,
+                           PreparedStmt preparedStmt,
+                           List<Object> params,
+                           @Nullable FormatCodes.FormatCode[] resultFormatCodes) {
+    }
+
+    private static class PortalDecider extends AnalyzedStatementVisitor<Context, Portal> {
+
+        @Override
+        protected Portal visitAnalyzedStatement(AnalyzedStatement analyzedStatement, Context context) {
+            return new Portal(context.portalName, context.preparedStmt, context.params, analyzedStatement, context.resultFormatCodes);
+        }
+
+        @Override
+        public Portal visitDeclareCursor(AnalyzedDeclareCursor declareCursor, Context context) {
+            return new Cursor(declareCursor.cursorName(), context.preparedStmt, context.params, declareCursor, context.resultFormatCodes);
+        }
+
+        @Override
+        public Portal visitFetchFromCursor(AnalyzedFetchFromCursor fetchFromCursor, Context context) {
+            var portal = context.portals.portals.get(fetchFromCursor.cursorName());
+            if (portal instanceof Cursor cursor) {
+                cursor.bindFetch();
+                return cursor;
+            }
+            throw new IllegalArgumentException("Cursor '" + fetchFromCursor.cursorName() + "' has not been declared.");
+        }
     }
 }
