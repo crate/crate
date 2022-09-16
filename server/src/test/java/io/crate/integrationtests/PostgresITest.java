@@ -1126,6 +1126,24 @@ public class PostgresITest extends IntegTestCase {
         }
     }
 
+    @Test
+    public void test_declare_fetch_close_cursor() throws Exception {
+        Properties properties = new Properties();
+        properties.setProperty("user", "crate");
+        try (var conn = DriverManager.getConnection(url(RW), properties)) {
+            var stmt = conn.createStatement();
+
+            var cursor = stmt.execute("DECLARE my_cursor CURSOR FOR VALUES(1, 2, 3)");
+            var fetchResult = stmt.executeQuery("FETCH 1 FROM my_cursor");
+
+            int numResults = 0;
+            while (fetchResult.next()) {
+                numResults++;
+            }
+            assertThat(numResults, is(1));
+        }
+    }
+
 
     private long getNumQueriesFromJobsLogs() {
         long result = 0;

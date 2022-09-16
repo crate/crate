@@ -21,7 +21,11 @@
 
 package io.crate.analyze;
 
-import io.crate.analyze.relations.AnalyzedRelation;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.index.analysis.AnalysisRegistry;
+
 import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.execution.ddl.RepositoryService;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -105,10 +109,6 @@ import io.crate.sql.tree.Statement;
 import io.crate.sql.tree.SwapTable;
 import io.crate.sql.tree.Update;
 import io.crate.user.UserManager;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.index.analysis.AnalysisRegistry;
 
 @Singleton
 public class Analyzer {
@@ -709,7 +709,7 @@ public class Analyzer {
         @Override
         public AnalyzedStatement visitFetchFromCursor(FetchFromCursor fetchFromCursor, Analysis context) {
 
-            assert context.portals().safeGet(fetchFromCursor.getCursorName()).analyzedStatement() instanceof AnalyzedRelation;
+            assert context.portals().safeGet(fetchFromCursor.getCursorName()).analyzedStatement() instanceof AnalyzedCursor;
             AnalyzedCursor analyzedCursor = (AnalyzedCursor) context.portals().safeGet(fetchFromCursor.getCursorName()).analyzedStatement();
 
             return new AnalyzedFetchFromCursor(fetchFromCursor.getCursorName(), analyzedCursor.query());
