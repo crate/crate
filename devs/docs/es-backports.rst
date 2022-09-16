@@ -338,7 +338,7 @@ should be crossed out as well.
 - [ ] d5794204525 Stop Serializing Exceptions in SnapshotInfo (#57866) (#57898)
 - [ ] 9eec819c5b1 Revert "Use clean thread context for transport and applier service (#57792)"
 - [ ] 8199956937d Revert "Assert on request headers only (#57792)"
-- [ ] 8119b965178 Fix stalled send translog ops request (#57859)
+- [x] 8119b965178 Fix stalled send translog ops request (#57859)
 - [x] c17121428ee Fix translog ops action name in channel listener (#57854)
 - [s] b5d3565214d Assert on request headers only (#57792)
 - [s] 259be236cfa Use clean thread context for transport and applier service (#57792)
