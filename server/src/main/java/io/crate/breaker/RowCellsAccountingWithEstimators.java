@@ -58,12 +58,16 @@ public class RowCellsAccountingWithEstimators implements RowAccounting<Object[]>
      */
     @Override
     public void accountForAndMaybeBreak(Object[] rowCells) {
+        ramAccounting.addBytes(accountRowBytes(rowCells));
+    }
+
+    public long accountRowBytes(Object[] rowCells) {
         assert rowCells.length == estimators.size() : "Size of row must match the number of estimators";
         long size = 0;
         for (int i = 0; i < rowCells.length; i++) {
             size += (estimators.get(i).estimateSize(rowCells[i]) + extraSizePerRow);
         }
-        ramAccounting.addBytes(size);
+        return size;
     }
 
     @Override

@@ -219,6 +219,7 @@ information about the currently applied cluster settings.
     | settings['stats']['operations_log_size']                                          | integer      |
     | settings['stats']['service']                                                      | object       |
     | settings['stats']['service']['interval']                                          | text         |
+    | settings['stats']['service']['max_bytes_per_sec']                                 | text         |
     | settings['udc']                                                                   | object       |
     | settings['udc']['enabled']                                                        | boolean      |
     | settings['udc']['initial_delay']                                                  | text         |
