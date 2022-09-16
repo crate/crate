@@ -32,10 +32,10 @@ import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListenerResponseHandler;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -143,12 +143,10 @@ public final class TransportAnalyzeAction {
     }
 
     private CompletableFuture<AcknowledgedResponse> publishTableStats(Map<RelationName, Stats> newTableStats) {
-        List<DiscoveryNode> nodesOn41OrAfter = StreamSupport.stream(clusterService.state().nodes().spliterator(), false)
-            .filter(x -> x.getVersion().onOrAfter(Version.V_4_1_0))
-            .collect(Collectors.toList());
+        DiscoveryNodes discoveryNodes = clusterService.state().nodes();
         var listener = new FutureActionListener<AcknowledgedResponse, AcknowledgedResponse>(x -> x);
         var multiListener = new MultiActionListener<>(
-            nodesOn41OrAfter.size(),
+            discoveryNodes.getSize(),
             Collectors.reducing(
                 new AcknowledgedResponse(true),
                 (resp1, resp2) -> new AcknowledgedResponse(resp1.isAcknowledged() && resp2.isAcknowledged())
@@ -161,7 +159,7 @@ public final class TransportAnalyzeAction {
             ThreadPool.Names.SAME
         );
         PublishTableStatsRequest request = new PublishTableStatsRequest(newTableStats);
-        for (DiscoveryNode node : nodesOn41OrAfter) {
+        for (DiscoveryNode node : discoveryNodes) {
             transportService.sendRequest(node, RECEIVE_TABLE_STATS, request, responseHandler);
         }
         return listener;
@@ -200,11 +198,9 @@ public final class TransportAnalyzeAction {
 
     private CompletableFuture<Samples> fetchSamples(RelationName relationName, List<Reference> columns) {
         FutureActionListener<FetchSampleResponse, Samples> listener = new FutureActionListener<>(FetchSampleResponse::samples);
-        List<DiscoveryNode> nodesOn41OrAfter = StreamSupport.stream(clusterService.state().nodes().spliterator(), false)
-            .filter(x -> x.getVersion().onOrAfter(Version.V_4_1_0))
-            .collect(Collectors.toList());
+        DiscoveryNodes discoveryNodes = clusterService.state().nodes();
         MultiActionListener<FetchSampleResponse, ?, FetchSampleResponse> multiListener = new MultiActionListener<>(
-            nodesOn41OrAfter.size(),
+            discoveryNodes.getSize(),
             Collectors.reducing(
                 new FetchSampleResponse(Samples.EMPTY),
                 (FetchSampleResponse s1, FetchSampleResponse s2) -> FetchSampleResponse.merge(TransportAnalyzeAction.NUM_SAMPLES, s1, s2)),
@@ -216,7 +212,7 @@ public final class TransportAnalyzeAction {
             in -> new FetchSampleResponse(streamers, in),
             ThreadPool.Names.SAME
         );
-        for (DiscoveryNode node : nodesOn41OrAfter) {
+        for (DiscoveryNode node : discoveryNodes) {
             transportService.sendRequest(
                 node,
                 FETCH_SAMPLES,
