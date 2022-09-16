@@ -329,8 +329,8 @@ should be crossed out as well.
 - [ ] c6acc7c976f Correctly deal with aliases when retrieving lucene FieldType
 - [ ] 12a3f6dfca2 MappedFieldType should not extend FieldType (#58160)
 - [ ] a5bc5ae030b Don't log on RetentionLeaseSync error handler (#58157)
-- [ ] 1a48983a562 Fix Running TranslogOps on CS Thread (#58056) (#58076)
-- [ ] 8bd0147ba79 Correct how meta-field is defined for pre 7.8 hits (#57951)
+- [x] 1a48983a562 Fix Running TranslogOps on CS Thread (#58056) (#58076)
+- [s] 8bd0147ba79 Correct how meta-field is defined for pre 7.8 hits (#57951)
 - [x] f950c121bb6 Hide AlreadyClosedException on IndexCommit release (#57986)
 - [s] 16e230dcb85 Update to lucene snapshot e7c625430ed (#57981)
 - [s] 80f221e920d Use clean thread context for transport and applier service (#57792) (#57914)
