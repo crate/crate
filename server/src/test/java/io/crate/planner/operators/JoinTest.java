@@ -638,4 +638,23 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             "    ├ Collect[doc.t1 | [a, x, i] | true]\n" +
             "    └ Collect[doc.t2 | [b, y] | (b = 'abc')]")));
     }
+
+    @Test
+    public void test_rewrite_left_join_to_inner_with_subquery() {
+        String statement =
+            """
+            SELECT *
+            FROM t1
+            LEFT JOIN t2 USING (i)
+            WHERE t2.y IN (SELECT z FROM t3);
+            """;
+        LogicalPlan logicalPlan = e.logicalPlan(statement);
+        assertThat(logicalPlan, is(isPlan(
+            "MultiPhase\n" +
+            "  └ NestedLoopJoin[INNER | (i = i)]\n" +
+            "    ├ Collect[doc.t1 | [a, x, i] | true]\n" +
+            "    └ Collect[doc.t2 | [b, y, i] | (y = ANY((SELECT z FROM (doc.t3))))]\n" +
+            "  └ OrderBy[z ASC]\n" +
+            "    └ Collect[doc.t3 | [z] | true]")));
+    }
 }

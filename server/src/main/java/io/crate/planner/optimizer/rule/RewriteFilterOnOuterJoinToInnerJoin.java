@@ -39,6 +39,7 @@ import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.FieldReplacer;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.RefReplacer;
+import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
@@ -126,7 +127,7 @@ public final class RewriteFilterOnOuterJoinToInnerJoin implements Rule<Filter> {
                              TableStats tableStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx) {
-        var symbolEvaluator = new SymbolEvaluator(txnCtx, nodeCtx, SubQueryResults.EMPTY);
+        final var symbolEvaluator = new RuleSymbolEvaluator(txnCtx, nodeCtx);
         NestedLoopJoin nl = captures.get(nlCapture);
         Symbol query = filter.query();
         Map<Set<RelationName>, Symbol> splitQueries = QuerySplitter.split(query);
@@ -294,4 +295,15 @@ public final class RewriteFilterOnOuterJoinToInnerJoin implements Rule<Filter> {
             return null;
         }
     };
+
+    private static class RuleSymbolEvaluator extends SymbolEvaluator {
+        public RuleSymbolEvaluator(TransactionContext txnCtx, NodeContext nodeCtx) {
+            super(txnCtx, nodeCtx, SubQueryResults.EMPTY);
+        }
+
+        @Override
+        public Input<?> visitSelectSymbol(SelectSymbol selectSymbol, Row context) {
+            return Literal.NULL;
+        }
+    }
 }
