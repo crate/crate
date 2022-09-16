@@ -335,9 +335,9 @@ should be crossed out as well.
 - [ ] 16e230dcb85 Update to lucene snapshot e7c625430ed (#57981)
 - [ ] 80f221e920d Use clean thread context for transport and applier service (#57792) (#57914)
 - [ ] fe85bdbe6f6 Fix Remote Recovery Being Retried for Removed Nodes (#57608) (#57913)
-- [ ] d5794204525 Stop Serializing Exceptions in SnapshotInfo (#57866) (#57898)
-- [ ] 9eec819c5b1 Revert "Use clean thread context for transport and applier service (#57792)"
-- [ ] 8199956937d Revert "Assert on request headers only (#57792)"
+- [x] d5794204525 Stop Serializing Exceptions in SnapshotInfo (#57866) (#57898)
+- [s] 9eec819c5b1 Revert "Use clean thread context for transport and applier service (#57792)"
+- [s] 8199956937d Revert "Assert on request headers only (#57792)"
 - [x] 8119b965178 Fix stalled send translog ops request (#57859)
 - [x] c17121428ee Fix translog ops action name in channel listener (#57854)
 - [s] b5d3565214d Assert on request headers only (#57792)
