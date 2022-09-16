@@ -47,7 +47,6 @@ import io.crate.action.FutureActionListener;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.concurrent.CompletableFutures;
 import io.crate.data.Row;
-import io.crate.execution.ddl.AnalyzeRequest;
 import io.crate.execution.support.MultiActionListener;
 import io.crate.execution.support.NodeActionRequestHandler;
 import io.crate.expression.symbol.Symbols;
@@ -64,7 +63,6 @@ import io.crate.types.DataTypes;
 @Singleton
 public final class TransportAnalyzeAction {
 
-    private static final String INVOKE_ANALYZE = "internal:crate:sql/analyze/invoke";
     private static final String FETCH_SAMPLES = "internal:crate:sql/analyze/fetch_samples";
     private static final String RECEIVE_TABLE_STATS = "internal:crate:sql/analyze/receive_stats";
 
@@ -96,15 +94,6 @@ public final class TransportAnalyzeAction {
         this.transportService = transportService;
         this.schemas = schemas;
         this.clusterService = clusterService;
-        transportService.registerRequestHandler(
-            INVOKE_ANALYZE,
-            ThreadPool.Names.SAME, // goes async right away
-            AnalyzeRequest::new,
-            // Explicit generic is required for eclipse JDT, otherwise it won't compile
-            new NodeActionRequestHandler<AnalyzeRequest, AcknowledgedResponse>(
-                req -> fetchSamplesThenGenerateAndPublishStats()
-            )
-        );
         transportService.registerRequestHandler(
             FETCH_SAMPLES,
             ThreadPool.Names.SEARCH,
