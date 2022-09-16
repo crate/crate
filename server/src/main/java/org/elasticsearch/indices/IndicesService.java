@@ -64,7 +64,6 @@ import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.routing.RecoverySource;
 import org.elasticsearch.cluster.routing.ShardRouting;
-import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.io.FileSystemUtils;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
@@ -139,7 +138,6 @@ public class IndicesService extends AbstractLifecycleComponent
     private final ThreadPool threadPool;
     private final CircuitBreakerService circuitBreakerService;
     private final BigArrays bigArrays;
-    private final ClusterService clusterService;
     private final Client client;
     private final Settings settings;
     private volatile Map<String, IndexService> indices = emptyMap();
@@ -177,7 +175,6 @@ public class IndicesService extends AbstractLifecycleComponent
                           IndexScopedSettings indexScopedSettings,
                           CircuitBreakerService circuitBreakerService,
                           BigArrays bigArrays,
-                          ClusterService clusterService,
                           Client client,
                           MetaStateService metaStateService,
                           Collection<Function<IndexSettings, Optional<EngineFactory>>> engineFactoryProviders,
@@ -201,7 +198,6 @@ public class IndicesService extends AbstractLifecycleComponent
         this.indexScopedSettings = indexScopedSettings;
         this.circuitBreakerService = circuitBreakerService;
         this.bigArrays = bigArrays;
-        this.clusterService = clusterService;
         this.client = client;
         this.metaStateService = metaStateService;
         this.engineFactoryProviders = engineFactoryProviders;
@@ -246,10 +242,6 @@ public class IndicesService extends AbstractLifecycleComponent
     }
 
     private static final String DANGLING_INDICES_UPDATE_THREAD_NAME = "DanglingIndices#updateTask";
-
-    public ClusterService clusterService() {
-        return clusterService;
-    }
 
     @Override
     protected void doStop() {

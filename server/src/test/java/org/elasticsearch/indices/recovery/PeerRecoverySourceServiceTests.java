@@ -24,7 +24,6 @@ package org.elasticsearch.indices.recovery;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 
@@ -44,10 +43,8 @@ public class PeerRecoverySourceServiceTests extends IndexShardTestCase {
     @Test
     public void testDuplicateRecoveries() throws IOException {
         IndexShard primary = newStartedShard(true);
-        final IndicesService indicesService = mock(IndicesService.class);
-        when(indicesService.clusterService()).thenReturn(mock(ClusterService.class));
         PeerRecoverySourceService peerRecoverySourceService = new PeerRecoverySourceService(
-            mock(TransportService.class), indicesService,
+            mock(TransportService.class), mock(IndicesService.class), mock(ClusterService.class),
             new RecoverySettings(Settings.EMPTY, new ClusterSettings(Settings.EMPTY, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS)));
         StartRecoveryRequest startRecoveryRequest = new StartRecoveryRequest(primary.shardId(), randomAlphaOfLength(10),
             getFakeDiscoNode("source"), getFakeDiscoNode("target"), Store.MetadataSnapshot.EMPTY, randomBoolean(), randomLong(),

@@ -493,7 +493,6 @@ public class Node implements Closeable {
                 settingsModule.getIndexScopedSettings(),
                 circuitBreakerService,
                 bigArrays,
-                clusterService,
                 client,
                 metaStateService,
                 engineFactoryProviders,
@@ -734,6 +733,7 @@ public class Node implements Closeable {
                         processRecoverySettings(settingsModule.getClusterSettings(), recoverySettings);
                         b.bind(PeerRecoverySourceService.class).toInstance(new PeerRecoverySourceService(transportService,
                                                                                                          indicesService,
+                                                                                                         clusterService,
                                                                                                          recoverySettings));
                         b.bind(PeerRecoveryTargetService.class).toInstance(new PeerRecoveryTargetService(threadPool,
                                                                                                          transportService,
