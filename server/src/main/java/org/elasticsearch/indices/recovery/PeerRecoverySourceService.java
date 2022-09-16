@@ -40,6 +40,7 @@ import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.routing.ShardRouting;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
@@ -71,6 +72,7 @@ public class PeerRecoverySourceService extends AbstractLifecycleComponent implem
 
     private final TransportService transportService;
     private final IndicesService indicesService;
+    private final ClusterService clusterService;
     private final RecoverySettings recoverySettings;
 
     final OngoingRecoveries ongoingRecoveries = new OngoingRecoveries();
@@ -81,9 +83,11 @@ public class PeerRecoverySourceService extends AbstractLifecycleComponent implem
     @Inject
     public PeerRecoverySourceService(TransportService transportService,
                                      IndicesService indicesService,
+                                     ClusterService clusterService,
                                      RecoverySettings recoverySettings) {
         this.transportService = transportService;
         this.indicesService = indicesService;
+        this.clusterService = clusterService;
         this.recoverySettings = recoverySettings;
         // When the target node wants to start a peer recovery it sends a START_RECOVERY request to the source
         // node. Upon receiving START_RECOVERY, the source node will initiate the peer recovery.
@@ -99,13 +103,13 @@ public class PeerRecoverySourceService extends AbstractLifecycleComponent implem
 
     @Override
     protected void doStart() {
-        indicesService.clusterService().addListener(this);
+        clusterService.addListener(this);
     }
 
     @Override
     protected void doStop() {
         ongoingRecoveries.awaitEmpty();
-        indicesService.clusterService().removeListener(this);
+        clusterService.removeListener(this);
     }
 
     @Override
