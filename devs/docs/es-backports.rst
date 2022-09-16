@@ -339,9 +339,9 @@ should be crossed out as well.
 - [ ] 9eec819c5b1 Revert "Use clean thread context for transport and applier service (#57792)"
 - [ ] 8199956937d Revert "Assert on request headers only (#57792)"
 - [ ] 8119b965178 Fix stalled send translog ops request (#57859)
-- [ ] c17121428ee Fix translog ops action name in channel listener (#57854)
-- [ ] b5d3565214d Assert on request headers only (#57792)
-- [ ] 259be236cfa Use clean thread context for transport and applier service (#57792)
+- [x] c17121428ee Fix translog ops action name in channel listener (#57854)
+- [s] b5d3565214d Assert on request headers only (#57792)
+- [s] 259be236cfa Use clean thread context for transport and applier service (#57792)
 - [x] 952cf770ed6 Reestablish peer recovery after network errors (#57827)
 - [x] 0987c0a5f3d Fix Broken Numeric Shard Generations in RepositoryData (#57813) (#57821)
 - [s] 70e63a365a6 Refactor how to determine if a field is metafield (#57378) (#57771)
