@@ -334,7 +334,7 @@ should be crossed out as well.
 - [ ] f950c121bb6 Hide AlreadyClosedException on IndexCommit release (#57986)
 - [ ] 16e230dcb85 Update to lucene snapshot e7c625430ed (#57981)
 - [ ] 80f221e920d Use clean thread context for transport and applier service (#57792) (#57914)
-- [ ] fe85bdbe6f6 Fix Remote Recovery Being Retried for Removed Nodes (#57608) (#57913)
+- [x] fe85bdbe6f6 Fix Remote Recovery Being Retried for Removed Nodes (#57608) (#57913)
 - [x] d5794204525 Stop Serializing Exceptions in SnapshotInfo (#57866) (#57898)
 - [s] 9eec819c5b1 Revert "Use clean thread context for transport and applier service (#57792)"
 - [s] 8199956937d Revert "Assert on request headers only (#57792)"
