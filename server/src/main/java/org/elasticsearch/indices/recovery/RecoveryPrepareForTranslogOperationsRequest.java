@@ -19,21 +19,21 @@
 
 package org.elasticsearch.indices.recovery;
 
+import java.io.IOException;
+
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.transport.TransportRequest;
 
-import java.io.IOException;
-
-class RecoveryPrepareForTranslogOperationsRequest extends TransportRequest {
+class RecoveryPrepareForTranslogOperationsRequest extends RecoveryTransportRequest {
 
     private final long recoveryId;
     private final ShardId shardId;
     private final int totalTranslogOps;
 
-    RecoveryPrepareForTranslogOperationsRequest(long recoveryId, ShardId shardId, int totalTranslogOps) {
+    RecoveryPrepareForTranslogOperationsRequest(long recoveryId, long requestSeqNo, ShardId shardId, int totalTranslogOps) {
+        super(requestSeqNo);
         this.recoveryId = recoveryId;
         this.shardId = shardId;
         this.totalTranslogOps = totalTranslogOps;

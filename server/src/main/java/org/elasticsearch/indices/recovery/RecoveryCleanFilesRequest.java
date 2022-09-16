@@ -19,17 +19,16 @@
 
 package org.elasticsearch.indices.recovery;
 
+import java.io.IOException;
+
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.store.Store;
-import org.elasticsearch.transport.TransportRequest;
 
-import java.io.IOException;
-
-public class RecoveryCleanFilesRequest extends TransportRequest {
+public class RecoveryCleanFilesRequest extends RecoveryTransportRequest {
 
     private final long recoveryId;
     private final ShardId shardId;
@@ -38,10 +37,12 @@ public class RecoveryCleanFilesRequest extends TransportRequest {
     private final long globalCheckpoint;
 
     RecoveryCleanFilesRequest(long recoveryId,
+                              long requestSeqNo,
                               ShardId shardId,
                               Store.MetadataSnapshot snapshotFiles,
                               int totalTranslogOps,
                               long globalCheckpoint) {
+        super(requestSeqNo);
         this.recoveryId = recoveryId;
         this.shardId = shardId;
         this.snapshotFiles = snapshotFiles;

@@ -19,6 +19,8 @@
 
 package org.elasticsearch.indices.recovery;
 
+import java.io.IOException;
+
 import org.apache.lucene.util.Version;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -26,12 +28,8 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.store.StoreFileMetadata;
-import org.elasticsearch.transport.TransportRequest;
 
-import java.io.IOException;
-
-public final class RecoveryFileChunkRequest extends TransportRequest {
-
+public final class RecoveryFileChunkRequest extends RecoveryTransportRequest {
     private final boolean lastChunk;
     private final long recoveryId;
     private final ShardId shardId;
@@ -43,6 +41,7 @@ public final class RecoveryFileChunkRequest extends TransportRequest {
     private final int totalTranslogOps;
 
     public RecoveryFileChunkRequest(long recoveryId,
+                                    final long requestSeqNo,
                                     ShardId shardId,
                                     StoreFileMetadata metadata,
                                     long position,
@@ -50,6 +49,7 @@ public final class RecoveryFileChunkRequest extends TransportRequest {
                                     boolean lastChunk,
                                     int totalTranslogOps,
                                     long sourceThrottleTimeInNanos) {
+        super(requestSeqNo);
         this.recoveryId = recoveryId;
         this.shardId = shardId;
         this.metadata = metadata;

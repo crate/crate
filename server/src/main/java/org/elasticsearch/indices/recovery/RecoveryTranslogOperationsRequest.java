@@ -19,18 +19,17 @@
 
 package org.elasticsearch.indices.recovery;
 
+import java.io.IOException;
+import java.util.List;
+
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.index.seqno.RetentionLeases;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.translog.Translog;
-import org.elasticsearch.transport.TransportRequest;
 
-import java.io.IOException;
-import java.util.List;
-
-public class RecoveryTranslogOperationsRequest extends TransportRequest {
+public class RecoveryTranslogOperationsRequest extends RecoveryTransportRequest {
 
     private final long recoveryId;
     private final ShardId shardId;
@@ -42,6 +41,7 @@ public class RecoveryTranslogOperationsRequest extends TransportRequest {
     private final long mappingVersionOnPrimary;
 
     RecoveryTranslogOperationsRequest(long recoveryId,
+                                      long requestSeqNo,
                                       ShardId shardId,
                                       List<Translog.Operation> operations,
                                       int totalTranslogOps,
@@ -49,6 +49,7 @@ public class RecoveryTranslogOperationsRequest extends TransportRequest {
                                       long maxSeqNoOfUpdatesOrDeletesOnPrimary,
                                       RetentionLeases retentionLeases,
                                       long mappingVersionOnPrimary) {
+        super(requestSeqNo);
         this.recoveryId = recoveryId;
         this.shardId = shardId;
         this.operations = operations;
