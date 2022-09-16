@@ -342,7 +342,7 @@ should be crossed out as well.
 - [ ] c17121428ee Fix translog ops action name in channel listener (#57854)
 - [ ] b5d3565214d Assert on request headers only (#57792)
 - [ ] 259be236cfa Use clean thread context for transport and applier service (#57792)
-- [ ] 952cf770ed6 Reestablish peer recovery after network errors (#57827)
+- [x] 952cf770ed6 Reestablish peer recovery after network errors (#57827)
 - [x] 0987c0a5f3d Fix Broken Numeric Shard Generations in RepositoryData (#57813) (#57821)
 - [s] 70e63a365a6 Refactor how to determine if a field is metafield (#57378) (#57771)
 - [x] 004eb8bd7e4 Fix Bug With RepositoryData Caching (#57785) (#57800)

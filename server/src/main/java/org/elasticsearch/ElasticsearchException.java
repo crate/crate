@@ -19,9 +19,24 @@
 
 package org.elasticsearch;
 
-import io.crate.common.CheckedFunction;
-import io.crate.exceptions.ArrayViaDocValuesUnsupportedException;
-import io.crate.exceptions.SQLExceptions;
+import static java.util.Collections.emptyMap;
+import static java.util.Collections.singletonMap;
+import static java.util.Collections.unmodifiableMap;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_UUID_NA_VALUE;
+import static org.elasticsearch.common.xcontent.XContentParserUtils.ensureExpectedToken;
+import static org.elasticsearch.common.xcontent.XContentParserUtils.ensureFieldName;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import javax.annotation.Nullable;
 
 import org.elasticsearch.action.admin.indices.alias.AliasesNotFoundException;
 import org.elasticsearch.action.support.replication.ReplicationOperation;
@@ -40,23 +55,9 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.transport.TcpTransport;
 
-import javax.annotation.Nullable;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import static java.util.Collections.emptyMap;
-import static java.util.Collections.singletonMap;
-import static java.util.Collections.unmodifiableMap;
-import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_UUID_NA_VALUE;
-import static org.elasticsearch.common.xcontent.XContentParserUtils.ensureExpectedToken;
-import static org.elasticsearch.common.xcontent.XContentParserUtils.ensureFieldName;
+import io.crate.common.CheckedFunction;
+import io.crate.exceptions.ArrayViaDocValuesUnsupportedException;
+import io.crate.exceptions.SQLExceptions;
 
 /**
  * A base class for all elasticsearch exceptions.
@@ -1087,9 +1088,12 @@ public class ElasticsearchException extends RuntimeException implements ToXConte
             io.crate.replication.logical.exceptions.MissingShardOperationsException.class,
             io.crate.replication.logical.exceptions.MissingShardOperationsException::new,
             173,
-            Version.V_4_7_0);
-
-
+            Version.V_4_7_0),
+        PEER_RECOVERY_NOT_FOUND_EXCEPTION(
+            org.elasticsearch.indices.recovery.PeerRecoveryNotFound.class,
+            org.elasticsearch.indices.recovery.PeerRecoveryNotFound::new,
+            174,
+            Version.V_5_1_0);
         final Class<? extends ElasticsearchException> exceptionClass;
         final CheckedFunction<StreamInput, ? extends ElasticsearchException, IOException> constructor;
         final int id;

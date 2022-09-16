@@ -119,6 +119,7 @@ import org.elasticsearch.repositories.Repository;
 import org.elasticsearch.repositories.RepositoryData;
 import org.elasticsearch.snapshots.Snapshot;
 import org.elasticsearch.test.BackgroundIndexer;
+import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.test.IntegTestCase.ClusterScope;
 import org.elasticsearch.test.IntegTestCase.Scope;
 import org.elasticsearch.test.InternalSettingsPlugin;
@@ -137,7 +138,6 @@ import org.elasticsearch.transport.TransportService;
 import org.junit.Test;
 
 import io.crate.common.unit.TimeValue;
-import org.elasticsearch.test.IntegTestCase;
 import io.crate.metadata.IndexParts;
 
 @ClusterScope(scope = Scope.TEST, numDataNodes = 0)
@@ -799,16 +799,13 @@ public class IndexRecoveryIT extends IntegTestCase {
         });
         Runnable connectionBreaker = () -> {
             // Always break connection from source to remote to ensure that actions are retried
-            logger.info("--> closing connections from source node to target node");
-            blueTransportService.disconnectFromNode(redTransportService.getLocalNode());
+            blueTransportService.disconnectFromNode(redTransportService.getLocalDiscoNode());
             if (randomBoolean()) {
                 // Sometimes break connection from remote to source to ensure that recovery is re-established
-                logger.info("--> closing connections from target node to source node");
-                redTransportService.disconnectFromNode(blueTransportService.getLocalNode());
+                redTransportService.disconnectFromNode(blueTransportService.getLocalDiscoNode());
             }
         };
-        TransientReceiveRejected handlingBehavior =
-            new TransientReceiveRejected(recoveryActionToBlock, finalizeReceived, recoveryStarted, connectionBreaker);
+        TransientReceiveRejected handlingBehavior = new TransientReceiveRejected(recoveryActionToBlock, recoveryStarted, connectionBreaker);
         redTransportService.addRequestHandlingBehavior(recoveryActionToBlock, handlingBehavior);
 
         try {
@@ -833,15 +830,12 @@ public class IndexRecoveryIT extends IntegTestCase {
 
         private final String actionName;
         private final AtomicBoolean recoveryStarted;
-        private final AtomicBoolean finalizeReceived;
         private final Runnable connectionBreaker;
         private final AtomicInteger blocksRemaining;
 
-        private TransientReceiveRejected(String actionName, AtomicBoolean recoveryStarted, AtomicBoolean finalizeReceived,
-                                         Runnable connectionBreaker) {
+        private TransientReceiveRejected(String actionName, AtomicBoolean recoveryStarted, Runnable connectionBreaker) {
             this.actionName = actionName;
             this.recoveryStarted = recoveryStarted;
-            this.finalizeReceived = finalizeReceived;
             this.connectionBreaker = connectionBreaker;
             this.blocksRemaining = new AtomicInteger(randomIntBetween(1, 3));
         }
@@ -851,9 +845,6 @@ public class IndexRecoveryIT extends IntegTestCase {
                                     TransportRequest request,
                                     TransportChannel channel) throws Exception {
             recoveryStarted.set(true);
-            if (actionName.equals(PeerRecoveryTargetService.Actions.FINALIZE)) {
-                finalizeReceived.set(true);
-            }
             if (blocksRemaining.getAndUpdate(i -> i == 0 ? 0 : i - 1) != 0) {
                 String rejected = "rejected";
                 String circuit = "circuit";

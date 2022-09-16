@@ -74,6 +74,7 @@ public class RecoveryTarget extends AbstractRefCounted implements RecoveryTarget
     private final IndexShard indexShard;
     private final DiscoveryNode sourceNode;
     private final MultiFileWriter multiFileWriter;
+    private final RecoveryRequestTracker requestTracker = new RecoveryRequestTracker();
     private final Store store;
     private final PeerRecoveryTargetService.RecoveryListener listener;
 
@@ -126,6 +127,10 @@ public class RecoveryTarget extends AbstractRefCounted implements RecoveryTarget
      */
     public RecoveryTarget retryCopy() {
         return new RecoveryTarget(indexShard, sourceNode, listener);
+    }
+
+    public ActionListener<Void> markRequestReceivedAndCreateListener(long requestSeqNo, ActionListener<Void> listener) {
+        return requestTracker.markReceivedAndCreateListener(requestSeqNo, listener);
     }
 
     public long recoveryId() {

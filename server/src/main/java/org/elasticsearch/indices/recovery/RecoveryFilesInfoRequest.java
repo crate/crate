@@ -19,16 +19,15 @@
 
 package org.elasticsearch.indices.recovery;
 
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.transport.TransportRequest;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class RecoveryFilesInfoRequest extends TransportRequest {
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.index.shard.ShardId;
+
+public class RecoveryFilesInfoRequest extends RecoveryTransportRequest {
 
     private final long recoveryId;
     private final ShardId shardId;
@@ -41,12 +40,14 @@ public class RecoveryFilesInfoRequest extends TransportRequest {
     int totalTranslogOps;
 
     RecoveryFilesInfoRequest(long recoveryId,
+                             long requestSeqNo,
                              ShardId shardId,
                              List<String> phase1FileNames,
                              List<Long> phase1FileSizes,
                              List<String> phase1ExistingFileNames,
                              List<Long> phase1ExistingFileSizes,
                              int totalTranslogOps) {
+        super(requestSeqNo);
         this.recoveryId = recoveryId;
         this.shardId = shardId;
         this.phase1FileNames = phase1FileNames;
