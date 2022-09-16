@@ -179,6 +179,18 @@ Collecting stats
 
     Using a very small value can cause a high load on the cluster.
 
+.. _stats.service.max_bytes_per_sec:
+
+**stats.service.max_bytes_per_sec**
+  | *Default:*    ``40mb``
+  | *Runtime:*   ``yes``
+
+  Specifies the maximum number of bytes per second that can be read on data
+  nodes to collect statistics. If this is set to a positive number, the
+  underlying I/O operations of the :ref:`ANALYZE <analyze>` statement are
+  throttled.
+
+  If the value provided is ``0`` then the throttling is disabled.
 
 Shard limits
 ------------

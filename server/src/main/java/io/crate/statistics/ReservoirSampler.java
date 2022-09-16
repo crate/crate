@@ -22,6 +22,7 @@
 package io.crate.statistics;
 
 import static io.crate.breaker.BlockBasedRamAccounting.MAX_BLOCK_SIZE_IN_BYTES;
+import static io.crate.statistics.TableStatsService.STATS_SERVICE_THROTTLING_SETTING;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -31,6 +32,7 @@ import java.util.List;
 import java.util.Random;
 import java.util.function.Function;
 
+import io.crate.common.annotations.VisibleForTesting;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.index.LeafReaderContext;
@@ -42,18 +44,20 @@ import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.Scorable;
 import org.apache.lucene.search.ScoreMode;
 import org.apache.lucene.store.AlreadyClosedException;
+import org.apache.lucene.store.RateLimiter;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Randomness;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.shard.IllegalIndexShardStateException;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
-import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 
 import io.crate.Streamer;
 import io.crate.breaker.BlockBasedRamAccounting;
@@ -79,6 +83,7 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.types.DataTypes;
+import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 
 public final class ReservoirSampler {
 
@@ -89,17 +94,60 @@ public final class ReservoirSampler {
     private CircuitBreakerService circuitBreakerService;
     private final IndicesService indicesService;
 
+    private final RateLimiter rateLimiter;
+
     @Inject
     public ReservoirSampler(ClusterService clusterService,
                             NodeContext nodeCtx,
                             Schemas schemas,
                             CircuitBreakerService circuitBreakerService,
-                            IndicesService indicesService) {
+                            IndicesService indicesService,
+                            Settings settings) {
+        this(clusterService,
+             nodeCtx,
+             schemas,
+             circuitBreakerService,
+             indicesService,
+             new RateLimiter.SimpleRateLimiter(STATS_SERVICE_THROTTLING_SETTING.get(settings).getMbFrac())
+        );
+    }
+
+    @VisibleForTesting
+    ReservoirSampler(ClusterService clusterService,
+                            NodeContext nodeCtx,
+                            Schemas schemas,
+                            CircuitBreakerService circuitBreakerService,
+                            IndicesService indicesService,
+                            RateLimiter rateLimiter) {
         this.clusterService = clusterService;
         this.nodeCtx = nodeCtx;
         this.schemas = schemas;
         this.circuitBreakerService = circuitBreakerService;
         this.indicesService = indicesService;
+        this.rateLimiter = rateLimiter;
+
+        clusterService.getClusterSettings().addSettingsUpdateConsumer(
+            STATS_SERVICE_THROTTLING_SETTING, this::updateReadLimit);
+    }
+
+    private void updateReadLimit(ByteSizeValue newReadLimit) {
+        rateLimiter.setMBPerSec(newReadLimit.getMbFrac()); // mbPerSec is volatile in SimpleRateLimiter, one volatile write
+    }
+
+    public long maybePause(long bytesRead, long bytesSinceLastPause) {
+        if (rateLimiter.getMBPerSec() > 0) {
+            // Throttling is enabled
+            bytesSinceLastPause += bytesRead;
+            if (bytesSinceLastPause >= rateLimiter.getMinPauseCheckBytes()) {
+                try {
+                    rateLimiter.pause(bytesSinceLastPause); // SimpleRateLimiter does one volatile read of mbPerSec.
+                    return 0;
+                } catch (IOException e) {
+                    throw new UncheckedIOException(e);
+                }
+            }
+        }
+        return bytesSinceLastPause;
     }
 
     public Samples getSamples(RelationName relationName, List<Reference> columns, int maxSamples) {
@@ -156,6 +204,7 @@ public final class ReservoirSampler {
         ArrayList<DocIdToRow> docIdToRowsFunctionPerReader = new ArrayList<>();
         long totalNumDocs = 0;
         long totalSizeInBytes = 0;
+
         for (String index : docTable.concreteOpenIndices()) {
             var indexMetadata = metadata.index(index);
             if (indexMetadata == null) {
@@ -207,14 +256,30 @@ public final class ReservoirSampler {
                 }
             }
         }
+
         var rowAccounting = new RowCellsAccountingWithEstimators(Symbols.typeView(columns), ramAccounting, 0);
+        ArrayList<Row> records = createRecords(fetchIdSamples.samples(), docIdToRowsFunctionPerReader, ramAccounting, rowAccounting, maxSamples);
+        return new Samples(records, streamers, totalNumDocs, totalSizeInBytes);
+    }
+
+    @VisibleForTesting
+    ArrayList<Row> createRecords(List<Long> samples,
+                                 List<DocIdToRow> docIdToRowsFunctionPerReader,
+                                 RamAccounting ramAccounting,
+                                 RowCellsAccountingWithEstimators rowAccounting,
+                                 int maxSamples) {
         ArrayList<Row> records = new ArrayList<>();
-        for (long fetchId : fetchIdSamples.samples()) {
+        long bytesSinceLastPause = 0;
+
+        for (long fetchId : samples) {
             int readerId = FetchId.decodeReaderId(fetchId);
             DocIdToRow docIdToRow = docIdToRowsFunctionPerReader.get(readerId);
             Object[] row = docIdToRow.apply(FetchId.decodeDocId(fetchId));
+
             try {
-                rowAccounting.accountForAndMaybeBreak(row);
+                long bytesRead = rowAccounting.accountRowBytes(row);
+                ramAccounting.addBytes(bytesRead);
+                bytesSinceLastPause = maybePause(bytesRead, bytesSinceLastPause);
             } catch (CircuitBreakingException e) {
                 LOGGER.info(
                     "Stopped gathering samples for `ANALYZE` operation because circuit breaker triggered. "
@@ -226,7 +291,8 @@ public final class ReservoirSampler {
             }
             records.add(new RowN(row));
         }
-        return new Samples(records, streamers, totalNumDocs, totalSizeInBytes);
+
+        return records;
     }
 
     static class DocIdToRow implements Function<Integer, Object[]> {

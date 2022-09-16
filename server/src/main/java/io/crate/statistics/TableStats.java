@@ -51,18 +51,6 @@ public class TableStats {
     }
 
     /**
-     * Returns the size of the table in bytes.
-     * <p>
-     * <p>
-     * The returned number isn't an accurate real-time value but a cached value that is periodically updated
-     * </p>
-     * Returns 0 if the table isn't in the cache
-     */
-    private long sizeInBytes(RelationName relationName) {
-        return tableStats.getOrDefault(relationName, Stats.EMPTY).sizeInBytes;
-    }
-
-    /**
      * Returns an estimation (avg) size of each row of the table in bytes.
      * <p>
      * <p>

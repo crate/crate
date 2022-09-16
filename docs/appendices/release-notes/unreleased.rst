@@ -128,6 +128,13 @@ Administration and Operations
 - Updated to Admin UI 1.23.0, which improves scrolling behavior on wide result
   sets.
 
+- Added I/O throughput throttling of the :ref:`analyze` statement as well as of
+  the periodic statistic collection controlled by the
+  :ref:`stats.service.interval` setting to lower the impact on the cluster
+  load. This throttling can be controlled by a new setting
+  :ref:`stats.service.max_bytes_per_sec <stats.service.max_bytes_per_sec>` and
+  is set 40MB/s by default.
+
 Fixes
 =====
 

@@ -429,6 +429,7 @@ public final class ClusterSettings extends AbstractScopedSettings {
         JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING,
         JobsLogService.STATS_OPERATIONS_LOG_EXPIRATION_SETTING,
         TableStatsService.STATS_SERVICE_REFRESH_INTERVAL_SETTING,
+        TableStatsService.STATS_SERVICE_THROTTLING_SETTING,
         ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING,
         DecommissioningService.DECOMMISSION_INTERNAL_SETTING_GROUP,
         DecommissioningService.GRACEFUL_STOP_MIN_AVAILABILITY_SETTING,
