@@ -53,6 +53,7 @@ public class AnalyzedFetchFromCursor extends AnalyzedCursor {
     @Nullable
     @Override
     public List<Symbol> outputs() {
+        // used to decided RowCountReceiver/ResultSetReceiver
         return query().outputs();
     }
 }

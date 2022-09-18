@@ -592,7 +592,8 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     @Override
     public Plan visitFetchFromCursor(AnalyzedFetchFromCursor fetchFromCursor,
                                      PlannerContext context) {
-        return fetchFromCursor.query().accept(this, context);
+        throw new IllegalStateException(
+            "A fetch from cursor should not be executed from a Plan but to be resumed by pre-declared cursor's activeConsumer.resume().");
     }
 
     @Override

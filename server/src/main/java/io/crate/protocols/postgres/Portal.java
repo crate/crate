@@ -32,9 +32,8 @@ import java.util.List;
 public class Portal {
 
     private final String portalName;
-    private final PreparedStmt preparedStmt;
+    private PreparedStmt preparedStmt;
     private final List<Object> params;
-    private final AnalyzedStatement analyzedStatement;
 
     @Nullable
     private final FormatCodes.FormatCode[] resultFormatCodes;
@@ -44,12 +43,10 @@ public class Portal {
     Portal(String portalName,
            PreparedStmt preparedStmt,
            List<Object> params,
-           AnalyzedStatement analyzedStatement,
            @Nullable FormatCodes.FormatCode[] resultFormatCodes) {
         this.portalName = portalName;
         this.preparedStmt = preparedStmt;
         this.params = params;
-        this.analyzedStatement = analyzedStatement;
         this.resultFormatCodes = resultFormatCodes;
     }
 
@@ -71,7 +68,7 @@ public class Portal {
     }
 
     public AnalyzedStatement analyzedStatement() {
-        return analyzedStatement;
+        return preparedStmt.analyzedStatement();
     }
 
     public void setActiveConsumer(ResultReceiver<?> resultReceiver, int maxRows, JobsLogsUpdateListener jobsLogsUpdateListener) {
@@ -99,5 +96,9 @@ public class Portal {
                "portalName=" + portalName +
                ", preparedStmt=" + preparedStmt.rawStatement() +
                '}';
+    }
+
+    protected void updatePreparedStmt(PreparedStmt preparedStmt) {
+        this.preparedStmt = preparedStmt;
     }
 }

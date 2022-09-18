@@ -101,19 +101,19 @@ public class Portals {
 
         @Override
         protected Portal visitAnalyzedStatement(AnalyzedStatement analyzedStatement, Context context) {
-            return new Portal(context.portalName, context.preparedStmt, context.params, analyzedStatement, context.resultFormatCodes);
+            return new Portal(context.portalName, context.preparedStmt, context.params, context.resultFormatCodes);
         }
 
         @Override
         public Portal visitDeclareCursor(AnalyzedDeclareCursor declareCursor, Context context) {
-            return new Cursor(declareCursor.cursorName(), context.preparedStmt, context.params, declareCursor, context.resultFormatCodes);
+            return new Cursor(declareCursor.cursorName(), context.preparedStmt, context.params, context.resultFormatCodes);
         }
 
         @Override
         public Portal visitFetchFromCursor(AnalyzedFetchFromCursor fetchFromCursor, Context context) {
             var portal = context.portals.portals.get(fetchFromCursor.cursorName());
             if (portal instanceof Cursor cursor) {
-                cursor.bindFetch();
+                cursor.bindFetch(context.preparedStmt);
                 return cursor;
             }
             throw new IllegalArgumentException("Cursor '" + fetchFromCursor.cursorName() + "' has not been declared.");

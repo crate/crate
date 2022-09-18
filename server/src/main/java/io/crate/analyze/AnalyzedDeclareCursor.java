@@ -42,6 +42,7 @@ public class AnalyzedDeclareCursor extends AnalyzedCursor {
     @Nullable
     @Override
     public List<Symbol> outputs() {
+        // return null forces a RowCountReceiver to be used
         return null;
     }
 

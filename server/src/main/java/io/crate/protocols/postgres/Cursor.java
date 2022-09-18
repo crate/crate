@@ -42,20 +42,19 @@ public class Cursor extends Portal {
         Declare, Fetch
     }
 
-    private PreparedStmt preparedStmt; // hides Portal.preparedStmt
     private State state;
 
     Cursor(String portalName,
            PreparedStmt preparedStmt,
            List<Object> params,
-           AnalyzedStatement analyzedStatement,
            @Nullable FormatCodes.FormatCode[] resultFormatCodes) {
-        super(portalName, preparedStmt, params, analyzedStatement, resultFormatCodes);
-        this.preparedStmt = preparedStmt;
+        super(portalName, preparedStmt, params, resultFormatCodes);
         this.state = State.Declare;
     }
 
-    public void bindFetch() {
+    public void bindFetch(PreparedStmt preparedStmt) {
+        // later on preparedStmt.analyzedStatement.outputs() decides RowCountReceiver/ResultSetReciever
+        updatePreparedStmt(preparedStmt);
         this.state = State.Fetch;
 
         // ex) fetch x from cursor; fetch y from cursor;
@@ -68,20 +67,6 @@ public class Cursor extends Portal {
 
     public State state() {
         return state;
-    }
-
-    @Override
-    public PreparedStmt preparedStmt() {
-        return preparedStmt;
-    }
-
-    @Override
-    public AnalyzedStatement analyzedStatement() {
-        return preparedStmt.analyzedStatement();
-    }
-
-    public void close() {
-
     }
 
     public void setActiveConsumer(ResultReceiver<?> resultReceiver,
