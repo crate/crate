@@ -292,10 +292,6 @@ public class AnalyzedStatementVisitor<C, R> {
         return visitAnalyzedStatement(fetchFromCursor, context);
     }
 
-    public R visitFetchNonFromCursor(AnalyzedFetchNoneFromCursor fetchNoneFromCursor, C context) {
-        return visitAnalyzedStatement(fetchNoneFromCursor, context);
-    }
-
     public R visitCloseCursor(AnalyzedCloseCursor closeCursor, C context) {
         return visitAnalyzedStatement(closeCursor, context);
     }

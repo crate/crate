@@ -21,6 +21,18 @@
 
 package io.crate.planner.operators;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
+import java.util.UUID;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
+
+import org.elasticsearch.Version;
+
 import io.crate.analyze.AnalyzedInsertStatement;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.AnalyzedStatementVisitor;
@@ -94,17 +106,6 @@ import io.crate.planner.optimizer.rule.RewriteGroupByKeysLimitToTopNDistinct;
 import io.crate.planner.optimizer.rule.RewriteToQueryThenFetch;
 import io.crate.statistics.TableStats;
 import io.crate.types.DataTypes;
-import org.elasticsearch.Version;
-
-import java.util.Collection;
-import java.util.Collections;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Set;
-import java.util.UUID;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
 
 /**
  * Planner which can create a {@link ExecutionPlan} using intermediate {@link LogicalPlan} nodes.
@@ -592,31 +593,5 @@ public class LogicalPlanner {
                 context.transactionContext()
             );
         }
-
-        /*
-        @Override
-        public LogicalPlan visitFetchFromCursor(AnalyzedFetchFromCursor fetchFromCursor,
-                                                PlannerContext context) {
-            throw new IllegalStateException("should not reach here");
-
-
-            var query = fetchFromCursor.query().accept(this, context);
-            FetchRewrite fetchRewrite = query.sources().get(0).rewriteToFetch(tableStats, List.of());
-            if (fetchRewrite == null) { // ex) order-by cannot use fetch for now
-                return query;
-            }
-            List<Reference> fetchRefs = fetchRewrite.extractFetchRefs();
-            Map<RelationName, FetchSource> fetchSourceByRelation = fetchRewrite.createFetchSources();
-            return new Fetch(
-                fetchRewrite.replacedOutputs(),
-                fetchRefs,
-                fetchSourceByRelation,
-                fetchRewrite.newPlan()
-            );
-
-
-        }
-
-         */
     }
 }

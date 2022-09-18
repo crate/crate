@@ -29,10 +29,22 @@ import javax.annotation.Nullable;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.expression.symbol.Symbol;
 
-public class AnalyzedFetchFromCursor extends AnalyzedCursor {
+public class AnalyzedFetchFromCursor implements AnalyzedStatement {
+
+    private final String cursorName;
+    private final AnalyzedRelation query;
 
     public AnalyzedFetchFromCursor(String cursorName, AnalyzedRelation query) {
-        super(cursorName, query);
+        this.cursorName = cursorName;
+        this.query = query;
+    }
+
+    public String cursorName() {
+        return cursorName;
+    }
+
+    public AnalyzedRelation query() {
+        return query;
     }
 
     @Override
@@ -53,7 +65,7 @@ public class AnalyzedFetchFromCursor extends AnalyzedCursor {
     @Nullable
     @Override
     public List<Symbol> outputs() {
-        // used to decided RowCountReceiver/ResultSetReceiver
+        // used to decided RowCountReceiver/ResultSetReceiver but for Fetch stmts, it must be nonnull(ResultSetReceiver)
         return query().outputs();
     }
 }

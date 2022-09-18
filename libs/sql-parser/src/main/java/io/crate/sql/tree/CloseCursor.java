@@ -23,11 +23,22 @@ package io.crate.sql.tree;
 
 import javax.annotation.Nullable;
 
-public class CloseCursor extends Cursor {
+public class CloseCursor extends Statement {
 
-    // null cursorName represents `ALL`
-    public CloseCursor(@Nullable String cursorName) {
-        super(cursorName);
+    private final String cursorName;
+    private final boolean isAll;
+
+    public CloseCursor(@Nullable String cursorName, boolean isAll) {
+        this.cursorName = cursorName;
+        this.isAll = isAll;
+    }
+
+    public String getCursorName() {
+        return cursorName;
+    }
+
+    public boolean isAll() {
+        return isAll;
     }
 
     @Override

@@ -55,7 +55,6 @@ import io.crate.analyze.AnalyzedDropTable;
 import io.crate.analyze.AnalyzedDropUser;
 import io.crate.analyze.AnalyzedDropView;
 import io.crate.analyze.AnalyzedFetchFromCursor;
-import io.crate.analyze.AnalyzedFetchNoneFromCursor;
 import io.crate.analyze.AnalyzedGCDanglingArtifacts;
 import io.crate.analyze.AnalyzedInsertStatement;
 import io.crate.analyze.AnalyzedKill;
@@ -594,12 +593,6 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
                                      PlannerContext context) {
         throw new IllegalStateException(
             "A fetch from cursor should not be executed from a Plan but to be resumed by pre-declared cursor's activeConsumer.resume().");
-    }
-
-    @Override
-    public Plan visitFetchNonFromCursor(AnalyzedFetchNoneFromCursor fetchNoneFromCursor,
-                                        PlannerContext context) {
-        return NoopPlan.INSTANCE;
     }
 
     @Override

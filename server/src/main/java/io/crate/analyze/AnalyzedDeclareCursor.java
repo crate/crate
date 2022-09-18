@@ -28,10 +28,22 @@ import javax.annotation.Nullable;
 import java.util.List;
 import java.util.function.Consumer;
 
-public class AnalyzedDeclareCursor extends AnalyzedCursor {
+public class AnalyzedDeclareCursor implements AnalyzedStatement {
+
+    private final String cursorName;
+    private final AnalyzedRelation query;
 
     public AnalyzedDeclareCursor(String cursorName, AnalyzedRelation query) {
-        super(cursorName, query);
+        this.cursorName = cursorName;
+        this.query = query;
+    }
+
+    public String cursorName() {
+        return cursorName;
+    }
+
+    public AnalyzedRelation query() {
+        return query;
     }
 
     @Override

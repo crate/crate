@@ -29,7 +29,6 @@ import javax.annotation.Nullable;
 import io.crate.action.sql.PreparedStmt;
 import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.RowConsumerToResultReceiver;
-import io.crate.analyze.AnalyzedStatement;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 
@@ -107,8 +106,7 @@ public class Cursor extends Portal {
                     // Builds the pipeline for future 'fetches' but does not consume.
                     // This will ensure the 'fetches' can only retrieve rows available at the time of 'declare'.
                     suspend(iterator);
-                }
-                else if (cursor.state() == State.Fetch) {
+                } else if (cursor.state() == State.Fetch) {
                     onStatementUpdate.accept(cursor.preparedStmt().rawStatement());
                     consumeIt(iterator);
                 }

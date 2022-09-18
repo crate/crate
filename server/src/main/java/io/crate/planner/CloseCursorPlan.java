@@ -56,8 +56,7 @@ public class CloseCursorPlan implements Plan {
         String cursorName = analyzedCloseCursor.cursorName();
         Portals portals = analyzedCloseCursor.portals();
 
-        // close all
-        if (cursorName == null) {
+        if (analyzedCloseCursor.isAll()) {
             Iterator<Portal> it = portals.values().iterator();
             while (it.hasNext()) {
                 Portal p = it.next();

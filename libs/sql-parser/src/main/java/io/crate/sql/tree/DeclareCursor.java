@@ -21,17 +21,46 @@
 
 package io.crate.sql.tree;
 
-public class DeclareCursor extends Cursor {
+public class DeclareCursor extends Statement {
 
+    private final String cursorName;
     private final Query query;
+    private final boolean isBinary;
+    private final boolean isAsensitive;
+    private final boolean isScroll;
+    private final boolean isWithHold;
 
-    public DeclareCursor(String cursorName, Query query) {
-        super(cursorName);
+    public DeclareCursor(String cursorName, Query query, boolean isBinary, boolean isAsensitive, boolean isScroll, boolean isWithHold) {
+        this.cursorName = cursorName;
         this.query = query;
+        this.isBinary = isBinary;
+        this.isAsensitive = isAsensitive;
+        this.isScroll = isScroll;
+        this.isWithHold = isWithHold;
     }
 
     public Query getQuery() {
         return query;
+    }
+
+    public String getCursorName() {
+        return cursorName;
+    }
+
+    public boolean isBinary() {
+        return isBinary;
+    }
+
+    public boolean isAsensitive() {
+        return isAsensitive;
+    }
+
+    public boolean isScroll() {
+        return isScroll;
+    }
+
+    public boolean isWithHold() {
+        return isWithHold;
     }
 
     @Override

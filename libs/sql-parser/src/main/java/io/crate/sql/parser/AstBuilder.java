@@ -31,18 +31,19 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.RandomAccess;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
 import io.crate.sql.tree.CloseCursor;
-import io.crate.sql.tree.FetchAllFromCursor;
 import io.crate.sql.tree.FetchFromCursor;
-import io.crate.sql.tree.FetchNoneFromCursor;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
+import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
 import io.crate.common.collections.Lists2;
@@ -2058,63 +2059,49 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     @Override
     public Node visitDeclareCursor(SqlBaseParser.DeclareCursorContext ctx) {
         var cursorParams = ctx.declareCursorParams();
-        if (cursorParams.BINARY().size() > 0) {
-            throw new IllegalArgumentException("Cursors do not yet support returning data in binary format");
-        }
-        if (cursorParams.ASENSITIVE().size() > 0) {
-            throw new IllegalArgumentException("Asensitive cursors are not yet supported");
-        }
-        // none specified or only 'no scroll' is allowed any number of times.
-        // The default is 'no scroll'.
-        if (cursorParams.NO().size() != cursorParams.SCROLL().size()) {
-            throw new IllegalArgumentException("Cursors do not yet support scroll");
-        }
-        return new DeclareCursor(getIdentText(ctx.ident()), (Query) visit(ctx.queryNoWith()));
+        // TODO: need to have another look at this logic
+        return new DeclareCursor(getIdentText(ctx.ident()),
+                                 (Query) visit(ctx.queryNoWith()),
+                                 cursorParams.BINARY().size() > 0,
+                                 cursorParams.ASENSITIVE().size() > 0,
+                                 cursorParams.SCROLL().size() > cursorParams.NO().size(),
+                                 ctx.WITHOUT() == null);
     }
 
     @Override
     public Node visitFetchFromCursor(SqlBaseParser.FetchFromCursorContext ctx) {
-        //
         var directionCtx = ctx.direction();
         var cursorName = getIdentText(ctx.ident());
         if (directionCtx == null) {
-            return new FetchFromCursor(1, cursorName, "FORWARD");
+            return new FetchFromCursor(null, cursorName, null);
         } else {
-            var countCtx = directionCtx.integerLiteral();
-            var allCtx = directionCtx.ALL();
-            if (countCtx == null) {
-                if (allCtx == null) {
-                    return new FetchFromCursor(1, cursorName, getDirectionText(directionCtx));
-                } else {
-                    return new FetchAllFromCursor(cursorName, getDirectionText(directionCtx));
-                }
-            } else {
-                int count = Integer.parseInt(countCtx.getText());
-                if (count == 0) {
-                    return new FetchNoneFromCursor(cursorName);
-                } else {
-                    return new FetchFromCursor(count, cursorName, getDirectionText(directionCtx));
-                }
-            }
+            return new FetchFromCursor(getCountText(directionCtx),
+                                       cursorName,
+                                       getDirectionText(directionCtx));
         }
     }
 
     @Override
     public Node visitCloseCursor(SqlBaseParser.CloseCursorContext ctx) {
-        return new CloseCursor(ctx.ALL() == null ? getIdentText(ctx.ident()) : null);
+        return new CloseCursor(getIdentText(ctx.ident()), ctx.ALL() != null);
     }
 
     private static String getDirectionText(SqlBaseParser.DirectionContext ctx) {
-        if (ctx.NEXT() != null ||
-            ctx.PRIOR() != null ||
-            ctx.FIRST() != null ||
-            ctx.LAST() != null ||
-            ctx.ABSOLUTE() != null ||
-            ctx.RELATIVE() != null ||
-            ctx.BACKWARD() != null) {
-            throw new IllegalArgumentException("Only cursors in forward directions are supported");
-        }
-        return "FORWARD";
+        return Stream.of(ctx.NEXT(),
+                  ctx.PRIOR(),
+                  ctx.FIRST(),
+                  ctx.LAST(),
+                  ctx.ABSOLUTE(),
+                  ctx.RELATIVE(),
+                  ctx.FORWARD(),
+                  ctx.BACKWARD())
+            .filter(Objects::nonNull)
+            .map(ParseTree::getText)
+            .findFirst().orElseGet(() -> null);
+    }
+
+    private static String getCountText(SqlBaseParser.DirectionContext ctx) {
+        return (ctx.ALL() == null) ? ctx.integerLiteral().getText() : ctx.ALL().getText();
     }
 
     private static String getObjectType(Token type) {

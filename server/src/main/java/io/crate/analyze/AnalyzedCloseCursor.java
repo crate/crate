@@ -30,13 +30,15 @@ import java.util.function.Consumer;
 public class AnalyzedCloseCursor implements AnalyzedStatement {
 
     private final Portals portals;
+    private final boolean isAll;
 
     @Nullable
     private final String cursorName;
 
-    public AnalyzedCloseCursor(Portals portals, @Nullable String cursorName) {
+    public AnalyzedCloseCursor(Portals portals, @Nullable String cursorName, boolean isAll) {
         this.portals = portals;
         this.cursorName = cursorName;
+        this.isAll = isAll;
     }
 
     public Portals portals() {
@@ -46,6 +48,10 @@ public class AnalyzedCloseCursor implements AnalyzedStatement {
     @Nullable
     public String cursorName() {
         return cursorName;
+    }
+
+    public boolean isAll() {
+        return isAll;
     }
 
     @Override

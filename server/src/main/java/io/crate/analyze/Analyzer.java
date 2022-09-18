@@ -85,7 +85,6 @@ import io.crate.sql.tree.DropView;
 import io.crate.sql.tree.Explain;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.FetchFromCursor;
-import io.crate.sql.tree.FetchNoneFromCursor;
 import io.crate.sql.tree.GCDanglingArtifacts;
 import io.crate.sql.tree.GrantPrivilege;
 import io.crate.sql.tree.Insert;
@@ -151,6 +150,7 @@ public class Analyzer {
     private final SetStatementAnalyzer setStatementAnalyzer;
     private final ResetStatementAnalyzer resetStatementAnalyzer;
     private final LogicalReplicationAnalyzer logicalReplicationAnalyzer;
+    private final CursorAnalyzer cursorAnalyzer;
 
     /**
      * @param relationAnalyzer is injected because we also need to inject it in
@@ -210,6 +210,7 @@ public class Analyzer {
             logicalReplicationService,
             nodeCtx
         );
+        this.cursorAnalyzer = new CursorAnalyzer(relationAnalyzer);
     }
 
     public AnalyzedStatement analyze(Statement statement,
@@ -693,42 +694,17 @@ public class Analyzer {
         @Override
         public AnalyzedStatement visitDeclareCursor(DeclareCursor declareCursor,
                                                     Analysis context) {
-            String cursorName = declareCursor.getCursorName();
-            if (context.portals().containsKey(cursorName)) {
-                throw new IllegalArgumentException("The cursor '" + cursorName + "' already declared.");
-            }
-
-            // want to fetch 0 rows instead of NOOP
-            // count is only needed for RowConsumer/ResultReceiver
-
-            return new AnalyzedDeclareCursor(
-                declareCursor.getCursorName(),
-                relationAnalyzer.analyze(declareCursor.getQuery(), context.transactionContext(), context.paramTypeHints()));
+            return cursorAnalyzer.analyze(declareCursor, context.portals(), context.transactionContext(), context.paramTypeHints());
         }
 
         @Override
         public AnalyzedStatement visitFetchFromCursor(FetchFromCursor fetchFromCursor, Analysis context) {
-
-            assert context.portals().safeGet(fetchFromCursor.getCursorName()).analyzedStatement() instanceof AnalyzedCursor;
-            AnalyzedCursor analyzedCursor = (AnalyzedCursor) context.portals().safeGet(fetchFromCursor.getCursorName()).analyzedStatement();
-
-            return new AnalyzedFetchFromCursor(fetchFromCursor.getCursorName(), analyzedCursor.query());
-        }
-
-        @Override
-        public AnalyzedStatement visitFetchNoneFromCursor(FetchNoneFromCursor fetchNoneFromCursor, Analysis context) {
-            String cursorName = fetchNoneFromCursor.getCursorName();
-            context.portals().safeGet(cursorName);
-            return new AnalyzedFetchNoneFromCursor();
+            return cursorAnalyzer.analyze(fetchFromCursor, context.portals());
         }
 
         @Override
         public AnalyzedStatement visitCloseCursor(CloseCursor closeCursor, Analysis context) {
-            String cursorName = closeCursor.getCursorName();
-            if (cursorName != null) {
-                context.portals().safeGet(cursorName);
-            }
-            return new AnalyzedCloseCursor(context.portals(), cursorName);
+            return new AnalyzedCloseCursor(context.portals(), closeCursor.getCursorName(), closeCursor.isAll());
         }
     }
 }

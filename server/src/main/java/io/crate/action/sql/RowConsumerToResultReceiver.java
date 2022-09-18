@@ -26,6 +26,7 @@ import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.exceptions.SQLExceptions;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
@@ -153,7 +154,7 @@ public class RowConsumerToResultReceiver implements RowConsumer {
                '}';
     }
 
-    protected void handleFailure(BatchIterator<Row> iterator, @Nullable Throwable failure) {
+    protected void handleFailure(BatchIterator<Row> iterator, @Nonnull Throwable failure) {
         if (iterator != null) {
             iterator.close();
         }
