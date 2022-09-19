@@ -45,6 +45,7 @@ import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.TearDown;
 
 import io.crate.action.sql.BaseResultReceiver;
+import io.crate.action.sql.Cursors;
 import io.crate.action.sql.SQLOperations;
 import io.crate.data.Row;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -53,6 +54,7 @@ import io.crate.metadata.RoutingProvider;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.PlannerContext;
+import io.crate.protocols.postgres.TransactionState;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
 
@@ -111,7 +113,7 @@ public class PreExecutionBenchmark {
     public AnalyzedStatement measure_parse_and_analyze_simple_select() throws Exception {
         String sql = "select name from users";
         CoordinatorTxnCtx systemTransactionContext = CoordinatorTxnCtx.systemTransactionContext();
-        Analysis analysis = new Analysis(systemTransactionContext, ParamTypeHints.EMPTY);
+        Analysis analysis = new Analysis(systemTransactionContext, ParamTypeHints.EMPTY, Cursors.EMPTY);
         return analyzer.analyzedStatement(SqlParser.createStatement(sql), analysis);
     }
 
@@ -119,7 +121,7 @@ public class PreExecutionBenchmark {
     public Plan measure_parse_analyze_and_plan_simple_select() throws Exception {
         String sql = "select name from users";
         CoordinatorTxnCtx systemTransactionContext = CoordinatorTxnCtx.systemTransactionContext();
-        Analysis analysis = new Analysis(systemTransactionContext, ParamTypeHints.EMPTY);
+        Analysis analysis = new Analysis(systemTransactionContext, ParamTypeHints.EMPTY, Cursors.EMPTY);
         AnalyzedStatement analyzedStatement = analyzer.analyzedStatement(SqlParser.createStatement(sql), analysis);
         var jobId = UUID.randomUUID();
         var routingProvider = new RoutingProvider(Randomness.get().nextInt(), planner.getAwarenessAttributes());
@@ -132,7 +134,10 @@ public class PreExecutionBenchmark {
             txnCtx,
             nodeCtx,
             0,
-            null);
+            null,
+            Cursors.EMPTY,
+            TransactionState.IDLE
+        );
         return planner.plan(analyzedStatement, plannerContext);
     }
 }

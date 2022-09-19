@@ -321,6 +321,8 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
             scrollMode = Fetch.ScrollMode.RELATIVE;
             if (direction.ALL() != null) {
                 count = Long.MAX_VALUE;
+            } else if (direction.integerLiteral() != null) {
+                count = Long.parseLong(direction.integerLiteral().getText());
             }
             if (direction.BACKWARD() != null) {
                 count = count * -1;

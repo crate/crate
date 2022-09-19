@@ -142,9 +142,7 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
 
     private void analyze(String stmt, User user) {
         e.analyzer.analyze(
-            SqlParser.createStatement(stmt),
-            new CoordinatorSessionSettings(user),
-            ParamTypeHints.EMPTY);
+            SqlParser.createStatement(stmt), new CoordinatorSessionSettings(user), ParamTypeHints.EMPTY, e.cursors);
     }
 
     @SuppressWarnings("unchecked")
@@ -581,7 +579,9 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
         e.analyzer.analyze(
             SqlParser.createStatement("SET SESSION AUTHORIZATION " + superUser.name()),
             new CoordinatorSessionSettings(superUser, user),
-            ParamTypeHints.EMPTY);
+            ParamTypeHints.EMPTY,
+            e.cursors
+        );
         assertThat(validationCallArguments.size(), is(0));
     }
 
@@ -590,7 +590,8 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
         e.analyzer.analyze(
             SqlParser.createStatement("SET SESSION AUTHORIZATION DEFAULT"),
             new CoordinatorSessionSettings(superUser, user),
-            ParamTypeHints.EMPTY);
+            ParamTypeHints.EMPTY,
+            e.cursors);
         assertThat(validationCallArguments.size(), is(0));
     }
 
@@ -599,7 +600,9 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
         e.analyzer.analyze(
             SqlParser.createStatement("RESET SESSION AUTHORIZATION"),
             new CoordinatorSessionSettings(superUser, user),
-            ParamTypeHints.EMPTY);
+            ParamTypeHints.EMPTY,
+            e.cursors
+        );
         assertThat(validationCallArguments.size(), is(0));
     }
 

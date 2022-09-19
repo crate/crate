@@ -239,8 +239,8 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         AnalyzedStatement analyzedStatement = e.analyzer.analyze(
             SqlParser.createStatement("delete from users where name = ?"),
             CoordinatorSessionSettings.systemDefaults(),
-            ParamTypeHints.EMPTY
-        );
+            ParamTypeHints.EMPTY,
+            e.cursors);
         ParameterTypeExtractor typeExtractor = new ParameterTypeExtractor();
         DataType[] parameterTypes = typeExtractor.getParameterTypes(analyzedStatement::visitSymbols);
 
@@ -253,8 +253,8 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         AnalyzedStatement analyzedStatement = e.analyzer.analyze(
             SqlParser.createStatement("update users set name = ? || '_updated' where id = ?"),
             CoordinatorSessionSettings.systemDefaults(),
-            ParamTypeHints.EMPTY
-        );
+            ParamTypeHints.EMPTY,
+            e.cursors);
         ParameterTypeExtractor typeExtractor = new ParameterTypeExtractor();
         DataType[] parameterTypes = typeExtractor.getParameterTypes(analyzedStatement::visitSymbols);
 
@@ -267,7 +267,8 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         AnalyzedStatement analyzedStatement = e.analyzer.analyze(
             SqlParser.createStatement("INSERT INTO users (id, name) values (?, ?)"),
             CoordinatorSessionSettings.systemDefaults(),
-            ParamTypeHints.EMPTY
+            ParamTypeHints.EMPTY,
+            e.cursors
         );
         ParameterTypeExtractor typeExtractor = new ParameterTypeExtractor();
         DataType[] parameterTypes = typeExtractor.getParameterTypes(analyzedStatement::visitSymbols);
@@ -284,7 +285,8 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
             SqlParser.createStatement("INSERT INTO users (id, name) (SELECT id, name FROM users_clustered_by_only " +
                                       "WHERE name = ?)"),
             CoordinatorSessionSettings.systemDefaults(),
-            ParamTypeHints.EMPTY
+            ParamTypeHints.EMPTY,
+            e.cursors
         );
         ParameterTypeExtractor typeExtractor = new ParameterTypeExtractor();
         DataType[] parameterTypes = typeExtractor.getParameterTypes(analyzedStatement::visitSymbols);
@@ -301,8 +303,8 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
             SqlParser.createStatement("INSERT INTO users (id, name) values (?, ?) " +
                                       "ON CONFLICT (id) DO UPDATE SET name = ?"),
             CoordinatorSessionSettings.systemDefaults(),
-            ParamTypeHints.EMPTY
-        );
+            ParamTypeHints.EMPTY,
+            e.cursors);
         ParameterTypeExtractor typeExtractor = new ParameterTypeExtractor();
         DataType[] parameterTypes = typeExtractor.getParameterTypes(analyzedStatement::visitSymbols);
 
@@ -312,8 +314,8 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
             SqlParser.createStatement("INSERT INTO users (id, name) (SELECT id, name FROM users_clustered_by_only " +
                                       "WHERE name = ?) ON CONFLICT (id) DO UPDATE SET name = ?"),
             CoordinatorSessionSettings.systemDefaults(),
-            ParamTypeHints.EMPTY
-        );
+            ParamTypeHints.EMPTY,
+            e.cursors);
         typeExtractor = new ParameterTypeExtractor();
         parameterTypes = typeExtractor.getParameterTypes(analyzedStatement::visitSymbols);
 
@@ -327,7 +329,8 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         AnalyzedStatement stmt = e.analyzer.analyze(
             SqlParser.createStatement("select * from (select $1::int + $2) t"),
             CoordinatorSessionSettings.systemDefaults(),
-            ParamTypeHints.EMPTY
+            ParamTypeHints.EMPTY,
+            e.cursors
         );
         DataType[] parameterTypes = new ParameterTypeExtractor().getParameterTypes(
             consumer -> Relations.traverseDeepSymbols(stmt, consumer));
@@ -343,7 +346,8 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         AnalyzedStatement stmt = e.analyzer.analyze(
             SqlParser.createStatement("insert into t (x) (select * from (select $1::int + $2) t)"),
             CoordinatorSessionSettings.systemDefaults(),
-            ParamTypeHints.EMPTY
+            ParamTypeHints.EMPTY,
+            e.cursors
         );
         DataType[] parameterTypes = new ParameterTypeExtractor().getParameterTypes(
             consumer -> Relations.traverseDeepSymbols(stmt, consumer));
@@ -359,7 +363,8 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         AnalyzedStatement stmt = e.analyzer.analyze(
             SqlParser.createStatement("delete from t where x = (select $1::long)"),
             CoordinatorSessionSettings.systemDefaults(),
-            ParamTypeHints.EMPTY
+            ParamTypeHints.EMPTY,
+            e.cursors
         );
         DataType[] parameterTypes = new ParameterTypeExtractor().getParameterTypes(
             consumer -> Relations.traverseDeepSymbols(stmt, consumer));

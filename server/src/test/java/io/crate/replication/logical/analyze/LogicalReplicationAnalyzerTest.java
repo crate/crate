@@ -137,7 +137,8 @@ public class LogicalReplicationAnalyzerTest extends CrateDummyClusterServiceUnit
             () -> e.analyzer.analyze(
                 SqlParser.createStatement("DROP PUBLICATION pub1"),
                 new CoordinatorSessionSettings(User.of("other_user")),
-                ParamTypeHints.EMPTY
+                ParamTypeHints.EMPTY,
+                e.cursors
             ),
             UnauthorizedException.class,
             "A publication can only be dropped by the owner or a superuser"
@@ -188,7 +189,8 @@ public class LogicalReplicationAnalyzerTest extends CrateDummyClusterServiceUnit
             () -> e.analyzer.analyze(
                 SqlParser.createStatement("ALTER PUBLICATION pub1 ADD TABLE doc.t2"),
                 new CoordinatorSessionSettings(User.of("other_user")),
-                ParamTypeHints.EMPTY
+                ParamTypeHints.EMPTY,
+                e.cursors
             ),
             UnauthorizedException.class,
             "A publication can only be altered by the owner or a superuser"
@@ -233,7 +235,8 @@ public class LogicalReplicationAnalyzerTest extends CrateDummyClusterServiceUnit
             () -> e.analyzer.analyze(
                 SqlParser.createStatement("DROP SUBSCRIPTION sub1"),
                 new CoordinatorSessionSettings(User.of("other_user")),
-                ParamTypeHints.EMPTY
+                ParamTypeHints.EMPTY,
+                e.cursors
             ),
             UnauthorizedException.class,
             "A subscription can only be dropped by the owner or a superuser"
@@ -250,7 +253,8 @@ public class LogicalReplicationAnalyzerTest extends CrateDummyClusterServiceUnit
             () -> e.analyzer.analyze(
                 SqlParser.createStatement("ALTER SUBSCRIPTION sub1 DISABLE"),
                 new CoordinatorSessionSettings(User.of("other_user")),
-                ParamTypeHints.EMPTY
+                ParamTypeHints.EMPTY,
+                e.cursors
             ),
             UnauthorizedException.class,
             "A subscription can only be altered by the owner or a superuser"

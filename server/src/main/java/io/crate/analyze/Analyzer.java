@@ -21,6 +21,13 @@
 
 package io.crate.analyze;
 
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.index.analysis.AnalysisRegistry;
+
+import io.crate.action.sql.Cursor;
+import io.crate.action.sql.Cursors;
 import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.execution.ddl.RepositoryService;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -102,10 +109,6 @@ import io.crate.sql.tree.Statement;
 import io.crate.sql.tree.SwapTable;
 import io.crate.sql.tree.Update;
 import io.crate.user.UserManager;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.index.analysis.AnalysisRegistry;
 
 @Singleton
 public class Analyzer {
@@ -211,12 +214,15 @@ public class Analyzer {
 
     public AnalyzedStatement analyze(Statement statement,
                                      CoordinatorSessionSettings sessionSettings,
-                                     ParamTypeHints paramTypeHints) {
+                                     ParamTypeHints paramTypeHints,
+                                     Cursors cursors) {
         var analyzedStatement = statement.accept(
             dispatcher,
             new Analysis(
                 new CoordinatorTxnCtx(sessionSettings),
-                paramTypeHints));
+                paramTypeHints,
+                cursors
+            ));
         userManager.getAccessControl(sessionSettings).ensureMayExecute(analyzedStatement);
         return analyzedStatement;
     }
@@ -687,17 +693,25 @@ public class Analyzer {
 
         @Override
         public AnalyzedStatement visitDeclare(Declare declare, Analysis context) {
-            throw new UnsupportedOperationException("DECLARE is not supported");
+            if (declare.binary()) {
+                throw new UnsupportedOperationException("BINARY mode in DECLARE is not supported");
+            }
+            if (declare.scroll()) {
+                throw new UnsupportedOperationException("SCROLL mode in DECLARE is not supported");
+            }
+            AnalyzedStatement query = declare.query().accept(this, context);
+            return new AnalyzedDeclare(declare, query);
         }
 
         @Override
         public AnalyzedStatement visitClose(Close close, Analysis context) {
-            throw new UnsupportedOperationException("CLOSE is not supported");
+            return new AnalyzedClose(close);
         }
 
         @Override
         public AnalyzedStatement visitFetch(Fetch fetch, Analysis context) {
-            throw new UnsupportedOperationException("FETCH is not supported");
+            Cursor cursor = context.cursors().get(fetch.cursorName());
+            return new AnalyzedFetch(fetch, cursor);
         }
     }
 }

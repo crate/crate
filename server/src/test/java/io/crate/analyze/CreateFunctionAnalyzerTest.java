@@ -79,7 +79,9 @@ public class CreateFunctionAnalyzerTest extends CrateDummyClusterServiceUnitTest
                 "CREATE FUNCTION bar(long, long)" +
                 " RETURNS long LANGUAGE dummy_lang AS 'function(a, b) { return a + b; }'"),
             new CoordinatorSessionSettings(User.CRATE_USER, "my_schema"),
-            ParamTypeHints.EMPTY);
+            ParamTypeHints.EMPTY,
+            e.cursors
+        );
 
         assertThat(analysis.schema(), is("my_schema"));
         assertThat(analysis.name(), is("bar"));
@@ -91,7 +93,9 @@ public class CreateFunctionAnalyzerTest extends CrateDummyClusterServiceUnitTest
             SqlParser.createStatement("CREATE FUNCTION my_other_schema.bar(long, long)" +
                 " RETURNS long LANGUAGE dummy_lang AS 'function(a, b) { return a + b; }'"),
             new CoordinatorSessionSettings(User.CRATE_USER, "my_schema"),
-            ParamTypeHints.EMPTY);
+            ParamTypeHints.EMPTY,
+            e.cursors
+        );
 
         assertThat(analysis.schema(), is("my_other_schema"));
         assertThat(analysis.name(), is("bar"));

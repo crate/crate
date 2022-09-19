@@ -35,6 +35,7 @@ import org.elasticsearch.common.Randomness;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.crate.action.sql.Cursors;
 import io.crate.data.Row1;
 import io.crate.exceptions.ConversionException;
 import io.crate.expression.symbol.Literal;
@@ -45,6 +46,7 @@ import io.crate.planner.node.ddl.UpdateSettingsPlan;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.LogicalPlanner;
 import io.crate.planner.operators.SubQueryResults;
+import io.crate.protocols.postgres.TransactionState;
 import io.crate.sql.tree.Assignment;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.Asserts;
@@ -93,7 +95,9 @@ public class PlannerTest extends CrateDummyClusterServiceUnitTest {
             new CoordinatorTxnCtx(CoordinatorSessionSettings.systemDefaults()),
             e.nodeCtx,
             0,
-            null
+            null,
+            Cursors.EMPTY,
+            TransactionState.IDLE
         );
 
         assertThat(plannerContext.nextExecutionPhaseId(), is(0));

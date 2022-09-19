@@ -3042,25 +3042,4 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertThat(analyzed.outputs().size(), is(1));
         assertThat(analyzed.outputs().get(0), isFunction("subscript", isField("obj"), isLiteral("unknown")));
     }
-
-    @Test
-    public void test_declare_is_not_supported() {
-        var executor = SQLExecutor.builder(clusterService).build();
-        assertThatThrownBy(() -> executor.analyze("declare c1 cursor for select 1"))
-            .hasMessage("DECLARE is not supported");
-    }
-
-    @Test
-    public void test_fetch_is_not_supported() {
-        var executor = SQLExecutor.builder(clusterService).build();
-        assertThatThrownBy(() -> executor.analyze("fetch from c1"))
-            .hasMessage("FETCH is not supported");
-    }
-
-    @Test
-    public void test_close_is_not_supported() {
-        var executor = SQLExecutor.builder(clusterService).build();
-        assertThatThrownBy(() -> executor.analyze("CLOSE ALL"))
-            .hasMessage("CLOSE is not supported");
-    }
 }

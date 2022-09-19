@@ -21,38 +21,52 @@
 
 package io.crate.analyze;
 
-import io.crate.action.sql.Cursors;
-import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.settings.CoordinatorSessionSettings;
+import java.util.List;
+import java.util.function.Consumer;
 
-public class Analysis {
+import io.crate.action.sql.Cursor;
+import io.crate.expression.symbol.Symbol;
+import io.crate.sql.tree.Fetch;
+import io.crate.sql.tree.Fetch.ScrollMode;
 
-    private final CoordinatorTxnCtx coordinatorTxnCtx;
-    private final ParamTypeHints paramTypeHints;
-    private final Cursors cursors;
+public class AnalyzedFetch implements AnalyzedStatement {
 
+    private final Fetch fetch;
+    private final Cursor cursor;
 
-    public Analysis(CoordinatorTxnCtx coordinatorTxnCtx,
-                    ParamTypeHints paramTypeHints,
-                    Cursors cursors) {
-        this.paramTypeHints = paramTypeHints;
-        this.coordinatorTxnCtx = coordinatorTxnCtx;
-        this.cursors = cursors;
+    public AnalyzedFetch(Fetch fetch, Cursor cursor) {
+        this.fetch = fetch;
+        this.cursor = cursor;
     }
 
-    public Cursors cursors() {
-        return cursors;
+    public Cursor cursor() {
+        return cursor;
     }
 
-    public CoordinatorTxnCtx transactionContext() {
-        return coordinatorTxnCtx;
+    public ScrollMode scrollMode() {
+        return fetch.scrollMode();
     }
 
-    public CoordinatorSessionSettings sessionSettings() {
-        return coordinatorTxnCtx.sessionSettings();
+    public long count() {
+        return fetch.count();
     }
 
-    public ParamTypeHints paramTypeHints() {
-        return paramTypeHints;
+    @Override
+    public List<Symbol> outputs() {
+        return cursor.outputs();
+    }
+
+    @Override
+    public <C, R> R accept(AnalyzedStatementVisitor<C, R> visitor, C context) {
+        return visitor.visitFetch(this, context);
+    }
+
+    @Override
+    public boolean isWriteOperation() {
+        return false;
+    }
+
+    @Override
+    public void visitSymbols(Consumer<? super Symbol> consumer) {
     }
 }

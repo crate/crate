@@ -21,38 +21,40 @@
 
 package io.crate.analyze;
 
-import io.crate.action.sql.Cursors;
-import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.settings.CoordinatorSessionSettings;
+import java.util.function.Consumer;
 
-public class Analysis {
+import javax.annotation.Nullable;
 
-    private final CoordinatorTxnCtx coordinatorTxnCtx;
-    private final ParamTypeHints paramTypeHints;
-    private final Cursors cursors;
+import io.crate.expression.symbol.Symbol;
+import io.crate.sql.tree.Close;
 
+public class AnalyzedClose implements AnalyzedStatement {
 
-    public Analysis(CoordinatorTxnCtx coordinatorTxnCtx,
-                    ParamTypeHints paramTypeHints,
-                    Cursors cursors) {
-        this.paramTypeHints = paramTypeHints;
-        this.coordinatorTxnCtx = coordinatorTxnCtx;
-        this.cursors = cursors;
+    private final Close close;
+
+    public AnalyzedClose(Close close) {
+        this.close = close;
     }
 
-    public Cursors cursors() {
-        return cursors;
+    @Override
+    public <C, R> R accept(AnalyzedStatementVisitor<C, R> visitor, C context) {
+        return visitor.visitClose(this, context);
     }
 
-    public CoordinatorTxnCtx transactionContext() {
-        return coordinatorTxnCtx;
+    @Override
+    public boolean isWriteOperation() {
+        return false;
     }
 
-    public CoordinatorSessionSettings sessionSettings() {
-        return coordinatorTxnCtx.sessionSettings();
+    @Override
+    public void visitSymbols(Consumer<? super Symbol> consumer) {
     }
 
-    public ParamTypeHints paramTypeHints() {
-        return paramTypeHints;
+    /**
+     * Name of the cursor to close. If `null` all cursors should be closed
+     **/
+    @Nullable
+    public String cursorName() {
+        return close.cursorName();
     }
 }

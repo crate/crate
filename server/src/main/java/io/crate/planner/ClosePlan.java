@@ -19,40 +19,37 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.analyze;
 
-import io.crate.action.sql.Cursors;
-import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.settings.CoordinatorSessionSettings;
+package io.crate.planner;
 
-public class Analysis {
+import io.crate.analyze.AnalyzedClose;
+import io.crate.data.InMemoryBatchIterator;
+import io.crate.data.Row;
+import io.crate.data.Row1;
+import io.crate.data.RowConsumer;
+import io.crate.data.SentinelRow;
+import io.crate.planner.operators.SubQueryResults;
 
-    private final CoordinatorTxnCtx coordinatorTxnCtx;
-    private final ParamTypeHints paramTypeHints;
-    private final Cursors cursors;
+public class ClosePlan implements Plan {
 
+    private final AnalyzedClose close;
 
-    public Analysis(CoordinatorTxnCtx coordinatorTxnCtx,
-                    ParamTypeHints paramTypeHints,
-                    Cursors cursors) {
-        this.paramTypeHints = paramTypeHints;
-        this.coordinatorTxnCtx = coordinatorTxnCtx;
-        this.cursors = cursors;
+    public ClosePlan(AnalyzedClose close) {
+        this.close = close;
     }
 
-    public Cursors cursors() {
-        return cursors;
+    @Override
+    public StatementType type() {
+        return StatementType.UNDEFINED;
     }
 
-    public CoordinatorTxnCtx transactionContext() {
-        return coordinatorTxnCtx;
-    }
-
-    public CoordinatorSessionSettings sessionSettings() {
-        return coordinatorTxnCtx.sessionSettings();
-    }
-
-    public ParamTypeHints paramTypeHints() {
-        return paramTypeHints;
+    @Override
+    public void executeOrFail(DependencyCarrier dependencies,
+                              PlannerContext plannerContext,
+                              RowConsumer consumer,
+                              Row params,
+                              SubQueryResults subQueryResults) throws Exception {
+        plannerContext.cursors().close(close.cursorName());
+        consumer.accept(InMemoryBatchIterator.of(new Row1(1L), SentinelRow.SENTINEL), null);
     }
 }

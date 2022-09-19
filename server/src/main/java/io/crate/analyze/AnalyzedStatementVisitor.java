@@ -283,4 +283,16 @@ public class AnalyzedStatementVisitor<C, R> {
     public R visitAlterSubscription(AnalyzedAlterSubscription alterSubscription, C context) {
         return visitDDLStatement(alterSubscription, context);
     }
+
+    public R visitDeclare(AnalyzedDeclare declare, C context) {
+        return visitAnalyzedStatement(declare, context);
+    }
+
+    public R visitFetch(AnalyzedFetch fetch, C context) {
+        return visitAnalyzedStatement(fetch, context);
+    }
+
+    public R visitClose(AnalyzedClose close, C context) {
+        return visitAnalyzedStatement(close, context);
+    }
 }
