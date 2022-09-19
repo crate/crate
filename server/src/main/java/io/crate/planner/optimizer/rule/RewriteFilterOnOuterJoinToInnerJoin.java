@@ -30,16 +30,10 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
-import io.crate.analyze.SymbolEvaluator;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.QuerySplitter;
 import io.crate.data.Input;
-import io.crate.data.Row;
 import io.crate.expression.operator.AndOperator;
-import io.crate.expression.symbol.FieldReplacer;
-import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.RefReplacer;
-import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
@@ -48,7 +42,6 @@ import io.crate.planner.node.dql.join.JoinType;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.NestedLoopJoin;
-import io.crate.planner.operators.SubQueryResults;
 import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.matcher.Capture;
 import io.crate.planner.optimizer.matcher.Captures;
@@ -127,7 +120,7 @@ public final class RewriteFilterOnOuterJoinToInnerJoin implements Rule<Filter> {
                              TableStats tableStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx) {
-        final var symbolEvaluator = new RuleSymbolEvaluator(txnCtx, nodeCtx);
+        final var symbolEvaluator = new NullSymbolEvaluator(txnCtx, nodeCtx);
         NestedLoopJoin nl = captures.get(nlCapture);
         Symbol query = filter.query();
         Map<Set<RelationName>, Symbol> splitQueries = QuerySplitter.split(query);
@@ -270,40 +263,11 @@ public final class RewriteFilterOnOuterJoinToInnerJoin implements Rule<Filter> {
     }
 
     private static boolean couldMatchOnNull(@Nullable Symbol query,
-                                            SymbolEvaluator evaluator) {
+                                            NullSymbolEvaluator evaluator) {
         if (query == null) {
             return false;
         }
-        Symbol queryWithNulls = RefReplacer.replaceRefs(
-            FieldReplacer.replaceFields(query, ignored -> Literal.NULL),
-            ignored -> Literal.NULL
-        );
-
-        Input<?> input = queryWithNulls.accept(evaluator, ALL_NULL_ROW);
+        Input<?> input = query.accept(evaluator, null);
         return WhereClause.canMatch(input);
-    }
-
-    private static Row ALL_NULL_ROW = new Row() {
-
-        @Override
-        public int numColumns() {
-            return Integer.MAX_VALUE;
-        }
-
-        @Override
-        public Object get(int index) {
-            return null;
-        }
-    };
-
-    private static class RuleSymbolEvaluator extends SymbolEvaluator {
-        public RuleSymbolEvaluator(TransactionContext txnCtx, NodeContext nodeCtx) {
-            super(txnCtx, nodeCtx, SubQueryResults.EMPTY);
-        }
-
-        @Override
-        public Input<?> visitSelectSymbol(SelectSymbol selectSymbol, Row context) {
-            return Literal.NULL;
-        }
     }
 }

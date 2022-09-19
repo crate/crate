@@ -45,7 +45,7 @@ import io.crate.types.DataType;
  *
  * This does not handle Columns/InputColumns, only Functions, Literals, ParameterSymbols and SubQuery values
  */
-public class SymbolEvaluator extends BaseImplementationSymbolVisitor<Row> {
+public final class SymbolEvaluator extends BaseImplementationSymbolVisitor<Row> {
 
 
     private final SubQueryResults subQueryResults;
