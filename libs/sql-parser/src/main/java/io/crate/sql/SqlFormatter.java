@@ -47,6 +47,7 @@ import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.AstVisitor;
 import io.crate.sql.tree.CheckColumnConstraint;
 import io.crate.sql.tree.CheckConstraint;
+import io.crate.sql.tree.Close;
 import io.crate.sql.tree.ClusteredBy;
 import io.crate.sql.tree.CollectionColumnType;
 import io.crate.sql.tree.ColumnConstraint;
@@ -60,6 +61,7 @@ import io.crate.sql.tree.CreateSnapshot;
 import io.crate.sql.tree.CreateSubscription;
 import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.CreateUser;
+import io.crate.sql.tree.Declare;
 import io.crate.sql.tree.DecommissionNodeStatement;
 import io.crate.sql.tree.DenyPrivilege;
 import io.crate.sql.tree.DropAnalyzer;
@@ -75,6 +77,7 @@ import io.crate.sql.tree.DropView;
 import io.crate.sql.tree.EscapedCharStringLiteral;
 import io.crate.sql.tree.Explain;
 import io.crate.sql.tree.Expression;
+import io.crate.sql.tree.Fetch;
 import io.crate.sql.tree.FunctionArgument;
 import io.crate.sql.tree.GCDanglingArtifacts;
 import io.crate.sql.tree.GenericProperties;
@@ -121,6 +124,7 @@ import io.crate.sql.tree.Window;
 import io.crate.sql.tree.WindowFrame;
 import io.crate.sql.tree.With;
 import io.crate.sql.tree.WithQuery;
+import io.crate.sql.tree.Fetch.ScrollMode;
 
 public final class SqlFormatter {
 
@@ -1216,6 +1220,64 @@ public final class SqlFormatter {
                 .append(node.scope())
                 .append(" SESSION AUTHORIZATION ")
                 .append(user != null ? quoteIdentifierIfNeeded(user) : "DEFAULT");
+            return null;
+        }
+
+        @Override
+        public Void visitDeclare(Declare declare, Integer indent) {
+            builder
+                .append("DECLARE ")
+                .append(declare.cursorName())
+                .append(" ");
+            if (declare.binary()) {
+                builder.append("BINARY ");
+            }
+            builder.append(declare.scroll() ? "SCROLL " : "NO SCROLL ");
+            builder.append("CURSOR ");
+            builder.append(declare.hold() == Declare.Hold.WITH ? "WITH HOLD " : "WITHOUT HOLD ");
+            builder.append("FOR ");
+            declare.query().accept(this, indent);
+            return null;
+        }
+
+        @Override
+        public Void visitFetch(Fetch fetch, Integer context) {
+            builder.append("FETCH ");
+            ScrollMode scrollMode = fetch.scrollMode();
+            long count = fetch.count();
+            if (scrollMode == ScrollMode.ABSOLUTE) {
+                if (count == 1) {
+                    builder.append("FIRST ");
+                } else if (fetch.count() == -1) {
+                    builder.append("LAST ");
+                } else {
+                    builder.append("ABSOLUTE ");
+                    builder.append(fetch.count());
+                    builder.append(" ");
+                }
+            } else {
+                if (count >= 0) {
+                    builder.append("FORWARD ");
+                } else {
+                    builder.append("BACKWARD ");
+                }
+                if (count == Long.MAX_VALUE || count == Long.MAX_VALUE * -1) {
+                    builder.append("ALL ");
+                } else if (count > 1 || count < -1) {
+                    builder.append(Math.abs(count));
+                    builder.append(" ");
+                }
+            }
+            builder.append("FROM ");
+            builder.append(fetch.cursorName());
+            return null;
+        }
+
+        @Override
+        public Void visitClose(Close close, Integer context) {
+            builder.append("CLOSE ");
+            String cursorName = close.cursorName();
+            builder.append(cursorName == null ? "ALL" : cursorName);
             return null;
         }
 

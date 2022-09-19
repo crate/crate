@@ -169,7 +169,7 @@ public class TableFunctionITest extends IntegTestCase {
                 throw new IllegalArgumentException("Unexpected value " + value);
             }
         }));
-        assertThat(rows.get(0)[0], is("(add,R,reserved)"));
+        assertThat(rows.get(0)[0], is("(absolute,U,unreserved)"));
     }
 
     @Test
