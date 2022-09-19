@@ -113,6 +113,10 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Fixed an issue causing an ``IllegalArgumentException`` to be thrown when the
+  optimizer attempts to convert a ``LEFT JOIN`` to an ``INNER JOIN`` and there
+  is also a subquery in the ``WHERE`` clause.
+
 - Fixed a file descriptor leak that was triggered by querying the ``os`` column
   of the ``sys.nodes`` table.
 
