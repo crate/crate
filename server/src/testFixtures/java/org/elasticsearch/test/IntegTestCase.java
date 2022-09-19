@@ -167,6 +167,7 @@ import com.carrotsearch.randomizedtesting.generators.RandomPicks;
 import com.carrotsearch.randomizedtesting.generators.RandomStrings;
 
 import io.crate.Constants;
+import io.crate.action.sql.Cursors;
 import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.Session;
 import io.crate.analyze.Analyzer;
@@ -208,6 +209,7 @@ import io.crate.planner.Planner;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.protocols.postgres.PostgresNetty;
+import io.crate.protocols.postgres.TransactionState;
 import io.crate.sql.Identifiers;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.SystemPropsTestLoggingListener;
@@ -1804,14 +1806,19 @@ public abstract class IntegTestCase extends ESTestCase {
             coordinatorTxnCtx,
             nodeCtx,
             0,
-            null
+            null,
+            Cursors.EMPTY,
+            TransactionState.IDLE
         );
         Plan plan = planner.plan(
             analyzer.analyze(
                 SqlParser.createStatement(stmt),
                 coordinatorTxnCtx.sessionSettings(),
-                ParamTypeHints.EMPTY),
-            plannerContext);
+                ParamTypeHints.EMPTY,
+                plannerContext.cursors()
+            ),
+            plannerContext
+        );
         return new PlanForNode(plan, nodeName, plannerContext);
     }
 

@@ -81,6 +81,7 @@ import io.crate.protocols.postgres.TransactionState;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.DiscardStatement.Target;
 import io.crate.sql.tree.Statement;
+import io.crate.sql.tree.Declare.Hold;
 import io.crate.types.DataType;
 
 /**
@@ -127,6 +128,8 @@ public class Session implements AutoCloseable {
     final Map<String, PreparedStmt> preparedStatements = new HashMap<>();
     @VisibleForTesting
     final Map<String, Portal> portals = new HashMap<>();
+
+    final Cursors cursors = new Cursors();
 
     @VisibleForTesting
     final Map<Statement, List<DeferredExecution>> deferredExecutionsByStmt = new LinkedHashMap<>();
@@ -180,7 +183,12 @@ public class Session implements AutoCloseable {
     public void quickExec(String statement, Function<String, Statement> parse, ResultReceiver<?> resultReceiver, Row params) {
         CoordinatorTxnCtx txnCtx = new CoordinatorTxnCtx(sessionSettings);
         Statement parsedStmt = parse.apply(statement);
-        AnalyzedStatement analyzedStatement = analyzer.analyze(parsedStmt, sessionSettings, ParamTypeHints.EMPTY);
+        AnalyzedStatement analyzedStatement = analyzer.analyze(
+            parsedStmt,
+            sessionSettings,
+            ParamTypeHints.EMPTY,
+            cursors
+        );
         RoutingProvider routingProvider = new RoutingProvider(Randomness.get().nextInt(), planner.getAwarenessAttributes());
         mostRecentJobID = UUIDs.dirtyUUID();
         ClusterState clusterState = planner.currentClusterState();
@@ -191,7 +199,9 @@ public class Session implements AutoCloseable {
             txnCtx,
             nodeCtx,
             0,
-            params
+            params,
+            cursors,
+            currentTransactionState
         );
         Plan plan;
         try {
@@ -242,7 +252,9 @@ public class Session implements AutoCloseable {
             txnCtx,
             nodeCtx,
             0,
-            params
+            params,
+            cursors,
+            currentTransactionState
         );
         Plan plan = planner.plan(stmt, plannerContext);
         plan.execute(executor, plannerContext, consumer, params, SubQueryResults.EMPTY);
@@ -289,7 +301,9 @@ public class Session implements AutoCloseable {
             analyzedStatement = analyzer.analyze(
                 statement,
                 sessionSettings,
-                new ParamTypeHints(paramTypes));
+                new ParamTypeHints(paramTypes),
+                cursors
+            );
 
             parameterTypes = parameterTypeExtractor.getParameterTypes(
                 x -> Relations.traverseDeepSymbols(analyzedStatement, x)
@@ -414,6 +428,7 @@ public class Session implements AutoCloseable {
             resultReceiver.allFinished(false);
         } else if (analyzedStmt instanceof AnalyzedCommit) {
             currentTransactionState = TransactionState.IDLE;
+            cursors.close(cursor -> cursor.hold() == Hold.WITHOUT);
             resultReceiver.allFinished(false);
             return resultReceiver.completionFuture();
         } else if (analyzedStmt instanceof AnalyzedDeallocate) {
@@ -556,7 +571,10 @@ public class Session implements AutoCloseable {
             txnCtx,
             nodeCtx,
             0,
-            null);
+            null,
+            cursors,
+            currentTransactionState
+        );
 
         PreparedStmt firstPreparedStatement = toExec.get(0).portal().preparedStmt();
         AnalyzedStatement analyzedStatement = firstPreparedStatement.analyzedStatement();
@@ -633,7 +651,16 @@ public class Session implements AutoCloseable {
         var nodeCtx = executor.nodeContext();
         var params = new RowN(portal.params().toArray());
         var plannerContext = new PlannerContext(
-            clusterState, routingProvider, mostRecentJobID, txnCtx, nodeCtx, maxRows, params);
+            clusterState,
+            routingProvider,
+            mostRecentJobID,
+            txnCtx,
+            nodeCtx,
+            maxRows,
+            params,
+            cursors,
+            currentTransactionState
+        );
         var analyzedStmt = portal.analyzedStatement();
         String rawStatement = portal.preparedStmt().rawStatement();
         if (analyzedStmt == null) {
@@ -771,6 +798,7 @@ public class Session implements AutoCloseable {
         }
         portals.clear();
         preparedStatements.clear();
+        cursors.close(c -> true);
     }
 
     public boolean hasDeferredExecutions() {

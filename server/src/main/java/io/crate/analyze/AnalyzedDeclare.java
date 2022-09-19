@@ -21,38 +21,41 @@
 
 package io.crate.analyze;
 
-import io.crate.action.sql.Cursors;
-import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.settings.CoordinatorSessionSettings;
+import java.util.function.Consumer;
 
-public class Analysis {
+import io.crate.expression.symbol.Symbol;
+import io.crate.sql.tree.Declare;
 
-    private final CoordinatorTxnCtx coordinatorTxnCtx;
-    private final ParamTypeHints paramTypeHints;
-    private final Cursors cursors;
+public class AnalyzedDeclare implements AnalyzedStatement {
 
+    private final Declare declare;
+    private final AnalyzedStatement query;
 
-    public Analysis(CoordinatorTxnCtx coordinatorTxnCtx,
-                    ParamTypeHints paramTypeHints,
-                    Cursors cursors) {
-        this.paramTypeHints = paramTypeHints;
-        this.coordinatorTxnCtx = coordinatorTxnCtx;
-        this.cursors = cursors;
+    public AnalyzedDeclare(Declare declare, AnalyzedStatement query) {
+        this.declare = declare;
+        this.query = query;
     }
 
-    public Cursors cursors() {
-        return cursors;
+    public AnalyzedStatement query() {
+        return query;
     }
 
-    public CoordinatorTxnCtx transactionContext() {
-        return coordinatorTxnCtx;
+    public Declare declare() {
+        return declare;
     }
 
-    public CoordinatorSessionSettings sessionSettings() {
-        return coordinatorTxnCtx.sessionSettings();
+    @Override
+    public <C, R> R accept(AnalyzedStatementVisitor<C, R> visitor, C context) {
+        return visitor.visitDeclare(this, context);
     }
 
-    public ParamTypeHints paramTypeHints() {
-        return paramTypeHints;
+    @Override
+    public boolean isWriteOperation() {
+        return false;
+    }
+
+    @Override
+    public void visitSymbols(Consumer<? super Symbol> consumer) {
+        query.visitSymbols(consumer);
     }
 }

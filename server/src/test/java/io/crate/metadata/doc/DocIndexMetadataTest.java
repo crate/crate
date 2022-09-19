@@ -26,6 +26,7 @@ import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.SymbolMatchers.isReference;
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static java.util.Collections.emptyMap;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
@@ -33,7 +34,6 @@ import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.junit.Assert.assertEquals;
@@ -65,6 +65,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.Constants;
+import io.crate.action.sql.Cursors;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.AnalyzedCreateTable;
 import io.crate.analyze.BoundCreateTable;
@@ -1166,7 +1167,11 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
 
         CreateTableStatementAnalyzer analyzer = new CreateTableStatementAnalyzer(nodeCtx);
 
-        Analysis analysis = new Analysis(new CoordinatorTxnCtx(CoordinatorSessionSettings.systemDefaults()), ParamTypeHints.EMPTY);
+        Analysis analysis = new Analysis(
+            new CoordinatorTxnCtx(CoordinatorSessionSettings.systemDefaults()),
+            ParamTypeHints.EMPTY,
+            Cursors.EMPTY
+        );
         CoordinatorTxnCtx txnCtx = new CoordinatorTxnCtx(CoordinatorSessionSettings.systemDefaults());
         AnalyzedCreateTable analyzedCreateTable = analyzer.analyze(
             (CreateTable<Expression>) statement,

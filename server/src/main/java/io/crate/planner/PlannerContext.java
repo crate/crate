@@ -29,6 +29,7 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.common.UUIDs;
 
+import io.crate.action.sql.Cursors;
 import io.crate.analyze.WhereClause;
 import io.crate.data.Row;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -37,6 +38,7 @@ import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.table.TableInfo;
+import io.crate.protocols.postgres.TransactionState;
 
 public class PlannerContext {
 
@@ -52,17 +54,21 @@ public class PlannerContext {
             context.coordinatorTxnCtx,
             context.nodeCtx,
             fetchSize,
-            context.params
+            context.params,
+            context.cursors,
+            context.transactionState
         );
     }
 
     private final UUID jobId;
     private final CoordinatorTxnCtx coordinatorTxnCtx;
+    private final Cursors cursors;
     private final int fetchSize;
     private final RoutingBuilder routingBuilder;
     private final RoutingProvider routingProvider;
     private final NodeContext nodeCtx;
     private final ClusterState clusterState;
+    private final TransactionState transactionState;
     private int executionPhaseId = 0;
     private final String handlerNode;
     @Nullable
@@ -77,7 +83,9 @@ public class PlannerContext {
                           CoordinatorTxnCtx coordinatorTxnCtx,
                           NodeContext nodeCtx,
                           int fetchSize,
-                          @Nullable Row params) {
+                          @Nullable Row params,
+                          Cursors cursors,
+                          TransactionState transactionState) {
         this.routingProvider = routingProvider;
         this.nodeCtx = nodeCtx;
         this.params = params;
@@ -87,6 +95,8 @@ public class PlannerContext {
         this.coordinatorTxnCtx = coordinatorTxnCtx;
         this.fetchSize = fetchSize;
         this.handlerNode = clusterState.getNodes().getLocalNodeId();
+        this.cursors = cursors;
+        this.transactionState = transactionState;
     }
 
     /**
@@ -143,5 +153,13 @@ public class PlannerContext {
 
     public void newReaderAllocations() {
         routingBuilder.newAllocations();
+    }
+
+    public Cursors cursors() {
+        return cursors;
+    }
+
+    public TransactionState transactionState() {
+        return transactionState;
     }
 }

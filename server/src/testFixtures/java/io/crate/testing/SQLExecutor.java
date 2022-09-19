@@ -108,6 +108,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.RemoteClusters;
 
 import io.crate.Constants;
+import io.crate.action.sql.Cursors;
 import io.crate.analyze.AnalyzedCreateBlobTable;
 import io.crate.analyze.AnalyzedCreateTable;
 import io.crate.analyze.AnalyzedStatement;
@@ -169,6 +170,7 @@ import io.crate.planner.node.ddl.CreateTablePlan;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.planner.optimizer.LoadedRules;
+import io.crate.protocols.postgres.TransactionState;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.LogicalReplicationSettings;
 import io.crate.replication.logical.metadata.ConnectionInfo;
@@ -205,6 +207,9 @@ public class SQLExecutor {
     private final Schemas schemas;
     private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
     private final UserDefinedFunctionService udfService;
+    public final Cursors cursors = new Cursors();
+
+    public TransactionState transactionState = TransactionState.IDLE;
 
     /**
      * Shortcut for {@link #getPlannerContext(ClusterState, Random)}
@@ -223,7 +228,9 @@ public class SQLExecutor {
             new CoordinatorTxnCtx(sessionSettings),
             nodeCtx,
             -1,
-            null
+            null,
+            cursors,
+            transactionState
         );
     }
 
@@ -822,12 +829,14 @@ public class SQLExecutor {
         return udfService;
     }
 
+    @SuppressWarnings("unchecked")
     public <T extends AnalyzedStatement> T analyze(String stmt, ParamTypeHints typeHints) {
-        //noinspection unchecked
         return (T) analyzer.analyze(
             SqlParser.createStatement(stmt),
             coordinatorTxnCtx.sessionSettings(),
-            typeHints);
+            typeHints,
+            cursors
+        );
     }
 
     public <T extends AnalyzedStatement> T analyze(String statement) {
@@ -886,7 +895,9 @@ public class SQLExecutor {
             coordinatorTxnCtx,
             nodeCtx,
             fetchSize,
-            null
+            null,
+            cursors,
+            transactionState
         );
         Plan plan = planner.plan(analyzedStatement, plannerContext);
         if (plan instanceof LogicalPlan) {

@@ -19,40 +19,34 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.analyze;
+package io.crate.planner;
 
-import io.crate.action.sql.Cursors;
-import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.settings.CoordinatorSessionSettings;
+import io.crate.action.sql.Cursor;
+import io.crate.analyze.AnalyzedFetch;
+import io.crate.data.Row;
+import io.crate.data.RowConsumer;
+import io.crate.planner.operators.SubQueryResults;
 
-public class Analysis {
+public class FetchPlan implements Plan {
 
-    private final CoordinatorTxnCtx coordinatorTxnCtx;
-    private final ParamTypeHints paramTypeHints;
-    private final Cursors cursors;
+    private final AnalyzedFetch fetch;
 
-
-    public Analysis(CoordinatorTxnCtx coordinatorTxnCtx,
-                    ParamTypeHints paramTypeHints,
-                    Cursors cursors) {
-        this.paramTypeHints = paramTypeHints;
-        this.coordinatorTxnCtx = coordinatorTxnCtx;
-        this.cursors = cursors;
+    public FetchPlan(AnalyzedFetch fetch) {
+        this.fetch = fetch;
     }
 
-    public Cursors cursors() {
-        return cursors;
+    @Override
+    public StatementType type() {
+        return StatementType.SELECT;
     }
 
-    public CoordinatorTxnCtx transactionContext() {
-        return coordinatorTxnCtx;
-    }
-
-    public CoordinatorSessionSettings sessionSettings() {
-        return coordinatorTxnCtx.sessionSettings();
-    }
-
-    public ParamTypeHints paramTypeHints() {
-        return paramTypeHints;
+    @Override
+    public void executeOrFail(DependencyCarrier dependencies,
+                              PlannerContext plannerContext,
+                              RowConsumer consumer,
+                              Row params,
+                              SubQueryResults subQueryResults) throws Exception {
+        Cursor cursor = fetch.cursor();
+        cursor.fetch(consumer, fetch.scrollMode(), fetch.count());
     }
 }

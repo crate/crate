@@ -201,7 +201,9 @@ class ShowStatementAnalyzer {
         return analyzer.analyze(
             query,
             analysis.sessionSettings(),
-            analysis.paramTypeHints());
+            analysis.paramTypeHints(),
+            analysis.cursors()
+        );
     }
 
     public Query rewriteShowTables(ShowTables node) {
