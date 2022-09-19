@@ -43,11 +43,11 @@ public class PgGetKeywordsFunctionTest extends AbstractTableFunctionsTest {
             rows.add(new RowN(it.next().materialize()));
         }
         rows.sort(Comparator.comparing(x -> ((String) x.get(0))));
-        assertThat(rows.size(), is(255));
+        assertThat(rows.size(), is(268));
         Row row = rows.get(0);
 
-        assertThat(row.get(0), is("add"));
-        assertThat(row.get(1), is("R"));
-        assertThat(row.get(2), is("reserved"));
+        assertThat(row.get(0), is("absolute"));
+        assertThat(row.get(1), is("U"));
+        assertThat(row.get(2), is("unreserved"));
     }
 }

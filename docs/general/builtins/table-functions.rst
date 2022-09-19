@@ -382,10 +382,10 @@ The result rows have three columns:
     +----------+---------+------------+
     | word     | catcode | catdesc    |
     +----------+---------+------------+
+    | absolute | U       | unreserved |
     | add      | R       | reserved   |
     | alias    | U       | unreserved |
     | all      | R       | reserved   |
-    | allocate | U       | unreserved |
     +----------+---------+------------+
     SELECT 4 rows in set (... sec)
 

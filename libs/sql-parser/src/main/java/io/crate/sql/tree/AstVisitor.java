@@ -675,4 +675,16 @@ public abstract class AstVisitor<R, C> {
     public R visitWith(With with, C context) {
         return visitStatement(with, context);
     }
+
+    public R visitDeclare(Declare declare, C context) {
+        return visitStatement(declare, context);
+    }
+
+    public R visitFetch(Fetch fetch, C context) {
+        return visitStatement(fetch, context);
+    }
+
+    public R visitClose(Close close, C context) {
+        return visitStatement(close, context);
+    }
 }
