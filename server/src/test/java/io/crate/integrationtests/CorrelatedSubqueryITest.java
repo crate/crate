@@ -260,4 +260,110 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
             "Dom| Mischabel\n"
         );
     }
+
+    @Test
+    public void test_correlated_subquery_without_table_alias_within_join_condition() {
+        String stmt = """
+            SELECT
+                columns.table_name,
+                columns.column_name
+            FROM
+                information_schema.columns
+                LEFT JOIN pg_catalog.pg_attribute AS col_attr
+                    ON col_attr.attname = columns.column_name
+                    AND col_attr.attrelid = (
+                        SELECT
+                            pg_class.oid
+                        FROM
+                            pg_catalog.pg_class
+                            LEFT JOIN pg_catalog.pg_namespace ON pg_namespace.oid = pg_class.relnamespace
+                        WHERE
+                            pg_class.relname = columns.table_name
+                            AND pg_namespace.nspname = columns.table_schema
+                    )
+
+            ORDER BY 1, 2 DESC
+            LIMIT 3
+            """;
+        execute("EXPLAIN " + stmt);
+        assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo(
+            "Eval[table_name, column_name]\n" +
+            "  └ Limit[3::bigint;0]\n" +
+            "    └ OrderBy[table_name ASC column_name DESC]\n" +
+            "      └ NestedLoopJoin[LEFT | ((attname = column_name) AND (attrelid = (SELECT oid FROM (pg_catalog.pg_class, pg_catalog.pg_namespace))))]\n" +
+            "        ├ CorrelatedJoin[table_name, column_name, table_schema, (SELECT oid FROM (pg_catalog.pg_class, pg_catalog.pg_namespace))]\n" +
+            "        │  └ Collect[information_schema.columns | [table_name, column_name, table_schema] | true]\n" +
+            "        │  └ SubPlan\n" +
+            "        │    └ Eval[oid]\n" +
+            "        │      └ Limit[2::bigint;0::bigint]\n" +
+            "        │        └ NestedLoopJoin[INNER | (oid = relnamespace)]\n" +
+            "        │          ├ Collect[pg_catalog.pg_class | [oid, relnamespace, relname] | (relname = table_name)]\n" +
+            "        │          └ Collect[pg_catalog.pg_namespace | [oid, nspname] | (nspname = table_schema)]\n" +
+            "        └ Rename[attname, attrelid] AS col_attr\n" +
+            "          └ Collect[pg_catalog.pg_attribute | [attname, attrelid] | true]\n"
+        );
+        execute(stmt);
+        assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo(
+            "allocations| table_schema\n" +
+            "allocations| table_name\n" +
+            "allocations| shard_id\n"
+        );
+
+    }
+
+    @Test
+    public void test_correlated_subquery_without_table_alias_within_join_condition_and_additional_condition() {
+        var stmt = """
+            SELECT
+                columns.table_name,
+                columns.column_name
+            FROM
+                information_schema.columns
+                LEFT JOIN pg_catalog.pg_attribute AS col_attr
+                    ON col_attr.attname = columns.column_name
+                    AND col_attr.attrelid = (
+                        SELECT
+                            pg_class.oid
+                        FROM
+                            pg_catalog.pg_class
+                            LEFT JOIN pg_catalog.pg_namespace ON pg_namespace.oid = pg_class.relnamespace
+                        WHERE
+                            pg_class.relname = columns.table_name
+                            AND pg_namespace.nspname = columns.table_schema
+                    )
+                    AND col_attr.attrelid = (SELECT col_attr.attrelid)
+
+            ORDER BY 1, 2 DESC
+            LIMIT 3
+            """;
+        execute("EXPLAIN " + stmt);
+        assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo(
+            "Eval[table_name, column_name]\n" +
+            "  └ Limit[3::bigint;0]\n" +
+            "    └ OrderBy[table_name ASC column_name DESC]\n" +
+            "      └ Filter[((attrelid = (SELECT oid FROM (pg_catalog.pg_class, pg_catalog.pg_namespace))) AND (attrelid = (SELECT attrelid FROM (empty_row))))]\n" +
+            "        └ CorrelatedJoin[table_name, column_name, table_schema, attname, attrelid, (SELECT oid FROM (pg_catalog.pg_class, pg_catalog.pg_namespace)), (SELECT attrelid FROM (empty_row))]\n" +
+            "          └ CorrelatedJoin[table_name, column_name, table_schema, attname, attrelid, (SELECT oid FROM (pg_catalog.pg_class, pg_catalog.pg_namespace))]\n" +
+            "            └ NestedLoopJoin[LEFT | (attname = column_name)]\n" +
+            "              ├ Collect[information_schema.columns | [table_name, column_name, table_schema] | true]\n" +
+            "              └ Rename[attname, attrelid] AS col_attr\n" +
+            "                └ Collect[pg_catalog.pg_attribute | [attname, attrelid] | true]\n" +
+            "            └ SubPlan\n" +
+            "              └ Eval[oid]\n" +
+            "                └ Limit[2::bigint;0::bigint]\n" +
+            "                  └ NestedLoopJoin[INNER | (oid = relnamespace)]\n" +
+            "                    ├ Collect[pg_catalog.pg_class | [oid, relnamespace, relname] | (relname = table_name)]\n" +
+            "                    └ Collect[pg_catalog.pg_namespace | [oid, nspname] | (nspname = table_schema)]\n" +
+            "          └ SubPlan\n" +
+            "            └ Eval[attrelid]\n" +
+            "              └ Limit[2::bigint;0::bigint]\n" +
+            "                └ TableFunction[empty_row | [] | true]\n"
+        );
+        execute(stmt);
+        assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo(
+            "allocations| table_schema\n" +
+            "allocations| table_name\n" +
+            "allocations| shard_id\n"
+        );
+    }
 }

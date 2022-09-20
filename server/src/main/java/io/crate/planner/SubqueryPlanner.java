@@ -21,7 +21,7 @@
 
 package io.crate.planner;
 
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -76,8 +76,8 @@ public class SubqueryPlanner {
     }
 
     private class Visitor extends DefaultTraversalSymbolVisitor<Symbol, Void> implements Consumer<Symbol> {
-
-        private final SubQueries subQueries = new SubQueries(new HashMap<>(), new HashMap<>());
+        // The LinkedHashMaps are needed to maintain a consistent order of the corresponding tree structure of the Execution Plan.
+        private final SubQueries subQueries = new SubQueries(new LinkedHashMap<>(), new LinkedHashMap<>());
 
         @Override
         public Void visitSelectSymbol(SelectSymbol selectSymbol, Symbol parent) {

@@ -237,6 +237,11 @@ public class SymbolVisitors {
         protected Boolean visitSymbol(Symbol symbol, Predicate<? super Symbol> symbolPredicate) {
             return symbolPredicate.test(symbol);
         }
+
+        @Override
+        public Boolean visitSelectSymbol(SelectSymbol selectSymbol, Predicate<? super Symbol> predicate) {
+            return predicate.test(selectSymbol);
+        }
     }
 
 }
