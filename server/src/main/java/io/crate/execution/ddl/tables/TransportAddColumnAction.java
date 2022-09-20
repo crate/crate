@@ -91,122 +91,17 @@ public class TransportAddColumnAction extends AbstractDDLTransportAction<AddColu
         this.indicesService = indicesService;
     }
 
-    /**
-     * Class for gathering mapping data in metadata compatible format.
-     * AddColumnRequest has multiple columns and each of them can be a root of an object column tree and thus
-     * can have many not-null/primary key/generated constraints.
-     * We gather everything here in order to do only one column-tree traversal and call mergeInto only once for each type of constraint.
-     */
-    private final class ConvertedRequest {
-
-        private final ArrayList<String> primaryKeys = new ArrayList<>();
-        private final ArrayList<String> notNullColumns = new ArrayList<>();
-        private final LinkedHashMap<String, String> generatedColumns = new LinkedHashMap<>();
-        private final HashMap<String, Object> topColumns = new HashMap<>();
-
-        public ConvertedRequest(AddColumnRequest request) {
-            for (var column: request.columns()) {
-                topColumns.put(column.name(), collectColumnInfo(column));
-            }
-        }
-
-        /**
-         * Returns properties map including all nested sub-columns if there any.
-         * Fills constraints along the way - each leaf of the object columns tree might have a constraint on it.
-         * Format of the top level properties field:
-         * {
-         *     col1: {
-         *        position: some_position
-         *        type: some_type
-         *        ...
-         *
-         *        * optional, only for nested objects *
-         *        properties: {
-         *            nested_col1: {...},
-         *            nested_col2: {...},
-         *        }
-         *     },
-         *     col2: {...}
-         * }
-         * Aligned with {@link AnalyzedColumnDefinition#toMapping(AnalyzedColumnDefinition)} )
-         */
-        private HashMap<String, Object> collectColumnInfo(AddColumnRequest.StreamableColumnInfo columnInfo) {
-            if (columnInfo.isPrimaryKey()) {
-                primaryKeys.add(columnInfo.fqn());
-            }
-            if (columnInfo.isNullable()) {
-                notNullColumns.add(columnInfo.fqn());
-            }
-            if (columnInfo.genExpression() != null) {
-                generatedColumns.put(columnInfo.fqn(), columnInfo.genExpression());
-            }
-            HashMap<String, Object> properties = new HashMap<>();
-            AnalyzedColumnDefinition.addTypeOptions(properties,
-                                                    columnInfo.type(),
-                                                    new GenericProperties<>(columnInfo.geoProperties()),
-                                                    columnInfo.geoTree(),
-                                                    columnInfo.analyzer()
-            );
-            properties.put("type",
-                AnalyzedColumnDefinition.typeNameForESMapping(
-                    columnInfo.type(),
-                    columnInfo.analyzer(),
-                    columnInfo.indexType() == IndexType.FULLTEXT
-                )
-            );
-
-            properties.put("position", columnInfo.position());
-
-            if (columnInfo.indexType() == IndexType.NONE) {
-                // we must use a boolean <p>false</p> and NO string "false", otherwise parser support for old indices will fail
-                properties.put("index", false);
-            }
-            if (columnInfo.copyToTargets().isEmpty() == false) {
-                properties.put("copy_to", columnInfo.copyToTargets());
-            }
-
-            if (columnInfo.isArrayType()) {
-                HashMap<String, Object> outerMapping = new HashMap<>();
-                outerMapping.put("type", "array");
-                if (columnInfo.type().id() == ObjectType.ID) {
-                    objectMapping(properties, columnInfo);
-                }
-                outerMapping.put("inner", properties);
-                return outerMapping;
-            } else if (columnInfo.type().id() == ObjectType.ID) {
-                objectMapping(properties, columnInfo);
-            }
-
-            if (columnInfo.hasDocValues() == false) {
-                properties.put(DOC_VALUES, "false");
-            }
-
-            return properties;
-        }
-
-        private void objectMapping(Map<String, Object> propertiesMap, AddColumnRequest.StreamableColumnInfo columnInfo) {
-            propertiesMap.put("dynamic", ColumnPolicies.encodeMappingValue(columnInfo.columnPolicy()));
-
-            if (columnInfo.children().isEmpty() == false) {
-                HashMap<String, Object> nestedColumnsProperties = new HashMap<>();
-                for (var column : columnInfo.children()) {
-                    var nestedColumnMap = collectColumnInfo(column);
-                    nestedColumnsProperties.put(column.name(), nestedColumnMap);
-                }
-                propertiesMap.put("properties", nestedColumnsProperties);
-            }
-        }
-    }
-
-
-
     @Override
     public ClusterStateTaskExecutor<AddColumnRequest> clusterStateTaskExecutor(AddColumnRequest request) {
         return new DDLClusterStateTaskExecutor<>() {
             @Override
             protected ClusterState execute(ClusterState currentState, AddColumnRequest request) throws Exception {
                 Metadata.Builder metadataBuilder = Metadata.builder(currentState.metadata());
-                ConvertedRequest requestConverter = new ConvertedRequest(request);
+
+                HashMap<String, Object> topColumns = new HashMap<>();
+                for (var column: request.columns()) {
+                    topColumns.put(column.name(), collectColumnProperties(column));
+                }
 
                 String templateName = PartitionName.templateName(request.relationName().schema(), request.relationName().name());
                 IndexTemplateMetadata indexTemplateMetadata = currentState.metadata().templates().get(templateName);
@@ -215,7 +110,7 @@ public class TransportAddColumnAction extends AbstractDDLTransportAction<AddColu
 
                     Map<String, Object> existingTemplateMeta = new HashMap<>();
 
-                    mergeDeltaIntoExistingMapping(existingTemplateMeta, request, requestConverter);
+                    mergeDeltaIntoExistingMapping(existingTemplateMeta, request, topColumns);
 
                     IndexTemplateMetadata newIndexTemplateMetadata = DDLClusterStateHelpers.updateTemplate(
                         indexTemplateMetadata,
@@ -227,7 +122,7 @@ public class TransportAddColumnAction extends AbstractDDLTransportAction<AddColu
                     metadataBuilder.put(newIndexTemplateMetadata);
                 }
 
-                currentState = updateMapping(currentState, metadataBuilder, request, requestConverter);
+                currentState = updateMapping(currentState, metadataBuilder, request, topColumns);
                 // ensure the new table can still be parsed into a DocTableInfo to avoid breaking the table.
                 new DocTableInfoFactory(nodeContext).create(request.relationName(), currentState);
                 return currentState;
@@ -235,17 +130,93 @@ public class TransportAddColumnAction extends AbstractDDLTransportAction<AddColu
         };
     }
 
+    /**
+     * Returns properties map including all nested sub-columns if there any.
+     * Format of the top level properties field:
+     * {
+     *     col1: {
+     *        position: some_position
+     *        type: some_type
+     *        ...
+     *
+     *        * optional, only for nested objects *
+     *        properties: {
+     *            nested_col1: {...},
+     *            nested_col2: {...},
+     *        }
+     *     },
+     *     col2: {...}
+     * }
+     * Aligned with {@link AnalyzedColumnDefinition#toMapping(AnalyzedColumnDefinition)} )
+     */
+    private HashMap<String, Object> collectColumnProperties(AddColumnRequest.StreamableColumnInfo columnInfo) {
+        HashMap<String, Object> properties = new HashMap<>();
+        AnalyzedColumnDefinition.addTypeOptions(properties,
+            columnInfo.type(),
+            new GenericProperties<>(columnInfo.geoProperties()),
+            columnInfo.geoTree(),
+            columnInfo.analyzer()
+        );
+        properties.put("type",
+            AnalyzedColumnDefinition.typeNameForESMapping(
+                columnInfo.type(),
+                columnInfo.analyzer(),
+                columnInfo.indexType() == IndexType.FULLTEXT
+            )
+        );
+
+        properties.put("position", columnInfo.position());
+
+        if (columnInfo.indexType() == IndexType.NONE) {
+            // we must use a boolean <p>false</p> and NO string "false", otherwise parser support for old indices will fail
+            properties.put("index", false);
+        }
+        if (columnInfo.copyToTargets().isEmpty() == false) {
+            properties.put("copy_to", columnInfo.copyToTargets());
+        }
+
+        if (columnInfo.isArrayType()) {
+            HashMap<String, Object> outerMapping = new HashMap<>();
+            outerMapping.put("type", "array");
+            if (columnInfo.type().id() == ObjectType.ID) {
+                objectMapping(properties, columnInfo);
+            }
+            outerMapping.put("inner", properties);
+            return outerMapping;
+        } else if (columnInfo.type().id() == ObjectType.ID) {
+            objectMapping(properties, columnInfo);
+        }
+
+        if (columnInfo.hasDocValues() == false) {
+            properties.put(DOC_VALUES, "false");
+        }
+        return properties;
+    }
+
+    private void objectMapping(Map<String, Object> propertiesMap, AddColumnRequest.StreamableColumnInfo columnInfo) {
+        propertiesMap.put("dynamic", ColumnPolicies.encodeMappingValue(columnInfo.columnPolicy()));
+
+        if (columnInfo.children().isEmpty() == false) {
+            HashMap<String, Object> nestedColumnsProperties = new HashMap<>();
+            for (var column : columnInfo.children()) {
+                var nestedColumnMap = collectColumnProperties(column);
+                nestedColumnsProperties.put(column.name(), nestedColumnMap);
+            }
+            propertiesMap.put("properties", nestedColumnsProperties);
+        }
+    }
+
     private ClusterState updateMapping(ClusterState currentState,
                                        Metadata.Builder metadataBuilder,
                                        AddColumnRequest request,
-                                       ConvertedRequest convertedRequest) throws IOException {
+                                       HashMap<String, Object> topColumns) throws IOException {
         Index[] concreteIndices = resolveIndices(currentState, request.relationName().indexNameOrAlias());
 
         for (Index index : concreteIndices) {
             final IndexMetadata indexMetadata = currentState.metadata().getIndexSafe(index);
 
             Map<String, Object> indexMapping = indexMetadata.mapping().sourceAsMap();
-            mergeDeltaIntoExistingMapping(indexMapping, request, convertedRequest);
+            mergeDeltaIntoExistingMapping(indexMapping, request, topColumns);
             TransportSchemaUpdateAction.populateColumnPositions(indexMapping);
 
             MapperService mapperService = indicesService.createIndexMapperService(indexMetadata);
@@ -263,48 +234,82 @@ public class TransportAddColumnAction extends AbstractDDLTransportAction<AddColu
 
     private static void mergeDeltaIntoExistingMapping(Map<String, Object> existingMapping,
                                                       AddColumnRequest request,
-                                                      ConvertedRequest convertedRequest) {
-        // _meta fields
-        if (convertedRequest.primaryKeys.isEmpty() == false) {
-            Maps.mergeInto(existingMapping, "_meta", List.of("primary_keys"), convertedRequest.primaryKeys,
-                (map, key, value) -> ((ArrayList<String>) map.computeIfAbsent(key, k -> new ArrayList<String>())).addAll(convertedRequest.primaryKeys)
-            );
-        }
-        if (convertedRequest.notNullColumns.isEmpty() == false) {
-            Maps.mergeInto(existingMapping, "_meta", List.of("constraints", "not_null"), convertedRequest.notNullColumns,
-                (map, key, value) -> {
-                    if ("not_null".equals(key)) {
-                        // we are merging on the end pf the path, i.e adding to the list
-                        ((ArrayList<String>) map.computeIfAbsent(key, k -> new ArrayList<String>())).addAll(convertedRequest.notNullColumns);
-                    } else {
-                        // When adding not-null for the first time,
-                        // Maps.mergeInto stops mid-path and transforms value (list) into chain of maps (to complement the remaining path) and adds value to the end.
-                        // There is no existing constraints in this case so we can take value (convertedRequest.notNullColumns) as is.
-                        map.put(key, value);
-                    }
+                                                      HashMap<String, Object> topColumns) {
 
+        for (var column: request.columns()) {
+            Map<String, Object> meta = (Map<String, Object>) existingMapping.get("_meta");
+            if (meta == null) {
+                // existingMapping passed as an empty map in case of partitioned tables as template gets all changes unfiltered.
+                // Create _meta so that we have a base to merge constraints.
+                meta = new HashMap<>();
+                existingMapping.put("_meta", meta);
+            }
+
+            // Check constraints are not bound to a column as column name is contained in expression itself (regardless of column or table level check).
+            if (request.checkConstraints().isEmpty() == false) {
+                Map<String, String> checkConstraints = (Map<String, String>) meta.get("check_constraints");
+                if (checkConstraints == null) {
+                    checkConstraints = new LinkedHashMap<>();
+                    meta.put("check_constraints", checkConstraints);
                 }
-            );
-        }
-        if (convertedRequest.generatedColumns.isEmpty() == false) {
-            Maps.mergeInto(existingMapping, "_meta", List.of("generated_columns"), convertedRequest.generatedColumns,
-                (map, key, value) -> ((LinkedHashMap<String, String>) map.computeIfAbsent(key, k -> new LinkedHashMap<String, String>())).putAll(convertedRequest.generatedColumns)
-            );
-        }
-        for (var check: request.checkConstraints()) {
-            Maps.mergeInto(existingMapping, "_meta", List.of("check_constraints"), check,
-                (map, key, value) -> ((LinkedHashMap<String, String>) map.computeIfAbsent(key, k -> new LinkedHashMap<String, String>())).put(check.name(), check.expression())
-            );
+                for (AddColumnRequest.StreamableCheckConstraint checkConstraint: request.checkConstraints()) {
+                    checkConstraints.put(checkConstraint.name(), checkConstraint.expression());
+                }
+            }
+
+            // other constraints
+            mergeConstraints(meta, column);
+
         }
 
         existingMapping.merge(
             "properties",
-            convertedRequest.topColumns,
+            topColumns,
             (oldMap, newMap) -> {
                 Maps.extendRecursive((Map<String, Object>) oldMap, (Map<String, Object>) newMap);
                 return oldMap;
             }
         );
+    }
+
+    private static void mergeConstraints(Map<String, Object> meta,
+                                         AddColumnRequest.StreamableColumnInfo columnInfo) {
+        List<String> primaryKeys = (List<String>) meta.get("primary_keys");
+
+        Map<String, List<String>> constraints = (Map<String, List<String>>) meta.get("constraints");
+        List<String> notNulls = constraints != null ? constraints.get("not_null") : null;
+
+        Map<String, String> generatedColumns = (Map<String, String>) meta.get("generated_columns");
+
+        if (columnInfo.isPrimaryKey()) {
+            if (primaryKeys == null) {
+                primaryKeys = new ArrayList<>();
+                meta.put("primary_keys", primaryKeys);
+            }
+            primaryKeys.add(columnInfo.fqn());
+        }
+
+        if (columnInfo.isNullable()) {
+            if (notNulls == null) {
+                notNulls = new ArrayList<>();
+                meta.put("constraints", Map.of("not_null", notNulls));
+            }
+            notNulls.add(columnInfo.fqn());
+        }
+
+        if (columnInfo.genExpression() != null) {
+            if (generatedColumns == null) {
+                generatedColumns = new LinkedHashMap<>();
+                meta.put("generated_columns", generatedColumns);
+            }
+            generatedColumns.put(columnInfo.fqn(), columnInfo.genExpression());
+        }
+
+        if (columnInfo.children().isEmpty() == false) {
+            for (AddColumnRequest.StreamableColumnInfo child: columnInfo.children()) {
+                mergeConstraints(meta, child);
+            }
+        }
     }
 
     @Override

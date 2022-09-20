@@ -33,13 +33,8 @@ import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static io.netty.handler.codec.rtsp.RtspResponseStatuses.BAD_REQUEST;
 import static io.netty.handler.codec.rtsp.RtspResponseStatuses.INTERNAL_SERVER_ERROR;
-import static org.hamcrest.Matchers.anyOf;
-import static org.hamcrest.Matchers.both;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.Matchers.isOneOf;
-import static org.hamcrest.Matchers.lessThanOrEqualTo;
-import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -59,6 +54,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import io.netty.handler.codec.http.HttpResponseStatus;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.indices.template.delete.DeleteIndexTemplateRequest;
@@ -2385,5 +2381,57 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
 
         execute(selectCheckConstraintStmt);
         assertThat(response.rows()).isEmpty();
+    }
+
+
+    @Test
+    public void test_add_column_not_null_constraint_added_to_a_nested_column() {
+        // non-existing object
+        execute("create table t (x int, o object) partitioned by (x)");
+        execute("alter table t add column o2['a']['b'] text not null");
+        assertThrowsMatches(
+            () -> execute("insert into t (o2) values ({\"a\" = {\"b\" = null}})"),
+            isSQLError(
+                containsString("\"o2['a']['b']\" must not be null"),
+                INTERNAL_ERROR,
+                HttpResponseStatus.BAD_REQUEST,
+                4000
+            )
+        );
+
+        // existing object
+        execute("alter table t add column o['a']['b'] text not null");
+        assertThrowsMatches(
+            () -> execute("insert into t (o) values ({\"a\" = {\"b\" = null}})"),
+            isSQLError(
+                containsString("\"o['a']['b']\" must not be null"),
+                INTERNAL_ERROR,
+                HttpResponseStatus.BAD_REQUEST,
+                4000
+            )
+        );
+
+        // object with multiple children
+        execute("alter table t add column o3 object as (a object as (b text not null), c int not null)");
+        // one leaf of o3
+        assertThrowsMatches(
+            () -> execute("insert into t (o, o2) values ({\"a\" = {\"b\" = 'test'}}, {\"a\" = {\"b\" = 'test'}})"),
+            isSQLError(
+                containsString("\"o3['a']['b']\" must not be null"),
+                INTERNAL_ERROR,
+                HttpResponseStatus.BAD_REQUEST,
+                4000
+            )
+        );
+        // another leaf of o3
+        assertThrowsMatches(
+            () -> execute("insert into t (o, o2, o3) values ({\"a\" = {\"b\" = 'test'}}, {\"a\" = {\"b\" = 'test'}}, {\"a\" = {\"b\" = 'test'}, \"c\" = null})"),
+            isSQLError(
+                containsString("\"o3['c']\" must not be null"),
+                INTERNAL_ERROR,
+                HttpResponseStatus.BAD_REQUEST,
+                4000
+            )
+        );
     }
 }
