@@ -23,6 +23,7 @@ package io.crate.planner.operators;
 
 import static io.crate.planner.operators.EquiJoinDetector.isHashJoinPossible;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -45,7 +46,10 @@ import io.crate.common.collections.Lists2;
 import io.crate.execution.engine.join.JoinOperations;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.FieldsVisitor;
+import io.crate.expression.symbol.OuterColumn;
+import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.metadata.RelationName;
 import io.crate.planner.SubqueryPlanner.SubQueries;
 import io.crate.planner.node.dql.join.JoinType;
@@ -116,16 +120,29 @@ public class JoinPlanBuilder {
         LogicalPlan lhsPlan = plan.apply(lhs);
         LogicalPlan rhsPlan = plan.apply(rhs);
         Symbol query = removeParts(queryParts, lhsName, rhsName);
-        LogicalPlan joinPlan = createJoinPlan(
-            lhsPlan,
-            rhsPlan,
-            joinType,
-            joinCondition,
-            lhs,
-            query,
-            hashJoinEnabled
-        );
-        joinPlan = subQueries.applyCorrelatedJoin(joinPlan);
+        LogicalPlan joinPlan;
+
+        if (containsOuterColumnFromRelation(joinCondition, rhs)) {
+            joinPlan = createCorrelatedJoinWithFilter(
+                lhsPlan,
+                rhsPlan,
+                joinType,
+                joinCondition,
+                lhs,
+                subQueries,
+                query,
+                hashJoinEnabled);
+        } else {
+            lhsPlan = subQueries.applyCorrelatedJoin(lhsPlan);
+            joinPlan = createJoinPlan(
+                lhsPlan,
+                rhsPlan,
+                joinType,
+                joinCondition,
+                lhs,
+                query,
+                hashJoinEnabled);
+        }
 
         joinPlan = Filter.create(joinPlan, query);
         while (it.hasNext()) {
@@ -147,6 +164,59 @@ public class JoinPlanBuilder {
             queryParts.clear();
         }
         assert joinPairsByRelations.isEmpty() : "Must've applied all joinPairs";
+        return joinPlan;
+    }
+
+    private static boolean containsOuterColumnFromRelation(@Nullable Symbol joinCondition, AnalyzedRelation relation) {
+        if (joinCondition == null) {
+            return false;
+        }
+        return containsOuterColumnInCorrelatedSelect(joinCondition, relation);
+    }
+
+    private static boolean containsOuterColumnInCorrelatedSelect(Symbol symbol, AnalyzedRelation relation) {
+        return SymbolVisitors.any(x -> x instanceof SelectSymbol s &&
+                                       s.isCorrelated() &&
+                                       s.relation().outputs().stream().anyMatch(o -> containsOuterColumn(o, relation)), symbol);
+    }
+
+    private static boolean containsOuterColumn(Symbol symbol, AnalyzedRelation relation) {
+        return SymbolVisitors.any(x -> x instanceof OuterColumn o && o.relation().equals(relation), symbol);
+    }
+
+    private static LogicalPlan createCorrelatedJoinWithFilter(
+        LogicalPlan lhsPlan,
+        LogicalPlan rhsPlan,
+        JoinType joinType,
+        Symbol joinCondition,
+        AnalyzedRelation lhs,
+        SubQueries subQueries,
+        Symbol query,
+        boolean hashJoinEnabled
+    ) {
+        var validJoinConditions = new ArrayList<Symbol>();
+        var joinConditionsForFilters = new ArrayList<Symbol>();
+
+        for (var symbol : QuerySplitter.split(joinCondition).values()) {
+            if (SymbolVisitors.any(s -> s instanceof SelectSymbol x && x.isCorrelated(), symbol)) {
+                joinConditionsForFilters.add(symbol);
+            } else {
+                validJoinConditions.add(symbol);
+            }
+        }
+
+        var joinPlan = createJoinPlan(
+            lhsPlan,
+            rhsPlan,
+            joinType,
+            AndOperator.join(validJoinConditions),
+            lhs,
+            query,
+            hashJoinEnabled);
+
+        joinPlan = subQueries.applyCorrelatedJoin(joinPlan);
+        joinPlan = Filter.create(joinPlan, AndOperator.join(joinConditionsForFilters));;
+
         return joinPlan;
     }
 

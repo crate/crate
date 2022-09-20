@@ -24,6 +24,7 @@ package io.crate.planner.optimizer.rule;
 import io.crate.data.Input;
 import io.crate.expression.BaseImplementationSymbolVisitor;
 import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.OuterColumn;
 import io.crate.expression.symbol.ParameterSymbol;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.SelectSymbol;
@@ -54,6 +55,11 @@ final class NullSymbolEvaluator extends BaseImplementationSymbolVisitor<Void> {
 
     @Override
     public Input<?> visitSelectSymbol(SelectSymbol selectSymbol, Void context) {
+        return Literal.NULL;
+    }
+
+    @Override
+    public Input<?> visitOuterColumn(OuterColumn outerColumn, Void context) {
         return Literal.NULL;
     }
 }

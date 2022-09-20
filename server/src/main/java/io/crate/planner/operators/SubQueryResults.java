@@ -35,9 +35,11 @@ import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 
 public class SubQueryResults {
-
-    public static final SubQueryResults EMPTY = new SubQueryResults(Collections.emptyMap());
+    // Static fields on the jvm are initialized in their order.
+    // EMPTY_OUTER_COLUMNS must be created before EMPTY to be referenced successfully insides EMPTY.
     private static final ObjectIntHashMap<OuterColumn> EMPTY_OUTER_COLUMNS = new ObjectIntHashMap<>();
+    public static final SubQueryResults EMPTY = new SubQueryResults(Collections.emptyMap());
+
 
     private final Map<SelectSymbol, Object> valuesBySubQuery;
     private final ObjectIntMap<OuterColumn> boundOuterColumns;
@@ -73,20 +75,21 @@ public class SubQueryResults {
 
     public SubQueryResults forCorrelation(SelectSymbol correlatedSubQuery, List<Symbol> subQueryOutputs) {
         ObjectIntHashMap<OuterColumn> outerColumnPositions = new ObjectIntHashMap<>();
-        correlatedSubQuery.relation().visitSymbols(symbol -> {
-            symbol.accept(new DefaultTraversalSymbolVisitor<Void, Void>() {
+        var visitor = new DefaultTraversalSymbolVisitor<Void, Void>() {
 
-                @Override
-                public Void visitOuterColumn(OuterColumn outerColumn, Void context) {
-                    int index = subQueryOutputs.indexOf(outerColumn.symbol());
-                    if (index < 0) {
-                        throw new IllegalStateException("OuterColumn must appear in input of CorrelatedJoin");
-                    }
-                    outerColumnPositions.put(outerColumn, index);
-                    return null;
+            @Override
+            public Void visitOuterColumn(OuterColumn outerColumn, Void context) {
+                int index = subQueryOutputs.indexOf(outerColumn.symbol());
+                if (index < 0) {
+                    throw new IllegalStateException(
+                        "OuterColumn `" + outerColumn + "` must appear in input of CorrelatedJoin");
                 }
-            }, null);
-        });
+                outerColumnPositions.put(outerColumn, index);
+                return null;
+            }
+        };
+
+        correlatedSubQuery.relation().visitSymbols(symbol -> symbol.accept(visitor, null));
         return new SubQueryResults(this.valuesBySubQuery, outerColumnPositions);
     }
 
