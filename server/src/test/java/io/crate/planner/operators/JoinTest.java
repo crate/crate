@@ -25,6 +25,7 @@ import static io.crate.analyze.TableDefinitions.TEST_DOC_LOCATIONS_TABLE_DEFINIT
 import static io.crate.analyze.TableDefinitions.USER_TABLE_DEFINITION;
 import static io.crate.analyze.TableDefinitions.USER_TABLE_IDENT;
 import static io.crate.planner.operators.LogicalPlannerTest.isPlan;
+import static io.crate.planner.operators.LogicalPlannerTest.printPlan;
 import static io.crate.testing.SymbolMatchers.isInputColumn;
 import static io.crate.testing.SymbolMatchers.isReference;
 import static io.crate.testing.TestingHelpers.isSQL;
@@ -107,14 +108,14 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             () -> clusterService.state().nodes().getMinNodeVersion()
         );
         SubqueryPlanner subqueryPlanner = new SubqueryPlanner((s) -> logicalPlanner.planSubSelect(s, plannerCtx));
-        return JoinPlanBuilder.buildJoinTree(
+        LogicalPlan logicalPlan = JoinPlanBuilder.buildJoinTree(
             mss.from(),
             mss.where(),
             mss.joinPairs(),
             new SubQueries(Map.of(), Map.of()),
-            rel -> logicalPlanner.plan(rel, plannerCtx, subqueryPlanner, true),
-            txnCtx.sessionSettings().hashJoinsEnabled()
+            rel -> logicalPlanner.plan(rel, plannerCtx, subqueryPlanner, true)
         );
+        return logicalPlanner.optimizer.optimize(logicalPlan, tableStats, txnCtx);
     }
 
     private Join buildJoin(LogicalPlan operator) {
@@ -203,8 +204,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             mss.where(),
             mss.joinPairs(),
             new SubQueries(Map.of(), Map.of()),
-            rel -> logicalPlanner.plan(rel, plannerCtx, subqueryPlanner, false),
-            false
+            rel -> logicalPlanner.plan(rel, plannerCtx, subqueryPlanner, false)
         );
         Join nl = (Join) operator.build(
             mock(DependencyCarrier.class), context, Set.of(), projectionBuilder, -1, 0, null, null, Row.EMPTY, SubQueryResults.EMPTY);
@@ -481,7 +481,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             limit 10
             """);
 
-        assertThat(plan, isPlan(
+        assertThat(printPlan(plan), is(
             "Eval[name AS usr]\n" +
                 "  └ Limit[10::bigint;0]\n" +
                 "    └ NestedLoopJoin[CROSS]\n" +
@@ -557,7 +557,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         String expectedPlan =
             "Rename[start] AS doc.v1\n" +
             "  └ Eval[ts_production AS start]\n" +
-            "    └ NestedLoopJoin[INNER | (ts_production = max_ts)]\n" +
+            "    └ HashJoin[(ts_production = max_ts)]\n" +
             "      ├ Rename[max_ts] AS last_record\n" +
             "      │  └ Eval[max(ts) AS max_ts]\n" +
             "      │    └ HashAggregate[max(ts)]\n" +
@@ -571,7 +571,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         expectedPlan =
             "Rename[start] AS doc.v1\n" +
             "  └ Eval[ts_production AS start]\n" +
-            "    └ NestedLoopJoin[INNER | (ts_production = max_ts)]\n" +
+            "    └ HashJoin[(ts_production = max_ts)]\n" +
             "      ├ Rename[max_ts] AS last_record\n" +
             "      │  └ Eval[max(ts) AS max_ts]\n" +
             "      │    └ HashAggregate[max(ts)]\n" +
@@ -651,7 +651,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         LogicalPlan logicalPlan = e.logicalPlan(statement);
         assertThat(logicalPlan, is(isPlan(
             "MultiPhase\n" +
-            "  └ NestedLoopJoin[INNER | (i = i)]\n" +
+            "  └ HashJoin[(i = i)]\n" +
             "    ├ Collect[doc.t1 | [a, x, i] | true]\n" +
             "    └ Collect[doc.t2 | [b, y, i] | (y = ANY((SELECT z FROM (doc.t3))))]\n" +
             "  └ OrderBy[z ASC]\n" +

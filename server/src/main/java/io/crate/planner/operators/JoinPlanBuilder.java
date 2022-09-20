@@ -21,8 +21,6 @@
 
 package io.crate.planner.operators;
 
-import static io.crate.planner.operators.EquiJoinDetector.isHashJoinPossible;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -68,8 +66,7 @@ public class JoinPlanBuilder {
                                      Symbol whereClause,
                                      List<JoinPair> joinPairs,
                                      SubQueries subQueries,
-                                     Function<AnalyzedRelation, LogicalPlan> plan,
-                                     boolean hashJoinEnabled) {
+                                     Function<AnalyzedRelation, LogicalPlan> plan) {
         if (from.size() == 1) {
             LogicalPlan source = subQueries.applyCorrelatedJoin(plan.apply(from.get(0)));
             return Filter.create(source, whereClause);
@@ -130,8 +127,8 @@ public class JoinPlanBuilder {
                 joinCondition,
                 lhs,
                 subQueries,
-                query,
-                hashJoinEnabled);
+                query
+            );
         } else {
             lhsPlan = subQueries.applyCorrelatedJoin(lhsPlan);
             joinPlan = createJoinPlan(
@@ -140,8 +137,8 @@ public class JoinPlanBuilder {
                 joinType,
                 joinCondition,
                 lhs,
-                query,
-                hashJoinEnabled);
+                query
+            );
         }
 
         joinPlan = Filter.create(joinPlan, query);
@@ -154,8 +151,7 @@ public class JoinPlanBuilder {
                 joinNames,
                 joinPairsByRelations,
                 queryParts,
-                lhs,
-                hashJoinEnabled
+                lhs
             );
             joinNames.add(nextRel.relationName());
         }
@@ -196,8 +192,7 @@ public class JoinPlanBuilder {
         Symbol joinCondition,
         AnalyzedRelation lhs,
         SubQueries subQueries,
-        Symbol query,
-        boolean hashJoinEnabled
+        Symbol query
     ) {
         var validJoinConditions = new ArrayList<Symbol>();
         var joinConditionsForFilters = new ArrayList<Symbol>();
@@ -216,8 +211,8 @@ public class JoinPlanBuilder {
             joinType,
             AndOperator.join(validJoinConditions),
             lhs,
-            query,
-            hashJoinEnabled);
+            query
+        );
 
         joinPlan = subQueries.applyCorrelatedJoin(joinPlan);
         joinPlan = Filter.create(joinPlan, AndOperator.join(joinConditionsForFilters));;
@@ -245,24 +240,16 @@ public class JoinPlanBuilder {
                                               JoinType joinType,
                                               Symbol joinCondition,
                                               AnalyzedRelation lhs,
-                                              Symbol query,
-                                              boolean hashJoinEnabled) {
-        if (hashJoinEnabled && isHashJoinPossible(joinType, joinCondition)) {
-            return new HashJoin(
-                lhsPlan,
-                rhsPlan,
-                joinCondition
-            );
-        } else {
-            return new NestedLoopJoin(
-                lhsPlan,
-                rhsPlan,
-                joinType,
-                joinCondition,
-                !query.symbolType().isValueSymbol(),
-                lhs,
-                false);
-        }
+                                              Symbol query) {
+        return new NestedLoopJoin(
+            lhsPlan,
+            rhsPlan,
+            joinType,
+            joinCondition,
+            !query.symbolType().isValueSymbol(),
+            lhs,
+            false,
+            false);
     }
 
     private static JoinType maybeInvertPair(RelationName rhsName, JoinPair pair) {
@@ -282,8 +269,7 @@ public class JoinPlanBuilder {
                                             Set<RelationName> joinNames,
                                             Map<Set<RelationName>, JoinPair> joinPairs,
                                             Map<Set<RelationName>, Symbol> queryParts,
-                                            AnalyzedRelation leftRelation,
-                                            boolean hashJoinEnabled) {
+                                            AnalyzedRelation leftRelation) {
         RelationName nextName = nextRel.relationName();
 
         JoinPair joinPair = removeMatch(joinPairs, joinNames, nextName);
@@ -311,8 +297,7 @@ public class JoinPlanBuilder {
                 type,
                 condition,
                 leftRelation,
-                query,
-                hashJoinEnabled),
+                query),
             query
         );
     }
