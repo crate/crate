@@ -52,6 +52,7 @@ import io.crate.planner.optimizer.rule.MoveOrderBeneathNestedLoop;
 import io.crate.planner.optimizer.rule.MoveOrderBeneathRename;
 import io.crate.planner.optimizer.rule.MoveOrderBeneathUnion;
 import io.crate.planner.optimizer.rule.OptimizeCollectWhereClauseAccess;
+import io.crate.planner.optimizer.rule.RewriteEquiJoinToHashJoin;
 import io.crate.planner.optimizer.rule.RemoveRedundantFetchOrEval;
 import io.crate.planner.optimizer.rule.RewriteFilterOnOuterJoinToInnerJoin;
 import io.crate.planner.optimizer.rule.RewriteGroupByKeysLimitToTopNDistinct;
@@ -87,7 +88,8 @@ public class LoadedRules implements SessionSettingProvider {
         OptimizeCollectWhereClauseAccess.class,
         RewriteGroupByKeysLimitToTopNDistinct.class,
         RewriteInsertFromSubQueryToInsertFromValues.class,
-        RewriteToQueryThenFetch.class
+        RewriteToQueryThenFetch.class,
+        RewriteEquiJoinToHashJoin.class
     );
 
     @Override

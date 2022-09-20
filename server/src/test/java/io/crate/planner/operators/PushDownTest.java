@@ -22,6 +22,8 @@
 package io.crate.planner.operators;
 
 import static io.crate.planner.operators.LogicalPlannerTest.isPlan;
+import static io.crate.planner.operators.LogicalPlannerTest.printPlan;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
@@ -107,7 +109,7 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
                                 "inner join t2 on t1.a = t2.b " +
                                 "inner join t1 as t3 on t3.a = t2.b " +
                                 "order by t2.b");
-        assertThat(plan, isPlan(
+        assertThat(printPlan(plan), is(
             "Eval[a, b, a]\n" +
             "  └ NestedLoopJoin[INNER | (a = b)]\n" +
             "    ├ NestedLoopJoin[INNER | (a = b)]\n" +

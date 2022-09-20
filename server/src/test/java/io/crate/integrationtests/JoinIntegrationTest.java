@@ -135,12 +135,12 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("insert into t2 (num, value, qty) values (1, 'xxx', 12), (3, 'yyy', 7), (5, 'zzz', 0)");
         execute("refresh table t1, t2");
         ensureGreen();
-        execute("SELECT * FROM t1 AS rel1 INNER JOIN t2 USING (num, value) ORDER BY rel1.num");
+        execute("SELECT * FROM t1 AS rel1 INNER JOIN t2 USING (num, value) ORDER BY rel1.num asc");
         assertThat(printedTable(response.rows()), is(
             "1| xxx| 1| xxx| 12\n" +
             "3| yyy| 3| yyy| 7\n" +
             "5| zzz| 5| zzz| 0\n"));
-        execute("SELECT * FROM (SELECT * FROM t1) AS rel1 JOIN (SELECT * FROM t2) AS rel2 USING (num, value) ORDER BY rel1.num;");
+        execute("SELECT * FROM (SELECT * FROM t1) AS rel1 JOIN (SELECT * FROM t2) AS rel2 USING (num, value) ORDER BY rel1.num asc;");
         assertThat(printedTable(response.rows()), is(
             "1| xxx| 1| xxx| 12\n" +
             "3| yyy| 3| yyy| 7\n" +
