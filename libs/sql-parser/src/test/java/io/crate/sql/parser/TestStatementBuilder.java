@@ -43,6 +43,7 @@ import io.crate.sql.tree.ArrayLikePredicate;
 import io.crate.sql.tree.ArrayLiteral;
 import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.BeginStatement;
+import io.crate.sql.tree.Close;
 import io.crate.sql.tree.CommitStatement;
 import io.crate.sql.tree.ComparisonExpression;
 import io.crate.sql.tree.CopyFrom;
@@ -52,6 +53,7 @@ import io.crate.sql.tree.CreateSubscription;
 import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.CreateUser;
 import io.crate.sql.tree.DeallocateStatement;
+import io.crate.sql.tree.Declare;
 import io.crate.sql.tree.DefaultTraversalVisitor;
 import io.crate.sql.tree.DenyPrivilege;
 import io.crate.sql.tree.DropAnalyzer;
@@ -66,6 +68,7 @@ import io.crate.sql.tree.DropUser;
 import io.crate.sql.tree.DropView;
 import io.crate.sql.tree.EscapedCharStringLiteral;
 import io.crate.sql.tree.Expression;
+import io.crate.sql.tree.Fetch;
 import io.crate.sql.tree.FunctionCall;
 import io.crate.sql.tree.GCDanglingArtifacts;
 import io.crate.sql.tree.GrantPrivilege;
@@ -113,6 +116,36 @@ public class TestStatementBuilder {
         statements = SqlParser.createStatements("SET extra_float_digits = 3");
         assertThat(statements).hasSize(1);
         assertThat(statements.get(0)).isExactlyInstanceOf(SetStatement.class);
+    }
+
+    @Test
+    public void test_declare() {
+        printStatement("DECLARE c1 CURSOR FOR select 1");
+        printStatement("DECLARE c1 BINARY CURSOR FOR select 1");
+        printStatement("DECLARE c1 INSENSITIVE CURSOR FOR select 1");
+        printStatement("DECLARE c1 ASENSITIVE CURSOR FOR select 1");
+        printStatement("DECLARE c1 SCROLL CURSOR FOR select 1");
+        printStatement("DECLARE c1 NO SCROLL CURSOR FOR select 1");
+        printStatement("DECLARE c1 NO SCROLL BINARY ASENSITIVE CURSOR FOR select 1");
+    }
+
+    @Test
+    public void test_fetch() {
+        printStatement("FETCH FROM c1");
+        printStatement("FETCH IN c1");
+        printStatement("FETCH FIRST FROM c1");
+        printStatement("FETCH LAST FROM c1");
+        printStatement("FETCH ALL FROM c1");
+        printStatement("FETCH FORWARD FROM c1");
+        printStatement("FETCH FORWARD 4 FROM c1");
+        printStatement("FETCH ABSOLUTE 3 FROM c1");
+        printStatement("FETCH BACKWARD 4 FROM c1");
+    }
+
+    @Test
+    public void test_close() {
+        printStatement("CLOSE ALL");
+        printStatement("CLOSE c1");
     }
 
     @Test
@@ -1963,7 +1996,10 @@ public class TestStatementBuilder {
             statement instanceof CreateSubscription ||
             statement instanceof DropSubscription ||
             statement instanceof AlterSubscription ||
-            statement instanceof With) {
+            statement instanceof With ||
+            statement instanceof Declare ||
+            statement instanceof Fetch ||
+            statement instanceof Close) {
 
             println(SqlFormatter.formatSql(statement));
             println("");

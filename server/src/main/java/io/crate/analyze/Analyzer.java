@@ -44,6 +44,7 @@ import io.crate.sql.tree.AlterUser;
 import io.crate.sql.tree.AnalyzeStatement;
 import io.crate.sql.tree.AstVisitor;
 import io.crate.sql.tree.BeginStatement;
+import io.crate.sql.tree.Close;
 import io.crate.sql.tree.CommitStatement;
 import io.crate.sql.tree.CopyFrom;
 import io.crate.sql.tree.CopyTo;
@@ -59,6 +60,7 @@ import io.crate.sql.tree.CreateTableAs;
 import io.crate.sql.tree.CreateUser;
 import io.crate.sql.tree.CreateView;
 import io.crate.sql.tree.DeallocateStatement;
+import io.crate.sql.tree.Declare;
 import io.crate.sql.tree.DecommissionNodeStatement;
 import io.crate.sql.tree.Delete;
 import io.crate.sql.tree.DenyPrivilege;
@@ -76,6 +78,7 @@ import io.crate.sql.tree.DropUser;
 import io.crate.sql.tree.DropView;
 import io.crate.sql.tree.Explain;
 import io.crate.sql.tree.Expression;
+import io.crate.sql.tree.Fetch;
 import io.crate.sql.tree.GCDanglingArtifacts;
 import io.crate.sql.tree.GrantPrivilege;
 import io.crate.sql.tree.Insert;
@@ -680,6 +683,21 @@ public class Analyzer {
         public AnalyzedStatement visitAlterSubscription(AlterSubscription alterSubscription,
                                                         Analysis context) {
             return logicalReplicationAnalyzer.analyze(alterSubscription, context.sessionSettings());
+        }
+
+        @Override
+        public AnalyzedStatement visitDeclare(Declare declare, Analysis context) {
+            throw new UnsupportedOperationException("DECLARE is not supported");
+        }
+
+        @Override
+        public AnalyzedStatement visitClose(Close close, Analysis context) {
+            throw new UnsupportedOperationException("CLOSE is not supported");
+        }
+
+        @Override
+        public AnalyzedStatement visitFetch(Fetch fetch, Analysis context) {
+            throw new UnsupportedOperationException("FETCH is not supported");
         }
     }
 }

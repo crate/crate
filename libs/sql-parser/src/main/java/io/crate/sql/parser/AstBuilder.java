@@ -47,8 +47,13 @@ import io.crate.sql.parser.antlr.v4.SqlBaseBaseVisitor;
 import io.crate.sql.parser.antlr.v4.SqlBaseLexer;
 import io.crate.sql.parser.antlr.v4.SqlBaseParser;
 import io.crate.sql.parser.antlr.v4.SqlBaseParser.BitStringContext;
+import io.crate.sql.parser.antlr.v4.SqlBaseParser.CloseContext;
 import io.crate.sql.parser.antlr.v4.SqlBaseParser.ConflictTargetContext;
+import io.crate.sql.parser.antlr.v4.SqlBaseParser.DeclareContext;
+import io.crate.sql.parser.antlr.v4.SqlBaseParser.DeclareCursorParamsContext;
+import io.crate.sql.parser.antlr.v4.SqlBaseParser.DirectionContext;
 import io.crate.sql.parser.antlr.v4.SqlBaseParser.DiscardContext;
+import io.crate.sql.parser.antlr.v4.SqlBaseParser.FetchContext;
 import io.crate.sql.parser.antlr.v4.SqlBaseParser.IsolationLevelContext;
 import io.crate.sql.parser.antlr.v4.SqlBaseParser.SetTransactionContext;
 import io.crate.sql.parser.antlr.v4.SqlBaseParser.StatementsContext;
@@ -83,6 +88,7 @@ import io.crate.sql.tree.Cast;
 import io.crate.sql.tree.CharFilters;
 import io.crate.sql.tree.CheckColumnConstraint;
 import io.crate.sql.tree.CheckConstraint;
+import io.crate.sql.tree.Close;
 import io.crate.sql.tree.ClusteredBy;
 import io.crate.sql.tree.CollectionColumnType;
 import io.crate.sql.tree.ColumnConstraint;
@@ -106,6 +112,8 @@ import io.crate.sql.tree.CreateUser;
 import io.crate.sql.tree.CreateView;
 import io.crate.sql.tree.CurrentTime;
 import io.crate.sql.tree.DeallocateStatement;
+import io.crate.sql.tree.Declare;
+import io.crate.sql.tree.Declare.Hold;
 import io.crate.sql.tree.DecommissionNodeStatement;
 import io.crate.sql.tree.Delete;
 import io.crate.sql.tree.DenyPrivilege;
@@ -128,6 +136,8 @@ import io.crate.sql.tree.ExistsPredicate;
 import io.crate.sql.tree.Explain;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.Extract;
+import io.crate.sql.tree.Fetch;
+import io.crate.sql.tree.Fetch.ScrollMode;
 import io.crate.sql.tree.FrameBound;
 import io.crate.sql.tree.FunctionArgument;
 import io.crate.sql.tree.FunctionCall;
@@ -265,6 +275,67 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     @Override
     public Node visitAnalyze(SqlBaseParser.AnalyzeContext ctx) {
         return new AnalyzeStatement();
+    }
+
+    @Override
+    public Node visitDeclare(DeclareContext ctx) {
+        final Hold hold;
+        if (ctx.HOLD() == null) {
+            hold = Hold.WITHOUT;
+        } else {
+            hold = ctx.WITH() == null ? Hold.WITHOUT : Hold.WITH;
+        }
+        DeclareCursorParamsContext declareCursorParams = ctx.declareCursorParams();
+        // SENSITIVITY is ignored. In CrateDB all cursors are insensitive
+
+        Query query = (Query) ctx.queryNoWith().accept(this);
+        return new Declare(
+            getIdentText(ctx.ident()),
+            hold,
+            !declareCursorParams.BINARY().isEmpty(),
+            declareCursorParams.NO().isEmpty(),
+            query
+        );
+    }
+
+    @Override
+    public Node visitFetch(FetchContext ctx) {
+        String cursorName = getIdentText(ctx.ident());
+        DirectionContext direction = ctx.direction();
+
+        ScrollMode scrollMode;
+        long count = 1;
+        // See ScrollMode description
+        if (direction == null) {
+            scrollMode = Fetch.ScrollMode.RELATIVE;
+        } else if (direction.FIRST() != null) {
+            scrollMode = Fetch.ScrollMode.ABSOLUTE;
+            count = 1;
+        } else if (direction.LAST() != null) {
+            scrollMode = Fetch.ScrollMode.ABSOLUTE;
+            count = -1;
+        } else if (direction.ABSOLUTE() != null) {
+            scrollMode = Fetch.ScrollMode.ABSOLUTE;
+            count = Long.parseLong(direction.integerLiteral().getText());
+        } else {
+            scrollMode = Fetch.ScrollMode.RELATIVE;
+            if (direction.ALL() != null) {
+                count = Long.MAX_VALUE;
+            }
+            if (direction.BACKWARD() != null) {
+                count = count * -1;
+            }
+        }
+        return new Fetch(scrollMode, count, cursorName);
+    }
+
+    @Override
+    public Node visitClose(CloseContext ctx) {
+        if (ctx.ALL() == null) {
+            return new Close(getIdentText(ctx.ident()));
+        } else {
+            return new Close(null);
+        }
     }
 
     @Override
