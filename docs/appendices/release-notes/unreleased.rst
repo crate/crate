@@ -68,6 +68,9 @@ Deprecations
 Changes
 =======
 
+- Added initial support for cursors. See :ref:`DECLARE <sql-declare>`,
+  :ref:`FETCH <sql-fetch>` and :ref:`CLOSE <sql-close>`.
+
 - Added support for ``SET TIME ZONE`` to improve PostgreSQL Compatibility.
   Timezone will be ignored on the server side.
 
