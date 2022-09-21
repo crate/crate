@@ -40,6 +40,7 @@ public class CursorITest extends IntegTestCase {
     private Properties properties;
 
     private String url() {
+        // Tests use JDBC to be able to re-use the same connection to the same node
         PostgresNetty postgresNetty = internalCluster().getInstance(PostgresNetty.class);
         int port = postgresNetty.boundAddress().publishAddress().getPort();
         return "jdbc:postgresql://127.0.0.1:" + port + '/';
@@ -53,7 +54,6 @@ public class CursorITest extends IntegTestCase {
 
     @Test
     public void test_declare_fetch_and_close() throws Exception {
-        // Using JDBC to be able to re-use the same connection to the same node
         try (var conn = DriverManager.getConnection(url(), properties)) {
             Statement statement = conn.createStatement();
             conn.setAutoCommit(false);
@@ -75,6 +75,32 @@ public class CursorITest extends IntegTestCase {
 
             assertThatThrownBy(() -> statement.executeQuery("fetch forward 2 from c1"))
                 .hasMessageContaining("No cursor named `c1` available");
+        }
+    }
+
+    @Test
+    public void test_fetching_from_cursor_positioned_at_end_returns_empty_result() throws Exception {
+        try (var conn = DriverManager.getConnection(url(), properties)) {
+            Statement statement = conn.createStatement();
+            conn.setAutoCommit(false);
+
+            String declare = "declare c1 no scroll cursor for select * from generate_series(1, 10)";
+            statement.execute(declare);
+            ResultSet result = statement.executeQuery("FETCH ALL FROM c1");
+            int nextExpectedResult = 1;
+            while (result.next()) {
+                assertThat(result.getInt(1)).isEqualTo(nextExpectedResult);
+                nextExpectedResult++;
+            }
+            assertThat(nextExpectedResult)
+                .as("FETCH ALL must return all 10 rows")
+                .isEqualTo(11);
+
+            result = statement.executeQuery("FETCH FROM c1");
+            assertThat(result.next()).isEqualTo(false);
+
+            result = statement.executeQuery("FETCH FROM c1");
+            assertThat(result.next()).isEqualTo(false);
         }
     }
 

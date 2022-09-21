@@ -129,4 +129,24 @@ public class CursorTest extends CrateDummyClusterServiceUnitTest {
         assertThatThrownBy(() -> executePlan(executor, plan).getBucket())
             .hasMessage("DECLARE CURSOR can only be used in transaction blocks");
     }
+
+    @Test
+    public void test_fetch_backward_is_not_supported() {
+        Plan plan = executor.plan("declare c1 no scroll cursor for select 1");
+        executePlan(executor, plan);
+
+        Plan fetch = executor.plan("fetch backward from c1");
+        assertThatThrownBy(() -> executePlan(executor, fetch).getBucket())
+            .hasMessage("Cannot scroll backwards");
+    }
+
+    @Test
+    public void test_fetch_absolute_is_not_supported() {
+        Plan plan = executor.plan("declare c1 no scroll cursor for select 1");
+        executePlan(executor, plan);
+
+        Plan fetch = executor.plan("fetch absolute 3 from c1");
+        assertThatThrownBy(() -> executePlan(executor, fetch).getBucket())
+            .hasMessage("Scrolling to an absolute position is not supported");
+    }
 }
