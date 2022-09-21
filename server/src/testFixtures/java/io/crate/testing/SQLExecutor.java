@@ -44,6 +44,7 @@ import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_INDEX_UUI
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_VERSION_CREATED;
 import static org.elasticsearch.env.Environment.PATH_HOME_SETTING;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.io.File;
 import java.io.IOException;
@@ -106,9 +107,12 @@ import org.elasticsearch.test.ClusterServiceUtils;
 import org.elasticsearch.test.gateway.TestGatewayAllocator;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.RemoteClusters;
+import org.mockito.Answers;
 
 import io.crate.Constants;
 import io.crate.action.sql.Cursors;
+import io.crate.action.sql.SQLOperations;
+import io.crate.action.sql.Session;
 import io.crate.analyze.AnalyzedCreateBlobTable;
 import io.crate.analyze.AnalyzedCreateTable;
 import io.crate.analyze.AnalyzedStatement;
@@ -131,6 +135,7 @@ import io.crate.common.collections.MapBuilder;
 import io.crate.data.Row;
 import io.crate.execution.ddl.RepositoryService;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
+import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.execution.engine.pipeline.TopN;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
@@ -196,6 +201,7 @@ public class SQLExecutor {
 
     private static final Logger LOGGER = LogManager.getLogger(SQLExecutor.class);
 
+    public final SQLOperations sqlOperations;
     public final Analyzer analyzer;
     public final Planner planner;
     private final RelationAnalyzer relAnalyzer;
@@ -207,8 +213,13 @@ public class SQLExecutor {
     private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
     private final UserDefinedFunctionService udfService;
     public final Cursors cursors = new Cursors();
+    public final JobsLogs jobsLogs;
+    public final DependencyCarrier dependencyMock;
 
     public TransactionState transactionState = TransactionState.IDLE;
+    public boolean jobsLogsEnabled;
+
+
 
     /**
      * Shortcut for {@link #getPlannerContext(ClusterState, Random)}
@@ -253,6 +264,7 @@ public class SQLExecutor {
         private Schemas schemas;
         private LoadedRules loadedRules = new LoadedRules();
         private SessionSettingRegistry sessionSettingRegistry = new SessionSettingRegistry(Set.of(loadedRules));
+        private Planner planner;
 
         private Builder(ClusterService clusterService,
                         int numNodes,
@@ -428,6 +440,7 @@ public class SQLExecutor {
         public SQLExecutor build() {
             RelationAnalyzer relationAnalyzer = new RelationAnalyzer(nodeCtx, schemas);
             return new SQLExecutor(
+                clusterService,
                 nodeCtx,
                 new Analyzer(
                     schemas,
@@ -444,17 +457,19 @@ public class SQLExecutor {
                     sessionSettingRegistry,
                     logicalReplicationService
                 ),
-                new Planner(
-                    Settings.EMPTY,
-                    clusterService,
-                    nodeCtx,
-                    tableStats,
-                    null,
-                    null,
-                    schemas,
-                    userManager,
-                    sessionSettingRegistry
-                ),
+                planner != null
+                    ? planner
+                    : new Planner(
+                        Settings.EMPTY,
+                        clusterService,
+                        nodeCtx,
+                        tableStats,
+                        null,
+                        null,
+                        schemas,
+                        userManager,
+                        sessionSettingRegistry
+                    ),
                 relationAnalyzer,
                 new CoordinatorSessionSettings(user, searchPath),
                 schemas,
@@ -752,6 +767,11 @@ public class SQLExecutor {
             udfService.updateImplementations(udf.schema(), Stream.of(udf));
             return this;
         }
+
+        public Builder overridePlanner(Planner planner) {
+            this.planner = planner;
+            return this;
+        }
     }
 
     public static Builder builder(ClusterService clusterService, AbstractModule... additionalModules) {
@@ -799,7 +819,8 @@ public class SQLExecutor {
         }
     }
 
-    private SQLExecutor(NodeContext nodeCtx,
+    private SQLExecutor(ClusterService clusterService,
+                        NodeContext nodeCtx,
                         Analyzer analyzer,
                         Planner planner,
                         RelationAnalyzer relAnalyzer,
@@ -808,6 +829,20 @@ public class SQLExecutor {
                         Random random,
                         FulltextAnalyzerResolver fulltextAnalyzerResolver,
                         UserDefinedFunctionService udfService) {
+        this.jobsLogsEnabled = false;
+        this.jobsLogs = new JobsLogs(() -> SQLExecutor.this.jobsLogsEnabled);
+        this.dependencyMock = mock(DependencyCarrier.class, Answers.RETURNS_MOCKS);
+        when(dependencyMock.clusterService()).thenReturn(clusterService);
+        when(dependencyMock.schemas()).thenReturn(schemas);
+        this.sqlOperations = new SQLOperations(
+            nodeCtx,
+            analyzer,
+            planner,
+            () -> dependencyMock,
+            jobsLogs,
+            clusterService.getSettings(),
+            clusterService
+        );
         this.analyzer = analyzer;
         this.planner = planner;
         this.relAnalyzer = relAnalyzer;
@@ -942,5 +977,12 @@ public class SQLExecutor {
         IndexParts indexParts = new IndexParts(tableName);
         QualifiedName qualifiedName = QualifiedName.of(indexParts.getSchema(), indexParts.getTable());
         return (T) schemas.resolveTableInfo(qualifiedName, Operation.READ, sessionSettings.sessionUser(), sessionSettings.searchPath());
+    }
+
+    public Session createSession() {
+        return sqlOperations.createSession(
+            sessionSettings.currentSchema(),
+            sessionSettings.authenticatedUser()
+        );
     }
 }

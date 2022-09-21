@@ -21,6 +21,10 @@
 
 package io.crate.action.sql;
 
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import javax.annotation.Nullable;
 
 import org.elasticsearch.cluster.service.ClusterService;
@@ -37,6 +41,7 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Planner;
+import io.crate.protocols.postgres.KeyData;
 import io.crate.user.User;
 
 
@@ -55,7 +60,10 @@ public class SQLOperations {
     private final JobsLogs jobsLogs;
     private final ClusterService clusterService;
     private final boolean isReadOnly;
+    private final AtomicInteger nextSessionId = new AtomicInteger();
+    private final ConcurrentMap<Integer, Session> sessions = new ConcurrentHashMap<>();
     private volatile boolean disabled;
+
 
     @Inject
     public SQLOperations(NodeContext nodeCtx,
@@ -78,14 +86,20 @@ public class SQLOperations {
         if (disabled) {
             throw new NodeDisconnectedException(clusterService.localNode(), "sql");
         }
-        return new Session(
+        int sessionId = nextSessionId.incrementAndGet();
+        Session session = new Session(
+            sessionId,
             nodeCtx,
             analyzer,
             planner,
             jobsLogs,
             isReadOnly,
             executorProvider.get(),
-            sessionSettings);
+            sessionSettings,
+            () -> sessions.remove(sessionId)
+        );
+        sessions.put(sessionId, session);
+        return session;
     }
 
     public Session newSystemSession() {
@@ -121,5 +135,12 @@ public class SQLOperations {
 
     public boolean isEnabled() {
         return !disabled;
+    }
+
+    public void cancel(KeyData keyData) {
+        Session session = sessions.get(keyData.pid());
+        if (session != null && session.secret() == keyData.secretKey()) {
+            session.cancelCurrentJob();
+        }
     }
 }

@@ -28,7 +28,6 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -38,7 +37,6 @@ import javax.annotation.Nullable;
 import com.carrotsearch.hppc.IntHashSet;
 import com.carrotsearch.hppc.IntSet;
 
-import io.crate.execution.jobs.kill.KillJobsNodeAction;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
@@ -115,10 +113,6 @@ public class PostgresNetty extends AbstractLifecycleComponent {
     private final PageCacheRecycler pageCacheRecycler;
     private final Netty4Transport transport;
 
-    private final PgSessions activeSessions;
-    private final AtomicInteger pid = new AtomicInteger();
-
-
     @Inject
     public PostgresNetty(Settings settings,
                          SQLOperations sqlOperations,
@@ -139,7 +133,6 @@ public class PostgresNetty extends AbstractLifecycleComponent {
         this.nettyBootstrap = nettyBootstrap;
         this.transport = netty4Transport;
         this.pageCacheRecycler = pageCacheRecycler;
-        this.activeSessions = new PgSessions(req -> node.client().execute(KillJobsNodeAction.INSTANCE, req));
 
         if (SslSettings.isPSQLSslEnabled(settings)) {
             namedLogger.info("PSQL SSL support is enabled.");
@@ -183,9 +176,8 @@ public class PostgresNetty extends AbstractLifecycleComponent {
                         chPipeline.addLast("dispatcher", new Netty4MessageChannelHandler(pageCacheRecycler, transport));
                     },
                     authentication,
-                    sslContextProvider,
-                    activeSessions,
-                    KeyData.generate(pid.incrementAndGet()));
+                    sslContextProvider
+                );
                 pipeline.addLast("frame-decoder", postgresWireProtocol.decoder);
                 pipeline.addLast("handler", postgresWireProtocol.handler);
             }

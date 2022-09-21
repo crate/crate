@@ -195,4 +195,14 @@ class ClientMessages {
         buffer.writeInt(keyData.pid());
         buffer.writeInt(keyData.secretKey());
     }
+
+    static void sendExecute(ByteBuf buffer, String portalName, int numRows) {
+        byte[] portalNameBytes = portalName.getBytes(StandardCharsets.UTF_8);
+        int length = 4 + portalNameBytes.length + 1 + 4;
+        buffer.writeByte('E');
+        buffer.writeInt(length);
+        buffer.writeBytes(portalNameBytes);
+        buffer.writeByte(0);
+        buffer.writeInt(numRows);
+    }
 }

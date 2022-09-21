@@ -21,48 +21,34 @@
 
 package io.crate.protocols.postgres;
 
-import static org.hamcrest.Matchers.arrayContaining;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.emptyArray;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 
-import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
-import org.mockito.Answers;
+import org.mockito.Mockito;
 
 import io.crate.action.sql.BaseResultReceiver;
 import io.crate.action.sql.Session;
-import io.crate.analyze.AnalyzedStatement;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
-import io.crate.execution.engine.collect.stats.JobsLogs;
-import io.crate.metadata.settings.CoordinatorSessionSettings;
-import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
-import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import io.crate.user.StubUserManager;
 
 public class BatchPortalTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testEachStatementReceivesCorrectParams() throws Throwable {
-
-        SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService)
-            .addTable("create table t1 (x int)")
-            .build();
 
         Plan insertPlan = new Plan() {
             @Override
@@ -79,33 +65,14 @@ public class BatchPortalTest extends CrateDummyClusterServiceUnitTest {
                 consumer.accept(InMemoryBatchIterator.of(params, null), null);
             }
         };
-        Planner planner = new Planner(
-            Settings.EMPTY,
-            clusterService,
-            sqlExecutor.nodeCtx,
-            new TableStats(),
-            null,
-            null,
-            sqlExecutor.schemas(),
-            new StubUserManager(),
-            mock(SessionSettingRegistry.class)
-            ) {
+        Planner plannerMock = mock(Planner.class);
+        when(plannerMock.plan(Mockito.any(), Mockito.any())).thenReturn(insertPlan);
+        SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService)
+            .addTable("create table t1 (x int)")
+            .overridePlanner(plannerMock)
+            .build();
 
-            @Override
-            public Plan plan(AnalyzedStatement analyzedStatement, PlannerContext plannerContext) {
-                return insertPlan;
-            }
-        };
-
-        DependencyCarrier executor = mock(DependencyCarrier.class, Answers.RETURNS_MOCKS);
-        Session session = new Session(
-            sqlExecutor.nodeCtx,
-            sqlExecutor.analyzer,
-            planner,
-            new JobsLogs(() -> false),
-            false,
-            executor,
-            CoordinatorSessionSettings.systemDefaults());
+        Session session = sqlExecutor.createSession();
 
         session.parse("S_1", "insert into t1(x) values(1)", Collections.emptyList());
         session.bind("Portal", "S_1", Collections.emptyList(), null);
@@ -128,7 +95,7 @@ public class BatchPortalTest extends CrateDummyClusterServiceUnitTest {
         });
         session.sync().get(5, TimeUnit.SECONDS);
 
-        assertThat(s1Rows, contains(emptyArray()));
-        assertThat(s2Rows, contains(arrayContaining(is(2))));
+        assertThat(s1Rows).contains(new Object[0]);
+        assertThat(s2Rows).contains(new Object[] { 2 });
     }
 }

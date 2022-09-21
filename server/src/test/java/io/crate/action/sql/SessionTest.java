@@ -54,7 +54,6 @@ import io.crate.analyze.Relations;
 import io.crate.analyze.TableDefinitions;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
-import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.ParameterSymbol;
 import io.crate.expression.symbol.Symbol;
@@ -127,15 +126,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_out_of_bounds_getParamType_fails() throws Exception {
         SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService).build();
-        Session session = new Session(
-            sqlExecutor.nodeCtx,
-            sqlExecutor.analyzer,
-            sqlExecutor.planner,
-            new JobsLogs(() -> false),
-            false,
-            mock(DependencyCarrier.class),
-            CoordinatorSessionSettings.systemDefaults());
-
+        Session session = sqlExecutor.createSession();
         session.parse("S_1", "Select 1 + ? + ?;", Collections.emptyList());
         Assertions.assertThrows(
             IllegalArgumentException.class,
@@ -147,15 +138,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_getParamType_returns_types_infered_from_statement() {
         SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService).build();
-        DependencyCarrier executor = mock(DependencyCarrier.class);
-        Session session = new Session(
-            sqlExecutor.nodeCtx,
-            sqlExecutor.analyzer,
-            sqlExecutor.planner,
-            new JobsLogs(() -> false),
-            false,
-            executor,
-            CoordinatorSessionSettings.systemDefaults());
+        Session session = sqlExecutor.createSession();
 
         session.parse("S_1", "Select 1 + ? + ?;", Collections.emptyList());
         assertThat(session.getParamType("S_1", 0), is(DataTypes.INTEGER));
@@ -171,15 +154,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_select_query_executed_on_session_execute_method() {
         SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService).build();
-        Session session = Mockito.spy(new Session(
-            sqlExecutor.nodeCtx,
-            sqlExecutor.analyzer,
-            sqlExecutor.planner,
-            new JobsLogs(() -> false),
-            false,
-            mock(DependencyCarrier.class),
-            CoordinatorSessionSettings.systemDefaults())
-        );
+        Session session = Mockito.spy(sqlExecutor.createSession());
 
         var activeExecutionFuture = CompletableFuture.completedFuture(null);
         doReturn(activeExecutionFuture)
@@ -209,18 +184,11 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
     public void test_flush_triggers_deferred_executions_and_sets_active_execution() throws Exception {
         SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService)
             .addTable("create table users (name text)")
+            .overridePlanner(mock(Planner.class, Answers.RETURNS_MOCKS))
             .build();
         DependencyCarrier dependencies = mock(DependencyCarrier.class);
         when(dependencies.clusterService()).thenReturn(clusterService);
-        Session session = Mockito.spy(new Session(
-            sqlExecutor.nodeCtx,
-            sqlExecutor.analyzer,
-            mock(Planner.class, Answers.RETURNS_MOCKS),
-            new JobsLogs(() -> false),
-            false,
-            dependencies,
-            CoordinatorSessionSettings.systemDefaults())
-        );
+        Session session = Mockito.spy(sqlExecutor.createSession());
         session.parse("", "insert into users (name) values (?)", List.of());
         session.bind("", "", List.of("Arthur"), null);
         session.execute("", -1, new BaseResultReceiver());
@@ -376,14 +344,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService).build();
 
         DependencyCarrier executor = mock(DependencyCarrier.class);
-        Session session = new Session(
-            sqlExecutor.nodeCtx,
-            sqlExecutor.analyzer,
-            sqlExecutor.planner,
-            new JobsLogs(() -> false),
-            false,
-            executor,
-            CoordinatorSessionSettings.systemDefaults());
+        Session session = sqlExecutor.createSession();
 
         session.parse("S_1", "select name from sys.cluster;", Collections.emptyList());
         session.bind("Portal", "S_1", Collections.emptyList(), null);
@@ -411,14 +372,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
 
         DependencyCarrier executor = mock(DependencyCarrier.class);
         when(executor.threadPool()).thenReturn(mock(ThreadPool.class));
-        Session session = new Session(
-            sqlExecutor.nodeCtx,
-            sqlExecutor.analyzer,
-            sqlExecutor.planner,
-            new JobsLogs(() -> false),
-            false,
-            executor,
-            CoordinatorSessionSettings.systemDefaults());
+        Session session = sqlExecutor.createSession();
 
         session.parse("S_1", "select * from sys.cluster;", Collections.emptyList());
         session.bind("Portal", "S_1", Collections.emptyList(), null);
@@ -438,14 +392,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
 
         DependencyCarrier executor = mock(DependencyCarrier.class);
         when(executor.threadPool()).thenReturn(mock(ThreadPool.class));
-        Session session = new Session(
-            sqlExecutor.nodeCtx,
-            sqlExecutor.analyzer,
-            sqlExecutor.planner,
-            new JobsLogs(() -> false),
-            false,
-            executor,
-            CoordinatorSessionSettings.systemDefaults());
+        Session session = sqlExecutor.createSession();
 
         session.parse("test_prep_stmt", "select * from sys.cluster;", Collections.emptyList());
         session.bind("Portal", "test_prep_stmt", Collections.emptyList(), null);
@@ -464,14 +411,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
     public void test_closing_a_statement_closes_related_portals() {
         SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService).build();
         DependencyCarrier executor = mock(DependencyCarrier.class, Answers.RETURNS_MOCKS);
-        Session session = new Session(
-            sqlExecutor.nodeCtx,
-            sqlExecutor.analyzer,
-            sqlExecutor.planner,
-            new JobsLogs(() -> false),
-            false,
-            executor,
-            CoordinatorSessionSettings.systemDefaults());
+        Session session = sqlExecutor.createSession();
 
         session.parse("S_1", "SELECT 1", List.of());
         session.bind("P_1", "S_1", List.of(), null);
@@ -488,14 +428,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
     public void test_discard_all_discards_all_portals_and_prepared_statements() throws Exception {
         SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService).build();
         DependencyCarrier executor = mock(DependencyCarrier.class, Answers.RETURNS_MOCKS);
-        Session session = new Session(
-            sqlExecutor.nodeCtx,
-            sqlExecutor.analyzer,
-            sqlExecutor.planner,
-            new JobsLogs(() -> false),
-            false,
-            executor,
-            CoordinatorSessionSettings.systemDefaults());
+        Session session = sqlExecutor.createSession();
 
         session.parse("S_1", "SELECT 1", List.of());
         session.bind("P_1", "S_1", List.of(), null);
@@ -513,11 +446,12 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_bulk_operations_result_in_jobslog_entries() throws Exception {
+        Planner planner = mock(Planner.class);
         SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService)
             .addTable("create table t1 (x int)")
+            .overridePlanner(planner)
             .build();
-        DependencyCarrier executor = mock(DependencyCarrier.class, Answers.RETURNS_MOCKS);
-        Planner planner = mock(Planner.class);
+        sqlExecutor.jobsLogsEnabled = true;
         when(planner.plan(any(AnalyzedStatement.class), any(PlannerContext.class)))
             .thenReturn(
                 new Plan() {
@@ -543,15 +477,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
                     }
                 }
             );
-        JobsLogs jobsLogs = new JobsLogs(() -> true);
-        Session session = new Session(
-            sqlExecutor.nodeCtx,
-            sqlExecutor.analyzer,
-            planner,
-            jobsLogs,
-            false,
-            executor,
-            CoordinatorSessionSettings.systemDefaults());
+        Session session = sqlExecutor.createSession();
 
         session.parse("S_1", "INSERT INTO t1 (x) VALUES (1)", List.of());
         session.bind("P_1", "S_1", List.of(), null);
@@ -561,7 +487,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         session.execute("P_1", 0, new BaseResultReceiver());
 
         session.sync().get(5, TimeUnit.SECONDS);
-        assertThat(jobsLogs.metrics().iterator().next().totalCount(), is(1L));
+        assertThat(sqlExecutor.jobsLogs.metrics().iterator().next().totalCount(), is(1L));
     }
 
 

@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Function;
 
 import javax.annotation.Nullable;
@@ -59,6 +60,8 @@ import io.crate.data.RowN;
 import io.crate.exceptions.ReadOnlyException;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.engine.collect.stats.JobsLogs;
+import io.crate.execution.jobs.kill.KillJobsNodeAction;
+import io.crate.execution.jobs.kill.KillJobsNodeRequest;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -140,22 +143,30 @@ public class Session implements AutoCloseable {
     @Nullable
     private UUID mostRecentJobID;
 
+    private final int id;
+    private final int secret;
     private final NodeContext nodeCtx;
     private final Analyzer analyzer;
     private final Planner planner;
     private final JobsLogs jobsLogs;
     private final boolean isReadOnly;
     private final ParameterTypeExtractor parameterTypeExtractor;
+    private final Runnable onClose;
 
     private TransactionState currentTransactionState = TransactionState.IDLE;
 
-    public Session(NodeContext nodeCtx,
+
+    public Session(int sessionId,
+                   NodeContext nodeCtx,
                    Analyzer analyzer,
                    Planner planner,
                    JobsLogs jobsLogs,
                    boolean isReadOnly,
                    DependencyCarrier executor,
-                   CoordinatorSessionSettings sessionSettings) {
+                   CoordinatorSessionSettings sessionSettings,
+                   Runnable onClose) {
+        this.id = sessionId;
+        this.secret = ThreadLocalRandom.current().nextInt();
         this.nodeCtx = nodeCtx;
         this.analyzer = analyzer;
         this.planner = planner;
@@ -164,6 +175,15 @@ public class Session implements AutoCloseable {
         this.executor = executor;
         this.sessionSettings = sessionSettings;
         this.parameterTypeExtractor = new ParameterTypeExtractor();
+        this.onClose = onClose;
+    }
+
+    public int id() {
+        return id;
+    }
+
+    public int secret() {
+        return secret;
     }
 
     /**
@@ -799,6 +819,7 @@ public class Session implements AutoCloseable {
         portals.clear();
         preparedStatements.clear();
         cursors.close(c -> true);
+        onClose.run();
     }
 
     public boolean hasDeferredExecutions() {
@@ -822,5 +843,19 @@ public class Session implements AutoCloseable {
     @Nullable
     public java.util.UUID getMostRecentJobID() {
         return mostRecentJobID;
+    }
+
+    public void cancelCurrentJob() {
+        if (mostRecentJobID == null) {
+            return;
+        }
+        var request = new KillJobsNodeRequest(
+            List.of(),
+            List.of(mostRecentJobID),
+            sessionSettings.userName(),
+            "Cancellation request by: " + sessionSettings.userName()
+        );
+        executor.client().execute(KillJobsNodeAction.INSTANCE, request);
+        resetDeferredExecutions();
     }
 }
