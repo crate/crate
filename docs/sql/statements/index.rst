@@ -15,7 +15,7 @@ SQL Statements
     alter-user
     analyze
     begin
-    start-transaction
+    close
     commit
     copy-from
     copy-to
@@ -31,6 +31,7 @@ SQL Statements
     create-user
     create-view
     deallocate
+    declare
     delete
     deny
     discard
@@ -45,6 +46,7 @@ SQL Statements
     drop-view
     end
     explain
+    fetch
     grant
     insert
     kill
@@ -57,11 +59,12 @@ SQL Statements
     set-license
     set-session-authorization
     set-transaction
+    show
     show-columns
     show-create-table
     show-schemas
     show-tables
-    show
+    start-transaction
     update
     values
     with
