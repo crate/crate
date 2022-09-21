@@ -25,7 +25,7 @@ import io.netty.buffer.ByteBuf;
 
 import java.util.concurrent.ThreadLocalRandom;
 
-record KeyData(int pid, int secretKey) {
+public record KeyData(int pid, int secretKey) {
 
     static KeyData generate(int pid) {
         int secretKey = ThreadLocalRandom.current().nextInt();

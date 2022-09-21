@@ -199,11 +199,9 @@ public class PostgresWireProtocol {
     private final Function<CoordinatorSessionSettings, AccessControl> getAccessControl;
     private final Authentication authService;
     private final Consumer<ChannelPipeline> addTransportHandler;
-    private final PgSessions activeSessions;
-    @VisibleForTesting
-    final KeyData keyData;
+
     private DelayableWriteChannel channel;
-    private Session session;
+    Session session;
     private boolean ignoreTillSync = false;
     private AuthenticationContext authContext;
     private Properties properties;
@@ -212,17 +210,13 @@ public class PostgresWireProtocol {
                          Function<CoordinatorSessionSettings, AccessControl> getAcessControl,
                          Consumer<ChannelPipeline> addTransportHandler,
                          Authentication authService,
-                         Supplier<SslContext> getSslContext,
-                         PgSessions activeSessions,
-                         KeyData keyData) {
+                         Supplier<SslContext> getSslContext) {
         this.sqlOperations = sqlOperations;
         this.getAccessControl = getAcessControl;
         this.addTransportHandler = addTransportHandler;
         this.authService = authService;
         this.decoder = new PgDecoder(getSslContext);
         this.handler = new MessageHandler();
-        this.keyData = keyData;
-        this.activeSessions = activeSessions;
     }
 
     @Nullable
@@ -380,7 +374,6 @@ public class PostgresWireProtocol {
 
         private void closeSession() {
             if (session != null) {
-                activeSessions.remove(keyData);
                 session.close();
                 session = null;
             }
@@ -441,10 +434,9 @@ public class PostgresWireProtocol {
             User authenticatedUser = authContext.authenticate();
             String database = properties.getProperty("database");
             session = sqlOperations.createSession(database, authenticatedUser);
-            activeSessions.add(this.keyData, session);
             Messages.sendAuthenticationOK(channel)
                 .addListener(f -> sendParams(channel))
-                .addListener(f -> Messages.sendKeyData(channel, keyData.pid(), keyData.secretKey()))
+                .addListener(f -> Messages.sendKeyData(channel, session.id(), session.secret()))
                 .addListener(f -> {
                     sendReadyForQuery(channel, TransactionState.IDLE);
                     if (properties.containsKey("CrateDBTransport")) {
@@ -656,7 +648,7 @@ public class PostgresWireProtocol {
         // The results are later sent to the clients via the `ResultReceiver` created
         // above, The `channel.write` calls - which the `ResultReceiver` makes - may
         // happen in a thread which is *not* a netty thread.
-        // If that is the case, netty schedules the writes intead of running them
+        // If that is the case, netty schedules the writes instead of running them
         // immediately. A consequence of that is that *this* thread can continue
         // processing other messages from the client, and if this thread then sends messages to the
         // client, these are sent immediately, overtaking the result messages of the
@@ -728,7 +720,6 @@ public class PostgresWireProtocol {
     private void handleClose(ByteBuf buffer, Channel channel) {
         byte b = buffer.readByte();
         String portalOrStatementName = readCString(buffer);
-        activeSessions.remove(this.keyData);
         session.close(b, portalOrStatementName);
         Messages.sendCloseComplete(channel);
     }
@@ -809,7 +800,8 @@ public class PostgresWireProtocol {
 
     private void handleCancelRequestBody(ByteBuf buffer, Channel channel) {
         var keyData = KeyData.of(buffer);
-        activeSessions.cancel(keyData);
+
+        sqlOperations.cancel(keyData);
 
         // Cancel request is sent by the client over a new connection.
         // This closes the new connection, not the one running the query.
