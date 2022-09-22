@@ -131,7 +131,6 @@ import io.crate.data.Row;
 import io.crate.execution.ddl.RepositoryService;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.pipeline.TopN;
-import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.udf.UDFLanguage;
@@ -896,7 +895,7 @@ public class SQLExecutor {
                 new SubQueryResults(emptyMap()) {
                     @Override
                     public Object getSafe(SelectSymbol key) {
-                        return Literal.of(key.valueType(), null);
+                        return null;
                     }
                 }
             );
