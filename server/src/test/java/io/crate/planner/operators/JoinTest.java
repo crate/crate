@@ -656,5 +656,9 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             "    └ Collect[doc.t2 | [b, y, i] | (y = ANY((SELECT z FROM (doc.t3))))]\n" +
             "  └ OrderBy[z ASC]\n" +
             "    └ Collect[doc.t3 | [z] | true]")));
+
+        Object plan = e.plan(statement);
+        assertThat(plan, instanceOf(Merge.class));
+        assertThat(((Merge) plan).subPlan(), instanceOf(Join.class));
     }
 }
