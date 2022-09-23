@@ -36,7 +36,6 @@ import org.apache.lucene.index.IndexableField;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.common.geo.GeoPoint;
 import org.elasticsearch.common.geo.GeoUtils;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 
@@ -74,7 +73,6 @@ public class GeoPointFieldMapper extends FieldMapper implements ArrayValueMapper
                 defaultExpression,
                 fieldType,
                 ft,
-                context.indexSettings(),
                 copyTo);
             context.putPositionInfo(mapper, position);
             return mapper;
@@ -97,9 +95,8 @@ public class GeoPointFieldMapper extends FieldMapper implements ArrayValueMapper
                                @Nullable String defaultExpression,
                                FieldType fieldType,
                                MappedFieldType defaultFieldType,
-                               Settings indexSettings,
                                CopyTo copyTo) {
-        super(simpleName, position, defaultExpression, fieldType, defaultFieldType, indexSettings, copyTo);
+        super(simpleName, position, defaultExpression, fieldType, defaultFieldType, copyTo);
     }
 
     @Override

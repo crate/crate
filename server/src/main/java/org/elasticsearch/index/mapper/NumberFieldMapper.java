@@ -40,7 +40,6 @@ import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.common.Numbers;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentParser.Token;
 
@@ -78,7 +77,6 @@ public class NumberFieldMapper extends FieldMapper {
                 defaultExpression,
                 fieldType,
                 new NumberFieldType(buildFullName(context), type, indexed, hasDocValues),
-                context.indexSettings(),
                 copyTo
             );
             context.putPositionInfo(mapper, position);
@@ -456,9 +454,8 @@ public class NumberFieldMapper extends FieldMapper {
             @Nullable String defaultExpression,
             FieldType fieldType,
             MappedFieldType mappedFieldType,
-            Settings indexSettings,
             CopyTo copyTo) {
-        super(simpleName, position, defaultExpression, fieldType, mappedFieldType, indexSettings, copyTo);
+        super(simpleName, position, defaultExpression, fieldType, mappedFieldType, copyTo);
     }
 
     @Override

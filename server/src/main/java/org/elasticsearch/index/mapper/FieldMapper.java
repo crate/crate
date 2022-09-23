@@ -32,8 +32,6 @@ import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.index.mapper.FieldNamesFieldMapper.FieldNamesFieldType;
 
@@ -92,7 +90,6 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
         }
     }
 
-    protected final Version indexCreatedVersion;
     protected FieldType fieldType;
     protected MappedFieldType mappedFieldType;
     protected CopyTo copyTo;
@@ -107,13 +104,10 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
                           @Nullable String defaultExpression,
                           FieldType fieldType,
                           MappedFieldType mappedFieldType,
-                          Settings indexSettings,
                           CopyTo copyTo) {
         super(simpleName);
-        assert indexSettings != null;
         this.position = position;
         this.defaultExpression = defaultExpression;
-        this.indexCreatedVersion = Version.indexCreated(indexSettings);
         if (mappedFieldType.name().isEmpty()) {
             throw new IllegalArgumentException("name cannot be empty string");
         }

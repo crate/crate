@@ -32,7 +32,6 @@ import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.IndexableField;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -82,9 +81,8 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
                 @Nullable String defaultExpression,
                 FieldType fieldType,
                 MappedFieldType defaultFieldType,
-                Settings indexSettings,
                 Mapper innerMapper) {
-        super(simpleName, position, defaultExpression, fieldType, defaultFieldType, indexSettings, CopyTo.empty());
+        super(simpleName, position, defaultExpression, fieldType, defaultFieldType, CopyTo.empty());
         this.innerMapper = innerMapper;
     }
 
@@ -117,7 +115,6 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
                 defaultExpression,
                 fieldType,
                 mappedFieldType,
-                context.indexSettings(),
                 innerMapper
             );
         }

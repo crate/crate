@@ -29,7 +29,6 @@ import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.index.analysis.NamedAnalyzer;
 
@@ -146,7 +145,6 @@ public class TextFieldMapper extends FieldMapper {
             return ft;
         }
 
-
         @Override
         public TextFieldMapper build(BuilderContext context) {
             TextFieldType tft = buildFieldType(context);
@@ -156,7 +154,6 @@ public class TextFieldMapper extends FieldMapper {
                 defaultExpression,
                 fieldType,
                 tft,
-                context.indexSettings(),
                 copyTo
             );
             context.putPositionInfo(mapper, position);
@@ -200,9 +197,8 @@ public class TextFieldMapper extends FieldMapper {
                               String defaultExpression,
                               FieldType fieldType,
                               TextFieldType mappedFieldType,
-                              Settings indexSettings,
                               CopyTo copyTo) {
-        super(simpleName, position, defaultExpression, fieldType, mappedFieldType, indexSettings, copyTo);
+        super(simpleName, position, defaultExpression, fieldType, mappedFieldType, copyTo);
         assert mappedFieldType.hasDocValues() == false;
     }
 

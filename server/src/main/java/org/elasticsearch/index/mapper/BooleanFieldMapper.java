@@ -33,7 +33,6 @@ import org.apache.lucene.document.SortedNumericDocValuesField;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentParser;
 
 /**
@@ -74,7 +73,6 @@ public class BooleanFieldMapper extends FieldMapper {
                 defaultExpression,
                 fieldType,
                 new BooleanFieldType(buildFullName(context), indexed, hasDocValues),
-                context.indexSettings(),
                 copyTo);
             context.putPositionInfo(mapper, position);
             return mapper;
@@ -111,9 +109,8 @@ public class BooleanFieldMapper extends FieldMapper {
                                  @Nullable String defaultExpression,
                                  FieldType fieldType,
                                  MappedFieldType defaultFieldType,
-                                 Settings indexSettings,
                                  CopyTo copyTo) {
-        super(simpleName, position, defaultExpression, fieldType, defaultFieldType, indexSettings, copyTo);
+        super(simpleName, position, defaultExpression, fieldType, defaultFieldType, copyTo);
     }
 
     @Override
