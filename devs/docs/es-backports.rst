@@ -324,10 +324,10 @@ should be crossed out as well.
 - [x] 2074412d79f Retry failed replication due to transient errors (#56230)
 - [ ] 5ddea03de77 Remove needless termsQuery implementation from StringFieldType (#57609)
 - [ ] b6585f2b513 Add new extensions for Lucene86 points codec to FsDirectoryFactory (#58226) (#58233)
-- [ ] 85be78b6249 Fix Snapshot Abort Not Waiting for Data Nodes (#58214) (#58228)
-- [ ] 03369e09805 Implement dangling indices API (#58176)
-- [ ] c6acc7c976f Correctly deal with aliases when retrieving lucene FieldType
-- [ ] 12a3f6dfca2 MappedFieldType should not extend FieldType (#58160)
+- [x] 85be78b6249 Fix Snapshot Abort Not Waiting for Data Nodes (#58214) (#58228)
+- [s] 03369e09805 Implement dangling indices API (#58176)
+- [s] c6acc7c976f Correctly deal with aliases when retrieving lucene FieldType
+- [s] 12a3f6dfca2 MappedFieldType should not extend FieldType (#58160)
 - [x] a5bc5ae030b Don't log on RetentionLeaseSync error handler (#58157)
 - [x] 1a48983a562 Fix Running TranslogOps on CS Thread (#58056) (#58076)
 - [s] 8bd0147ba79 Correct how meta-field is defined for pre 7.8 hits (#57951)

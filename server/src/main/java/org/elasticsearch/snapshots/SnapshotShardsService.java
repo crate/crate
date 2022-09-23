@@ -93,8 +93,6 @@ import io.crate.common.unit.TimeValue;
 public class SnapshotShardsService extends AbstractLifecycleComponent implements ClusterStateListener, IndexEventListener {
     private static final Logger LOGGER = LogManager.getLogger(SnapshotShardsService.class);
 
-    private static final String UPDATE_SNAPSHOT_STATUS_ACTION_NAME = "internal:cluster/snapshot/update_snapshot_status";
-
     private final ClusterService clusterService;
 
     private final IndicesService indicesService;
@@ -134,7 +132,7 @@ public class SnapshotShardsService extends AbstractLifecycleComponent implements
     @Override
     protected void doStart() {
         assert this.updateSnapshotStatusHandler != null;
-        assert transportService.getRequestHandler(UPDATE_SNAPSHOT_STATUS_ACTION_NAME) != null;
+        assert transportService.getRequestHandler(SnapshotsService.UPDATE_SNAPSHOT_STATUS_ACTION_NAME) != null;
     }
 
     @Override
@@ -260,7 +258,7 @@ public class SnapshotShardsService extends AbstractLifecycleComponent implements
                     if (snapshotStatus == null) {
                         // due to CS batching we might have missed the INIT state and straight went into ABORTED
                         // notify master that abort has completed by moving to FAILED
-                        if (shard.value.state() == ShardState.ABORTED) {
+                        if (shard.value.state() == ShardState.ABORTED && localNodeId.equals(shard.value.nodeId())) {
                             notifyFailedSnapshotShard(snapshot, shard.key, shard.value.reason());
                         }
                     } else {
@@ -524,7 +522,8 @@ public class SnapshotShardsService extends AbstractLifecycleComponent implements
                         () -> new ParameterizedMessage("[{}] [{}] failed to update snapshot state", snapshot, status), e);
                 }
             },
-            (req, reqListener) -> transportService.sendRequest(transportService.getLocalNode(), UPDATE_SNAPSHOT_STATUS_ACTION_NAME, req,
+            (req, reqListener) -> transportService.sendRequest(transportService.getLocalNode(),
+                    SnapshotsService.UPDATE_SNAPSHOT_STATUS_ACTION_NAME, req,
                 new TransportResponseHandler<UpdateIndexShardSnapshotStatusResponse>() {
                     @Override
                     public UpdateIndexShardSnapshotStatusResponse read(StreamInput in) throws IOException {
@@ -639,7 +638,7 @@ public class SnapshotShardsService extends AbstractLifecycleComponent implements
 
         UpdateSnapshotStatusAction(TransportService transportService, ClusterService clusterService, ThreadPool threadPool) {
             super(
-                SnapshotShardsService.UPDATE_SNAPSHOT_STATUS_ACTION_NAME, false, transportService, clusterService, threadPool, UpdateIndexShardSnapshotStatusRequest::new
+                SnapshotsService.UPDATE_SNAPSHOT_STATUS_ACTION_NAME, false, transportService, clusterService, threadPool, UpdateIndexShardSnapshotStatusRequest::new
             );
         }
 

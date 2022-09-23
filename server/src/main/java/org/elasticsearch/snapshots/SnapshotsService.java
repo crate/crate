@@ -133,6 +133,8 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
 
     public static final Version MULTI_DELETE_VERSION = Version.V_5_1_0;
 
+    public static final String UPDATE_SNAPSHOT_STATUS_ACTION_NAME = "internal:cluster/snapshot/update_snapshot_status";
+
     private final ClusterService clusterService;
 
     private final RepositoriesService repositoriesService;
