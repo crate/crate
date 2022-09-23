@@ -323,7 +323,7 @@ should be crossed out as well.
 - [ ] ca2d12d039b Remove Settings parameter from FieldMapper base class (#58237)
 - [x] 2074412d79f Retry failed replication due to transient errors (#56230)
 - [ ] 5ddea03de77 Remove needless termsQuery implementation from StringFieldType (#57609)
-- [ ] b6585f2b513 Add new extensions for Lucene86 points codec to FsDirectoryFactory (#58226) (#58233)
+- [x] b6585f2b513 Add new extensions for Lucene86 points codec to FsDirectoryFactory (#58226) (#58233)
 - [x] 85be78b6249 Fix Snapshot Abort Not Waiting for Data Nodes (#58214) (#58228)
 - [s] 03369e09805 Implement dangling indices API (#58176)
 - [s] c6acc7c976f Correctly deal with aliases when retrieving lucene FieldType
