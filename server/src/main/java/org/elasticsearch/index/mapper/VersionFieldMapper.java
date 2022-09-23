@@ -29,7 +29,6 @@ import org.apache.lucene.document.NumericDocValuesField;
 import org.apache.lucene.index.DocValuesType;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 
 /** Mapper for the _version field. */
@@ -59,8 +58,7 @@ public class VersionFieldMapper extends MetadataFieldMapper {
 
         @Override
         public MetadataFieldMapper getDefault(ParserContext context) {
-            final Settings indexSettings = context.mapperService().getIndexSettings().getSettings();
-            return new VersionFieldMapper(indexSettings);
+            return new VersionFieldMapper();
         }
     }
 
@@ -78,8 +76,8 @@ public class VersionFieldMapper extends MetadataFieldMapper {
         }
     }
 
-    private VersionFieldMapper(Settings indexSettings) {
-        super(Defaults.FIELD_TYPE, Defaults.MAPPED_FIELD_TYPE, indexSettings);
+    private VersionFieldMapper() {
+        super(Defaults.FIELD_TYPE, Defaults.MAPPED_FIELD_TYPE);
     }
 
     @Override

@@ -76,7 +76,7 @@ public class FieldNamesFieldMapper extends MetadataFieldMapper {
         public FieldNamesFieldMapper build(BuilderContext context) {
             FieldNamesFieldType fieldNamesFieldType = new FieldNamesFieldType();
             fieldNamesFieldType.setEnabled(enabled);
-            return new FieldNamesFieldMapper(fieldType, fieldNamesFieldType, context.indexSettings());
+            return new FieldNamesFieldMapper(fieldType, fieldNamesFieldType);
         }
     }
 
@@ -117,8 +117,8 @@ public class FieldNamesFieldMapper extends MetadataFieldMapper {
 
     }
 
-    private FieldNamesFieldMapper(FieldType fieldType, MappedFieldType mappedFieldType, Settings indexSettings) {
-        super(fieldType, mappedFieldType, indexSettings);
+    private FieldNamesFieldMapper(FieldType fieldType, MappedFieldType mappedFieldType) {
+        super(fieldType, mappedFieldType);
     }
 
     @Override

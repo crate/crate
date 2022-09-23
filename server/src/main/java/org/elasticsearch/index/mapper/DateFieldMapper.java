@@ -38,7 +38,6 @@ import org.apache.lucene.index.IndexableField;
 import org.elasticsearch.common.Explicit;
 import org.elasticsearch.common.joda.FormatDateTimeFormatter;
 import org.elasticsearch.common.joda.Joda;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.time.IsoLocale;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 
@@ -99,7 +98,6 @@ public class DateFieldMapper extends FieldMapper {
                 fieldType,
                 ft,
                 ignoreTimezone,
-                context.indexSettings(),
                 copyTo);
             context.putPositionInfo(mapper, position);
             return mapper;
@@ -163,9 +161,8 @@ public class DateFieldMapper extends FieldMapper {
             FieldType fieldType,
             MappedFieldType mappedFieldType,
             Boolean ignoreTimezone,
-            Settings indexSettings,
             CopyTo copyTo) {
-        super(simpleName, position, defaultExpression, fieldType, mappedFieldType, indexSettings, copyTo);
+        super(simpleName, position, defaultExpression, fieldType, mappedFieldType, copyTo);
         this.ignoreTimezone = ignoreTimezone;
     }
 

@@ -24,7 +24,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.lucene.document.FieldType;
-import org.elasticsearch.common.settings.Settings;
 
 
 /**
@@ -60,14 +59,13 @@ public abstract class MetadataFieldMapper extends FieldMapper {
         public abstract MetadataFieldMapper build(BuilderContext context);
     }
 
-    protected MetadataFieldMapper(FieldType fieldType, MappedFieldType mappedFieldType, Settings indexSettings) {
+    protected MetadataFieldMapper(FieldType fieldType, MappedFieldType mappedFieldType) {
         super(
             mappedFieldType.name(),
             NOT_TO_BE_POSITIONED,
             null,
             fieldType,
             mappedFieldType,
-            indexSettings,
             CopyTo.empty()
         );
     }

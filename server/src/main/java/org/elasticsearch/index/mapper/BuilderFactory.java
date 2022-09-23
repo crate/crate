@@ -56,7 +56,6 @@ public class BuilderFactory implements DynamicArrayFieldMapperBuilderFactory {
                 null,
                 innerFieldMapper.fieldType,
                 mappedFieldType,
-                context.indexSettings().getSettings(),
                 innerMapper);
         } catch (IOException e) {
             throw new RuntimeException(e);

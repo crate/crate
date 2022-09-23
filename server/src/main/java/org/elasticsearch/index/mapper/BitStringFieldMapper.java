@@ -31,7 +31,6 @@ import org.apache.lucene.document.SortedSetDocValuesField;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentParser.Token;
@@ -47,7 +46,6 @@ public class BitStringFieldMapper extends FieldMapper {
                                    String defaultExpression,
                                    FieldType fieldType,
                                    MappedFieldType mappedFieldType,
-                                   Settings indexSettings,
                                    CopyTo copyTo) {
         super(
             simpleName,
@@ -55,7 +53,6 @@ public class BitStringFieldMapper extends FieldMapper {
             defaultExpression,
             fieldType,
             mappedFieldType,
-            indexSettings,
             copyTo
         );
         this.length = length;
@@ -105,7 +102,6 @@ public class BitStringFieldMapper extends FieldMapper {
                 defaultExpression,
                 fieldType,
                 new BitStringFieldType(name, true, true),
-                context.indexSettings(),
                 copyTo);
             context.putPositionInfo(mapper, position);
             return mapper;

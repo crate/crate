@@ -36,7 +36,6 @@ import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.Lucene;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.support.XContentMapValues;
@@ -130,7 +129,6 @@ public final class KeywordFieldMapper extends FieldMapper {
                 nullValue,
                 lengthLimit,
                 blankPadding,
-                context.indexSettings(),
                 copyTo
             );
             context.putPositionInfo(mapper, position);
@@ -206,9 +204,8 @@ public final class KeywordFieldMapper extends FieldMapper {
                                String nullValue,
                                Integer lengthLimit,
                                boolean blankPadding,
-                               Settings indexSettings,
                                CopyTo copyTo) {
-        super(simpleName, position, defaultExpression, fieldType, mappedFieldType, indexSettings, copyTo);
+        super(simpleName, position, defaultExpression, fieldType, mappedFieldType, copyTo);
         assert fieldType.indexOptions().compareTo(IndexOptions.DOCS_AND_FREQS) <= 0;
         this.ignoreAbove = ignoreAbove;
         this.lengthLimit = lengthLimit;

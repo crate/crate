@@ -48,7 +48,6 @@ import org.elasticsearch.common.geo.XShapeCollection;
 import org.elasticsearch.common.geo.builders.ShapeBuilder;
 import org.elasticsearch.common.geo.builders.ShapeBuilder.Orientation;
 import org.elasticsearch.common.geo.parsers.ShapeParser;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.DistanceUnit;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.locationtech.spatial4j.shape.Point;
@@ -145,7 +144,6 @@ public class GeoShapeFieldMapper extends FieldMapper {
                 defaultExpression,
                 fieldType,
                 ft,
-                context.indexSettings(),
                 copyTo
             );
             context.putPositionInfo(mapper, position);
@@ -366,9 +364,8 @@ public class GeoShapeFieldMapper extends FieldMapper {
                                @Nullable String defaultExpression,
                                FieldType fieldType,
                                MappedFieldType mappedFieldType,
-                               Settings indexSettings,
                                CopyTo copyTo) {
-        super(simpleName, position, defaultExpression, fieldType, mappedFieldType, indexSettings, copyTo);
+        super(simpleName, position, defaultExpression, fieldType, mappedFieldType, copyTo);
     }
 
     @Override

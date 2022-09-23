@@ -30,7 +30,6 @@ import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.document.NumericDocValuesField;
 import org.apache.lucene.index.DocValuesType;
 import org.apache.lucene.index.IndexableField;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 
@@ -103,8 +102,7 @@ public class SeqNoFieldMapper extends MetadataFieldMapper {
 
         @Override
         public MetadataFieldMapper getDefault(ParserContext context) {
-            final Settings indexSettings = context.mapperService().getIndexSettings().getSettings();
-            return new SeqNoFieldMapper(indexSettings);
+            return new SeqNoFieldMapper();
         }
     }
 
@@ -120,8 +118,8 @@ public class SeqNoFieldMapper extends MetadataFieldMapper {
         }
     }
 
-    public SeqNoFieldMapper(Settings indexSettings) {
-        super(Defaults.FIELD_TYPE, Defaults.MAPPED_FIELD_TYPE, indexSettings);
+    public SeqNoFieldMapper() {
+        super(Defaults.FIELD_TYPE, Defaults.MAPPED_FIELD_TYPE);
     }
 
     @Override

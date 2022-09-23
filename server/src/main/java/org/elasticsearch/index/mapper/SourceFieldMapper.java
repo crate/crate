@@ -63,7 +63,7 @@ public class SourceFieldMapper extends MetadataFieldMapper {
 
         @Override
         public SourceFieldMapper build(BuilderContext context) {
-            return new SourceFieldMapper(context.indexSettings());
+            return new SourceFieldMapper();
         }
     }
 
@@ -77,7 +77,7 @@ public class SourceFieldMapper extends MetadataFieldMapper {
         @Override
         public MetadataFieldMapper getDefault(ParserContext context) {
             final Settings indexSettings = context.mapperService().getIndexSettings().getSettings();
-            return new SourceFieldMapper(indexSettings);
+            return new SourceFieldMapper();
         }
     }
 
@@ -96,9 +96,8 @@ public class SourceFieldMapper extends MetadataFieldMapper {
 
     }
 
-
-    private SourceFieldMapper(Settings indexSettings) {
-        super(Defaults.FIELD_TYPE, SourceFieldType.INSTANCE, indexSettings);
+    private SourceFieldMapper() {
+        super(Defaults.FIELD_TYPE, SourceFieldType.INSTANCE); // Only stored.
     }
 
     @Override

@@ -33,7 +33,6 @@ import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.Explicit;
 import org.elasticsearch.common.network.InetAddresses;
-import org.elasticsearch.common.settings.Settings;
 
 
 /** A {@link FieldMapper} for ip addresses. */
@@ -66,7 +65,6 @@ public class IpFieldMapper extends FieldMapper {
                 defaultExpression,
                 fieldType,
                 new IpFieldType(buildFullName(context), indexed, hasDocValues),
-                context.indexSettings(),
                 copyTo);
             context.putPositionInfo(mapper, position);
             return mapper;
@@ -108,9 +106,8 @@ public class IpFieldMapper extends FieldMapper {
             String defaultExpression,
             FieldType fieldType,
             MappedFieldType mappedFieldType,
-            Settings indexSettings,
             CopyTo copyTo) {
-        super(simpleName, position, defaultExpression, fieldType, mappedFieldType, indexSettings, copyTo);
+        super(simpleName, position, defaultExpression, fieldType, mappedFieldType, copyTo);
     }
 
     @Override

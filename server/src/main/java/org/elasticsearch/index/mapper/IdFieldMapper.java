@@ -30,7 +30,6 @@ import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.index.IndexSettings;
 
 /**
  * A mapper for the _id field. It does nothing since _id is neither indexed nor
@@ -65,8 +64,7 @@ public class IdFieldMapper extends MetadataFieldMapper {
 
         @Override
         public MetadataFieldMapper getDefault(ParserContext context) {
-            final IndexSettings indexSettings = context.mapperService().getIndexSettings();
-            return new IdFieldMapper(Defaults.FIELD_TYPE, indexSettings);
+            return new IdFieldMapper(Defaults.FIELD_TYPE);
         }
     }
 
@@ -93,8 +91,8 @@ public class IdFieldMapper extends MetadataFieldMapper {
 
     }
 
-    private IdFieldMapper(FieldType fieldType, IndexSettings indexSettings) {
-        super(fieldType, new IdFieldType(), indexSettings.getSettings());
+    private IdFieldMapper(FieldType fieldType) {
+        super(fieldType, new IdFieldType());
     }
 
     @Override
