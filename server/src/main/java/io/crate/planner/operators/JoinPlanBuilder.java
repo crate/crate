@@ -177,11 +177,16 @@ public class JoinPlanBuilder {
     private static boolean containsOuterColumnInCorrelatedSelect(Symbol symbol, AnalyzedRelation relation) {
         return SymbolVisitors.any(x -> x instanceof SelectSymbol s &&
                                        s.isCorrelated() &&
-                                       s.relation().outputs().stream().anyMatch(o -> containsOuterColumn(o, relation)), symbol);
+                                       containsOuterColumn(s, relation), symbol);
     }
 
-    private static boolean containsOuterColumn(Symbol symbol, AnalyzedRelation relation) {
-        return SymbolVisitors.any(x -> x instanceof OuterColumn o && o.relation().equals(relation), symbol);
+    private static boolean containsOuterColumn(SelectSymbol select, AnalyzedRelation relation) {
+        for (var output : select.relation().outputs()) {
+            if (SymbolVisitors.any(x -> x instanceof OuterColumn o && o.relation().equals(relation), output)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static LogicalPlan createCorrelatedJoinWithFilter(
