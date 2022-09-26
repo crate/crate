@@ -35,6 +35,8 @@ import org.elasticsearch.test.disruption.NetworkDisruption;
 import org.elasticsearch.test.transport.MockTransportService;
 import org.junit.Test;
 
+import io.crate.action.sql.Session;
+
 @IntegTestCase.ClusterScope(minNumDataNodes = 2)
 public class SysNodeResiliencyIntegrationTest extends IntegTestCase {
 
@@ -64,10 +66,13 @@ public class SysNodeResiliencyIntegrationTest extends IntegTestCase {
         partition.startDisrupting();
         try {
 
-            execute("select version['number'], hostname, id, name from sys.nodes where name = ?",
-                new Object[]{n2},
-                createSessionOnNode(n1));
-
+            try (Session session = createSessionOnNode(n1)) {
+                execute(
+                    "select version['number'], hostname, id, name from sys.nodes where name = ?",
+                    new Object[]{n2},
+                    session
+                );
+            }
             assertThat(response.rowCount(), is(1L));
             assertThat(response.rows()[0][0], is(nullValue()));
             assertThat(response.rows()[0][1], is(nullValue()));

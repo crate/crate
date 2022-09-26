@@ -55,7 +55,6 @@ import org.elasticsearch.common.settings.Settings;
 import io.crate.action.FutureActionListener;
 import io.crate.action.sql.CollectingResultReceiver;
 import io.crate.action.sql.Sessions;
-import io.crate.action.sql.Session;
 import io.crate.analyze.AnalyzedAlterTableRename;
 import io.crate.analyze.BoundAddColumn;
 import io.crate.analyze.BoundAlterTable;
@@ -86,12 +85,9 @@ public class AlterTableOperation {
     private final TransportDeleteIndexAction transportDeleteIndexAction;
     private final TransportSwapAndDropIndexNameAction transportSwapAndDropIndexNameAction;
     private final TransportCloseTable transportCloseTable;
-    private final Sessions sqlOperations;
+    private final Sessions sessions;
     private final IndexScopedSettings indexScopedSettings;
     private final LogicalReplicationService logicalReplicationService;
-
-    private Session session;
-
 
     @Inject
     public AlterTableOperation(ClusterService clusterService,
@@ -103,7 +99,7 @@ public class AlterTableOperation {
                                TransportSwapAndDropIndexNameAction transportSwapAndDropIndexNameAction,
                                TransportAlterTableAction transportAlterTableAction,
                                TransportDropConstraintAction transportDropConstraintAction,
-                               Sessions sqlOperations,
+                               Sessions sessions,
                                IndexScopedSettings indexScopedSettings,
                                LogicalReplicationService logicalReplicationService) {
 
@@ -116,7 +112,7 @@ public class AlterTableOperation {
         this.transportCloseTable = transportCloseTable;
         this.transportAlterTableAction = transportAlterTableAction;
         this.transportDropConstraintAction = transportDropConstraintAction;
-        this.sqlOperations = sqlOperations;
+        this.sessions = sessions;
         this.indexScopedSettings = indexScopedSettings;
         this.logicalReplicationService = logicalReplicationService;
     }
@@ -129,7 +125,9 @@ public class AlterTableOperation {
 
             var rowCountReceiver = new CollectingResultReceiver<>(Collectors.summingLong(row -> (long) row.get(0)));
             try {
-                session().quickExec(stmt, rowCountReceiver, Row.EMPTY);
+                try (var session = sessions.newSystemSession()) {
+                    session.quickExec(stmt, rowCountReceiver, Row.EMPTY);
+                }
             } catch (Throwable t) {
                 return CompletableFuture.failedFuture(t);
             }
@@ -144,13 +142,6 @@ public class AlterTableOperation {
         } else {
             return addColumnToTable(analysis);
         }
-    }
-
-    private Session session() {
-        if (session == null) {
-            this.session = sqlOperations.newSystemSession();
-        }
-        return session;
     }
 
     public CompletableFuture<Long> executeAlterTableOpenClose(RelationName relationName,

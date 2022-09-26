@@ -229,8 +229,9 @@ public class SQLTransportExecutor {
     }
 
     public SQLResponse executeAs(String stmt, User user) {
-        Session session = clientProvider.sqlOperations().createSession(null, user);
-        return FutureUtils.get(execute(stmt, null, session), SQLTransportExecutor.REQUEST_TIMEOUT.millis(), TimeUnit.MILLISECONDS);
+        try (Session session = clientProvider.sqlOperations().createSession(null, user)) {
+            return FutureUtils.get(execute(stmt, null, session), SQLTransportExecutor.REQUEST_TIMEOUT.millis(), TimeUnit.MILLISECONDS);
+        }
     }
 
     public SQLResponse exec(String statement, @Nullable Object[] args, Session session, TimeValue timeout) {

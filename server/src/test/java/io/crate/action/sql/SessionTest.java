@@ -126,29 +126,31 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_out_of_bounds_getParamType_fails() throws Exception {
         SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService).build();
-        Session session = sqlExecutor.createSession();
-        session.parse("S_1", "Select 1 + ? + ?;", Collections.emptyList());
-        Assertions.assertThrows(
-            IllegalArgumentException.class,
-            () -> session.getParamType("S_1", 3),
-            "foo"
-        );
+        try (Session session = sqlExecutor.createSession()) {
+            session.parse("S_1", "Select 1 + ? + ?;", Collections.emptyList());
+            Assertions.assertThrows(
+                IllegalArgumentException.class,
+                () -> session.getParamType("S_1", 3),
+                "foo"
+            );
+        }
     }
 
     @Test
     public void test_getParamType_returns_types_infered_from_statement() {
         SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService).build();
-        Session session = sqlExecutor.createSession();
+        try (Session session = sqlExecutor.createSession()) {
 
-        session.parse("S_1", "Select 1 + ? + ?;", Collections.emptyList());
-        assertThat(session.getParamType("S_1", 0), is(DataTypes.INTEGER));
-        assertThat(session.getParamType("S_1", 1), is(DataTypes.INTEGER));
+            session.parse("S_1", "Select 1 + ? + ?;", Collections.emptyList());
+            assertThat(session.getParamType("S_1", 0), is(DataTypes.INTEGER));
+            assertThat(session.getParamType("S_1", 1), is(DataTypes.INTEGER));
 
-        DescribeResult describe = session.describe('S', "S_1");
-        assertThat(describe.getParameters(), equalTo(new DataType[] { DataTypes.INTEGER, DataTypes.INTEGER }));
+            DescribeResult describe = session.describe('S', "S_1");
+            assertThat(describe.getParameters(), equalTo(new DataType[] { DataTypes.INTEGER, DataTypes.INTEGER }));
 
-        assertThat(session.getParamType("S_1", 0), is(DataTypes.INTEGER));
-        assertThat(session.getParamType("S_1", 1), is(DataTypes.INTEGER));
+            assertThat(session.getParamType("S_1", 0), is(DataTypes.INTEGER));
+            assertThat(session.getParamType("S_1", 1), is(DataTypes.INTEGER));
+        }
     }
 
     @Test

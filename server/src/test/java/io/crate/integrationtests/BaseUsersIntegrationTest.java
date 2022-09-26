@@ -24,6 +24,7 @@ package io.crate.integrationtests;
 import java.util.Objects;
 
 import org.elasticsearch.test.IntegTestCase;
+import org.junit.After;
 import org.junit.Before;
 
 import io.crate.action.sql.Sessions;
@@ -49,12 +50,14 @@ public abstract class BaseUsersIntegrationTest extends IntegTestCase {
 
     @Before
     public void setUpSessions() {
-        createSessions();
-    }
-
-    public void createSessions() {
         superUserSession = createSuperUserSession();
         normalUserSession = createUserSession();
+    }
+
+    @After
+    public void closeSessions() {
+        superUserSession.close();
+        normalUserSession.close();
     }
 
     public SQLResponse executeAsSuperuser(String stmt) {
@@ -73,7 +76,8 @@ public abstract class BaseUsersIntegrationTest extends IntegTestCase {
         Sessions sqlOperations = internalCluster().getInstance(Sessions.class);
         UserLookup userLookup = internalCluster().getInstance(UserLookup.class);
         User user = Objects.requireNonNull(userLookup.findUser(userName), "User " + userName + " must exist");
-        Session session = sqlOperations.createSession(null, user);
-        return execute(stmt, null, session);
+        try (Session session = sqlOperations.createSession(null, user)) {
+            return execute(stmt, null, session);
+        }
     }
 }

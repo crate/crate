@@ -42,6 +42,7 @@ import org.apache.http.impl.client.HttpClients;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.http.HttpServerTransport;
 import org.elasticsearch.test.IntegTestCase;
+import org.junit.After;
 import org.junit.Before;
 
 import io.crate.common.Hex;
@@ -63,6 +64,11 @@ public abstract class SQLHttpIntegrationTest extends IntegTestCase {
         this.httpClient = HttpClients.custom()
             .setSSLHostnameVerifier(new NoopHostnameVerifier()).build();
         this.usesSSL = useSSL;
+    }
+
+    @After
+    public void closeClient() throws Exception {
+        this.httpClient.close();
     }
 
     @Override

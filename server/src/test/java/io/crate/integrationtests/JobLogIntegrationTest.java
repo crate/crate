@@ -86,14 +86,16 @@ public class JobLogIntegrationTest extends IntegTestCase {
         // the jobs_log. We make sure that we hit both nodes with 2 queries each and then assert that
         // only the latest queries are found in the log.
         for (Sessions sqlOperations : internalCluster().getDataNodeInstances(Sessions.class)) {
-            Session session = sqlOperations.newSystemSession();
-            execute("select name from sys.cluster", null, session);
+            try (Session session = sqlOperations.newSystemSession()) {
+                execute("select name from sys.cluster", null, session);
+            }
         }
         assertJobLogOnNodesHaveOnlyStatement("select name from sys.cluster");
 
         for (Sessions sqlOperations : internalCluster().getDataNodeInstances(Sessions.class)) {
-            Session session = sqlOperations.newSystemSession();
-            execute("select id from sys.cluster", null, session);
+            try (Session session = sqlOperations.newSystemSession()) {
+                execute("select id from sys.cluster", null, session);
+            }
         }
         assertJobLogOnNodesHaveOnlyStatement("select id from sys.cluster");
 
