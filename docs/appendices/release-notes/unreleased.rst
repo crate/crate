@@ -119,6 +119,11 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Fixed an issue causing queries with matching on ``_id`` to not get rows
+  from :ref:`translog <concept-addressing-documents>`, and therefore only
+  rows that were visible from the latest manual or automatic
+  :ref:`REFRESH <sql-refresh>` were returned.
+
 - Fixed an issue causing an ``IllegalArgumentException`` to be thrown when the
   optimizer attempts to convert a ``LEFT JOIN`` to an ``INNER JOIN`` and there
   is also a subquery in the ``WHERE`` clause.
