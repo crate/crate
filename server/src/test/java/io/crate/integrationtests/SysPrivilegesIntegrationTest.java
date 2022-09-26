@@ -48,8 +48,6 @@ public class SysPrivilegesIntegrationTest extends BaseUsersIntegrationTest {
 
     @Before
     public void setUpNodesUsersAndPrivileges() throws Exception {
-        super.createSessions();
-
         for (String userName : USERNAMES) {
             executeAsSuperuser("create user " + userName);
         }

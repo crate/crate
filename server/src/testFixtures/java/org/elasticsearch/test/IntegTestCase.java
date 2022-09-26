@@ -1664,6 +1664,19 @@ public abstract class IntegTestCase extends ESTestCase {
     }
 
     @After
+    public void ensureNoSessionsLeft() throws Exception {
+        assertBusy(() -> {
+            for (var sessions : internalCluster().getInstances(Sessions.class)) {
+                String msg = "Sessions must be closed after test teardown. " +
+                    "An exception is one session created by the TableStatsService";
+                assertThat(sessions.getActive())
+                    .as(msg)
+                    .hasSize(1);
+            }
+        });
+    }
+
+    @After
     public void ensure_one_node_limit_instance_per_node() {
         Iterable<NodeLimits> nodeLimitsInstances = internalCluster().getInstances(NodeLimits.class);
         int numInstances = 0;
@@ -1770,7 +1783,9 @@ public abstract class IntegTestCase extends ESTestCase {
      * @return the SQLResponse
      */
     public SQLResponse execute(String stmt, @Nullable String schema) {
-        return execute(stmt, null, createSession(schema));
+        try (Session createSession = createSession(schema)) {
+            return execute(stmt, null, createSession);
+        }
     }
 
     public static class PlanForNode {

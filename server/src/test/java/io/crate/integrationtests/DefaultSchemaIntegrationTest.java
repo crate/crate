@@ -32,6 +32,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import io.crate.action.sql.Session;
 import io.crate.testing.SQLResponse;
 
 public class DefaultSchemaIntegrationTest extends IntegTestCase {
@@ -42,7 +43,9 @@ public class DefaultSchemaIntegrationTest extends IntegTestCase {
 
     @Override
     public SQLResponse execute(String stmt, Object[] args, String schema) {
-        return execute(stmt, args, createSession(schema));
+        try (Session session = createSession(schema)) {
+            return execute(stmt, args, session);
+        }
     }
 
     @Test

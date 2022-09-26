@@ -91,4 +91,9 @@ public final class Cursors {
             }
         }
     }
+
+    @Override
+    public String toString() {
+        return "Cursors{" + cursors.keySet() + "}";
+    }
 }

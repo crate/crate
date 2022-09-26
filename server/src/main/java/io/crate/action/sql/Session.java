@@ -858,4 +858,15 @@ public class Session implements AutoCloseable {
         executor.client().execute(KillJobsNodeAction.INSTANCE, request);
         resetDeferredExecutions();
     }
+
+    @Override
+    public String toString() {
+        return "Session{" +
+            "portals=" + portals +
+            ", cursors=" + cursors +
+            ", deferredExecutionsByStmt=" + deferredExecutionsByStmt.size() +
+            ", mostRecentJobID=" + mostRecentJobID +
+            ", id=" + id +
+            "}";
+    }
 }

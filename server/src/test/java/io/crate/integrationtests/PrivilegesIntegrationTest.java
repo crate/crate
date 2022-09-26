@@ -180,7 +180,9 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
         executeAsSuperuser("grant dml on table t2 to " + TEST_USERNAME);
         executeAsSuperuser("grant dql on table sys.shards to " + TEST_USERNAME);
 
-        execute("select table_name from sys.shards order by table_name", null, testUserSession());
+        try (Session testUserSession = testUserSession()) {
+            execute("select table_name from sys.shards order by table_name", null, testUserSession);
+        }
         assertThat(response.rowCount(), is(4L));
         assertThat(response.rows()[0][0], is("t1"));
         assertThat(response.rows()[1][0], is("t1"));
@@ -193,7 +195,9 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
         executeAsSuperuser("grant dql on table sys.jobs_log to " + TEST_USERNAME);
         executeAsSuperuser("select 2");
         executeAsSuperuser("select 3");
-        execute("select 1", null, testUserSession());
+        try (Session testUserSession = testUserSession()) {
+            execute("select 1", null, testUserSession);
+        }
 
         String stmt = "select username, stmt " +
                       "from sys.jobs_log " +
@@ -206,7 +210,9 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
                       "crate| select 2\n" +
                       "crate| select 3\n"));
 
-        execute(stmt, null, testUserSession());
+        try (Session testUserSession = testUserSession()) {
+            execute(stmt, null, testUserSession);
+        }
         assertThat(printedTable(response.rows()), is("privileges_test_user| select 1\n"));
     }
 
@@ -218,7 +224,9 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
         executeAsSuperuser("GRANT DQL ON SCHEMA u TO " + TEST_USERNAME);
         executeAsSuperuser("GRANT DQL ON TABLE sys.allocations TO " + TEST_USERNAME);
 
-        execute("SELECT table_schema, table_name, shard_id FROM sys.allocations", null, testUserSession());
+        try (Session testUserSession = testUserSession()) {
+            execute("SELECT table_schema, table_name, shard_id FROM sys.allocations", null, testUserSession);
+        }
         assertThat(response.rowCount(), is(1L));
         assertThat(response.rows()[0][0], is("u"));
         assertThat(response.rows()[0][1], is("t1"));
@@ -233,7 +241,9 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
         executeAsSuperuser("GRANT DQL ON SCHEMA u TO " + TEST_USERNAME);
         executeAsSuperuser("GRANT DQL ON TABLE sys.health TO " + TEST_USERNAME);
 
-        execute("SELECT table_schema, table_name, health FROM sys.health", null, testUserSession());
+        try (Session testUserSession = testUserSession()) {
+            execute("SELECT table_schema, table_name, health FROM sys.health", null, testUserSession);
+        }
         assertThat(printedTable(response.rows()), is("u| t1| GREEN\n"));
     }
 
@@ -259,42 +269,44 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
         executeAsSuperuser("grant dql on schema my_schema to " + TEST_USERNAME);
         executeAsSuperuser("grant dql on view v1 to " + TEST_USERNAME);
 
-        execute("select schema_name from information_schema.schemata order by schema_name", null, testUserSession());
-        assertThat(printedTable(response.rows()), is("my_schema\n"));
-        execute("select table_name from information_schema.tables order by table_name", null, testUserSession());
-        assertThat(printedTable(response.rows()), is("t1\n" +
-                                                     "t2\n" +
-                                                     "v1\n" +
-                                                     "v2\n"));
-        execute("select table_name from information_schema.table_partitions order by table_name",
+        try (Session testUserSession = testUserSession()) {
+            execute("select schema_name from information_schema.schemata order by schema_name", null, testUserSession);
+            assertThat(printedTable(response.rows()), is("my_schema\n"));
+            execute("select table_name from information_schema.tables order by table_name", null, testUserSession);
+            assertThat(printedTable(response.rows()), is("t1\n" +
+                                                        "t2\n" +
+                                                        "v1\n" +
+                                                        "v2\n"));
+            execute("select table_name from information_schema.table_partitions order by table_name",
+                    null,
+                    testUserSession);
+            assertThat(printedTable(response.rows()), is("t1\n" +
+                                                        "t1\n"));
+            execute("select table_name from information_schema.columns order by table_name", null, testUserSession);
+            assertThat(printedTable(response.rows()), is("t1\n" +
+                                                        "t2\n" +
+                                                        "v1\n" +
+                                                        "v2\n"));
+            execute(
+                "select table_name, constraint_name from information_schema.table_constraints order by table_name, constraint_name",
                 null,
-                testUserSession());
-        assertThat(printedTable(response.rows()), is("t1\n" +
-                                                     "t1\n"));
-        execute("select table_name from information_schema.columns order by table_name", null, testUserSession());
-        assertThat(printedTable(response.rows()), is("t1\n" +
-                                                     "t2\n" +
-                                                     "v1\n" +
-                                                     "v2\n"));
-        execute(
-            "select table_name, constraint_name from information_schema.table_constraints order by table_name, constraint_name",
-            null,
-            testUserSession());
-        assertThat(printedTable(response.rows()), is(
-            "t2| my_schema_t2_x_not_null\n" +
-            "t2| t2_pk\n")
-        );
-        execute("select routine_schema from information_schema.routines order by routine_schema",
-                null,
-                testUserSession());
-        assertThat(printedTable(response.rows()), is("my_schema\n"));
+                testUserSession);
+            assertThat(printedTable(response.rows()), is(
+                "t2| my_schema_t2_x_not_null\n" +
+                "t2| t2_pk\n")
+            );
+            execute("select routine_schema from information_schema.routines order by routine_schema",
+                    null,
+                    testUserSession);
+            assertThat(printedTable(response.rows()), is("my_schema\n"));
 
-        execute("select table_name from information_schema.views order by table_name", null, testUserSession());
-        assertThat(printedTable(response.rows()), is("v1\n" +
-                                                     "v2\n"));
+            execute("select table_name from information_schema.views order by table_name", null, testUserSession);
+            assertThat(printedTable(response.rows()), is("v1\n" +
+                                                        "v2\n"));
 
-        executeAsSuperuser("drop function other_func(long)");
-        executeAsSuperuser("drop function my_schema.foo(long)");
+            executeAsSuperuser("drop function other_func(long)");
+            executeAsSuperuser("drop function my_schema.foo(long)");
+        }
     }
 
     @Test
@@ -305,7 +317,9 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
         executeAsSuperuser("alter table doc.t1 rename to t1_renamed");
         ensureYellow();
 
-        execute("select * from t1_renamed", null, testUserSession());
+        try (Session testUserSession = testUserSession()) {
+            execute("select * from t1_renamed", null, testUserSession);
+        }
         assertThat(response.rowCount(), is(0L));
     }
 
@@ -316,7 +330,9 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
         executeAsSuperuser("grant dql on table doc.t1 to " + TEST_USERNAME);
 
         executeAsSuperuser("alter cluster swap table doc.t1 to doc.t2 with (drop_source = true)");
-        execute("select * from doc.t2", null, testUserSession());
+        try (Session testUserSession = testUserSession()) {
+            execute("select * from doc.t2", null, testUserSession);
+        }
         assertThat(response.rowCount(), is(0L));
     }
 
@@ -329,7 +345,9 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
         executeAsSuperuser("alter table doc.t1 rename to t1_renamed");
         ensureYellow();
 
-        execute("select * from t1_renamed", null, testUserSession());
+        try (Session testUserSession = testUserSession()) {
+            execute("select * from t1_renamed", null, testUserSession);
+        }
         assertThat(response.rowCount(), is(1L));
     }
 
@@ -343,11 +361,19 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
 
         executeAsSuperuser("create table doc.t1 (x int) clustered into 1 shards with (number_of_replicas = 0)");
 
-        assertThrowsMatches(() -> execute("select * from t1", null, testUserSession()),
-                     isSQLError(is("Schema 'doc' unknown"),
-                                INTERNAL_ERROR,
-                                NOT_FOUND,
-                                4045));
+        assertThrowsMatches(
+            () -> {
+                try (Session testUserSession = testUserSession()) {
+                    execute("select * from t1", null, testUserSession);
+                }
+            },
+            isSQLError(
+                is("Schema 'doc' unknown"),
+                INTERNAL_ERROR,
+                NOT_FOUND,
+                4045
+            )
+        );
     }
 
     @Test
@@ -359,11 +385,19 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
         ensureYellow();
 
         executeAsSuperuser("create view doc.v1 as select 1");
-        assertThrowsMatches(() -> execute("select * from v1", null, testUserSession()),
-                     isSQLError(is("Schema 'doc' unknown"),
-                                INTERNAL_ERROR,
-                                NOT_FOUND,
-                                4045));
+        assertThrowsMatches(
+            () -> {
+                try (Session testUserSession = testUserSession()) {
+                    execute("select * from v1", null, testUserSession);
+                }
+            },
+            isSQLError(
+                is("Schema 'doc' unknown"),
+                INTERNAL_ERROR,
+                NOT_FOUND,
+                4045
+            )
+        );
     }
 
     @Test
@@ -380,11 +414,19 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
         assertThat(response.rowCount(), is(0L));
 
         executeAsSuperuser("create table doc.t1 (x int) clustered into 1 shards with (number_of_replicas = 0)");
-        assertThrowsMatches(() -> execute("select * from t1", null, testUserSession()),
-                     isSQLError(is("Schema 'doc' unknown"),
-                                INTERNAL_ERROR,
-                                NOT_FOUND,
-                                4045));
+        assertThrowsMatches(
+            () -> {
+                try (Session testUserSession = testUserSession()) {
+                    execute("select * from t1", null, testUserSession);
+                }
+            },
+            isSQLError(
+                is("Schema 'doc' unknown"),
+                INTERNAL_ERROR,
+                NOT_FOUND,
+                4045
+            )
+        );
     }
 
     @Test
@@ -425,12 +467,20 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
         executeAsSuperuser("grant dql on schema s to " + TEST_USERNAME);
         assertThat(response.rowCount(), is(1L));
 
-        assertThrowsMatches(() -> execute("refresh table s.t1", null, testUserSession()),
-                            isSQLError(containsString("The relation \"s.t1\" doesn't support or allow REFRESH " +
-                                                      "operations, as it is currently closed."),
-                                       INTERNAL_ERROR,
-                                       BAD_REQUEST,
-                                       4007));
+        assertThrowsMatches(
+            () -> {
+                try (Session testUserSession = testUserSession()) {
+                    execute("refresh table s.t1", null, testUserSession);
+                }
+            },
+            isSQLError(
+                containsString(
+                    "The relation \"s.t1\" doesn't support or allow REFRESH " +
+                    "operations, as it is currently closed."),
+                INTERNAL_ERROR,
+                BAD_REQUEST,
+                4007
+            ));
     }
 
     @Test
@@ -442,7 +492,9 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
         assertThat(response.rowCount(), is(1L));
         ensureYellow();
 
-        execute("select t.x from test.test as t", null, testUserSession("s"));
+        try (Session testUserSession = testUserSession("s")) {
+            execute("select t.x from test.test as t", null, testUserSession);
+        }
         assertThat(response.rowCount(), is(0L));
     }
 
@@ -455,14 +507,18 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
         assertThat(response.rowCount(), is(1L));
         ensureYellow();
 
-        execute("select t.x from (select x from t1) as t", null, testUserSession("s"));
+        try (Session testUserSession = testUserSession("s")) {
+            execute("select t.x from (select x from t1) as t", null, testUserSession);
+        }
         assertThat(response.rowCount(), is(0L));
     }
 
     @Test
     public void testAccessesToPgClassEntriesWithRespectToPrivileges() throws Exception {
         //make sure a new user has default accesses to pg tables with information and pg catalog schema related entries
-        execute("select relname from pg_catalog.pg_class order by relname", null, testUserSession());
+        try (Session testUserSession = testUserSession()) {
+            execute("select relname from pg_catalog.pg_class order by relname", null, testUserSession);
+        }
         assertThat(response.rowCount(), is(46L));
         assertThat(printedTable(response.rows()), is(
             """
@@ -520,13 +576,15 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
         executeAsSuperuser("insert into test_schema.my_table values (1),(2)");
 
         //make sure a new user cannot access my_table without privilege
-        execute("select * from pg_catalog.pg_class where relname = 'my_table' order by relname", null, testUserSession());
-        assertThat(response.rowCount(), is(0L));
+        try (Session testUserSession = testUserSession()) {
+            execute("select * from pg_catalog.pg_class where relname = 'my_table' order by relname", null, testUserSession);
+            assertThat(response.rowCount(), is(0L));
 
-        //if privilege is granted, the new user can access
-        executeAsSuperuser("grant DQL on table test_schema.my_table to " + TEST_USERNAME);
-        execute("select * from pg_catalog.pg_class where relname = 'my_table' order by relname", null, testUserSession());
-        assertThat(response.rowCount(), is(1L));
+            //if privilege is granted, the new user can access
+            executeAsSuperuser("grant DQL on table test_schema.my_table to " + TEST_USERNAME);
+            execute("select * from pg_catalog.pg_class where relname = 'my_table' order by relname", null, testUserSession);
+            assertThat(response.rowCount(), is(1L));
+        }
 
         //values are identical
         String newUserWithPrivilegesResult = printedTable(response.rows());
@@ -538,22 +596,24 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
     @Test
     public void testAccessesToPgProcEntriesWithRespectToPrivileges() throws Exception {
         //make sure a new user has default accesses to pg tables with information and pg catalog schema related entries
-        execute("select proname from pg_catalog.pg_proc order by proname", null, testUserSession());
-        assertThat(response.rowCount(), not(0L));
+        try (Session testUserSession = testUserSession()) {
+            execute("select proname from pg_catalog.pg_proc order by proname", null, testUserSession);
+            assertThat(response.rowCount(), not(0L));
 
-        //create a table and a function that a new user is not privileged to access
-        executeAsSuperuser("create table test_schema.my_table (my_col int)");
-        executeAsSuperuser("create function test_schema.bar(long)" +
-                           " returns string language dummy_lang as 'function bar(x) { return \"1\"; }'");
+            //create a table and a function that a new user is not privileged to access
+            executeAsSuperuser("create table test_schema.my_table (my_col int)");
+            executeAsSuperuser("create function test_schema.bar(long)" +
+                            " returns string language dummy_lang as 'function bar(x) { return \"1\"; }'");
 
-        //make sure a new user cannot access function bar without privilege
-        execute("select * from pg_catalog.pg_proc where proname = 'bar' order by proname", null, testUserSession());
-        assertThat(response.rowCount(), is(0L));
+            //make sure a new user cannot access function bar without privilege
+            execute("select * from pg_catalog.pg_proc where proname = 'bar' order by proname", null, testUserSession);
+            assertThat(response.rowCount(), is(0L));
 
-        //if privilege is granted, the new user can access
-        executeAsSuperuser("grant DQL on schema test_schema to " + TEST_USERNAME);
-        execute("select * from pg_catalog.pg_proc where proname = 'bar' order by proname", null, testUserSession());
-        assertThat(response.rowCount(), is(1L));
+            //if privilege is granted, the new user can access
+            executeAsSuperuser("grant DQL on schema test_schema to " + TEST_USERNAME);
+            execute("select * from pg_catalog.pg_proc where proname = 'bar' order by proname", null, testUserSession);
+            assertThat(response.rowCount(), is(1L));
+        }
 
         //values are identical
         String newUserWithPrivilegesResult = printedTable(response.rows());
@@ -567,29 +627,31 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
     @Test
     public void testAccessesToPgNamespaceEntriesWithRespectToPrivileges() throws Exception {
         //make sure a new user has default accesses to pg tables with information and pg catalog schema related entries
-        execute("select nspname from pg_catalog.pg_namespace " +
-                "where nspname='information_schema' or nspname='pg_catalog' or nspname='sys' order by nspname",
-                null, testUserSession());
-        assertThat(printedTable(response.rows()), is("""
-                                                         information_schema
-                                                         pg_catalog
-                                                         """));
-        execute("select * from pg_catalog.pg_namespace " +
-                "where nspname='blob' or nspname='doc'", null, testUserSession());
-        assertThat(response.rowCount(), is(0L));
+        try (Session testUserSession = testUserSession()) {
+            execute("select nspname from pg_catalog.pg_namespace " +
+                    "where nspname='information_schema' or nspname='pg_catalog' or nspname='sys' order by nspname",
+                    null, testUserSession);
+            assertThat(printedTable(response.rows()), is("""
+                                                            information_schema
+                                                            pg_catalog
+                                                            """));
+            execute("select * from pg_catalog.pg_namespace " +
+                    "where nspname='blob' or nspname='doc'", null, testUserSession);
+            assertThat(response.rowCount(), is(0L));
 
-        //create a schema that a new user is not privileged to access
-        executeAsSuperuser("create table test_schema.my_table (my_col int)");
-        executeAsSuperuser("insert into test_schema.my_table values (1),(2)");
+            //create a schema that a new user is not privileged to access
+            executeAsSuperuser("create table test_schema.my_table (my_col int)");
+            executeAsSuperuser("insert into test_schema.my_table values (1),(2)");
 
-        //make sure a new user cannot access test_schema without privilege
-        execute("select * from pg_catalog.pg_namespace where nspname = 'test_schema' order by nspname", null, testUserSession());
-        assertThat(response.rowCount(), is(0L));
+            //make sure a new user cannot access test_schema without privilege
+            execute("select * from pg_catalog.pg_namespace where nspname = 'test_schema' order by nspname", null, testUserSession);
+            assertThat(response.rowCount(), is(0L));
 
-        //if privilege is granted, the new user can access
-        executeAsSuperuser("grant DQL on schema test_schema to " + TEST_USERNAME);
-        execute("select * from pg_catalog.pg_namespace where nspname = 'test_schema' order by nspname", null, testUserSession());
-        assertThat(response.rowCount(), is(1L));
+            //if privilege is granted, the new user can access
+            executeAsSuperuser("grant DQL on schema test_schema to " + TEST_USERNAME);
+            execute("select * from pg_catalog.pg_namespace where nspname = 'test_schema' order by nspname", null, testUserSession);
+            assertThat(response.rowCount(), is(1L));
+        }
 
         //values are identical
         String newUserWithPrivilegesResult = printedTable(response.rows());
@@ -601,21 +663,23 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
     @Test
     public void testAccessesToPgAttributeEntriesWithRespectToPrivileges() throws Exception {
         //make sure a new user has default accesses to pg tables with information and pg catalog schema related entries
-        execute("select * from pg_catalog.pg_attribute order by attname", null, testUserSession());
-        assertThat(response.rowCount(), is(500L));
+        try (Session testUserSession = testUserSession()) {
+            execute("select * from pg_catalog.pg_attribute order by attname", null, testUserSession);
+            assertThat(response.rowCount(), is(500L));
 
-        //create a table with an attribute that a new user is not privileged to access
-        executeAsSuperuser("create table test_schema.my_table (my_col int)");
-        executeAsSuperuser("insert into test_schema.my_table values (1),(2)");
+            //create a table with an attribute that a new user is not privileged to access
+            executeAsSuperuser("create table test_schema.my_table (my_col int)");
+            executeAsSuperuser("insert into test_schema.my_table values (1),(2)");
 
-        //make sure a new user cannot access my_col without privilege
-        execute("select * from pg_catalog.pg_attribute where attname = 'my_col' order by attname", null, testUserSession());
-        assertThat(response.rowCount(), is(0L));
+            //make sure a new user cannot access my_col without privilege
+            execute("select * from pg_catalog.pg_attribute where attname = 'my_col' order by attname", null, testUserSession);
+            assertThat(response.rowCount(), is(0L));
 
-        //if privilege is granted, the new user can access
-        executeAsSuperuser("grant DQL on table test_schema.my_table to " + TEST_USERNAME);
-        execute("select * from pg_catalog.pg_attribute where attname = 'my_col' order by attname", null, testUserSession());
-        assertThat(response.rowCount(), is(1L));
+            //if privilege is granted, the new user can access
+            executeAsSuperuser("grant DQL on table test_schema.my_table to " + TEST_USERNAME);
+            execute("select * from pg_catalog.pg_attribute where attname = 'my_col' order by attname", null, testUserSession);
+            assertThat(response.rowCount(), is(1L));
+        }
 
         //values are identical
         String newUserWithPrivilegesResult = printedTable(response.rows());
@@ -627,38 +691,40 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
     @Test
     public void testAccessesToPgConstraintEntriesWithRespectToPrivileges() throws Exception {
         //make sure a new user has default accesses to pg tables with information and pg catalog schema related entries
-        execute("select conname from pg_catalog.pg_constraint order by conname", null, testUserSession());
-        String newUserResult = printedTable(response.rows());
-        assertThat(newUserResult, is(
-            """
-                columns_pk
-                key_column_usage_pk
-                referential_constraints_pk
-                schemata_pk
-                sql_features_pk
-                table_constraints_pk
-                table_partitions_pk
-                tables_pk
-                views_pk
+        try (Session testUserSession = testUserSession()) {
+            execute("select conname from pg_catalog.pg_constraint order by conname", null, testUserSession);
+            String newUserResult = printedTable(response.rows());
+            assertThat(newUserResult, is(
                 """
-        ));
+                    columns_pk
+                    key_column_usage_pk
+                    referential_constraints_pk
+                    schemata_pk
+                    sql_features_pk
+                    table_constraints_pk
+                    table_partitions_pk
+                    tables_pk
+                    views_pk
+                    """
+            ));
 
-        //create a table with constraints that a new user is not privileged to access
-        executeAsSuperuser("create table test_schema.my_table (my_pk int primary key, my_col int check (my_col > 0))");
-        executeAsSuperuser("insert into test_schema.my_table values (1,10),(2,20)");
+            //create a table with constraints that a new user is not privileged to access
+            executeAsSuperuser("create table test_schema.my_table (my_pk int primary key, my_col int check (my_col > 0))");
+            executeAsSuperuser("insert into test_schema.my_table values (1,10),(2,20)");
 
-        //make sure a new user cannot access constraints without privilege
-        execute("select * from pg_catalog.pg_constraint" +
-                " where conname = 'my_table_pk' or conname like 'test_schema_my_table_my_col_check_%' order by conname",
-                null, testUserSession());
-        assertThat(response.rowCount(), is(0L));
+            //make sure a new user cannot access constraints without privilege
+            execute("select * from pg_catalog.pg_constraint" +
+                    " where conname = 'my_table_pk' or conname like 'test_schema_my_table_my_col_check_%' order by conname",
+                    null, testUserSession);
+            assertThat(response.rowCount(), is(0L));
 
-        //if privilege is granted, the new user can access
-        executeAsSuperuser("grant DQL on table test_schema.my_table to " + TEST_USERNAME);
-        execute("select * from pg_catalog.pg_constraint" +
-                " where conname = 'my_table_pk' or conname like 'test_schema_my_table_my_col_check_%' order by conname",
-                null, testUserSession());
-        assertThat(response.rowCount(), is(2L));
+            //if privilege is granted, the new user can access
+            executeAsSuperuser("grant DQL on table test_schema.my_table to " + TEST_USERNAME);
+            execute("select * from pg_catalog.pg_constraint" +
+                    " where conname = 'my_table_pk' or conname like 'test_schema_my_table_my_col_check_%' order by conname",
+                    null, testUserSession);
+            assertThat(response.rowCount(), is(2L));
+        }
 
         //values are identical
         String newUserWithPrivilegesResult = printedTable(response.rows());

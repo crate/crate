@@ -59,19 +59,19 @@ public class UserSessionIntegrationTest extends BaseUsersIntegrationTest {
 
     @Test
     public void test_set_session_user_from_auth_superuser_to_unprivileged_user_round_trip() {
-        var session = createSuperUserSession();
+        try (var session = createSuperUserSession()) {
+            execute("SELECT SESSION_USER", session);
+            assertThat(response.rows()[0][0], is("crate"));
 
-        execute("SELECT SESSION_USER", session);
-        assertThat(response.rows()[0][0], is("crate"));
+            execute("CREATE USER test", session);
+            execute("SET SESSION AUTHORIZATION test", session);
+            execute("SELECT SESSION_USER", session);
+            assertThat(response.rows()[0][0], is("test"));
 
-        execute("CREATE USER test", session);
-        execute("SET SESSION AUTHORIZATION test", session);
-        execute("SELECT SESSION_USER", session);
-        assertThat(response.rows()[0][0], is("test"));
-
-        execute("RESET SESSION AUTHORIZATION", session);
-        execute("SELECT SESSION_USER", session);
-        assertThat(response.rows()[0][0], is("crate"));
+            execute("RESET SESSION AUTHORIZATION", session);
+            execute("SELECT SESSION_USER", session);
+            assertThat(response.rows()[0][0], is("crate"));
+        }
     }
 
     private String getNodeByEnterpriseNode(boolean enterpriseEnabled) {

@@ -143,4 +143,8 @@ public class Sessions {
             session.cancelCurrentJob();
         }
     }
+
+    public Iterable<Session> getActive() {
+        return sessions.values();
+    }
 }

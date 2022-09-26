@@ -109,7 +109,8 @@ public class AuthenticationIntegrationTest extends IntegTestCase {
     public void testValidCrateUser() throws Exception {
         Properties properties = new Properties();
         properties.setProperty("user", "crate");
-        DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties);
+        Connection connection = DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties);
+        connection.close();
     }
 
     @Test
