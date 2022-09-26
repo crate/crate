@@ -136,6 +136,17 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void test_filter_by_internal_id_result_in_get_plan() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
+            .build();
+
+        LogicalPlan plan = e.logicalPlan("select name from users where _id = 1");
+        assertThat(plan, isPlan(
+            "Get[doc.users | name | DocKeys{1} | (_cast(_id, 'integer') = 1)]"));
+    }
+
+    @Test
     public void testGetWithVersion() throws Exception {
         SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
