@@ -21,6 +21,14 @@
 
 package io.crate.planner;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+
 import io.crate.analyze.GeneratedColumnExpander;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.where.DocKeys;
@@ -40,14 +48,6 @@ import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.operators.SubQueryAndParamBinder;
 import io.crate.planner.operators.SubQueryResults;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
 
 /**
  * Used to analyze a query for primaryKey/partition "direct access" possibilities.
@@ -162,21 +162,6 @@ public final class WhereClauseOptimizer {
         EqualityExtractor eqExtractor = new EqualityExtractor(normalizer);
         List<List<Symbol>> pkValues = eqExtractor.extractExactMatches(pkCols, query, txnCtx);
 
-        int clusterIdxWithinPK = table.primaryKey().indexOf(table.clusteredBy());
-        final DocKeys docKeys;
-        if (pkValues == null) {
-            docKeys = null;
-        } else {
-            List<Integer> partitionIndicesWithinPks = null;
-            if (table.isPartitioned()) {
-                partitionIndicesWithinPks = getPartitionIndices(table.primaryKey(), table.partitionedBy());
-            }
-            docKeys = new DocKeys(pkValues,
-                                  versionInQuery,
-                                  sequenceVersioningInQuery,
-                                  clusterIdxWithinPK,
-                                  partitionIndicesWithinPks);
-        }
         List<List<Symbol>> partitionValues = null;
         if (table.isPartitioned()) {
             partitionValues = eqExtractor.extractExactMatches(table.partitionedBy(), query, txnCtx);
@@ -192,6 +177,29 @@ public final class WhereClauseOptimizer {
                 }
             }
         }
+        int clusterIdxWithinPK = table.primaryKey().indexOf(table.clusteredBy());
+        final DocKeys docKeys;
+        final boolean shouldUseDocKeys = table.isPartitioned() == false && (
+                DocSysColumns.ID.equals(table.clusteredBy()) || (
+                    table.primaryKey().size() == 1 && table.clusteredBy().equals(table.primaryKey().get(0))));
+        if (pkValues == null && shouldUseDocKeys) {
+            pkValues = eqExtractor.extractExactMatches(List.of(DocSysColumns.ID), query, txnCtx);
+        }
+
+        if (pkValues == null) {
+            docKeys = null;
+        } else {
+            List<Integer> partitionIndicesWithinPks = null;
+            if (table.isPartitioned()) {
+                partitionIndicesWithinPks = getPartitionIndices(table.primaryKey(), table.partitionedBy());
+            }
+            docKeys = new DocKeys(pkValues,
+                                  versionInQuery,
+                                  sequenceVersioningInQuery,
+                                  clusterIdxWithinPK,
+                                  partitionIndicesWithinPks);
+        }
+
         WhereClauseValidator.validate(query);
         return new DetailedQuery(query, docKeys, partitionValues, clusteredBy);
     }
@@ -217,7 +225,7 @@ public final class WhereClauseOptimizer {
             pkCols.add(DocSysColumns.VERSION);
             return pkCols;
         } else if (seqNoAndPrimaryTermInQuery) {
-            ArrayList<ColumnIdent> pkCols = new ArrayList<>(table.primaryKey().size() + 1);
+            ArrayList<ColumnIdent> pkCols = new ArrayList<>(table.primaryKey().size() + 2);
             pkCols.addAll(table.primaryKey());
             pkCols.add(DocSysColumns.SEQ_NO);
             pkCols.add(DocSysColumns.PRIMARY_TERM);

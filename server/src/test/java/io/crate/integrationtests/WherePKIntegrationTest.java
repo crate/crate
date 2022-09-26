@@ -21,6 +21,7 @@
 
 package io.crate.integrationtests;
 
+import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
@@ -34,7 +35,6 @@ import org.junit.Test;
 import org.locationtech.spatial4j.shape.Point;
 
 import io.crate.common.collections.MapBuilder;
-import io.crate.testing.TestingHelpers;
 
 public class WherePKIntegrationTest extends IntegTestCase {
 
@@ -114,7 +114,7 @@ public class WherePKIntegrationTest extends IntegTestCase {
             });
         execute("refresh table users");
         execute("select name from users where id = 1 order by name desc");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("Arthur\n"));
+        assertThat(printedTable(response.rows()), is("Arthur\n"));
     }
 
     @Test
@@ -183,7 +183,7 @@ public class WherePKIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    public void testSelectByIdWithCustomRoutingUsesSearch() throws Exception {
+    public void test_select_by_id_with_custom_routing_uses_search() throws Exception {
         execute("create table users (name string)" +
                 "clustered by (name) with (number_of_replicas = '0')");
 
@@ -198,9 +198,24 @@ public class WherePKIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    public void testSelectByIdWithPartitionsUsesSearch() throws Exception {
+    public void test_select_by_id_with_default_routing_uses_search() throws Exception {
         execute("create table users (name string)" +
                 "  with (number_of_replicas = '0')");
+
+        execute("insert into users values ('hoschi'), ('galoschi'), ('x')");
+        execute("refresh table users");
+        execute("select _id from users");
+
+        for (Object[] row : response.rows()) {
+            execute("select name from users where _id=?", row);
+            assertThat(response.rowCount(), is(1L));
+        }
+    }
+
+    @Test
+    public void test_select_by_id_with_partitions_uses_search() throws Exception {
+        execute("create table users (name string)" +
+                " partitioned by(name) with (number_of_replicas = '0')");
 
         execute("insert into users values ('hoschi'), ('galoschi'), ('x')");
         execute("refresh table users");
