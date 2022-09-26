@@ -38,7 +38,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.http.netty4.cors.Netty4CorsConfigBuilder;
 import org.junit.Test;
 
-import io.crate.action.sql.SQLOperations;
+import io.crate.action.sql.Sessions;
 import io.crate.action.sql.Session;
 import io.crate.auth.AccessControl;
 import io.crate.auth.AuthSettings;
@@ -53,7 +53,7 @@ public class SqlHttpHandlerTest {
     public void testDefaultUserIfHttpHeaderNotPresent() {
         SqlHttpHandler handler = new SqlHttpHandler(
             Settings.EMPTY,
-            mock(SQLOperations.class),
+            mock(Sessions.class),
             (s) -> new NoopCircuitBreaker("dummy"),
             () -> List.of(User.CRATE_USER),
             sessionSettings -> AccessControl.DISABLED,
@@ -71,7 +71,7 @@ public class SqlHttpHandlerTest {
             .build();
         SqlHttpHandler handler = new SqlHttpHandler(
             settings,
-            mock(SQLOperations.class),
+            mock(Sessions.class),
             (s) -> new NoopCircuitBreaker("dummy"),
             () -> List.of(User.of("trillian")),
             sessionSettings -> AccessControl.DISABLED,
@@ -86,7 +86,7 @@ public class SqlHttpHandlerTest {
     public void testUserIfHttpBasicAuthIsPresent() {
         SqlHttpHandler handler = new SqlHttpHandler(
             Settings.EMPTY,
-            mock(SQLOperations.class),
+            mock(Sessions.class),
             (s) -> new NoopCircuitBreaker("dummy"),
             () -> List.of(User.of("Aladdin")),
             sessionSettings -> AccessControl.DISABLED,
@@ -105,7 +105,7 @@ public class SqlHttpHandlerTest {
         var mockedSession = mock(Session.class);
         when(mockedSession.sessionSettings()).thenReturn(sessionSettings);
 
-        var mockedSqlOperations = mock(SQLOperations.class);
+        var mockedSqlOperations = mock(Sessions.class);
         when(mockedSqlOperations.createSession(null, dummyUser)).thenReturn(mockedSession);
 
         var mockedRequest = mock(FullHttpRequest.class);

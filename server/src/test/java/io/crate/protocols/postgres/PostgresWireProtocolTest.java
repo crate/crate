@@ -60,7 +60,7 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import io.crate.action.sql.DescribeResult;
-import io.crate.action.sql.SQLOperations;
+import io.crate.action.sql.Sessions;
 import io.crate.action.sql.Session;
 import io.crate.auth.AccessControl;
 import io.crate.auth.AlwaysOKAuthentication;
@@ -85,7 +85,7 @@ import io.netty.handler.ssl.util.SelfSignedCertificate;
 
 public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
 
-    private SQLOperations sqlOperations;
+    private Sessions sqlOperations;
     private EmbeddedChannel channel;
     private SQLExecutor executor;
 
@@ -119,7 +119,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
     public void testHandleEmptySimpleQuery() throws Exception {
         PostgresWireProtocol ctx =
             new PostgresWireProtocol(
-                mock(SQLOperations.class),
+                mock(Sessions.class),
                 sessionSettings -> AccessControl.DISABLED,
                 chPipeline -> {},
                 new AlwaysOKAuthentication(() -> List.of()),
@@ -158,7 +158,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_channel_is_flushed_after_receiving_flush_request() throws Exception {
-        SQLOperations sqlOperations = mock(SQLOperations.class);
+        Sessions sqlOperations = mock(Sessions.class);
         Session session = mock(Session.class);
         when(sqlOperations.createSession(any(String.class), any(User.class))).thenReturn(session);
         PostgresWireProtocol ctx =
@@ -190,7 +190,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testBindMessageCanBeReadIfTypeForParamsIsUnknown() throws Exception {
-        var mockedSqlOperations = mock(SQLOperations.class);
+        var mockedSqlOperations = mock(Sessions.class);
         AtomicReference<Session> sessionRef = new AtomicReference<>();
         when(mockedSqlOperations.createSession(Mockito.anyString(), Mockito.any())).thenAnswer(new Answer<Session>() {
 
@@ -411,7 +411,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
     public void testSslRejection() {
         PostgresWireProtocol ctx =
             new PostgresWireProtocol(
-                mock(SQLOperations.class),
+                mock(Sessions.class),
                 sessionSettings -> AccessControl.DISABLED,
                 chPipeline -> {},
                 new AlwaysOKAuthentication(() -> List.of()),
@@ -441,7 +441,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_ssl_accepted() {
         PostgresWireProtocol ctx = new PostgresWireProtocol(
-            mock(SQLOperations.class),
+            mock(Sessions.class),
             sessionSettings -> AccessControl.DISABLED,
             chPipeline -> {},
             new AlwaysOKAuthentication(() -> List.of()),
@@ -515,7 +515,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testPasswordMessageAuthenticationProcess() throws Exception {
-        var sqlOperations = mock(SQLOperations.class);
+        var sqlOperations = mock(Sessions.class);
         when(sqlOperations.createSession(any(String.class), any(User.class))).thenReturn(mock(Session.class));
         PostgresWireProtocol ctx =
             new PostgresWireProtocol(
@@ -563,7 +563,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testSessionCloseOnTerminationMessage() throws Exception {
-        SQLOperations sqlOperations = mock(SQLOperations.class);
+        Sessions sqlOperations = mock(Sessions.class);
         Session session = mock(Session.class);
         when(sqlOperations.createSession(any(String.class), any(User.class))).thenReturn(session);
         PostgresWireProtocol ctx =
@@ -701,7 +701,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
     private void submitQueriesThroughSimpleQueryMode(String statements,
                                                      @Nullable Throwable failure,
                                                      @Nullable CompletableFuture future) {
-        SQLOperations sqlOperations = Mockito.mock(SQLOperations.class);
+        Sessions sqlOperations = Mockito.mock(Sessions.class);
         Session session = mock(Session.class);
         when(session.execute(any(String.class), any(int.class), any(RowCountReceiver.class))).thenReturn(future);
         var sessionSettings = new CoordinatorSessionSettings(User.CRATE_USER);

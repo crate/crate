@@ -21,7 +21,7 @@
 
 package io.crate.cluster.gracefulstop;
 
-import io.crate.action.sql.SQLOperations;
+import io.crate.action.sql.Sessions;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.MapBuilder;
 import io.crate.common.unit.TimeValue;
@@ -89,7 +89,7 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
     private final ClusterService clusterService;
     private final JobsLogs jobsLogs;
     private final ScheduledExecutorService executorService;
-    private final SQLOperations sqlOperations;
+    private final Sessions sqlOperations;
     private final IntSupplier numActiveContexts;
     private final TransportClusterHealthAction healthAction;
     private final TransportClusterUpdateSettingsAction updateSettingsAction;
@@ -103,7 +103,7 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
     public DecommissioningService(Settings settings,
                                   final ClusterService clusterService,
                                   JobsLogs jobsLogs,
-                                  SQLOperations sqlOperations,
+                                  Sessions sqlOperations,
                                   TasksService tasksService,
                                   final TransportClusterHealthAction healthAction,
                                   final TransportClusterUpdateSettingsAction updateSettingsAction) {
@@ -125,7 +125,7 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
                                      final ClusterService clusterService,
                                      JobsLogs jobsLogs,
                                      ScheduledExecutorService executorService,
-                                     SQLOperations sqlOperations,
+                                     Sessions sqlOperations,
                                      IntSupplier numActiveContexts,
                                      @Nullable Runnable safeExitAction,
                                      final TransportClusterHealthAction healthAction,

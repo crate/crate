@@ -51,7 +51,7 @@ import org.elasticsearch.http.netty4.Netty4HttpServerTransport;
 
 import io.crate.action.sql.DescribeResult;
 import io.crate.action.sql.ResultReceiver;
-import io.crate.action.sql.SQLOperations;
+import io.crate.action.sql.Sessions;
 import io.crate.action.sql.Session;
 import io.crate.auth.AccessControl;
 import io.crate.auth.Authentication;
@@ -195,7 +195,7 @@ public class PostgresWireProtocol {
 
     final PgDecoder decoder;
     final MessageHandler handler;
-    private final SQLOperations sqlOperations;
+    private final Sessions sqlOperations;
     private final Function<CoordinatorSessionSettings, AccessControl> getAccessControl;
     private final Authentication authService;
     private final Consumer<ChannelPipeline> addTransportHandler;
@@ -206,7 +206,7 @@ public class PostgresWireProtocol {
     private AuthenticationContext authContext;
     private Properties properties;
 
-    PostgresWireProtocol(SQLOperations sqlOperations,
+    PostgresWireProtocol(Sessions sqlOperations,
                          Function<CoordinatorSessionSettings, AccessControl> getAcessControl,
                          Consumer<ChannelPipeline> addTransportHandler,
                          Authentication authService,

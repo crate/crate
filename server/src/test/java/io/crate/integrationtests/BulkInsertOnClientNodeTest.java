@@ -35,7 +35,7 @@ import org.elasticsearch.test.IntegTestCase;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
-import io.crate.action.sql.SQLOperations;
+import io.crate.action.sql.Sessions;
 import io.crate.testing.SQLTransportExecutor;
 
 @IntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 1)
@@ -61,8 +61,8 @@ public class BulkInsertOnClientNodeTest extends IntegTestCase {
                 }
 
                 @Override
-                public SQLOperations sqlOperations() {
-                    return internalCluster().getInstance(SQLOperations.class, nodeName());
+                public Sessions sqlOperations() {
+                    return internalCluster().getInstance(Sessions.class, nodeName());
                 }
 
                 private String nodeName() {

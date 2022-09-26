@@ -117,7 +117,7 @@ import io.crate.types.DataType;
 public class Session implements AutoCloseable {
 
     // Logger name should be SQLOperations here
-    private static final Logger LOGGER = LogManager.getLogger(SQLOperations.class);
+    private static final Logger LOGGER = LogManager.getLogger(Sessions.class);
 
     // Parser can't handle empty statement but postgres requires support for it.
     // This rewrite is done so that bind/describe calls on an empty statement will work as well

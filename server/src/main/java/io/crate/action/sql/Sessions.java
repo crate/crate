@@ -46,7 +46,7 @@ import io.crate.user.User;
 
 
 @Singleton
-public class SQLOperations {
+public class Sessions {
 
     public static final Setting<Boolean> NODE_READ_ONLY_SETTING = Setting.boolSetting(
         "node.sql.read_only",
@@ -66,7 +66,7 @@ public class SQLOperations {
 
 
     @Inject
-    public SQLOperations(NodeContext nodeCtx,
+    public Sessions(NodeContext nodeCtx,
                          Analyzer analyzer,
                          Planner planner,
                          Provider<DependencyCarrier> executorProvider,

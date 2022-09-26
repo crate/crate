@@ -97,7 +97,7 @@ import org.elasticsearch.search.SearchModule;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportSettings;
 
-import io.crate.action.sql.SQLOperations;
+import io.crate.action.sql.Sessions;
 import io.crate.auth.AuthSettings;
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.cluster.gracefulstop.DecommissioningService;
@@ -443,7 +443,7 @@ public final class ClusterSettings extends AbstractScopedSettings {
         UDCService.UDC_INTERVAL_SETTING,
         MemoryManagerFactory.MEMORY_ALLOCATION_TYPE,
         AnalyzerSettings.CUSTOM_ANALYSIS_SETTING_GROUP,
-        SQLOperations.NODE_READ_ONLY_SETTING,
+        Sessions.NODE_READ_ONLY_SETTING,
         PostgresNetty.PSQL_ENABLED_SETTING,
         PostgresNetty.PSQL_PORT_SETTING,
         AuthSettings.AUTH_HOST_BASED_ENABLED_SETTING,

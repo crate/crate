@@ -54,7 +54,7 @@ import org.elasticsearch.common.settings.Settings;
 
 import io.crate.action.FutureActionListener;
 import io.crate.action.sql.CollectingResultReceiver;
-import io.crate.action.sql.SQLOperations;
+import io.crate.action.sql.Sessions;
 import io.crate.action.sql.Session;
 import io.crate.analyze.AnalyzedAlterTableRename;
 import io.crate.analyze.BoundAddColumn;
@@ -86,7 +86,7 @@ public class AlterTableOperation {
     private final TransportDeleteIndexAction transportDeleteIndexAction;
     private final TransportSwapAndDropIndexNameAction transportSwapAndDropIndexNameAction;
     private final TransportCloseTable transportCloseTable;
-    private final SQLOperations sqlOperations;
+    private final Sessions sqlOperations;
     private final IndexScopedSettings indexScopedSettings;
     private final LogicalReplicationService logicalReplicationService;
 
@@ -103,7 +103,7 @@ public class AlterTableOperation {
                                TransportSwapAndDropIndexNameAction transportSwapAndDropIndexNameAction,
                                TransportAlterTableAction transportAlterTableAction,
                                TransportDropConstraintAction transportDropConstraintAction,
-                               SQLOperations sqlOperations,
+                               Sessions sqlOperations,
                                IndexScopedSettings indexScopedSettings,
                                LogicalReplicationService logicalReplicationService) {
 

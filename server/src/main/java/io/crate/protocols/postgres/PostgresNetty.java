@@ -58,7 +58,7 @@ import org.elasticsearch.transport.netty4.Netty4OpenChannelsHandler;
 import org.elasticsearch.transport.netty4.Netty4TcpChannel;
 import org.elasticsearch.transport.netty4.Netty4Transport;
 
-import io.crate.action.sql.SQLOperations;
+import io.crate.action.sql.Sessions;
 import io.crate.auth.Authentication;
 import io.crate.netty.NettyBootstrap;
 import io.crate.protocols.ssl.SslContextProvider;
@@ -87,7 +87,7 @@ public class PostgresNetty extends AbstractLifecycleComponent {
         DataTypes.STRING,
         Setting.Property.NodeScope);
 
-    private final SQLOperations sqlOperations;
+    private final Sessions sqlOperations;
     private final NetworkService networkService;
 
     private final boolean enabled;
@@ -115,7 +115,7 @@ public class PostgresNetty extends AbstractLifecycleComponent {
 
     @Inject
     public PostgresNetty(Settings settings,
-                         SQLOperations sqlOperations,
+                         Sessions sqlOperations,
                          UserManager userManager,
                          NetworkService networkService,
                          Node node,

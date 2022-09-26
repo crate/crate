@@ -52,7 +52,7 @@ import org.junit.rules.TemporaryFolder;
 
 import com.carrotsearch.randomizedtesting.LifecycleScope;
 
-import io.crate.action.sql.SQLOperations;
+import io.crate.action.sql.Sessions;
 import io.crate.exceptions.JobKilledException;
 import io.crate.testing.SQLTransportExecutor;
 import io.crate.testing.UseJdbc;
@@ -126,8 +126,8 @@ public class CopyFromFailFastITest extends IntegTestCase {
             }
 
             @Override
-            public SQLOperations sqlOperations() {
-                return internalCluster().getInstance(SQLOperations.class, nodeNameOfShard0);
+            public Sessions sqlOperations() {
+                return internalCluster().getInstance(Sessions.class, nodeNameOfShard0);
             }
         };
         var handlerNodeExecutor = new SQLTransportExecutor(clientProvider);
@@ -198,8 +198,8 @@ public class CopyFromFailFastITest extends IntegTestCase {
             }
 
             @Override
-            public SQLOperations sqlOperations() {
-                return internalCluster().getInstance(SQLOperations.class, nodeNameOfShard0);
+            public Sessions sqlOperations() {
+                return internalCluster().getInstance(Sessions.class, nodeNameOfShard0);
             }
         };
         var handlerNodeExecutor = new SQLTransportExecutor(clientProvider);

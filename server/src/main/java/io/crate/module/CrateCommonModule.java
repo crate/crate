@@ -23,7 +23,7 @@ package io.crate.module;
 
 import org.elasticsearch.common.inject.AbstractModule;
 
-import io.crate.action.sql.SQLOperations;
+import io.crate.action.sql.Sessions;
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.memory.MemoryManagerFactory;
 import io.crate.metadata.DanglingArtifactsService;
@@ -42,7 +42,7 @@ public class CrateCommonModule extends AbstractModule {
     protected void configure() {
         bind(FulltextAnalyzerResolver.class).asEagerSingleton();
         bind(PostgresNetty.class).asEagerSingleton();
-        bind(SQLOperations.class).asEagerSingleton();
+        bind(Sessions.class).asEagerSingleton();
         bind(Planner.class).asEagerSingleton();
         bind(TableStats.class).asEagerSingleton();
         bind(TableStatsService.class).asEagerSingleton();

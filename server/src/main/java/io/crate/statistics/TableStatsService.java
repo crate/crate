@@ -23,7 +23,7 @@ package io.crate.statistics;
 
 
 import io.crate.action.sql.BaseResultReceiver;
-import io.crate.action.sql.SQLOperations;
+import io.crate.action.sql.Sessions;
 import io.crate.action.sql.Session;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.unit.TimeValue;
@@ -71,7 +71,7 @@ public class TableStatsService implements Runnable {
     public TableStatsService(Settings settings,
                              ThreadPool threadPool,
                              ClusterService clusterService,
-                             SQLOperations sqlOperations) {
+                             Sessions sqlOperations) {
         this.threadPool = threadPool;
         this.clusterService = clusterService;
         refreshInterval = STATS_SERVICE_REFRESH_INTERVAL_SETTING.get(settings);

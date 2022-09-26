@@ -27,7 +27,7 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 
-import io.crate.action.sql.SQLOperations;
+import io.crate.action.sql.Sessions;
 import io.crate.user.UserLookup;
 import io.crate.user.UserManager;
 import io.crate.netty.channel.PipelineRegistry;
@@ -38,7 +38,7 @@ public class RestSQLAction {
 
     @Inject
     public RestSQLAction(Settings settings,
-                         SQLOperations sqlOperations,
+                         Sessions sqlOperations,
                          PipelineRegistry pipelineRegistry,
                          UserLookup userLookup,
                          Provider<UserManager> userManagerProvider,

@@ -43,7 +43,7 @@ import org.junit.Test;
 import org.mockito.Answers;
 import org.mockito.Mockito;
 
-import io.crate.action.sql.SQLOperations;
+import io.crate.action.sql.Sessions;
 import io.crate.common.unit.TimeValue;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -53,14 +53,14 @@ public class DecommissioningServiceTest extends CrateDummyClusterServiceUnitTest
     private JobsLogs jobsLogs;
     private TestableDecommissioningService decommissioningService;
     private ScheduledExecutorService executorService;
-    private SQLOperations sqlOperations;
+    private Sessions sqlOperations;
     private AtomicBoolean exited = new AtomicBoolean(false);
 
     @Before
     public void init() throws Exception {
         executorService = mock(ScheduledExecutorService.class, Answers.RETURNS_MOCKS);
         jobsLogs = new JobsLogs(() -> true);
-        sqlOperations = mock(SQLOperations.class, Answers.RETURNS_MOCKS);
+        sqlOperations = mock(Sessions.class, Answers.RETURNS_MOCKS);
         decommissioningService = new TestableDecommissioningService(
             Settings.EMPTY,
             clusterService,
@@ -106,7 +106,7 @@ public class DecommissioningServiceTest extends CrateDummyClusterServiceUnitTest
                                        ClusterService clusterService,
                                        JobsLogs jobsLogs,
                                        ScheduledExecutorService executorService,
-                                       SQLOperations sqlOperations,
+                                       Sessions sqlOperations,
                                        Runnable safeExitAction,
                                        TransportClusterHealthAction healthAction,
                                        TransportClusterUpdateSettingsAction updateSettingsAction) {
