@@ -72,7 +72,7 @@ import org.postgresql.util.PGobject;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
-import io.crate.action.sql.SQLOperations;
+import io.crate.action.sql.Sessions;
 import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.protocols.postgres.PostgresNetty;
@@ -117,7 +117,7 @@ public class PostgresITest extends IntegTestCase {
 
         if ((nodeOrdinal + 1) % 2 != 0) {
             builder.put(PSQL_PORT_SETTING.getKey(), "5432-5532");
-            builder.put(SQLOperations.NODE_READ_ONLY_SETTING.getKey(), true);
+            builder.put(Sessions.NODE_READ_ONLY_SETTING.getKey(), true);
         } else {
             builder.put(PSQL_PORT_SETTING.getKey(), "5533-5633");
         }

@@ -152,7 +152,7 @@ import com.carrotsearch.randomizedtesting.generators.RandomNumbers;
 import com.carrotsearch.randomizedtesting.generators.RandomPicks;
 import com.carrotsearch.randomizedtesting.generators.RandomStrings;
 
-import io.crate.action.sql.SQLOperations;
+import io.crate.action.sql.Sessions;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
 import io.crate.execution.ddl.SchemaUpdateClient;
@@ -2402,8 +2402,8 @@ public final class TestCluster implements Closeable {
                 }
 
                 @Override
-                public SQLOperations sqlOperations() {
-                    return getInstance(SQLOperations.class);
+                public Sessions sqlOperations() {
+                    return getInstance(Sessions.class);
                 }
             }
         );

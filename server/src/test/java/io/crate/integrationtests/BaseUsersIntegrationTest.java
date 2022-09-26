@@ -26,7 +26,7 @@ import java.util.Objects;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Before;
 
-import io.crate.action.sql.SQLOperations;
+import io.crate.action.sql.Sessions;
 import io.crate.action.sql.Session;
 import io.crate.testing.SQLResponse;
 import io.crate.user.User;
@@ -38,12 +38,12 @@ public abstract class BaseUsersIntegrationTest extends IntegTestCase {
     private Session normalUserSession;
 
     protected Session createSuperUserSession() {
-        SQLOperations sqlOperations = internalCluster().getInstance(SQLOperations.class);
+        Sessions sqlOperations = internalCluster().getInstance(Sessions.class);
         return sqlOperations.createSession(null, User.CRATE_USER);
     }
 
     private Session createUserSession() {
-        SQLOperations sqlOperations = internalCluster().getInstance(SQLOperations.class);
+        Sessions sqlOperations = internalCluster().getInstance(Sessions.class);
         return sqlOperations.createSession(null, User.of("normal"));
     }
 
@@ -70,7 +70,7 @@ public abstract class BaseUsersIntegrationTest extends IntegTestCase {
     }
 
     public SQLResponse executeAs(String stmt, String userName) {
-        SQLOperations sqlOperations = internalCluster().getInstance(SQLOperations.class);
+        Sessions sqlOperations = internalCluster().getInstance(Sessions.class);
         UserLookup userLookup = internalCluster().getInstance(UserLookup.class);
         User user = Objects.requireNonNull(userLookup.findUser(userName), "User " + userName + " must exist");
         Session session = sqlOperations.createSession(null, user);

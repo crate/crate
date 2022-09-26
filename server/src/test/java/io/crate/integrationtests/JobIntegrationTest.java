@@ -34,7 +34,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
-import io.crate.action.sql.SQLOperations;
+import io.crate.action.sql.Sessions;
 import io.crate.exceptions.VersioningValidationException;
 import io.crate.testing.SQLTransportExecutor;
 
@@ -64,8 +64,8 @@ public class JobIntegrationTest extends IntegTestCase {
                 }
 
                 @Override
-                public SQLOperations sqlOperations() {
-                    return internalCluster().getInstance(SQLOperations.class);
+                public Sessions sqlOperations() {
+                    return internalCluster().getInstance(Sessions.class);
                 }
             }
         ));

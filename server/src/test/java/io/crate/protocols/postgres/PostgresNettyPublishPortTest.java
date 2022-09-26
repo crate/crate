@@ -46,7 +46,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.action.sql.SQLOperations;
+import io.crate.action.sql.Sessions;
 import io.crate.auth.AlwaysOKAuthentication;
 import io.crate.netty.NettyBootstrap;
 import io.crate.protocols.ssl.SslContextProvider;
@@ -102,7 +102,7 @@ public class PostgresNettyPublishPortTest extends ESTestCase {
         StubUserManager userManager = new StubUserManager();
         PostgresNetty psql = new PostgresNetty(
             Settings.EMPTY,
-            mock(SQLOperations.class),
+            mock(Sessions.class),
             userManager,
             networkService,
             null, new AlwaysOKAuthentication(userManager),
@@ -126,7 +126,7 @@ public class PostgresNettyPublishPortTest extends ESTestCase {
         StubUserManager userManager = new StubUserManager();
         PostgresNetty psql = new PostgresNetty(
             settingsWithCustomHost,
-            mock(SQLOperations.class),
+            mock(Sessions.class),
             userManager,
             networkService,
             null, new AlwaysOKAuthentication(userManager),
@@ -154,7 +154,7 @@ public class PostgresNettyPublishPortTest extends ESTestCase {
         StubUserManager userManager = new StubUserManager();
         PostgresNetty psql = new PostgresNetty(
             settingsWithCustomBind,
-            mock(SQLOperations.class),
+            mock(Sessions.class),
             userManager,
             networkService,
             null, new AlwaysOKAuthentication(userManager),
@@ -182,7 +182,7 @@ public class PostgresNettyPublishPortTest extends ESTestCase {
         StubUserManager userManager = new StubUserManager();
         PostgresNetty psql = new PostgresNetty(
             settingsWithCustomPublish,
-            mock(SQLOperations.class),
+            mock(Sessions.class),
             userManager,
             networkService,
             null,

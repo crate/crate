@@ -51,7 +51,7 @@ import org.junit.Test;
 
 import com.carrotsearch.randomizedtesting.annotations.Repeat;
 
-import io.crate.action.sql.SQLOperations;
+import io.crate.action.sql.Sessions;
 import io.crate.action.sql.Session;
 import io.crate.auth.AlwaysOKAuthentication;
 import io.crate.auth.Authentication;
@@ -122,7 +122,7 @@ public class PgClientTest extends CrateDummyClusterServiceUnitTest {
             authentication,
             sslContextProvider
         ); // clientTransport is closed via clientTransportService
-        var sqlOperations = mock(SQLOperations.class);
+        var sqlOperations = mock(Sessions.class);
         when(sqlOperations.createSession(any(String.class), any(User.class))).thenReturn(mock(Session.class));
         PostgresNetty postgresNetty = new PostgresNetty(
             serverNodeSettings,

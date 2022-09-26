@@ -46,7 +46,7 @@ import org.openjdk.jmh.annotations.TearDown;
 
 import io.crate.action.sql.BaseResultReceiver;
 import io.crate.action.sql.Cursors;
-import io.crate.action.sql.SQLOperations;
+import io.crate.action.sql.Sessions;
 import io.crate.data.Row;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
@@ -65,7 +65,7 @@ public class PreExecutionBenchmark {
 
     private Analyzer analyzer;
     private Node node;
-    private SQLOperations sqlOperations;
+    private Sessions sqlOperations;
     private Planner planner;
     private ClusterService clusterService;
     private NodeContext nodeCtx;
@@ -86,7 +86,7 @@ public class PreExecutionBenchmark {
         );
         node.start();
         Injector injector = node.injector();
-        sqlOperations = injector.getInstance(SQLOperations.class);
+        sqlOperations = injector.getInstance(Sessions.class);
         analyzer = injector.getInstance(Analyzer.class);
         planner = injector.getInstance(Planner.class);
         clusterService = injector.getInstance(ClusterService.class);

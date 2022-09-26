@@ -33,7 +33,7 @@ import org.elasticsearch.test.IntegTestCase;
 import org.junit.After;
 import org.junit.Test;
 
-import io.crate.action.sql.SQLOperations;
+import io.crate.action.sql.Sessions;
 import io.crate.action.sql.Session;
 import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.execution.engine.collect.stats.JobsLogs;
@@ -85,13 +85,13 @@ public class JobLogIntegrationTest extends IntegTestCase {
         // Each node can hold only 1 query (the latest one) so in total we should always see 2 queries in
         // the jobs_log. We make sure that we hit both nodes with 2 queries each and then assert that
         // only the latest queries are found in the log.
-        for (SQLOperations sqlOperations : internalCluster().getDataNodeInstances(SQLOperations.class)) {
+        for (Sessions sqlOperations : internalCluster().getDataNodeInstances(Sessions.class)) {
             Session session = sqlOperations.newSystemSession();
             execute("select name from sys.cluster", null, session);
         }
         assertJobLogOnNodesHaveOnlyStatement("select name from sys.cluster");
 
-        for (SQLOperations sqlOperations : internalCluster().getDataNodeInstances(SQLOperations.class)) {
+        for (Sessions sqlOperations : internalCluster().getDataNodeInstances(Sessions.class)) {
             Session session = sqlOperations.newSystemSession();
             execute("select id from sys.cluster", null, session);
         }

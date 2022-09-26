@@ -38,7 +38,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.action.sql.SQLOperations;
+import io.crate.action.sql.Sessions;
 import io.crate.action.sql.Session;
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.testing.SQLResponse;
@@ -50,7 +50,7 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
     private static final String TEST_USERNAME = "privileges_test_user";
 
     private final UserDefinedFunctionsIntegrationTest.DummyLang dummyLang = new UserDefinedFunctionsIntegrationTest.DummyLang();
-    private SQLOperations sqlOperations;
+    private Sessions sqlOperations;
     private UserLookup userLookup;
 
     private void assertPrivilegeIsGranted(String privilege) {
@@ -84,7 +84,7 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
             udfService.registerLanguage(dummyLang);
         }
         userLookup = internalCluster().getInstance(UserLookup.class);
-        sqlOperations = internalCluster().getInstance(SQLOperations.class, null);
+        sqlOperations = internalCluster().getInstance(Sessions.class, null);
         executeAsSuperuser("create user " + TEST_USERNAME);
     }
 

@@ -82,7 +82,7 @@ import com.carrotsearch.randomizedtesting.RandomizedContext;
 import io.crate.action.FutureActionListener;
 import io.crate.action.sql.BaseResultReceiver;
 import io.crate.action.sql.ResultReceiver;
-import io.crate.action.sql.SQLOperations;
+import io.crate.action.sql.Sessions;
 import io.crate.action.sql.Session;
 import io.crate.auth.AccessControl;
 import io.crate.common.unit.TimeValue;
@@ -592,7 +592,7 @@ public class SQLTransportExecutor {
         @Nullable
         String pgUrl();
 
-        SQLOperations sqlOperations();
+        Sessions sqlOperations();
     }
 
 

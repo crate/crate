@@ -28,7 +28,7 @@ import org.elasticsearch.client.Client;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
-import io.crate.action.sql.SQLOperations;
+import io.crate.action.sql.Sessions;
 import io.crate.testing.SQLTransportExecutor;
 
 @IntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 2, supportsDedicatedMasters = false)
@@ -49,8 +49,8 @@ public class ClientNodeIntegrationTest extends IntegTestCase {
                 }
 
                 @Override
-                public SQLOperations sqlOperations() {
-                    return internalCluster().getInstance(SQLOperations.class);
+                public Sessions sqlOperations() {
+                    return internalCluster().getInstance(Sessions.class);
                 }
             }
         ));

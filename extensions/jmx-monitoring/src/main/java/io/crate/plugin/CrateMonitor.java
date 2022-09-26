@@ -41,7 +41,7 @@ import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import io.crate.action.sql.SQLOperations;
+import io.crate.action.sql.Sessions;
 import io.crate.beans.CircuitBreakers;
 import io.crate.beans.Connections;
 import io.crate.beans.NodeInfo;
@@ -62,7 +62,7 @@ public class CrateMonitor {
                         PostgresNetty postgresNetty,
                         @Nullable HttpServerTransport httpServerTransport,
                         TransportService transportService,
-                        SQLOperations sqlOperations,
+                        Sessions sqlOperations,
                         ClusterService clusterService,
                         ThreadPool threadPool,
                         CircuitBreakerService breakerService,

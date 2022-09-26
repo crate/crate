@@ -32,7 +32,7 @@ import org.mockito.Answers;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 
-import io.crate.action.sql.SQLOperations;
+import io.crate.action.sql.Sessions;
 import io.crate.action.sql.Session;
 import io.crate.common.unit.TimeValue;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -46,7 +46,7 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
             Settings.builder().put(TableStatsService.STATS_SERVICE_REFRESH_INTERVAL_SETTING.getKey(), 0).build(),
             THREAD_POOL,
             clusterService,
-            Mockito.mock(SQLOperations.class, Answers.RETURNS_MOCKS));
+            Mockito.mock(Sessions.class, Answers.RETURNS_MOCKS));
 
         Assert.assertThat(statsService.refreshInterval,
                           Matchers.is(TimeValue.timeValueMinutes(0)));
@@ -57,7 +57,7 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
             Settings.EMPTY,
             THREAD_POOL,
             clusterService,
-            Mockito.mock(SQLOperations.class, Answers.RETURNS_MOCKS));
+            Mockito.mock(Sessions.class, Answers.RETURNS_MOCKS));
 
         Assert.assertThat(statsService.refreshInterval,
                           Matchers.is(TableStatsService.STATS_SERVICE_REFRESH_INTERVAL_SETTING.getDefault(Settings.EMPTY)));
@@ -91,7 +91,7 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testStatsQueriesCorrectly() {
-        SQLOperations sqlOperations = Mockito.mock(SQLOperations.class);
+        Sessions sqlOperations = Mockito.mock(Sessions.class);
         Session session = Mockito.mock(Session.class);
         Mockito.when(sqlOperations.newSystemSession()).thenReturn(session);
 
@@ -111,7 +111,7 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
         final ClusterService clusterService = Mockito.mock(ClusterService.class);
         Mockito.when(clusterService.localNode()).thenReturn(null);
         Mockito.when(clusterService.getClusterSettings()).thenReturn(this.clusterService.getClusterSettings());
-        SQLOperations sqlOperations = Mockito.mock(SQLOperations.class);
+        Sessions sqlOperations = Mockito.mock(Sessions.class);
         Session session = Mockito.mock(Session.class);
         Mockito.when(sqlOperations.createSession(ArgumentMatchers.anyString(), ArgumentMatchers.any())).thenReturn(session);
 

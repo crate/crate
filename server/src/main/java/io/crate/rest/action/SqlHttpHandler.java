@@ -49,7 +49,7 @@ import org.elasticsearch.transport.netty4.Netty4Utils;
 
 import io.crate.action.sql.DescribeResult;
 import io.crate.action.sql.ResultReceiver;
-import io.crate.action.sql.SQLOperations;
+import io.crate.action.sql.Sessions;
 import io.crate.action.sql.Session;
 import io.crate.action.sql.parser.SQLRequestParseContext;
 import io.crate.action.sql.parser.SQLRequestParser;
@@ -85,7 +85,7 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
     private static final String REQUEST_HEADER_SCHEMA = "Default-Schema";
 
     private final Settings settings;
-    private final SQLOperations sqlOperations;
+    private final Sessions sqlOperations;
     private final Function<String, CircuitBreaker> circuitBreakerProvider;
     private final UserLookup userLookup;
     private final Function<CoordinatorSessionSettings, AccessControl> getAccessControl;
@@ -94,7 +94,7 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
     private Session session;
 
     SqlHttpHandler(Settings settings,
-                   SQLOperations sqlOperations,
+                   Sessions sqlOperations,
                    Function<String, CircuitBreaker> circuitBreakerProvider,
                    UserLookup userLookup,
                    Function<CoordinatorSessionSettings, AccessControl> getAccessControl,

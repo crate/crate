@@ -168,7 +168,7 @@ import com.carrotsearch.randomizedtesting.generators.RandomStrings;
 
 import io.crate.Constants;
 import io.crate.action.sql.Cursors;
-import io.crate.action.sql.SQLOperations;
+import io.crate.action.sql.Sessions;
 import io.crate.action.sql.Session;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.ParamTypeHints;
@@ -1522,8 +1522,8 @@ public abstract class IntegTestCase extends ESTestCase {
                 }
 
                 @Override
-                public SQLOperations sqlOperations() {
-                    return internalCluster().getInstance(SQLOperations.class);
+                public Sessions sqlOperations() {
+                    return internalCluster().getInstance(Sessions.class);
                 }
             }));
     }
@@ -1553,8 +1553,8 @@ public abstract class IntegTestCase extends ESTestCase {
                 }
 
                 @Override
-                public SQLOperations sqlOperations() {
-                    return internalCluster().getInstance(SQLOperations.class);
+                public Sessions sqlOperations() {
+                    return internalCluster().getInstance(Sessions.class);
                 }
             });
     }
@@ -1708,7 +1708,7 @@ public abstract class IntegTestCase extends ESTestCase {
      * @return          the SQL Response
      */
     public SQLResponse systemExecute(String stmt, @Nullable String schema, String node) {
-        SQLOperations sqlOperations = internalCluster().getInstance(SQLOperations.class, node);
+        Sessions sqlOperations = internalCluster().getInstance(Sessions.class, node);
         UserLookup userLookup;
         try {
             userLookup = internalCluster().getInstance(UserLookup.class, node);
@@ -1901,7 +1901,7 @@ public abstract class IntegTestCase extends ESTestCase {
     }
 
     public SQLResponse execute(String stmt, Object[] args, String node, TimeValue timeout) {
-        SQLOperations sqlOperations = internalCluster().getInstance(SQLOperations.class, node);
+        Sessions sqlOperations = internalCluster().getInstance(Sessions.class, node);
         try (Session session = sqlOperations.createSession(sqlExecutor.getCurrentSchema(), User.CRATE_USER)) {
             SQLResponse response = sqlExecutor.exec(stmt, args, session, timeout);
             this.response = response;
@@ -2034,7 +2034,7 @@ public abstract class IntegTestCase extends ESTestCase {
      * @return The created session
      */
     protected Session createSessionOnNode(String nodeName) {
-        SQLOperations sqlOperations = internalCluster().getInstance(SQLOperations.class, nodeName);
+        Sessions sqlOperations = internalCluster().getInstance(Sessions.class, nodeName);
         return sqlOperations.createSession(
             sqlExecutor.getCurrentSchema(), User.CRATE_USER);
     }
@@ -2048,7 +2048,7 @@ public abstract class IntegTestCase extends ESTestCase {
      * @return The created session
      */
     protected Session createSession(@Nullable String defaultSchema) {
-        SQLOperations sqlOperations = internalCluster().getInstance(SQLOperations.class);
+        Sessions sqlOperations = internalCluster().getInstance(Sessions.class);
         return sqlOperations.createSession(defaultSchema, User.CRATE_USER);
     }
 

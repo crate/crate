@@ -111,7 +111,7 @@ import org.mockito.Answers;
 
 import io.crate.Constants;
 import io.crate.action.sql.Cursors;
-import io.crate.action.sql.SQLOperations;
+import io.crate.action.sql.Sessions;
 import io.crate.action.sql.Session;
 import io.crate.analyze.AnalyzedCreateBlobTable;
 import io.crate.analyze.AnalyzedCreateTable;
@@ -201,7 +201,7 @@ public class SQLExecutor {
 
     private static final Logger LOGGER = LogManager.getLogger(SQLExecutor.class);
 
-    public final SQLOperations sqlOperations;
+    public final Sessions sqlOperations;
     public final Analyzer analyzer;
     public final Planner planner;
     private final RelationAnalyzer relAnalyzer;
@@ -834,7 +834,7 @@ public class SQLExecutor {
         this.dependencyMock = mock(DependencyCarrier.class, Answers.RETURNS_MOCKS);
         when(dependencyMock.clusterService()).thenReturn(clusterService);
         when(dependencyMock.schemas()).thenReturn(schemas);
-        this.sqlOperations = new SQLOperations(
+        this.sqlOperations = new Sessions(
             nodeCtx,
             analyzer,
             planner,

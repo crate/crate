@@ -48,7 +48,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.yaml.snakeyaml.Yaml;
 
-import io.crate.action.sql.SQLOperations;
+import io.crate.action.sql.Sessions;
 import io.crate.action.sql.Session;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;
@@ -59,7 +59,7 @@ public class NodeSettingsTest extends ESTestCase {
     public TemporaryFolder tmp = new TemporaryFolder();
 
     private CrateNode node;
-    private SQLOperations sqlOperations;
+    private Sessions sqlOperations;
 
     private Path createConfigPath() throws IOException {
         File config = tmp.newFolder("crate", "config");
@@ -93,7 +93,7 @@ public class NodeSettingsTest extends ESTestCase {
         Environment environment = InternalSettingsPreparer.prepareEnvironment(Settings.EMPTY, settings, configPath, () -> "node-test");
         node = new CrateNode(environment);
         node.start();
-        sqlOperations = node.injector().getInstance(SQLOperations.class);
+        sqlOperations = node.injector().getInstance(Sessions.class);
     }
 
     @After

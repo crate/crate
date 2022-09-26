@@ -39,7 +39,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import io.crate.action.sql.SQLOperations;
+import io.crate.action.sql.Sessions;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;
 import io.crate.testing.UseRandomizedSchema;
@@ -67,8 +67,8 @@ public class ReadOnlyNodeIntegrationTest extends IntegTestCase {
                 }
 
                 @Override
-                public SQLOperations sqlOperations() {
-                    return internalCluster().getInstance(SQLOperations.class, internalCluster().getNodeNames()[1]);
+                public Sessions sqlOperations() {
+                    return internalCluster().getInstance(Sessions.class, internalCluster().getNodeNames()[1]);
                 }
             }
         ));
@@ -80,7 +80,7 @@ public class ReadOnlyNodeIntegrationTest extends IntegTestCase {
         builder.put(super.nodeSettings(nodeOrdinal));
         builder.put("path.repo", folder.getRoot().getParent());
         if ((nodeOrdinal + 1) % 2 == 0) {
-            builder.put(SQLOperations.NODE_READ_ONLY_SETTING.getKey(), true);
+            builder.put(Sessions.NODE_READ_ONLY_SETTING.getKey(), true);
         }
         return builder.build();
     }
@@ -110,9 +110,9 @@ public class ReadOnlyNodeIntegrationTest extends IntegTestCase {
                     }
 
                     @Override
-                    public SQLOperations sqlOperations() {
+                    public Sessions sqlOperations() {
                         // make sure we use NOT the read-only operations
-                        return internalCluster().getInstance(SQLOperations.class, internalCluster().getNodeNames()[0]);
+                        return internalCluster().getInstance(Sessions.class, internalCluster().getNodeNames()[0]);
                     }
                 }
             );
