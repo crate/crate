@@ -67,10 +67,17 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() throws IOException {
-        e = SQLExecutor.builder(clusterService).enableDefaultTables().build();
+        e = SQLExecutor.builder(clusterService)
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
+            .addPartitionedTable(
+                TableDefinitions.TEST_PARTITIONED_TABLE_DEFINITION,
+                TableDefinitions.TEST_PARTITIONED_TABLE_PARTITIONS
+            )
+            .build();
         plannerContext = e.getPlannerContext(clusterService.state());
     }
 
+    @SuppressWarnings("unchecked")
     private <S> S analyze(String stmt, Object... arguments) {
         AnalyzedStatement analyzedStatement = e.analyze(stmt);
         if (analyzedStatement instanceof AnalyzedCopyFrom) {

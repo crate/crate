@@ -50,6 +50,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.analyze.ParamTypeHints;
+import io.crate.analyze.TableDefinitions;
 import io.crate.exceptions.UnauthorizedException;
 import io.crate.execution.engine.collect.sources.SysTableRegistry;
 import io.crate.metadata.RelationName;
@@ -58,6 +59,7 @@ import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
+import io.crate.testing.T3;
 import io.crate.user.Privilege;
 import io.crate.user.User;
 import io.crate.user.UserLookupService;
@@ -125,7 +127,12 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
 
         e = SQLExecutor.builder(clusterService)
             .addBlobTable("create blob table blobs")
-            .enableDefaultTables()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
+            .addTable(T3.T1_DEFINITION)
+            .addTable(T3.T2_DEFINITION)
+            .addPartitionedTable(
+                TableDefinitions.TEST_PARTITIONED_TABLE_DEFINITION,
+                TableDefinitions.TEST_PARTITIONED_TABLE_PARTITIONS)
             .setUser(superUser)
             .addView(new RelationName("doc", "v1"), "select * from users")
             .setUserManager(userManager)

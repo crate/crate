@@ -56,7 +56,11 @@ public class AlterTableRerouteAnalyzerTest extends CrateDummyClusterServiceUnitT
     public void prepare() throws IOException {
         e = SQLExecutor.builder(clusterService)
             .addBlobTable("create blob table blobs;")
-            .enableDefaultTables()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
+            .addPartitionedTable(
+                TableDefinitions.TEST_PARTITIONED_TABLE_DEFINITION,
+                TableDefinitions.TEST_PARTITIONED_TABLE_PARTITIONS
+            )
             .build();
         plannerContext = e.getPlannerContext(clusterService.state());
     }

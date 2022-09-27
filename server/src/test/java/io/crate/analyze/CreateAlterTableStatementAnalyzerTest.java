@@ -115,7 +115,11 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
             .build();
         ClusterServiceUtils.setState(clusterService, state);
         e = SQLExecutor.builder(clusterService, 3, Randomness.get(), List.of())
-            .enableDefaultTables()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
+            .addPartitionedTable(
+                TableDefinitions.TEST_PARTITIONED_TABLE_DEFINITION,
+                TableDefinitions.TEST_PARTITIONED_TABLE_PARTITIONS)
+            .addTable(TableDefinitions.USER_TABLE_REFRESH_INTERVAL_BY_ONLY_DEFINITION)
             .build();
         plannerContext = e.getPlannerContext(clusterService.state());
     }

@@ -33,6 +33,7 @@ import org.junit.Test;
 
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
+import io.crate.testing.T3;
 
 public class PlanPrinterTest extends CrateDummyClusterServiceUnitTest {
 
@@ -40,7 +41,10 @@ public class PlanPrinterTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void setUpExecutor() throws IOException {
-        e = SQLExecutor.builder(clusterService).enableDefaultTables().build();
+        e = SQLExecutor.builder(clusterService)
+            .addTable(T3.T1_DEFINITION)
+            .addTable(T3.T2_DEFINITION)
+            .build();
     }
 
     private Map<String, Object> printPlan(String stmt) {

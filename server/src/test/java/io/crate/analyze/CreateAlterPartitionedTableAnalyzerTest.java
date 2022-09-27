@@ -34,6 +34,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -93,7 +94,24 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
                 .metadata(metadata)
                 .build();
         ClusterServiceUtils.setState(clusterService, state);
-        e = SQLExecutor.builder(clusterService).enableDefaultTables().build();
+        RelationName multiPartName = new RelationName("doc", "multi_parted");
+        e = SQLExecutor.builder(clusterService)
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
+            .addPartitionedTable(
+                TableDefinitions.TEST_PARTITIONED_TABLE_DEFINITION,
+                TableDefinitions.TEST_PARTITIONED_TABLE_PARTITIONS)
+            .addPartitionedTable(
+                "create table doc.multi_parted (" +
+                "   id int," +
+                "   date timestamp with time zone," +
+                "   num long," +
+                "   obj object as (name string)" +
+                ") partitioned by (date, obj['name'])",
+                new PartitionName(multiPartName, Arrays.asList("1395874800000", "0")).toString(),
+                new PartitionName(multiPartName, Arrays.asList("1395961200000", "-100")).toString(),
+                new PartitionName(multiPartName, Arrays.asList(null, "-100")).toString()
+            )
+            .build();
         plannerContext = e.getPlannerContext(clusterService.state());
     }
 

@@ -50,7 +50,8 @@ public class UnionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Before
     public void prepare() throws IOException {
         sqlExecutor = SQLExecutor.builder(clusterService)
-            .enableDefaultTables()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
+            .addTable(TableDefinitions.USER_TABLE_MULTI_PK_DEFINITION)
             .build();
     }
 

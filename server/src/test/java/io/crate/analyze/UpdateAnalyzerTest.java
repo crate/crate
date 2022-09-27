@@ -85,7 +85,11 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Before
     public void prepare() throws IOException {
         SQLExecutor.Builder builder = SQLExecutor.builder(clusterService)
-            .enableDefaultTables()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
+            .addTable(TableDefinitions.USER_TABLE_CLUSTERED_BY_ONLY_DEFINITION)
+            .addPartitionedTable(
+                TableDefinitions.TEST_PARTITIONED_TABLE_DEFINITION,
+                TableDefinitions.TEST_PARTITIONED_TABLE_PARTITIONS)
             .addTable(
                 "create table doc.nestedclustered (" +
                 "   obj object as (" +

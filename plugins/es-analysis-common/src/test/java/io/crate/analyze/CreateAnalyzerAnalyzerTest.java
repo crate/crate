@@ -54,7 +54,6 @@ public class CreateAnalyzerAnalyzerTest extends CrateDummyClusterServiceUnitTest
     @Before
     public void prepare() throws IOException {
         e = SQLExecutor.builder(clusterService, 1, Randomness.get(), List.of(new CommonAnalysisPlugin()))
-            .enableDefaultTables()
             .build();
         plannerContext = e.getPlannerContext(clusterService.state());
     }

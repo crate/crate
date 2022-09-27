@@ -49,6 +49,7 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
+import io.crate.testing.T3;
 
 public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -58,8 +59,9 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Before
     public void prepare() throws IOException {
         executor = SQLExecutor.builder(clusterService)
-            .enableDefaultTables()
             .addTable("create table nested_obj (o object as (a object as (b object as (c int))))")
+            .addTable(T3.T1_DEFINITION)
+            .addTable(T3.T2_DEFINITION)
             .build();
         t1Info = executor.schemas().getTableInfo(new RelationName("doc", "t1"));
     }

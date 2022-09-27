@@ -42,6 +42,7 @@ import io.crate.expression.tablefunctions.ValuesFunction;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.SymbolMatchers;
+import io.crate.testing.T3;
 
 public class RelationAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -49,7 +50,11 @@ public class RelationAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() throws IOException {
-        executor = SQLExecutor.builder(clusterService).enableDefaultTables().build();
+        executor = SQLExecutor.builder(clusterService)
+            .addTable(T3.T1_DEFINITION)
+            .addTable(T3.T2_DEFINITION)
+            .addTable(T3.T3_DEFINITION)
+            .build();
     }
 
     @Test

@@ -249,7 +249,8 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testExtractTypesFromInsertFromQuery() throws Exception {
         SQLExecutor e = SQLExecutor.builder(clusterService)
-            .enableDefaultTables()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
+            .addTable(TableDefinitions.USER_TABLE_CLUSTERED_BY_ONLY_DEFINITION)
             .build();
         AnalyzedStatement analyzedStatement = e.analyzer.analyze(
             SqlParser.createStatement("INSERT INTO users (id, name) (SELECT id, name FROM users_clustered_by_only " +
@@ -267,7 +268,8 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testExtractTypesFromInsertWithOnDuplicateKey() throws Exception {
         SQLExecutor e = SQLExecutor.builder(clusterService)
-            .enableDefaultTables()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
+            .addTable(TableDefinitions.USER_TABLE_CLUSTERED_BY_ONLY_DEFINITION)
             .build();
         AnalyzedStatement analyzedStatement = e.analyzer.analyze(
             SqlParser.createStatement("INSERT INTO users (id, name) values (?, ?) " +

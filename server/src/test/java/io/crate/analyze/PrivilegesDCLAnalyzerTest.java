@@ -47,6 +47,7 @@ import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
+import io.crate.testing.T3;
 import io.crate.user.Privilege;
 import io.crate.user.StubUserManager;
 import io.crate.user.User;
@@ -62,7 +63,9 @@ public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
 
     @Before
     public void setUpSQLExecutor() throws Exception {
-        e = SQLExecutor.builder(clusterService).enableDefaultTables()
+        e = SQLExecutor.builder(clusterService)
+            .addTable(T3.T2_DEFINITION)
+            .addTable(TableDefinitions.TEST_DOC_LOCATIONS_TABLE_DEFINITION)
             .addTable("create table my_schema.locations (id int)")
             .addView(new RelationName("my_schema", "locations_view"),
                      "select * from my_schema.locations limit 2")
