@@ -19,11 +19,33 @@
 
 package org.elasticsearch.env;
 
-import io.crate.common.CheckedFunction;
-import io.crate.common.SuppressForbidden;
-import io.crate.common.collections.Tuple;
-import io.crate.common.io.IOUtils;
-import io.crate.common.unit.TimeValue;
+import java.io.Closeable;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.AtomicMoveNotSupportedException;
+import java.nio.file.DirectoryStream;
+import java.nio.file.FileStore;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Random;
+import java.util.Set;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
@@ -61,32 +83,10 @@ import org.elasticsearch.monitor.fs.FsProbe;
 import org.elasticsearch.monitor.jvm.JvmInfo;
 import org.elasticsearch.node.Node;
 
-import java.io.Closeable;
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.nio.file.AtomicMoveNotSupportedException;
-import java.nio.file.DirectoryStream;
-import java.nio.file.FileStore;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Random;
-import java.util.Set;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import io.crate.common.CheckedFunction;
+import io.crate.common.SuppressForbidden;
+import io.crate.common.io.IOUtils;
+import io.crate.common.unit.TimeValue;
 
 /**
  * A component that holds all data paths for a single node.
@@ -683,6 +683,9 @@ public final class NodeEnvironment implements Closeable {
         }
     }
 
+    record LockDetails(long nanoTime, String details) {
+    }
+
     private final class InternalShardLock {
         /*
          * This class holds a mutex for exclusive access and timeout / wait semantics
@@ -693,12 +696,12 @@ public final class NodeEnvironment implements Closeable {
         private final Semaphore mutex = new Semaphore(1);
         private int waitCount = 1; // guarded by shardLocks
         private final ShardId shardId;
-        private volatile Tuple<Long, String> lockDetails;
+        private volatile LockDetails lockDetails;
 
         InternalShardLock(final ShardId shardId, final String details) {
             this.shardId = shardId;
             mutex.acquireUninterruptibly();
-            lockDetails = Tuple.tuple(System.nanoTime(), details);
+            lockDetails = new LockDetails(System.nanoTime(), details);
         }
 
         protected void release() {
@@ -731,11 +734,11 @@ public final class NodeEnvironment implements Closeable {
                 if (mutex.tryAcquire(timeoutInMillis, TimeUnit.MILLISECONDS)) {
                     setDetails(details);
                 } else {
-                    final Tuple<Long, String> lockDetails = this.lockDetails; // single volatile read
+                    final LockDetails lockDetails = this.lockDetails; // single volatile read
                     throw new ShardLockObtainFailedException(shardId,
                         "obtaining shard lock for [" + details + "] timed out after [" + timeoutInMillis +
-                        "ms], lock already held for [" + lockDetails.v2() + "] with age [" +
-                        TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - lockDetails.v1()) + "ms]");
+                        "ms], lock already held for [" + lockDetails.details() + "] with age [" +
+                        TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - lockDetails.nanoTime()) + "ms]");
                 }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
@@ -744,7 +747,7 @@ public final class NodeEnvironment implements Closeable {
         }
 
         public void setDetails(String details) {
-            lockDetails = Tuple.tuple(System.nanoTime(), details);
+            lockDetails = new LockDetails(System.nanoTime(), details);
         }
     }
 
