@@ -54,7 +54,6 @@ import com.carrotsearch.hppc.cursors.ObjectCursor;
 
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Sets;
-import io.crate.common.collections.Tuple;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.SchemaUnknownException;
 import io.crate.expression.udf.UserDefinedFunctionMetadata;
@@ -67,6 +66,7 @@ import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.view.View;
 import io.crate.metadata.view.ViewMetadata;
 import io.crate.metadata.view.ViewsMetadata;
 import io.crate.sql.tree.QualifiedName;
@@ -438,10 +438,10 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
     /**
      * @throws RelationUnknown if the view cannot be resolved against the search path.
      */
-    public Tuple<ViewMetadata, RelationName> resolveView(QualifiedName ident, SearchPath searchPath) {
+    public View resolveView(QualifiedName ident, SearchPath searchPath) {
         ViewsMetadata views = clusterService.state().metadata().custom(ViewsMetadata.TYPE);
-        ViewMetadata view = null;
-        RelationName viewRelationName = null;
+        ViewMetadata metadata = null;
+        RelationName name = null;
         String identSchema = schemaName(ident);
         String viewName = relationName(ident);
         if (views != null) {
@@ -449,23 +449,23 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
                 for (String pathSchema : searchPath) {
                     SchemaInfo schemaInfo = schemas.get(pathSchema);
                     if (schemaInfo != null) {
-                        viewRelationName = new RelationName(pathSchema, viewName);
-                        view = views.getView(viewRelationName);
-                        if (view != null) {
+                        name = new RelationName(pathSchema, viewName);
+                        metadata = views.getView(name);
+                        if (metadata != null) {
                             break;
                         }
                     }
                 }
             } else {
-                viewRelationName = new RelationName(identSchema, viewName);
-                view = views.getView(viewRelationName);
+                name = new RelationName(identSchema, viewName);
+                metadata = views.getView(name);
             }
         }
 
-        if (view == null) {
+        if (metadata == null) {
             throw new RelationUnknown(viewName);
         }
-        return Tuple.tuple(view, viewRelationName);
+        return new View(name, metadata);
     }
 
     /**
