@@ -19,7 +19,6 @@
 
 package org.elasticsearch.index;
 
-import io.crate.common.Booleans;
 import io.crate.types.DataTypes;
 import org.apache.lucene.store.MMapDirectory;
 import org.apache.lucene.util.Constants;
@@ -73,15 +72,9 @@ import java.util.function.Function;
  */
 public final class IndexModule {
 
-    @Deprecated
-    public static final Setting<Boolean> NODE_STORE_ALLOW_MMAPFS = Setting.boolSetting(
-        "node.store.allow_mmapfs", true, Property.NodeScope, Property.Deprecated);
-
-    public static final Setting<Boolean> NODE_STORE_ALLOW_MMAP = new Setting<>(
-        new Setting.SimpleKey("node.store.allow_mmap"),
-        NODE_STORE_ALLOW_MMAPFS,
-        Booleans::parseBoolean,
-        DataTypes.BOOLEAN,
+    public static final Setting<Boolean> NODE_STORE_ALLOW_MMAP = Setting.boolSetting(
+        "node.store.allow_mmap",
+        true,
         Property.NodeScope
     );
 
