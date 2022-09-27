@@ -42,6 +42,9 @@ Unreleased Changes
 Breaking Changes
 ================
 
+- Removed the ``node.store.allow_mmapfs`` setting. It was deprecated in 4.1.0
+  in favour of the ``node.store.allow_mmap`` setting.
+
 - Removed the ``indices.breaker.fielddata.limit`` setting and the ``*.overhead``
   settings for all circuit breakers. They were deprecated in 4.3.0 and had no
   effect since then.
