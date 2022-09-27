@@ -48,7 +48,6 @@ import io.crate.analyze.validator.SemanticSortValidator;
 import io.crate.analyze.where.WhereClauseValidator;
 import io.crate.common.collections.Iterables;
 import io.crate.common.collections.Lists2;
-import io.crate.common.collections.Tuple;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.RelationValidationException;
@@ -72,6 +71,7 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
+import io.crate.metadata.view.View;
 import io.crate.metadata.view.ViewMetadata;
 import io.crate.planner.consumer.OrderByWithAggregationValidator;
 import io.crate.planner.node.dql.join.JoinType;
@@ -657,16 +657,16 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                     relation = new TableRelation(tableInfo);
                 }
             } catch (RelationUnknown e) {
-                Tuple<ViewMetadata, RelationName> viewMetadata;
+                View view;
                 try {
-                    viewMetadata = schemas.resolveView(tableQualifiedName, searchPath);
+                    view = schemas.resolveView(tableQualifiedName, searchPath);
                 } catch (RelationUnknown e1) {
                     // don't shadow original exception, as looking for the view is just a fallback
                     throw e;
                 }
-                ViewMetadata view = viewMetadata.v1();
-                AnalyzedRelation resolvedView = SqlParser.createStatement(view.stmt()).accept(this, context);
-                relation = new AnalyzedView(viewMetadata.v2(), view.owner(), resolvedView);
+                ViewMetadata viewMetadata = view.metadata();
+                AnalyzedRelation resolvedView = SqlParser.createStatement(viewMetadata.stmt()).accept(this, context);
+                relation = new AnalyzedView(view.name(), viewMetadata.owner(), resolvedView);
             }
         }
 
