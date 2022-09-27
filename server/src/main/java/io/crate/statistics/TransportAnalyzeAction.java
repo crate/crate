@@ -29,6 +29,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -84,26 +86,50 @@ public final class TransportAnalyzeAction {
     private final TransportService transportService;
     private final Schemas schemas;
     private final ClusterService clusterService;
+    private final ConcurrentHashMap<FetchSampleRequest, CompletableFuture<Samples>> analysisByRequest = new ConcurrentHashMap<>();
+    private final Executor executor;
 
     @Inject
     public TransportAnalyzeAction(TransportService transportService,
                                   ReservoirSampler reservoirSampler,
                                   Schemas schemas,
                                   ClusterService clusterService,
-                                  TableStats tableStats) {
+                                  TableStats tableStats,
+                                  ThreadPool threadPool) {
         this.transportService = transportService;
         this.schemas = schemas;
         this.clusterService = clusterService;
+        this.executor = threadPool.executor(ThreadPool.Names.SEARCH);
+
         transportService.registerRequestHandler(
             FETCH_SAMPLES,
-            ThreadPool.Names.SEARCH,
+            ThreadPool.Names.SAME,
             FetchSampleRequest::new,
             // Explicit generic is required for eclipse JDT, otherwise it won't compile
             new NodeActionRequestHandler<FetchSampleRequest, FetchSampleResponse>(
-                req -> completedFuture(new FetchSampleResponse(
-                    reservoirSampler.getSamples(req.relation(), req.columns(), req.maxSamples())))
+                req -> {
+
+                    CompletableFuture<Samples> newSamples = new CompletableFuture<>();
+                    CompletableFuture<Samples> previous = analysisByRequest.putIfAbsent(
+                        req,
+                        newSamples
+                    );
+
+                    if (previous == null) {
+                        newSamples.completeAsync(
+                            () -> reservoirSampler.getSamples(req.relation(), req.columns(), req.maxSamples()),
+                            executor
+                        );
+                        return newSamples
+                            .thenApply(FetchSampleResponse::new)
+                            .whenComplete((res, err) -> analysisByRequest.remove(req));
+                    } else {
+                        return previous.thenApply(FetchSampleResponse::new);
+                    }
+                }
             )
         );
+
         transportService.registerRequestHandler(
             RECEIVE_TABLE_STATS,
             ThreadPool.Names.SAME, // cheap operation
