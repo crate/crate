@@ -53,7 +53,12 @@ public class DeleteAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() throws IOException {
-        e = SQLExecutor.builder(clusterService).enableDefaultTables().build();
+        e = SQLExecutor.builder(clusterService)
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
+            .addPartitionedTable(
+                TableDefinitions.TEST_PARTITIONED_TABLE_DEFINITION,
+                TableDefinitions.TEST_PARTITIONED_TABLE_PARTITIONS)
+            .build();
     }
 
     @Test

@@ -38,6 +38,7 @@ import org.junit.Test;
 
 import com.carrotsearch.randomizedtesting.RandomizedTest;
 
+import io.crate.analyze.TableDefinitions;
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.projection.EvalProjection;
@@ -56,7 +57,7 @@ public class GroupByScalarPlannerTest extends CrateDummyClusterServiceUnitTest {
     @Before
     public void prepare() throws IOException {
         e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .enableDefaultTables()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .build();
     }
 

@@ -42,6 +42,7 @@ import io.crate.expression.symbol.MatchPredicate;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
+import io.crate.testing.T3;
 
 public class SingleRowSubselectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -49,7 +50,12 @@ public class SingleRowSubselectAnalyzerTest extends CrateDummyClusterServiceUnit
 
     @Before
     public void prepare() throws IOException {
-        e = SQLExecutor.builder(clusterService).enableDefaultTables().build();
+        e = SQLExecutor.builder(clusterService)
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
+            .addTable(T3.T1_DEFINITION)
+            .addTable(T3.T2_DEFINITION)
+            .addTable(T3.T3_DEFINITION)
+            .build();
     }
 
     @Test

@@ -33,6 +33,7 @@ import org.junit.Test;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
+import io.crate.testing.T3;
 
 public class QuerySpecTest extends CrateDummyClusterServiceUnitTest {
 
@@ -40,7 +41,9 @@ public class QuerySpecTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() throws IOException {
-        e = SQLExecutor.builder(clusterService).enableDefaultTables().build();
+        e = SQLExecutor.builder(clusterService)
+            .addTable(T3.T1_DEFINITION)
+            .build();
     }
 
     @Test

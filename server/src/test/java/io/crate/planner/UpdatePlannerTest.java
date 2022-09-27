@@ -83,7 +83,7 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
 
     private static SQLExecutor buildExecutor(ClusterService clusterService) throws IOException {
         return SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .enableDefaultTables()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .addPartitionedTable(
                 TableDefinitions.PARTED_PKS_TABLE_DEFINITION,
                 new PartitionName(new RelationName("doc", "parted_pks"), singletonList("1395874800000")).asIndexName(),

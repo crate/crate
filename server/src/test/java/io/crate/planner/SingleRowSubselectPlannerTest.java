@@ -30,10 +30,12 @@ import java.io.IOException;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.crate.analyze.TableDefinitions;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.RootRelationBoundary;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
+import io.crate.testing.T3;
 
 public class SingleRowSubselectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -41,7 +43,11 @@ public class SingleRowSubselectPlannerTest extends CrateDummyClusterServiceUnitT
 
     @Before
     public void prepare() throws IOException {
-        e = SQLExecutor.builder(clusterService).enableDefaultTables().build();
+        e = SQLExecutor.builder(clusterService)
+            .addTable(T3.T1_DEFINITION)
+            .addTable(T3.T2_DEFINITION)
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
+            .build();
     }
 
     @Test

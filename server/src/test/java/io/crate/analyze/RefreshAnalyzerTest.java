@@ -48,7 +48,9 @@ public class RefreshAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Before
     public void prepare() throws IOException {
         e = SQLExecutor.builder(clusterService)
-            .enableDefaultTables()
+            .addPartitionedTable(
+                TableDefinitions.TEST_PARTITIONED_TABLE_DEFINITION,
+                TableDefinitions.TEST_PARTITIONED_TABLE_PARTITIONS)
             .addBlobTable("create blob table blobs")
             .build();
     }

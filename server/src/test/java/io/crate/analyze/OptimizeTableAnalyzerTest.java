@@ -52,7 +52,10 @@ public class OptimizeTableAnalyzerTest extends CrateDummyClusterServiceUnitTest 
     @Before
     public void prepare() throws IOException {
         e = SQLExecutor.builder(clusterService)
-            .enableDefaultTables()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
+            .addPartitionedTable(
+                TableDefinitions.TEST_PARTITIONED_TABLE_DEFINITION,
+                TableDefinitions.TEST_PARTITIONED_TABLE_PARTITIONS)
             .addBlobTable("create blob table blobs")
             .build();
         plannerContext = e.getPlannerContext(clusterService.state());

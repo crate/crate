@@ -29,6 +29,7 @@ import java.io.IOException;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.crate.analyze.TableDefinitions;
 import io.crate.expression.symbol.Symbols;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -40,7 +41,9 @@ public class GroupByScalarAnalyzerTest extends CrateDummyClusterServiceUnitTest 
 
     @Before
     public void prepare() throws IOException {
-        executor = SQLExecutor.builder(clusterService).enableDefaultTables().build();
+        executor = SQLExecutor.builder(clusterService)
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
+            .build();
     }
 
     @Test

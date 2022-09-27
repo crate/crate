@@ -38,6 +38,7 @@ import org.hamcrest.Matcher;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.crate.analyze.TableDefinitions;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.TopNDistinctProjection;
 import io.crate.metadata.ColumnIdent;
@@ -50,6 +51,7 @@ import io.crate.statistics.Stats;
 import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
+import io.crate.testing.T3;
 import io.crate.types.DataTypes;
 
 public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
@@ -61,7 +63,9 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void prepare() throws IOException {
         tableStats = new TableStats();
         sqlExecutor = SQLExecutor.builder(clusterService)
-            .enableDefaultTables()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
+            .addTable(T3.T1_DEFINITION)
+            .addTable(T3.T2_DEFINITION)
             .setTableStats(tableStats)
             .addView(new RelationName("doc", "v2"), "select a, x from doc.t1")
             .addView(new RelationName("doc", "v3"), "select a, x from doc.t1")

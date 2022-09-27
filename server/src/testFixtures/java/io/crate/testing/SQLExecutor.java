@@ -21,17 +21,6 @@
 
 package io.crate.testing;
 
-import static io.crate.analyze.TableDefinitions.DEEPLY_NESTED_TABLE_DEFINITION;
-import static io.crate.analyze.TableDefinitions.NESTED_PK_TABLE_DEFINITION;
-import static io.crate.analyze.TableDefinitions.TEST_CLUSTER_BY_STRING_TABLE_DEFINITION;
-import static io.crate.analyze.TableDefinitions.TEST_DOC_LOCATIONS_TABLE_DEFINITION;
-import static io.crate.analyze.TableDefinitions.TEST_DOC_TRANSACTIONS_TABLE_DEFINITION;
-import static io.crate.analyze.TableDefinitions.TEST_PARTITIONED_TABLE_DEFINITION;
-import static io.crate.analyze.TableDefinitions.TEST_PARTITIONED_TABLE_PARTITIONS;
-import static io.crate.analyze.TableDefinitions.USER_TABLE_CLUSTERED_BY_ONLY_DEFINITION;
-import static io.crate.analyze.TableDefinitions.USER_TABLE_DEFINITION;
-import static io.crate.analyze.TableDefinitions.USER_TABLE_MULTI_PK_DEFINITION;
-import static io.crate.analyze.TableDefinitions.USER_TABLE_REFRESH_INTERVAL_BY_ONLY_DEFINITION;
 import static io.crate.blob.v2.BlobIndex.fullIndexName;
 import static io.crate.testing.DiscoveryNodes.newFakeAddress;
 import static io.crate.testing.TestingHelpers.createNodeContext;
@@ -146,7 +135,6 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.Schemas;
@@ -390,50 +378,6 @@ public class SQLExecutor {
 
         public Builder setUser(User user) {
             this.user = user;
-            return this;
-        }
-
-        /**
-         * Adds a couple of tables which are defined in {@link T3} and {@link io.crate.analyze.TableDefinitions}.
-         * <p>
-         * Note that these tables do have a static routing which doesn't necessarily match the nodes that
-         * are part of the clusterState of the {@code clusterService} provided to the builder.
-         *
-         * Note that these tables are not part of the clusterState and rely on a stubbed getRouting
-         * Using {@link #addTable(String)} is preferred for this reason.
-         * </p>
-         *
-         * @deprecated Please only add the tables used by a test scenario
-         */
-        @Deprecated
-        public Builder enableDefaultTables() throws IOException {
-            // we should try to reduce the number of tables here eventually...
-            addTable(USER_TABLE_DEFINITION);
-            addTable(USER_TABLE_CLUSTERED_BY_ONLY_DEFINITION);
-            addTable(USER_TABLE_MULTI_PK_DEFINITION);
-            addTable(DEEPLY_NESTED_TABLE_DEFINITION);
-            addTable(NESTED_PK_TABLE_DEFINITION);
-            addPartitionedTable(TEST_PARTITIONED_TABLE_DEFINITION, TEST_PARTITIONED_TABLE_PARTITIONS);
-            addTable(TEST_DOC_TRANSACTIONS_TABLE_DEFINITION);
-            addTable(TEST_DOC_LOCATIONS_TABLE_DEFINITION);
-            addTable(TEST_CLUSTER_BY_STRING_TABLE_DEFINITION);
-            addTable(USER_TABLE_REFRESH_INTERVAL_BY_ONLY_DEFINITION);
-            addTable(T3.T1_DEFINITION);
-            addTable(T3.T2_DEFINITION);
-            addTable(T3.T3_DEFINITION);
-
-            RelationName multiPartName = new RelationName("doc", "multi_parted");
-            addPartitionedTable(
-                "create table doc.multi_parted (" +
-                "   id int," +
-                "   date timestamp with time zone," +
-                "   num long," +
-                "   obj object as (name string)" +
-                ") partitioned by (date, obj['name'])",
-                new PartitionName(multiPartName, Arrays.asList("1395874800000", "0")).toString(),
-                new PartitionName(multiPartName, Arrays.asList("1395961200000", "-100")).toString(),
-                new PartitionName(multiPartName, Arrays.asList(null, "-100")).toString()
-            );
             return this;
         }
 

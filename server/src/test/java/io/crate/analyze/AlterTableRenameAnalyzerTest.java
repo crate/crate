@@ -23,14 +23,12 @@ package io.crate.analyze;
 
 import static io.crate.testing.Asserts.assertThrowsMatches;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.Map;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.exceptions.InvalidRelationName;
@@ -40,25 +38,23 @@ import io.crate.replication.logical.metadata.Publication;
 import io.crate.replication.logical.metadata.PublicationsMetadata;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
+import io.crate.testing.T3;
 
 public class AlterTableRenameAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
-    private SQLExecutor e;
-
-    @Before
-    public void prepare() throws IOException {
-        e = SQLExecutor.builder(clusterService).enableDefaultTables().build();
-    }
-
     @Test
-    public void testRenamePartitionThrowsException() {
+    public void testRenamePartitionThrowsException() throws Exception {
+        var e = SQLExecutor.builder(clusterService).addTable(T3.T1_DEFINITION).build();
+
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Renaming a single partition is not supported");
         e.analyze("alter table t1 partition (i=1) rename to t2");
     }
 
     @Test
-    public void testRenameToUsingSchemaThrowsException() {
+    public void testRenameToUsingSchemaThrowsException() throws Exception {
+        var e = SQLExecutor.builder(clusterService).addTable(T3.T1_DEFINITION).build();
+
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Target table name must not include a schema");
         e.analyze("alter table t1 rename to my_schema.t1");
@@ -66,6 +62,8 @@ public class AlterTableRenameAnalyzerTest extends CrateDummyClusterServiceUnitTe
 
     @Test
     public void testRenameToInvalidName() throws Exception {
+        var e = SQLExecutor.builder(clusterService).addTable(T3.T1_DEFINITION).build();
+
         expectedException.expect(InvalidRelationName.class);
         e.analyze("alter table t1 rename to \"foo.bar\"");
     }
@@ -73,7 +71,7 @@ public class AlterTableRenameAnalyzerTest extends CrateDummyClusterServiceUnitTe
     @Test
     public void test_rename_is_not_allowed_when_table_is_published() throws Exception {
         var clusterService = clusterServiceWithPublicationMetadata(false, new RelationName("doc", "t1"));
-        var executor = SQLExecutor.builder(clusterService).enableDefaultTables().build();
+        var executor = SQLExecutor.builder(clusterService).addTable(T3.T1_DEFINITION).build();
         assertThrowsMatches(
             () -> executor.analyze("ALTER TABLE t1 rename to t1_renamed"),
             OperationOnInaccessibleRelationException.class,
@@ -85,7 +83,7 @@ public class AlterTableRenameAnalyzerTest extends CrateDummyClusterServiceUnitTe
     @Test
     public void test_rename_is_not_allowed_when_all_tables_are_published() throws Exception {
         var clusterService = clusterServiceWithPublicationMetadata(true);
-        var executor = SQLExecutor.builder(clusterService).enableDefaultTables().build();
+        var executor = SQLExecutor.builder(clusterService).addTable(T3.T1_DEFINITION).build();
         assertThrowsMatches(
             () -> executor.analyze("ALTER TABLE t1 rename to t1_renamed"),
             OperationOnInaccessibleRelationException.class,
