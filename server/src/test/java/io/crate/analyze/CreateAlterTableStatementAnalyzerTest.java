@@ -119,7 +119,12 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
             .addPartitionedTable(
                 TableDefinitions.TEST_PARTITIONED_TABLE_DEFINITION,
                 TableDefinitions.TEST_PARTITIONED_TABLE_PARTITIONS)
-            .addTable(TableDefinitions.USER_TABLE_REFRESH_INTERVAL_BY_ONLY_DEFINITION)
+            .addTable(
+                "create table doc.user_refresh_interval (" +
+                "  id bigint," +
+                "  content text" +
+                ")" +
+                " clustered by (id)")
             .build();
         plannerContext = e.getPlannerContext(clusterService.state());
     }
