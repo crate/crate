@@ -30,6 +30,7 @@ import org.elasticsearch.transport.TransportRequest;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public final class FetchSampleRequest extends TransportRequest {
 
@@ -73,5 +74,24 @@ public final class FetchSampleRequest extends TransportRequest {
 
     public int maxSamples() {
         return maxSamples;
+    }
+
+    @Override
+    public final int hashCode() {
+        return Objects.hash(relationName, columns, maxSamples);
+    }
+
+    @Override
+    public final boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (!(obj instanceof FetchSampleRequest other)) {
+            return false;
+        }
+        return relationName.equals(other.relation()) && columns.equals(other.columns()) && maxSamples == other.maxSamples();
     }
 }
