@@ -76,21 +76,6 @@ public final class TableDefinitions {
         "  friends array(object)" +
         ")" +
         " clustered by (id)";
-    public static final String USER_TABLE_REFRESH_INTERVAL_BY_ONLY_DEFINITION =
-        "create table doc.user_refresh_interval (" +
-        "  id bigint," +
-        "  content text" +
-        ")" +
-        " clustered by (id)";
-    public static final String NESTED_PK_TABLE_DEFINITION =
-        "create table doc.nested_pk (" +
-        "  id bigint," +
-        "  o object as (" +
-        "    b byte" +
-        "  )," +
-        "  primary key (id, o['b'])" +
-        ")" +
-        " clustered by (o['b'])";
     static final RelationName TEST_PARTITIONED_TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "parted");
 
     public static final String TEST_PARTITIONED_TABLE_DEFINITION =
@@ -107,12 +92,6 @@ public final class TableDefinitions {
         new PartitionName(new RelationName("doc", "parted"), singletonList(null)).asIndexName()
     };
 
-    public static final String TEST_EMPTY_PARTITIONED_TABLE_DEFINITION =
-        "create table doc.empty_parted (" +
-        "  name text," +
-        "  date timestamp with time zone" +
-        ")" +
-        " partitioned by (date)";
     public static final String PARTED_PKS_TABLE_DEFINITION =
         "create table doc.parted_pks (" +
         "  id integer," +
@@ -151,20 +130,9 @@ public final class TableDefinitions {
         "  ))" +
         ")";
 
-    public static final String IGNORED_NESTED_TABLE_DEFINITION =
-        "create table doc.ignored_nested (" +
-        "  details object(ignored)" +
-        ")";
-
     public static final String TEST_DOC_LOCATIONS_TABLE_DEFINITION =
         "create table doc.locations (" +
         "  id bigint," +
         "  loc geo_point" +
-        ")";
-
-    public static final String TEST_CLUSTER_BY_STRING_TABLE_DEFINITION =
-        "create table doc.bystring (" +
-        "  name text primary key," +
-        "  score double precision" +
         ")";
 }

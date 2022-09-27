@@ -149,7 +149,11 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testGetPlanStringLiteral() throws Exception {
         SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.TEST_CLUSTER_BY_STRING_TABLE_DEFINITION)
+            .addTable(
+                "create table doc.bystring (" +
+                "  name text primary key," +
+                "  score double precision" +
+                ")")
             .build();
 
         LogicalPlan plan = e.logicalPlan("select name from bystring where name = 'one'");
@@ -476,7 +480,10 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testSortOnUnknownColumn() throws Exception {
         SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.IGNORED_NESTED_TABLE_DEFINITION)
+            .addTable(
+                "create table doc.ignored_nested (" +
+                "  details object(ignored)" +
+                ")")
             .build();
 
         expectedException.expect(UnsupportedOperationException.class);
