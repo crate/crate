@@ -49,18 +49,6 @@ public class CreateIndexResponse extends ShardsAcknowledgedResponse {
         out.writeString(index);
     }
 
-    /**
-     * Returns true if the requisite number of shards were started before
-     * returning from the index creation operation. If {@link #isAcknowledged()}
-     * is false, then this also returns false.
-     *
-     * @deprecated use {@link #isShardsAcknowledged()}
-     */
-    @Deprecated
-    public boolean isShardsAcked() {
-        return isShardsAcknowledged();
-    }
-
     public String index() {
         return index;
     }
