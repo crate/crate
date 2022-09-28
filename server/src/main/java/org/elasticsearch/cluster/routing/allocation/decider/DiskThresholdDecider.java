@@ -27,7 +27,6 @@ import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterInfo;
 import org.elasticsearch.cluster.DiskUsage;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -43,7 +42,6 @@ import org.elasticsearch.cluster.routing.allocation.RoutingAllocation;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.settings.ClusterSettings;
-import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.index.Index;
@@ -80,16 +78,10 @@ public class DiskThresholdDecider extends AllocationDecider {
 
     public static final String NAME = "disk_threshold";
 
-    public static final Setting<Boolean> ENABLE_FOR_SINGLE_DATA_NODE =
-        Setting.boolSetting("cluster.routing.allocation.disk.watermark.enable_for_single_data_node", false, Setting.Property.NodeScope);
-
     private final DiskThresholdSettings diskThresholdSettings;
-    private final boolean enableForSingleDataNode;
 
     public DiskThresholdDecider(Settings settings, ClusterSettings clusterSettings) {
         this.diskThresholdSettings = new DiskThresholdSettings(settings, clusterSettings);
-        assert Version.CURRENT.major < 9 : "remove enable_for_single_data_node in 9";
-        this.enableForSingleDataNode = ENABLE_FOR_SINGLE_DATA_NODE.get(settings);
     }
 
     /**
@@ -453,14 +445,6 @@ public class DiskThresholdDecider extends AllocationDecider {
         // Always allow allocation if the decider is disabled
         if (diskThresholdSettings.isEnabled() == false) {
             return allocation.decision(Decision.YES, NAME, "the disk threshold decider is disabled");
-        }
-
-        // Allow allocation regardless if only a single data node is available
-        if (enableForSingleDataNode == false && allocation.nodes().getDataNodes().size() <= 1) {
-            if (LOGGER.isTraceEnabled()) {
-                LOGGER.trace("only a single data node is present, allowing allocation");
-            }
-            return allocation.decision(Decision.YES, NAME, "there is only a single data node present");
         }
 
         // Fail open there is no info available
