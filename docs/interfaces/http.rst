@@ -234,6 +234,12 @@ Example of JSON representation of a column list of (String, Integer[])::
 
   "column_types": [ 4, [ 100, 9 ] ]
 
+
+.. _http-data-types-table:
+
+Available data types
+--------------------
+
 IDs of all currently available data types:
 
 .. list-table::
