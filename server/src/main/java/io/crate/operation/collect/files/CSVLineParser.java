@@ -63,7 +63,7 @@ public class CSVLineParser {
             .typedSchemaFor(String.class)
             .withColumnSeparator(properties.columnSeparator());
         csvReader = mapper
-            .readerWithTypedSchemaFor(String.class)
+            .readerWithTypedSchemaFor(Object.class)
             .with(csvSchema);
     }
 

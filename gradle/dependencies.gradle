@@ -66,14 +66,7 @@ allprojects {
             force "io.netty:netty-transport:${versions.netty4}"
             force "net.sf.jopt-simple:jopt-simple:${versions.jopt_simple}"
 
-            // ensure to check following dependencies and their versions against those of HDFS plugin libs
-            // https://crate.io/docs/reference/en/latest/sql/snapshot_restore.html
-            force "org.codehaus.jackson:jackson-core-asl:${versions.jackson_asl}"
-            force "org.codehaus.jackson:jackson-mapper-asl:${versions.jackson_asl}"
-            force "org.codehaus.jackson:jackson-jaxrs:${versions.jackson_jaxrs}"
-            force "org.codehaus.jackson:jackson-xc:${versions.jackson_xc}"
             force "com.google.code.findbugs:jsr305:${versions.jsr305}"
-            force "commons-lang:commons-lang:${versions.commonslang}"
             force "org.apache.logging.log4j:log4j-api:${versions.log4j2}"
             force "org.apache.logging.log4j:log4j-core:${versions.log4j2}"
         }
