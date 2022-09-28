@@ -265,7 +265,7 @@ IDs of all currently available data types:
    * - 10
      - :ref:`BIGINT <type-bigint>`
    * - 11
-     - :ref:`TIMESTAMP <type-timestamp>`
+     - :ref:`TIMESTAMP WITH TIME ZONE <type-timestamp-with-tz>`
    * - 12
      - :ref:`OBJECT <type-object>`
    * - 13
@@ -273,6 +273,8 @@ IDs of all currently available data types:
    * - 14
      - :ref:`GEO_SHAPE <type-geo_shape>`
    * - 15
+     - :ref:`TIMESTAMP WITHOUT TIME ZONE <type-timestamp-without-tz>`
+   * - 16
      - Unchecked object
    * - 19
      - :ref:`REGPROC <type-regproc>`
