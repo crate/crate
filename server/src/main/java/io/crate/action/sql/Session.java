@@ -864,7 +864,6 @@ public class Session implements AutoCloseable {
         return "Session{" +
             "portals=" + portals +
             ", cursors=" + cursors +
-            ", deferredExecutionsByStmt=" + deferredExecutionsByStmt.size() +
             ", mostRecentJobID=" + mostRecentJobID +
             ", id=" + id +
             "}";
