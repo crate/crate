@@ -63,36 +63,36 @@ Breaking Changes
 Deprecations
 ============
 
-- Deprecated the ``upgrade_segments`` option of the ``OPTIMIZE TABLE``
-  statement. The option will now longer have any effect and will be removed in
-  the future.
+- Deprecated the ``upgrade_segments`` option of the
+  :ref:`OPTIMIZE TABLE <sql-optimize>` statement. The option will now longer
+  have any effect and will be removed in the future.
 
 
 Changes
 =======
 
+SQL Statements
+--------------
+
 - Added initial support for cursors. See :ref:`DECLARE <sql-declare>`,
   :ref:`FETCH <sql-fetch>` and :ref:`CLOSE <sql-close>`.
 
-- Added support for ``SET TIME ZONE`` to improve PostgreSQL Compatibility.
-  Timezone will be ignored on the server side.
-
-- Added support for the ``EXISTS`` expression.
-
-- Added support for ``'YES'``, ``'ON'`` and ``'1'`` as alternative way to
-  specify a ``TRUE`` boolean constant and ``'NO'``, ``'OFF'`` and ``'0'`` as
-  alternative way to specify ``FALSE`` boolean constant improving compatibility
-  with PostgreSQL.
-
-- Changed the ``interval`` parameter of ``date_trunc`` to be case insensitive.
+- Added support for the :ref:`EXISTS <sql_dql_exists>` expression.
 
 - Added support for correlated scalar sub-queries within the select list of a
   query. See :ref:`Scalar subquery <sql-scalar-subquery>`.
 
-- Improve performance of queries on ``sys.snapshots``.
+- Added support of ``GROUP BY`` on :ref:`ARRAY <type-array>` typed columns.
 
-- Added a ``application_name`` session setting that can be used to identify
-  clients or applications which connect to a CrateDB node.
+SQL Standard And PostgreSQL Schema Compatibility
+------------------------------------------------
+
+- Added support for ``SET TIME ZONE`` to improve PostgreSQL Compatibility.
+  Timezone will be ignored on the server side.
+
+- Added a :ref:`application_name <conf-session-application-name>` session
+  setting that can be used to identify clients or applications which connect to
+  a CrateDB node.
 
 - Added support for ``catalog`` in fully qualified table and column names,
   i.e.::
@@ -100,14 +100,30 @@ Changes
     SELECT * FROM crate.doc.t1;
     SELECT crate.doc.t1.a, crate.doc.t1.b FROM crate.doc.t1;
 
-- Added support of ``GROUP BY`` on ``ARRAY`` typed columns.
-
-- Added support for casting ``TIMESTAMP`` and ``TIMESTAMP WITHOUT TIME ZONE``
-  values to the ``DATE`` data type and vice versa.
-
-- Made the commas between successive ``transaction_modes`` of the ``BEGIN`` and
-  its SQL equivalent ``START TRANSACTION`` statement optional to support
+- Made the commas between successive ``transaction_modes`` of the
+  :ref:`BEGIN <ref-begin>` and its SQL equivalent
+  :ref:`START TRANSACTION <sql-start-transaction>` statement optional to support
   compatibility with clients and tools using an older (< 8.0) PostgreSQL syntax.
+
+- Changed the :ref:`interval <type-interval>` parameter of
+  :ref:`date_trunc <scalar-date_trunc>` to be case insensitive.
+
+- Added support for ``'YES'``, ``'ON'`` and ``'1'`` as alternative way to
+  specify a ``TRUE`` boolean constant and ``'NO'``, ``'OFF'`` and ``'0'`` as
+  alternative way to specify ``FALSE`` boolean constant improving compatibility
+  with PostgreSQL.
+
+- Added support for casting :ref:`TIMESTAMP <type-timestamp>` and
+  :ref:`TIMESTAMP WITHOUT TIME ZONE <type-timestamp-without-tz>` values to the
+  :ref:`DATE <type-date>` data type and vice versa.
+
+Performance Improvements
+------------------------
+
+- Improve performance of queries on :ref:`sys.snapshots <sys-snapshots>`.
+
+Administration and Operations
+-----------------------------
 
 - Updated to Admin UI 1.23.0, which improves scrolling behavior on wide result
   sets.
