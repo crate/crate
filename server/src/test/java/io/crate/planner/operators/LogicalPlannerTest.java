@@ -239,7 +239,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                                "join" +
                                " (select i from t2 limit 1) t2 " +
                                "on t1.cnt = t2.i::long ");
-        assertThat(plan, isPlan(
+        assertThat(printPlan(plan), is(
             "Eval[i, cnt]\n" +
             "  └ HashJoin[(cnt = cast(i AS bigint))]\n" +
             "    ├ Rename[cnt] AS t1\n" +

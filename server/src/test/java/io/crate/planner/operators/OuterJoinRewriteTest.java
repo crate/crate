@@ -51,7 +51,7 @@ public class OuterJoinRewriteTest extends CrateDummyClusterServiceUnitTest {
             "WHERE t2.x = '10'"
         );
         var expectedPlan =
-            "HashJoin[(x = x)]\n" +
+            "NestedLoopJoin[INNER | (x = x)]\n" +
             "  ├ Collect[doc.t1 | [x] | true]\n" +
             "  └ Collect[doc.t2 | [x] | (x = 10)]";
         assertThat(plan, isPlan(expectedPlan));
