@@ -125,8 +125,9 @@ Performance Improvements
 Administration and Operations
 -----------------------------
 
-- Updated to Admin UI 1.23.0, which improves scrolling behavior on wide result
-  sets.
+- Updated to Admin UI 1.23.1, which improves scrolling behavior on wide result
+  sets, and fixes formatting of :ref:`TIMESTAMP WITHOUT TIME ZONE
+  <type-timestamp-without-tz>` values in query console result table.
 
 - Added I/O throughput throttling of the :ref:`analyze` statement as well as of
   the periodic statistic collection controlled by the
