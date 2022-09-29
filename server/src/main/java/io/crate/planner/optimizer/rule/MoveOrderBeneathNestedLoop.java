@@ -21,7 +21,6 @@
 
 package io.crate.planner.optimizer.rule;
 
-import static io.crate.planner.operators.EquiJoinDetector.isHashJoinPossible;
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 import static io.crate.planner.optimizer.matcher.Patterns.source;
 
@@ -69,7 +68,7 @@ public final class MoveOrderBeneathNestedLoop implements Rule<Order> {
             .with(source(),
                 typeOf(Join.class)
                     .capturedAs(joinCapture)
-                    .with(nl -> !nl.joinType().isOuter() && nl.isHashJoinPossible() == false)
+                    .with(nl -> !nl.joinType().isOuter())
             );
     }
 

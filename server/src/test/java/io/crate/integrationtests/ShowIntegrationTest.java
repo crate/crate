@@ -432,6 +432,7 @@ public class ShowIntegrationTest extends IntegTestCase {
             "optimizer_rewrite_filter_on_outer_join_to_inner_join| true| Indicates if the optimizer rule RewriteFilterOnOuterJoinToInnerJoin is activated.\n" +
             "optimizer_rewrite_group_by_keys_limit_to_top_n_distinct| true| Indicates if the optimizer rule RewriteGroupByKeysLimitToTopNDistinct is activated.\n" +
             "optimizer_rewrite_insert_from_sub_query_to_insert_from_values| true| Indicates if the optimizer rule RewriteInsertFromSubQueryToInsertFromValues is activated.\n" +
+            "optimizer_rewrite_join_to_hash_join_or_nested_loop_join| true| Indicates if the optimizer rule RewriteJoinToHashJoinOrNestedLoopJoin is activated.\n"
             "optimizer_rewrite_to_query_then_fetch| true| Indicates if the optimizer rule RewriteToQueryThenFetch is activated.\n" +
             "search_path| pg_catalog, doc| Sets the schema search order.\n" +
             "server_version| 10.5| Reports the emulated PostgreSQL version number\n" +
