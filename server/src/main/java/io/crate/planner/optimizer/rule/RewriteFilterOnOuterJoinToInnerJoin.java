@@ -40,6 +40,7 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.planner.operators.Filter;
+import io.crate.planner.operators.Join;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.NestedLoopJoin;
 import io.crate.planner.optimizer.Rule;
@@ -98,14 +99,15 @@ import io.crate.statistics.TableStats;
  */
 public final class RewriteFilterOnOuterJoinToInnerJoin implements Rule<Filter> {
 
-    private final Capture<NestedLoopJoin> nlCapture;
+    private final Capture<Join> nlCapture;
     private final Pattern<Filter> pattern;
 
     public RewriteFilterOnOuterJoinToInnerJoin() {
         this.nlCapture = new Capture<>();
         this.pattern = typeOf(Filter.class)
-                .with(source(), typeOf(NestedLoopJoin.class).capturedAs(nlCapture)
-                    .with(nl -> nl.joinType().isOuter() && !nl.isRewriteFilterOnOuterJoinToInnerJoinDone())
+                .with(source(), typeOf(Join.class).capturedAs(nlCapture)
+                    .with(nl -> nl.joinType().isOuter() && !nl.isRewriteFilterOnOuterJoinToInnerJoinDone() &&
+                                nl.isHashJoinPossible() == false)
                 );
     }
 
@@ -121,7 +123,7 @@ public final class RewriteFilterOnOuterJoinToInnerJoin implements Rule<Filter> {
                              TransactionContext txnCtx,
                              NodeContext nodeCtx) {
         final var symbolEvaluator = new NullSymbolEvaluator(txnCtx, nodeCtx);
-        NestedLoopJoin nl = captures.get(nlCapture);
+        Join nl = captures.get(nlCapture);
         Symbol query = filter.query();
         Map<Set<RelationName>, Symbol> splitQueries = QuerySplitter.split(query);
         if (splitQueries.size() == 1 && splitQueries.keySet().iterator().next().size() > 1) {
@@ -256,7 +258,6 @@ public final class RewriteFilterOnOuterJoinToInnerJoin implements Rule<Filter> {
             nl.topMostLeftRelation(),
             nl.orderByWasPushedDown(),
             true,
-            false,
             false
         );
         assert newJoin.outputs().equals(nl.outputs()) : "Outputs after rewrite must be the same as before";

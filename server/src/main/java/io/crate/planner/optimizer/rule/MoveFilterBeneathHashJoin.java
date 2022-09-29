@@ -23,6 +23,7 @@ package io.crate.planner.optimizer.rule;
 
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
+import io.crate.planner.operators.Join;
 import io.crate.statistics.TableStats;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.HashJoin;
@@ -32,19 +33,20 @@ import io.crate.planner.optimizer.matcher.Capture;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
 
+import static io.crate.planner.operators.EquiJoinDetector.isHashJoinPossible;
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 import static io.crate.planner.optimizer.matcher.Patterns.source;
 import static io.crate.planner.optimizer.rule.FilterOnJoinsUtil.moveQueryBelowJoin;
 
 public final class MoveFilterBeneathHashJoin implements Rule<Filter> {
 
-    private final Capture<HashJoin> joinCapture;
+    private final Capture<Join> joinCapture;
     private final Pattern<Filter> pattern;
 
     public MoveFilterBeneathHashJoin() {
         this.joinCapture = new Capture<>();
         this.pattern = typeOf(Filter.class)
-            .with(source(), typeOf(HashJoin.class).capturedAs(joinCapture));
+            .with(source(), typeOf(Join.class).capturedAs(joinCapture));
     }
 
     @Override
@@ -58,7 +60,11 @@ public final class MoveFilterBeneathHashJoin implements Rule<Filter> {
                              TableStats tableStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx) {
-        HashJoin hashJoin = captures.get(joinCapture);
-        return moveQueryBelowJoin(filter.query(), hashJoin);
+        Join join = captures.get(joinCapture);
+        if (isHashJoinPossible(join.joinType(),join.joinCondition())) {
+            return moveQueryBelowJoin(filter.query(), join);
+        } else {
+            return null;
+        }
     }
 }

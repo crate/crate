@@ -21,6 +21,7 @@
 
 package io.crate.planner.optimizer.rule;
 
+import static io.crate.planner.operators.EquiJoinDetector.isHashJoinPossible;
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 import static io.crate.planner.optimizer.matcher.Patterns.source;
 
@@ -39,6 +40,7 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
+import io.crate.planner.operators.Join;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.NestedLoopJoin;
 import io.crate.planner.operators.Order;
@@ -58,16 +60,16 @@ import io.crate.statistics.TableStats;
  */
 public final class MoveOrderBeneathNestedLoop implements Rule<Order> {
 
-    private final Capture<NestedLoopJoin> nlCapture;
+    private final Capture<Join> joinCapture;
     private final Pattern<Order> pattern;
 
     public MoveOrderBeneathNestedLoop() {
-        this.nlCapture = new Capture<>();
+        this.joinCapture = new Capture<>();
         this.pattern = typeOf(Order.class)
             .with(source(),
-                typeOf(NestedLoopJoin.class)
-                    .capturedAs(nlCapture)
-                    .with(nl -> !nl.joinType().isOuter() && nl.isFinalized() == true)
+                typeOf(Join.class)
+                    .capturedAs(joinCapture)
+                    .with(nl -> !nl.joinType().isOuter())
             );
     }
 
@@ -77,12 +79,13 @@ public final class MoveOrderBeneathNestedLoop implements Rule<Order> {
     }
 
     @Override
+
     public LogicalPlan apply(Order order,
                              Captures captures,
                              TableStats tableStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx) {
-        NestedLoopJoin nestedLoop = captures.get(nlCapture);
+        Join join = captures.get(joinCapture);
         Set<RelationName> relationsInOrderBy =
             Collections.newSetFromMap(new IdentityHashMap<>());
         Consumer<ScopedSymbol> gatherRelationsFromField = f -> relationsInOrderBy.add(f.relation());
@@ -94,20 +97,19 @@ public final class MoveOrderBeneathNestedLoop implements Rule<Order> {
         }
         if (relationsInOrderBy.size() == 1) {
             RelationName relationInOrderBy = relationsInOrderBy.iterator().next();
-            if (relationInOrderBy == nestedLoop.topMostLeftRelation().relationName()) {
-                LogicalPlan lhs = nestedLoop.sources().get(0);
+            if (relationInOrderBy == join.topMostLeftRelation().relationName()) {
+                LogicalPlan lhs = join.sources().get(0);
                 LogicalPlan newLhs = order.replaceSources(List.of(lhs));
                 return new NestedLoopJoin(
                     newLhs,
-                    nestedLoop.sources().get(1),
-                    nestedLoop.joinType(),
-                    nestedLoop.joinCondition(),
-                    nestedLoop.isFiltered(),
-                    nestedLoop.topMostLeftRelation(),
+                    join.sources().get(1),
+                    join.joinType(),
+                    join.joinCondition(),
+                    join.isFiltered(),
+                    join.topMostLeftRelation(),
                     true,
-                    nestedLoop.isRewriteFilterOnOuterJoinToInnerJoinDone(),
-                    false,
-                    nestedLoop.isFinalized()
+                    join.isRewriteFilterOnOuterJoinToInnerJoinDone(),
+                    false
                 );
             }
         }

@@ -100,8 +100,8 @@ public class RelationNamesInLogicalPlanTest extends CrateDummyClusterServiceUnit
                                                 e.asSymbol("x = y"),
                                                 false,
                                                 t1Relation,
-                                                false,
-                                                false);
+                                                false
+                                                );
         assertThat(nestedLoopJoin.baseTables(), containsInAnyOrder(t1Relation, t2Relation));
         assertThat(nestedLoopJoin.getRelationNames(), containsInAnyOrder(t1RenamedRelationName, t2RenamedRelationName));
     }

@@ -40,6 +40,7 @@ import io.crate.planner.node.dql.join.JoinType;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.HashJoin;
+import io.crate.planner.operators.Join;
 import io.crate.planner.operators.NestedLoopJoin;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Match;
@@ -72,9 +73,9 @@ public class MoveConstantJoinConditionsBeneathNestedLoopTest extends CrateDummyC
         var nonConstantPart = sqlExpressions.asSymbol("doc.t1.x = doc.t2.y");
         var constantPart = sqlExpressions.asSymbol("doc.t2.b = 'abc'");
 
-        NestedLoopJoin nl = new NestedLoopJoin(c1, c2, JoinType.INNER, joinCondition, false, t1, false, false, false, false);
+        Join nl = new Join(c1, c2, JoinType.INNER, joinCondition, false, t1, false, false, false);
         var rule = new MoveConstantJoinConditionsBeneathNestedLoop();
-        Match<NestedLoopJoin> match = rule.pattern().accept(nl, Captures.empty());
+        Match<Join> match = rule.pattern().accept(nl, Captures.empty());
 
         assertThat(match.isPresent(), Matchers.is(true));
         assertThat(match.value(), Matchers.is(nl));

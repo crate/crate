@@ -123,7 +123,7 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testOrderByOnJoinWithUncollectedColumnPushedDown() {
         LogicalPlan plan = plan("select t2.y, t2.b, t1.i from t1 inner join t2 on t1.a = t2.b order by t1.x desc");
-        assertThat(plan, isPlan(
+        assertThat(printPlan(plan), is(
             "Eval[y, b, i]\n" +
             "  └ NestedLoopJoin[INNER | (a = b)]\n" +
             "    ├ OrderBy[x DESC]\n" +
@@ -195,7 +195,7 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
                                                    "from t1 inner join t2 on t1.a = t2.b " +
                                                    "order by t1.a");
         sqlExecutor.getSessionSettings().setHashJoinEnabled(false);
-        assertThat(plan, isPlan(
+        assertThat(printPlan(plan), is(
             "OrderBy[a ASC]\n" +
             "  └ HashJoin[(a = b)]\n" +
             "    ├ Collect[doc.t1 | [a] | true]\n" +
@@ -211,8 +211,8 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
             "SELECT t1.i, t2.i FROM t2 INNER JOIN t1 ON t1.x = t2.y ORDER BY lower(t2.b)");
 
         assertThat(
-            plan,
-            LogicalPlannerTest.isPlan(
+            printPlan(plan),
+            is(
                 "Eval[i, i]\n" +
                 "  └ NestedLoopJoin[INNER | (x = y)]\n" +
                 "    ├ OrderBy[lower(b) ASC]\n" +

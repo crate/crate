@@ -241,15 +241,15 @@ public class JoinPlanBuilder {
                                               Symbol joinCondition,
                                               AnalyzedRelation lhs,
                                               Symbol query) {
-        return new NestedLoopJoin(
+        return new Join(
             lhsPlan,
             rhsPlan,
             joinType,
             joinCondition,
             !query.symbolType().isValueSymbol(),
             lhs,
-            false,
-            false);
+            false
+            );
     }
 
     private static JoinType maybeInvertPair(RelationName rhsName, JoinPair pair) {

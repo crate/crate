@@ -148,9 +148,10 @@ public class PgCatalogITest extends IntegTestCase {
     @UseRandomizedSchema(random = false)
     @UseHashJoins(0)
     public void testPgSettingsTable() {
-        execute("select name, setting, short_desc, min_val, max_val from pg_catalog.pg_settings");
+        execute("select name, setting, short_desc, min_val, max_val from pg_catalog.pg_settings order by name asc");
         String printedTable = printedTable(response.rows());
         assertThat(printedTable.split("\\n"), Matchers.arrayContaining(
+
             "application_name| NULL| Optional application name. Can be set by a client to identify the application which created the connection| NULL| NULL",
             "enable_hashjoin| false| Considers using the Hash Join instead of the Nested Loop Join implementation.| NULL| NULL",
             "error_on_unknown_object_key| true| Raises or suppresses ObjectKeyUnknownException when querying nonexistent keys to dynamic objects.| NULL| NULL",

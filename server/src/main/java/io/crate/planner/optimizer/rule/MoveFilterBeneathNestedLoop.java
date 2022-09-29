@@ -23,10 +23,10 @@ package io.crate.planner.optimizer.rule;
 
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
+import io.crate.planner.operators.Join;
 import io.crate.statistics.TableStats;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.LogicalPlan;
-import io.crate.planner.operators.NestedLoopJoin;
 import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.matcher.Capture;
 import io.crate.planner.optimizer.matcher.Captures;
@@ -38,14 +38,14 @@ import static io.crate.planner.optimizer.rule.FilterOnJoinsUtil.moveQueryBelowJo
 
 public final class MoveFilterBeneathNestedLoop implements Rule<Filter> {
 
-    private final Capture<NestedLoopJoin> joinCapture;
+    private final Capture<Join> joinCapture;
     private final Pattern<Filter> pattern;
 
     public MoveFilterBeneathNestedLoop() {
         this.joinCapture = new Capture<>();
         this.pattern = typeOf(Filter.class)
             .with(source(),
-                  typeOf(NestedLoopJoin.class)
+                  typeOf(Join.class)
                       .capturedAs(joinCapture)
                       // Can't apply this on OUTER JOINs as outer join actively produce new null rows
                       // We need to run the filter on top of these null rows to produce the correct results
@@ -64,7 +64,7 @@ public final class MoveFilterBeneathNestedLoop implements Rule<Filter> {
                              TableStats tableStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx) {
-        NestedLoopJoin join = captures.get(joinCapture);
+        Join join = captures.get(joinCapture);
         return moveQueryBelowJoin(filter.query(), join);
     }
 }

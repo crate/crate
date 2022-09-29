@@ -21,12 +21,9 @@
 
 package io.crate.planner.operators;
 
-import static io.crate.planner.operators.Limit.limitAndOffset;
-import static io.crate.planner.operators.LogicalPlanner.NO_LIMIT;
 
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -38,34 +35,27 @@ import javax.annotation.Nullable;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.DocTableRelation;
 import io.crate.common.collections.Lists2;
 import io.crate.common.collections.Maps;
 import io.crate.common.collections.Sets;
 import io.crate.common.collections.Tuple;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.MergePhase;
-import io.crate.execution.dsl.phases.NestedLoopPhase;
-import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.join.JoinOperations;
-import io.crate.execution.engine.pipeline.TopN;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
-import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.RelationName;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
-import io.crate.planner.PositionalOrderBy;
 import io.crate.planner.ResultDescription;
 import io.crate.planner.distribution.DistributionInfo;
-import io.crate.planner.node.dql.join.Join;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.statistics.TableStats;
 
-public class NestedLoopJoin implements LogicalPlan {
+public class Join implements LogicalPlan {
 
     @Nullable
     private final Symbol joinCondition;
@@ -81,7 +71,7 @@ public class NestedLoopJoin implements LogicalPlan {
     private boolean rewriteFilterOnOuterJoinToInnerJoinDone = false;
     private final boolean joinConditionOptimised;
 
-    NestedLoopJoin(LogicalPlan lhs,
+    Join(LogicalPlan lhs,
                    LogicalPlan rhs,
                    JoinType joinType,
                    @Nullable Symbol joinCondition,
@@ -104,7 +94,7 @@ public class NestedLoopJoin implements LogicalPlan {
         this.joinConditionOptimised = joinConditionOptimised;
     }
 
-    public NestedLoopJoin(LogicalPlan lhs,
+    public Join(LogicalPlan lhs,
                           LogicalPlan rhs,
                           JoinType joinType,
                           @Nullable Symbol joinCondition,
@@ -116,6 +106,10 @@ public class NestedLoopJoin implements LogicalPlan {
         this(lhs, rhs, joinType, joinCondition, isFiltered, topMostLeftRelation, joinConditionOptimised);
         this.orderByWasPushedDown = orderByWasPushedDown;
         this.rewriteFilterOnOuterJoinToInnerJoinDone = rewriteFilterOnOuterJoinToInnerJoinDone;
+    }
+
+    public boolean isHashJoinPossible() {
+        return EquiJoinDetector.isHashJoinPossible(this.joinType(), this.joinCondition());
     }
 
     @Override
@@ -172,87 +166,7 @@ public class NestedLoopJoin implements LogicalPlan {
                                @Nullable Integer pageSizeHint,
                                Row params,
                                SubQueryResults subQueryResults) {
-        /*
-         * Benchmarks reveal that if rows are filtered out distributed execution gives better performance.
-         * Therefore if `filterNeeded` is true (there is joinCondition or a filtering after the join operation)
-         * then it's a good indication that distributed execution will be faster.
-         *
-         * We may at some point add some kind of session-settings to override this behaviour
-         * or otherwise come up with a better heuristic.
-         */
-        Integer childPageSizeHint = !isFiltered && limit != TopN.NO_LIMIT
-            ? limitAndOffset(limit, offset)
-            : null;
-
-        ExecutionPlan left = lhs.build(
-            executor, plannerContext, hints, projectionBuilder, NO_LIMIT, 0, null, childPageSizeHint, params, subQueryResults);
-        ExecutionPlan right = rhs.build(
-            executor, plannerContext, hints, projectionBuilder, NO_LIMIT, 0, null, childPageSizeHint, params, subQueryResults);
-
-        PositionalOrderBy orderByFromLeft = left.resultDescription().orderBy();
-        boolean hasDocTables = baseTables.stream().anyMatch(r -> r instanceof DocTableRelation);
-        boolean isDistributed = hasDocTables && isFiltered && !joinType.isOuter();
-
-        LogicalPlan leftLogicalPlan = lhs;
-        LogicalPlan rightLogicalPlan = rhs;
-        isDistributed = isDistributed &&
-                        (!left.resultDescription().nodeIds().isEmpty() && !right.resultDescription().nodeIds().isEmpty());
-        boolean blockNlPossible = !isDistributed && isBlockNlPossible(left, right);
-
-        JoinType joinType = this.joinType;
-        if (!orderByWasPushedDown && joinType.supportsInversion() &&
-            (isDistributed && lhs.numExpectedRows() < rhs.numExpectedRows() && orderByFromLeft == null) ||
-            (blockNlPossible && lhs.numExpectedRows() > rhs.numExpectedRows())) {
-            // 1) The right side is always broadcast-ed, so for performance reasons we switch the tables so that
-            //    the right table is the smaller (numOfRows). If left relation has a pushed-down OrderBy that needs
-            //    to be preserved, then the switch is not possible.
-            // 2) For block nested loop, the left side should always be smaller. Benchmarks have shown that the
-            //    performance decreases if the left side is much larger and no limit is applied.
-            ExecutionPlan tmpExecutionPlan = left;
-            left = right;
-            right = tmpExecutionPlan;
-            leftLogicalPlan = rhs;
-            rightLogicalPlan = lhs;
-            joinType = joinType.invert();
-        }
-        Tuple<Collection<String>, List<MergePhase>> joinExecutionNodesAndMergePhases =
-            configureExecution(left, right, plannerContext, isDistributed);
-
-        List<Symbol> joinOutputs = Lists2.concat(leftLogicalPlan.outputs(), rightLogicalPlan.outputs());
-        SubQueryAndParamBinder paramBinder = new SubQueryAndParamBinder(params, subQueryResults);
-
-        Symbol joinInput = null;
-        if (joinCondition != null) {
-            joinInput = InputColumns.create(paramBinder.apply(joinCondition), joinOutputs);
-        }
-
-        NestedLoopPhase nlPhase = new NestedLoopPhase(
-            plannerContext.jobId(),
-            plannerContext.nextExecutionPhaseId(),
-            isDistributed ? "distributed-nested-loop" : "nested-loop",
-            Collections.singletonList(JoinOperations.createJoinProjection(outputs, joinOutputs)),
-            joinExecutionNodesAndMergePhases.v2().get(0),
-            joinExecutionNodesAndMergePhases.v2().get(1),
-            leftLogicalPlan.outputs().size(),
-            rightLogicalPlan.outputs().size(),
-            joinExecutionNodesAndMergePhases.v1(),
-            joinType,
-            joinInput,
-            Symbols.typeView(leftLogicalPlan.outputs()),
-            leftLogicalPlan.estimatedRowSize(),
-            leftLogicalPlan.numExpectedRows(),
-            blockNlPossible
-        );
-        return new Join(
-            nlPhase,
-            left,
-            right,
-            TopN.NO_LIMIT,
-            0,
-            TopN.NO_LIMIT,
-            outputs.size(),
-            orderByFromLeft
-        );
+       throw new UnsupportedOperationException("Join cannot be build must be converted to nested loop join or hashjoin");
     }
 
     @Override
@@ -272,7 +186,7 @@ public class NestedLoopJoin implements LogicalPlan {
 
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
-        return new NestedLoopJoin(
+        return new Join(
             sources.get(0),
             sources.get(1),
             joinType,
@@ -302,7 +216,7 @@ public class NestedLoopJoin implements LogicalPlan {
         if (newLhs == lhs && newRhs == rhs) {
             return this;
         }
-        return new NestedLoopJoin(
+        return new Join(
             newLhs,
             newRhs,
             joinType,
@@ -338,7 +252,7 @@ public class NestedLoopJoin implements LogicalPlan {
         setReplacedOutputs(rhs, rhsFetchRewrite, allReplacedOutputs);
         return new FetchRewrite(
             allReplacedOutputs,
-            new NestedLoopJoin(
+            new Join(
                 lhsFetchRewrite == null ? lhs : lhsFetchRewrite.newPlan(),
                 rhsFetchRewrite == null ? rhs : rhsFetchRewrite.newPlan(),
                 joinType,
@@ -418,7 +332,7 @@ public class NestedLoopJoin implements LogicalPlan {
 
     @Override
     public <C, R> R accept(LogicalPlanVisitor<C, R> visitor, C context) {
-        return visitor.visitNestedLoopJoin(this, context);
+        return visitor.visitJoin(this, context);
     }
 
     private static boolean isBlockNlPossible(ExecutionPlan left, ExecutionPlan right) {
@@ -434,7 +348,7 @@ public class NestedLoopJoin implements LogicalPlan {
     @Override
     public void print(PrintContext printContext) {
         printContext
-            .text("NestedLoopJoin[")
+            .text("Join[")
             .text(joinType.toString());
         if (joinCondition != null) {
             printContext
@@ -448,13 +362,13 @@ public class NestedLoopJoin implements LogicalPlan {
 
     @Override
     public String toString() {
-        return "NestedLoopJoin{" +
-            "joinCondition=" + joinCondition +
-            ", joinType=" + joinType +
-            ", isFiltered=" + isFiltered +
-            ", lhs=" + lhs +
-            ", rhs=" + rhs +
-            ", outputs=" + outputs +
-            '}';
+        return "Join{" +
+               "joinCondition=" + joinCondition +
+               ", joinType=" + joinType +
+               ", isFiltered=" + isFiltered +
+               ", lhs=" + lhs +
+               ", rhs=" + rhs +
+               ", outputs=" + outputs +
+               '}';
     }
 }

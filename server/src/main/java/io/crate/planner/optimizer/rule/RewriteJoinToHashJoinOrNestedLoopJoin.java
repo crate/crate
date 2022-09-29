@@ -21,13 +21,13 @@
 
 package io.crate.planner.optimizer.rule;
 
-import static io.crate.planner.operators.EquiJoinDetector.isEquiJoin;
+import static io.crate.planner.operators.EquiJoinDetector.isHashJoinPossible;
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
-import io.crate.planner.node.dql.join.JoinType;
 import io.crate.planner.operators.HashJoin;
+import io.crate.planner.operators.Join;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.NestedLoopJoin;
 import io.crate.planner.optimizer.Rule;
@@ -35,47 +35,44 @@ import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
 import io.crate.statistics.TableStats;
 
-public final class RewriteEquiJoinToHashJoin implements Rule<NestedLoopJoin> {
+public final class RewriteJoinToHashJoinOrNestedLoopJoin implements Rule<Join> {
 
-    private final Pattern<NestedLoopJoin> pattern;
+    private final Pattern<Join> pattern;
 
-    public RewriteEquiJoinToHashJoin() {
-        this.pattern = typeOf(NestedLoopJoin.class)
-            .with(nestedLoopJoin -> !nestedLoopJoin.isFinalized() &&
-                                    nestedLoopJoin.joinType() == JoinType.INNER);
+    public RewriteJoinToHashJoinOrNestedLoopJoin() {
+        this.pattern = typeOf(Join.class);
     }
 
     @Override
-    public Pattern<NestedLoopJoin> pattern() {
+    public Pattern<Join> pattern() {
         return this.pattern;
     }
 
     @Override
-    public LogicalPlan apply(NestedLoopJoin nestedLoopJoin,
+    public LogicalPlan apply(Join join,
                              Captures captures,
                              TableStats tableStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx) {
-        if (nestedLoopJoin.joinCondition() != null &&
+        if (join.joinCondition() != null &&
             txnCtx.sessionSettings().hashJoinsEnabled() &&
-            isEquiJoin(nestedLoopJoin.joinCondition())) {
+            isHashJoinPossible(join.joinType(), join.joinCondition())) {
             return new HashJoin(
-                nestedLoopJoin.lhs(),
-                nestedLoopJoin.rhs(),
-                nestedLoopJoin.joinCondition()
+                join.lhs(),
+                join.rhs(),
+                join.joinCondition()
             );
         } else {
             return new NestedLoopJoin(
-                nestedLoopJoin.lhs(),
-                nestedLoopJoin.rhs(),
-                nestedLoopJoin.joinType(),
-                nestedLoopJoin.joinCondition(),
-                nestedLoopJoin.isFiltered(),
-                nestedLoopJoin.topMostLeftRelation(),
-                nestedLoopJoin.orderByWasPushedDown(),
-                nestedLoopJoin.isRewriteFilterOnOuterJoinToInnerJoinDone(),
-                nestedLoopJoin.isJoinConditionOptimised(),
-                true
+                join.lhs(),
+                join.rhs(),
+                join.joinType(),
+                join.joinCondition(),
+                join.isFiltered(),
+                join.topMostLeftRelation(),
+                join.orderByWasPushedDown(),
+                join.isRewriteFilterOnOuterJoinToInnerJoinDone(),
+                join.isJoinConditionOptimised()
             );
         }
     }

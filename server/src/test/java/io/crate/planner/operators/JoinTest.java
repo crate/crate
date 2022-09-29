@@ -557,21 +557,21 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         String expectedPlan =
             "Rename[start] AS doc.v1\n" +
             "  └ Eval[ts_production AS start]\n" +
-            "    └ HashJoin[(ts_production = max_ts)]\n" +
+            "    └ NestedLoopJoin[INNER | (ts_production = max_ts)]\n" +
             "      ├ Rename[max_ts] AS last_record\n" +
             "      │  └ Eval[max(ts) AS max_ts]\n" +
             "      │    └ HashAggregate[max(ts)]\n" +
             "      │      └ Collect[doc.metric_mini | [ts] | true]\n" +
             "      └ Rename[ts_production] AS b\n" +
             "        └ Collect[doc.metric_mini | [ts_production] | ((ts_production AS start >= 1638316800000::bigint) AND (ts_production AS start <= 1638320399000::bigint))]";
-        assertThat(plan, is(isPlan(expectedPlan)));
+        assertThat(printPlan(plan), is(expectedPlan));
 
         plan = executor.logicalPlan(
             "SELECT * FROM v1 WHERE start >= ? and start <= ?");
         expectedPlan =
             "Rename[start] AS doc.v1\n" +
             "  └ Eval[ts_production AS start]\n" +
-            "    └ HashJoin[(ts_production = max_ts)]\n" +
+            "    └ NestedLoopJoin[INNER | (ts_production = max_ts)]\n" +
             "      ├ Rename[max_ts] AS last_record\n" +
             "      │  └ Eval[max(ts) AS max_ts]\n" +
             "      │    └ HashAggregate[max(ts)]\n" +
@@ -651,7 +651,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         LogicalPlan logicalPlan = e.logicalPlan(statement);
         assertThat(logicalPlan, is(isPlan(
             "MultiPhase\n" +
-            "  └ HashJoin[(i = i)]\n" +
+            "  └ NestedLoopJoin[INNER | (i = i)]\n" +
             "    ├ Collect[doc.t1 | [a, x, i] | true]\n" +
             "    └ Collect[doc.t2 | [b, y, i] | (y = ANY((SELECT z FROM (doc.t3))))]\n" +
             "  └ OrderBy[z ASC]\n" +
