@@ -862,8 +862,6 @@ public class Session implements AutoCloseable {
     @Override
     public String toString() {
         return "Session{" +
-            "portals=" + portals +
-            ", cursors=" + cursors +
             ", mostRecentJobID=" + mostRecentJobID +
             ", id=" + id +
             "}";
