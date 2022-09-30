@@ -73,6 +73,7 @@ public class ResetSettingsPlanTest extends ESTestCase {
             .put("stats.operations_log_size", (String) null)
             .put("stats.operations_log_expiration", (String) null)
             .put("stats.service.interval", (String) null)
+            .put("stats.service.max_bytes_per_sec", (String) null)
             .build();
 
         assertThat(buildSettingsFrom(settings, symbolEvaluator(Row.EMPTY)), is(expected));
