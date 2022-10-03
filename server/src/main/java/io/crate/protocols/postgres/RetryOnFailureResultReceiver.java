@@ -36,30 +36,29 @@ import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.transport.ConnectTransportException;
 
-import javax.annotation.Nonnull;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
 import java.util.function.Predicate;
 
-public class RetryOnFailureResultReceiver implements ResultReceiver {
+public class RetryOnFailureResultReceiver<T> implements ResultReceiver<T> {
 
     private static final Logger LOGGER = LogManager.getLogger(RetryOnFailureResultReceiver.class);
 
     private final ClusterService clusterService;
     private final ClusterState initialState;
     private final Predicate<String> hasIndex;
-    private final ResultReceiver delegate;
+    private final ResultReceiver<T> delegate;
     private final UUID jobId;
-    private final BiConsumer<UUID, ResultReceiver> retryAction;
+    private final BiConsumer<UUID, ResultReceiver<T>> retryAction;
     private int attempt = 1;
 
     public RetryOnFailureResultReceiver(ClusterService clusterService,
                                         ClusterState initialState,
                                         Predicate<String> hasIndex,
-                                        ResultReceiver delegate,
+                                        ResultReceiver<T> delegate,
                                         UUID jobId,
-                                        BiConsumer<UUID, ResultReceiver> retryAction) {
+                                        BiConsumer<UUID, ResultReceiver<T>> retryAction) {
         this.clusterService = clusterService;
         this.initialState = initialState;
         this.hasIndex = hasIndex;
@@ -84,7 +83,7 @@ public class RetryOnFailureResultReceiver implements ResultReceiver {
     }
 
     @Override
-    public void fail(@Nonnull Throwable wrappedError) {
+    public void fail(Throwable wrappedError) {
         final Throwable error = SQLExceptions.unwrap(wrappedError);
         if (attempt <= Constants.MAX_SHARD_MISSING_RETRIES &&
             (SQLExceptions.isShardFailure(error) || error instanceof ConnectTransportException || indexWasTemporaryUnavailable(error))) {
@@ -129,7 +128,7 @@ public class RetryOnFailureResultReceiver implements ResultReceiver {
     }
 
     @Override
-    public CompletableFuture<?> completionFuture() {
+    public CompletableFuture<T> completionFuture() {
         return delegate.completionFuture();
     }
 

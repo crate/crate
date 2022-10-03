@@ -50,7 +50,7 @@ public class SymbolVisitor<C, R> {
         return visitSymbol(symbol, context);
     }
 
-    public R visitLiteral(Literal symbol, C context) {
+    public R visitLiteral(Literal<?> symbol, C context) {
         return visitSymbol(symbol, context);
     }
 

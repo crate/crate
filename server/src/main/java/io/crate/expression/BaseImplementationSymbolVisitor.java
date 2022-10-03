@@ -77,7 +77,7 @@ public class BaseImplementationSymbolVisitor<C> extends SymbolVisitor<C, Input<?
     }
 
     @Override
-    public Input<?> visitLiteral(Literal symbol, C context) {
+    public Input<?> visitLiteral(Literal<?> symbol, C context) {
         return symbol;
     }
 

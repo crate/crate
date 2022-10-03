@@ -235,7 +235,7 @@ public class Session implements AutoCloseable {
         jobsLogs.logExecutionStart(mostRecentJobID, statement, sessionSettings.sessionUser(), classification);
         JobsLogsUpdateListener jobsLogsUpdateListener = new JobsLogsUpdateListener(mostRecentJobID, jobsLogs);
         if (!analyzedStatement.isWriteOperation()) {
-            resultReceiver = new RetryOnFailureResultReceiver(
+            resultReceiver = new RetryOnFailureResultReceiver<>(
                 executor.clusterService(),
                 clusterState,
                 // not using planner.currentClusterState().metadata()::hasIndex to make sure the *current*
@@ -696,7 +696,7 @@ public class Session implements AutoCloseable {
             throw t;
         }
         if (!analyzedStmt.isWriteOperation()) {
-            resultReceiver = new RetryOnFailureResultReceiver(
+            resultReceiver = new RetryOnFailureResultReceiver<>(
                 executor.clusterService(),
                 clusterState,
                 indexName -> executor.clusterService().state().metadata().hasIndex(indexName),

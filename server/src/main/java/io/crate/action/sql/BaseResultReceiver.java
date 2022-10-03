@@ -24,7 +24,6 @@ package io.crate.action.sql;
 import io.crate.data.Row;
 import io.crate.protocols.postgres.ClientInterrupted;
 
-import javax.annotation.Nonnull;
 import javax.annotation.OverridingMethodsMustInvokeSuper;
 import java.util.concurrent.CompletableFuture;
 
@@ -52,7 +51,7 @@ public class BaseResultReceiver implements ResultReceiver<Void> {
 
     @Override
     @OverridingMethodsMustInvokeSuper
-    public void fail(@Nonnull Throwable t) {
+    public void fail(Throwable t) {
         completionFuture.completeExceptionally(t);
     }
 
