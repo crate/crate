@@ -820,7 +820,6 @@ public abstract class Engine implements Closeable {
      * Synchronously refreshes the engine for new search operations to reflect the latest
      * changes.
      */
-    @Nullable
     public abstract void refresh(String source) throws EngineException;
 
     /**
@@ -829,7 +828,6 @@ public abstract class Engine implements Closeable {
      *
      * @return <code>true</code> if the a refresh happened. Otherwise <code>false</code>
      */
-    @Nullable
     public abstract boolean maybeRefresh(String source) throws EngineException;
 
     /**
