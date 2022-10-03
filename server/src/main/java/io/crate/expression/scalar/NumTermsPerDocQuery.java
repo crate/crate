@@ -40,8 +40,6 @@ import org.apache.lucene.search.ScoreMode;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.TwoPhaseIterator;
 import org.apache.lucene.search.Weight;
-import org.elasticsearch.index.fielddata.FieldData;
-import org.elasticsearch.index.fielddata.SortedBinaryDocValues;
 
 import io.crate.metadata.Reference;
 import io.crate.types.ArrayType;
@@ -118,11 +116,7 @@ public class NumTermsPerDocQuery extends Query {
         return doc -> {
             try {
                 if (docValues.advanceExact(doc)) {
-                    int c = 1;
-                    while (docValues.nextOrd() != SortedSetDocValues.NO_MORE_ORDS) {
-                        c++;
-                    }
-                    return c;
+                    return docValues.docValueCount();
                 }
             } catch (IOException e) {
                 throw new RuntimeException(e);
@@ -132,9 +126,9 @@ public class NumTermsPerDocQuery extends Query {
     }
 
     private static IntUnaryOperator numValuesPerDocForString(LeafReader reader, String fqColumn) {
-        SortedBinaryDocValues docValues;
+        SortedSetDocValues docValues;
         try {
-            docValues = FieldData.toString(DocValues.getSortedSet(reader, fqColumn));
+            docValues = DocValues.getSortedSet(reader, fqColumn);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

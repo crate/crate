@@ -47,7 +47,7 @@ public class IpColumnReference extends LuceneCollectorExpression<String> {
         try {
             if (values.advanceExact(docId)) {
                 long ord = values.nextOrd();
-                if (values.nextOrd() != SortedSetDocValues.NO_MORE_ORDS) {
+                if (values.docValueCount() > 1) {
                     throw new ArrayViaDocValuesUnsupportedException(columnName);
                 }
                 BytesRef encoded = values.lookupOrd(ord);
