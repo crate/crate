@@ -20,9 +20,9 @@
 package org.elasticsearch.index.mapper;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Consumer;
 
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
@@ -128,14 +128,15 @@ public class SeqNoFieldMapper extends MetadataFieldMapper {
     }
 
     @Override
-    protected void parseCreateField(ParseContext context, List<IndexableField> fields) throws IOException {
+    protected void parseCreateField(ParseContext context, Consumer<IndexableField> onField) throws IOException {
         // see InternalEngine.innerIndex to see where the real version value is set
         // also see ParsedDocument.updateSeqID (called by innerIndex)
         SequenceIDFields seqID = SequenceIDFields.emptySeqID();
         context.seqID(seqID);
-        fields.add(seqID.seqNo);
-        fields.add(seqID.seqNoDocValue);
-        fields.add(seqID.primaryTerm);
+
+        onField.accept(seqID.seqNo);
+        onField.accept(seqID.seqNoDocValue);
+        onField.accept(seqID.primaryTerm);
     }
 
     @Override
