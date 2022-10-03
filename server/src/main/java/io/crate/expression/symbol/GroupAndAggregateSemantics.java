@@ -235,7 +235,7 @@ public final class GroupAndAggregateSemantics {
         }
 
         @Override
-        public Symbol visitLiteral(Literal symbol, List<Symbol> groupBy) {
+        public Symbol visitLiteral(Literal<?> symbol, List<Symbol> groupBy) {
             return null;
         }
 

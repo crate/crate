@@ -80,7 +80,7 @@ public class SelectivityFunctions {
         }
 
         @Override
-        public Double visitLiteral(Literal literal, Void context) {
+        public Double visitLiteral(Literal<?> literal, Void context) {
             Object value = literal.value();
             if (value instanceof Boolean) {
                 Boolean val = (Boolean) value;
@@ -158,13 +158,13 @@ public class SelectivityFunctions {
             var value = params.get(((ParameterSymbol) rightArg).index());
             return eqSelectivityFromValueAndStats(value, columnStats);
         }
-        if (rightArg instanceof Literal) {
-            return eqSelectivityFromValueAndStats(((Literal) rightArg).value(), columnStats);
+        if (rightArg instanceof Literal<?> literal) {
+            return eqSelectivityFromValueAndStats(literal.value(), columnStats);
         }
         return 1.0 / columnStats.approxDistinct();
     }
 
-    private static double eqSelectivityFromValueAndStats(Object value, ColumnStats columnStats) {
+    private static double eqSelectivityFromValueAndStats(Object value, ColumnStats<?> columnStats) {
         if (value == null) {
             // x = null -> is always false
             return 0.0;

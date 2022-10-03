@@ -46,7 +46,7 @@ public class RetryOnFailureResultReceiverTest extends CrateDummyClusterServiceUn
         AtomicInteger numRetries = new AtomicInteger(0);
         BaseResultReceiver baseResultReceiver = new BaseResultReceiver();
         ClusterState initialState = clusterService.state();
-        RetryOnFailureResultReceiver retryOnFailureResultReceiver = new RetryOnFailureResultReceiver(
+        RetryOnFailureResultReceiver<?> retryOnFailureResultReceiver = new RetryOnFailureResultReceiver<>(
             clusterService,
             initialState,
             indexName -> true,
@@ -69,7 +69,7 @@ public class RetryOnFailureResultReceiverTest extends CrateDummyClusterServiceUn
         BaseResultReceiver resultReceiver = new BaseResultReceiver();
 
         ClusterState initialState = clusterService.state();
-        RetryOnFailureResultReceiver retryOnFailureResultReceiver = new RetryOnFailureResultReceiver(
+        RetryOnFailureResultReceiver<?> retryOnFailureResultReceiver = new RetryOnFailureResultReceiver<>(
             clusterService,
             initialState,
             indexName -> true,

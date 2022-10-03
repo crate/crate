@@ -28,6 +28,7 @@ import java.util.Iterator;
 
 public class NoopLogSink<T extends ContextLog> implements LogSink<T> {
 
+    @SuppressWarnings("rawtypes")
     private static final NoopLogSink INSTANCE = new NoopLogSink();
 
     private NoopLogSink() {
