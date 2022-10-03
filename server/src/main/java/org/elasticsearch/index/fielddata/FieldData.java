@@ -19,16 +19,13 @@
 
 package org.elasticsearch.index.fielddata;
 
-import org.apache.lucene.index.BinaryDocValues;
+import java.io.IOException;
+
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.util.BytesRef;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Utility methods, similar to Lucene's {@link DocValues}.
@@ -44,46 +41,10 @@ public enum FieldData {
     public static SortedNumericDoubleValues sortableLongBitsToDoubles(SortedNumericDocValues values) {
         final NumericDocValues singleton = DocValues.unwrapSingleton(values);
         if (singleton != null) {
-            return singleton(new SortableLongBitsToNumericDoubleValues(singleton));
+            return new SingletonSortedNumericDoubleValues(new SortableLongBitsToNumericDoubleValues(singleton));
         } else {
             return new SortableLongBitsToSortedNumericDoubleValues(values);
         }
-    }
-
-    /**
-     * Returns a multi-valued view over the provided {@link NumericDoubleValues}.
-     */
-    public static SortedNumericDoubleValues singleton(NumericDoubleValues values) {
-        return new SingletonSortedNumericDoubleValues(values);
-    }
-
-    /**
-     * Returns a multi-valued view over the provided {@link BinaryDocValues}.
-     */
-    public static SortedBinaryDocValues singleton(BinaryDocValues values) {
-        return new SingletonSortedBinaryDocValues(values);
-    }
-
-    /**
-     * Return a {@link String} representation of the provided values. That is
-     * typically used for scripts or for the `map` execution mode of terms aggs.
-     * NOTE: this is very slow!
-     */
-    public static SortedBinaryDocValues toString(final SortedNumericDoubleValues values) {
-        return toString(new ToStringValues() {
-
-            @Override
-            public boolean advanceExact(int doc) throws IOException {
-                return values.advanceExact(doc);
-            }
-
-            @Override
-            public void get(List<CharSequence> list) throws IOException {
-                for (int i = 0, count = values.docValueCount(); i < count; ++i) {
-                    list.add(Double.toString(values.nextValue()));
-                }
-            }
-        });
     }
 
     /**
@@ -109,43 +70,5 @@ public enum FieldData {
                 return values.lookupOrd(values.nextOrd());
             }
         };
-    }
-
-    private static SortedBinaryDocValues toString(final ToStringValues toStringValues) {
-        return new SortingBinaryDocValues() {
-
-            final List<CharSequence> list = new ArrayList<>();
-
-            @Override
-            public boolean advanceExact(int docID) throws IOException {
-                if (toStringValues.advanceExact(docID) == false) {
-                    return false;
-                }
-                list.clear();
-                toStringValues.get(list);
-                count = list.size();
-                grow();
-                for (int i = 0; i < count; ++i) {
-                    final CharSequence s = list.get(i);
-                    values[i].copyChars(s);
-                }
-                sort();
-                return true;
-            }
-
-        };
-    }
-
-    private interface ToStringValues {
-
-        /**
-         * Advance this instance to the given document id
-         * @return true if there is a value for this document
-         */
-        boolean advanceExact(int doc) throws IOException;
-
-        /** Fill the list of charsquences with the list of values for the current document. */
-        void get(List<CharSequence> values) throws IOException;
-
     }
 }
