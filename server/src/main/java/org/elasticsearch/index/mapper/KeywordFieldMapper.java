@@ -26,6 +26,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 
@@ -224,7 +225,7 @@ public final class KeywordFieldMapper extends FieldMapper {
     }
 
     @Override
-    protected void parseCreateField(ParseContext context, List<IndexableField> fields) throws IOException {
+    protected void parseCreateField(ParseContext context, Consumer<IndexableField> onField) throws IOException {
         String value;
         XContentParser parser = context.parser();
         if (parser.currentToken() == XContentParser.Token.VALUE_NULL) {
@@ -241,15 +242,15 @@ public final class KeywordFieldMapper extends FieldMapper {
         final BytesRef binaryValue = new BytesRef(value);
         if (fieldType.indexOptions() != IndexOptions.NONE || fieldType.stored()) {
             Field field = new Field(fieldType().name(), binaryValue, fieldType);
-            fields.add(field);
+            onField.accept(field);
 
             if (fieldType().hasDocValues() == false && fieldType.omitNorms()) {
-                createFieldNamesField(context, fields);
+                createFieldNamesField(context, onField);
             }
         }
 
         if (fieldType().hasDocValues()) {
-            fields.add(new SortedSetDocValuesField(fieldType().name(), binaryValue));
+            onField.accept(new SortedSetDocValuesField(fieldType().name(), binaryValue));
         }
     }
 

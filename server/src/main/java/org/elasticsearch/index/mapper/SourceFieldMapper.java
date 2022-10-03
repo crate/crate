@@ -22,6 +22,7 @@ package org.elasticsearch.index.mapper;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.NumericDocValuesField;
@@ -111,13 +112,13 @@ public class SourceFieldMapper extends MetadataFieldMapper {
     }
 
     @Override
-    protected void parseCreateField(ParseContext context, List<IndexableField> fields) throws IOException {
+    protected void parseCreateField(ParseContext context, Consumer<IndexableField> addField) throws IOException {
         BytesReference originalSource = context.sourceToParse().source();
         BytesReference source = originalSource;
         if (fieldType.stored() && source != null) {
             // Percolate and tv APIs may not set the source and that is ok, because these APIs will not index any data
             BytesRef ref = source.toBytesRef();
-            fields.add(new StoredField(fieldType().name(), ref.bytes, ref.offset, ref.length));
+            addField.accept(new StoredField(fieldType().name(), ref.bytes, ref.offset, ref.length));
         } else {
             source = null;
         }
@@ -126,8 +127,8 @@ public class SourceFieldMapper extends MetadataFieldMapper {
             // if we omitted source or modified it we add the _recovery_source to ensure we
             // have it for ops based recovery
             BytesRef ref = originalSource.toBytesRef();
-            fields.add(new StoredField(RECOVERY_SOURCE_NAME, ref.bytes, ref.offset, ref.length));
-            fields.add(new NumericDocValuesField(RECOVERY_SOURCE_NAME, 1));
+            addField.accept(new StoredField(RECOVERY_SOURCE_NAME, ref.bytes, ref.offset, ref.length));
+            addField.accept(new NumericDocValuesField(RECOVERY_SOURCE_NAME, 1));
         }
     }
 

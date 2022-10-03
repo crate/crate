@@ -24,6 +24,7 @@ import static org.elasticsearch.index.mapper.TypeParsers.parseField;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 
@@ -119,7 +120,7 @@ public class BooleanFieldMapper extends FieldMapper {
     }
 
     @Override
-    protected void parseCreateField(ParseContext context, List<IndexableField> fields) throws IOException {
+    protected void parseCreateField(ParseContext context, Consumer<IndexableField> onField) throws IOException {
         if (fieldType().isSearchable() == false && !fieldType.stored() && !fieldType().hasDocValues()) {
             return;
         }
@@ -136,12 +137,12 @@ public class BooleanFieldMapper extends FieldMapper {
             return;
         }
         if (fieldType().isSearchable() || fieldType.stored()) {
-            fields.add(new Field(fieldType().name(), value ? "T" : "F", fieldType));
+            onField.accept(new Field(fieldType().name(), value ? "T" : "F", fieldType));
         }
         if (fieldType().hasDocValues()) {
-            fields.add(new SortedNumericDocValuesField(fieldType().name(), value ? 1 : 0));
+            onField.accept(new SortedNumericDocValuesField(fieldType().name(), value ? 1 : 0));
         } else {
-            createFieldNamesField(context, fields);
+            createFieldNamesField(context, onField);
         }
     }
 

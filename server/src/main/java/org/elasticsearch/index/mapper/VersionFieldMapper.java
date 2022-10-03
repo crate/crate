@@ -20,8 +20,8 @@
 package org.elasticsearch.index.mapper;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
@@ -86,11 +86,11 @@ public class VersionFieldMapper extends MetadataFieldMapper {
     }
 
     @Override
-    protected void parseCreateField(ParseContext context, List<IndexableField> fields) throws IOException {
+    protected void parseCreateField(ParseContext context, Consumer<IndexableField> onField) throws IOException {
         // see InternalEngine.updateVersion to see where the real version value is set
         final Field version = new NumericDocValuesField(NAME, -1L);
         context.version(version);
-        fields.add(version);
+        onField.accept(version);
     }
 
     @Override

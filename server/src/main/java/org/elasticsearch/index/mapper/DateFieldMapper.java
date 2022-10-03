@@ -26,6 +26,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 
@@ -182,7 +183,7 @@ public class DateFieldMapper extends FieldMapper {
     }
 
     @Override
-    protected void parseCreateField(ParseContext context, List<IndexableField> fields) throws IOException {
+    protected void parseCreateField(ParseContext context, Consumer<IndexableField> onField) throws IOException {
         String dateAsString = context.parser().textOrNull();
 
         long timestamp;
@@ -193,15 +194,15 @@ public class DateFieldMapper extends FieldMapper {
         }
 
         if (mappedFieldType.isSearchable()) {
-            fields.add(new LongPoint(fieldType().name(), timestamp));
+            onField.accept(new LongPoint(fieldType().name(), timestamp));
         }
         if (mappedFieldType.hasDocValues()) {
-            fields.add(new SortedNumericDocValuesField(fieldType().name(), timestamp));
+            onField.accept(new SortedNumericDocValuesField(fieldType().name(), timestamp));
         } else if (fieldType.stored() || mappedFieldType.isSearchable()) {
-            createFieldNamesField(context, fields);
+            createFieldNamesField(context, onField);
         }
         if (fieldType.stored()) {
-            fields.add(new StoredField(fieldType().name(), timestamp));
+            onField.accept(new StoredField(fieldType().name(), timestamp));
         }
     }
 

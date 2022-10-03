@@ -20,8 +20,8 @@
 package org.elasticsearch.index.mapper;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
@@ -101,10 +101,10 @@ public class IdFieldMapper extends MetadataFieldMapper {
     }
 
     @Override
-    protected void parseCreateField(ParseContext context, List<IndexableField> fields) throws IOException {
+    protected void parseCreateField(ParseContext context, Consumer<IndexableField> onField) throws IOException {
         if (fieldType.indexOptions() != IndexOptions.NONE || fieldType.stored()) {
             BytesRef id = Uid.encodeId(context.sourceToParse().id());
-            fields.add(new Field(NAME, id, fieldType));
+            onField.accept(new Field(NAME, id, fieldType));
         }
     }
 
