@@ -320,7 +320,7 @@ final class GroupByOptimizedIterator {
                         } else {
                             aggregateValues(aggregations, ramAccounting, memoryManager, states);
                         }
-                        if (values.nextOrd() != SortedSetDocValues.NO_MORE_ORDS) {
+                        if (values.docValueCount() > 1) {
                             throw new ArrayViaDocValuesUnsupportedException(keyColumnName);
                         }
                     } else {
