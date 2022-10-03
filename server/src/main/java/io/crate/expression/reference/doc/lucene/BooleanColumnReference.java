@@ -21,21 +21,19 @@
 
 package io.crate.expression.reference.doc.lucene;
 
-import io.crate.exceptions.ArrayViaDocValuesUnsupportedException;
-import io.crate.execution.engine.fetch.ReaderContext;
-import org.apache.lucene.index.DocValues;
-import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.index.fielddata.FieldData;
-import org.elasticsearch.index.fielddata.SortedBinaryDocValues;
-
 import java.io.IOException;
 import java.io.UncheckedIOException;
 
+import org.apache.lucene.index.DocValues;
+import org.apache.lucene.index.SortedNumericDocValues;
+
+import io.crate.exceptions.ArrayViaDocValuesUnsupportedException;
+import io.crate.execution.engine.fetch.ReaderContext;
+
 public class BooleanColumnReference extends LuceneCollectorExpression<Boolean> {
 
-    private static final BytesRef TRUE_BYTESREF = new BytesRef("1");
     private final String columnName;
-    private SortedBinaryDocValues values;
+    private SortedNumericDocValues values;
     private int docId;
 
     public BooleanColumnReference(String columnName) {
@@ -48,7 +46,7 @@ public class BooleanColumnReference extends LuceneCollectorExpression<Boolean> {
             if (values.advanceExact(docId)) {
                 switch (values.docValueCount()) {
                     case 1:
-                        return values.nextValue().compareTo(TRUE_BYTESREF) == 0;
+                        return values.nextValue() == 1;
 
                     default:
                         throw new ArrayViaDocValuesUnsupportedException(columnName);
@@ -69,6 +67,6 @@ public class BooleanColumnReference extends LuceneCollectorExpression<Boolean> {
     @Override
     public void setNextReader(ReaderContext context) throws IOException {
         super.setNextReader(context);
-        values = FieldData.toString(DocValues.getSortedNumeric(context.reader(), columnName));
+        values = DocValues.getSortedNumeric(context.reader(), columnName);
     }
 }
