@@ -25,7 +25,6 @@ import io.crate.action.sql.ResultReceiver;
 import io.crate.data.Row;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 
-import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
@@ -80,7 +79,7 @@ class RestRowCountReceiver implements ResultReceiver<XContentBuilder> {
     }
 
     @Override
-    public void fail(@Nonnull Throwable t) {
+    public void fail(Throwable t) {
         result.completeExceptionally(t);
     }
 

@@ -27,7 +27,6 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Predicate;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.apache.logging.log4j.LogManager;
@@ -72,7 +71,7 @@ public class SQLExceptions {
         throwable instanceof ElasticsearchWrapperException ||
         throwable instanceof ExecutionException;
 
-    public static Throwable unwrap(@Nonnull Throwable t, @Nullable Predicate<Throwable> additionalUnwrapCondition) {
+    public static Throwable unwrap(Throwable t, @Nullable Predicate<Throwable> additionalUnwrapCondition) {
         int counter = 0;
         Throwable result = t;
         Predicate<Throwable> unwrapCondition = EXCEPTIONS_TO_UNWRAP;
@@ -97,7 +96,7 @@ public class SQLExceptions {
         return result;
     }
 
-    public static Throwable unwrap(@Nonnull Throwable t) {
+    public static Throwable unwrap(Throwable t) {
         return unwrap(t, null);
     }
 

@@ -596,7 +596,7 @@ public abstract class StreamOutput extends OutputStream {
         }),
         Map.entry(List.class, (o, v) -> {
             o.writeByte((byte) 7);
-            final List list = (List) v;
+            final List<?> list = (List<?>) v;
             o.writeVInt(list.size());
             for (Object item : list) {
                 o.writeGenericValue(item);

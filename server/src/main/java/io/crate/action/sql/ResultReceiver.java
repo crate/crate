@@ -24,8 +24,6 @@ package io.crate.action.sql;
 import io.crate.concurrent.CompletionListenable;
 import io.crate.data.Row;
 
-import javax.annotation.Nonnull;
-
 /**
  * Used via {@link RowConsumerToResultReceiver} to receive results from the execution of a plan
  */
@@ -42,5 +40,5 @@ public interface ResultReceiver<T> extends CompletionListenable<T> {
      */
     void allFinished(boolean interrupted);
 
-    void fail(@Nonnull Throwable t);
+    void fail(Throwable t);
 }

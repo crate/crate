@@ -48,7 +48,7 @@ public class ParamTypeHints implements Function<ParameterExpression, Symbol> {
      * If the typeHints don't contain a type for the given index it will return Undefined
      * and it may become defined at a later point in time during analysis.
      */
-    public DataType getType(int index) {
+    public DataType<?> getType(int index) {
         if (index + 1 > types.size()) {
             return DataTypes.UNDEFINED;
         }

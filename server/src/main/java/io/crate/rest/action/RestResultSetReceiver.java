@@ -27,7 +27,6 @@ import io.crate.data.Row;
 import io.crate.expression.symbol.Symbol;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 
-import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -84,7 +83,7 @@ class RestResultSetReceiver implements ResultReceiver<XContentBuilder> {
     }
 
     @Override
-    public void fail(@Nonnull Throwable t) {
+    public void fail(Throwable t) {
         result.completeExceptionally(t);
     }
 
