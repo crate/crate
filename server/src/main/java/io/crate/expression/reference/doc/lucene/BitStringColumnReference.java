@@ -50,7 +50,7 @@ public class BitStringColumnReference extends LuceneCollectorExpression<BitStrin
         try {
             if (values.advanceExact(docId)) {
                 long ord = values.nextOrd();
-                if (values.nextOrd() != SortedSetDocValues.NO_MORE_ORDS) {
+                if (values.docValueCount() > 1) {
                     throw new ArrayViaDocValuesUnsupportedException(columnName);
                 }
                 var bytesRef = values.lookupOrd(ord);
