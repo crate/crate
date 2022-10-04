@@ -92,6 +92,8 @@ import io.crate.testing.UseRandomizedSchema;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
+
 @IntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 2)
 public class PartitionedTableIntegrationTest extends IntegTestCase {
 
@@ -190,6 +192,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         assertThat(response.rows()[0].length, is(3));
     }
 
+    @Repeat(iterations = 100)
     @Test
     public void testInsertIntoClosedPartition() throws Exception {
         execute("create table t (n integer) partitioned by (n)");
