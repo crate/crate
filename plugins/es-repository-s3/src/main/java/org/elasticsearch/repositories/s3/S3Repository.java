@@ -77,7 +77,6 @@ public class S3Repository extends BlobStoreRepository {
                        CANNED_ACL_SETTING,
                        CHUNK_SIZE_SETTING,
                        COMPRESS_SETTING,
-                       CACHE_REPOSITORY_DATA,
                        SERVER_SIDE_ENCRYPTION_SETTING,
                        // client specific settings
                        ENDPOINT_SETTING,
