@@ -157,15 +157,14 @@ public class ColumnIdent implements Comparable<ColumnIdent> {
     /**
      * Get the first non-map value from a map by traversing the name/path of the column
      */
-    public static Object get(Map map, ColumnIdent column) {
+    public static Object get(Map<?, ?> map, ColumnIdent column) {
         Object obj = map.get(column.name);
-        if (obj instanceof Map) {
-            Map m = (Map) obj;
+        if (obj instanceof Map<?, ?> m) {
             Object element = null;
             for (int i = 0; i < column.path.size(); i++) {
                 element = m.get(column.path.get(i));
-                if (element instanceof Map) {
-                    m = (Map) element;
+                if (element instanceof Map<?, ?> innerMap) {
+                    m = innerMap;
                 } else {
                     return element;
                 }
