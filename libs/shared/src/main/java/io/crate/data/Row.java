@@ -79,7 +79,6 @@ public abstract class Row {
         return result;
     }
 
-
     // We need all Row implementations to compare based on their values.
     // This is necessary for a "peek" → "materialize" pattern like it is used in
     // TopNDistinctBatchIterator to work.
