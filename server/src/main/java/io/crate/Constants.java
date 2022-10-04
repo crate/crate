@@ -30,5 +30,7 @@ public class Constants {
     // Mapping Type that contains table definitions
     public static final String DEFAULT_MAPPING_TYPE = "default";
 
+    public static final String DEFAULT_DATE_STYLE = "ISO";
+
     public static final int MAX_SHARD_MISSING_RETRIES = 3;
 }
