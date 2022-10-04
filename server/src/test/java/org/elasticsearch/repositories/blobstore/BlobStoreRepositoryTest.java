@@ -242,7 +242,7 @@ public class BlobStoreRepositoryTest extends IntegTestCase {
             int numIndices = inclIndices ? randomIntBetween(0, 20) : 0;
             final ShardGenerations.Builder builder = ShardGenerations.builder();
             for (int j = 0; j < numIndices; j++) {
-                builder.put(new IndexId(randomAlphaOfLength(8), UUIDs.randomBase64UUID()), 0, "1");
+                builder.put(new IndexId(randomAlphaOfLength(8), UUIDs.randomBase64UUID()), 0, "new");
             }
             repoData = repoData.addSnapshot(snapshotId, randomFrom(SnapshotState.SUCCESS, SnapshotState.PARTIAL, SnapshotState.FAILED),
                                             Version.CURRENT,builder.build());
