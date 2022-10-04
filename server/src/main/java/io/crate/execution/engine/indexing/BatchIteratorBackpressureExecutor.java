@@ -65,8 +65,8 @@ public class BatchIteratorBackpressureExecutor<T, R> {
     private final BinaryOperator<R> combiner;
     private final Predicate<T> pauseConsumption;
     private final BiConsumer<R, Throwable> continueConsumptionOrFinish;
-    @Nullable private final Predicate<R> earlyTerminationCondition;
-    @Nullable private final Function<R, Throwable> resultsToFailure;
+    private final Predicate<R> earlyTerminationCondition;
+    private final Function<R, Throwable> resultsToFailure;
     private final AtomicInteger inFlightExecutions = new AtomicInteger(0);
     private final CompletableFuture<R> resultFuture = new CompletableFuture<>();
     private final Semaphore semaphore = new Semaphore(1);
