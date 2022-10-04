@@ -200,15 +200,4 @@ public class SQLExceptions {
         return e instanceof VersionConflictEngineException
                    && e.getMessage().contains("document already exists");
     }
-
-    /**
-     * Converts a possible ES exception to a Crate one and returns the message.
-     * The message will not contain any information about possible nested exceptions.
-     * If the message is null, the exceptions name is used.
-     */
-    public static String userFriendlyCrateExceptionTopOnly(Throwable e) {
-        var throwable = esToCrateException(e);
-        var message = throwable.getMessage();
-        return message != null ? message : throwable.getClass().getName();
-    }
 }

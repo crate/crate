@@ -21,9 +21,7 @@
 
 package io.crate.execution.dml.upsert;
 
-import static io.crate.exceptions.SQLExceptions.userFriendlyCrateExceptionTopOnly;
 import static io.crate.execution.dml.upsert.InsertSourceGen.SOURCE_WRITERS;
-
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
@@ -66,6 +64,7 @@ import org.elasticsearch.transport.TransportService;
 import io.crate.Constants;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.exceptions.Exceptions;
+import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.ddl.SchemaUpdateClient;
 import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.dml.TransportShardAction;
@@ -196,11 +195,19 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 shardResponse.add(location,
                     new ShardResponse.Failure(
                         item.id(),
-                        userFriendlyCrateExceptionTopOnly(e),
+                        getExceptionMessage(e),
                         (e instanceof VersionConflictEngineException)));
             }
         }
         return new WritePrimaryResult<>(request, shardResponse, translogLocation, null, indexShard);
+    }
+
+    private static String getExceptionMessage(Throwable e) {
+        if (SQLExceptions.isDocumentAlreadyExistsException(e)) {
+            return "A document with the same primary key exists already";
+        }
+        var message = e.getMessage();
+        return message != null ? message : e.getClass().getName();
     }
 
     @Override
