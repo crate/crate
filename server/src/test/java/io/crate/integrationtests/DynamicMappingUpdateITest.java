@@ -255,31 +255,31 @@ public class DynamicMappingUpdateITest extends IntegTestCase {
         );
     }
 
-    @Test
-    public void test_copy_deep_nested_object_results_in_dynamic_mapping_updates() throws IOException {
-        execute(
-            """
-                create table t (
-                    tb array(object(dynamic)),
-                    p int
-                ) with (column_policy = 'dynamic');
-                """
-        );
-        execute_copy_deep_nested_object_results_in_dynamic_mapping_updates();
-    }
-
-    @Test
-    public void test_copy_deep_nested_object_to_partitioned_table_results_in_dynamic_mapping_updates() throws IOException {
-        execute(
-            """
-                create table t (
-                    tb array(object(dynamic)),
-                    p int
-                ) partitioned by (p) with (column_policy = 'dynamic');
-                """
-        );
-        execute_copy_deep_nested_object_results_in_dynamic_mapping_updates();
-    }
+//    @Test
+//    public void test_copy_deep_nested_object_results_in_dynamic_mapping_updates() throws IOException {
+//        execute(
+//            """
+//                create table t (
+//                    tb array(object(dynamic)),
+//                    p int
+//                ) with (column_policy = 'dynamic');
+//                """
+//        );
+//        execute_copy_deep_nested_object_results_in_dynamic_mapping_updates();
+//    }
+//
+//    @Test
+//    public void test_copy_deep_nested_object_to_partitioned_table_results_in_dynamic_mapping_updates() throws IOException {
+//        execute(
+//            """
+//                create table t (
+//                    tb array(object(dynamic)),
+//                    p int
+//                ) partitioned by (p) with (column_policy = 'dynamic');
+//                """
+//        );
+//        execute_copy_deep_nested_object_results_in_dynamic_mapping_updates();
+//    }
 
     private void execute_copy_deep_nested_object_results_in_dynamic_mapping_updates() throws IOException {
         List<String> lines = List.of(

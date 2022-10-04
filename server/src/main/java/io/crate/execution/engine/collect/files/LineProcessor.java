@@ -27,6 +27,7 @@ import io.crate.expression.reference.file.LineContext;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.util.List;
 
@@ -50,15 +51,19 @@ public final class LineProcessor {
         lineContext.currentUri(currentUri);
     }
 
-    void readFirstLine(URI currentUri, InputFormat inputFormat, BufferedReader currentReader) throws IOException {
-        lineParser.readFirstLine(currentUri, inputFormat, currentReader);
+    void readFirstLine(URI currentUri, InputFormat inputFormat, InputStream inputStream) throws IOException {
+        lineParser.readFirstLine(currentUri, inputFormat, inputStream);
     }
 
-    public void process(String line) throws IOException {
-        lineContext.incrementCurrentLineNumber();
+    public boolean process() throws IOException {
+        // lineContext.incrementCurrentLineNumber(); line number has to be resolved on the deepest component (parser) as it's actually reads the data. Skipped for now
         lineContext.resetCurrentParsingFailure(); // Reset prev failure if there is any.
-        byte[] jsonByteArray = lineParser.getByteArray(line, lineContext.getCurrentLineNumber());
-        lineContext.rawSource(jsonByteArray);
+        byte[] jsonByteArray = lineParser.getByteArray();
+        if (jsonByteArray != null) {
+            lineContext.rawSource(jsonByteArray);
+            return true;
+        }
+        return false;
     }
 
     /**

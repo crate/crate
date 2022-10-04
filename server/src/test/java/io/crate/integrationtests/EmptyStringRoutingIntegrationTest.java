@@ -108,25 +108,5 @@ public class EmptyStringRoutingIntegrationTest extends IntegTestCase {
         assertThat((int) response.rows()[0][0], is(5));
     }
 
-    @Test
-    public void testCopyFromEmptyStringRouting() throws Exception {
-        execute("create table t (i int primary key, c string primary key, a int) clustered by (c)");
-        ensureYellow();
-        execute("insert into t (i, c) values (1, ''), (2, '')");
-        refresh();
 
-        String uri = Paths.get(folder.getRoot().toURI()).toUri().toString();
-        SQLResponse response = execute("copy t to directory ?", new Object[]{uri});
-        assertThat(response.rowCount(), is(2L));
-
-        execute("delete from t");
-        refresh();
-
-        execute("copy t from ? with (shared=true)", new Object[]{uri + "t_*"});
-        refresh();
-        response = execute("select c, count(*) from t group by c");
-        assertThat(response.rowCount(), is(1L));
-        assertThat((long) response.rows()[0][1], is(2L));
-
-    }
 }

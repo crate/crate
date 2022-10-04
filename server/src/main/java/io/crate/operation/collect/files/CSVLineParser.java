@@ -48,7 +48,6 @@ public class CSVLineParser {
     private final List<String> targetColumns;
     private ObjectReader csvReader;
     private JsonParser parser;
-    private InputStream inputStream;
 
     public CSVLineParser(CopyFromParserProperties properties, List<String> columns) throws IOException {
         this(properties, columns, null);
@@ -82,8 +81,7 @@ public class CSVLineParser {
 
         if (inputStream != null) {
             // No auto close, let another component (benchmarking class or later on FileReadingIterator) control the lifecycle of the stream.
-            csvReader = csvReader.without(JsonParser.Feature.AUTO_CLOSE_SOURCE);
-            this.inputStream = inputStream;
+            //csvReader = csvReader.without(JsonParser.Feature.AUTO_CLOSE_SOURCE);
             parser = csvReader.createParser(inputStream);
         }
 

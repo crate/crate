@@ -25,8 +25,10 @@ import io.crate.analyze.CopyFromParserProperties;
 import io.crate.execution.dsl.phases.FileUriCollectPhase;
 import io.crate.operation.collect.files.CSVLineParser;
 
+import javax.annotation.Nullable;
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -51,24 +53,29 @@ public class LineParser {
 
     public void readFirstLine(URI currentUri,
                               FileUriCollectPhase.InputFormat inputFormat,
-                              BufferedReader currentReader) throws IOException {
+                              InputStream inputStream) throws IOException {
         if (isInputCsv(inputFormat, currentUri)) {
-            csvLineParser = new CSVLineParser(parserProperties, targetColumns);
-            if (parserProperties.fileHeader()) {
-                csvLineParser.parseHeader(currentReader.readLine());
-            }
+            csvLineParser = new CSVLineParser(parserProperties, targetColumns, inputStream);
+            // For simplicity only no header case is implemented
+//            if (parserProperties.fileHeader()) {
+//                csvLineParser.parseHeader(currentReader.readLine());
+//            }
             inputType = InputType.CSV;
         } else {
             inputType = InputType.JSON;
         }
     }
 
-    public byte[] getByteArray(String line, long rowNumber) throws IOException {
+    @Nullable
+    public byte[] getByteArray() throws IOException {
         if (inputType == InputType.CSV) {
-            return parserProperties.fileHeader() ?
-                csvLineParser.parse(line, rowNumber) : csvLineParser.parseWithoutHeader(line, rowNumber);
+            return csvLineParser.parse(); // this currently does things similar to parseWithoutHeader
+//            return parserProperties.fileHeader() ?
+//                csvLineParser.parse(line, rowNumber) : csvLineParser.parseWithoutHeader(line, rowNumber);
         } else {
-            return line.getBytes(StandardCharsets.UTF_8);
+            return null; // temporal stub, testing only CSV for now.
+            // CSV now uses JSonParser so would just return csvLineParser.parse() in all cases but need to rename CSVLineParser to avoid confusion
+            //return line.getBytes(StandardCharsets.UTF_8);
         }
     }
 

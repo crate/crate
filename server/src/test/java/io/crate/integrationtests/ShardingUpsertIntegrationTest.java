@@ -41,31 +41,5 @@ public class ShardingUpsertIntegrationTest extends IntegTestCase {
             .build();
     }
 
-    @Test
-    public void testCopyFromWithLimitedBulkSize() throws Exception {
-        execute(
-            "create table contributors (" +
-            "   id integer," +
-            "   day_joined timestamp with time zone," +
-            "   bio string," +
-            "   name string ," +
-            "   address object(strict) as (" +
-            "       country string," +
-            "       city string " +
-            "   )" +
-            ") clustered into 1 shards with (number_of_replicas=0)");
-        ensureYellow();
 
-        String copyFilePath = Paths.get(getClass().getResource("/essetup/data/best_practice").toURI()).toUri().toString();
-        // there 150 entries in the file, so with a bulk size of 25 this will still
-        // require 6 requests, which should trigger the retry logic without running into long retry intervals
-        execute(
-            "copy contributors from ? with (bulk_size = 25)",
-            new Object[]{ copyFilePath + "data_import.json"}
-        );
-        assertEquals(150L, response.rowCount());
-        refresh();
-        execute("select id, day_joined, name from contributors");
-        assertEquals(150L, response.rowCount());
-    }
 }

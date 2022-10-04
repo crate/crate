@@ -109,86 +109,10 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("RESET GLOBAL stats.enabled");
     }
 
-    @Test
-    public void testCopyFromIntoPartitionedTableWithPARTITIONKeyword() {
-        execute("create table quotes (" +
-                "   id integer primary key," +
-                "   date timestamp with time zone primary key," +
-                "   quote string index using fulltext) " +
-                "partitioned by (date) with (number_of_replicas=0)");
-        ensureYellow();
-        execute("copy quotes partition (date=1400507539938) from ?", new Object[]{
-            copyFilePath + "test_copy_from.json"});
-        assertEquals(3L, response.rowCount());
-        refresh();
-        execute("select id, date, quote from quotes order by id asc");
-        assertEquals(3L, response.rowCount());
-        assertThat(response.rows()[0][0], is(1));
-        assertThat(response.rows()[0][1], is(1400507539938L));
-        assertThat(response.rows()[0][2], is("Don't pa\u00f1ic."));
 
-        execute("select count(*) from information_schema.table_partitions where table_name = 'quotes'");
-        assertThat((Long) response.rows()[0][0], is(1L));
 
-        execute("copy quotes partition (date=1800507539938) from ?", new Object[]{
-            copyFilePath + "test_copy_from.json"});
-        refresh();
 
-        execute("select partition_ident from information_schema.table_partitions " +
-                "where table_name = 'quotes' " +
-                "order by partition_ident");
-        assertThat(response.rowCount(), is(2L));
-        assertThat(response.rows()[0][0], is("04732d1g60qj0dpl6csjicpo"));
-        assertThat(response.rows()[1][0], is("04732e1g60qj0dpl6csjicpo"));
-    }
 
-    @Test
-    public void testCopyFromIntoPartitionedTable() throws Exception {
-        execute("create table quotes (" +
-                "  id integer primary key, " +
-                "  quote string index using fulltext" +
-                ") partitioned by (id)");
-        ensureYellow();
-
-        execute("copy quotes from ?", new Object[]{copyFilePath + "test_copy_from.json"});
-        assertEquals(3L, response.rowCount());
-        refresh();
-        ensureYellow();
-
-        ClusterState state = client().admin().cluster().state(new ClusterStateRequest()).get().getState();
-        for (String id : List.of("1", "2", "3")) {
-            String partitionName = new PartitionName(
-                new RelationName(sqlExecutor.getCurrentSchema(), "quotes"),
-                List.of(id)).asIndexName();
-            var partitionIndexMetadata = state.metadata().indices().get(partitionName);
-            assertNotNull(partitionIndexMetadata);
-            assertNotNull(partitionIndexMetadata.getAliases().get(getFqn("quotes")));
-        }
-
-        execute("select * from quotes");
-        assertEquals(3L, response.rowCount());
-        assertThat(response.rows()[0].length, is(2));
-    }
-
-    @Test
-    public void testCopyFromIntoPartitionedTableWithGeneratedColumnPK() throws Exception {
-        execute("create table quotes (" +
-                "  id integer, " +
-                "  quote string index using fulltext, " +
-                "  gen_lower_quote string generated always as lower(quote), " +
-                "  PRIMARY KEY(id, gen_lower_quote) " +
-                ") partitioned by (gen_lower_quote)");
-        ensureYellow();
-
-        execute("copy quotes from ?", new Object[]{copyFilePath + "test_copy_from.json"});
-        assertEquals(3L, response.rowCount());
-        refresh();
-        ensureYellow();
-
-        execute("select * from quotes");
-        assertEquals(3L, response.rowCount());
-        assertThat(response.rows()[0].length, is(3));
-    }
 
     @Test
     public void testInsertIntoClosedPartition() throws Exception {
@@ -219,44 +143,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         assertEquals(0L, response.rows()[0][0]);
     }
 
-    @Test
-    public void testCopyFromPartitionedTableCustomSchema() throws Exception {
-        execute("create table my_schema.parted (" +
-                "  id long, " +
-                "  month timestamp with time zone, " +
-                "  created timestamp with time zone) " +
-                "partitioned by (month) with (number_of_replicas=0)");
-        ensureGreen();
-        File copyFromFile = folder.newFile();
-        try (OutputStreamWriter writer = new OutputStreamWriter(
-            new FileOutputStream(copyFromFile),
-            StandardCharsets.UTF_8)) {
-            writer.write(
-                "{\"id\":1, \"month\":1425168000000, \"created\":1425901500000}\n" +
-                "{\"id\":2, \"month\":1420070400000,\"created\":1425901460000}");
-        }
-        String uriPath = Paths.get(copyFromFile.toURI()).toUri().toString();
 
-        execute("copy my_schema.parted from ? with (shared=true)", new Object[]{uriPath});
-        assertEquals(2L, response.rowCount());
-        refresh();
-
-        ensureGreen();
-        waitNoPendingTasksOnAll();
-
-        execute("select table_schema, table_name, number_of_shards, number_of_replicas, clustered_by, partitioned_by " +
-                "from information_schema.tables where table_schema='my_schema' and table_name='parted'");
-        assertThat(printedTable(response.rows()), is("my_schema| parted| 4| 0| _id| [month]\n"));
-
-        // no other tables with that name, e.g. partitions considered as tables or such
-        execute("select table_schema, table_name from information_schema.tables where table_name like '%parted%'");
-        assertThat(printedTable(response.rows()), is(
-            "my_schema| parted\n"));
-
-        execute("select count(*) from my_schema.parted");
-        assertThat(response.rowCount(), is(1L));
-        assertThat((Long) response.rows()[0][0], is(2L));
-    }
 
     @Test
     public void testCreatePartitionedTableAndQueryMeta() {

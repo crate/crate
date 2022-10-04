@@ -48,49 +48,6 @@ public class DefaultSchemaIntegrationTest extends IntegTestCase {
         }
     }
 
-    @Test
-    public void testSelectFromFooSchemaWithRequestHeaders() throws Exception {
-        // this test uses all kind of different statements that involve a table to make sure the schema is applied in each case.
-
-        execute("create table foobar (x string) with (number_of_replicas = 0)", "foo");
-        ensureYellow();
-        waitNoPendingTasksOnAll();
-        execute("alter table foobar set (number_of_replicas = '0-1')", "foo");
-
-        assertThat(getTableCount("foo", "foobar"), is(1L));
-        assertThat(getTableCount("doc", "foobar"), is(0L));
-
-        execute("insert into foobar (x) values ('a'), ('b')", "foo");
-        execute("refresh table foobar", "foo");
-        execute("update foobar set x = 'c'", "foo");
-        assertThat(response.rowCount(), is(2L));
-
-        execute("select * from foobar", "foo");
-        assertThat(response.rowCount(), is(2L));
-
-        File foobarExport = tmpFolder.newFolder("foobar_export");
-        String uriTemplate = Paths.get(foobarExport.toURI()).toUri().toString();
-        execute("copy foobar to directory ?", new Object[]{uriTemplate}, "foo");
-        refresh();
-        execute("delete from foobar", "foo");
-        refresh();
-
-        execute("select * from foobar", "foo");
-        assertThat(response.rowCount(), is(0L));
-
-        execute("copy foobar from ? with (shared=True)", new Object[]{uriTemplate + "*"}, "foo");
-        execute("refresh table foobar", "foo");
-        execute("select * from foobar", "foo");
-        assertThat(response.rowCount(), is(2L));
-
-        execute("insert into foobar (x) (select x from foobar)", "foo");
-        execute("refresh table foobar", "foo");
-        execute("select * from foobar", "foo");
-        assertThat(response.rowCount(), is(4L));
-
-        execute("drop table foobar", "foo");
-        assertThat(getTableCount("foo", "foobar"), is(0L));
-    }
 
     private long getTableCount(String schema, String tableName) {
         execute("select count(*) from information_schema.tables where table_schema = ? and table_name = ?",

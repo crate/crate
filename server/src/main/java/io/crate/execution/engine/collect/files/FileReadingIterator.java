@@ -23,10 +23,7 @@ package io.crate.execution.engine.collect.files;
 
 import static io.crate.exceptions.Exceptions.rethrowUnchecked;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.net.SocketTimeoutException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
@@ -107,7 +104,7 @@ public class FileReadingIterator implements BatchIterator<Row> {
     private FileInput currentInput = null;
     private Iterator<URI> currentInputUriIterator = null;
     private URI currentUri;
-    private BufferedReader currentReader = null;
+    private InputStream currentInputStream = null;
     private long currentLineNumber;
     private final Row row;
     private LineProcessor lineProcessor;
@@ -165,13 +162,12 @@ public class FileReadingIterator implements BatchIterator<Row> {
     public boolean moveNext() {
         raiseIfKilled();
         try {
-            if (currentReader != null) {
-                String line = getLine(currentReader, currentLineNumber, 0);
-                if (line == null) {
-                    closeCurrentReader();
+            if (currentInputStream != null) {
+                boolean processed = lineProcessor.process();
+                if (processed == false) {
+                    closeCurrentStream();
                     return moveNext();
                 }
-                lineProcessor.process(line);
                 return true;
             } else if (currentInputUriIterator != null && currentInputUriIterator.hasNext()) {
                 advanceToNextUri(currentInput);
@@ -185,7 +181,7 @@ public class FileReadingIterator implements BatchIterator<Row> {
             }
         } catch (IOException e) {
             lineProcessor.setUriFailure(e.getMessage());
-            closeCurrentReader();
+            closeCurrentStream();
             // If the error happens on the first line, return true so that the error is collected by {@link #currentElement()}
             if (currentLineNumber == 0) {
                 return true;
@@ -226,59 +222,26 @@ public class FileReadingIterator implements BatchIterator<Row> {
     private void initCurrentReader(FileInput fileInput, URI uri) throws IOException {
         lineProcessor.startWithUri(uri);
         InputStream stream = fileInput.getStream(uri);
-        currentReader = createBufferedReader(stream);
+        currentInputStream = new BufferedInputStream(stream);
         currentLineNumber = 0;
-        lineProcessor.readFirstLine(currentUri, inputFormat, currentReader);
+        lineProcessor.readFirstLine(currentUri, inputFormat, currentInputStream); // No header processing for now
     }
 
-    private void closeCurrentReader() {
-        if (currentReader != null) {
+    private void closeCurrentStream() {
+        if (currentInputStream != null) {
             try {
-                currentReader.close();
+                currentInputStream.close();
             } catch (IOException e) {
                 LOGGER.error("Unable to close reader for " + currentUri, e);
             }
-            currentReader = null;
+            currentInputStream = null;
         }
     }
 
-    private String getLine(BufferedReader reader, long startFrom, int retry) throws IOException {
-        String line = null;
-        try {
-            while ((line = reader.readLine()) != null) {
-                currentLineNumber++;
-                if (currentLineNumber < startFrom) {
-                    continue;
-                }
-                if (line.length() == 0) {
-                    continue;
-                }
-                break;
-            }
-        } catch (SocketTimeoutException e) {
-            if (retry > MAX_SOCKET_TIMEOUT_RETRIES) {
-                URI uri = currentInput.uri();
-                LOGGER.error("Timeout during COPY FROM '" + uri.toString() + "' after " + retry + " retries", e);
-                throw e;
-            } else {
-                long startLine = currentLineNumber + 1;
-                closeCurrentReader();
-                initCurrentReader(currentInput, currentUri);
-                return getLine(currentReader, startLine, retry + 1);
-            }
-        } catch (Exception e) {
-            URI uri = currentInput.uri();
-            // it's nice to know which exact file/uri threw an error
-            // when COPY FROM returns less rows than expected
-            LOGGER.error("Error during COPY FROM '" + uri.toString() + "'", e);
-            rethrowUnchecked(e);
-        }
-        return line;
-    }
 
     @Override
     public void close() {
-        closeCurrentReader();
+        closeCurrentStream();
         releaseBatchIteratorState();
         killed = BatchIterator.CLOSED;
     }
@@ -334,18 +297,6 @@ public class FileReadingIterator implements BatchIterator<Row> {
             }
         }
         return new URLFileInput(uri);
-    }
-
-    @VisibleForTesting
-    BufferedReader createBufferedReader(InputStream inputStream) throws IOException {
-        BufferedReader reader;
-        if (compressed) {
-            reader = new BufferedReader(new InputStreamReader(new GZIPInputStream(inputStream),
-                StandardCharsets.UTF_8));
-        } else {
-            reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
-        }
-        return reader;
     }
 
     @VisibleForTesting
