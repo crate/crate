@@ -21,6 +21,8 @@
 
 package io.crate.operation.collect.files;
 
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.StreamReadFeature;
 import com.fasterxml.jackson.databind.MappingIterator;
 import com.fasterxml.jackson.databind.ObjectReader;
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
@@ -30,13 +32,13 @@ import io.crate.analyze.CopyFromParserProperties;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 
+import javax.annotation.Nullable;
+import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
+import java.util.*;
 
 public class CSVLineParser {
 
@@ -44,9 +46,15 @@ public class CSVLineParser {
     private final ArrayList<String> headerKeyList = new ArrayList<>();
     private String[] columnNamesArray;
     private final List<String> targetColumns;
-    private final ObjectReader csvReader;
+    private ObjectReader csvReader;
+    private JsonParser parser;
+    private InputStream inputStream;
 
-    public CSVLineParser(CopyFromParserProperties properties, List<String> columns) {
+    public CSVLineParser(CopyFromParserProperties properties, List<String> columns) throws IOException {
+        this(properties, columns, null);
+    }
+
+    public CSVLineParser(CopyFromParserProperties properties, List<String> columns, InputStream inputStream) throws IOException {
         targetColumns = columns;
         if (!properties.fileHeader()) {
             columnNamesArray = new String[targetColumns.size()];
@@ -56,15 +64,29 @@ public class CSVLineParser {
         }
         var mapper = new CsvMapper()
             .enable(CsvParser.Feature.TRIM_SPACES);
+
         if (properties.emptyStringAsNull()) {
             mapper.enable(CsvParser.Feature.EMPTY_STRING_AS_NULL);
         }
+
         var csvSchema = mapper
             .typedSchemaFor(String.class)
             .withColumnSeparator(properties.columnSeparator());
+
+
         csvReader = mapper
             .readerWithTypedSchemaFor(Object.class)
             .with(csvSchema);
+
+
+
+        if (inputStream != null) {
+            // No auto close, let another component (benchmarking class or later on FileReadingIterator) control the lifecycle of the stream.
+            csvReader = csvReader.without(JsonParser.Feature.AUTO_CLOSE_SOURCE);
+            this.inputStream = inputStream;
+            parser = csvReader.createParser(inputStream);
+        }
+
     }
 
     public void parseHeader(String header) throws IOException {
@@ -82,6 +104,43 @@ public class CSVLineParser {
         if (keySet.size() != headerKeyList.size() || keySet.size() == 0) {
             throw new IllegalArgumentException("Invalid header: duplicate entries or no entries present");
         }
+    }
+
+    @Nullable
+    public byte[] parse() throws IOException {
+
+        if (parser.getInputSource() == null) {
+            return null;
+        }
+
+        List<Object> row = parser.readValueAs(List.class); // reads row
+
+        out.reset();
+        XContentBuilder jsonBuilder = new XContentBuilder(JsonXContent.JSON_XCONTENT, out).startObject();
+        if (row != null) {
+
+            if (columnNamesArray.length > row.size()) {
+                throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Expected %d values, " +
+                    "encountered %d. This is not allowed when there " +
+                    "is no header provided)", columnNamesArray.length, row.size()));
+            }
+
+           // System.out.println("value = "+row);
+
+            for (int i = 0; i < columnNamesArray.length; i++) {
+
+                String key = columnNamesArray[i];
+                if (key != null) {
+                    jsonBuilder.field(key, row.get(i));
+                }
+            }
+            jsonBuilder.endObject().close();
+            return out.toByteArray();
+        } else {
+            //System.out.println("will return null, EOF");
+            return null;
+        }
+
     }
 
     public byte[] parse(String row, long rowNumber) throws IOException {
@@ -132,5 +191,11 @@ public class CSVLineParser {
         }
         jsonBuilder.endObject().close();
         return out.toByteArray();
+    }
+
+    public void close() throws IOException {
+        if (parser != null) {
+            parser.close();
+        }
     }
 }

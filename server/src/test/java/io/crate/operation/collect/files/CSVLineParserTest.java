@@ -41,7 +41,7 @@ public class CSVLineParserTest {
     private byte[] result;
 
     @Before
-    public void setup() {
+    public void setup() throws IOException {
         csvParser = new CSVLineParser(CopyFromParserProperties.DEFAULT, List.of("Code", "Country", "City"));
     }
 
