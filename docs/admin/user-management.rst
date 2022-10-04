@@ -20,7 +20,7 @@ user is called ``crate``. It is not possible to create any other superusers
 
 The definition of all users, including hashes of their passwords, is backed up
 together with the cluster's metadata when a snapshot is created, and it is 
-restored when using the ``ALL``, ``METADATA``, or ``USERS`` clauses of the 
+restored when using the ``ALL``, ``METADATA``, or ``USERS`` keywords with the 
 :ref:`sql-restore-snapshot` command.
 
 .. rubric:: Table of contents
