@@ -193,16 +193,17 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
     @Test
     public void testInsertIntoClosedPartition() throws Exception {
         execute("create table t (n integer) partitioned by (n)");
+        ensureYellow();
         execute("insert into t (n) values (1)");
         refresh();
-        ensureYellow();
 
         execute("alter table t partition (n = 1) close");
+        waitNoPendingTasksOnAll(); // ensure close got processed on all shard copies
 
         execute("insert into t (n) values (1)");
         assertThat(response.rowCount(), is(0L));
 
-        waitNoPendingTasksOnAll(); // ensure close got processed on all shard copies
+        refresh();
         execute("select count(*) from t");
         assertEquals(0L, response.rows()[0][0]);
     }
