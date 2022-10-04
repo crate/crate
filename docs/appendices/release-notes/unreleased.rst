@@ -53,7 +53,8 @@ None
 Changes
 =======
 
-None
+- Added the :ref:`MAX_BY <aggregation-max_by>` and :ref:`MIN_BY
+  <aggregation-min_by>` aggregation functions
 
 Fixes
 =====

@@ -519,6 +519,56 @@ Some Examples::
     SELECT 3 rows in set (... sec)
 
 
+.. _aggregation-max_by:
+
+``max_by(returnField, searchField)``
+------------------------------------
+
+Returns the value of ``returnField`` where ``searchField`` has the highest
+value.
+
+If there are ties for ``searchField`` the result is non-deterministic and can be
+any of the ``returnField`` values of the ties.
+
+``NULL`` values in the ``searchField`` don't count as max but are skipped.
+
+
+An Example::
+
+    cr> SELECT max_by(mountain, height) FROM sys.summits;
+    +--------------------------+
+    | max_by(mountain, height) |
+    +--------------------------+
+    | Mont Blanc               |
+    +--------------------------+
+    SELECT 1 row in set (... sec)
+
+
+.. _aggregation-min_by:
+
+``min_by(returnField, searchField)``
+------------------------------------
+
+
+Returns the value of ``returnField`` where ``searchField`` has the lowest
+value.
+
+If there are ties for ``searchField`` the result is non-deterministic and can be
+any of the ``returnField`` values of the ties.
+
+``NULL`` values in the ``searchField`` don't count as min but are skipped.
+
+An Example::
+
+    cr> SELECT min_by(mountain, height) FROM sys.summits;
+    +--------------------------+
+    | min_by(mountain, height) |
+    +--------------------------+
+    | Puy de Rent              |
+    +--------------------------+
+    SELECT 1 row in set (... sec)
+
+
 .. _aggregation-stddev:
 
 ``stddev(column)``

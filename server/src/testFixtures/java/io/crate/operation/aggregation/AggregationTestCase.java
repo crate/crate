@@ -214,7 +214,7 @@ public abstract class AggregationTestCase extends ESTestCase {
             shard.refresh("test");
 
             List<Row> partialResultWithDocValues = execPartialAggregationWithDocValues(
-                maybeUnboundSignature,
+                aggregationFunction.signature(),
                 actualArgumentTypes,
                 actualReturnType,
                 shard,

@@ -22,6 +22,7 @@
 package io.crate.integrationtests;
 
 import static io.crate.testing.TestingHelpers.printedTable;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
@@ -41,6 +42,30 @@ public class AggregateExpressionIntegrationTest extends IntegTestCase {
         execute("select sum(x) from tbl");
         assertThat(TestingHelpers.printedTable(response.rows()),
             is("6\n")
+        );
+    }
+
+    @Test
+    public void test_min_and_max_by() {
+        execute("create table tbl (name text, x int)");
+        execute("insert into tbl (name, x) values (?, ?)",
+            new Object[][] {
+                new Object[] {"foo", 1},
+                new Object[] {null, 2},
+                new Object[] {"no", null},
+                new Object[] {"bar", 2},
+                new Object[] {"baz", 3}
+            }
+        );
+        execute("refresh table tbl");
+
+        execute("select max_by(name, x) from tbl");
+        assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo(
+            "baz\n"
+        );
+        execute("select min_by(name, x) from tbl");
+        assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo(
+            "foo\n"
         );
     }
 
