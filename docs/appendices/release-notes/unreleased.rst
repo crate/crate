@@ -92,6 +92,11 @@ Changes
 - Added support for dollar quoted strings,
   see :ref:`String Literal <string_literal>` for further details.
 
+- Added a :ref:`datestyle <conf-session-datestyle>` session setting that shows 
+  the display format for date and time values. Only the ``ISO`` style is 
+  supported. Optionally provided pattern conventions for the order of date 
+  parts (Day, Month, Year) are ignored.
+
 Fixes
 =====
 

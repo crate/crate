@@ -435,7 +435,7 @@ public class PostgresWireProtocol {
             String database = properties.getProperty("database");
             session = sessions.createSession(database, authenticatedUser);
             Messages.sendAuthenticationOK(channel)
-                .addListener(f -> sendParams(channel))
+                .addListener(f -> sendParams(channel, session.sessionSettings()))
                 .addListener(f -> Messages.sendKeyData(channel, session.id(), session.secret()))
                 .addListener(f -> {
                     sendReadyForQuery(channel, TransactionState.IDLE);
@@ -460,12 +460,12 @@ public class PostgresWireProtocol {
         addTransportHandler.accept(pipeline);
     }
 
-    private void sendParams(Channel channel) {
+    private void sendParams(Channel channel, CoordinatorSessionSettings sessionSettings) {
         Messages.sendParameterStatus(channel, "crate_version", Version.CURRENT.externalNumber());
         Messages.sendParameterStatus(channel, "server_version", PG_SERVER_VERSION);
         Messages.sendParameterStatus(channel, "server_encoding", "UTF8");
         Messages.sendParameterStatus(channel, "client_encoding", "UTF8");
-        Messages.sendParameterStatus(channel, "datestyle", "ISO");
+        Messages.sendParameterStatus(channel, "datestyle", sessionSettings.dateStyle());
         Messages.sendParameterStatus(channel, "TimeZone", "UTC");
         Messages.sendParameterStatus(channel, "integer_datetimes", "on");
     }

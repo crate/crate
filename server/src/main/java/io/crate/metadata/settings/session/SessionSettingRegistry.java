@@ -22,7 +22,10 @@
 package io.crate.metadata.settings.session;
 
 import static io.crate.metadata.SearchPath.createSearchPathFrom;
+import static io.crate.Constants.DEFAULT_DATE_STYLE;
 
+import java.util.ArrayList;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
@@ -46,6 +49,7 @@ public class SessionSettingRegistry {
     private static final String SERVER_VERSION_NUM = "server_version_num";
     private static final String SERVER_VERSION = "server_version";
     static final String ERROR_ON_UNKNOWN_OBJECT_KEY = "error_on_unknown_object_key";
+    static final String DATE_STYLE_KEY = "datestyle";
     static final SessionSetting<String> APPLICATION_NAME = new SessionSetting<String>(
         "application_name",
         inputs -> {},
@@ -56,6 +60,17 @@ public class SessionSettingRegistry {
         "Optional application name. Can be set by a client to identify the application which created the connection",
         DataTypes.STRING
     );
+    static final SessionSetting<String> DATE_STYLE = new SessionSetting<String>(
+        "datestyle",
+        inputs -> validateDateStyleFrom(objectsToStringArray(inputs)),
+        inputs -> DEFAULT_DATE_STYLE,
+        CoordinatorSessionSettings::setDateStyle,
+        SessionSettings::dateStyle,
+        () -> String.valueOf(DEFAULT_DATE_STYLE),
+        "Display format for date and time values.",
+        DataTypes.STRING
+    );
+
     private final Map<String, SessionSetting<?>> settings;
 
     @Inject
@@ -140,7 +155,8 @@ public class SessionSettingRegistry {
                      "Raises or suppresses ObjectKeyUnknownException when querying nonexistent keys to dynamic objects.",
                      DataTypes.BOOLEAN)
             )
-            .put(APPLICATION_NAME.name(), APPLICATION_NAME);
+            .put(APPLICATION_NAME.name(), APPLICATION_NAME)
+            .put(DATE_STYLE.name(), DATE_STYLE);
 
         for (var providers : sessionSettingProviders) {
             for (var setting : providers.sessionSettings()) {
@@ -155,10 +171,41 @@ public class SessionSettingRegistry {
     }
 
     private static String[] objectsToStringArray(Object[] objects) {
-        String[] strings = new String[objects.length];
+        ArrayList<String> argumentList = new ArrayList<>();
         for (int i = 0; i < objects.length; i++) {
-            strings[i] = DataTypes.STRING.implicitCast(objects[i]);
+            String str = DataTypes.STRING.implicitCast(objects[i]);
+            for (String element : str.split(",")) {
+                argumentList.add(element.trim());
+            }
         }
-        return strings;
+        return argumentList.toArray(String[]::new);
+    }
+
+    private static void validateDateStyleFrom(String... strings) {
+        String dateStyle;
+        for (String s : strings) {
+            dateStyle = s.toUpperCase(Locale.ENGLISH);
+            switch (dateStyle) {
+                // date format style
+                case "ISO":
+                    break;
+                case "SQL":
+                case "POSTGRES":
+                case "GERMAN":
+                    throw new IllegalArgumentException("Invalid value for parameter \"datestyle\": \"" + dateStyle + "\". Valid values include: [\"ISO\"].");
+                // date order style
+                case "MDY":
+                case "NONEURO":
+                case "NONEUROPEAN":
+                case "US":
+                case "DMY":
+                case "EURO":
+                case "EUROPEAN":
+                case "YMD":
+                    break;
+                default:
+                    throw new IllegalArgumentException("Invalid value for parameter \"datestyle\": \"" + dateStyle + "\". Valid values include: [\"ISO\"].");
+            }
+        }
     }
 }
