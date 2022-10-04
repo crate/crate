@@ -20,6 +20,7 @@
 package org.elasticsearch.common.breaker;
 
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.LongSupplier;
 
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.unit.ByteSizeValue;
@@ -32,20 +33,20 @@ import org.elasticsearch.indices.breaker.CircuitBreakerService;
 public class ChildMemoryCircuitBreaker implements CircuitBreaker {
 
     private final long memoryBytesLimit;
-    private final BreakerSettings settings;
     private final AtomicLong used;
     private final AtomicLong trippedCount;
     private final Logger logger;
     private final CircuitBreakerService parent;
     private final String name;
+    private final LongSupplier freeSupplier;
 
     /**
      * Create a circuit breaker that will break if the number of estimated
      * bytes grows above the limit. All estimations will be multiplied by
      * the given overheadConstant. This breaker starts with 0 bytes used.
      * @param settings settings to configure this breaker
+     * @param logger the logger instance to use
      * @param parent parent circuit breaker service to delegate tripped breakers to
-     * @param name the name of the breaker
      */
     public ChildMemoryCircuitBreaker(BreakerSettings settings, Logger logger, CircuitBreakerService parent) {
         this(settings, null, logger, parent);
@@ -57,17 +58,24 @@ public class ChildMemoryCircuitBreaker implements CircuitBreaker {
      * the given overheadConstant. Uses the given oldBreaker to initialize
      * the starting offset.
      * @param settings settings to configure this breaker
-     * @param parent parent circuit breaker service to delegate tripped breakers to
-     * @param name the name of the breaker
      * @param oldBreaker the previous circuit breaker to inherit the used value from (starting offset)
+     * @param logger the logger instance to use
+     * @param parent parent circuit breaker service to delegate tripped breakers to
      */
     public ChildMemoryCircuitBreaker(BreakerSettings settings,
                                      ChildMemoryCircuitBreaker oldBreaker,
                                      Logger logger,
                                      CircuitBreakerService parent) {
         this.name = settings.getName();
-        this.settings = settings;
         this.memoryBytesLimit = settings.getLimit();
+        if (memoryBytesLimit == -1) {
+            freeSupplier = () -> Long.MAX_VALUE;
+        } else if (memoryBytesLimit == 0) {
+            freeSupplier = () -> 0L;
+        } else {
+            freeSupplier = () -> getLimit() - getUsed();
+        }
+
         if (oldBreaker == null) {
             this.used = new AtomicLong(0);
             this.trippedCount = new AtomicLong(0);
@@ -77,7 +85,7 @@ public class ChildMemoryCircuitBreaker implements CircuitBreaker {
         }
         this.logger = logger;
         if (logger.isTraceEnabled()) {
-            logger.trace("creating ChildCircuitBreaker with settings {}", this.settings);
+            logger.trace("creating ChildCircuitBreaker with settings {}", settings);
         }
         this.parent = parent;
     }
@@ -231,5 +239,10 @@ public class ChildMemoryCircuitBreaker implements CircuitBreaker {
     @Override
     public String getName() {
         return this.name;
+    }
+
+    @Override
+    public long getFree() {
+        return freeSupplier.getAsLong();
     }
 }
