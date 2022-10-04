@@ -6,6 +6,9 @@ coverage:
         target: auto
         # Due to concurrency, retries, etc. coverage is flaky
         threshold: 3%
+    patch:
+      default:
+        informational: true
 
 ignore:
   - "benchmarks/"
