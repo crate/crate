@@ -79,7 +79,7 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
         final String repoName = "test";
 
         logger.info("-->  creating repository at {}", repo.toAbsolutePath());
-        execute("CREATE REPOSITORY test TYPE fs with (location=?, compress=false, chunk_size=?, cache_repository_data=false)",
+        execute("CREATE REPOSITORY test TYPE fs with (location=?, compress=false, chunk_size=?)",
                 new Object[]{repo.toAbsolutePath().toString(), randomIntBetween(100, 1000) + ByteSizeUnit.BYTES.getSuffix()});
 
         execute("create table doc.test1(x integer)");
@@ -208,7 +208,7 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
         final String repoName = "test";
         logger.info("-->  creating repository at {}", repo.toAbsolutePath());
 
-        execute("CREATE REPOSITORY test TYPE fs with (location=?, compress=false, chunk_size=?, cache_repository_data=false)",
+        execute("CREATE REPOSITORY test TYPE fs with (location=?, compress=false, chunk_size=?)",
                 new Object[]{repo.toAbsolutePath().toString(), randomIntBetween(100, 1000) + ByteSizeUnit.BYTES.getSuffix()});
 
         final String snapshotPrefix = "test-snap-";
@@ -311,8 +311,7 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
         Path repo = randomRepoPath();
         final String repoName = "test-repo";
         logger.info("-->  creating repository at {}", repo.toAbsolutePath());
-        execute("CREATE REPOSITORY \"test-repo\" TYPE fs WITH (location = ?, compress = false, cache_repository_data = false)",
-                new Object[] { repo.toAbsolutePath().toString() });
+        execute("CREATE REPOSITORY \"test-repo\" TYPE fs WITH (location = ?, compress = false)", new Object[] { repo.toAbsolutePath().toString() });
 
         final String snapshot = "test-snap";
 
@@ -373,7 +372,7 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
 
         logger.info("--> recreating repository to clear caches");
         execute("DROP REPOSITORY \"" + repoName + "\"");
-        execute("CREATE REPOSITORY \"" + repoName + "\" TYPE fs WITH (location = ?, compress = false, cache_repository_data = false)",
+        execute("CREATE REPOSITORY \"" + repoName + "\" TYPE fs WITH (location = ?, compress = false)",
                 new Object[] { repoPath.toAbsolutePath().toString() });
 
         final String indexName = "test-index";

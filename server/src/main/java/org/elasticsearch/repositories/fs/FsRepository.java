@@ -76,7 +76,7 @@ public class FsRepository extends BlobStoreRepository {
     }
 
     public static List<Setting<?>> optionalSettings() {
-        return List.of(COMPRESS_SETTING, CHUNK_SIZE_SETTING, READONLY_SETTING, CACHE_REPOSITORY_DATA);
+        return List.of(COMPRESS_SETTING, CHUNK_SIZE_SETTING, READONLY_SETTING);
     }
 
     private final Environment environment;

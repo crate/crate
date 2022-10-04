@@ -147,7 +147,6 @@ public class AzureRepository extends BlobStoreRepository {
                        Repository.READONLY_SETTING,
                        Repository.LOCATION_MODE_SETTING,
                        COMPRESS_SETTING,
-                       CACHE_REPOSITORY_DATA,
                        // client specific repository settings
                        Repository.MAX_RETRIES_SETTING,
                        Repository.ENDPOINT_SUFFIX_SETTING,

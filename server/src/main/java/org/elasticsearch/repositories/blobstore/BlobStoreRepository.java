@@ -41,7 +41,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -90,11 +89,9 @@ import org.elasticsearch.common.blobstore.fs.FsBlobContainer;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
-import org.elasticsearch.common.compress.CompressorFactory;
 import org.elasticsearch.common.compress.NotXContentException;
 import org.elasticsearch.common.io.Streams;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.common.lucene.store.InputStreamIndexInput;
@@ -106,7 +103,6 @@ import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.util.concurrent.AbstractRunnable;
 import org.elasticsearch.common.xcontent.LoggingDeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
@@ -243,15 +239,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
      */
     public static final Setting<Boolean> COMPRESS_SETTING = Setting.boolSetting("compress", true, Setting.Property.NodeScope);
 
-    /**
-     * Setting to disable caching of the latest repository data.
-     */
-    public static final Setting<Boolean> CACHE_REPOSITORY_DATA =
-        Setting.boolSetting("cache_repository_data", true, Setting.Property.Deprecated);
-
     private final boolean compress;
-
-    private final boolean cacheRepositoryData;
 
     private final RateLimiter snapshotRateLimiter;
 
@@ -329,7 +317,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
         restoreRateLimiter = getRateLimiter(metadata.settings(), "max_restore_bytes_per_sec", new ByteSizeValue(40, ByteSizeUnit.MB));
         readOnly = metadata.settings().getAsBoolean("readonly", false);
         this.basePath = basePath;
-        this.cacheRepositoryData = CACHE_REPOSITORY_DATA.get(metadata.settings());
+
         indexShardSnapshotFormat = new ChecksumBlobStoreFormat<>(SNAPSHOT_CODEC, SNAPSHOT_NAME_FORMAT,
             BlobStoreIndexShardSnapshot::fromXContent, namedXContentRegistry, compress);
         indexShardSnapshotsFormat = new ChecksumBlobStoreFormat<>(SNAPSHOT_INDEX_CODEC, SNAPSHOT_INDEX_NAME_FORMAT,
@@ -603,16 +591,13 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
      * @param rootBlobs         Blobs at the repository root
      * @return RepositoryData
      */
-    private RepositoryData safeRepositoryData(long repositoryStateId, Map<String, BlobMetadata> rootBlobs) throws IOException {
+    private RepositoryData safeRepositoryData(long repositoryStateId, Map<String, BlobMetadata> rootBlobs) {
         final long generation = latestGeneration(rootBlobs.keySet());
         final long genToLoad;
-        final CacheEntry cached;
         if (bestEffortConsistency) {
             genToLoad = latestKnownRepoGen.updateAndGet(known -> Math.max(known, repositoryStateId));
-            cached = null;
         } else {
             genToLoad = latestKnownRepoGen.get();
-            cached = latestKnownRepositoryData.get();
         }
         if (genToLoad > generation) {
             // It's always a possibility to not see the latest index-N in the listing here on an eventually consistent blob store, just
@@ -624,9 +609,6 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
         if (genToLoad != repositoryStateId) {
             throw new RepositoryException(metadata.name(), "concurrent modification of the index-N file, expected current generation [" +
                 repositoryStateId + "], actual current generation [" + genToLoad + "]");
-        }
-        if (cached != null && cached.generation() == genToLoad) {
-            return repositoryDataFromCachedEntry(cached);
         }
         return getRepositoryData(genToLoad);
     }
@@ -1203,9 +1185,6 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
     // and concurrent modifications.
     private final AtomicLong latestKnownRepoGen = new AtomicLong(RepositoryData.UNKNOWN_REPO_GEN);
 
-    // Best effort cache of the latest known repository data and its generation, cached serialized as compressed json
-    private final AtomicReference<CacheEntry> latestKnownRepositoryData = new AtomicReference<>();
-
     @Override
     public void getRepositoryData(ActionListener<RepositoryData> listener) {
         if (latestKnownRepoGen.get() == RepositoryData.CORRUPTED_REPO_GEN) {
@@ -1239,18 +1218,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                 genToLoad = latestKnownRepoGen.get();
             }
             try {
-                final CacheEntry cached = latestKnownRepositoryData.get();
-                final RepositoryData loaded;
-                // Caching is not used with #bestEffortConsistency see docs on #cacheRepositoryData for details
-                if (bestEffortConsistency == false && cached != null && cached.generation() == genToLoad) {
-                    loaded = repositoryDataFromCachedEntry(cached);
-                } else {
-                    loaded = getRepositoryData(genToLoad);
-                    // We can cache in the most recent version here without regard to the actual repository metadata version since we're
-                    // only caching the information that we just wrote and thus won't accidentally cache any information that isn't safe
-                    cacheRepositoryData(loaded, true);
-                }
-                listener.onResponse(loaded);
+                listener.onResponse(getRepositoryData(genToLoad));
                 return;
             } catch (RepositoryException e) {
                 // If the generation to load changed concurrently and we didn't just try loading the same generation before we retry
@@ -1274,60 +1242,6 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                 return;
             }
         }
-    }
-
-    /**
-     * Puts the given {@link RepositoryData} into the cache if it is of a newer generation and only if the repository is not using
-     * {@link #bestEffortConsistency}. When using {@link #bestEffortConsistency} the repository is using listing to find the latest
-     * {@code index-N} blob and there are no hard guarantees that a given repository generation won't be reused since an external
-     * modification can lead to moving from a higher {@code N} to a lower {@code N} value which mean we can't safely assume that a given
-     * generation will always contain the same {@link RepositoryData}.
-     *
-     * @param updated        RepositoryData to cache if newer than the cache contents
-     * @param writeShardGens whether to cache shard generation values
-     */
-    private void cacheRepositoryData(RepositoryData updated, boolean writeShardGens) {
-        if (cacheRepositoryData && bestEffortConsistency == false) {
-            final BytesReference serialized;
-            BytesStreamOutput out = new BytesStreamOutput();
-            try {
-                try (StreamOutput tmp = CompressorFactory.COMPRESSOR.streamOutput(out);
-                     XContentBuilder builder = XContentFactory.jsonBuilder(tmp)) {
-                    updated.snapshotsToXContent(builder, writeShardGens);
-                }
-                serialized = out.bytes();
-                final int len = serialized.length();
-                if (len > ByteSizeUnit.KB.toBytes(500)) {
-                    LOGGER.debug("Not caching repository data of size [{}] for repository [{}] because it is larger than 500KB in" +
-                        " serialized size", len, metadata.name());
-                    if (len > ByteSizeUnit.MB.toBytes(5)) {
-                        LOGGER.warn("Your repository metadata blob for repository [{}] is larger than 5MB. Consider moving to a fresh" +
-                            " repository for new snapshots or deleting unneeded snapshots from your repository to ensure stable" +
-                            " repository behavior going forward.", metadata.name());
-                    }
-                    // Set empty repository data to not waste heap for an outdated cached value
-                    latestKnownRepositoryData.set(null);
-                    return;
-                }
-            } catch (IOException e) {
-                assert false : new AssertionError("Impossible, no IO happens here", e);
-                LOGGER.warn("Failed to serialize repository data", e);
-                return;
-            }
-            latestKnownRepositoryData.updateAndGet(known -> {
-                if (known != null && known.generation() > updated.getGenId()) {
-                    return known;
-                }
-                return new CacheEntry(updated.getGenId(), serialized);
-            });
-        }
-    }
-
-    private RepositoryData repositoryDataFromCachedEntry(CacheEntry cacheEntry) throws IOException {
-        return RepositoryData.snapshotsFromXContent(
-            XContentType.JSON.xContent().createParser(NamedXContentRegistry.EMPTY,
-                LoggingDeprecationHandler.INSTANCE,
-                CompressorFactory.COMPRESSOR.streamInput(cacheEntry.data().streamInput())), cacheEntry.generation(), false);
     }
 
     private RepositoryException corruptedStateException(@Nullable Exception cause) {
@@ -1593,7 +1507,6 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                     @Override
                     public void clusterStateProcessed(String source, ClusterState oldState, ClusterState newState) {
                         final RepositoryData writtenRepositoryData = filteredRepositoryData.withGenId(newGen);
-                        cacheRepositoryData(writtenRepositoryData, writeShardGens);
                         threadPool.executor(ThreadPool.Names.SNAPSHOT).execute(ActionRunnable.supply(listener, () -> {
                             // Delete all now outdated index files up to 1000 blobs back from the new generation.
                             // If there are more than 1000 dangling index-N cleanup functionality on repo delete will take care of them.
@@ -2293,6 +2206,4 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
             this.blobsToDelete = blobsToDelete;
         }
     }
-
-    private record CacheEntry(long generation, BytesReference data){}
 }
