@@ -84,9 +84,12 @@ the explicit or implicit column list left-to-right.
 CrateDB will not fill any column not present in the explicit or implicit column
 list.
 
-If the :ref:`expression <gloss-expression>` for any column is not of the
-correct data type, CrateDB will attempt automatic :ref:`type conversion
-<data-types-casting>`.
+.. CAUTION::
+
+    If the values for any column are not of the correct data type, CrateDB
+    will attempt automatic :ref:`type conversion <data-types-casting>`,
+    but if the casting fails the row will be skipped and the ``INSERT``
+    will still proceed for the remaining rows.
 
 The optional ``RETURNING`` clause causes the ``INSERT`` statement to compute
 and return values from each row inserted (or updated, in the case of ``ON
