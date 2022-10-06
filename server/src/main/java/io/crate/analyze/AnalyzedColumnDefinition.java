@@ -62,7 +62,7 @@ public class AnalyzedColumnDefinition<T> {
         DataTypes.GEO_SHAPE.id()
     );
 
-    private static final Set<Integer> UNSUPPORTED_INDEX_TYPE_IDS = Set.of(
+    public static final Set<Integer> UNSUPPORTED_INDEX_TYPE_IDS = Set.of(
         ObjectType.ID,
         DataTypes.GEO_POINT.id(),
         DataTypes.GEO_SHAPE.id()

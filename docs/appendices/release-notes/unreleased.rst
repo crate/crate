@@ -71,3 +71,4 @@ Fixes
     SELECT * FROM test LIMIT null OFFSET 10
     SELECT * FROM test LIMIT ALL OFFSET 10
 
+- Fixed an issue that caused ``col IS NULL`` to match empty objects.
