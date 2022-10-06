@@ -50,8 +50,8 @@ Inserting a row::
 
 When inserting rows with the ``VALUES`` clause all data is validated in terms
 of data types compatibility and compliance with defined
-:ref:`_table_constraints`, and if there are any issues an error message is
-returned and no rows are inserted.
+:ref:`constraints <table_constraints>`, and if there are any issues an error
+message is returned and no rows are inserted.
 
 Inserting multiple rows at once (aka. bulk insert) can be done by defining
 multiple values for the ``INSERT`` statement::
