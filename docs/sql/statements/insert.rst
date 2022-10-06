@@ -90,7 +90,7 @@ will attempt automatic :ref:`type conversion <data-types-casting>`.
 .. NOTE::
 
     When inserting data from a query, the number of rows affected indicates
-    the number of rows for which the ``INSERT` succeeded.
+    the number of rows for which the ``INSERT`` succeeded.
     Please refer to :ref:`dml` for more details.
 
 The optional ``RETURNING`` clause causes the ``INSERT`` statement to compute
