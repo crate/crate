@@ -21,7 +21,6 @@
 
 package io.crate.expression.predicate;
 
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -50,6 +49,8 @@ import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataTypes;
+
+import static io.crate.expression.predicate.IsNullPredicate.isNullFuncToQuery;
 
 public class NotPredicate extends Scalar<Boolean, Boolean> {
 
@@ -193,7 +194,7 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
                 if (ref.columnPolicy() == ColumnPolicy.IGNORED) {
                     return null;
                 }
-                return IsNullPredicate.refExistsQuery(ref, context);
+                return IsNullPredicate.refExistsQuery(ref, context, true);
             }
         }
 
@@ -207,17 +208,13 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
         arg.accept(INNER_VISITOR, ctx);
         for (Reference reference : ctx.references()) {
             if (reference.isNullable()) {
-                builder.add(IsNullPredicate.refExistsQuery(reference, context), BooleanClause.Occur.MUST);
+                // we don't count empty arrays here as we count them below explicitly if 3Vl logic is needed.
+                builder.add(IsNullPredicate.refExistsQuery(reference, context, false), BooleanClause.Occur.MUST);
             }
         }
         if (ctx.hasStrictThreeValuedLogicFunction) {
-            Function isNullFunction = new Function(
-                IsNullPredicate.SIGNATURE,
-                Collections.singletonList(arg),
-                DataTypes.BOOLEAN
-            );
             builder.add(
-                Queries.not(LuceneQueryBuilder.genericFunctionFilter(isNullFunction, context)),
+                Queries.not(isNullFuncToQuery(arg, context)),
                 BooleanClause.Occur.MUST
             );
         }
