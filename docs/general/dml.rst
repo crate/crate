@@ -48,8 +48,10 @@ Inserting a row::
     ... );
     INSERT OK, 1 row affected (... sec)
 
-When inserting a single row, if an error occurs an error is returned as a
-response.
+When inserting rows with the ``VALUES`` clause all data is validated in terms
+of data types compatibility and compliance with defined
+:ref:`_table_constraints`, and if there are any issues an error message is
+returned and no rows are inserted.
 
 Inserting multiple rows at once (aka. bulk insert) can be done by defining
 multiple values for the ``INSERT`` statement::
@@ -72,10 +74,6 @@ multiple values for the ``INSERT`` statement::
     ...   10
     ... );
     INSERT OK, 2 rows affected (... sec)
-
-When inserting multiple rows, if an error occurs for some of these rows there
-is no error returned but instead the number of rows affected would be decreased
-by the number of rows that failed to be inserted.
 
 When inserting into tables containing :ref:`sql-create-table-generated-columns`
 or :ref:`sql-create-table-base-columns` having the
@@ -137,6 +135,13 @@ It is possible to insert data using a query instead of values. Column data
 types of source and target table can differ as long as the values are castable.
 This gives the opportunity to restructure the tables data, renaming a field,
 changing a field's data type or convert a normal table into a partitioned one.
+
+.. CAUTION::
+
+    When inserting data from a query, there is no error message returned when
+    rows failed to be inserted, they are instead skipped, and the number of
+    rows affected is decreased to reflect the actual number of rows for which
+    the operation succeeded. 
 
 Example of changing a field's data type, in this case, changing the
 ``position`` data type from ``integer`` to ``smallint``::
