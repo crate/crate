@@ -139,7 +139,7 @@ changing a field's data type or convert a normal table into a partitioned one.
 .. CAUTION::
 
     When inserting data from a query, there is no error message returned when
-    rows failed to be inserted, they are instead skipped, and the number of
+    rows fail to be inserted, they are instead skipped, and the number of
     rows affected is decreased to reflect the actual number of rows for which
     the operation succeeded. 
 
