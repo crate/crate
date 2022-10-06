@@ -220,13 +220,13 @@ public class ArrayUpperFunction extends Scalar<Integer, Object> {
 
             case GtOperator.NAME:
                 if (cmpVal == 0) {
-                    return IsNullPredicate.refExistsQuery(arrayRef, context);
+                    return IsNullPredicate.refExistsQuery(arrayRef, context, false);
                 }
                 return docValueCountOrGeneric(parent, context, arrayRef, valueCountIsMatch);
 
             case GteOperator.NAME:
                 if (cmpVal == 0) {
-                    return IsNullPredicate.refExistsQuery(arrayRef, context);
+                    return IsNullPredicate.refExistsQuery(arrayRef, context, false);
                 } else if (cmpVal == 1) {
                     return NumTermsPerDocQuery.forRef(arrayRef, valueCountIsMatch);
                 } else {

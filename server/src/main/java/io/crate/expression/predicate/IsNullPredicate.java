@@ -21,9 +21,11 @@
 
 package io.crate.expression.predicate;
 
+import static io.crate.lucene.LuceneQueryBuilder.genericFunctionFilter;
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 import static io.crate.types.TypeSignature.parseTypeSignature;
 
+import java.util.Collections;
 import java.util.List;
 
 import javax.annotation.Nullable;
@@ -45,7 +47,6 @@ import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.lucene.LuceneQueryBuilder.Context;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
@@ -118,25 +119,28 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
             if (!ref.isNullable()) {
                 return Queries.newMatchNoDocsQuery("`x IS NULL` on column that is NOT NULL can't match");
             }
-            Query refExistsQuery = refExistsQuery(ref, context);
-            if (refExistsQuery == null) {
-                return null;
-            }
-            if (ref.valueType() instanceof ArrayType<?> && refExistsQuery instanceof FieldExistsQuery) {
-                // For empty arrays there is nothing in the index and fieldsExists checks don't work
-                return new BooleanQuery.Builder()
-                    .add(Queries.not(refExistsQuery), Occur.MUST)
-                    .add(LuceneQueryBuilder.genericFunctionFilter(function, context), Occur.MUST)
-                    .build();
-            }
-            return Queries.not(refExistsQuery);
+            Query refExistsQuery = refExistsQuery(ref, context, true);
+            return refExistsQuery == null ? null : Queries.not(refExistsQuery);
         }
         return null;
     }
 
+
     @Nullable
-    public static Query refExistsQuery(Reference ref, Context context) {
+    public static Query refExistsQuery(Reference ref, Context context, boolean countEmptyArrays) {
         String field = ref.column().fqn();
+        if (ref.valueType() instanceof ArrayType<?>) {
+            if (countEmptyArrays) {
+                return new BooleanQuery.Builder()
+                    .setMinimumNumberShouldMatch(1)
+                    .add(new FieldExistsQuery(field), Occur.SHOULD)
+                    .add(Queries.not(isNullFuncToQuery(ref, context)), Occur.SHOULD)
+                    .build();
+            } else {
+                // An empty array has no dimension, array_length([]) = NULL, thus we don't count [] as existing.
+                return new FieldExistsQuery(field);
+            }
+        }
         StorageSupport<?> storageSupport = ref.valueType().storageSupport();
         if (storageSupport == null && ref instanceof DynamicReference) {
             return Queries.newMatchNoDocsQuery("DynamicReference/type without storageSupport does not exist");
@@ -150,18 +154,30 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
             if (fieldType != null && !fieldType.omitNorms()) {
                 return new FieldExistsQuery(field);
             }
-            if (ArrayType.unnest(ref.valueType()) instanceof ObjectType objType) {
+
+            if (ref.valueType() instanceof ObjectType objType) {
+                if (objType.innerTypes().isEmpty()) {
+                    return null;
+                }
                 BooleanQuery.Builder booleanQuery = new BooleanQuery.Builder();
                 for (var entry : objType.innerTypes().entrySet()) {
                     String childColumn = entry.getKey();
                     Reference childRef = context.getRef(ref.column().append(childColumn));
-                    Query refExistsQuery = refExistsQuery(childRef, context);
+                    Query refExistsQuery = refExistsQuery(childRef, context, true);
                     if (refExistsQuery == null) {
                         return null;
                     }
                     booleanQuery.add(refExistsQuery, Occur.SHOULD);
                 }
-                return new ConstantScoreQuery(booleanQuery.build());
+                // Even if a child columns exist, an object can have empty values, we have to run generic function.
+                // Example of such object:
+                // CREATE TABLE t (obj OBJECT as (x int));
+                // INSERT INTO t (obj) VALUES ({});
+                return new BooleanQuery.Builder()
+                    .setMinimumNumberShouldMatch(1)
+                    .add(new ConstantScoreQuery(booleanQuery.build()), Occur.SHOULD)
+                    .add(Queries.not(isNullFuncToQuery(ref, context)), Occur.SHOULD)
+                    .build();
             }
             if (fieldType == null || fieldType.indexOptions() == IndexOptions.NONE && !fieldType.stored()) {
                 return null;
@@ -172,4 +188,14 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
             return null;
         }
     }
+
+    static Query isNullFuncToQuery(Symbol arg, Context context) {
+        Function isNullFunction = new Function(
+            IsNullPredicate.SIGNATURE,
+            Collections.singletonList(arg),
+            DataTypes.BOOLEAN
+        );
+        return genericFunctionFilter(isNullFunction, context);
+    }
+
 }
