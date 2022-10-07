@@ -21,7 +21,7 @@
 
 package io.crate.expression.operator.any;
 
-import static io.crate.testing.SymbolMatchers.isLiteral;
+import static io.crate.testing.Asserts.isLiteral;
 
 import org.junit.Test;
 
@@ -40,9 +40,9 @@ public class AnyEqOperatorTest extends ScalarTestCase {
 
     @Test
     public void testEvaluateNull() throws Exception {
-        assertEvaluate("null = ANY(null)", null);
-        assertEvaluate("42 = ANY(null)", null);
-        assertEvaluate("null = ANY([1])", null);
+        assertEvaluateNull("null = ANY(null)");
+        assertEvaluateNull("42 = ANY(null)");
+        assertEvaluateNull("null = ANY([1])");
     }
 
     @Test

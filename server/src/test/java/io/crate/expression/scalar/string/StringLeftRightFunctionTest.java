@@ -31,8 +31,8 @@ public class StringLeftRightFunctionTest extends ScalarTestCase {
     @Test
     public void testEvaluateLeftFunc() throws Exception {
         Literal<String> value = Literal.of("crate.io");
-        assertEvaluate("left(name, 10)", null, Literal.of((String) null));
-        assertEvaluate("left(name, null)", null, value);
+        assertEvaluateNull("left(name, 10)", Literal.of((String) null));
+        assertEvaluateNull("left(name, null)", value);
         assertEvaluate("left(name, 0)", "", value);
         assertEvaluate("left(name, 100)", "", Literal.of(""));
         assertEvaluate("left(name, 5)", "crate", value);
@@ -44,8 +44,8 @@ public class StringLeftRightFunctionTest extends ScalarTestCase {
     @Test
     public void testEvaluateRightFunc() throws Exception {
         Literal<String> value = Literal.of("crate.io");
-        assertEvaluate("right(name, 10)", null, Literal.of((String) null));
-        assertEvaluate("right(name, null)", null, value);
+        assertEvaluateNull("right(name, 10)", Literal.of((String) null));
+        assertEvaluateNull("right(name, null)", value);
         assertEvaluate("right(name, 0)", "", value);
         assertEvaluate("right(name, 100)", "", Literal.of(""));
         assertEvaluate("right(name, 2)","io", value);

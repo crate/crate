@@ -21,8 +21,7 @@
 
 package io.crate.analyze;
 
-import static io.crate.testing.SymbolMatchers.isLiteral;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import java.util.Map;
 
@@ -66,73 +65,70 @@ public class ScalarsAndRefsToTrueTest extends ESTestCase {
     }
 
     @Test
-    public void testFalseAndMatchFunction() throws Exception {
+    public void testFalseAndMatchFunction() {
         Symbol symbol = convertFromSQL("false and match (table_name, 'jalla')");
-        assertThat(symbol, isLiteral(false));
+        assertThat(symbol).isLiteral(false);
     }
 
     @Test
-    public void testTrueAndMatchFunction() throws Exception {
+    public void testTrueAndMatchFunction() {
         Symbol symbol = convertFromSQL("true and match (table_name, 'jalla')");
-        assertThat(symbol, isLiteral(true));
+        assertThat(symbol).isLiteral(true);
     }
 
     @Test
-    public void testComplexNestedDifferentMethods() throws Exception {
+    public void testComplexNestedDifferentMethods() {
         Symbol symbol = convertFromSQL(
             "number_of_shards = 1 or (number_of_replicas = 3 and schema_name = 'sys') " +
             "or not (number_of_shards = 2) and substr(table_name, 1, 1) = '1'");
-        assertThat(symbol, isLiteral(true));
+        assertThat(symbol).isLiteral(true);
     }
 
     @Test
-    public void testIsNull() throws Exception {
+    public void testIsNull() {
         Symbol symbol = convertFromSQL("clustered_by is null");
-        assertThat(symbol, isLiteral(true));
+        assertThat(symbol).isLiteral(true);
     }
 
     @Test
-    public void testNot_NullAndSubstr() throws Exception {
+    public void testNot_NullAndSubstr() {
         Symbol symbol = convertFromSQL("not (null and substr(table_name, 1, 1) = '1')");
-        assertThat(symbol, isLiteral(null));
+        assertThat(symbol).isLiteral(null);
     }
 
     @Test
-    public void testNot_NullWithInput() throws Exception {
-        /**
-         * regression test
-         */
+    public void testNot_NullWithInput() {
         Symbol symbol = convertFromSQL("NOT 30 >= NULL");
-        assertThat(symbol, isLiteral(null));
+        assertThat(symbol).isLiteral(null);
 
         symbol = convertFromSQL("NOT NULL");
-        assertThat(symbol, isLiteral(null));
+        assertThat(symbol).isLiteral(null);
     }
 
     @Test
-    public void testNot_FalseAndSubstr() throws Exception {
+    public void testNot_FalseAndSubstr() {
         Symbol symbol = convertFromSQL("not (false and substr(table_name, 1, 1) = '1')");
-        assertThat(symbol, isLiteral(true));
+        assertThat(symbol).isLiteral(true);
     }
 
     @Test
-    public void testNotPredicate() throws Exception {
+    public void testNotPredicate() {
         Symbol symbol = convertFromSQL(("not (clustered_by = 'foo')"));
-        assertThat(symbol, isLiteral(true));
+        assertThat(symbol).isLiteral(true);
     }
 
     @Test
-    public void testComplexNestedDifferentMethodsEvaluatesToFalse() throws Exception {
+    public void testComplexNestedDifferentMethodsEvaluatesToFalse() {
         Symbol symbol = convertFromSQL(
             "(number_of_shards = 1 or number_of_replicas = 3 and schema_name = 'sys' " +
             "or not (number_of_shards = 2)) and substr(table_name, 1, 1) = '1' and false");
-        assertThat(symbol, isLiteral(false));
+        assertThat(symbol).isLiteral(false);
     }
 
     @Test
-    public void testNullAndMatchFunction() throws Exception {
+    public void testNullAndMatchFunction() {
         Symbol symbol = convertFromSQL("null and match (table_name, 'jalla')");
-        assertThat(symbol, isLiteral(null, DataTypes.BOOLEAN));
+        assertThat(symbol).isLiteral(null, DataTypes.BOOLEAN);
     }
 
 }

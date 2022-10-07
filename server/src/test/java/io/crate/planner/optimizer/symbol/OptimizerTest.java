@@ -21,7 +21,9 @@
 
 package io.crate.planner.optimizer.symbol;
 
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
+import static io.crate.testing.Asserts.isFunction;
+import static io.crate.testing.Asserts.isLiteral;
 
 import org.junit.Test;
 
@@ -29,7 +31,6 @@ import io.crate.expression.operator.GtOperator;
 import io.crate.expression.symbol.Symbol;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import io.crate.testing.SymbolMatchers;
 
 public class OptimizerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -39,11 +40,7 @@ public class OptimizerTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table tbl (x int)")
             .build();
         Symbol symbol = Optimizer.optimizeCasts(e.asSymbol("x like 10"), e.getPlannerContext(clusterService.state()));
-        assertThat(symbol, SymbolMatchers.isFunction(
-            "op_like",
-            SymbolMatchers.isFunction("_cast"),
-            SymbolMatchers.isLiteral("10")
-        ));
+        assertThat(symbol).isFunction("op_like", isFunction("_cast"), isLiteral("10"));
     }
 
     @Test
@@ -54,10 +51,6 @@ public class OptimizerTest extends CrateDummyClusterServiceUnitTest {
 
         Symbol symbol = Optimizer.optimizeCasts(e.asSymbol("strCol::bigint > 3"), e.getPlannerContext(clusterService.state()));
 
-        assertThat(symbol, SymbolMatchers.isFunction(
-            GtOperator.NAME,
-            SymbolMatchers.isFunction("cast"),
-            SymbolMatchers.isLiteral(3L)
-        ));
+        assertThat(symbol).isFunction(GtOperator.NAME, isFunction("cast"), isLiteral(3L));
     }
 }

@@ -21,7 +21,7 @@
 
 package io.crate.expression.scalar.postgres;
 
-import static io.crate.testing.SymbolMatchers.isLiteral;
+import static io.crate.testing.Asserts.isLiteral;
 
 import org.junit.Test;
 
@@ -31,12 +31,12 @@ public class PgGetExprFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_pg_get_expr() throws Exception {
-        assertEvaluate("pg_get_expr('whatever', 1)", null);
+        assertEvaluateNull("pg_get_expr('whatever', 1)");
     }
 
     @Test
     public void test_pg_get_expr_pretty() throws Exception {
-        assertEvaluate("pg_get_expr('whatever', 1, false)", null);
+        assertEvaluateNull("pg_get_expr('whatever', 1, false)");
     }
 
     @Test

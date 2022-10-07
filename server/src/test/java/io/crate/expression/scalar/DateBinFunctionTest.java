@@ -22,14 +22,14 @@
 package io.crate.expression.scalar;
 
 import static io.crate.testing.Asserts.assertThrowsMatches;
-import static org.hamcrest.core.IsNot.not;
+import static io.crate.testing.Asserts.isNotSameInstance;
+import static io.crate.testing.Asserts.isSameInstance;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Month;
 import java.time.ZoneOffset;
 
-import org.hamcrest.core.IsSame;
 import org.junit.Test;
 
 public class DateBinFunctionTest extends ScalarTestCase {
@@ -39,19 +39,19 @@ public class DateBinFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_interval_is_value_compile_gets_new_instance() {
-        assertCompile("date_bin('1 day' :: INTERVAL, timestamp, timestamp)", (s) -> not(IsSame.sameInstance(s)));
+        assertCompile("date_bin('1 day' :: INTERVAL, timestamp, timestamp)", isNotSameInstance());
     }
 
     @Test
     public void compile_on_null_interval_gets_same_instance() {
-        assertCompile("date_bin(null, timestamp, timestamp)", (s) -> IsSame.sameInstance(s));
+        assertCompile("date_bin(null, timestamp, timestamp)", isSameInstance());
     }
 
     @Test
     public void test_at_least_one_arg_is_null_returns_null() {
-        assertEvaluate("date_bin(null, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)", null);
-        assertEvaluate("date_bin('1 day' :: INTERVAL , null, CURRENT_TIMESTAMP)", null);
-        assertEvaluate("date_bin('1 day' :: INTERVAL , CURRENT_TIMESTAMP, null)", null);
+        assertEvaluateNull("date_bin(null, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)");
+        assertEvaluateNull("date_bin('1 day' :: INTERVAL , null, CURRENT_TIMESTAMP)");
+        assertEvaluateNull("date_bin('1 day' :: INTERVAL , CURRENT_TIMESTAMP, null)");
     }
 
     @Test

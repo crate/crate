@@ -21,9 +21,9 @@
 
 package io.crate.expression.scalar;
 
-import static io.crate.testing.SymbolMatchers.isLiteral;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.isLiteral;
+import static io.crate.testing.Asserts.isNull;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 
@@ -43,7 +43,7 @@ public class ConcatFunctionTest extends ScalarTestCase {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Unknown function: concat('foo', _array(1))," +
                                         " no overload found for matching argument types: (text, integer_array).");
-        assertNormalize("concat('foo', [1])", null);
+        assertNormalize("concat('foo', [1])", isNull());
     }
 
 
@@ -92,7 +92,7 @@ public class ConcatFunctionTest extends ScalarTestCase {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Unknown function: concat(_array(1, 2), _array(_array(1, 2)))," +
                                         " no overload found for matching argument types: (integer_array, integer_array_array).");
-        assertNormalize("concat([1, 2], [[1, 2]])", null);
+        assertNormalize("concat([1, 2], [[1, 2]])", isNull());
     }
 
     @Test
@@ -100,7 +100,7 @@ public class ConcatFunctionTest extends ScalarTestCase {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage(
             "One of the arguments of the `concat` function can be of undefined inner type, but not both");
-        assertNormalize("concat([], [])", null);
+        assertNormalize("concat([], [])", isNull());
     }
 
     @Test
@@ -111,6 +111,6 @@ public class ConcatFunctionTest extends ScalarTestCase {
     @Test
     public void test_two_string_arguments_result_in_special_scalar() {
         var func = getFunction(ConcatFunction.NAME, List.of(DataTypes.STRING, DataTypes.STRING));
-        assertThat(func, instanceOf(ConcatFunction.StringConcatFunction.class));
+        assertThat(func).isExactlyInstanceOf(ConcatFunction.StringConcatFunction.class);
     }
 }

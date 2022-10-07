@@ -21,7 +21,7 @@
 
 package io.crate.expression.scalar.string;
 
-import static io.crate.testing.SymbolMatchers.isLiteral;
+import static io.crate.testing.Asserts.isLiteral;
 
 import org.junit.Test;
 
@@ -45,7 +45,7 @@ public class StringCaseFunctionTest extends ScalarTestCase {
 
     @Test
     public void testEvaluateLowerFuncWhenColIsNull() throws Exception {
-        assertEvaluate("lower(name)", null, Literal.of(DataTypes.STRING, null));
+        assertEvaluateNull("lower(name)", Literal.of(DataTypes.STRING, null));
     }
 
     @Test
@@ -62,6 +62,6 @@ public class StringCaseFunctionTest extends ScalarTestCase {
 
     @Test
     public void testEvaluateUpperFuncWhenColIsNull() throws Exception {
-        assertEvaluate("upper(name)", null, Literal.of(DataTypes.STRING, null));
+        assertEvaluateNull("upper(name)", Literal.of(DataTypes.STRING, null));
     }
 }

@@ -29,7 +29,7 @@ public class ArrayToStringFunctionTest extends ScalarTestCase {
     public void testZeroArguments() {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Unknown function: array_to_string()");
-        assertEvaluate("array_to_string()", null);
+        assertEvaluateNull("array_to_string()");
     }
 
     @Test
@@ -37,12 +37,12 @@ public class ArrayToStringFunctionTest extends ScalarTestCase {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Unknown function: array_to_string(_array(1, 2))," +
                                         " no overload found for matching argument types: (integer_array).");
-        assertEvaluate("array_to_string([1, 2])", null);
+        assertEvaluateNull("array_to_string([1, 2])");
     }
 
     @Test
     public void test_null_array_results_in_null() {
-        assertEvaluate("array_to_string(null::text[], ',')", null);
+        assertEvaluateNull("array_to_string(null::text[], ',')");
     }
 
     @Test
@@ -57,13 +57,13 @@ public class ArrayToStringFunctionTest extends ScalarTestCase {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage(
             "The inner type of the array argument `array_to_string` function cannot be undefined");
-        assertEvaluate("array_to_string(null, ',')", null);
+        assertEvaluateNull("array_to_string(null, ',')");
     }
 
     @Test
     public void testNullSeparator() {
-        assertEvaluate("array_to_string([1, 2, 3], null)", null);
-        assertEvaluate("array_to_string([1, null, 3], null, 2)", null);
+        assertEvaluateNull("array_to_string([1, 2, 3], null)");
+        assertEvaluateNull("array_to_string([1, null, 3], null, 2)");
     }
 
     @Test

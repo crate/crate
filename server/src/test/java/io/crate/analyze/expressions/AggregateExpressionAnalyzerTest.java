@@ -21,12 +21,11 @@
 
 package io.crate.analyze.expressions;
 
-import static io.crate.testing.SymbolMatchers.isFunction;
-import static io.crate.testing.SymbolMatchers.isLiteral;
-import static io.crate.testing.SymbolMatchers.isReference;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
+import static io.crate.testing.Asserts.exactlyInstanceOf;
+import static io.crate.testing.Asserts.isLiteral;
+import static io.crate.testing.Asserts.isReference;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -50,54 +49,55 @@ public class AggregateExpressionAnalyzerTest extends CrateDummyClusterServiceUni
     @Test
     public void test_aggregate_function_with_filter_expression_that_contains_fields() {
         var symbol = e.asSymbol("count(*) filter (where t.x > 1)");
-        assertThat(symbol, instanceOf(Function.class));
+        assertThat(symbol).isExactlyInstanceOf(Function.class);
 
         var function = (Function) symbol;
-        assertThat(function.filter(), isFunction("op_>", isReference("x"), isLiteral(1)));
+        assertThat(function.filter()).isFunction("op_>", isReference("x"), isLiteral(1));
     }
 
     @Test
     public void test_distinct_aggregate_function_with_filter_expression() {
         var symbol = e.asSymbol("avg(distinct t.x) filter (where t.x < 1)");
-        assertThat(symbol, instanceOf(Function.class));
+        assertThat(symbol).isExactlyInstanceOf(Function.class);
 
         var outerFunc = (Function) symbol;
-        assertThat(outerFunc.arguments().size(), is(1));
+        assertThat(outerFunc.arguments()).hasSize(1);
         var innerFunc = (Function) outerFunc.arguments().get(0);
-        assertThat(innerFunc.filter(), isFunction("op_<", isReference("x"), isLiteral(1)));
+        assertThat(innerFunc.filter()).isFunction("op_<", isReference("x"), isLiteral(1));
     }
 
     @Test
     public void test_filter_expression_is_normalized_if_possible() {
         var symbol = e.asSymbol("count(*) filter (where 1 = 1)");
-        assertThat(symbol, instanceOf(Function.class));
+        assertThat(symbol).isExactlyInstanceOf(Function.class);
 
         var function = (Function) symbol;
-        assertThat(function.filter(), isLiteral(true));
+        assertThat(function.filter()).isLiteral(true);
     }
 
     @Test
     public void test_aggregate_function_with_filter_expression_that_contains_subquery() {
         var symbol = e.asSymbol("count(*) filter (where 1 in (select x from t))");
-        assertThat(symbol, instanceOf(Function.class));
+        assertThat(symbol).isExactlyInstanceOf(Function.class);
 
         var function = (Function) symbol;
-        assertThat(
-            function.filter(),
-            isFunction("any_=", isLiteral(1), instanceOf(SelectSymbol.class)));
+        assertThat(function.filter())
+            .isFunction("any_=", isLiteral(1), exactlyInstanceOf(SelectSymbol.class));
     }
 
     @Test
     public void test_filter_expression_cannot_be_used_with_scalar_function() {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Only aggregate functions allow a FILTER clause");
-        e.asSymbol("ln(t.x) filter (where true)");
+        assertThatThrownBy(() -> e.asSymbol("ln(t.x) filter (where true)"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("Only aggregate functions allow a FILTER clause");
+
     }
 
     @Test
     public void test_filter_expression_cannot_be_used_with_table_function() {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Only aggregate functions allow a FILTER clause");
-        e.asSymbol("generate_series(1, 2) filter (where true)");
+        assertThatThrownBy(() -> e.asSymbol("generate_series(1, 2) filter (where true)"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("Only aggregate functions allow a FILTER clause");
+
     }
 }

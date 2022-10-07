@@ -24,6 +24,7 @@ package io.crate.metadata.functions;
 import static io.crate.metadata.FunctionType.SCALAR;
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariableOfAnyType;
+import static io.crate.testing.Asserts.assertThat;
 import static io.crate.types.TypeSignature.parseTypeSignature;
 import static java.lang.String.format;
 
@@ -34,7 +35,6 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
-import org.assertj.core.api.Assertions;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
@@ -590,22 +590,22 @@ public class SignatureBinderTest extends ESTestCase {
         }
 
         public void succeeds() {
-            Assertions.assertThat(bindVariables()).isNotNull();
+            assertThat(bindVariables()).isNotNull();
         }
 
         public void fails() {
-            Assertions.assertThat(bindVariables()).isNull();
+            assertThat(bindVariables()).isNull();
         }
 
         public void produces(BoundVariables expected) {
             BoundVariables actual = bindVariables();
-            Assertions.assertThat(actual).isEqualTo(expected);
+            assertThat(actual).isEqualTo(expected);
         }
 
         @Nullable
         private BoundVariables bindVariables() {
             var coercionType = allowCoercion ? SignatureBinder.CoercionType.FULL : SignatureBinder.CoercionType.NONE;
-            Assertions.assertThat(argumentTypes).isNotNull();
+            assertThat(argumentTypes).isNotNull();
             SignatureBinder signatureBinder = new SignatureBinder(function, coercionType);
             return signatureBinder.bindVariables(argumentTypes);
         }

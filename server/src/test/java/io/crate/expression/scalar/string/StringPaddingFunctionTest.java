@@ -32,18 +32,18 @@ public class StringPaddingFunctionTest extends ScalarTestCase {
     public void test_lpad_parameter_len_too_big() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("len argument exceeds predefined limit of 50000");
-        assertEvaluate("lpad('yes', 2000000, 'yes')", null);
-        assertEvaluate("lpad('yes', a, 'yes')", null, Literal.of(2000000));
+        assertEvaluateNull("lpad('yes', 2000000, 'yes')");
+        assertEvaluateNull("lpad('yes', a, 'yes')",Literal.of(2000000));
     }
 
     @Test
     public void test_lpad_parameters_are_null() throws Exception {
-        assertEvaluate("lpad(null, 5, '')", null);
-        assertEvaluate("lpad(name, 5, '')", null, Literal.of((String) null));
-        assertEvaluate("lpad('', null, '')", null);
-        assertEvaluate("lpad('', a, '')", null, Literal.of((Integer) null));
-        assertEvaluate("lpad('', 5, null)", null);
-        assertEvaluate("lpad('', 5, name)", null, Literal.of((String) null));
+        assertEvaluateNull("lpad(null, 5, '')");
+        assertEvaluateNull("lpad(name, 5, '')", Literal.of((String) null));
+        assertEvaluateNull("lpad('', null, '')");
+        assertEvaluateNull("lpad('', a, '')", Literal.of((Integer) null));
+        assertEvaluateNull("lpad('', 5, null)");
+        assertEvaluateNull("lpad('', 5, name)", Literal.of((String) null));
     }
 
     @Test
@@ -98,18 +98,18 @@ public class StringPaddingFunctionTest extends ScalarTestCase {
     public void test_rpad_parameter_len_too_big() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("len argument exceeds predefined limit of 50000");
-        assertEvaluate("rpad('yes', 2000000, 'yes')", null);
-        assertEvaluate("rpad('yes', a, 'yes')", null, Literal.of(2000000));
+        assertEvaluateNull("rpad('yes', 2000000, 'yes')");
+        assertEvaluate("rpad('yes', a, 'yes')", Literal.of(2000000));
     }
 
     @Test
     public void test_rpad_parameters_are_null() throws Exception {
-        assertEvaluate("rpad(null, 5, '')", null);
-        assertEvaluate("rpad('', null, '')", null);
-        assertEvaluate("rpad('', 5, null)", null);
-        assertEvaluate("rpad(name, 5, '')", null, Literal.of((String) null));
-        assertEvaluate("rpad('', a, '')", null, Literal.of((Integer) null));
-        assertEvaluate("rpad('', 5, name)", null, Literal.of((String) null));
+        assertEvaluateNull("rpad(null, 5, '')");
+        assertEvaluateNull("rpad('', null, '')");
+        assertEvaluateNull("rpad('', 5, null)");
+        assertEvaluateNull("rpad(name, 5, '')", Literal.of((String) null));
+        assertEvaluateNull("rpad('', a, '')", Literal.of((Integer) null));
+        assertEvaluateNull("rpad('', 5, name)", Literal.of((String) null));
     }
 
     @Test

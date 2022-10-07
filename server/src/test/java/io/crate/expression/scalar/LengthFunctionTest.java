@@ -21,7 +21,7 @@
 
 package io.crate.expression.scalar;
 
-import static io.crate.testing.SymbolMatchers.isFunction;
+import static io.crate.testing.Asserts.isFunction;
 
 import org.junit.Test;
 
@@ -53,20 +53,20 @@ public class LengthFunctionTest extends ScalarTestCase {
 
     @Test
     public void testOctetLengthEvaluateOnNull() throws Exception {
-        assertEvaluate("octet_length(null)", null);
-        assertEvaluate("octet_length(name)", null, Literal.of(DataTypes.STRING, null));
+        assertEvaluateNull("octet_length(null)");
+        assertEvaluateNull("octet_length(name)", Literal.of(DataTypes.STRING, null));
     }
 
     @Test
     public void testBitLengthEvaluateOnNull() throws Exception {
-        assertEvaluate("bit_length(null)", null);
-        assertEvaluate("bit_length(name)", null, Literal.of(DataTypes.STRING, null));
+        assertEvaluateNull("bit_length(null)");
+        assertEvaluateNull("bit_length(name)", Literal.of(DataTypes.STRING, null));
     }
 
     @Test
     public void testCharLengthEvaluateOnNull() throws Exception {
-        assertEvaluate("char_length(null)", null);
-        assertEvaluate("char_length(name)", null, Literal.of(DataTypes.STRING, null));
+        assertEvaluateNull("char_length(null)");
+        assertEvaluateNull("char_length(name)", Literal.of(DataTypes.STRING, null));
     }
 
     @Test
@@ -86,6 +86,6 @@ public class LengthFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_length_returns_null_for_null_input() {
-        assertEvaluate("length(null)", null);
+        assertEvaluateNull("length(null)");
     }
 }

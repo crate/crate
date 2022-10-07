@@ -31,7 +31,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nullable;
 
-import org.assertj.core.api.Assertions;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -124,7 +123,7 @@ public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
 
         ExplainPlan plan = e.plan("EXPLAIN SELECT * FROM ts1 WHERE ts = 1662740986992");
         var printedPlan = ExplainPlan.printLogicalPlan((LogicalPlan) plan.subPlan(), e.getPlannerContext(clusterService.state()));
-        Assertions.assertThat(printedPlan).isEqualTo(
+        assertThat(printedPlan).isEqualTo(
             "Collect[doc.ts1 | [ts] | (ts = _cast(1662740986992::bigint, 'timestamp without time zone'))]"
         );
     }

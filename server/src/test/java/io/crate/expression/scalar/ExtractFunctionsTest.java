@@ -41,10 +41,7 @@ public class ExtractFunctionsTest extends ScalarTestCase {
 
     @Test
     public void testYayNullValue() {
-        assertEvaluate(
-            "extract(day from timestamp_tz)",
-            null,
-            Literal.of(DataTypes.TIMESTAMPZ, null));
+        assertEvaluateNull("extract(day from timestamp_tz)", Literal.of(DataTypes.TIMESTAMPZ, null));
     }
 
     @Test

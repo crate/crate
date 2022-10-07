@@ -21,14 +21,12 @@
 
 package io.crate.planner;
 
-import static io.crate.testing.SymbolMatchers.isLiteral;
+import static io.crate.testing.Asserts.assertThat;
+import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.TestingHelpers.isDocKey;
 import static java.util.Collections.singletonList;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -91,75 +89,76 @@ public class WhereClauseOptimizerTest extends CrateDummyClusterServiceUnitTest {
     public void testFilterOn_IdDoesNotProduceDocKeysIfTableHasOnlyAClusteredByDefinition() {
         WhereClauseOptimizer.DetailedQuery query = optimize(
             "select * from clustered_by_only where _id = '1'");
-        assertThat(query.docKeys().isPresent(), is(false));
+        assertThat(query.docKeys().isPresent()).isFalse();
     }
 
     @Test
     public void testFilterOn_IdOnPartitionedTableDoesNotResultInDocKeys() {
         WhereClauseOptimizer.DetailedQuery query = optimize(
             "select * from parted where _id = '1'");
-        assertThat(query.docKeys().isPresent(), is(false));
+        assertThat(query.docKeys().isPresent()).isFalse();
     }
 
     @Test
     public void testFilterOnPartitionColumnAndPrimaryKeyResultsInDocKeys() {
         WhereClauseOptimizer.DetailedQuery query = optimize(
             "select * from parted_pk where id = 1 and date = 1395874800000");
-        assertThat(query.docKeys().toString(), is("Optional[DocKeys{1, 1395874800000::bigint}]"));
-        assertThat(query.partitions(), contains(contains(isLiteral(1395874800000L))));
+        assertThat(query.docKeys()).hasToString("Optional[DocKeys{1, 1395874800000::bigint}]");
+        assertThat(query.partitions()).hasSize(1);
+        assertThat(query.partitions().get(0)).satisfiesExactly(isLiteral(1395874800000L));
     }
 
     @Test
     public void testClusteredByValueContainsComma() throws Exception {
         WhereClauseOptimizer.DetailedQuery query = optimize(
             "select * from bystring where name = 'a,b,c'");
-        assertThat(query.clusteredBy(), contains(isLiteral("a,b,c")));
-        assertThat(query.docKeys().get().size(), is(1));
-        assertThat(query.docKeys().get().getOnlyKey(), isDocKey("a,b,c"));
+        assertThat(query.clusteredBy()).satisfiesExactly(isLiteral("a,b,c"));
+        assertThat(query.docKeys().get()).hasSize(1);
+        Assert.assertThat(query.docKeys().get().getOnlyKey(), isDocKey("a,b,c"));
     }
 
     @Test
     public void testEmptyClusteredByValue() throws Exception {
         WhereClauseOptimizer.DetailedQuery query = optimize("select * from bystring where name = ''");
-        assertThat(query.clusteredBy(), contains(isLiteral("")));
-        assertThat(query.docKeys().get().getOnlyKey(), isDocKey(""));
+        assertThat(query.clusteredBy()).satisfiesExactly(isLiteral(""));
+        Assert.assertThat(query.docKeys().get().getOnlyKey(), isDocKey(""));
     }
 
     @Test
     public void testFilterOnClusteredByColumnDoesNotResultInDocKeysSimpleEq() {
         WhereClauseOptimizer.DetailedQuery query = optimize(
             "select * from clustered_by_only where x = 10");
-        assertThat(query.clusteredBy(), contains(isLiteral(10)));
-        assertThat(query.docKeys().isPresent(), is(false));
+        assertThat(query.clusteredBy()).satisfiesExactly(isLiteral(10));
+        assertThat(query.docKeys().isPresent()).isFalse();
     }
 
     @Test
     public void testFilterOnClusteredByColumnDoesNotResultInDocKeysSimpleEqOr() {
         WhereClauseOptimizer.DetailedQuery query = optimize(
             "select * from clustered_by_only where x = 10 or x = 20");
-        assertThat(query.clusteredBy(), containsInAnyOrder(isLiteral(10), isLiteral(20)));
-        assertThat(query.docKeys().isPresent(), is(false));
+        assertThat(query.clusteredBy()).satisfiesExactlyInAnyOrder(isLiteral(10), isLiteral(20));
+        assertThat(query.docKeys().isPresent()).isFalse();
     }
 
     @Test
     public void testFilterOnClusteredByColumnDoesNotResultInDocKeysIn() {
         WhereClauseOptimizer.DetailedQuery query = optimize(
             "select * from clustered_by_only where x in (10, 20)");
-        assertThat(query.clusteredBy(), containsInAnyOrder(isLiteral(10), isLiteral(20)));
-        assertThat(query.docKeys().isPresent(), is(false));
+        assertThat(query.clusteredBy()).satisfiesExactlyInAnyOrder(isLiteral(10), isLiteral(20));
+        assertThat(query.docKeys().isPresent()).isFalse();
     }
 
     @Test
     public void testFilterOnPKAndVersionResultsInDocKeys() {
         WhereClauseOptimizer.DetailedQuery query = optimize(
             "select * from bystring where name = 'foo' and _version = 2");
-        assertThat(query.docKeys().toString(), is("Optional[DocKeys{'foo', 2::bigint}]"));
+        assertThat(query.docKeys()).hasToString("Optional[DocKeys{'foo', 2::bigint}]");
     }
 
     @Test
     public void test_filter_on_pk_combined_with_AND_results_in_dockeys() {
         WhereClauseOptimizer.DetailedQuery query = optimize(
             "select * from bystring where name = 'foo' and score = 2.0 or (name = 'bar' and score = 1.0)");
-        assertThat(query.docKeys().toString(), is("Optional[DocKeys{'bar'; 'foo'}]"));
+        assertThat(query.docKeys()).hasToString("Optional[DocKeys{'bar'; 'foo'}]");
     }
 }

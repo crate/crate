@@ -31,14 +31,14 @@ public class ConditionalFunctionTest extends ScalarTestCase {
 
     @Test
     public void testCoalesce() throws Exception {
-        assertEvaluate("coalesce(null)", null);
+        assertEvaluateNull("coalesce(null)");
         assertEvaluate("coalesce(10, null, 20)", 10);
         assertEvaluate("coalesce(name, 'foo')", "foo", Literal.NULL);
     }
 
     @Test
     public void testGreatest() throws Exception {
-        assertEvaluate("greatest(null, null)", null);
+        assertEvaluateNull("greatest(null, null)");
         assertEvaluate("greatest(10)", 10);
         assertEvaluate("greatest(10, 20, null, 30)", 30);
         assertEvaluate("greatest(11.1, 22.2, null)", 22.2);
@@ -47,7 +47,7 @@ public class ConditionalFunctionTest extends ScalarTestCase {
 
     @Test
     public void testLeast() throws Exception {
-        assertEvaluate("least(null, null)", null);
+        assertEvaluateNull("least(null, null)");
         assertEvaluate("least(10)", 10);
         assertEvaluate("least(10, 20, null, 30)", 10);
         assertEvaluate("least(11.1, 22.2, null)", 11.1);
@@ -57,8 +57,8 @@ public class ConditionalFunctionTest extends ScalarTestCase {
     @Test
     public void testNullIf() throws Exception {
         assertEvaluate("nullif(10, 12)", 10);
-        assertEvaluate("nullif(name, 'foo')", null, Literal.of("foo"));
-        assertEvaluate("nullif(null, 'foo')", null);
+        assertEvaluateNull("nullif(name, 'foo')", Literal.of("foo"));
+        assertEvaluateNull("nullif(null, 'foo')");
     }
 
     @Test
@@ -66,7 +66,7 @@ public class ConditionalFunctionTest extends ScalarTestCase {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Unknown function: nullif(1, 2, 3)," +
                                         " no overload found for matching argument types: (integer, integer, integer).");
-        assertEvaluate("nullif(1, 2, 3)", null);
+        assertEvaluateNull("nullif(1, 2, 3)");
     }
 
     @Test
@@ -144,13 +144,13 @@ public class ConditionalFunctionTest extends ScalarTestCase {
     @Test
     public void testCaseWithNullArgumentReturnsNull() throws Exception {
         String expression = "CASE 38 WHEN 38 THEN NULL ELSE 1 END";
-        assertEvaluate(expression, null);
+        assertEvaluateNull(expression);
     }
 
     @Test
     public void testCaseWithNullArgumentElseReturnsNull() throws Exception {
         String expression = "CASE 45 WHEN 38 THEN 1 ELSE NULL END";
-        assertEvaluate(expression, null);
+        assertEvaluateNull(expression);
     }
 
     @Test

@@ -21,8 +21,8 @@
 
 package io.crate.expression.scalar;
 
-import static io.crate.testing.SymbolMatchers.isFunction;
-import static io.crate.testing.SymbolMatchers.isLiteral;
+import static io.crate.testing.Asserts.isFunction;
+import static io.crate.testing.Asserts.isLiteral;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -39,7 +39,7 @@ public class StringToArrayFunctionTest extends ScalarTestCase {
     public void testZeroArguments() {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Unknown function: string_to_array()");
-        assertEvaluate("string_to_array()", null);
+        assertEvaluateNull("string_to_array()");
     }
 
     @Test
@@ -47,7 +47,7 @@ public class StringToArrayFunctionTest extends ScalarTestCase {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Unknown function: string_to_array('xyz')," +
                                         " no overload found for matching argument types: (text).");
-        assertEvaluate("string_to_array('xyz')", null);
+        assertEvaluateNull("string_to_array('xyz')");
     }
 
     @Test
@@ -59,9 +59,9 @@ public class StringToArrayFunctionTest extends ScalarTestCase {
 
     @Test
     public void testNullStringInput() {
-        assertEvaluate("string_to_array(null, '')", null);
-        assertEvaluate("string_to_array(null, 'x')", null);
-        assertEvaluate("string_to_array(null, '', null)", null);
+        assertEvaluateNull("string_to_array(null, '')");
+        assertEvaluateNull("string_to_array(null, 'x')");
+        assertEvaluateNull("string_to_array(null, '', null)");
     }
 
     @Test
@@ -106,7 +106,7 @@ public class StringToArrayFunctionTest extends ScalarTestCase {
     @Test
     public void testNullNullStringParameter() {
         assertEvaluate("string_to_array('xyz', '', null)", List.of("xyz"));
-        assertEvaluate("string_to_array(null, '', null)", null);
+        assertEvaluateNull("string_to_array(null, '', null)");
     }
 
     @Test

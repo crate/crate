@@ -21,9 +21,9 @@
 
 package io.crate.expression.scalar;
 
-import static io.crate.testing.SymbolMatchers.isFunction;
-import static io.crate.testing.SymbolMatchers.isLiteral;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
+import static io.crate.testing.Asserts.isFunction;
+import static io.crate.testing.Asserts.isLiteral;
 
 import java.util.List;
 
@@ -50,8 +50,7 @@ public class SubscriptFunctionsTest extends ESTestCase {
         );
         var rowExpression = Literal.of(rowType, new Row1(new Row1(10)));
         var subscript = SubscriptFunctions.tryCreateSubscript(rowExpression, List.of("x", "y"));
-        assertThat(
-            subscript,
-            isFunction("_subscript_record", isFunction("_subscript_record"), isLiteral("y")));
+        assertThat(subscript)
+            .isFunction("_subscript_record", isFunction("_subscript_record"), isLiteral("y"));
     }
 }

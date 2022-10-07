@@ -21,10 +21,10 @@
 
 package io.crate.expression.scalar.string;
 
-import static io.crate.testing.SymbolMatchers.isLiteral;
-import static org.hamcrest.Matchers.not;
+import static io.crate.testing.Asserts.isLiteral;
+import static io.crate.testing.Asserts.isNotSameInstance;
+import static io.crate.testing.Asserts.isSameInstance;
 
-import org.hamcrest.core.IsSame;
 import org.junit.Test;
 
 import io.crate.expression.scalar.ScalarTestCase;
@@ -103,20 +103,20 @@ public class TrimFunctionTest extends ScalarTestCase {
 
     @Test
     public void testCompileTrimFunctionResultingInOptimisedTrim() {
-        assertCompile("trim(both ' ' from name)", (s) -> not(IsSame.sameInstance(s)));
-        assertCompile("trim(both 'a' from name)", (s) -> not(IsSame.sameInstance(s)));
-        assertCompile("trim('a' from name)", (s) -> not(IsSame.sameInstance(s)));
-        assertCompile("trim(initCap('a') from name)", (s) -> not(IsSame.sameInstance(s)));
+        assertCompile("trim(both ' ' from name)", isNotSameInstance());
+        assertCompile("trim(both 'a' from name)", isNotSameInstance());
+        assertCompile("trim('a' from name)", isNotSameInstance());
+        assertCompile("trim(initCap('a') from name)", isNotSameInstance());
     }
 
     @Test
     public void testCompileTrimFunctionResultingInSameFunction() {
-        assertCompile("trim(leading ' ' from name)", IsSame::sameInstance);
-        assertCompile("trim(both 'ab' from name)", IsSame::sameInstance);
-        assertCompile("trim(both name from name)", IsSame::sameInstance);
-        assertCompile("trim('ab' from name)", IsSame::sameInstance);
-        assertCompile("trim(name)", IsSame::sameInstance);
-        assertCompile("trim(initCap(name) from name)", IsSame::sameInstance);
+        assertCompile("trim(leading ' ' from name)", isSameInstance());
+        assertCompile("trim(both 'ab' from name)", isSameInstance());
+        assertCompile("trim(both name from name)", isSameInstance());
+        assertCompile("trim('ab' from name)", isSameInstance());
+        assertCompile("trim(name)", isSameInstance());
+        assertCompile("trim(initCap(name) from name)", isSameInstance());
     }
 
     @Test
@@ -141,15 +141,15 @@ public class TrimFunctionTest extends ScalarTestCase {
 
     @Test
     public void testEvaluateNullInputOptimisedTrim() {
-        assertEvaluate("trim(name)", null, Literal.of(DataTypes.STRING, null));
-        assertEvaluate("ltrim(name)", null, Literal.of(DataTypes.STRING, null));
-        assertEvaluate("rtrim(name)", null, Literal.of(DataTypes.STRING, null));
-        assertEvaluate("ltrim(name, null)", null, Literal.of(DataTypes.STRING, null));
-        assertEvaluate("rtrim(name, null)", null, Literal.of(DataTypes.STRING, null));
+        assertEvaluateNull("trim(name)", Literal.of(DataTypes.STRING, null));
+        assertEvaluateNull("ltrim(name)", Literal.of(DataTypes.STRING, null));
+        assertEvaluateNull("rtrim(name)", Literal.of(DataTypes.STRING, null));
+        assertEvaluateNull("ltrim(name, null)", Literal.of(DataTypes.STRING, null));
+        assertEvaluateNull("rtrim(name, null)", Literal.of(DataTypes.STRING, null));
     }
 
     @Test
     public void testEvaluateNullInputNonOptimisedTrim() {
-        assertEvaluate("trim('ab' from name)", null, Literal.of(DataTypes.STRING, null));
+        assertEvaluateNull("trim('ab' from name)", Literal.of(DataTypes.STRING, null));
     }
 }

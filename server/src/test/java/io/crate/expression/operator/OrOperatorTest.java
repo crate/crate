@@ -21,7 +21,7 @@
 
 package io.crate.expression.operator;
 
-import static io.crate.testing.SymbolMatchers.isLiteral;
+import static io.crate.testing.Asserts.isLiteral;
 
 import org.junit.Test;
 
@@ -49,8 +49,8 @@ public class OrOperatorTest extends ScalarTestCase {
         assertEvaluate("false or true", true);
         assertEvaluate("true or null", true);
         assertEvaluate("null or true", true);
-        assertEvaluate("false or null", null);
-        assertEvaluate("null or false", null);
-        assertEvaluate("null or null", null);
+        assertEvaluateNull("false or null");
+        assertEvaluateNull("null or false");
+        assertEvaluateNull("null or null");
     }
 }

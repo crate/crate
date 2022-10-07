@@ -21,13 +21,12 @@
 
 package io.crate.metadata;
 
-import static io.crate.testing.SymbolMatchers.isReference;
-import static org.hamcrest.MatcherAssert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
+import static io.crate.testing.Asserts.isReference;
 
 import java.util.List;
 import java.util.Map;
 
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.types.ArrayType;
@@ -46,27 +45,22 @@ public class SystemTableTest {
             .endObject()
             .build();
 
-        assertThat(
-            table.columns(),
-            Matchers.contains(isReference("obj_a"))
-        );
-        assertThat(
-            table.getReference(new ColumnIdent("obj_a", List.of("obj_b", "x"))),
-            isReference("obj_a['obj_b']['x']")
-        );
+        assertThat(table.columns()).satisfiesExactly(isReference("obj_a"));
+        assertThat(table.getReference(new ColumnIdent("obj_a", List.of("obj_b", "x"))))
+            .isReference("obj_a['obj_b']['x']");
 
         var x = table.expressions().get(new ColumnIdent("obj_a", List.of("obj_b", "x"))).create();
         x.setNextRow(null);
-        assertThat(x.value(), Matchers.is(1));
+        assertThat(x.value()).isEqualTo(1);
 
         var objB = table.expressions().get(new ColumnIdent("obj_a", "obj_b")).create();
         objB.setNextRow(null);
-        assertThat(objB.value(), Matchers.is(Map.of("x", 1)));
+        assertThat(objB.value()).isEqualTo(Map.of("x", 1));
 
         var objA = table.expressions().get(new ColumnIdent("obj_a")).create();
         objA.setNextRow(null);
         System.out.println(objA.value());
-        assertThat(objA.value(), Matchers.is(Map.of("obj_b", Map.of("x", 1))));
+        assertThat(objA.value()).isEqualTo(Map.of("obj_b", Map.of("x", 1)));
     }
 
     static class Point {
@@ -89,29 +83,21 @@ public class SystemTableTest {
                 .add("y", DataTypes.INTEGER, point -> point.y)
             .endObjectArray()
             .build();
-        assertThat(
-            table.getReference(new ColumnIdent("points")),
-            isReference("points")
-        );
+        assertThat(table.getReference(new ColumnIdent("points"))).isReference("points");
         var points = table.expressions().get(new ColumnIdent("points")).create();
         points.setNextRow(null);
-        assertThat(
-            points.value(),
-            Matchers.is(List.of(
+        assertThat(points.value()).isEqualTo(
+            List.of(
                 Map.of("x", 10, "y", 20),
-                Map.of("x", 30, "y", 40))
-            )
-        );
-        assertThat(
-            table.getReference(new ColumnIdent("points", "x")),
-            isReference("points['x']", new ArrayType<>(DataTypes.INTEGER))
-        );
+                Map.of("x", 30, "y", 40)));
+        assertThat(table.getReference(new ColumnIdent("points", "x")))
+            .isReference("points['x']", new ArrayType<>(DataTypes.INTEGER));
         var xs = table.expressions().get(new ColumnIdent("points", "x")).create();
         xs.setNextRow(null);
-        assertThat(xs.value(), Matchers.is(List.of(10, 30)));
+        assertThat(xs.value()).isEqualTo(List.of(10, 30));
 
         var ys = table.expressions().get(new ColumnIdent("points", "y")).create();
         ys.setNextRow(null);
-        assertThat(ys.value(), Matchers.is(List.of(20, 40)));
+        assertThat(ys.value()).isEqualTo(List.of(20, 40));
     }
 }

@@ -27,13 +27,13 @@ public class ArrayUpperFunctionTest extends ScalarTestCase {
 
     @Test
     public void testSecondArgumentIsNull() {
-        assertEvaluate("array_upper([1, 2], null)", null);
+        assertEvaluateNull("array_upper([1, 2], null)");
     }
 
     @Test
     public void test_not_null_but_invalid_dimension() {
-        assertEvaluate("array_length([1], 0)", null);
-        assertEvaluate("array_length([1], -1)", null);
+        assertEvaluateNull("array_length([1], 0)");
+        assertEvaluateNull("array_length([1], -1)");
     }
 
     @Test
@@ -50,7 +50,7 @@ public class ArrayUpperFunctionTest extends ScalarTestCase {
         assertEvaluate("array_length(" + array + ", 1)", 3);
         assertEvaluate("array_length(" + array + ", 2)", 3);
         assertEvaluate("array_length(" + array + ", 3)", 3);
-        assertEvaluate("array_length(" + array + ", 4)", null);
+        assertEvaluateNull("array_length(" + array + ", 4)");
     }
 
     @Test
@@ -60,7 +60,7 @@ public class ArrayUpperFunctionTest extends ScalarTestCase {
 
     @Test
     public void testSingleDimensionArrayInvalidDimension() {
-        assertEvaluate("array_upper([4, 5], 3)", null);
+        assertEvaluateNull("array_upper([4, 5], 3)");
     }
 
     @Test
@@ -72,7 +72,7 @@ public class ArrayUpperFunctionTest extends ScalarTestCase {
 
     @Test
     public void testMultiDimensionArrayInvalidDimension() {
-        assertEvaluate("array_upper([[1, 2, 3], [3, 4]], 3)", null);
+        assertEvaluateNull("array_upper([[1, 2, 3], [3, 4]], 3)");
     }
 
     @Test
@@ -82,7 +82,7 @@ public class ArrayUpperFunctionTest extends ScalarTestCase {
 
     @Test
     public void testEmptyArray() {
-        assertEvaluate("array_upper(cast([] as array(integer)), 1)", null);
+        assertEvaluateNull("array_upper(cast([] as array(integer)), 1)");
     }
 
     @Test
@@ -90,7 +90,7 @@ public class ArrayUpperFunctionTest extends ScalarTestCase {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Unknown function: array_upper()." +
                                         " Possible candidates: array_upper(array(E), integer):integer");
-        assertEvaluate("array_upper()", null);
+        assertEvaluateNull("array_upper()");
     }
 
     @Test
@@ -98,7 +98,7 @@ public class ArrayUpperFunctionTest extends ScalarTestCase {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Unknown function: array_upper(_array(1))," +
                                         " no overload found for matching argument types: (integer_array).");
-        assertEvaluate("array_upper([1])", null);
+        assertEvaluateNull("array_upper([1])");
     }
 
     @Test
@@ -106,7 +106,7 @@ public class ArrayUpperFunctionTest extends ScalarTestCase {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Unknown function: array_upper(_array(1), 2, _array(3))," +
                                         " no overload found for matching argument types: (integer_array, integer, integer_array).");
-        assertEvaluate("array_upper([1], 2, [3])", null);
+        assertEvaluateNull("array_upper([1], 2, [3])");
     }
 
     @Test
@@ -114,7 +114,7 @@ public class ArrayUpperFunctionTest extends ScalarTestCase {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Unknown function: array_upper(_array(1), _array(2))," +
                                         " no overload found for matching argument types: (integer_array, integer_array).");
-        assertEvaluate("array_upper([1], [2])", null);
+        assertEvaluateNull("array_upper([1], [2])");
     }
 
     @Test
@@ -122,6 +122,6 @@ public class ArrayUpperFunctionTest extends ScalarTestCase {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage(
             "The inner type of the array argument `array_upper` function cannot be undefined");
-        assertEvaluate("array_upper(null, 1)", null);
+        assertEvaluateNull("array_upper(null, 1)");
     }
 }

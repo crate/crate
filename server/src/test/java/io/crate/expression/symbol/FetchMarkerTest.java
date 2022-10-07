@@ -21,9 +21,7 @@
 
 package io.crate.expression.symbol;
 
-import static io.crate.testing.SymbolMatchers.isReference;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import java.util.List;
 
@@ -47,6 +45,6 @@ public class FetchMarkerTest {
 
         StreamInput in = out.bytes().streamInput();
         Symbol symbol = Symbols.fromStream(in);
-        assertThat(symbol, isReference(is(new ColumnIdent("_fetchid")), is(relationName), is(DataTypes.LONG)));
+        assertThat(symbol).isReference(new ColumnIdent("_fetchid"), relationName, DataTypes.LONG);
     }
 }

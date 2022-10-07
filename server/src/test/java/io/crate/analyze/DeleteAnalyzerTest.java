@@ -22,13 +22,10 @@
 package io.crate.analyze;
 
 import static io.crate.analyze.TableDefinitions.USER_TABLE_IDENT;
-import static io.crate.testing.SymbolMatchers.isFunction;
-import static io.crate.testing.SymbolMatchers.isLiteral;
-import static io.crate.testing.SymbolMatchers.isReference;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
+import static io.crate.testing.Asserts.exactlyInstanceOf;
+import static io.crate.testing.Asserts.isLiteral;
+import static io.crate.testing.Asserts.isReference;
 
 import java.io.IOException;
 import java.util.List;
@@ -66,10 +63,10 @@ public class DeleteAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         AnalyzedDeleteStatement delete = e.analyze("delete from users where name='Trillian'");
         DocTableRelation tableRelation = delete.relation();
         TableInfo tableInfo = tableRelation.tableInfo();
-        assertThat(USER_TABLE_IDENT, equalTo(tableInfo.ident()));
-        assertThat(tableInfo.rowGranularity(), is(RowGranularity.DOC));
+        assertThat(USER_TABLE_IDENT).isEqualTo(tableInfo.ident());
+        assertThat(tableInfo.rowGranularity()).isEqualTo(RowGranularity.DOC);
 
-        assertThat(delete.query(), isFunction(EqOperator.NAME, isReference("name"), isLiteral("Trillian")));
+        assertThat(delete.query()).isFunction(EqOperator.NAME, isReference("name"), isLiteral("Trillian"));
     }
 
     @Test
@@ -90,7 +87,7 @@ public class DeleteAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testDeleteWherePartitionedByColumn() throws Exception {
         AnalyzedDeleteStatement delete = e.analyze("delete from parted where date = 1395874800000::timestamptz");
-        assertThat(delete.query(), isFunction(EqOperator.NAME, isReference("date"), isLiteral(1395874800000L)));
+        assertThat(delete.query()).isFunction(EqOperator.NAME, isReference("date"), isLiteral(1395874800000L));
     }
 
     @Test
@@ -98,8 +95,8 @@ public class DeleteAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         AnalyzedDeleteStatement expectedStatement = e.analyze("delete from users where name='Trillian'");
         AnalyzedDeleteStatement actualStatement = e.analyze("delete from users as u where u.name='Trillian'");
 
-        assertThat(actualStatement.relation().tableInfo(), equalTo(expectedStatement.relation().tableInfo()));
-        assertThat(actualStatement.query(), equalTo(expectedStatement.query()));
+        assertThat(actualStatement.relation().tableInfo()).isEqualTo(expectedStatement.relation().tableInfo());
+        assertThat(actualStatement.query()).isEqualTo(expectedStatement.query());
     }
 
     @Test
@@ -115,7 +112,8 @@ public class DeleteAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         AnalyzedDeleteStatement delete = e.analyze(
             "delete from users where id = ?",
             new ParamTypeHints(List.of(DataTypes.INTEGER, DataTypes.INTEGER)));
-        assertThat(delete.query(), isFunction(EqOperator.NAME, isReference("id"), instanceOf(ParameterSymbol.class)));
+        assertThat(delete.query())
+            .isFunction(EqOperator.NAME, isReference("id"), exactlyInstanceOf(ParameterSymbol.class));
     }
 
     @Test

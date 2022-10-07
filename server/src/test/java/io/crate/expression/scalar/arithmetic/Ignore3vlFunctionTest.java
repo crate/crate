@@ -21,8 +21,8 @@
 
 package io.crate.expression.scalar.arithmetic;
 
-import static io.crate.testing.SymbolMatchers.isFunction;
-import static io.crate.testing.SymbolMatchers.isLiteral;
+import static io.crate.testing.Asserts.isFunction;
+import static io.crate.testing.Asserts.isLiteral;
 
 import org.junit.Test;
 
@@ -42,7 +42,7 @@ public class Ignore3vlFunctionTest extends ScalarTestCase {
     public void testWrongType() {
         expectedException.expect(ConversionException.class);
         expectedException.expectMessage("Cannot cast `'foo'` of type `text` to type `boolean`");
-        assertEvaluate("ignore3vl('foo')", null);
+        assertEvaluateNull("ignore3vl('foo')");
     }
 
     @Test

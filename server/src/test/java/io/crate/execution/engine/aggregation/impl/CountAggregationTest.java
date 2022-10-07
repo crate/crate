@@ -21,13 +21,7 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
-import static io.crate.testing.SymbolMatchers.isLiteral;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
-import static org.mockito.ArgumentMatchers.eq;
+import static io.crate.testing.Asserts.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -38,7 +32,6 @@ import java.util.Map;
 
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.common.MutableLong;
@@ -92,10 +85,10 @@ public class CountAggregationTest extends AggregationTestCase {
             List.of()
         );
         if (expectedAggregatorClass == null) {
-            assertThat(docValueAggregator, Matchers.is(nullValue()));
+            assertThat(docValueAggregator).isNull();
         } else {
-            assertThat(docValueAggregator, Matchers.is(notNullValue()));
-            assertThat(docValueAggregator, Matchers.is(instanceOf(expectedAggregatorClass)));
+            assertThat(docValueAggregator).isNotNull();
+            assertThat(docValueAggregator).isExactlyInstanceOf(expectedAggregatorClass);
         }
     }
 
@@ -107,7 +100,7 @@ public class CountAggregationTest extends AggregationTestCase {
             List.of(Literal.of(DataTypes.INTEGER, null)),
             SearchPath.pathWithPGCatalogAndDoc()
         );
-        assertThat(countFunction.boundSignature().getReturnType().createType(), is(DataTypes.LONG));
+        assertThat(countFunction.boundSignature().getReturnType().createType()).isEqualTo(DataTypes.LONG);
     }
 
     @Test
@@ -148,11 +141,11 @@ public class CountAggregationTest extends AggregationTestCase {
         );
         DocTableInfo sourceTable = mock(DocTableInfo.class);
         when(sourceTable.notNullColumns()).thenReturn(List.of(notNullImmediateChild.column()));
-        when(sourceTable.getReference(eq(notNullImmediateChild.column()))).thenReturn(notNullImmediateChild);
+        when(sourceTable.getReference(notNullImmediateChild.column())).thenReturn(notNullImmediateChild);
 
         assertHasDocValueAggregator(List.of(countedObject), sourceTable, expectedAggregatorClass);
         verify(sourceTable, times(1)).notNullColumns();
-        verify(sourceTable, times(1)).getReference(eq(notNullImmediateChild.column()));
+        verify(sourceTable, times(1)).getReference(notNullImmediateChild.column());
     }
 
     @Test
@@ -207,11 +200,11 @@ public class CountAggregationTest extends AggregationTestCase {
         );
         DocTableInfo sourceTable = mock(DocTableInfo.class);
         when(sourceTable.notNullColumns()).thenReturn(List.of(notNullGrandChild.column()));
-        when(sourceTable.getReference(eq(notNullGrandChild.column()))).thenReturn(notNullGrandChild);
+        when(sourceTable.getReference(notNullGrandChild.column())).thenReturn(notNullGrandChild);
 
         assertHasDocValueAggregator(List.of(countedObject), sourceTable, BinaryDocValueAggregator.class);
         verify(sourceTable, times(1)).notNullColumns();
-        verify(sourceTable, times(1)).getReference(eq(notNullGrandChild.column()));
+        verify(sourceTable, times(1)).getReference(notNullGrandChild.column());
     }
 
     @Test
@@ -233,11 +226,11 @@ public class CountAggregationTest extends AggregationTestCase {
         );
         DocTableInfo sourceTable = mock(DocTableInfo.class);
         when(sourceTable.notNullColumns()).thenReturn(List.of(notNullSibling.column()));
-        when(sourceTable.getReference(eq(notNullSibling.column()))).thenReturn(notNullSibling);
+        when(sourceTable.getReference(notNullSibling.column())).thenReturn(notNullSibling);
 
         assertHasDocValueAggregator(List.of(countedObject), sourceTable, null);
         verify(sourceTable, times(1)).notNullColumns();
-        verify(sourceTable, times(0)).getReference(eq(notNullSibling.column()));
+        verify(sourceTable, times(0)).getReference(notNullSibling.column());
     }
 
     @Test
@@ -250,7 +243,8 @@ public class CountAggregationTest extends AggregationTestCase {
             DataTypes.STRING,
             0,
             null);
-        SimpleReference sibling = new SimpleReference(//unused
+        @SuppressWarnings("unused")
+        SimpleReference sibling = new SimpleReference(
             new ReferenceIdent(null, new ColumnIdent("top_level_sibling")),
             RowGranularity.DOC,
             ObjectType.builder().setInnerType(notNullSibilingsChild.column().leafName(), notNullSibilingsChild.valueType()).build(),
@@ -266,11 +260,11 @@ public class CountAggregationTest extends AggregationTestCase {
         );
         DocTableInfo sourceTable = mock(DocTableInfo.class);
         when(sourceTable.notNullColumns()).thenReturn(List.of(notNullSibilingsChild.column()));
-        when(sourceTable.getReference(eq(notNullSibilingsChild.column()))).thenReturn(notNullSibilingsChild);
+        when(sourceTable.getReference(notNullSibilingsChild.column())).thenReturn(notNullSibilingsChild);
 
         assertHasDocValueAggregator(List.of(countedObject), sourceTable, null);
         verify(sourceTable, times(1)).notNullColumns();
-        verify(sourceTable, times(0)).getReference(eq(notNullSibilingsChild.column()));
+        verify(sourceTable, times(0)).getReference(notNullSibilingsChild.column());
     }
 
     @Test
@@ -290,11 +284,11 @@ public class CountAggregationTest extends AggregationTestCase {
         );
         DocTableInfo sourceTable = mock(DocTableInfo.class);
         when(sourceTable.notNullColumns()).thenReturn(List.of());
-        when(sourceTable.getReference(eq(nullableChild.column()))).thenReturn(nullableChild);
+        when(sourceTable.getReference(nullableChild.column())).thenReturn(nullableChild);
 
         assertHasDocValueAggregator(List.of(countedObject), sourceTable, null);
         verify(sourceTable, times(1)).notNullColumns();
-        verify(sourceTable, times(0)).getReference(eq(nullableChild.column()));
+        verify(sourceTable, times(0)).getReference(nullableChild.column());
     }
 
     @Test
@@ -365,47 +359,47 @@ public class CountAggregationTest extends AggregationTestCase {
         when(sourceTable.notNullColumns()).thenReturn(List.of(notNullGrandChild1.column(),
                                                               notNullGrandChild2.column(),
                                                               notNullImmediateChild.column()));
-        when(sourceTable.getReference(eq(notNullGrandChild1.column()))).thenReturn(notNullGrandChild1);
-        when(sourceTable.getReference(eq(notNullGrandChild2.column()))).thenReturn(notNullGrandChild2);
-        when(sourceTable.getReference(eq(notNullImmediateChild.column()))).thenReturn(notNullImmediateChild);
+        when(sourceTable.getReference(notNullGrandChild1.column())).thenReturn(notNullGrandChild1);
+        when(sourceTable.getReference(notNullGrandChild2.column())).thenReturn(notNullGrandChild2);
+        when(sourceTable.getReference(notNullImmediateChild.column())).thenReturn(notNullImmediateChild);
         assertHasDocValueAggregator(List.of(countedObject), sourceTable, BinaryDocValueAggregator.class);
         verify(sourceTable, times(1)).notNullColumns();
-        verify(sourceTable, times(1)).getReference(eq(notNullGrandChild1.column()));
+        verify(sourceTable, times(1)).getReference(notNullGrandChild1.column());
     }
 
     @Test
     public void testDouble() throws Exception {
-        assertThat(executeAggregation(DataTypes.DOUBLE, new Object[][]{{0.7d}, {0.3d}}), is(2L));
+        assertThat(executeAggregation(DataTypes.DOUBLE, new Object[][]{{0.7d}, {0.3d}})).isEqualTo(2L);
     }
 
     @Test
     public void testFloat() throws Exception {
-        assertThat(executeAggregation(DataTypes.FLOAT, new Object[][]{{0.7f}, {0.3f}}), is(2L));
+        assertThat(executeAggregation(DataTypes.FLOAT, new Object[][]{{0.7f}, {0.3f}})).isEqualTo(2L);
     }
 
     @Test
     public void testInteger() throws Exception {
-        assertThat(executeAggregation(DataTypes.INTEGER, new Object[][]{{7}, {3}}), is(2L));
+        assertThat(executeAggregation(DataTypes.INTEGER, new Object[][]{{7}, {3}})).isEqualTo(2L);
     }
 
     @Test
     public void testLong() throws Exception {
-        assertThat(executeAggregation(DataTypes.LONG, new Object[][]{{7L}, {3L}}), is(2L));
+        assertThat(executeAggregation(DataTypes.LONG, new Object[][]{{7L}, {3L}})).isEqualTo(2L);
     }
 
     @Test
     public void testShort() throws Exception {
-        assertThat(executeAggregation(DataTypes.SHORT, new Object[][]{{(short) 7}, {(short) 3}}), is(2L));
+        assertThat(executeAggregation(DataTypes.SHORT, new Object[][]{{(short) 7}, {(short) 3}})).isEqualTo(2L);
     }
 
     @Test
     public void testString() throws Exception {
-        assertThat(executeAggregation(DataTypes.STRING, new Object[][]{{"Youri"}, {"Ruben"}}), is(2L));
+        assertThat(executeAggregation(DataTypes.STRING, new Object[][]{{"Youri"}, {"Ruben"}})).isEqualTo(2L);
     }
 
     @Test
     public void test_count_with_ip_argument() throws Exception {
-        assertThat(executeAggregation(DataTypes.IP, new Object[][]{{"127.0.0.1"}}), is(1L));
+        assertThat(executeAggregation(DataTypes.IP, new Object[][]{{"127.0.0.1"}})).isEqualTo(1L);
     }
 
     @Test
@@ -416,24 +410,24 @@ public class CountAggregationTest extends AggregationTestCase {
             { null },
             { BitString.ofRawBits("0110") },
         };
-        assertThat(executeAggregation(bitStringType, rows), is(2L));
+        assertThat(executeAggregation(bitStringType, rows)).isEqualTo(2L);
         assertHasDocValueAggregator("count", List.of(bitStringType));
     }
 
     @Test
     public void test_count_with_geo_point_argument() throws Exception {
-        assertThat(executeAggregation(DataTypes.GEO_POINT, new Object[][]{{new double[]{1, 2}}}), is(1L));
+        assertThat(executeAggregation(DataTypes.GEO_POINT, new Object[][]{{new double[]{1, 2}}})).isEqualTo(1L);
     }
 
     @Test
     public void testNormalizeWithNullLiteral() {
-        assertThat(normalize("count", null, DataTypes.STRING), isLiteral(0L));
-        assertThat(normalize("count", null, DataTypes.UNDEFINED), isLiteral(0L));
+        assertThat(normalize("count", null, DataTypes.STRING)).isLiteral(0L);
+        assertThat(normalize("count", null, DataTypes.UNDEFINED)). isLiteral(0L);
     }
 
     @Test
     public void test_count_star() throws Exception {
-        assertThat(executeAggregation(CountAggregation.COUNT_STAR_SIGNATURE, new Object[][]{{}, {}}, List.of()), is(2L));
+        assertThat(executeAggregation(CountAggregation.COUNT_STAR_SIGNATURE, new Object[][]{{}, {}}, List.of())).isEqualTo(2L);
     }
 
     @Test
@@ -444,6 +438,6 @@ public class CountAggregationTest extends AggregationTestCase {
         streamer.writeValueTo(out, l1);
         StreamInput in = out.bytes().streamInput();
         MutableLong l2 = streamer.readValueFrom(in);
-        assertThat(l1.value(), is(l2.value()));
+        assertThat(l1.value()).isEqualTo(l2.value());
     }
 }

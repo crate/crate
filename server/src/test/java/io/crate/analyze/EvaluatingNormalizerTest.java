@@ -22,10 +22,8 @@
 package io.crate.analyze;
 
 import static io.crate.execution.engine.collect.NestableCollectExpression.constant;
-import static io.crate.testing.SymbolMatchers.isLiteral;
+import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.createNodeContext;
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.junit.Assert.assertThat;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -153,7 +151,7 @@ public class EvaluatingNormalizerTest extends ESTestCase {
         // the dummy reference load == 0.08 evaluates to true,
         // so the whole query can be normalized to a single boolean literal
         Symbol query = visitor.normalize(op_or, coordinatorTxnCtx);
-        assertThat(query, isLiteral(true));
+        assertThat(query).isLiteral(true);
     }
 
     @Test
@@ -162,6 +160,6 @@ public class EvaluatingNormalizerTest extends ESTestCase {
 
         Function op_or = prepareFunctionTree();
         Symbol query = visitor.normalize(op_or, coordinatorTxnCtx);
-        assertThat(query, instanceOf(Function.class));
+        assertThat(query).isExactlyInstanceOf(Function.class);
     }
 }

@@ -46,33 +46,33 @@ public class TimezoneFunctionTest extends ScalarTestCase {
 
     @Test
     public void testEvaluateInvalidZoneIsNull() {
-        assertEvaluate("timezone(null, 257504400000)", null);
+        assertEvaluateNull("timezone(null, 257504400000)");
     }
 
     @Test
     public void testEvaluateInvalidTimestampIsNull() {
-        assertEvaluate("timezone('Europe/Madrid', null)", null);
+        assertEvaluateNull("timezone('Europe/Madrid', null)");
     }
 
     @Test
     public void testEvaluateInvalidZoneIsBlanc() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("time zone \" \" not recognized");
-        assertEvaluate("timezone(' ', 257504400000)", null);
+        assertEvaluateNull("timezone(' ', 257504400000)");
     }
 
     @Test
     public void testEvaluateInvalidZoneIsRandom() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("time zone \"Random/Location\" not recognized");
-        assertEvaluate("timezone('Random/Location', 257504400000)", null);
+        assertEvaluateNull("timezone('Random/Location', 257504400000)");
     }
 
     @Test
     public void testEvaluateInvalidZoneIsRandomNumeric() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("time zone \"+31:97\" not recognized");
-        assertEvaluate("timezone('+31:97', 257504400000)", null);
+        assertEvaluateNull("timezone('+31:97', 257504400000)");
     }
 
     @Test
@@ -80,33 +80,33 @@ public class TimezoneFunctionTest extends ScalarTestCase {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage(
             "Cannot cast `'not_a_timestamp'` of type `text` to type `timestamp with time zone`");
-        assertEvaluate("timezone('Europe/Madrid', 'not_a_timestamp')", null);
+        assertEvaluateNull("timezone('Europe/Madrid', 'not_a_timestamp')");
     }
 
     @Test
     public void testEvaluateInvalidZoneIsNullFromColumn() {
-        assertEvaluate("timezone(name, 257504400000)", null, Literal.of((Long) null));
+        assertEvaluateNull("timezone(name, 257504400000)", Literal.of((Long) null));
     }
 
     @Test
     public void testEvaluateInvalidZoneIsBlancFromColumn() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("time zone \" \" not recognized");
-        assertEvaluate("timezone(name, 257504400000)", null, Literal.of(" "));
+        assertEvaluateNull("timezone(name, 257504400000)", Literal.of(" "));
     }
 
     @Test
     public void testEvaluateInvalidZoneIsRandomFromColumn() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("time zone \"Random/Location\" not recognized");
-        assertEvaluate("timezone(name, 257504400000)", null, Literal.of("Random/Location"));
+        assertEvaluateNull("timezone(name, 257504400000)", Literal.of("Random/Location"));
     }
 
     @Test
     public void testEvaluateInvalidZoneIsRandomNumericFromColumn() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("time zone \"+31:97\" not recognized");
-        assertEvaluate("timezone(name, 257504400000)", null, Literal.of("+31:97"));
+        assertEvaluateNull("timezone(name, 257504400000)", Literal.of("+31:97"));
     }
 
     @Test

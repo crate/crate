@@ -22,9 +22,7 @@
 package io.crate.planner;
 
 import static io.crate.planner.operators.LogicalPlannerTest.isPlan;
-import static io.crate.testing.SymbolMatchers.isFunction;
-import static io.crate.testing.SymbolMatchers.isReference;
-import static org.hamcrest.Matchers.contains;
+import static io.crate.testing.Asserts.isReference;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
@@ -47,6 +45,7 @@ import io.crate.expression.symbol.Function;
 import io.crate.metadata.RowGranularity;
 import io.crate.planner.node.dql.Collect;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.Asserts;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
 
@@ -74,16 +73,17 @@ public class GroupByScalarPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(collectPhase.projections().get(0).requiredGranularity(), is(RowGranularity.SHARD));
         assertThat(collectPhase.projections().get(1), instanceOf(EvalProjection.class));
         assertThat(collectPhase.projections().get(1).outputs().get(0), instanceOf(Function.class));
-        assertThat(collectPhase.toCollect(), contains(isReference("id", DataTypes.LONG)));
+        Asserts.assertThat(collectPhase.toCollect()).satisfiesExactly(isReference("id", DataTypes.LONG));
 
         GroupProjection groupProjection = (GroupProjection) collectPhase.projections().get(0);
         assertThat(groupProjection.keys().get(0).valueType(), is(DataTypes.LONG));
 
 
-        assertThat(collectPhase.projections().get(1).outputs(), contains(isFunction("add")));
+        Asserts.assertThat(collectPhase.projections().get(1).outputs())
+            .satisfiesExactly(
+                s -> Asserts.assertThat(s).isFunction("add"));
 
         MergePhase mergePhase = merge.mergePhase();
-
         assertEquals(DataTypes.LONG, mergePhase.inputTypes().iterator().next());
         assertEquals(DataTypes.LONG, mergePhase.outputTypes().get(0));
     }
@@ -100,8 +100,8 @@ public class GroupByScalarPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(collectPhase.projections().get(0), instanceOf(GroupProjection.class));
         assertThat(collectPhase.projections().get(0).requiredGranularity(), is(RowGranularity.SHARD));
         assertThat(collectPhase.projections().get(1), instanceOf(EvalProjection.class));
-        assertThat(collectPhase.projections().get(1).outputs().get(0), isFunction("abs"));
-        assertThat(collectPhase.toCollect(), contains(isReference("id", DataTypes.LONG)));
+        Asserts.assertThat(collectPhase.projections().get(1).outputs().get(0)).isFunction("abs");
+        Asserts.assertThat(collectPhase.toCollect()).satisfiesExactly(isReference("id", DataTypes.LONG));
 
         GroupProjection groupProjection = (GroupProjection) collectPhase.projections().get(0);
         assertThat(groupProjection.keys().get(0).valueType(), is(DataTypes.LONG));
@@ -121,7 +121,8 @@ public class GroupByScalarPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(collectPhase.projections().size(), is(1));
         assertThat(collectPhase.projections().get(0), instanceOf(GroupProjection.class));
         assertThat(collectPhase.projections().get(0).requiredGranularity(), is(RowGranularity.SHARD));
-        assertThat(collectPhase.toCollect(), contains(isReference("id", DataTypes.LONG), isReference("other_id", DataTypes.LONG)));
+        Asserts.assertThat(collectPhase.toCollect()).satisfiesExactly(
+            isReference("id", DataTypes.LONG), isReference("other_id", DataTypes.LONG));
 
         GroupProjection groupProjection = (GroupProjection) collectPhase.projections().get(0);
         assertThat(groupProjection.keys().size(), is(2));
@@ -133,7 +134,9 @@ public class GroupByScalarPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(mergePhase.projections().get(0), instanceOf(GroupProjection.class));
         assertThat(mergePhase.projections().get(1), instanceOf(EvalProjection.class));
 
-        assertThat(mergePhase.projections().get(1).outputs(), contains(isFunction("abs")));
+        Asserts.assertThat(mergePhase.projections().get(1).outputs())
+            .satisfiesExactly(
+                s -> Asserts.assertThat(s).isFunction("abs"));
     }
 
     @Test

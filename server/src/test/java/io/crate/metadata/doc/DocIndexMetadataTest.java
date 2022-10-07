@@ -21,9 +21,8 @@
 
 package io.crate.metadata.doc;
 
-import static io.crate.testing.SymbolMatchers.isFunction;
-import static io.crate.testing.SymbolMatchers.isLiteral;
-import static io.crate.testing.SymbolMatchers.isReference;
+import static io.crate.testing.Asserts.isLiteral;
+import static io.crate.testing.Asserts.isReference;
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static java.util.Collections.emptyMap;
 import static org.hamcrest.CoreMatchers.not;
@@ -31,7 +30,6 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItems;
-import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
@@ -96,6 +94,7 @@ import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.Statement;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.Asserts;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -420,28 +419,29 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
 
         Reference birthday = md.references().get(new ColumnIdent("birthday"));
         assertThat(birthday.valueType(), is(DataTypes.TIMESTAMPZ));
-        assertThat(birthday.defaultExpression(), isFunction("current_timestamp", List.of(DataTypes.INTEGER)));
+        Asserts.assertThat(birthday.defaultExpression())
+            .isFunction("current_timestamp", List.of(DataTypes.INTEGER));
 
         Reference integerIndexed = md.references().get(new ColumnIdent("integerIndexed"));
         assertThat(integerIndexed.indexType(), is(IndexType.PLAIN));
-        assertThat(integerIndexed.defaultExpression(), isLiteral(1));
+        Asserts.assertThat(integerIndexed.defaultExpression()).isLiteral(1);
 
 
         Reference integerNotIndexed = md.references().get(new ColumnIdent("integerNotIndexed"));
         assertThat(integerNotIndexed.indexType(), is(IndexType.NONE));
-        assertThat(integerNotIndexed.defaultExpression(), isLiteral(1));
+        Asserts.assertThat(integerNotIndexed.defaultExpression()).isLiteral(1);
 
         Reference stringNotIndexed = md.references().get(new ColumnIdent("stringNotIndexed"));
         assertThat(stringNotIndexed.indexType(), is(IndexType.NONE));
-        assertThat(stringNotIndexed.defaultExpression(), isLiteral("default"));
+        Asserts.assertThat(stringNotIndexed.defaultExpression()).isLiteral("default");
 
         Reference stringNotAnalyzed = md.references().get(new ColumnIdent("stringNotAnalyzed"));
         assertThat(stringNotAnalyzed.indexType(), is(IndexType.PLAIN));
-        assertThat(stringNotAnalyzed.defaultExpression(), isLiteral("default"));
+        Asserts.assertThat(stringNotAnalyzed.defaultExpression()).isLiteral("default");
 
         Reference stringAnalyzed = md.references().get(new ColumnIdent("stringAnalyzed"));
         assertThat(stringAnalyzed.indexType(), is(IndexType.FULLTEXT));
-        assertThat(stringAnalyzed.defaultExpression(), isLiteral("default"));
+        Asserts.assertThat(stringAnalyzed.defaultExpression()).isLiteral("default");
 
         assertThat(
             Lists2.map(md.references().values(), r -> r.column().fqn()),
@@ -945,8 +945,8 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
         assertThat(week.isNullable(), is(false));
         assertThat(week, instanceOf(GeneratedReference.class));
         assertThat(((GeneratedReference) week).formattedGeneratedExpression(), is("date_trunc('week', ts)"));
-        assertThat(((GeneratedReference) week).generatedExpression(), isFunction("date_trunc", isLiteral("week"), isReference("ts")));
-        assertThat(((GeneratedReference) week).referencedReferences(), contains(isReference("ts")));
+        Asserts.assertThat(((GeneratedReference) week).generatedExpression()).isFunction("date_trunc", isLiteral("week"), isReference("ts"));
+        Asserts.assertThat(((GeneratedReference) week).referencedReferences()).satisfiesExactly(isReference("ts"));
     }
 
     @Test
@@ -1532,8 +1532,9 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
         assertThat(week, Matchers.notNullValue());
         assertThat(week, instanceOf(GeneratedReference.class));
         assertThat(((GeneratedReference) week).formattedGeneratedExpression(), is("date_trunc('week', ts)"));
-        assertThat(((GeneratedReference) week).generatedExpression(), isFunction("date_trunc", isLiteral("week"), isReference("ts")));
-        assertThat(((GeneratedReference) week).referencedReferences(), contains(isReference("ts")));
+        Asserts.assertThat(((GeneratedReference) week).generatedExpression())
+            .isFunction("date_trunc", isLiteral("week"), isReference("ts"));
+        Asserts.assertThat(((GeneratedReference) week).referencedReferences()).satisfiesExactly(isReference("ts"));
     }
 
     @Test
@@ -1575,7 +1576,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
                                                                " ts timestamp with time zone default current_timestamp)");
         Reference reference = md.references().get(new ColumnIdent("ts"));
         assertThat(reference.valueType(), is(DataTypes.TIMESTAMPZ));
-        assertThat(reference.defaultExpression(), isFunction("current_timestamp"));
+        Asserts.assertThat(reference.defaultExpression()).isFunction("current_timestamp");
     }
 
     @Test
@@ -1652,8 +1653,8 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
     public void test_nested_geo_shape_column_is_not_added_as_top_level_column() throws Exception {
         DocIndexMetadata md = getDocIndexMetadataFromStatement(
             "create table tbl (x int, y object as (z geo_shape))");
-        assertThat(md.columns(), contains(isReference("x"), isReference("y")));
-        assertThat(md.references(), hasKey(new ColumnIdent("y", "z")));
+        Asserts.assertThat(md.columns()).satisfiesExactlyInAnyOrder(isReference("x"), isReference("y"));
+        Asserts.assertThat(md.references()).containsKey(new ColumnIdent("y", "z"));
     }
 
     @Test

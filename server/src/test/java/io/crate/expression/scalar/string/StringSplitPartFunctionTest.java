@@ -56,17 +56,17 @@ public class StringSplitPartFunctionTest extends ScalarTestCase {
 
     @Test
     public void text_is_null() {
-        assertEvaluate("split_part(NULL, ',', 3)", null);
+        assertEvaluateNull("split_part(NULL, ',', 3)");
     }
 
     @Test
     public void delimiter_is_null() {
-        assertEvaluate("split_part('abcdefg', NULL, 3)", null);
+        assertEvaluateNull("split_part('abcdefg', NULL, 3)");
     }
 
     @Test
     public void field_is_null() {
-        assertEvaluate("split_part('a,bc,de,fg', ',', NULL)", null);
+        assertEvaluateNull("split_part('a,bc,de,fg', ',', NULL)");
     }
 
     @Test
