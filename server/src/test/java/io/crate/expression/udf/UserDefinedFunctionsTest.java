@@ -21,9 +21,8 @@
 
 package io.crate.expression.udf;
 
-import static io.crate.testing.SymbolMatchers.isLiteral;
+import static io.crate.testing.Asserts.assertThat;
 import static java.util.stream.Collectors.toList;
-import static org.junit.Assert.assertThat;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -95,8 +94,7 @@ public class UserDefinedFunctionsTest extends UdfUnitTest {
             DataTypes.INTEGER,
             List.of(DataTypes.INTEGER, DataTypes.INTEGER),
             "function subtract(a, b) { return a + b; }");
-        assertThat(
-            sqlExpressions.asSymbol("test.subtract(2::integer, 1::integer)"),
-            isLiteral(DummyFunction.RESULT));
+        assertThat(sqlExpressions.asSymbol("test.subtract(2::integer, 1::integer)"))
+            .isLiteral(DummyFunction.RESULT);
     }
 }

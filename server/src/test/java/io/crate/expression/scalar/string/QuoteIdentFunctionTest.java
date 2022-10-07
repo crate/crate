@@ -21,8 +21,8 @@
 
 package io.crate.expression.scalar.string;
 
-import static io.crate.testing.SymbolMatchers.isFunction;
-import static io.crate.testing.SymbolMatchers.isLiteral;
+import static io.crate.testing.Asserts.isFunction;
+import static io.crate.testing.Asserts.isLiteral;
 
 import java.util.List;
 
@@ -39,12 +39,12 @@ public class QuoteIdentFunctionTest extends ScalarTestCase {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Unknown function: quote_ident()." +
                                         " Possible candidates: pg_catalog.quote_ident(text):text");
-        assertEvaluate("quote_ident()", null);
+        assertEvaluateNull("quote_ident()");
     }
 
     @Test
     public void testQuoteIdentEvaluateNullInput() {
-        assertEvaluate("quote_ident(null)", null);
+        assertEvaluateNull("quote_ident(null)");
     }
 
     @Test

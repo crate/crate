@@ -21,15 +21,11 @@
 
 package io.crate.execution.dsl.projection.builder;
 
-import static io.crate.testing.SymbolMatchers.isFunction;
-import static io.crate.testing.SymbolMatchers.isLiteral;
-import static io.crate.testing.SymbolMatchers.isReference;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
+import static io.crate.testing.Asserts.isFunction;
+import static io.crate.testing.Asserts.isLiteral;
+import static io.crate.testing.Asserts.isReference;
 
-import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -56,8 +52,8 @@ public class SplitPointsTest extends CrateDummyClusterServiceUnitTest {
 
         SplitPoints splitPoints = SplitPointsBuilder.create(relation);
 
-        assertThat(splitPoints.toCollect(), contains(isFunction("coalesce")));
-        assertThat(splitPoints.aggregates(), contains(isFunction("sum")));
+        assertThat(splitPoints.toCollect()).satisfiesExactly(isFunction("coalesce"));
+        assertThat(splitPoints.aggregates()).satisfiesExactly(isFunction("sum"));
     }
 
     @Test
@@ -69,8 +65,8 @@ public class SplitPointsTest extends CrateDummyClusterServiceUnitTest {
 
         SplitPoints splitPoints = SplitPointsBuilder.create(relation);
 
-        assertThat(splitPoints.toCollect(), contains(isFunction("coalesce")));
-        assertThat(splitPoints.aggregates(), contains(isFunction("sum")));
+        assertThat(splitPoints.toCollect()).satisfiesExactly(isFunction("coalesce"));
+        assertThat(splitPoints.aggregates()).satisfiesExactly(isFunction("sum"));
     }
 
 
@@ -79,25 +75,25 @@ public class SplitPointsTest extends CrateDummyClusterServiceUnitTest {
         QueriedSelectRelation relation = e.analyze("select x + 1 from t1 group by x");
 
         SplitPoints splitPoints = SplitPointsBuilder.create(relation);
-        assertThat(splitPoints.toCollect(), contains(isReference("x")));
-        assertThat(splitPoints.aggregates(), Matchers.emptyIterable());
+        assertThat(splitPoints.toCollect()).satisfiesExactly(isReference("x"));
+        assertThat(splitPoints.aggregates()).isEmpty();
     }
 
     @Test
     public void testTableFunctionArgsAndStandaloneColumnsAreAddedToCollect() throws Exception {
         QueriedSelectRelation relation = e.analyze("select unnest(xs), x from t2");
         SplitPoints splitPoints = SplitPointsBuilder.create(relation);
-        assertThat(splitPoints.toCollect(), contains(isReference("xs"), isReference("x")));
-        assertThat(splitPoints.tableFunctions(), contains(isFunction("unnest")));
+        assertThat(splitPoints.toCollect()).satisfiesExactly(isReference("xs"), isReference("x"));
+        assertThat(splitPoints.tableFunctions()).satisfiesExactly(isFunction("unnest"));
     }
 
     @Test
     public void testAggregationPlusTableFunctionUsingAggregation() throws Exception {
         QueriedSelectRelation relation = e.analyze("select max(x), generate_series(0, max(x)) from t1");
         SplitPoints splitPoints = SplitPointsBuilder.create(relation);
-        assertThat(splitPoints.toCollect(), contains(isReference("x")));
-        assertThat(splitPoints.aggregates(), contains(isFunction("max")));
-        assertThat(splitPoints.tableFunctions(), contains(isFunction("generate_series")));
+        assertThat(splitPoints.toCollect()).satisfiesExactly(isReference("x"));
+        assertThat(splitPoints.aggregates()).satisfiesExactly(isFunction("max"));
+        assertThat(splitPoints.tableFunctions()).satisfiesExactly(isFunction("generate_series"));
     }
 
     @Test
@@ -106,11 +102,10 @@ public class SplitPointsTest extends CrateDummyClusterServiceUnitTest {
 
         SplitPoints splitPoints = SplitPointsBuilder.create(relation);
 
-        assertThat(splitPoints.toCollect(), contains(
+        assertThat(splitPoints.toCollect()).satisfiesExactly(
             isReference("i"),
-            isFunction("op_>", isReference("x"), isLiteral(1)))
-        );
-        assertThat(splitPoints.aggregates(), contains(isFunction("sum")));
+            isFunction("op_>", isReference("x"), isLiteral(1)));
+        assertThat(splitPoints.aggregates()).satisfiesExactly(isFunction("sum"));
     }
 
     @Test
@@ -119,11 +114,10 @@ public class SplitPointsTest extends CrateDummyClusterServiceUnitTest {
 
         SplitPoints splitPoints = SplitPointsBuilder.create(relation);
 
-        assertThat(splitPoints.toCollect(), contains(
+        assertThat(splitPoints.toCollect()).satisfiesExactly(
             isReference("i"),
-            isFunction("op_>", isReference("x"), isLiteral(1)))
-        );
-        assertThat(splitPoints.windowFunctions(), contains(isFunction("sum")));
-        assertThat(splitPoints.aggregates(), is(empty()));
+            isFunction("op_>", isReference("x"), isLiteral(1)));
+        assertThat(splitPoints.windowFunctions()).satisfiesExactly(isFunction("sum"));
+        assertThat(splitPoints.aggregates()).isEmpty();
     }
 }

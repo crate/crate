@@ -21,8 +21,8 @@
 
 package io.crate.expression.scalar;
 
-import static io.crate.testing.SymbolMatchers.isLiteral;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
+import static io.crate.testing.Asserts.isLiteral;
 
 import java.util.Locale;
 import java.util.Map;
@@ -53,8 +53,8 @@ public class DateFormatFunctionTest extends ScalarTestCase {
 
     @Test
     public void testEvaluateWithNullValues() {
-        assertEvaluate("date_format('%d.%m.%Y %H:%i:%S', timestamp_tz)", null, Literal.of(DataTypes.TIMESTAMPZ, null));
-        assertEvaluate("date_format(name, 'Europe/Berlin', 0)", null, Literal.of(DataTypes.STRING, null));
+        assertEvaluateNull("date_format('%d.%m.%Y %H:%i:%S', timestamp_tz)", Literal.of(DataTypes.TIMESTAMPZ, null));
+        assertEvaluateNull("date_format(name, 'Europe/Berlin', 0)", Literal.of(DataTypes.STRING, null));
     }
 
     @Test
@@ -97,13 +97,11 @@ public class DateFormatFunctionTest extends ScalarTestCase {
 
     @Test
     public void testNullInputs() {
-        assertEvaluate("date_format(time_format, timezone, timestamp_tz)",
-            null,
+        assertEvaluateNull("date_format(time_format, timezone, timestamp_tz)",
             Literal.of("%d.%m.%Y %H:%i:%S"),
             Literal.of(DataTypes.STRING, null),
             Literal.of(DataTypes.TIMESTAMPZ, null));
-        assertEvaluate("date_format(time_format, timezone, timestamp_tz)",
-            null,
+        assertEvaluateNull("date_format(time_format, timezone, timestamp_tz)",
             Literal.of(DataTypes.STRING, null),
             Literal.of("Europe/Berlin"),
             Literal.of(DataTypes.TIMESTAMPZ, 0L));
@@ -136,14 +134,14 @@ public class DateFormatFunctionTest extends ScalarTestCase {
     public void testInvalidTimeZone() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("invalid time zone value 'wrong timezone'");
-        assertEvaluate("date_format('%d.%m.%Y', 'wrong timezone', 0)", null);
+        assertEvaluateNull("date_format('%d.%m.%Y', 'wrong timezone', 0)");
     }
 
     @Test
     public void testInvalidTimestamp() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Cannot cast `'NO TIMESTAMP'` of type `text` to type `timestamp with time zone`");
-        assertEvaluate("date_format('%d.%m.%Y', 'NO TIMESTAMP')", null);
+        assertEvaluateNull("date_format('%d.%m.%Y', 'NO TIMESTAMP')");
     }
 
     @Test
@@ -207,9 +205,13 @@ public class DateFormatFunctionTest extends ScalarTestCase {
             for (Map.Entry<String, String> ioEntry : entry.getValue().entrySet()) {
                 Symbol result = sqlExpressions.normalize(sqlExpressions.asSymbol(String.format(Locale.ENGLISH,
                     "date_format('%s', '%s')", ioEntry.getKey(), entry.getKey())));
-                assertThat(String.format(Locale.ENGLISH, "Format String '%s' returned wrong result for date '%s'", ioEntry.getKey(), entry.getKey()),
-                    result,
-                    isLiteral(ioEntry.getValue()));
+                assertThat(result)
+                        .as(String.format(
+                            Locale.ENGLISH,
+                            "Format String '%s' returned wrong result for date '%s'",
+                            ioEntry.getKey(),
+                            entry.getKey()))
+                    .isLiteral(ioEntry.getValue());
             }
         }
     }

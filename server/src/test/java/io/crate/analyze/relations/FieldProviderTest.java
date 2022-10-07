@@ -21,10 +21,10 @@
 
 package io.crate.analyze.relations;
 
-import static io.crate.testing.SymbolMatchers.isField;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -43,11 +43,10 @@ import io.crate.testing.DummyRelation;
 
 public class FieldProviderTest extends ESTestCase {
 
-    private AnalyzedRelation dummyRelation = new DummyRelation("name");
-
-    private Map<QualifiedName, AnalyzedRelation> dummySources = Map.of(new QualifiedName("dummy"), dummyRelation);
-
-    private boolean DEFAULT_ERROR_ON_UNKNOWN_OBJECT_KEY = true;
+    private static final AnalyzedRelation DUMMY_RELATION = new DummyRelation("name");
+    private static final Map<QualifiedName, AnalyzedRelation> DUMMY_SOURCES =
+        Map.of(new QualifiedName("dummy"), DUMMY_RELATION);
+    private static final boolean DEFAULT_ERROR_ON_UNKNOWN_OBJECT_KEY = true;
 
     private static QualifiedName newQN(String dottedName) {
         return new QualifiedName(Arrays.asList(dottedName.split("\\.")));
@@ -78,7 +77,7 @@ public class FieldProviderTest extends ESTestCase {
     public void testUnknownSchema() throws Exception {
         expectedException.expect(RelationUnknown.class);
         expectedException.expectMessage("Relation 'invalid.table' unknown");
-        FieldProvider<Symbol> resolver = newFQFieldProvider(dummySources);
+        FieldProvider<Symbol> resolver = newFQFieldProvider(DUMMY_SOURCES);
         resolver.resolveField(newQN("invalid.table.name"), null, Operation.READ, DEFAULT_ERROR_ON_UNKNOWN_OBJECT_KEY);
     }
 
@@ -86,7 +85,7 @@ public class FieldProviderTest extends ESTestCase {
     public void testUnknownTable() throws Exception {
         expectedException.expect(RelationUnknown.class);
         expectedException.expectMessage("Relation 'dummy.invalid' unknown");
-        FieldProvider<Symbol> resolver = newFQFieldProvider(dummySources);
+        FieldProvider<Symbol> resolver = newFQFieldProvider(DUMMY_SOURCES);
         resolver.resolveField(newQN("dummy.invalid.name"), null, Operation.READ, DEFAULT_ERROR_ON_UNKNOWN_OBJECT_KEY);
     }
 
@@ -94,7 +93,7 @@ public class FieldProviderTest extends ESTestCase {
     public void testSysColumnWithoutSourceRelation() throws Exception {
         expectedException.expect(RelationUnknown.class);
         expectedException.expectMessage("Relation 'sys.nodes' unknown");
-        FieldProvider<Symbol> resolver = newFQFieldProvider(dummySources);
+        FieldProvider<Symbol> resolver = newFQFieldProvider(DUMMY_SOURCES);
 
         resolver.resolveField(newQN("sys.nodes.name"), null, Operation.READ, DEFAULT_ERROR_ON_UNKNOWN_OBJECT_KEY);
     }
@@ -102,7 +101,7 @@ public class FieldProviderTest extends ESTestCase {
     @Test
     public void testRegularColumnUnknown() throws Exception {
         expectedException.expect(ColumnUnknownException.class);
-        FieldProvider<Symbol> resolver = newFQFieldProvider(dummySources);
+        FieldProvider<Symbol> resolver = newFQFieldProvider(DUMMY_SOURCES);
         resolver.resolveField(newQN("age"), null, Operation.READ, DEFAULT_ERROR_ON_UNKNOWN_OBJECT_KEY);
     }
 
@@ -128,13 +127,13 @@ public class FieldProviderTest extends ESTestCase {
             newQN("foo.a"), fooA,
             newQN("custom.t"), customT));
         Symbol field = resolver.resolveField(newQN("foo.t.name"), null, Operation.READ, DEFAULT_ERROR_ON_UNKNOWN_OBJECT_KEY);
-        assertThat(field, isField("name", fooT.relationName()));
+        assertThat(field).isField("name", fooT.relationName());
 
         Symbol tags = resolver.resolveField(newQN("tags"), null, Operation.READ, DEFAULT_ERROR_ON_UNKNOWN_OBJECT_KEY);
-        assertThat(tags, isField("tags", customT.relationName()));
+        assertThat(tags).isField("tags", customT.relationName());
 
         field = resolver.resolveField(newQN("a.name"), null, Operation.READ, DEFAULT_ERROR_ON_UNKNOWN_OBJECT_KEY);
-        assertThat(field, isField("name", fooA.relationName()));
+        assertThat(field).isField("name", fooA.relationName());
     }
 
     @Test
@@ -142,9 +141,9 @@ public class FieldProviderTest extends ESTestCase {
         // t.name from doc.foo t
         AnalyzedRelation relation = new DummyRelation(new RelationName("doc", "t"), "name");
         FieldProvider<Symbol> resolver = newFQFieldProvider(Map.of(
-            new QualifiedName(Arrays.asList("t")), relation));
+            new QualifiedName(List.of("t")), relation));
         Symbol field = resolver.resolveField(newQN("t.name"), null, Operation.READ, DEFAULT_ERROR_ON_UNKNOWN_OBJECT_KEY);
-        assertThat(field, isField("name", relation.relationName()));
+        assertThat(field).isField("name", relation.relationName());
     }
 
     @Test
@@ -153,7 +152,7 @@ public class FieldProviderTest extends ESTestCase {
         AnalyzedRelation relation = new DummyRelation("name");
         FieldProvider<Symbol> resolver = newFQFieldProvider(Map.of(newQN("doc.t"), relation));
         Symbol field = resolver.resolveField(newQN("name"), null, Operation.READ, DEFAULT_ERROR_ON_UNKNOWN_OBJECT_KEY);
-        assertThat(field, isField("name", relation.relationName()));
+        assertThat(field).isField("name", relation.relationName());
     }
 
     @Test
@@ -163,13 +162,13 @@ public class FieldProviderTest extends ESTestCase {
         AnalyzedRelation relation = new DummyRelation(new RelationName("doc", "t"), "name");
         FieldProvider<Symbol> resolver = newFQFieldProvider(Map.of(newQN("doc.t"), relation));
         Symbol field = resolver.resolveField(newQN("doc.t.name"), null, Operation.INSERT, DEFAULT_ERROR_ON_UNKNOWN_OBJECT_KEY);
-        assertThat(field, isField("name", relation.relationName()));
+        assertThat(field).isField("name", relation.relationName());
     }
 
     @Test
     public void testTooManyParts() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        FieldProvider<Symbol> resolver = newFQFieldProvider(dummySources);
+        FieldProvider<Symbol> resolver = newFQFieldProvider(DUMMY_SOURCES);
         resolver.resolveField(new QualifiedName(Arrays.asList("a", "b", "c", "d")), null, Operation.READ, DEFAULT_ERROR_ON_UNKNOWN_OBJECT_KEY);
     }
 
@@ -177,7 +176,7 @@ public class FieldProviderTest extends ESTestCase {
     public void testTooManyPartsNameFieldResolver() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Column reference \"a.b\" has too many parts. A column must not have a schema or a table here.");
-        FieldProvider<Symbol> resolver = new NameFieldProvider(dummyRelation);
+        FieldProvider<Symbol> resolver = new NameFieldProvider(DUMMY_RELATION);
         resolver.resolveField(new QualifiedName(Arrays.asList("a", "b")), null, Operation.READ, DEFAULT_ERROR_ON_UNKNOWN_OBJECT_KEY);
     }
 
@@ -211,8 +210,8 @@ public class FieldProviderTest extends ESTestCase {
         // select name from doc.t
         AnalyzedRelation relation = new DummyRelation("name");
         FieldProvider<Symbol> resolver = new NameFieldProvider(relation);
-        Symbol field = resolver.resolveField(new QualifiedName(Arrays.asList("name")), null, Operation.READ, DEFAULT_ERROR_ON_UNKNOWN_OBJECT_KEY);
-        assertThat(field, isField("name", relation.relationName()));
+        Symbol field = resolver.resolveField(new QualifiedName(List.of("name")), null, Operation.READ, DEFAULT_ERROR_ON_UNKNOWN_OBJECT_KEY);
+        assertThat(field).isField("name", relation.relationName());
     }
 
     @Test
@@ -221,7 +220,7 @@ public class FieldProviderTest extends ESTestCase {
         expectedException.expectMessage("Column unknown unknown");
         AnalyzedRelation relation = new DummyRelation("name");
         FieldProvider<Symbol> resolver = newFQFieldProvider(Map.of(newQN("doc.t"), relation));
-        resolver.resolveField(new QualifiedName(Arrays.asList("unknown")), null, Operation.READ, DEFAULT_ERROR_ON_UNKNOWN_OBJECT_KEY);
+        resolver.resolveField(new QualifiedName(List.of("unknown")), null, Operation.READ, DEFAULT_ERROR_ON_UNKNOWN_OBJECT_KEY);
     }
 
     @Test
@@ -230,7 +229,7 @@ public class FieldProviderTest extends ESTestCase {
 
         FieldProvider<Symbol> resolver = newFQFieldProvider(Map.of(newQN("\"Foo\".\"Bar\""), barT));
         Symbol field = resolver.resolveField(newQN("\"Foo\".\"Bar\".\"Name\""), null, Operation.READ, DEFAULT_ERROR_ON_UNKNOWN_OBJECT_KEY);
-        assertThat(field, isField("\"Name\"", barT.relationName()));
+        assertThat(field).isField("\"Name\"", barT.relationName());
     }
 
     @Test
@@ -248,7 +247,7 @@ public class FieldProviderTest extends ESTestCase {
 
         FieldProvider<Symbol> resolver = newFQFieldProvider(Map.of(newQN("\"Bar\""), barT));
         Symbol field = resolver.resolveField(newQN("\"Bar\".name"), null, Operation.READ, DEFAULT_ERROR_ON_UNKNOWN_OBJECT_KEY);
-        assertThat(field, isField("name", barT.relationName()));
+        assertThat(field).isField("name", barT.relationName());
     }
 
     @Test

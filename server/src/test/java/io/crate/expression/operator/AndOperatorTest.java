@@ -21,8 +21,8 @@
 
 package io.crate.expression.operator;
 
-import static io.crate.testing.SymbolMatchers.isLiteral;
-import static io.crate.testing.SymbolMatchers.isReference;
+import static io.crate.testing.Asserts.isLiteral;
+import static io.crate.testing.Asserts.isReference;
 import static io.crate.testing.TestingHelpers.isSQL;
 import static org.hamcrest.Matchers.contains;
 import static org.junit.Assert.assertThat;
@@ -62,11 +62,11 @@ public class AndOperatorTest extends ScalarTestCase {
         assertEvaluate("false and false", false);
         assertEvaluate("true and false", false);
         assertEvaluate("false and true", false);
-        assertEvaluate("true and null", null);
-        assertEvaluate("null and true", null);
+        assertEvaluateNull("true and null");
+        assertEvaluateNull("null and true");
         assertEvaluate("false and null", false);
         assertEvaluate("null and false", false);
-        assertEvaluate("null and null", null);
+        assertEvaluateNull("null and null");
     }
 
     @Test

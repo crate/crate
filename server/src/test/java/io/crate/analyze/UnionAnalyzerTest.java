@@ -21,25 +21,24 @@
 
 package io.crate.analyze;
 
-import static io.crate.testing.SymbolMatchers.isField;
-import static io.crate.testing.SymbolMatchers.isLiteral;
-import static io.crate.testing.SymbolMatchers.isReference;
-import static org.hamcrest.Matchers.contains;
+import static io.crate.testing.Asserts.isField;
+import static io.crate.testing.Asserts.isLiteral;
+import static io.crate.testing.Asserts.isReference;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
+import java.util.Objects;
 
-import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.analyze.relations.UnionSelect;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.Asserts;
 import io.crate.testing.SQLExecutor;
-import io.crate.testing.SymbolMatchers;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 
@@ -66,17 +65,18 @@ public class UnionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             "select id, name from users_multi_pk " +
             "order by id, 2 " +
             "limit 10 offset 20");
-        assertThat(relation.orderBy().orderBySymbols(), contains(isField("id"), isField("text")));
-        assertThat(relation.limit(), isLiteral(10L));
-        assertThat(relation.offset(), isLiteral(20L));
+        Asserts.assertThat(Objects.requireNonNull(relation.orderBy()).orderBySymbols())
+            .satisfiesExactly(isField("id"), isField("text"));
+        Asserts.assertThat(relation.limit()).isLiteral(10L);
+        Asserts.assertThat(relation.offset()).isLiteral(20L);
         assertThat(relation.isDistinct(), is(false));
 
         UnionSelect tableUnion = ((UnionSelect) relation.from().get(0));
         assertThat(tableUnion.left(), instanceOf(QueriedSelectRelation.class));
         assertThat(tableUnion.right(), instanceOf(QueriedSelectRelation.class));
-        assertThat(tableUnion.outputs(), contains(isField("id"), isField("text")));
-        assertThat(tableUnion.left().outputs(), contains(isReference("id"), isReference("text")));
-        assertThat(tableUnion.right().outputs(), contains(isReference("id"), isReference("name")));
+        Asserts.assertThat(tableUnion.outputs()).satisfiesExactly(isField("id"), isField("text"));
+        Asserts.assertThat(tableUnion.left().outputs()).satisfiesExactly(isReference("id"), isReference("text"));
+        Asserts.assertThat(tableUnion.right().outputs()).satisfiesExactly(isReference("id"), isReference("name"));
     }
 
     @Test
@@ -90,25 +90,26 @@ public class UnionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             "order by text " +
             "limit 10 offset 20"
         );
-        assertThat(relation.orderBy().orderBySymbols(), contains(isField("text")));
-        assertThat(relation.limit(), isLiteral(10L));
-        assertThat(relation.offset(), isLiteral(20L));
+        Asserts.assertThat(Objects.requireNonNull(relation.orderBy()).orderBySymbols())
+            .satisfiesExactly(isField("text"));
+        Asserts.assertThat(relation.limit()).isLiteral(10L);
+        Asserts.assertThat(relation.offset()).isLiteral(20L);
         assertThat(relation.isDistinct(), is(false));
 
         UnionSelect tableUnion1 = ((UnionSelect) relation.from().get(0));
         assertThat(tableUnion1.left(), instanceOf(UnionSelect.class));
         assertThat(tableUnion1.right(), instanceOf(QueriedSelectRelation.class));
-        assertThat(tableUnion1.outputs(), contains(isField("id"), isField("text")));
-        assertThat(tableUnion1.right().outputs(), contains(isReference("id"), isReference("name")));
+        Asserts.assertThat(tableUnion1.outputs()).satisfiesExactly(isField("id"), isField("text"));
+        Asserts.assertThat(tableUnion1.right().outputs()).satisfiesExactly(isReference("id"), isReference("name"));
 
         UnionSelect tableUnion2 = (UnionSelect) tableUnion1.left();
-        assertThat(tableUnion2.outputs(), contains(isField("id"), isField("text")));
+        Asserts.assertThat(tableUnion2.outputs()).satisfiesExactly(isField("id"), isField("text"));
 
         assertThat(tableUnion2.left(), instanceOf(QueriedSelectRelation.class));
-        assertThat(tableUnion2.left().outputs(), contains(isField("id"), isField("text")));
+        Asserts.assertThat(tableUnion2.left().outputs()).satisfiesExactly(isField("id"), isField("text"));
 
         assertThat(tableUnion2.right(), instanceOf(QueriedSelectRelation.class));
-        assertThat(tableUnion2.right().outputs(), contains(isReference("id"), isReference("name")));
+        Asserts.assertThat(tableUnion2.right().outputs()).satisfiesExactly(isReference("id"), isReference("name"));
     }
 
     @Test
@@ -152,22 +153,16 @@ public class UnionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             "union all " +
             "select null");
 
-        assertThat(union.outputs(), Matchers.contains(
-            isField("id", DataTypes.LONG)
-        ));
-        assertThat(union.right().outputs(), Matchers.contains(
-            isLiteral(null, DataTypes.UNDEFINED)
-        ));
+        Asserts.assertThat(union.outputs()).satisfiesExactly(isField("id", DataTypes.LONG));
+        Asserts.assertThat(union.right().outputs()).satisfiesExactly(isLiteral(null, DataTypes.UNDEFINED));
 
         union = analyze("SELECT null AS id UNION ALL SELECT id FROM users");
-        assertThat(union.outputs(), Matchers.contains(
-            isField("id", DataTypes.LONG)
-        ));
+        Asserts.assertThat(union.outputs()).satisfiesExactly(
+            isField("id", DataTypes.LONG));
 
         union = analyze("SELECT null UNION ALL SELECT id FROM users");
-        assertThat(union.outputs(), Matchers.contains(
-            isField("NULL", DataTypes.LONG)
-        ));
+        Asserts.assertThat(union.outputs()).satisfiesExactly(
+            isField("NULL", DataTypes.LONG));
     }
 
     @Test
@@ -202,11 +197,9 @@ public class UnionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
         UnionSelect union = analyze("select obj from v1 union all select obj from v2");
         ObjectType expectedType = ObjectType.builder().setInnerType("col", DataTypes.STRING).build();
-        assertThat(
-            "Output type is object(col::text) because text has higher precedence than int",
-            union.outputs(),
-            contains(SymbolMatchers.isField("obj", expectedType))
-        );
+        Asserts.assertThat(union.outputs())
+            .as("Output type is object(col::text) because text has higher precedence than int")
+            .satisfiesExactly(isField("obj", expectedType));
     }
 
     @Test
@@ -220,6 +213,6 @@ public class UnionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             ).build();
 
         UnionSelect unionSelect = analyze("select obj from v1 union all select obj from v2");
-        assertThat(unionSelect.outputs().get(0), isField("obj"));
+        Asserts.assertThat(unionSelect.outputs().get(0)).isField("obj");
     }
 }

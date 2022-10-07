@@ -31,7 +31,7 @@ public class ObjectKeysFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_null_input() {
-        assertEvaluate("object_keys(null)", null);
+        assertEvaluateNull("object_keys(null)");
     }
 
     @Test
@@ -40,7 +40,7 @@ public class ObjectKeysFunctionTest extends ScalarTestCase {
         expectedException.expectMessage("Unknown function: object_keys(_array(1)), no overload found for" +
                                         " matching argument types: (integer_array). Possible candidates:" +
                                         " object_keys(object):array(text)");
-        assertEvaluate("object_keys([1])", null);
+        assertEvaluateNull("object_keys([1])");
     }
 
     @Test

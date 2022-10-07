@@ -21,8 +21,7 @@
 
 package io.crate.analyze;
 
-import static io.crate.testing.SymbolMatchers.isReference;
-import static org.hamcrest.Matchers.contains;
+import static io.crate.testing.Asserts.isReference;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
@@ -43,6 +42,7 @@ import io.crate.expression.symbol.WindowFunction;
 import io.crate.sql.tree.FrameBound;
 import io.crate.sql.tree.WindowFrame;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.Asserts;
 import io.crate.testing.SQLExecutor;
 
 public class SelectWindowFunctionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
@@ -176,7 +176,7 @@ public class SelectWindowFunctionAnalyzerTest extends CrateDummyClusterServiceUn
         WindowFunction windowFunction = (WindowFunction) relation.outputs().get(0);
         WindowDefinition windowDefinition = windowFunction.windowDefinition();
 
-        assertThat(windowDefinition.partitions(), contains(isReference("x")));
+        Asserts.assertThat(windowDefinition.partitions()).satisfiesExactly(isReference("x"));
 
         OrderBy orderBy = windowDefinition.orderBy();
         assertThat(orderBy, not(nullValue()));
@@ -192,7 +192,7 @@ public class SelectWindowFunctionAnalyzerTest extends CrateDummyClusterServiceUn
         WindowFunction windowFunction = (WindowFunction) relation.outputs().get(0);
         WindowDefinition windowDefinition = windowFunction.windowDefinition();
 
-        assertThat(windowDefinition.partitions(), contains(isReference("x")));
+        Asserts.assertThat(windowDefinition.partitions()).satisfiesExactly(isReference("x"));
 
         OrderBy orderBy = windowDefinition.orderBy();
         assertThat(orderBy, not(nullValue()));

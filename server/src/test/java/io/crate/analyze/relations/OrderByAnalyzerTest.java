@@ -41,8 +41,8 @@ import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.QualifiedNameReference;
 import io.crate.sql.tree.SortItem;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.Asserts;
 import io.crate.testing.SQLExecutor;
-import io.crate.testing.SymbolMatchers;
 
 public class OrderByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -69,8 +69,8 @@ public class OrderByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(orderBy, is(notNullValue()));
         List<Symbol> orderBySymbols = orderBy.orderBySymbols();
         assertThat(orderBySymbols.size(), is(2));
-        assertThat(orderBySymbols.get(0), SymbolMatchers.isLiteral("t.x"));
-        assertThat(orderBySymbols.get(1), SymbolMatchers.isLiteral("t.y"));
+        Asserts.assertThat(orderBySymbols.get(0)).isLiteral("t.x");
+        Asserts.assertThat(orderBySymbols.get(1)).isLiteral("t.y");
 
         boolean[] reverseFlags = orderBy.reverseFlags();
         assertThat(reverseFlags.length, is(2));

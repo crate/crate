@@ -21,9 +21,7 @@
 
 package io.crate.analyze.relations;
 
-import static io.crate.testing.SymbolMatchers.isField;
-import static io.crate.testing.SymbolMatchers.isLiteral;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import org.junit.Test;
 
@@ -52,23 +50,23 @@ public class ExcludedFieldProviderTest {
                 new ColumnIdent(qualifiedName.toString()),
                 DataTypes.INTEGER);
         ValuesResolver valuesResolver = argumentColumn -> {
-            assertThat(argumentColumn, isField("field3"));
+            assertThat(argumentColumn).isField("field3");
             return Literal.of(42);
         };
 
         ExcludedFieldProvider excludedFieldProvider = new ExcludedFieldProvider(fieldProvider, valuesResolver);
 
         assertThat(
-            excludedFieldProvider.resolveField(normalField1, null, Operation.READ, DEFAULT_ERROR_ON_UNKNOWN_OBJECT_KEY),
-            isField(normalField1.toString()));
+            excludedFieldProvider.resolveField(normalField1, null, Operation.READ, DEFAULT_ERROR_ON_UNKNOWN_OBJECT_KEY))
+            .isField(normalField1.toString());
 
         assertThat(
-            excludedFieldProvider.resolveField(normalField2, null, Operation.READ, DEFAULT_ERROR_ON_UNKNOWN_OBJECT_KEY),
-            isField(normalField2.toString()));
+            excludedFieldProvider.resolveField(normalField2, null, Operation.READ, DEFAULT_ERROR_ON_UNKNOWN_OBJECT_KEY))
+            .isField(normalField2.toString());
 
         assertThat(
-            excludedFieldProvider.resolveField(excludedName, null, Operation.READ, DEFAULT_ERROR_ON_UNKNOWN_OBJECT_KEY),
-            isLiteral(42));
+            excludedFieldProvider.resolveField(excludedName, null, Operation.READ, DEFAULT_ERROR_ON_UNKNOWN_OBJECT_KEY))
+            .isLiteral(42);
     }
 
 }

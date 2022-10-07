@@ -21,12 +21,12 @@
 
 package io.crate.expression.scalar;
 
-import static io.crate.testing.SymbolMatchers.isFunction;
-import static io.crate.testing.SymbolMatchers.isLiteral;
+import static io.crate.testing.Asserts.exactlyInstanceOf;
+import static io.crate.testing.Asserts.isFunction;
+import static io.crate.testing.Asserts.isLiteral;
 
 import java.util.List;
 
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.exceptions.ColumnUnknownException;
@@ -57,7 +57,7 @@ public class SubscriptFunctionTest extends ScalarTestCase {
     public void test_subscript_can_be_used_on_subqueries_returning_objects() {
         assertNormalize(
             "(select {x=10})['x']",
-            isFunction("subscript", Matchers.instanceOf(SelectSymbol.class), isLiteral("x"))
+            isFunction("subscript", exactlyInstanceOf(SelectSymbol.class), isLiteral("x"))
         );
     }
 
@@ -92,6 +92,6 @@ public class SubscriptFunctionTest extends ScalarTestCase {
             "The object `{}` does not contain the key `y`"
         );
         sqlExpressions.setErrorOnUnknownObjectKey(false);
-        assertEvaluate("{}['y']", null);
+        assertEvaluateNull("{}['y']");
     }
 }

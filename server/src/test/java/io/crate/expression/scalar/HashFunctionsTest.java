@@ -21,8 +21,8 @@
 
 package io.crate.expression.scalar;
 
-import static io.crate.testing.SymbolMatchers.isFunction;
-import static io.crate.testing.SymbolMatchers.isLiteral;
+import static io.crate.testing.Asserts.isFunction;
+import static io.crate.testing.Asserts.isLiteral;
 
 import org.junit.Test;
 
@@ -53,10 +53,10 @@ public class HashFunctionsTest extends ScalarTestCase {
 
     @Test
     public void evaluateOnNull() throws Exception {
-        assertEvaluate("md5(null)", null);
-        assertEvaluate("md5(null)", null, Literal.of(DataTypes.STRING, null));
-        assertEvaluate("sha1(null)", null);
-        assertEvaluate("sha1(name)", null, Literal.of(DataTypes.STRING, null));
+        assertEvaluateNull("md5(null)");
+        assertEvaluateNull("md5(null)", Literal.of(DataTypes.STRING, null));
+        assertEvaluateNull("sha1(null)");
+        assertEvaluateNull("sha1(name)", Literal.of(DataTypes.STRING, null));
     }
 
     @Test

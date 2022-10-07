@@ -38,7 +38,7 @@ public class AsciiFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_ascii_returns_null_for_null_arg() throws Exception {
-        assertEvaluate("ascii(null)", null);
+        assertEvaluateNull("ascii(null)");
     }
 
     @Test

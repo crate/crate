@@ -21,7 +21,7 @@
 
 package io.crate.expression.scalar.arithmetic;
 
-import static io.crate.testing.SymbolMatchers.isLiteral;
+import static io.crate.testing.Asserts.isLiteral;
 
 import java.util.List;
 
@@ -38,7 +38,7 @@ public class ArrayFunctionTest extends ScalarTestCase {
     public void testTypeValidation() {
         expectedException.expect(ConversionException.class);
         expectedException.expectMessage("Cannot cast `'foo'` of type `text` to type `integer`");
-        assertEvaluate("ARRAY[1, 'foo']", null);
+        assertEvaluateNull("ARRAY[1, 'foo']");
     }
 
     @Test

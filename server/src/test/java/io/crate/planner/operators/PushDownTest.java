@@ -22,6 +22,8 @@
 package io.crate.planner.operators;
 
 import static io.crate.planner.operators.LogicalPlannerTest.isPlan;
+import static io.crate.testing.Asserts.isLiteral;
+import static io.crate.testing.Asserts.isReference;
 import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
@@ -32,8 +34,8 @@ import org.junit.Test;
 import io.crate.analyze.TableDefinitions;
 import io.crate.planner.node.dql.CountPlan;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.Asserts;
 import io.crate.testing.SQLExecutor;
-import io.crate.testing.SymbolMatchers;
 import io.crate.testing.T3;
 
 public class PushDownTest extends CrateDummyClusterServiceUnitTest {
@@ -390,13 +392,8 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
         assertThat(plan, isPlan(expectedPlan));
 
         CountPlan count = (CountPlan) sqlExecutor.plan(stmt);
-        assertThat(
-            count.countPhase().where(),
-            SymbolMatchers.isFunction("op_>",
-                SymbolMatchers.isReference("x"),
-                SymbolMatchers.isLiteral(1)
-            )
-        );
+        Asserts.assertThat(count.countPhase().where())
+            .isFunction("op_>", isReference("x"), isLiteral(1));
     }
 
     @Test

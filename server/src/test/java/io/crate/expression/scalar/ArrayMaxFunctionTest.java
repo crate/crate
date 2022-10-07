@@ -62,22 +62,22 @@ public class ArrayMaxFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_all_elements_nulls_results_in_null() {
-        assertEvaluate("array_max(cast([null, null] as array(integer)))", null);
+        assertEvaluateNull("array_max(cast([null, null] as array(integer)))");
     }
 
     @Test
     public void test_null_array_results_in_null() {
-        assertEvaluate("array_max(null::int[])", null);
+        assertEvaluateNull("array_max(null::int[])");
     }
 
     @Test
     public void test_null_array_given_directly_results_in_null() {
-        assertEvaluate("array_max(null)", null);
+        assertEvaluateNull("array_max(null)");
     }
 
     @Test
     public void test_empty_array_results_in_null() {
-        assertEvaluate("array_max(cast([] as array(integer)))", null);
+        assertEvaluateNull("array_max(cast([] as array(integer)))");
     }
 
     @Test

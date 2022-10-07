@@ -21,7 +21,7 @@
 
 package io.crate.expression.scalar.postgres;
 
-import static io.crate.testing.SymbolMatchers.isLiteral;
+import static io.crate.testing.Asserts.isLiteral;
 
 import org.junit.Test;
 
@@ -30,17 +30,17 @@ import io.crate.expression.scalar.ScalarTestCase;
 public class PgGetPartkeydefFunctionTest extends ScalarTestCase {
 
     @Test
-    public void test_pg_get_partkeydef() throws Exception {
-        assertEvaluate("pg_get_partkeydef(1)", null);
+    public void test_pg_get_partkeydef() {
+        assertEvaluateNull("pg_get_partkeydef(1)");
     }
 
     @Test
-    public void test_pg_get_partkeydef_null_input() throws Exception {
-        assertEvaluate("pg_get_partkeydef(null)", null);
+    public void test_pg_get_partkeydef_null_input() {
+        assertEvaluateNull("pg_get_partkeydef(null)");
     }
 
     @Test
-    public void test_pg_get_partkeydef_with_FQN_fuction_name() throws Exception {
+    public void test_pg_get_partkeydef_with_FQN_fuction_name() {
         assertNormalize("pg_catalog.pg_get_partkeydef(1)", isLiteral(null));
     }
 }

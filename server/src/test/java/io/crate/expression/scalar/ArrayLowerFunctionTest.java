@@ -27,19 +27,19 @@ public class ArrayLowerFunctionTest extends ScalarTestCase {
 
     @Test
     public void testSecondArgumentIsNull() {
-        assertEvaluate("array_lower([1, 2], null)", null);
+        assertEvaluateNull("array_lower([1, 2], null)");
     }
 
     @Test
     public void test_not_null_but_invalid_dimension() {
-        assertEvaluate("array_lower([1], 0)", null);
-        assertEvaluate("array_lower([1], -1)", null);
+        assertEvaluateNull("array_lower([1], 0)");
+        assertEvaluateNull("array_lower([1], -1)");
     }
 
     @Test
     public void test_at_least_one_empty_or_null_on_dimension_returns_null() {
-        assertEvaluate("array_lower([[1, 4], [3], []], 2)", null);
-        assertEvaluate("array_lower([[1, 4], null, [1, 2]], 2)", null);
+        assertEvaluateNull("array_lower([[1, 4], [3], []], 2)");
+        assertEvaluateNull("array_lower([[1, 4], null, [1, 2]], 2)");
     }
 
     @Test
@@ -54,9 +54,9 @@ public class ArrayLowerFunctionTest extends ScalarTestCase {
                 "[[], [], []]]";
 
         assertEvaluate("array_lower(" + array + ", 1)", 1);
-        assertEvaluate("array_lower(" + array + ", 2)", null); // because of first null 2D array.
-        assertEvaluate("array_lower(" + array + ", 3)", null);
-        assertEvaluate("array_lower(" + array + ", 4)", null);
+        assertEvaluateNull("array_lower(" + array + ", 2)"); // because of first null 2D array.
+        assertEvaluateNull("array_lower(" + array + ", 3)");
+        assertEvaluateNull("array_lower(" + array + ", 4)");
     }
 
     @Test
@@ -66,7 +66,7 @@ public class ArrayLowerFunctionTest extends ScalarTestCase {
 
     @Test
     public void testSingleDimensionArrayInvalidDimension() {
-        assertEvaluate("array_lower([4, 5], 3)", null);
+        assertEvaluateNull("array_lower([4, 5], 3)");
     }
 
     @Test
@@ -76,12 +76,12 @@ public class ArrayLowerFunctionTest extends ScalarTestCase {
 
     @Test
     public void testMultiDimensionArrayInvalidDimension() {
-        assertEvaluate("array_lower([[1, 2, 3], [3, 4]], 3)", null);
+        assertEvaluateNull("array_lower([[1, 2, 3], [3, 4]], 3)");
     }
 
     @Test
     public void testEmptyArray() {
-        assertEvaluate("array_lower(cast([] as array(integer)), 1)", null);
+        assertEvaluateNull("array_lower(cast([] as array(integer)), 1)");
     }
 
     @Test
@@ -89,7 +89,7 @@ public class ArrayLowerFunctionTest extends ScalarTestCase {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Unknown function: array_lower()." +
                                         " Possible candidates: array_lower(array(E), integer):integer");
-        assertEvaluate("array_lower()", null);
+        assertEvaluateNull("array_lower()");
     }
 
     @Test
@@ -97,7 +97,7 @@ public class ArrayLowerFunctionTest extends ScalarTestCase {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Unknown function: array_lower(_array(1))," +
                                         " no overload found for matching argument types: (integer_array).");
-        assertEvaluate("array_lower([1])", null);
+        assertEvaluateNull("array_lower([1])");
     }
 
     @Test
@@ -105,7 +105,7 @@ public class ArrayLowerFunctionTest extends ScalarTestCase {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Unknown function: array_lower(_array(1), 2, _array(3))," +
                                         " no overload found for matching argument types: (integer_array, integer, integer_array).");
-        assertEvaluate("array_lower([1], 2, [3])", null);
+        assertEvaluateNull("array_lower([1], 2, [3])");
     }
 
     @Test
@@ -113,7 +113,7 @@ public class ArrayLowerFunctionTest extends ScalarTestCase {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Unknown function: array_lower(_array(1), _array(2))," +
                                         " no overload found for matching argument types: (integer_array, integer_array).");
-        assertEvaluate("array_lower([1], [2])", null);
+        assertEvaluateNull("array_lower([1], [2])");
     }
 
     @Test
@@ -121,6 +121,6 @@ public class ArrayLowerFunctionTest extends ScalarTestCase {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage(
             "The inner type of the array argument `array_lower` function cannot be undefined");
-        assertEvaluate("array_lower(null, 1)", null);
+        assertEvaluateNull("array_lower(null, 1)");
     }
 }

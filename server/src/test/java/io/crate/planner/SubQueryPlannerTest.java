@@ -21,10 +21,10 @@
 
 package io.crate.planner;
 
+import static io.crate.testing.Asserts.isFunction;
+import static io.crate.testing.Asserts.isLiteral;
+import static io.crate.testing.Asserts.isReference;
 import static io.crate.testing.ProjectionMatchers.isTopN;
-import static io.crate.testing.SymbolMatchers.isFunction;
-import static io.crate.testing.SymbolMatchers.isLiteral;
-import static io.crate.testing.SymbolMatchers.isReference;
 import static io.crate.testing.TestingHelpers.isSQL;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.instanceOf;
@@ -51,6 +51,7 @@ import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.dql.join.Join;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.Asserts;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
 
@@ -102,13 +103,9 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
                                  "group by c + 100 order by c + 100 " +
                                  "limit 100");
         CollectPhase collectPhase = collect.collectPhase();
-        assertThat(
-            collectPhase.toCollect(),
-            contains(
+        Asserts.assertThat(collectPhase.toCollect()).satisfiesExactly(
                 isReference("i"),
-                isFunction("add", isReference("x"), isLiteral(10))
-            )
-        );
+                isFunction("add", isReference("x"), isLiteral(10)));
         assertThat(
             collectPhase.projections(),
             contains(

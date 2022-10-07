@@ -22,8 +22,9 @@
 package io.crate.expression.scalar.geo;
 
 import static io.crate.expression.scalar.geo.AreaFunction.getArea;
-import static io.crate.testing.SymbolMatchers.isLiteral;
-import static org.junit.Assert.assertEquals;
+import static io.crate.testing.Asserts.isLiteral;
+import static io.crate.testing.Asserts.isNull;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Map;
 
@@ -49,12 +50,11 @@ public class AreaFunctionTest extends ScalarTestCase {
 
     @Test
     public void testWithMapShape() throws Exception {
-
         String wkt = "POLYGON ((-2 -1, -2 2, 5 2, 5 -1, -2 -1))";
         Shape shape = GeoJSONUtils.wkt2Shape(wkt);
         Map<String, Object> map = GeoJSONUtils.shape2Map(shape);
 
-        assertEquals(20.996801695711337, getArea(map), 0);
+        assertThat(getArea(map)).isEqualTo(20.996801695711337);
     }
 
     @Test
@@ -66,8 +66,7 @@ public class AreaFunctionTest extends ScalarTestCase {
 
     @Test
     public void testWithNullValue() throws Exception {
-        assertEvaluate("area(geoShape)", null,
-                       Literal.of(DataTypes.GEO_SHAPE, null));
+        assertEvaluateNull("area(geoShape)", Literal.of(DataTypes.GEO_SHAPE, null));
     }
 
     @Test
@@ -80,7 +79,7 @@ public class AreaFunctionTest extends ScalarTestCase {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage(
             "Unknown function: area(doc.users.geoshape, 'foo'), no overload found for matching argument types: (geo_shape, text). Possible candidates: area(geo_shape):double precision");
-        assertNormalize("area(geoShape, 'foo')", null);
+        assertNormalize("area(geoShape, 'foo')", isNull());
     }
 
     @Test
@@ -88,13 +87,13 @@ public class AreaFunctionTest extends ScalarTestCase {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage(
             "Unknown function: area(1), no overload found for matching argument types: (integer). Possible candidates: area(geo_shape):double precision");
-        assertEvaluate("area(1)", null);
+        assertEvaluateNull("area(1)");
     }
 
     @Test
     public void testWithInvalidStringReferences() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Cannot cast `'POLYGON (foo)'` of type `text` to type `geo_shape`");
-        assertEvaluate("area('POLYGON (foo)')", null);
+        assertEvaluateNull("area('POLYGON (foo)')");
     }
 }

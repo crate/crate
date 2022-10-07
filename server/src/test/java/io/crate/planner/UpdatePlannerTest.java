@@ -23,12 +23,12 @@ package io.crate.planner;
 
 import static io.crate.expression.symbol.SelectSymbol.ResultType.SINGLE_COLUMN_MULTIPLE_VALUES;
 import static io.crate.expression.symbol.SelectSymbol.ResultType.SINGLE_COLUMN_SINGLE_VALUE;
-import static io.crate.testing.Asserts.assertThrowsMatches;
-import static io.crate.testing.SymbolMatchers.isLiteral;
-import static io.crate.testing.SymbolMatchers.isReference;
+import static io.crate.testing.Asserts.isLiteral;
+import static io.crate.testing.Asserts.isReference;
+import static io.crate.testing.Asserts.toCondition;
 import static io.crate.testing.TestingHelpers.isSQL;
 import static java.util.Collections.singletonList;
-import static org.hamcrest.Matchers.contains;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
@@ -68,6 +68,7 @@ import io.crate.planner.node.dql.Collect;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.Asserts;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
 
@@ -113,7 +114,7 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(updateProjection.assignmentsColumns()[0], is("name"));
         Symbol symbol = updateProjection.assignments()[0];
-        assertThat(symbol, isLiteral("Vogon lyric fan", DataTypes.STRING));
+        Asserts.assertThat(symbol).isLiteral("Vogon lyric fan", DataTypes.STRING);
 
         MergePhase mergePhase = merge.mergePhase();
         assertThat(mergePhase.projections().size(), is(1));
@@ -126,8 +127,8 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testUpdateByIdPlan() throws Exception {
         UpdateById updateById = e.plan("update users set name='Vogon lyric fan' where id=1");
 
-        assertThat(updateById.assignmentByTargetCol().keySet(), contains(isReference("name")));
-        assertThat(updateById.assignmentByTargetCol().values(), contains(isLiteral("Vogon lyric fan")));
+        Asserts.assertThat(updateById.assignmentByTargetCol()).hasEntrySatisfying(
+            toCondition(isReference("name")), toCondition(isLiteral("Vogon lyric fan")));
         assertThat(updateById.docKeys().size(), is(1));
 
         assertThat(updateById.docKeys().getOnlyKey().getId(txnCtx, e.nodeCtx, Row.EMPTY, SubQueryResults.EMPTY), is("1"));
@@ -167,11 +168,10 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_update_where_id_and_seq_missing_primary_term() throws Exception {
-        assertThrowsMatches(
-            () -> e.plan("update users set name = 'should not update' where id = 1 and _seq_no = 11"),
-            VersioningValidationException.class,
-            VersioningValidationException.SEQ_NO_AND_PRIMARY_TERM_USAGE_MSG
-        );
+        assertThatThrownBy(
+            () -> e.plan("update users set name = 'should not update' where id = 1 and _seq_no = 11"))
+            .isExactlyInstanceOf(VersioningValidationException.class)
+            .hasMessage(VersioningValidationException.SEQ_NO_AND_PRIMARY_TERM_USAGE_MSG);
     }
 
     @Test

@@ -66,6 +66,6 @@ public class PowerFunctionTest extends ScalarTestCase {
     public void testInvalidNumberOfArguments() {
         expectedException.expectMessage("Unknown function: power(2)," +
                                         " no overload found for matching argument types: (integer).");
-        assertEvaluate("power(2)", null);
+        assertEvaluateNull("power(2)");
     }
 }

@@ -21,10 +21,11 @@
 
 package io.crate.analyze.expressions;
 
-import static io.crate.testing.SymbolMatchers.isFunction;
-import static io.crate.testing.SymbolMatchers.isLiteral;
-import static io.crate.testing.SymbolMatchers.isReference;
+import static io.crate.testing.Asserts.exactlyInstanceOf;
+import static io.crate.testing.Asserts.isLiteral;
+import static io.crate.testing.Asserts.isReference;
 import static io.crate.testing.TestingHelpers.isSQL;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
@@ -77,7 +78,6 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.Asserts;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.SqlExpressions;
-import io.crate.testing.SymbolMatchers;
 import io.crate.testing.T3;
 import io.crate.types.DataTypes;
 
@@ -113,24 +113,22 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_can_access_array_element_from_subscript_on_object_array() {
         var symbol = executor.asSymbol("o_arr['x'][1]");
-        assertThat(symbol, SymbolMatchers.isFunction(
+        Asserts.assertThat(symbol).isFunction(
             "subscript",
-            SymbolMatchers.isReference("o_arr['x']"),
-            SymbolMatchers.isLiteral(1)
-        ));
+            isReference("o_arr['x']"),
+            isLiteral(1)
+        );
 
         symbol = executor.asSymbol("o_arr['o_arr_nested']['y'][1]");
-        assertThat(symbol, SymbolMatchers.isFunction(
+        Asserts.assertThat(symbol).isFunction(
             "subscript",
-            SymbolMatchers.isReference("o_arr['o_arr_nested']['y']"),
-            SymbolMatchers.isLiteral(1)
-        ));
-
-        Asserts.assertThrowsMatches(
-            () -> executor.asSymbol("o_arr['o_arr_nested']['y'][1][1]"),
-            UnsupportedOperationException.class,
-            "Nested array access is not supported"
+            isReference("o_arr['o_arr_nested']['y']"),
+            isLiteral(1)
         );
+
+        assertThatThrownBy(() -> executor.asSymbol("o_arr['o_arr_nested']['y'][1][1]"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("Nested array access is not supported");
     }
 
     @Test
@@ -145,7 +143,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         // Test when use subscript function is used explicitly then it's handled (and validated)
         // the same way it's handled when the subscript operator `[]` is used
         var symbol = executor.asSymbol("subscript(nested_obj.\"myObj\", 'x')");
-        assertThat(symbol, isReference("myObj['x']"));
+        Asserts.assertThat(symbol).isReference("myObj['x']");
     }
 
     @Test
@@ -183,7 +181,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         Function cmp = (Function) expressions.normalize(executor.asSymbol("8 + 5 > t1.x"));
         // the comparison was swapped so the field is on the left side
         assertThat(cmp.name(), is("op_<"));
-        assertThat(cmp.arguments().get(0), isReference("x"));
+        Asserts.assertThat(cmp.arguments().get(0)).isReference("x");
     }
 
     @Test
@@ -250,13 +248,13 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testEarlyConstantFolding() {
-        assertThat(expressions.asSymbol("1 = (1 = (1 = 1))"), isLiteral(true));
+        Asserts.assertThat(expressions.asSymbol("1 = (1 = (1 = 1))")).isLiteral(true);
     }
 
     @Test
     public void testLiteralCastsAreFlattened() {
         Symbol symbol = expressions.asSymbol("cast(cast(1 as long) as double)");
-        assertThat(symbol, isLiteral(1.0));
+        Asserts.assertThat(symbol).isLiteral(1.0);
     }
 
     @Test
@@ -275,28 +273,18 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testFunctionsCanBeCasted() {
         Function symbol2 = (Function) executor.asSymbol("doc.t5.w = doc.t2.i + 1::smallint");
-        assertThat(symbol2, isFunction(EqOperator.NAME));
-        assertThat(symbol2.arguments().get(0), isReference("w"));
-        assertThat(
-            symbol2.arguments().get(1),
-            isFunction(
-                ImplicitCastFunction.NAME,
-                List.of(DataTypes.INTEGER, DataTypes.STRING)
-            )
-        );
+        Asserts.assertThat(symbol2).isFunction(EqOperator.NAME);
+        Asserts.assertThat(symbol2.arguments().get(0)).isReference("w");
+        Asserts.assertThat(symbol2.arguments().get(1))
+            .isFunction(ImplicitCastFunction.NAME, List.of(DataTypes.INTEGER, DataTypes.STRING));
     }
 
     @Test
     public void testColumnsCanBeCastedWhenOnBothSidesOfOperator() {
         Function symbol = (Function) executor.asSymbol("doc.t5.i < doc.t5.w");
-        assertThat(symbol, isFunction(LtOperator.NAME));
-        assertThat(
-            symbol.arguments().get(0),
-            isFunction(
-                ImplicitCastFunction.NAME,
-                List.of(DataTypes.INTEGER, DataTypes.STRING)
-            )
-        );
+        Asserts.assertThat(symbol).isFunction(LtOperator.NAME);
+        Asserts.assertThat(symbol.arguments().get(0))
+            .isFunction(ImplicitCastFunction.NAME, List.of(DataTypes.INTEGER, DataTypes.STRING));
         assertThat(symbol.arguments().get(1).valueType(), is(DataTypes.LONG));
     }
 
@@ -312,19 +300,19 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testBetweenIsEagerlyEvaluatedIfPossible() throws Exception {
         Symbol x = expressions.asSymbol("5 between 1 and 10");
-        assertThat(x, isLiteral(true));
+        Asserts.assertThat(x).isLiteral(true);
     }
 
     @Test
     public void testParameterExpressionInAny() throws Exception {
         Symbol s = expressions.asSymbol("5 = ANY(?)");
-        assertThat(s, isFunction(AnyEqOperator.NAME, isLiteral(5), instanceOf(ParameterSymbol.class)));
+        Asserts.assertThat(s).isFunction(AnyEqOperator.NAME, isLiteral(5), exactlyInstanceOf(ParameterSymbol.class));
     }
 
     @Test
     public void testParameterExpressionInLikeAny() throws Exception {
         Symbol s = expressions.asSymbol("5 LIKE ANY(?)");
-        assertThat(s, isFunction(LikeOperators.ANY_LIKE, isLiteral(5), instanceOf(ParameterSymbol.class)));
+        Asserts.assertThat(s).isFunction(LikeOperators.ANY_LIKE, isLiteral(5), exactlyInstanceOf(ParameterSymbol.class));
     }
 
     @Test
@@ -386,19 +374,19 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_quoted_subscript() {
         var symbol = executor.asSymbol("nested_obj.\"o['a']['b']['c']\"");
-        assertThat(symbol, isReference("o['a']['b']['c']"));
+        Asserts.assertThat(symbol).isReference("o['a']['b']['c']");
 
         symbol = executor.asSymbol("nested_obj.\"myObj['x']['AbC']\"");
-        assertThat(symbol, isReference("myObj['x']['AbC']"));
+        Asserts.assertThat(symbol).isReference("myObj['x']['AbC']");
     }
 
     @Test
     public void test_partial_quoted_subscript() {
         var symbol = executor.asSymbol("nested_obj.\"o['a']['b']\"['c']");
-        assertThat(symbol, isReference("o['a']['b']['c']"));
+        Asserts.assertThat(symbol).isReference("o['a']['b']['c']");
 
         symbol = executor.asSymbol("nested_obj.\"myObj['x']\"['AbC']");
-        assertThat(symbol, isReference("myObj['x']['AbC']"));
+        Asserts.assertThat(symbol).isReference("myObj['x']['AbC']");
     }
 
     @Test

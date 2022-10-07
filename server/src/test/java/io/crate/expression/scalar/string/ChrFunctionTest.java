@@ -29,7 +29,7 @@ public class ChrFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_null_value_returns_null() throws Exception {
-        assertEvaluate("chr(null)", null);
+        assertEvaluateNull("chr(null)");
     }
 
     @Test

@@ -21,14 +21,14 @@
 
 package io.crate.analyze.relations;
 
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
+import static io.crate.testing.Asserts.isFunction;
+import static io.crate.testing.Asserts.isLiteral;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Objects;
 
-import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -40,7 +40,6 @@ import io.crate.expression.symbol.Symbols;
 import io.crate.expression.tablefunctions.ValuesFunction;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import io.crate.testing.SymbolMatchers;
 
 public class RelationAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -52,7 +51,7 @@ public class RelationAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testValidateUsedRelationsInJoinConditions() throws Exception {
+    public void testValidateUsedRelationsInJoinConditions() {
         expectedException.expect(RelationValidationException.class);
         expectedException.expectMessage("missing FROM-clause entry for relation '[doc.t3]'");
         executor.analyze("select * from t1 join t2 on t1.a = t3.c join t3 on t2.b = t3.c");
@@ -62,38 +61,34 @@ public class RelationAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void test_can_use_array_subscript_in_order_by_referencing_alias() {
         QueriedSelectRelation relation = executor.analyze(
             "select percentile(x, [0.90, 0.95]) as percentiles from t1 order by percentiles[1]");
-        List<Symbol> orderBySymbols = relation.orderBy().orderBySymbols();
-        assertThat(orderBySymbols, Matchers.contains(
-            SymbolMatchers.isFunction(
+        List<Symbol> orderBySymbols = Objects.requireNonNull(relation.orderBy()).orderBySymbols();
+        assertThat(orderBySymbols).satisfiesExactly(
+            isFunction(
                 SubscriptFunction.NAME,
-                SymbolMatchers.isFunction("percentile"),
-                SymbolMatchers.isLiteral(1)
-            )
-        ));
+                isFunction("percentile"),
+                isLiteral(1)));
 
         relation = executor.analyze(
             "select percentile(x, [0.90, 0.95]) as percentiles from t1 order by percentiles[1] + 10");
-        orderBySymbols = relation.orderBy().orderBySymbols();
-        assertThat(orderBySymbols, Matchers.contains(
-            SymbolMatchers.isFunction(
+        orderBySymbols = Objects.requireNonNull(relation.orderBy()).orderBySymbols();
+        assertThat(orderBySymbols).satisfiesExactly(
+            isFunction(
                 "add",
-                SymbolMatchers.isFunction("subscript", SymbolMatchers.isFunction("percentile"), SymbolMatchers.isLiteral(1)),
-                SymbolMatchers.isLiteral(10.0)
-            )
-        ));
+                isFunction("subscript", isFunction("percentile"), isLiteral(1)),
+                isLiteral(10.0)));
     }
 
     @Test
-    public void testColumnNameFromArrayComparisonExpression() throws Exception {
+    public void testColumnNameFromArrayComparisonExpression() {
         AnalyzedRelation relation = executor.analyze("select 'foo' = any(partitioned_by) " +
                                                      "from information_schema.tables");
-        assertThat(Symbols.pathFromSymbol(relation.outputs().get(0)).sqlFqn(), is("('foo' = ANY(partitioned_by))"));
+        assertThat(Symbols.pathFromSymbol(relation.outputs().get(0)).sqlFqn()).isEqualTo("('foo' = ANY(partitioned_by))");
     }
 
     @Test
     public void test_process_values_result_in_table_function_with_values_name() {
         AnalyzedRelation relation = executor.analyze("VALUES ([1, 2], 'a')");
-        assertThat(relation, instanceOf(TableFunctionRelation.class));
-        assertThat(relation.relationName().toString(), is(ValuesFunction.NAME));
+        assertThat(relation).isExactlyInstanceOf(TableFunctionRelation.class);
+        assertThat(relation.relationName()).hasToString(ValuesFunction.NAME);
     }
 }

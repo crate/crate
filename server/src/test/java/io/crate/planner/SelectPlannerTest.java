@@ -23,9 +23,7 @@ package io.crate.planner;
 
 import static io.crate.planner.operators.LogicalPlannerTest.isPlan;
 import static io.crate.testing.Asserts.assertThrowsMatches;
-import static io.crate.testing.SymbolMatchers.isFunction;
-import static io.crate.testing.SymbolMatchers.isLiteral;
-import static io.crate.testing.SymbolMatchers.isReference;
+import static io.crate.testing.Asserts.isReference;
 import static io.crate.testing.TestingHelpers.isSQL;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.Matchers.contains;
@@ -99,6 +97,7 @@ import io.crate.planner.operators.LogicalPlan;
 import io.crate.statistics.Stats;
 import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.Asserts;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
 import io.crate.testing.TestingHelpers;
@@ -611,7 +610,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
         Collect collect = e.plan("select * from unnest([1, 2], ['Arthur', 'Trillian'])");
         assertNotNull(collect);
-        assertThat(collect.collectPhase().toCollect(), contains(isReference("col1"), isReference("col2")));
+        Asserts.assertThat(collect.collectPhase().toCollect()).satisfiesExactly(isReference("col1"), isReference("col2"));
     }
 
     @Test
@@ -838,8 +837,8 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         Join outer = e.plan("select * from users t1, users t2, users t3 WHERE 1=2");
         assertThat(((RoutedCollectPhase)((Collect)outer.right()).collectPhase()).where(), isSQL("false"));
         Join inner = (Join) outer.left();
-        assertThat(((RoutedCollectPhase)((Collect)inner.left()).collectPhase()).where(), isLiteral(false));
-        assertThat(((RoutedCollectPhase)((Collect)inner.right()).collectPhase()).where(), isLiteral(false));
+        Asserts.assertThat(((RoutedCollectPhase)((Collect)inner.left()).collectPhase()).where()).isLiteral(false);
+        Asserts.assertThat(((RoutedCollectPhase)((Collect)inner.right()).collectPhase()).where()).isLiteral(false);
     }
 
     @Test
@@ -851,8 +850,8 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         Join nl = e.plan("select count(*) from users t1, users t2 WHERE 1=2");
         assertThat(nl.left(), instanceOf(Collect.class));
         assertThat(nl.right(), instanceOf(Collect.class));
-        assertThat(((RoutedCollectPhase)((Collect)nl.left()).collectPhase()).where(), isLiteral(false));
-        assertThat(((RoutedCollectPhase)((Collect)nl.right()).collectPhase()).where(), isLiteral(false));
+        Asserts.assertThat(((RoutedCollectPhase)((Collect)nl.left()).collectPhase()).where()).isLiteral(false);
+        Asserts.assertThat(((RoutedCollectPhase)((Collect)nl.right()).collectPhase()).where()).isLiteral(false);
     }
 
     @Test
@@ -863,9 +862,9 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
         Join outer = e.plan("select count(*) from users t1, users t2, users t3 WHERE 1=2");
         Join inner = (Join) outer.left();
-        assertThat(((RoutedCollectPhase)((Collect)outer.right()).collectPhase()).where(), isLiteral(false));
-        assertThat(((RoutedCollectPhase)((Collect)inner.left()).collectPhase()).where(), isLiteral(false));
-        assertThat(((RoutedCollectPhase)((Collect)inner.right()).collectPhase()).where(), isLiteral(false));
+        Asserts.assertThat(((RoutedCollectPhase)((Collect)outer.right()).collectPhase()).where()).isLiteral(false);
+        Asserts.assertThat(((RoutedCollectPhase)((Collect)inner.left()).collectPhase()).where()).isLiteral(false);
+        Asserts.assertThat(((RoutedCollectPhase)((Collect)inner.right()).collectPhase()).where()).isLiteral(false);
     }
 
     @Test
@@ -1039,7 +1038,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
         Merge merge = e.plan("select name from users as u where match(u.text, 'yalla') order by 1");
         Collect collect = (Collect) merge.subPlan();
-        assertThat(((RoutedCollectPhase) collect.collectPhase()).where(), isFunction("match"));
+        Asserts.assertThat(((RoutedCollectPhase) collect.collectPhase()).where()).isFunction("match");
     }
 
     @Test
@@ -1462,7 +1461,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         Collect collect = e.plan(stmt);
         RoutedCollectPhase routedCollectPhase = (RoutedCollectPhase) collect.collectPhase();
 
-        assertThat(routedCollectPhase.where(), isLiteral(true));
+        Asserts.assertThat(routedCollectPhase.where()).isLiteral(true);
     }
 
     @Test
@@ -1473,10 +1472,8 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(collect.collectPhase().projections().get(0).projectionType(), is(ProjectionType.PROJECT_SET));
         ProjectSetProjection projectSetProjection = (ProjectSetProjection) collect.collectPhase().projections().get(0);
-        assertThat(
-            ((Function) projectSetProjection.tableFunctions().get(0)).arguments().get(0),
-            isLiteral(null) // used to be unbound ParameterSymbol
-        );
+        Asserts.assertThat(((Function) projectSetProjection.tableFunctions().get(0)).arguments().get(0))
+            .isLiteral(null); // used to be unbound ParameterSymbol
     }
 
     @Test

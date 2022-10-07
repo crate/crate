@@ -21,7 +21,7 @@
 
 package io.crate.expression.scalar.postgres;
 
-import static io.crate.testing.SymbolMatchers.isLiteral;
+import static io.crate.testing.Asserts.isLiteral;
 
 import org.junit.Test;
 
@@ -38,7 +38,7 @@ public class PgGetUserByIdFunctionTest extends ScalarTestCase {
 
     @Test
     public void testPgGetUserByIdWithNullArgument() {
-        assertEvaluate("pg_get_userbyid(null)", null);
+        assertEvaluateNull("pg_get_userbyid(null)");
     }
 
     @Test

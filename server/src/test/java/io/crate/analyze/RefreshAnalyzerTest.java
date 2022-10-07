@@ -21,10 +21,8 @@
 
 package io.crate.analyze;
 
-import static io.crate.testing.SymbolMatchers.isLiteral;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
+import static io.crate.testing.Asserts.isLiteral;
 
 import java.io.IOException;
 import java.util.List;
@@ -73,12 +71,12 @@ public class RefreshAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testRefreshPartition() throws Exception {
         AnalyzedRefreshTable analysis = e.analyze("REFRESH TABLE parted PARTITION (date=1395874800000)");
         Set<Table<Symbol>> analyzedTables = analysis.tables().keySet();
-        assertThat(analyzedTables.size(), is(1));
+        assertThat(analyzedTables).hasSize(1);
 
         List<Assignment<Symbol>> partitionProperties = analyzedTables.iterator().next().partitionProperties();
-        assertThat(partitionProperties.size(), is(1));
-        assertThat(partitionProperties.get(0).columnName(), isLiteral("date"));
-        assertThat(partitionProperties.get(0).expressions(), contains(isLiteral(1395874800000L)));
+        assertThat(partitionProperties).hasSize(1);
+        assertThat(partitionProperties.get(0).columnName()).isLiteral("date");
+        assertThat(partitionProperties.get(0).expressions()).satisfiesExactly(isLiteral(1395874800000L));
     }
 
     @Test
@@ -108,10 +106,10 @@ public class RefreshAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testRefreshPartitionedTableNullPartition() throws Exception {
         AnalyzedRefreshTable analysis = e.analyze("REFRESH TABLE parted PARTITION (date=null)");
         Set<Table<Symbol>> analyzedTables = analysis.tables().keySet();
-        assertThat(analyzedTables.size(), is(1));
+        assertThat(analyzedTables).hasSize(1);
 
         List<Assignment<Symbol>> partitionProperties = analyzedTables.iterator().next().partitionProperties();
-        assertThat(partitionProperties.size(), is(1));
-        assertThat(partitionProperties.get(0).expressions(), contains(isLiteral(null)));
+        assertThat(partitionProperties).hasSize(1);
+        assertThat(partitionProperties.get(0).expressions()).satisfiesExactly(isLiteral(null));
     }
 }

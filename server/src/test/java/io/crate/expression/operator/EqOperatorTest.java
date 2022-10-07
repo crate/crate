@@ -21,8 +21,8 @@
 
 package io.crate.expression.operator;
 
-import static io.crate.testing.SymbolMatchers.isFunction;
-import static io.crate.testing.SymbolMatchers.isLiteral;
+import static io.crate.testing.Asserts.isFunction;
+import static io.crate.testing.Asserts.isLiteral;
 
 import org.junit.Test;
 
@@ -38,8 +38,8 @@ public class EqOperatorTest extends ScalarTestCase {
 
     @Test
     public void testEqArrayLeftSideIsNull_RightSideNull() throws Exception {
-        assertEvaluate("[1, 10] = null", null);
-        assertEvaluate("null = [1, 10]", null);
+        assertEvaluateNull("[1, 10] = null");
+        assertEvaluateNull("null = [1, 10]");
     }
 
     @Test

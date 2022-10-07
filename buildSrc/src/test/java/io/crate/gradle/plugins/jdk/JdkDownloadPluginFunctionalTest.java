@@ -21,12 +21,12 @@
 
 package io.crate.gradle.plugins.jdk;
 
-import com.github.tomakehurst.wiremock.WireMockServer;
-
-import org.assertj.core.api.Assertions;
-import org.gradle.testkit.runner.BuildResult;
-import org.gradle.testkit.runner.GradleRunner;
-import org.junit.Test;
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.head;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 
 import java.io.File;
 import java.io.IOException;
@@ -37,11 +37,11 @@ import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-import static com.github.tomakehurst.wiremock.client.WireMock.head;
-import static com.github.tomakehurst.wiremock.client.WireMock.get;
-import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
-import static org.assertj.core.api.Assertions.fail;
+import org.gradle.testkit.runner.BuildResult;
+import org.gradle.testkit.runner.GradleRunner;
+import org.junit.Test;
+
+import com.github.tomakehurst.wiremock.WireMockServer;
 
 /**
  * Note: the downloading of the JDK bundles are not covered by the test,
@@ -85,12 +85,12 @@ public class JdkDownloadPluginFunctionalTest {
                                          String version) {
         runBuild(task, result -> {
             Matcher matcher = JDK_HOME_LOG.matcher(result.getOutput());
-            Assertions.assertThat(matcher.find())
+            assertThat(matcher.find())
                 .as("could not find jdk home in: " + result.getOutput())
                 .isTrue();
             String jdkHome = matcher.group(1);
             Path javaPath = Paths.get(jdkHome, javaBin);
-            Assertions.assertThat(Files.exists(javaPath))
+            assertThat(Files.exists(javaPath))
                 .as(javaPath.toString())
                 .isTrue();
         }, os, arch, vendor, version);

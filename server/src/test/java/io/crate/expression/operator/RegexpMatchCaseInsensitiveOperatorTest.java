@@ -21,31 +21,30 @@
 
 package io.crate.expression.operator;
 
-import static org.hamcrest.Matchers.is;
+import static io.crate.testing.Asserts.isLiteral;
 
 import org.junit.Test;
 
 import io.crate.expression.scalar.ScalarTestCase;
-import io.crate.expression.symbol.Literal;
 import io.crate.types.DataTypes;
 
 public class RegexpMatchCaseInsensitiveOperatorTest extends ScalarTestCase {
 
     @Test
     public void testNormalize() throws Exception {
-        assertNormalize("'' ~* ''", is(Literal.of(true)));
-        assertNormalize("'abc' ~* 'a.c'", is(Literal.of(true)));
-        assertNormalize("'AbC' ~* 'a.c'", is(Literal.of(true)));
-        assertNormalize("'abbbbc' ~* 'a(b{1,4})c'", is(Literal.of(true)));
-        assertNormalize("'abc' ~* 'a~bc'", is(Literal.of(false)));           // no PCRE syntax, should fail
-        assertNormalize("'100 €' ~* '<10-101> €|$'", is(Literal.of(false))); // no PCRE syntax, should fail
+        assertNormalize("'' ~* ''", isLiteral(true));
+        assertNormalize("'abc' ~* 'a.c'", isLiteral(true));
+        assertNormalize("'AbC' ~* 'a.c'", isLiteral(true));
+        assertNormalize("'abbbbc' ~* 'a(b{1,4})c'", isLiteral(true));
+        assertNormalize("'abc' ~* 'a~bc'", isLiteral(false));           // no PCRE syntax, should fail
+        assertNormalize("'100 €' ~* '<10-101> €|$'", isLiteral(false)); // no PCRE syntax, should fail
     }
 
     @Test
     public void testNormalizeNull() throws Exception {
-        assertNormalize("null ~* 'foo'", is(Literal.of(DataTypes.BOOLEAN, null)));
-        assertNormalize("'foo' ~* null", is(Literal.of(DataTypes.BOOLEAN, null)));
-        assertNormalize("null ~* null", is(Literal.of(DataTypes.BOOLEAN, null)));
+        assertNormalize("null ~* 'foo'", isLiteral(null, DataTypes.BOOLEAN));
+        assertNormalize("'foo' ~* null", isLiteral(null, DataTypes.BOOLEAN));
+        assertNormalize("null ~* null", isLiteral(null, DataTypes.BOOLEAN));
     }
 
     // evaluate

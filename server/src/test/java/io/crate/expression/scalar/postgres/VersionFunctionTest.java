@@ -21,7 +21,7 @@
 
 package io.crate.expression.scalar.postgres;
 
-import static org.hamcrest.Matchers.startsWith;
+import static io.crate.testing.Asserts.startsWith;
 
 import org.elasticsearch.Version;
 import org.junit.Test;

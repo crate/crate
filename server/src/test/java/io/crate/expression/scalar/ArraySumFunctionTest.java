@@ -114,22 +114,22 @@ public class ArraySumFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_all_elements_nulls_results_in_null() {
-        assertEvaluate("array_sum(cast([null, null] as array(integer)))", null);
+        assertEvaluateNull("array_sum(cast([null, null] as array(integer)))");
     }
 
     @Test
     public void test_null_array_results_in_null() {
-        assertEvaluate("array_sum(null::int[])", null);
+        assertEvaluateNull("array_sum(null::int[])");
     }
 
     @Test
     public void test_null_array_given_directly_results_in_null() {
-        assertEvaluate("array_sum(null)", null);
+        assertEvaluateNull("array_sum(null)");
     }
 
     @Test
     public void test_empty_array_results_in_null() {
-        assertEvaluate("array_sum(cast([] as array(integer)))", null);
+        assertEvaluateNull("array_sum(cast([] as array(integer)))");
     }
 
     @Test

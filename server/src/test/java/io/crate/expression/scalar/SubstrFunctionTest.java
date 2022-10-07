@@ -21,7 +21,7 @@
 
 package io.crate.expression.scalar;
 
-import static io.crate.testing.SymbolMatchers.isLiteral;
+import static io.crate.testing.Asserts.isLiteral;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 
@@ -29,6 +29,7 @@ import org.junit.Test;
 
 import io.crate.exceptions.ConversionException;
 import io.crate.expression.symbol.Literal;
+import io.crate.testing.Asserts;
 import io.crate.types.DataTypes;
 
 public class SubstrFunctionTest extends ScalarTestCase {
@@ -70,15 +71,15 @@ public class SubstrFunctionTest extends ScalarTestCase {
 
     @Test
     public void testNullInputs() throws Exception {
-        assertEvaluate("substr(name, id, id)", null,
+        assertEvaluateNull("substr(name, id, id)",
             Literal.of(DataTypes.STRING, null),
             Literal.of(1),
             Literal.of(1));
-        assertEvaluate("substr(name, id, id)", null,
+        assertEvaluateNull("substr(name, id, id)",
             Literal.of("crate"),
             Literal.of(DataTypes.INTEGER, null),
             Literal.of(1));
-        assertEvaluate("substr(name, id, id)", null,
+        assertEvaluateNull("substr(name, id, id)",
             Literal.of("crate"),
             Literal.of(1),
             Literal.of(DataTypes.SHORT, null));
@@ -88,7 +89,7 @@ public class SubstrFunctionTest extends ScalarTestCase {
     public void testInvalidArgs() throws Exception {
         expectedException.expect(ConversionException.class);
         expectedException.expectMessage("Cannot cast `'b'` of type `text` to type `integer`");
-        assertNormalize("substr('foo', 'b')", null);
+        assertNormalize("substr('foo', 'b')", s -> Asserts.assertThat(s).isNull());
     }
 
     @Test
