@@ -21,7 +21,7 @@
 
 package io.crate.planner.operators;
 
-import static io.crate.planner.operators.LogicalPlanner.NO_LIMIT;
+import static io.crate.execution.engine.pipeline.TopN.NO_LIMIT;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -46,7 +46,6 @@ import io.crate.execution.dsl.projection.EvalProjection;
 import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.join.JoinOperations;
-import io.crate.execution.engine.pipeline.TopN;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
@@ -221,9 +220,9 @@ public class HashJoin implements LogicalPlan {
             joinPhase,
             leftExecutionPlan,
             rightExecutionPlan,
-            TopN.NO_LIMIT,
+            NO_LIMIT,
             0,
-            TopN.NO_LIMIT,
+            NO_LIMIT,
             outputs.size(),
             null
         );
