@@ -21,6 +21,8 @@
 
 package io.crate.planner.operators;
 
+import static io.crate.execution.engine.pipeline.TopN.NO_LIMIT;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -76,7 +78,7 @@ public class HashAggregate extends ForwardingLogicalPlan {
                                Row params,
                                SubQueryResults subQueryResults) {
         ExecutionPlan executionPlan = source.build(
-            executor, plannerContext, planHints, projectionBuilder, LogicalPlanner.NO_LIMIT, 0, null, null, params, subQueryResults);
+            executor, plannerContext, planHints, projectionBuilder, NO_LIMIT, 0, null, null, params, subQueryResults);
 
         AggregationOutputValidator.validateOutputs(aggregates);
         var paramBinder = new SubQueryAndParamBinder(params, subQueryResults);
@@ -152,7 +154,7 @@ public class HashAggregate extends ForwardingLogicalPlan {
                 DistributionInfo.DEFAULT_BROADCAST,
                 null
             ),
-            LogicalPlanner.NO_LIMIT,
+            NO_LIMIT,
             0,
             aggregates.size(),
             1,
