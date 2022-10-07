@@ -21,6 +21,8 @@
 
 package io.crate.planner.operators;
 
+import static io.crate.execution.engine.pipeline.TopN.NO_LIMIT;
+
 import java.util.List;
 import java.util.Set;
 
@@ -60,7 +62,7 @@ public class RootRelationBoundary extends ForwardingLogicalPlan {
             plannerContext,
             hints,
             projectionBuilder,
-            LogicalPlanner.NO_LIMIT,
+            NO_LIMIT,
             0,
             null,
             null,
