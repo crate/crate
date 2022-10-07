@@ -21,9 +21,8 @@
 
 package io.crate.analyze;
 
-import static io.crate.testing.SymbolMatchers.isLiteral;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+
+import static io.crate.testing.Asserts.assertThat;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -46,15 +45,15 @@ public class SwapTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testSwapTableStatementCanBeAnalysedIfBothTablesExist() throws Exception {
         AnalyzedSwapTable statement = e.analyze("alter cluster swap table t1 to t2 with (drop_source = true)");
-        assertThat(statement.source().toString(), is("doc.t1"));
-        assertThat(statement.target().toString(), is("doc.t2"));
-        assertThat(statement.dropSource(), isLiteral(true));
+        assertThat(statement.source()).hasToString("doc.t1");
+        assertThat(statement.target()).hasToString("doc.t2");
+        assertThat(statement.dropSource()).isLiteral(true);
     }
 
     @Test
     public void testDropSourceDefaultsToFalse() {
         AnalyzedSwapTable statement = e.analyze("alter cluster swap table t1 to t2");
-        assertThat(statement.dropSource(), isLiteral(false));
+        assertThat(statement.dropSource()).isLiteral(false);
     }
 
     @Test

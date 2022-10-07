@@ -21,9 +21,9 @@
 
 package io.crate.expression.scalar.formatting;
 
-import static org.hamcrest.Matchers.not;
+import static io.crate.testing.Asserts.isNotSameInstance;
+import static io.crate.testing.Asserts.isSameInstance;
 
-import org.hamcrest.core.IsSame;
 import org.junit.Test;
 
 import io.crate.expression.scalar.ScalarTestCase;
@@ -41,18 +41,12 @@ public class ToCharFunctionTest extends ScalarTestCase {
 
     @Test
     public void testEvaluateTimestampWithNullPattern() {
-        assertEvaluate(
-            "to_char(timestamp '1970-01-01T17:31:12', null)",
-            null
-        );
+        assertEvaluateNull("to_char(timestamp '1970-01-01T17:31:12', null)");
     }
 
     @Test
     public void testEvaluateNullExpression() {
-        assertEvaluate(
-            "to_char(null, 'EEEE, LLLL d - h:m a uuuu G')",
-            null
-        );
+        assertEvaluateNull("to_char(null, 'EEEE, LLLL d - h:m a uuuu G')");
     }
 
     @Test
@@ -62,19 +56,16 @@ public class ToCharFunctionTest extends ScalarTestCase {
 
     @Test
     public void testEvaluateIntervalWithNullPattern() {
-        assertEvaluate(
-            "to_char(timestamp '1970-01-01T17:31:12', null)",
-            null
-        );
+        assertEvaluateNull("to_char(timestamp '1970-01-01T17:31:12', null)");
     }
 
     @Test
     public void testCompileWithValues() throws Exception {
-        assertCompile("to_char(timestamp, 'Day,  DD  HH12:MI:SS')", (s) -> not(IsSame.sameInstance(s)));
+        assertCompile("to_char(timestamp, 'Day,  DD  HH12:MI:SS')", isNotSameInstance());
     }
 
     @Test
     public void testCompileWithRefs() throws Exception {
-        assertCompile("to_char(timestamp, name)", IsSame::sameInstance);
+        assertCompile("to_char(timestamp, name)", isSameInstance());
     }
 }

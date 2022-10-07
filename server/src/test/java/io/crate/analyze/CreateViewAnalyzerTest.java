@@ -21,8 +21,8 @@
 
 package io.crate.analyze;
 
-import static io.crate.testing.SymbolMatchers.isAlias;
-import static io.crate.testing.SymbolMatchers.isReference;
+import static io.crate.testing.Asserts.isAlias;
+import static io.crate.testing.Asserts.isReference;
 import static io.crate.testing.TestingHelpers.isSQL;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
@@ -40,6 +40,7 @@ import io.crate.exceptions.InvalidRelationName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.Asserts;
 import io.crate.testing.SQLExecutor;
 import io.crate.user.User;
 
@@ -109,7 +110,8 @@ public class CreateViewAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testAliasCanBeUsedToAvoidDuplicateColumnNamesInQuery() {
         CreateViewStmt createView = e.analyze("create view v1 as select x, x as y from t1");
-        assertThat(createView.analyzedQuery().outputs(), contains(isReference("x"), isAlias("y", isReference("x"))));
+        Asserts.assertThat(createView.analyzedQuery().outputs())
+            .satisfiesExactly(isReference("x"), isAlias("y", isReference("x")));
     }
 
     @Test

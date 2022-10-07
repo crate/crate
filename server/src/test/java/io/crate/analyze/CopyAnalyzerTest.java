@@ -24,13 +24,7 @@ package io.crate.analyze;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static io.crate.analyze.TableDefinitions.TEST_PARTITIONED_TABLE_IDENT;
 import static io.crate.analyze.TableDefinitions.USER_TABLE_IDENT;
-import static io.crate.testing.SymbolMatchers.isFunction;
-import static io.crate.testing.SymbolMatchers.isLiteral;
-import static io.crate.testing.SymbolMatchers.isReference;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.core.IsEqual.equalTo;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -104,15 +98,15 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testCopyFromExistingTable() throws Exception {
         BoundCopyFrom analysis = analyze(
             "COPY users FROM '/some/distant/file.ext'");
-        assertThat(analysis.tableInfo().ident(), is(USER_TABLE_IDENT));
-        assertThat(analysis.uri(), isLiteral("/some/distant/file.ext"));
+        assertThat(analysis.tableInfo().ident()).isEqualTo(USER_TABLE_IDENT);
+        assertThat(analysis.uri()).isLiteral("/some/distant/file.ext");
     }
 
     @Test
     public void testCopyFromExistingPartitionedTable() {
         BoundCopyFrom analysis = analyze("COPY parted FROM '/some/distant/file.ext'");
-        assertThat(analysis.tableInfo().ident(), is(TEST_PARTITIONED_TABLE_IDENT));
-        assertThat(analysis.uri(), isLiteral("/some/distant/file.ext"));
+        assertThat(analysis.tableInfo().ident()).isEqualTo(TEST_PARTITIONED_TABLE_IDENT);
+        assertThat(analysis.uri()).isLiteral("/some/distant/file.ext");
     }
 
     @Test
@@ -127,7 +121,7 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             "COPY parted PARTITION (date=1395874800000) FROM '/some/distant/file.ext'");
         String parted = new PartitionName(
             new RelationName("doc", "parted"), Collections.singletonList("1395874800000")).ident();
-        assertThat(analysis.partitionIdent(), equalTo(parted));
+        assertThat(analysis.partitionIdent()).isEqualTo(parted);
     }
 
     @Test
@@ -148,9 +142,9 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testCopyFromWithColumnList() throws Exception {
         BoundCopyFrom analysis = analyze("COPY users (id, name) FROM  '/some/distant/file.ext'");
         List<String> outputs = analysis.targetColumns();
-        assertThat(outputs.size(), is(2));
-        assertThat(outputs.get(0), is("id"));
-        assertThat(outputs.get(1), is("name"));
+        assertThat(outputs).hasSize(2);
+        assertThat(outputs.get(0)).isEqualTo("id");
+        assertThat(outputs.get(1)).isEqualTo("name");
     }
 
     @Test
@@ -163,55 +157,51 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testCopyFromParameter() throws Exception {
         String path = "/some/distant/file.ext";
         BoundCopyFrom analysis = analyze("COPY users FROM ?", new Object[]{path});
-        assertThat(analysis.tableInfo().ident(), is(USER_TABLE_IDENT));
-        assertThat(analysis.uri(), isLiteral(path));
+        assertThat(analysis.tableInfo().ident()).isEqualTo(USER_TABLE_IDENT);
+        assertThat(analysis.uri()).isLiteral(path);
     }
 
     @Test
     public void convertCopyFrom_givenFormatIsSetToJsonInStatement_thenInputFormatIsSetToJson() {
         BoundCopyFrom analysis = analyze(
             "COPY users FROM '/some/distant/file.ext' WITH (format='json')");
-        assertThat(analysis.inputFormat(), is(FileUriCollectPhase.InputFormat.JSON));
+        assertThat(analysis.inputFormat()).isEqualTo(FileUriCollectPhase.InputFormat.JSON);
     }
 
     @Test
     public void convertCopyFrom_givenFormatIsSetToCsvInStatement_thenInputFormatIsSetToCsv() {
         BoundCopyFrom analysis = analyze(
             "COPY users FROM '/some/distant/file.ext' WITH (format='csv')");
-        assertThat(analysis.inputFormat(), is(FileUriCollectPhase.InputFormat.CSV));
+        assertThat(analysis.inputFormat()).isEqualTo(FileUriCollectPhase.InputFormat.CSV);
     }
 
     @Test
     public void test_copy_from_supports_empty_string_as_null_setting_option() {
         BoundCopyFrom analysis = analyze(
             "COPY users FROM '/some/distant/file.ext' WITH (format='csv', empty_string_as_null=true)");
-        assertThat(
-            analysis.settings(),
-            is(Settings.builder()
-                   .put("empty_string_as_null", true)
-                   .put("format", "csv")
-                   .build())
-        );
+        assertThat(analysis.settings()).isEqualTo(
+            (Settings.builder()
+                .put("empty_string_as_null", true)
+                .put("format", "csv")
+                .build()));
     }
 
     @Test
     public void test_copy_from_supports_header_setting_option() {
         BoundCopyFrom analysis = analyze(
             "COPY users FROM '/some/distant/file.ext' WITH (format='csv', header=false)");
-        assertThat(
-            analysis.settings(),
-            is(Settings.builder()
-                   .put("format", "csv")
-                   .put("header", false)
-                   .build())
-        );
+        assertThat(analysis.settings()).isEqualTo(
+            (Settings.builder()
+                .put("format", "csv")
+                .put("header", false)
+                .build()));
     }
 
     @Test
     public void convertCopyFrom_givenFormatIsNotSetInStatement_thenInputFormatDefaultsToJson() {
         BoundCopyFrom analysis = analyze(
             "COPY users FROM '/some/distant/file.ext'");
-        assertThat(analysis.inputFormat(), is(FileUriCollectPhase.InputFormat.JSON));
+        assertThat(analysis.inputFormat()).isEqualTo(FileUriCollectPhase.InputFormat.JSON);
     }
 
     @Test
@@ -225,8 +215,8 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testCopyToDirectory() throws Exception {
         BoundCopyTo analysis = analyze("COPY users TO DIRECTORY '/foo'");
         TableInfo tableInfo = analysis.table();
-        assertThat(tableInfo.ident(), is(USER_TABLE_IDENT));
-        assertThat(analysis.uri(), isLiteral("/foo"));
+        assertThat(tableInfo.ident()).isEqualTo(USER_TABLE_IDENT);
+        assertThat(analysis.uri()).isLiteral("/foo");
     }
 
     @Test
@@ -241,26 +231,26 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testCopyToWithColumnList() throws Exception {
         BoundCopyTo analysis = analyze("COPY users (id, name) TO DIRECTORY '/tmp'");
         List<Symbol> outputs = analysis.outputs();
-        assertThat(outputs.size(), is(2));
-        assertThat(outputs.get(0), isReference("_doc['id']"));
-        assertThat(outputs.get(1), isReference("_doc['name']"));
+        assertThat(outputs).hasSize(2);
+        assertThat(outputs.get(0)).isReference("_doc['id']");
+        assertThat(outputs.get(1)).isReference("_doc['name']");
     }
 
     @Test
     public void testCopyToFileWithCompressionParams() throws Exception {
         BoundCopyTo analysis = analyze(
             "COPY users TO DIRECTORY '/blah' WITH (compression='gzip')");
-        assertThat(analysis.table().ident(), is(USER_TABLE_IDENT));
+        assertThat(analysis.table().ident()).isEqualTo(USER_TABLE_IDENT);
 
-        assertThat(analysis.uri(), isLiteral("/blah"));
-        assertThat(analysis.compressionType(), is(WriterProjection.CompressionType.GZIP));
+        assertThat(analysis.uri()).isLiteral("/blah");
+        assertThat(analysis.compressionType()).isEqualTo(WriterProjection.CompressionType.GZIP);
     }
 
     @Test
     public void testCopyToFileWithPartitionedTable() throws Exception {
         BoundCopyTo analysis = analyze("COPY parted TO DIRECTORY '/blah'");
-        assertThat(analysis.table().ident().name(), is("parted"));
-        assertThat(analysis.overwrites().size(), is(1));
+        assertThat(analysis.table().ident().name()).isEqualTo("parted");
+        assertThat(analysis.overwrites()).hasSize(1);
     }
 
     @Test
@@ -269,7 +259,7 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             "COPY parted PARTITION (date=1395874800000) TO DIRECTORY '/blah'");
         String parted = new PartitionName(
             new RelationName("doc", "parted"), Collections.singletonList("1395874800000")).asIndexName();
-        assertThat(analysis.whereClause().partitions(), contains(parted));
+        assertThat(analysis.whereClause().partitions()).containsExactly(parted);
     }
 
     @Test
@@ -278,8 +268,8 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             "COPY parted PARTITION (date=1395874800000) TO DIRECTORY '/tmp'");
         String parted = new PartitionName(
             new RelationName("doc", "parted"), Collections.singletonList("1395874800000")).asIndexName();
-        assertThat(analysis.whereClause().partitions(), contains(parted));
-        assertThat(analysis.overwrites().size(), is(0));
+        assertThat(analysis.whereClause().partitions()).containsExactly(parted);
+        assertThat(analysis.overwrites()).hasSize(0);
     }
 
     @Test
@@ -293,7 +283,7 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testCopyToWithWhereClause() throws Exception {
         BoundCopyTo analysis = analyze(
             "COPY parted WHERE id = 1 TO DIRECTORY '/tmp/foo'");
-        assertThat(analysis.whereClause().query(), isFunction("op_="));
+        assertThat(analysis.whereClause().query()).isFunction("op_=");
     }
 
     @Test
@@ -302,7 +292,7 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             "COPY parted PARTITION (date=1395874800000) WHERE date = 1395874800000 TO DIRECTORY '/tmp/foo'");
         String parted = new PartitionName(
             new RelationName("doc", "parted"), Collections.singletonList("1395874800000")).asIndexName();
-        assertThat(analysis.whereClause().partitions(), contains(parted));
+        assertThat(analysis.whereClause().partitions()).containsExactly(parted);
     }
 
     @Test
@@ -312,8 +302,8 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         String parted = new PartitionName(
             new RelationName("doc", "parted"), Collections.singletonList("1395874800000")).asIndexName();
         WhereClause where = analysis.whereClause();
-        assertThat(where.partitions(), contains(parted));
-        assertThat(where.query(), isFunction("op_="));
+        assertThat(where.partitions()).containsExactly(parted);
+        assertThat(where.query()).isFunction("op_=");
     }
 
     @Test
@@ -327,11 +317,11 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testCopyToFileWithSelectedColumnsAndOutputFormatParam() throws Exception {
         BoundCopyTo analysis = analyze(
             "COPY users (id, name) TO DIRECTORY '/blah' WITH (format='json_object')");
-        assertThat(analysis.table().ident(), is(USER_TABLE_IDENT));
+        assertThat(analysis.table().ident()).isEqualTo(USER_TABLE_IDENT);
 
-        assertThat(analysis.uri(), isLiteral("/blah"));
-        assertThat(analysis.outputFormat(), is(WriterProjection.OutputFormat.JSON_OBJECT));
-        assertThat(analysis.outputNames(), contains("id", "name"));
+        assertThat(analysis.uri()).isLiteral("/blah");
+        assertThat(analysis.outputFormat()).isEqualTo(WriterProjection.OutputFormat.JSON_OBJECT);
+        assertThat(analysis.outputNames()).containsExactly("id", "name");
     }
 
     @Test
@@ -355,7 +345,7 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         List<String> files = Arrays.asList("/f1.json", "/f2.json");
         BoundCopyFrom copyFrom = analyze(
             "COPY users FROM ?", new Object[]{files});
-        assertThat(copyFrom.uri(), isLiteral(List.of("/f1.json", "/f2.json")));
+        assertThat(copyFrom.uri()).isLiteral(List.of("/f1.json", "/f2.json"));
     }
 
     @Test
@@ -394,7 +384,7 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             .addTable("CREATE TABLE doc.upper (\"Name\" varchar)")
             .build();
         BoundCopyTo analysis = analyze("COPY doc.upper (\"Name\") TO DIRECTORY '/dummy'");
-        assertThat(analysis.outputNames(), contains("Name"));
+        assertThat(analysis.outputNames()).containsExactly("Name");
     }
 
     @Test
@@ -403,6 +393,6 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             .addTable("CREATE TABLE doc.generated_copy (i as 1 + 1)")
             .build();
         BoundCopyTo analysis = analyze("COPY doc.generated_copy (i) TO DIRECTORY '/dummy'");
-        assertThat(analysis.outputNames(), contains("i"));
+        assertThat(analysis.outputNames()).containsExactly("i");
     }
 }

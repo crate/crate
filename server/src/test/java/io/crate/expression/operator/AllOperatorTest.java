@@ -44,12 +44,12 @@ public class AllOperatorTest extends ScalarTestCase {
 
     @Test
     public void test_null_eq_all_array_is_null() {
-        assertEvaluate("null = ALL(ARRAY[1, 1])", null);
+        assertEvaluateNull("null = ALL(ARRAY[1, 1])");
     }
 
     @Test
     public void test_value_eq_all_null_is_null() {
-        assertEvaluate("1 = ALL(NULL)", null);
+        assertEvaluateNull("1 = ALL(NULL)");
     }
 
     @Test
@@ -59,7 +59,7 @@ public class AllOperatorTest extends ScalarTestCase {
 
     @Test
     public void test_value_eq_array_with_null_element_and_match_is_null() {
-        assertEvaluate("1 = ALL(ARRAY[1, null])", null);
+        assertEvaluateNull("1 = ALL(ARRAY[1, null])");
     }
 
     @Test

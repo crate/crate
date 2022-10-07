@@ -21,7 +21,11 @@
 
 package io.crate.expression.scalar.postgres;
 
-import org.hamcrest.Matchers;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.util.function.Consumer;
+
 import org.junit.Test;
 
 import io.crate.expression.scalar.ScalarTestCase;
@@ -33,6 +37,10 @@ public class PgPostmasterStartTimeTest extends ScalarTestCase {
     public void test_pg_postmaster_start_time_returns_timestamp() {
         long now = SystemClock.currentInstant().toEpochMilli();
         long nodeContextCreation = sqlExpressions.nodeCtx.serverStartTimeInMs();
-        assertEvaluate("pg_postmaster_start_time()", Matchers.allOf(Matchers.greaterThanOrEqualTo(nodeContextCreation), Matchers.lessThanOrEqualTo(now)));
+        assertEvaluate("pg_postmaster_start_time()", (Consumer<Long>) st -> {
+            assertThat(st)
+                .isGreaterThanOrEqualTo(nodeContextCreation)
+                .isLessThanOrEqualTo(now);
+        });
     }
 }

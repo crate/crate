@@ -21,7 +21,7 @@
 
 package io.crate.expression.scalar.string;
 
-import static io.crate.testing.SymbolMatchers.isLiteral;
+import static io.crate.testing.Asserts.isLiteral;
 
 import org.junit.Test;
 
@@ -78,8 +78,8 @@ public class TranslateFunctionTest extends ScalarTestCase {
 
     @Test
     public void testWithNullArgument() {
-        assertEvaluate("translate(null, 'Ct', 'Dk')", null);
-        assertEvaluate("translate('Crate', null, 'Dk')", null);
-        assertEvaluate("translate('Crate', 'Ct', null)", null);
+        assertEvaluateNull("translate(null, 'Ct', 'Dk')");
+        assertEvaluateNull("translate('Crate', null, 'Dk')");
+        assertEvaluateNull("translate('Crate', 'Ct', null)");
     }
 }

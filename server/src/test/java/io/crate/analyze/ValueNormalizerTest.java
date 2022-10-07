@@ -21,7 +21,6 @@
 
 package io.crate.analyze;
 
-import static io.crate.testing.SymbolMatchers.isLiteral;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
@@ -50,6 +49,7 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.table.TableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.Asserts;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
 
@@ -240,8 +240,7 @@ public class ValueNormalizerTest extends CrateDummyClusterServiceUnitTest {
     public void testNormalizeStringToNumberColumn() throws Exception {
         Reference objInfo = userTableInfo.getReference(new ColumnIdent("d"));
         Literal<String> stringDoubleLiteral = Literal.of("298.444");
-        Literal literal = (Literal) normalizeInputForReference(
-            stringDoubleLiteral, objInfo);
-        assertThat(literal, isLiteral(298.444d, DataTypes.DOUBLE));
+        Symbol literal = normalizeInputForReference(stringDoubleLiteral, objInfo);
+        Asserts.assertThat(literal).isLiteral(298.444d, DataTypes.DOUBLE);
     }
 }

@@ -21,11 +21,11 @@
 
 package io.crate.expression.scalar.arithmetic;
 
-import static io.crate.testing.SymbolMatchers.isFunction;
-import static io.crate.testing.SymbolMatchers.isLiteral;
-import static org.hamcrest.Matchers.anyOf;
-import static org.hamcrest.Matchers.is;
+import static io.crate.testing.Asserts.isFunction;
+import static io.crate.testing.Asserts.isLiteral;
+import static org.assertj.core.api.Assertions.assertThat;
 
+import org.assertj.core.data.Offset;
 import org.junit.Test;
 
 import io.crate.expression.scalar.ScalarTestCase;
@@ -63,7 +63,9 @@ public class TrigonometricFunctionsTest extends ScalarTestCase {
         assertEvaluate("tan(double_val)", 1.5574077246549023, Literal.of(1.0));
         assertEvaluate("tan(float_val)", -2.185039863261519, Literal.of(2.0F));
         assertEvaluate("tan(x)", -0.1425465430742778, Literal.of(3L));
-        assertEvaluate("tan(id)", anyOf(is(1.1578212823495777), is(1.1578212823495775)), Literal.of(4));
+        assertEvaluate("tan(id)",
+                       s -> assertThat((Double) s).isCloseTo(1.1578212823495777, Offset.offset(1E-15d)),
+                       Literal.of(4));
         assertEvaluate("tan(short_val)", -3.380515006246586, Literal.of(DataTypes.SHORT, (short) 5));
 
         assertEvaluate("atan(double_val)", 0.12277930094473836, Literal.of(0.1234));
@@ -96,12 +98,12 @@ public class TrigonometricFunctionsTest extends ScalarTestCase {
 
     @Test
     public void testEvaluateOnNull() throws Exception {
-        assertEvaluate("sin(null)", null);
-        assertEvaluate("asin(null)", null);
-        assertEvaluate("cos(null)", null);
-        assertEvaluate("acos(null)", null);
-        assertEvaluate("tan(null)", null);
-        assertEvaluate("atan(null)", null);
+        assertEvaluateNull("sin(null)");
+        assertEvaluateNull("asin(null)");
+        assertEvaluateNull("cos(null)");
+        assertEvaluateNull("acos(null)");
+        assertEvaluateNull("tan(null)");
+        assertEvaluateNull("atan(null)");
     }
 
     @Test
@@ -138,9 +140,7 @@ public class TrigonometricFunctionsTest extends ScalarTestCase {
         assertNormalize("tan(1.0)", isLiteral(1.5574077246549023, DataTypes.DOUBLE));
         assertNormalize("tan(cast (2.0 as float))", isLiteral(-2.185039863261519, DataTypes.DOUBLE));
         assertNormalize("tan(3)", isLiteral(-0.1425465430742778, DataTypes.DOUBLE));
-        assertNormalize("tan(cast (4 as integer))",
-            anyOf(isLiteral(1.1578212823495775, DataTypes.DOUBLE),
-                  isLiteral(1.1578212823495777, DataTypes.DOUBLE)));
+        assertNormalize("tan(cast (4 as integer))", isLiteral(1.1578212823495775, 1E-15));
         assertNormalize("tan(cast (5 as short))", isLiteral(-3.380515006246586, DataTypes.DOUBLE));
 
         // AtanFunction
@@ -225,7 +225,7 @@ public class TrigonometricFunctionsTest extends ScalarTestCase {
 
     @Test
     public void test_cot_with_null_argument() {
-        assertEvaluate("cot(null)", null);
+        assertEvaluateNull("cot(null)");
     }
 
     @Test

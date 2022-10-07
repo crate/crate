@@ -21,7 +21,7 @@
 
 package io.crate.expression.scalar;
 
-import static io.crate.testing.SymbolMatchers.isLiteral;
+import static io.crate.testing.Asserts.isLiteral;
 
 import java.util.Map;
 
@@ -74,12 +74,12 @@ public class SubscriptObjectFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_subscript_obj_with_null_argument() throws Exception {
-        assertEvaluate("subscript_obj(null, 'x', 'y')", null);
+        assertEvaluateNull("subscript_obj(null, 'x', 'y')");
     }
 
     @Test
     public void test_subscript_obj_with_null_child() throws Exception {
-        assertEvaluate("subscript_obj({x=null}, 'x', 'y')", null);
+        assertEvaluateNull("subscript_obj({x=null}, 'x', 'y')");
     }
 
     @Test
@@ -92,7 +92,7 @@ public class SubscriptObjectFunctionTest extends ScalarTestCase {
             "The object `{x={y=10}}` does not contain the key `y`"
         );
         sqlExpressions.setErrorOnUnknownObjectKey(false);
-        assertEvaluate("subscript_obj(subscript_obj({x={y=10}}, 'y'), 'y')", null);
+        assertEvaluateNull("subscript_obj(subscript_obj({x={y=10}}, 'y'), 'y')");
         // missing key in the middle
         sqlExpressions.setErrorOnUnknownObjectKey(true);
         Asserts.assertThrowsMatches(
@@ -101,6 +101,6 @@ public class SubscriptObjectFunctionTest extends ScalarTestCase {
             "The object `{y={z=test}}` does not contain the key `x`"
         );
         sqlExpressions.setErrorOnUnknownObjectKey(false);
-        assertEvaluate("{\"x\" = {\"y\" = {\"z\" = 'test'}}}['x']['x']['z']", null);
+        assertEvaluateNull("{\"x\" = {\"y\" = {\"z\" = 'test'}}}['x']['x']['z']");
     }
 }

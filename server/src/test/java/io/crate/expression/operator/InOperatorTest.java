@@ -21,8 +21,8 @@
 
 package io.crate.expression.operator;
 
-import static io.crate.testing.SymbolMatchers.isFunction;
-import static io.crate.testing.SymbolMatchers.isLiteral;
+import static io.crate.testing.Asserts.isFunction;
+import static io.crate.testing.Asserts.isLiteral;
 
 import org.junit.Test;
 
@@ -65,13 +65,13 @@ public class InOperatorTest extends ScalarTestCase {
 
     @Test
     public void testEvaluateInOperator() {
-        assertEvaluate("null in ('alpha', 'bravo')", null);
-        assertEvaluate("name in ('alpha', 'bravo')", null, Literal.of(DataTypes.STRING, null));
-        assertEvaluate("null in (name)", null, Literal.of(DataTypes.STRING, null));
+        assertEvaluateNull("null in ('alpha', 'bravo')");
+        assertEvaluateNull("name in ('alpha', 'bravo')", Literal.of(DataTypes.STRING, null));
+        assertEvaluateNull("null in (name)", Literal.of(DataTypes.STRING, null));
         assertEvaluate("'alpha' in ('alpha', null)", true);
         assertEvaluate("'alpha' in (null, 'alpha')", true);
-        assertEvaluate("'alpha' in ('beta', null)", null);
-        assertEvaluate("'alpha' in (null)", null);
-        assertEvaluate("null in (null)", null);
+        assertEvaluateNull("'alpha' in ('beta', null)");
+        assertEvaluateNull("'alpha' in (null)");
+        assertEvaluateNull("null in (null)");
     }
 }

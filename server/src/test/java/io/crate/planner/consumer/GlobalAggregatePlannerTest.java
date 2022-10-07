@@ -21,17 +21,12 @@
 
 package io.crate.planner.consumer;
 
-import static io.crate.testing.SymbolMatchers.isAggregation;
-import static io.crate.testing.SymbolMatchers.isInputColumn;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.isInputColumn;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.UUID;
 
-import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -44,6 +39,7 @@ import io.crate.execution.dsl.projection.TopNProjection;
 import io.crate.metadata.RowGranularity;
 import io.crate.planner.node.dql.Collect;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.Asserts;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
 
@@ -63,7 +59,7 @@ public class GlobalAggregatePlannerTest extends CrateDummyClusterServiceUnitTest
     public void testAggregateOnSubQueryHasNoFilterProjectionWithoutWhereAndHaving() throws Exception {
         Collect plan = e.plan("select sum(x) from (select x from t1 order by x limit 10) ti");
         for (Projection projection : plan.collectPhase().projections()) {
-            assertThat(projection, Matchers.not(instanceOf(FilterProjection.class)));
+            assertThat(projection).isNotInstanceOf(FilterProjection.class);
         }
     }
 
@@ -71,32 +67,43 @@ public class GlobalAggregatePlannerTest extends CrateDummyClusterServiceUnitTest
     public void testAggregateOnSubQueryNoFetchBecauseColumnInUse() throws Exception {
         Collect plan = e.plan("select sum(x) from (select x, i from t1 order by x limit 10) ti");
         List<Projection> projections = plan.collectPhase().projections();
-        assertThat(projections, contains(
-            instanceOf(TopNProjection.class),
-            instanceOf(AggregationProjection.class)
-        ));
+        assertThat(projections)
+            .satisfiesExactly(
+                s -> assertThat(s).isExactlyInstanceOf(TopNProjection.class),
+                s -> assertThat(s).isExactlyInstanceOf(AggregationProjection.class)
+            );
     }
 
     @Test
     public void test_aggregation_is_correctly_build_with_parameterized_expression() {
         Collect plan = e.plan("select sum(x + ?) from t1", UUID.randomUUID(), 0, new Row1(1));
         var projections = plan.collectPhase().projections();
-        assertThat(projections, contains(
-            instanceOf(AggregationProjection.class),
-            instanceOf(AggregationProjection.class)
-        ));
-        assertThat(projections.get(0).outputs(), contains(isAggregation("sum", isInputColumn(0))));
-        assertThat(projections.get(1).outputs(), contains(isAggregation("sum", isInputColumn(0))));
+        assertThat(projections)
+            .satisfiesExactly(
+                s -> assertThat(s).isExactlyInstanceOf(AggregationProjection.class),
+                s -> assertThat(s).isExactlyInstanceOf(AggregationProjection.class)
+            );
+        //noinspection unchecked
+        assertThat(projections.get(0).outputs())
+            .satisfiesExactly(
+                a -> Asserts.assertThat(a).isAggregation("sum", isInputColumn(0))
+            );
+        //noinspection unchecked
+        assertThat(projections.get(1).outputs())
+            .satisfiesExactly(
+                a -> Asserts.assertThat(a).isAggregation("sum", isInputColumn(0))
+            );
     }
 
     @Test
     public void test_aggregate_on_virtual_table_uses_shard_projections_if_possible() {
         Collect plan = e.plan("select sum(x) from (select x from t1) t");
         List<Projection> projections = plan.collectPhase().projections();
-        assertThat(projections, contains(
-            instanceOf(AggregationProjection.class),
-            instanceOf(AggregationProjection.class)
-        ));
-        assertThat(projections.get(0).requiredGranularity(), is(RowGranularity.SHARD));
+        assertThat(projections)
+            .satisfiesExactly(
+                s -> assertThat(s).isExactlyInstanceOf(AggregationProjection.class),
+                s -> assertThat(s).isExactlyInstanceOf(AggregationProjection.class)
+            );
+        assertThat(projections.get(0).requiredGranularity()).isEqualTo(RowGranularity.SHARD);
     }
 }

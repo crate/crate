@@ -21,7 +21,7 @@
 
 package io.crate.expression.scalar;
 
-import static io.crate.testing.Asserts.assertThrowsMatches;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.LocalDate;
 import java.time.Month;
@@ -110,10 +110,10 @@ public class AgeFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_at_least_one_arg_is_null_returns_null() {
-        assertEvaluate("age(null)", null);
-        assertEvaluate("age(null, '2019-01-02'::TIMESTAMP)", null);
-        assertEvaluate("age('2019-01-02'::TIMESTAMP, null)", null);
-        assertEvaluate("age(null, null)", null);
+        assertEvaluateNull("age(null)");
+        assertEvaluateNull("age(null, '2019-01-02'::TIMESTAMP)");
+        assertEvaluateNull("age('2019-01-02'::TIMESTAMP, null)");
+        assertEvaluateNull("age(null, null)");
     }
 
     @Test
@@ -123,11 +123,11 @@ public class AgeFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_3_args_throws_exception() {
-        assertThrowsMatches(() -> assertEvaluate("pg_catalog.age(null, null, null)", null),
-            UnsupportedOperationException.class,
-            "Unknown function: pg_catalog.age(NULL, NULL, NULL), no overload found for matching argument types: (undefined, undefined, undefined). " +
+        assertThatThrownBy(
+            () -> assertEvaluate("pg_catalog.age(null, null, null)", null))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("Unknown function: pg_catalog.age(NULL, NULL, NULL), no overload found for matching argument types: (undefined, undefined, undefined). " +
                 "Possible candidates: pg_catalog.age(timestamp without time zone):interval, " +
-                "pg_catalog.age(timestamp without time zone, timestamp without time zone):interval"
-        );
+                "pg_catalog.age(timestamp without time zone, timestamp without time zone):interval");
     }
 }

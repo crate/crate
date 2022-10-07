@@ -21,7 +21,7 @@
 
 package io.crate.expression.scalar.string;
 
-import static io.crate.testing.SymbolMatchers.isLiteral;
+import static io.crate.testing.Asserts.isLiteral;
 
 import org.junit.Test;
 
@@ -57,8 +57,8 @@ public class ReplaceFunctionTest extends ScalarTestCase {
 
     @Test
     public void testReplaceWithNullArgumentResultsInNull() {
-        assertEvaluate("replace('foo', null, 'x')", null);
-        assertEvaluate("replace(null, 'y', 'x')", null);
-        assertEvaluate("replace('foo', 'y', null)", null);
+        assertEvaluateNull("replace('foo', null, 'x')");
+        assertEvaluateNull("replace(null, 'y', 'x')");
+        assertEvaluateNull("replace('foo', 'y', null)");
     }
 }

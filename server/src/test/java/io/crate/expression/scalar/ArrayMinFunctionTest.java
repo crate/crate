@@ -62,22 +62,22 @@ public class ArrayMinFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_all_elements_nulls_results_in_null() {
-        assertEvaluate("array_min(cast([null, null] as array(integer)))", null);
+        assertEvaluateNull("array_min(cast([null, null] as array(integer)))");
     }
 
     @Test
     public void test_null_array_results_in_null() {
-        assertEvaluate("array_min(null::int[])", null);
+        assertEvaluateNull("array_min(null::int[])");
     }
 
     @Test
     public void test_null_array_given_directly_results_in_null() {
-        assertEvaluate("array_min(null)", null);
+        assertEvaluateNull("array_min(null)");
     }
 
     @Test
     public void test_empty_array_results_in_null() {
-        assertEvaluate("array_min(cast([] as array(integer)))", null);
+        assertEvaluateNull("array_min(cast([] as array(integer)))");
     }
 
     @Test

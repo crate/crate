@@ -23,7 +23,7 @@ package io.crate.expression.operator;
 
 import static io.crate.expression.operator.LikeOperators.DEFAULT_ESCAPE;
 import static io.crate.expression.operator.LikeOperators.patternToRegex;
-import static io.crate.testing.SymbolMatchers.isLiteral;
+import static io.crate.testing.Asserts.isLiteral;
 import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
@@ -163,8 +163,8 @@ public class LikeOperatorTest extends ScalarTestCase {
         assertEvaluate("'foobarbaz' like 'foo_baz'", false);
         assertEvaluate("'characters' like 'charac%'", true);
 
-        assertEvaluate("'foobarbaz' like name", null, Literal.NULL);
-        assertEvaluate("name like 'foobarbaz'", null, Literal.NULL);
+        assertEvaluateNull("'foobarbaz' like name", Literal.NULL);
+        assertEvaluateNull("name like 'foobarbaz'", Literal.NULL);
     }
 
     @Test
@@ -173,8 +173,8 @@ public class LikeOperatorTest extends ScalarTestCase {
         assertEvaluate("'FOOBARBAZ' ilike 'foo___baz'", true);
         assertEvaluate("'characters' ilike 'CHaraC%'", true);
 
-        assertEvaluate("'foobarbaz' ilike name", null, Literal.NULL);
-        assertEvaluate("name ilike 'foobarbaz'", null, Literal.NULL);
+        assertEvaluateNull("'foobarbaz' ilike name", Literal.NULL);
+        assertEvaluateNull("name ilike 'foobarbaz'", Literal.NULL);
     }
 
     @Test

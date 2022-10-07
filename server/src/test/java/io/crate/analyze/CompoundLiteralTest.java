@@ -21,21 +21,16 @@
 
 package io.crate.analyze;
 
-import static io.crate.testing.SymbolMatchers.isFunction;
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.common.collections.MapBuilder;
 import io.crate.exceptions.ConversionException;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
@@ -58,36 +53,36 @@ public class CompoundLiteralTest extends CrateDummyClusterServiceUnitTest {
         expressions = new SqlExpressions(T3.sources(clusterService));
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void testObjectConstruction() throws Exception {
         Symbol s = expressions.asSymbol("{}");
-        assertThat(s, instanceOf(Literal.class));
-        Literal l = (Literal) s;
-        assertThat(l.value(), is(new HashMap<String, Object>()));
+        assertThat(s).isExactlyInstanceOf(Literal.class);
+        Literal<?> l = (Literal<?>) s;
+        assertThat(l.value()).isEqualTo(new HashMap<String, Object>());
 
-        Literal objectLiteral = (Literal) expressions.normalize(expressions.asSymbol("{ident='value'}"));
-        assertThat(objectLiteral.symbolType(), is(SymbolType.LITERAL));
-        assertThat(objectLiteral.valueType().id(), is(ObjectType.ID));
-        assertThat(objectLiteral.value(), is(Map.of("ident", "value")));
+        Literal<?> objectLiteral = (Literal<?>) expressions.normalize(expressions.asSymbol("{ident='value'}"));
+        assertThat(objectLiteral.symbolType()).isEqualTo(SymbolType.LITERAL);
+        assertThat(objectLiteral.valueType().id()).isEqualTo(ObjectType.ID);
+        assertThat(objectLiteral.value()).isEqualTo(Map.of("ident", "value"));
 
-        Literal multipleObjectLiteral = (Literal) expressions.normalize(expressions.asSymbol("{\"Ident\"=123.4, a={}, ident='string'}"));
+        Literal<?> multipleObjectLiteral = (Literal<?>) expressions.normalize(expressions.asSymbol("{\"Ident\"=123.4, a={}, ident='string'}"));
         Map<String, Object> values = (Map<String, Object>) multipleObjectLiteral.value();
-        assertThat(values, is(MapBuilder.<String, Object>newMapBuilder()
-            .put("Ident", 123.4d)
-            .put("a", new HashMap<String, Object>())
-            .put("ident", "string")
-            .map()));
+        assertThat(values).isEqualTo(Map.of(
+            "Ident", 123.4d,
+            "a", new HashMap<String, Object>(),
+            "ident", "string"));
     }
 
     @Test
     public void testObjectConstructionWithExpressionsAsValues() throws Exception {
-        Literal objectLiteral = (Literal) expressions.normalize(expressions.asSymbol("{name = 1 + 2}"));
-        assertThat(objectLiteral.symbolType(), is(SymbolType.LITERAL));
-        assertThat(objectLiteral.value(), is(Map.<String, Object>of("name", 3)));
+        Literal<?> objectLiteral = (Literal<?>) expressions.normalize(expressions.asSymbol("{name = 1 + 2}"));
+        assertThat(objectLiteral.symbolType()).isEqualTo(SymbolType.LITERAL);
+        assertThat(objectLiteral.value()).isEqualTo(Map.<String, Object>of("name", 3));
 
-        Literal nestedObjectLiteral = (Literal) expressions.normalize(expressions.asSymbol("{a = {name = concat('foo', 'bar')}}"));
+        Literal<?> nestedObjectLiteral = (Literal<?>) expressions.normalize(expressions.asSymbol("{a = {name = concat('foo', 'bar')}}"));
         @SuppressWarnings("unchecked") Map<String, Object> values = (Map<String, Object>) nestedObjectLiteral.value();
-        assertThat(values, is(Map.of("a", Map.of("name", "foobar"))));
+        assertThat(values).isEqualTo(Map.of("a", Map.of("name", "foobar")));
     }
 
     private Symbol analyzeExpression(String expression) {
@@ -96,7 +91,7 @@ public class CompoundLiteralTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testObjectConstructionWithParameterExpression() throws Exception {
-        assertThat(expressions.asSymbol("{ident=?}"), isFunction("_map"));
+        assertThat(expressions.asSymbol("{ident=?}")).isFunction("_map");
     }
 
     @Test
@@ -106,33 +101,34 @@ public class CompoundLiteralTest extends CrateDummyClusterServiceUnitTest {
         analyzeExpression("{a=1, a=2}");
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void testArrayConstructionWithOnlyLiterals() throws Exception {
         Literal<?> emptyArray = (Literal<?>) analyzeExpression("[]");
-        assertThat((List<Object>) emptyArray.value(), Matchers.empty());
-        assertThat(emptyArray.valueType(), is(new ArrayType<>(UndefinedType.INSTANCE)));
+        assertThat((List<Object>) emptyArray.value()).isEmpty();
+        assertThat(emptyArray.valueType()).isEqualTo(new ArrayType<>(UndefinedType.INSTANCE));
 
         Literal<?> singleArray = (Literal<?>) analyzeExpression("[1]");
-        assertThat(singleArray.valueType(), is(new ArrayType<>(DataTypes.INTEGER)));
-        assertThat(((List<Long>) singleArray.value()), contains(1));
+        assertThat(singleArray.valueType()).isEqualTo(new ArrayType<>(DataTypes.INTEGER));
+        assertThat(((List<Integer>) singleArray.value())).containsExactly(1);
 
         Literal<?> multiArray = (Literal<?>) analyzeExpression("[1, 2, 3]");
-        assertThat(multiArray.valueType(), is(new ArrayType<>(DataTypes.INTEGER)));
-        assertThat(((List<Long>) multiArray.value()), contains(1, 2, 3));
+        assertThat(multiArray.valueType()).isEqualTo(new ArrayType<>(DataTypes.INTEGER));
+        assertThat(((List<Integer>) multiArray.value())).containsExactly(1, 2, 3);
     }
 
     @Test
     public void testArrayConstructionWithParameterExpression() throws Exception {
         Symbol array = expressions.asSymbol("[1, ?]");
-        assertThat(array, isFunction("_array"));
-        assertThat(((io.crate.expression.symbol.Function) array).arguments().size(), is(2));
+        assertThat(array).isFunction("_array");
+        assertThat(((io.crate.expression.symbol.Function) array).arguments()).hasSize(2);
     }
 
     @Test
     public void testArrayDifferentTypes() {
-        expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast `'string'` of type `text` to type `integer`");
-        analyzeExpression("[1, 'string']");
+        assertThatThrownBy(() -> analyzeExpression("[1, 'string']"))
+            .isExactlyInstanceOf(ConversionException.class)
+                .hasMessage("Cannot cast `'string'` of type `text` to type `integer`");
     }
 
     @Test
@@ -145,9 +141,9 @@ public class CompoundLiteralTest extends CrateDummyClusterServiceUnitTest {
         );
         for (Map.Entry<String, DataType<?>> entry : expected.entrySet()) {
             Symbol nestedArraySymbol = analyzeExpression("[[" + entry.getKey() + "]]");
-            assertThat(nestedArraySymbol, Matchers.instanceOf(Literal.class));
+            assertThat(nestedArraySymbol).isExactlyInstanceOf(Literal.class);
             Literal<?> nestedArray = (Literal<?>) nestedArraySymbol;
-            assertThat(nestedArray.valueType(), is(new ArrayType<>(new ArrayType<>(entry.getValue()))));
+            assertThat(nestedArray.valueType()).isEqualTo(new ArrayType<>(new ArrayType<>(entry.getValue())));
         }
     }
 }

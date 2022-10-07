@@ -21,7 +21,7 @@
 
 package io.crate.expression.scalar.arithmetic;
 
-import static io.crate.testing.SymbolMatchers.isFunction;
+import static io.crate.testing.Asserts.isFunction;
 import static org.hamcrest.Matchers.nullValue;
 
 import java.math.BigDecimal;
@@ -59,7 +59,7 @@ public class NegateFunctionsTest extends ScalarTestCase {
 
     @Test
     public void testNegateNull() throws Exception {
-        assertEvaluate("- null", null);
+        assertEvaluateNull("- null");
     }
 
     @Test
@@ -74,7 +74,7 @@ public class NegateFunctionsTest extends ScalarTestCase {
 
     @Test
     public void testNegateUndefinedType() throws Exception {
-        assertEvaluate("- - (case 3 when 1 then 1 else Null end) + 1 ", null);
+        assertEvaluateNull("- - (case 3 when 1 then 1 else Null end) + 1 ");
     }
 
     @Test

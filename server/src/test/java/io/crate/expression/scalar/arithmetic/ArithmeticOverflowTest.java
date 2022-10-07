@@ -32,83 +32,83 @@ public class ArithmeticOverflowTest extends ScalarTestCase {
     public void test_integer_overflow() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("integer overflow");
-        assertEvaluate("2147483647::integer + 1::integer", null);
+        assertEvaluateNull("2147483647::integer + 1::integer");
     }
 
     @Test
     public void test_integer_overflow_from_table() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("integer overflow");
-        assertEvaluate("a + 1::integer", null, Literal.of(Integer.MAX_VALUE));
+        assertEvaluateNull("a + 1::integer", Literal.of(Integer.MAX_VALUE));
     }
 
     @Test
     public void test_integer_overflow_mul() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("integer overflow");
-        assertEvaluate("2147483647::integer * 2::integer", null);
+        assertEvaluateNull("2147483647::integer * 2::integer");
     }
 
     @Test
     public void test_integer_overflow_mul_from_table() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("integer overflow");
-        assertEvaluate("a * 2::integer", null, Literal.of(Integer.MAX_VALUE));
+        assertEvaluateNull("a * 2::integer", Literal.of(Integer.MAX_VALUE));
     }
 
     @Test
     public void test_integer_underflow() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("integer overflow");
-        assertEvaluate("-2147483647::integer - 2::integer", null);
+        assertEvaluateNull("-2147483647::integer - 2::integer");
     }
 
     @Test
     public void test_integer_underflow_from_table() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("integer overflow");
-        assertEvaluate("a - 1::integer", null, Literal.of(Integer.MIN_VALUE));
+        assertEvaluateNull("a - 1::integer", Literal.of(Integer.MIN_VALUE));
     }
 
     @Test
     public void test_long_overflow() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("long overflow");
-        assertEvaluate("9223372036854775807 + 1", null);
+        assertEvaluateNull("9223372036854775807 + 1");
     }
 
     @Test
     public void test_long_overflow_from_table() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("long overflow");
-        assertEvaluate("x + 1", null, Literal.of(Long.MAX_VALUE));
+        assertEvaluateNull("x + 1", Literal.of(Long.MAX_VALUE));
     }
 
     @Test
     public void test_long_overflow_mul() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("long overflow");
-        assertEvaluate("9223372036854775807 * 2", null);
+        assertEvaluateNull("9223372036854775807 * 2");
     }
 
     @Test
     public void test_long_overflow_mul_from_table() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("long overflow");
-        assertEvaluate("x * 2", null, Literal.of(Long.MAX_VALUE));
+        assertEvaluateNull("x * 2", Literal.of(Long.MAX_VALUE));
     }
 
     @Test
     public void test_long_underflow() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("long overflow");
-        assertEvaluate("-9223372036854775807 - 2", null);
+        assertEvaluateNull("-9223372036854775807 - 2");
     }
 
     @Test
     public void test_long_underflow_from_table() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("long overflow");
-        assertEvaluate("x - 1", null, Literal.of(Long.MIN_VALUE));
+        assertEvaluateNull("x - 1", Literal.of(Long.MIN_VALUE));
     }
 }

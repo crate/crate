@@ -21,9 +21,7 @@
 
 package io.crate.planner;
 
-import static io.crate.testing.SymbolMatchers.isFunction;
-import static io.crate.testing.SymbolMatchers.isInputColumn;
-import static io.crate.testing.SymbolMatchers.isReference;
+import static io.crate.testing.Asserts.isReference;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
@@ -69,8 +67,8 @@ import io.crate.planner.node.dql.join.Join;
 import io.crate.planner.operators.InsertFromValues;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.Asserts;
 import io.crate.testing.SQLExecutor;
-import io.crate.testing.SymbolMatchers;
 import io.crate.types.DataTypes;
 
 public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
@@ -345,7 +343,8 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
         ));
         ColumnIndexWriterProjection columnIndexWriterProjection =
             (ColumnIndexWriterProjection) collectPhase.projections().get(1);
-        assertThat(columnIndexWriterProjection.columnReferencesExclPartition(), contains(isReference("id"), isReference("name")));
+        Asserts.assertThat(columnIndexWriterProjection.columnReferencesExclPartition()).satisfiesExactly(
+            isReference("id"), isReference("name"));
 
         MergePhase mergePhase = merge.mergePhase();
         assertThat(mergePhase.projections(), contains(instanceOf(MergeCountProjection.class)));
@@ -363,19 +362,16 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
             instanceOf(EvalProjection.class),
             instanceOf(ColumnIndexWriterProjection.class)));
         EvalProjection collectTopN = (EvalProjection) collectPhase.projections().get(1);
-        assertThat(
-            collectTopN.outputs(),
-            contains(
-                isInputColumn(0),
-                isFunction(
+        Asserts.assertThat(collectTopN.outputs())
+            .satisfiesExactly(
+                s -> Asserts.assertThat(s).isInputColumn(0),
+                s -> Asserts.assertThat(s).isFunction(
                     ImplicitCastFunction.NAME,
-                    List.of(DataTypes.LONG, DataTypes.STRING)
-                )
-            )
-        );
+                    List.of(DataTypes.LONG, DataTypes.STRING)));
 
         ColumnIndexWriterProjection columnIndexWriterProjection = (ColumnIndexWriterProjection) collectPhase.projections().get(2);
-        assertThat(columnIndexWriterProjection.columnReferencesExclPartition(), contains(isReference("id"), isReference("name")));
+        Asserts.assertThat(columnIndexWriterProjection.columnReferencesExclPartition()).satisfiesExactly(
+            isReference("id"), isReference("name"));
 
         MergePhase mergePhase = merge.mergePhase();
         assertThat(mergePhase.projections(), contains(instanceOf(MergeCountProjection.class)));
@@ -389,7 +385,7 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) queryAndFetch.collectPhase());
         List<Symbol> toCollect = collectPhase.toCollect();
         assertThat(toCollect.size(), is(2));
-        assertThat(toCollect.get(0), isReference("_doc['id']"));
+        Asserts.assertThat(toCollect.get(0)).isReference("_doc['id']");
         assertThat(toCollect.get(1), equalTo(new SimpleReference(
             new ReferenceIdent(new RelationName(Schemas.DOC_SCHEMA_NAME, "parted_pks"), "date"),
             RowGranularity.PARTITION,
@@ -439,24 +435,20 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
                 instanceOf(EvalProjection.class),
                 instanceOf(ColumnIndexWriterProjection.class))
         );
-        assertThat(projections.get(0).outputs(),
-            contains(
-                isFunction(
+        Asserts.assertThat(projections.get(0).outputs())
+            .satisfiesExactly(
+                s -> Asserts.assertThat(s).isFunction(
                     ImplicitCastFunction.NAME,
-                    List.of(DataTypes.INTEGER, DataTypes.STRING)
-                ),
-                isInputColumn(1)
-            )
-        );
+                    List.of(DataTypes.INTEGER, DataTypes.STRING)),
+                s -> Asserts.assertThat(s).isInputColumn(1));
     }
 
     @Test
     public void test_insert_from_sub_query_with_sys_tables_has_no_doc_lookup() {
         Collect collect = e.plan("insert into users (id, name) (select oid, typname from pg_catalog.pg_type)");
-        assertThat(collect.collectPhase().toCollect(), contains(
+        Asserts.assertThat(collect.collectPhase().toCollect()).satisfiesExactly(
             isReference("oid"),
-            isReference("typname")
-        ));
+            isReference("typname"));
     }
 
     @Test
@@ -484,9 +476,7 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void test_insert_from_group_by_uses_doc_values() throws Exception {
         Merge merge = e.plan("insert into users (id) (select id from users group by 1)");
         Collect collect = (Collect) merge.subPlan();
-        assertThat(collect.collectPhase().toCollect(), contains(
-            SymbolMatchers.isReference("id")
-        ));
+        Asserts.assertThat(collect.collectPhase().toCollect()).satisfiesExactly(isReference("id"));
     }
 
     @Test

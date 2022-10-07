@@ -48,7 +48,7 @@ public class TypeInferenceTest extends ScalarTestCase {
         assertEvaluate("coalesce(null, 1::integer, 2::long)", 1L);
         assertEvaluate("coalesce(null, 1::integer, '1')", 1);
         assertEvaluate("coalesce(null, 1::integer)", 1);
-        assertEvaluate("coalesce(null)", null);
+        assertEvaluateNull("coalesce(null)");
     }
 
     @Test
@@ -72,7 +72,7 @@ public class TypeInferenceTest extends ScalarTestCase {
         assertEvaluate("1 in (null, 1::integer, 2::long, 3.0, '1')", true);
         assertEvaluate("1.0 in (null, 1::integer, 2::long, 3.0)", true);
         assertEvaluate("1.2 in (1::integer, 2::long, 3.0)", false);
-        assertEvaluate("1.2 in (null, 1::integer, 2::long, 3.0)", null);
+        assertEvaluateNull("1.2 in (null, 1::integer, 2::long, 3.0)");
 
         expectedException.expect(ConversionException.class);
         expectedException.expectMessage("Cannot cast `'foo'` of type `text` to type `double precision`");
@@ -84,7 +84,7 @@ public class TypeInferenceTest extends ScalarTestCase {
         assertEvaluate("1 = ANY ([null, 1::integer, 2::long, 3.0, '1'])", true);
         assertEvaluate("1.0 = ANY ([null, 1::integer, 2::long, 3.0])", true);
         assertEvaluate("1.0 = ANY ([1::integer, 2::long, 3.0])", true);
-        assertEvaluate("1.2 = ANY ([null, 1::integer, 2::long, 3.0])", null);
+        assertEvaluateNull("1.2 = ANY ([null, 1::integer, 2::long, 3.0])");
 
         expectedException.expect(ConversionException.class);
         expectedException.expectMessage("Cannot cast `'foo'` of type `text` to type `double precision`");

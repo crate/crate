@@ -36,7 +36,7 @@ public class MapFunctionTest extends ScalarTestCase {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Unknown function: _map('foo', 1, 'bar')," +
                                         " no overload found for matching argument types: (text, integer, text).");
-        assertEvaluate("_map('foo', 1, 'bar')", null);
+        assertEvaluateNull("_map('foo', 1, 'bar')");
     }
 
     @Test

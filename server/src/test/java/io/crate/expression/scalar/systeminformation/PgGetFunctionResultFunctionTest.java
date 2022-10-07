@@ -34,13 +34,13 @@ public class PgGetFunctionResultFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_null_oid_results_in_null() {
-        assertEvaluate("pg_function_is_visible(null)", null);
+        assertEvaluateNull("pg_function_is_visible(null)");
     }
 
     @Test
     public void test_function_retuns_null_for_values_that_are_not_oids() {
-        assertEvaluate("pg_get_function_result(0)",null);
-        assertEvaluate("pg_get_function_result(-14)",null);
+        assertEvaluateNull("pg_get_function_result(0)");
+        assertEvaluateNull("pg_get_function_result(-14)");
     }
 
     @Test

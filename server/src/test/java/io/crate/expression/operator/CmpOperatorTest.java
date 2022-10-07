@@ -21,8 +21,8 @@
 
 package io.crate.expression.operator;
 
-import static io.crate.testing.SymbolMatchers.isFunction;
-import static io.crate.testing.SymbolMatchers.isLiteral;
+import static io.crate.testing.Asserts.isFunction;
+import static io.crate.testing.Asserts.isLiteral;
 
 import org.junit.Test;
 
@@ -38,10 +38,10 @@ public class CmpOperatorTest extends ScalarTestCase {
         assertNormalize("0.1 <= 0.1", isLiteral(true));
         assertNormalize("16 <= 8", isLiteral(false));
         assertNormalize("'abc' <= 'abd'", isLiteral(true));
-        assertEvaluate("true <= null", null);
-        assertEvaluate("null <= 1", null);
-        assertEvaluate("null <= 'abc'", null);
-        assertEvaluate("null <= null", null);
+        assertEvaluateNull("true <= null");
+        assertEvaluateNull("null <= 1");
+        assertEvaluateNull("null <= 'abc'");
+        assertEvaluateNull("null <= null");
     }
 
     @Test
@@ -49,10 +49,10 @@ public class CmpOperatorTest extends ScalarTestCase {
         assertNormalize("id < 8", isFunction("op_<"));
         assertNormalize("0.1 < 0.2", isLiteral(true));
         assertNormalize("'abc' < 'abd'", isLiteral(true));
-        assertEvaluate("true < null", null);
-        assertEvaluate("null < 1", null);
-        assertEvaluate("null < name", null, Literal.of("foo"));
-        assertEvaluate("null < null", null);
+        assertEvaluateNull("true < null");
+        assertEvaluateNull("null < 1");
+        assertEvaluateNull("null < name", Literal.of("foo"));
+        assertEvaluateNull("null < null");
     }
 
     @Test
@@ -61,10 +61,10 @@ public class CmpOperatorTest extends ScalarTestCase {
         assertNormalize("0.1 >= 0.1", isLiteral(true));
         assertNormalize("16 >= 8", isLiteral(true));
         assertNormalize("'abc' >= 'abd'", isLiteral(false));
-        assertEvaluate("true >= null", null);
-        assertEvaluate("null >= 1", null);
-        assertEvaluate("null >= 'abc'", null);
-        assertEvaluate("null >= null", null);
+        assertEvaluateNull("true >= null");
+        assertEvaluateNull("null >= 1");
+        assertEvaluateNull("null >= 'abc'");
+        assertEvaluateNull("null >= null");
     }
 
     @Test
@@ -73,10 +73,10 @@ public class CmpOperatorTest extends ScalarTestCase {
         assertNormalize("0.1 > 0.1", isLiteral(false));
         assertNormalize("16 > 8", isLiteral(true));
         assertNormalize("'abd' > 'abc'", isLiteral(true));
-        assertEvaluate("true > null", null);
-        assertEvaluate("null > 1", null);
-        assertEvaluate("name > null", null, Literal.of("foo"));
-        assertEvaluate("null > null", null);
+        assertEvaluateNull("true > null");
+        assertEvaluateNull("null > 1");
+        assertEvaluateNull("name > null", Literal.of("foo"));
+        assertEvaluateNull("null > null");
     }
 
     @Test
@@ -84,12 +84,12 @@ public class CmpOperatorTest extends ScalarTestCase {
         assertNormalize("0.1 between 0.01 and 0.2", isLiteral(true));
         assertNormalize("10 between 1 and 2", isLiteral(false));
         assertNormalize("'abd' between 'abc' and 'abe'", isLiteral(true));
-        assertEvaluate("1 between 0 and null", null);
-        assertEvaluate("1 between null and 10", null);
-        assertEvaluate("1 between null and null", null);
-        assertEvaluate("null between 1 and 10", null);
-        assertEvaluate("null between 1 and null", null);
-        assertEvaluate("null between null and 10", null);
-        assertEvaluate("null between null and null", null);
+        assertEvaluateNull("1 between 0 and null");
+        assertEvaluateNull("1 between null and 10");
+        assertEvaluateNull("1 between null and null");
+        assertEvaluateNull("null between 1 and 10");
+        assertEvaluateNull("null between 1 and null");
+        assertEvaluateNull("null between null and 10");
+        assertEvaluateNull("null between null and null");
     }
 }

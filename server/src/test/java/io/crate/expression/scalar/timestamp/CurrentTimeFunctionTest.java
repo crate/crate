@@ -21,7 +21,7 @@
 
 package io.crate.expression.scalar.timestamp;
 
-import static org.hamcrest.Matchers.instanceOf;
+import static io.crate.testing.Asserts.assertThat;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -76,11 +76,11 @@ public class CurrentTimeFunctionTest extends ScalarTestCase {
     public void precision_larger_than_6_raises_exception() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("precision must be between [0..6]");
-        assertEvaluate("current_time(14)", null);
+        assertEvaluateNull("current_time(14)");
     }
 
     @Test
     public void integerIsNormalizedToLiteral() {
-        assertNormalize("current_time(1)", instanceOf(Literal.class));
+        assertNormalize("current_time(1)", s -> assertThat(s).isExactlyInstanceOf(Literal.class));
     }
 }

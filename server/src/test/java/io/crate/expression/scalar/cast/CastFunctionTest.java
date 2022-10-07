@@ -22,17 +22,14 @@
 package io.crate.expression.scalar.cast;
 
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
+import static io.crate.testing.Asserts.isFunction;
+import static io.crate.testing.Asserts.isNotSameInstance;
 import static io.crate.testing.DataTypeTesting.getDataGenerator;
 import static io.crate.testing.DataTypeTesting.randomType;
-import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.types.DataTypes.GEO_POINT;
 import static io.crate.types.DataTypes.GEO_SHAPE;
 import static io.crate.types.TypeSignature.parseTypeSignature;
-import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 
 import java.math.BigDecimal;
@@ -40,7 +37,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.hamcrest.core.IsSame;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -89,7 +85,7 @@ public class CastFunctionTest extends ScalarTestCase {
     @Test
     public void testCasts() {
         assertEvaluate("cast(10.4 as string)", "10.4");
-        assertEvaluate("cast(null as string)", null);
+        assertEvaluateNull("cast(null as string)");
         assertEvaluate("cast(10.4 as long)", 10L);
         assertEvaluate("cast([10.2, 12.3] as array(long))", List.of(10L, 12L));
     }
@@ -246,7 +242,7 @@ public class CastFunctionTest extends ScalarTestCase {
             Literal<?> val = Literal.ofUnchecked(randomType, getDataGenerator(randomType).get());
             assertEvaluate(
                 "try_cast(" + val.toString(Style.QUALIFIED) + " as " + dataType.getName() + ")",
-                anyOf(notNullValue(), nullValue()));
+                f -> {});
         }
     }
 
@@ -275,38 +271,38 @@ public class CastFunctionTest extends ScalarTestCase {
     public void test_cast_numeric_to_numeric_with_changed_scale() {
         // Test that NumericType.equals() is implemented correctly otherwise the expression analyzer
         // would just skip the 2nd cast
-        assertEvaluate("12.12::numeric(4, 2)::numeric(3, 1)", is(new BigDecimal("12.1")));
+        assertEvaluate("12.12::numeric(4, 2)::numeric(3, 1)", new BigDecimal("12.1"));
     }
 
     @Test
     public void test_cast_to_parametrized_numeric_returns_numeric_in_arithmetic_expression() {
         // Used to return 80.
-        assertEvaluate("CAST(8.12 AS numeric(12, 5)) * 10", is(new BigDecimal("81.20000")));
-        assertEvaluate("8.12::numeric(12, 5) * 10", is(new BigDecimal("81.20000")));
+        assertEvaluate("CAST(8.12 AS numeric(12, 5)) * 10", new BigDecimal("81.20000"));
+        assertEvaluate("8.12::numeric(12, 5) * 10", new BigDecimal("81.20000"));
         //used to return "integer"
-        assertEvaluate("pg_typeof(CAST(8.12 AS numeric(12, 5)) * 10)", is("numeric"));
+        assertEvaluate("pg_typeof(CAST(8.12 AS numeric(12, 5)) * 10)", "numeric");
 
-        assertEvaluate("8.12::numeric * 10", is(new BigDecimal("81.20")));
+        assertEvaluate("8.12::numeric * 10", new BigDecimal("81.20"));
     }
 
     @Test
     public void test_can_cast_object_to_json() throws Exception {
-        assertEvaluate("{x = 10}::json", is("{\"x\":10}"));
+        assertEvaluate("{x = 10}::json", "{\"x\":10}");
     }
 
     @Test
     public void test_can_cast_json_to_object() throws Exception {
-        assertEvaluate("('{\"x\":  10}'::json)::object", is(Map.of("x", 10)));
+        assertEvaluate("('{\"x\":  10}'::json)::object", Map.of("x", 10));
     }
 
     @Test
     public void test_can_cast_text_to_json_array() throws Exception {
-        assertEvaluate("'[{\"x\": 10}, {\"x\": 20}]'::json[]", is(List.of("{\"x\":10}", "{\"x\":20}")));
+        assertEvaluate("'[{\"x\": 10}, {\"x\": 20}]'::json[]", List.of("{\"x\":10}", "{\"x\":20}"));
     }
 
     @Test
     public void test_implicit_cast_is_compiled() throws Exception {
-        assertCompile("_cast(a, 'double precision')", (s) -> not(IsSame.sameInstance(s)));
+        assertCompile("_cast(a, 'double precision')", isNotSameInstance());
     }
 
     @Test
