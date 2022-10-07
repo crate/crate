@@ -21,8 +21,8 @@
 
 package io.crate.expression.scalar.geo;
 
-import static io.crate.testing.SymbolMatchers.isLiteral;
-import static org.hamcrest.Matchers.nullValue;
+import static io.crate.testing.Asserts.assertThat;
+import static io.crate.testing.Asserts.isLiteral;
 
 import org.junit.Test;
 import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
@@ -40,7 +40,7 @@ public class DistanceFunctionTest extends ScalarTestCase {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Unknown function: distance('POINT (10 20)', 'POINT (11 21)', 'foo')," +
                                         " no overload found for matching argument types: (text, text, text).");
-        assertNormalize("distance('POINT (10 20)', 'POINT (11 21)', 'foo')", null);
+        assertNormalize("distance('POINT (10 20)', 'POINT (11 21)', 'foo')", s -> assertThat(s).isNull());
     }
 
     @Test
@@ -48,7 +48,7 @@ public class DistanceFunctionTest extends ScalarTestCase {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Unknown function: distance(1, 'POINT (11 21)')," +
                                         " no overload found for matching argument types: (integer, text).");
-        assertNormalize("distance(1, 'POINT (11 21)')", null);
+        assertNormalize("distance(1, 'POINT (11 21)')", s -> assertThat(s).isNull());
     }
 
     @Test
@@ -79,23 +79,21 @@ public class DistanceFunctionTest extends ScalarTestCase {
     public void testWithInvalidReferences() {
         expectedException.expect(ConversionException.class);
         expectedException.expectMessage("Cannot cast value `foo` to type `geo_point`");
-        assertEvaluate("distance(name, [10.04, 28.02])", nullValue(), Literal.of("foo"));
+        assertEvaluateNull("distance(name, [10.04, 28.02])", Literal.of("foo"));
     }
 
     @Test
     public void testWithNullValue() throws Exception {
-        assertEvaluate(
+        assertEvaluateNull(
             "distance(geopoint, geopoint)",
-            null,
             Literal.of(DataTypes.GEO_POINT, null),
             Literal.of(
                 DataTypes.GEO_POINT,
                 DataTypes.GEO_POINT.implicitCast("POINT (10 20)")
             )
         );
-        assertEvaluate(
+        assertEvaluateNull(
             "distance(geopoint, geopoint)",
-            null,
             Literal.of(
                 DataTypes.GEO_POINT,
                 DataTypes.GEO_POINT.implicitCast("POINT (10 20)")

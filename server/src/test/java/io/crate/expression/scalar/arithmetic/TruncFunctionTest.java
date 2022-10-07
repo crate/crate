@@ -21,8 +21,8 @@
 
 package io.crate.expression.scalar.arithmetic;
 
-import static io.crate.testing.SymbolMatchers.isFunction;
-import static io.crate.testing.SymbolMatchers.isLiteral;
+import static io.crate.testing.Asserts.isFunction;
+import static io.crate.testing.Asserts.isLiteral;
 
 import java.util.List;
 

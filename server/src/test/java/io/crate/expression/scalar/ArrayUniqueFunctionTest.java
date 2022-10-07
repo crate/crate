@@ -21,15 +21,15 @@
 
 package io.crate.expression.scalar;
 
-import static io.crate.testing.SymbolMatchers.isFunction;
-import static io.crate.testing.SymbolMatchers.isLiteral;
-import static org.hamcrest.Matchers.is;
+import static io.crate.testing.Asserts.isFunction;
+import static io.crate.testing.Asserts.isLiteral;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.exceptions.ConversionException;
@@ -68,21 +68,21 @@ public class ArrayUniqueFunctionTest extends ScalarTestCase {
             List.of(List.of(0, 0), List.of(1, 1)));
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void testArrayUniqueWithObjectArraysThatContainArraysReturnsUniqueArrays() {
         assertEvaluate(
             "array_unique([{x=[1, 1]}], [{x=[1, 1]}])",
-             Matchers.contains(
-               Matchers.hasEntry(is("x"), Matchers.contains(is(1), is(1)))
-           )
-        );
+             s -> assertThat((List<Map<String, List<Integer>>>) s).satisfiesExactly(
+                 l -> assertThat(l).containsOnlyKeys("x").satisfies(
+                     m -> assertThat(m.get("x")).containsExactly(1, 1))));
     }
 
     @Test
     public void testZeroArguments() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Unknown function: array_unique().");
-        assertEvaluate("array_unique()", null);
+        assertEvaluateNull("array_unique()");
     }
 
     @Test
@@ -106,7 +106,7 @@ public class ArrayUniqueFunctionTest extends ScalarTestCase {
     public void testConvertNonNumericStringToNumber() {
         expectedException.expect(ConversionException.class);
         expectedException.expectMessage("Cannot cast `'foo'` of type `text` to type `integer`");
-        assertEvaluate("array_unique([10, 20], ['foo', 'bar'])", null);
+        assertEvaluateNull("array_unique([10, 20], ['foo', 'bar'])");
     }
 
     @Test
@@ -114,7 +114,7 @@ public class ArrayUniqueFunctionTest extends ScalarTestCase {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Unknown function: array_unique(_array(doc.users.geopoint), _array(true))," +
                                         " no overload found for matching argument types: (geo_point_array, boolean_array).");
-        assertEvaluate("array_unique([geopoint], [true])", null);
+        assertEvaluateNull("array_unique([geopoint], [true])");
     }
 
     @Test
@@ -132,7 +132,7 @@ public class ArrayUniqueFunctionTest extends ScalarTestCase {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("One of the arguments of the `array_unique` function can " +
                                         "be of undefined inner type, but not both");
-        assertEvaluate("array_unique([], [])", null);
+        assertEvaluateNull("array_unique([], [])");
     }
 
     @Test
@@ -140,6 +140,6 @@ public class ArrayUniqueFunctionTest extends ScalarTestCase {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage(
             "When used with only one argument, the inner type of the array argument cannot be undefined");
-        assertEvaluate("array_unique([])", null);
+        assertEvaluateNull("array_unique([])");
     }
 }

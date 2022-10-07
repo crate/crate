@@ -22,8 +22,7 @@
 package io.crate.planner.operators;
 
 import static io.crate.planner.operators.LogicalPlannerTest.isPlan;
-import static io.crate.testing.SymbolMatchers.isReference;
-import static org.hamcrest.Matchers.contains;
+import static io.crate.testing.Asserts.isReference;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertThat;
@@ -37,6 +36,7 @@ import io.crate.analyze.WindowDefinition;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.WindowFunction;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.Asserts;
 import io.crate.testing.SQLExecutor;
 
 public class WindowAggTest extends CrateDummyClusterServiceUnitTest {
@@ -106,42 +106,42 @@ public class WindowAggTest extends CrateDummyClusterServiceUnitTest {
     public void testOrderByIsOverOrderByWithoutPartitions() {
         OrderBy orderBy = WindowAgg.createOrderByInclPartitionBy(wd("avg(x) OVER (ORDER BY x)"));
         assertThat(orderBy, notNullValue());
-        assertThat(orderBy.orderBySymbols(), contains(isReference("x")));
+        Asserts.assertThat(orderBy.orderBySymbols()).satisfiesExactly(isReference("x"));
     }
 
     @Test
     public void testOrderByIsPartitionByWithoutExplicitOrderBy() {
         OrderBy orderBy = WindowAgg.createOrderByInclPartitionBy(wd("avg(x) OVER (PARTITION BY x)"));
         assertThat(orderBy, notNullValue());
-        assertThat(orderBy.orderBySymbols(), contains(isReference("x")));
+        Asserts.assertThat(orderBy.orderBySymbols()).satisfiesExactly(isReference("x"));
     }
 
     @Test
     public void testOrderByIsMergedWithPartitionByWithFullColumnOverlap() {
         OrderBy orderBy = WindowAgg.createOrderByInclPartitionBy(wd("avg(x) OVER (PARTITION BY x ORDER BY x)"));
         assertThat(orderBy, notNullValue());
-        assertThat(orderBy.orderBySymbols(), contains(isReference("x")));
+        Asserts.assertThat(orderBy.orderBySymbols()).satisfiesExactly(isReference("x"));
     }
 
     @Test
     public void testOrderByIsMergedWithPartitionByWithPartialColumnOverlap() {
         OrderBy orderBy = WindowAgg.createOrderByInclPartitionBy(wd("avg(x) OVER (PARTITION BY x, y ORDER BY x)"));
         assertThat(orderBy, notNullValue());
-        assertThat(orderBy.orderBySymbols(), contains(isReference("x"), isReference("y")));
+        Asserts.assertThat(orderBy.orderBySymbols()).satisfiesExactly(isReference("x"), isReference("y"));
     }
 
     @Test
     public void testOrderByIsMergedWithPartitionByWithPartialColumnOverlapButReverseOrder() {
         OrderBy orderBy = WindowAgg.createOrderByInclPartitionBy(wd("avg(x) OVER (PARTITION BY y, x ORDER BY x)"));
         assertThat(orderBy, notNullValue());
-        assertThat(orderBy.orderBySymbols(), contains(isReference("y"), isReference("x")));
+        Asserts.assertThat(orderBy.orderBySymbols()).satisfiesExactly(isReference("y"), isReference("x"));
     }
 
     @Test
     public void testOrderByIsMergedWithPartitionByWithNoOverlap() {
         OrderBy orderBy = WindowAgg.createOrderByInclPartitionBy(wd("avg(x) OVER (PARTITION BY y ORDER BY x)"));
         assertThat(orderBy, notNullValue());
-        assertThat(orderBy.orderBySymbols(), contains(isReference("y"), isReference("x")));
+        Asserts.assertThat(orderBy.orderBySymbols()).satisfiesExactly(isReference("y"), isReference("x"));
     }
 
     private WindowDefinition wd(String expression) {

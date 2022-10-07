@@ -21,9 +21,10 @@
 
 package io.crate.expression.scalar.geo;
 
-import static io.crate.testing.SymbolMatchers.isFunction;
-import static io.crate.testing.SymbolMatchers.isLiteral;
+import static io.crate.testing.Asserts.isFunction;
+import static io.crate.testing.Asserts.isLiteral;
 
+import java.util.List;
 import java.util.Map;
 
 import org.junit.Test;
@@ -38,18 +39,16 @@ public class WithinFunctionTest extends ScalarTestCase {
 
     @Test
     public void testEvaluateWithNullArgs() throws Exception {
-        assertEvaluate(
+        assertEvaluateNull(
             "within(geopoint, geoshape)",
-            null,
             Literal.of(DataTypes.GEO_POINT, null),
             Literal.of(
                 DataTypes.GEO_POINT,
                 DataTypes.GEO_POINT.implicitCast("POINT (10 10)")
             )
         );
-        assertEvaluate(
+        assertEvaluateNull(
             "within(geopoint, geoshape)",
-            null,
             Literal.of(
                 DataTypes.GEO_POINT,
                 DataTypes.GEO_POINT.implicitCast("POINT (10 10)")
@@ -142,7 +141,7 @@ public class WithinFunctionTest extends ScalarTestCase {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Unknown function: within(INPUT(0), INPUT(0))," +
                                         " no overload found for matching argument types: (bigint, geo_point).");
-        getFunction(FNAME, DataTypes.LONG, DataTypes.GEO_POINT);
+        getFunction(FNAME, List.of(DataTypes.LONG, DataTypes.GEO_POINT));
     }
 
     @Test
@@ -150,7 +149,7 @@ public class WithinFunctionTest extends ScalarTestCase {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Unknown function: within(INPUT(0), INPUT(0))," +
                                         " no overload found for matching argument types: (geo_point, bigint).");
-        getFunction(FNAME, DataTypes.GEO_POINT, DataTypes.LONG);
+        getFunction(FNAME, List.of(DataTypes.GEO_POINT, DataTypes.LONG));
     }
 
     @Test

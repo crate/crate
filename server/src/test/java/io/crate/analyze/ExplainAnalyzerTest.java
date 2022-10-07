@@ -21,20 +21,15 @@
 
 package io.crate.analyze;
 
-import static io.crate.testing.SymbolMatchers.isField;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.isField;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
 
-import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -49,51 +44,52 @@ public class ExplainAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testExplain() throws Exception {
+    public void testExplain() {
         ExplainAnalyzedStatement stmt = e.analyze("explain select id from sys.cluster");
-        assertNotNull(stmt.statement());
-        assertThat(stmt.statement(), instanceOf(AnalyzedRelation.class));
-        assertThat(stmt.context(), nullValue());
+        assertThat(stmt.statement()).isNotNull();
+        assertThat(stmt.statement()).isExactlyInstanceOf(QueriedSelectRelation.class);
+        assertThat(stmt.context()).isNull();
     }
 
     @Test
     public void testAnalyzePropertyIsSetOnExplainAnalyze() {
         ExplainAnalyzedStatement stmt = e.analyze("explain analyze select id from sys.cluster");
-        assertThat(stmt.context(), notNullValue());
+        assertThat(stmt.context()).isNotNull();
     }
 
     @Test
     public void testAnalyzePropertyIsReflectedInColumnName() {
         ExplainAnalyzedStatement stmt = e.analyze("explain analyze select 1");
-        assertThat(stmt.outputs(), Matchers.contains(isField("EXPLAIN ANALYZE")));
+        assertThat(stmt.outputs()).satisfiesExactly(isField("EXPLAIN ANALYZE"));
     }
 
     @Test
-    public void testExplainArrayComparison() throws Exception {
+    public void testExplainArrayComparison() {
         ExplainAnalyzedStatement stmt = e.analyze("explain SELECT id from sys.cluster where id = any([1,2,3])");
-        assertNotNull(stmt.statement());
-        assertThat(stmt.statement(), instanceOf(AnalyzedRelation.class));
-        assertThat(stmt.outputs(), Matchers.contains(isField("EXPLAIN")));
+        assertThat(stmt.statement()).isNotNull();
+        assertThat(stmt.statement()).isExactlyInstanceOf(QueriedSelectRelation.class);
+        assertThat(stmt.outputs()).satisfiesExactly(isField("EXPLAIN"));
     }
 
     @Test
-    public void testExplainCopyFrom() throws Exception {
+    public void testExplainCopyFrom() {
         ExplainAnalyzedStatement stmt = e.analyze("explain copy users from '/tmp/*' WITH (shared=True)");
-        assertThat(stmt.statement(), instanceOf(AnalyzedCopyFrom.class));
-        assertThat(stmt.outputs(), Matchers.contains(isField("EXPLAIN")));
+        assertThat(stmt.statement()).isExactlyInstanceOf(AnalyzedCopyFrom.class);
+        assertThat(stmt.outputs()).satisfiesExactly(isField("EXPLAIN"));
     }
 
     @Test
-    public void testExplainRefreshUnsupported() throws Exception {
-        expectedException.expect(UnsupportedFeatureException.class);
-        expectedException.expectMessage("EXPLAIN is not supported for RefreshStatement");
-        e.analyze("explain refresh table parted");
+    public void testExplainRefreshUnsupported() {
+        assertThatThrownBy(() -> e.analyze("explain refresh table parted"))
+            .isExactlyInstanceOf(UnsupportedFeatureException.class)
+            .hasMessageStartingWith("EXPLAIN is not supported for RefreshStatement");
+
     }
 
     @Test
-    public void testExplainOptimizeUnsupported() throws Exception {
-        expectedException.expect(UnsupportedFeatureException.class);
-        expectedException.expectMessage("EXPLAIN is not supported for OptimizeStatement");
-        e.analyze("explain optimize table parted");
+    public void testExplainOptimizeUnsupported() {
+        assertThatThrownBy(() -> e.analyze("explain optimize table parted"))
+            .isExactlyInstanceOf(UnsupportedFeatureException.class)
+            .hasMessageStartingWith("EXPLAIN is not supported for OptimizeStatement");
     }
 }

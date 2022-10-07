@@ -21,9 +21,8 @@
 
 package io.crate.user.scalar;
 
-import static io.crate.testing.SymbolMatchers.isLiteral;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.isLiteral;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -38,7 +37,7 @@ public class UserFunctionTest extends ScalarTestCase {
     private static final User TEST_USER = User.of("testUser");
 
     @Before
-    private void prepare() {
+    public void prepare() {
         sqlExpressions = new SqlExpressions(tableSources, null, TEST_USER);
     }
 
@@ -61,12 +60,12 @@ public class UserFunctionTest extends ScalarTestCase {
     public void testFormatFunctionsWithoutBrackets() {
         sqlExpressions.context().allowEagerNormalize(false);
         Symbol f = sqlExpressions.asSymbol("current_user");
-        assertThat(f.toString(), is("CURRENT_USER"));
+        assertThat(f).hasToString("CURRENT_USER");
 
         f = sqlExpressions.asSymbol("session_user");
-        assertThat(f.toString(), is("SESSION_USER"));
+        assertThat(f).hasToString("SESSION_USER");
 
         f = sqlExpressions.asSymbol("user");
-        assertThat(f.toString(), is("CURRENT_USER"));
+        assertThat(f).hasToString("CURRENT_USER");
     }
 }

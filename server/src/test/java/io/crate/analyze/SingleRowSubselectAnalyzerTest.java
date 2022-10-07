@@ -21,11 +21,11 @@
 
 package io.crate.analyze;
 
-import static io.crate.testing.SymbolMatchers.isFunction;
-import static io.crate.testing.SymbolMatchers.isLiteral;
-import static io.crate.testing.SymbolMatchers.isReference;
+import static io.crate.testing.Asserts.exactlyInstanceOf;
+import static io.crate.testing.Asserts.isLiteral;
+import static io.crate.testing.Asserts.isReference;
+import static io.crate.testing.Asserts.toCondition;
 import static io.crate.testing.TestingHelpers.isSQL;
-import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
@@ -41,6 +41,7 @@ import io.crate.expression.operator.EqOperator;
 import io.crate.expression.symbol.MatchPredicate;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.Asserts;
 import io.crate.testing.SQLExecutor;
 
 public class SingleRowSubselectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
@@ -90,7 +91,8 @@ public class SingleRowSubselectAnalyzerTest extends CrateDummyClusterServiceUnit
     @Test
     public void testSingleRowSubselectInWhereClauseOfDelete() throws Exception {
         AnalyzedDeleteStatement delete = e.analyze("delete from t1 where x = (select y from t2)");
-        assertThat(delete.query(), isFunction(EqOperator.NAME, isReference("x"), instanceOf(SelectSymbol.class)));
+        Asserts.assertThat(delete.query())
+            .isFunction(EqOperator.NAME, isReference("x"), exactlyInstanceOf(SelectSymbol.class));
     }
 
     @Test
@@ -99,7 +101,8 @@ public class SingleRowSubselectAnalyzerTest extends CrateDummyClusterServiceUnit
             "select * from users where match(shape 1.2, (select shape from users limit 1))");
         assertThat(relation.where(), instanceOf(MatchPredicate.class));
         MatchPredicate match = (MatchPredicate) relation.where();
-        assertThat(match.identBoostMap(), hasEntry(isReference("shape"), isLiteral(1.2)));
+        Asserts.assertThat(match.identBoostMap()).hasEntrySatisfying(
+            toCondition(isReference("shape")), toCondition(isLiteral(1.2)));
         assertThat(match.queryTerm(), instanceOf(SelectSymbol.class));
         assertThat(match.matchType(), is("intersects"));
     }

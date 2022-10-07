@@ -21,9 +21,10 @@
 
 package io.crate.expression.scalar.arithmetic;
 
-import static io.crate.testing.SymbolMatchers.isLiteral;
 
-import org.hamcrest.Matchers;
+import static io.crate.testing.Asserts.isLiteral;
+import static io.crate.testing.Asserts.isNull;
+
 import org.junit.Test;
 
 import io.crate.exceptions.ConversionException;
@@ -56,38 +57,38 @@ public class LogFunctionTest extends ScalarTestCase {
     @Test(expected = IllegalArgumentException.class)
     public void testLogZero() throws Exception {
         // -Infinity
-        assertEvaluate("log(0.0)", null);
+        assertEvaluateNull("log(0.0)");
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testLogNegative() throws Exception {
         // NaN
-        assertEvaluate("log(-10.0)", null);
+        assertEvaluateNull("log(-10.0)");
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testLnZero() throws Exception {
         // -Infinity
-        assertEvaluate("ln(0.0)", null);
+        assertEvaluateNull("ln(0.0)");
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testLnNegative() throws Exception {
         // NaN
-        assertEvaluate("ln(-10.0)", null);
+        assertEvaluateNull("ln(-10.0)");
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testLogDivisionByZero() throws Exception {
         // division by zero
-        assertEvaluate("log(10.0, 1.0)", null);
+        assertEvaluateNull("log(10.0, 1.0)");
     }
 
     @Test
     public void testNormalizeString() throws Exception {
         expectedException.expect(ConversionException.class);
         expectedException.expectMessage("Cannot cast `'foo'` of type `text` to type `double precision`");
-        assertNormalize("log('foo')", Matchers.nullValue());
+        assertNormalize("log('foo')", isNull());
     }
 
     @Test
@@ -99,7 +100,7 @@ public class LogFunctionTest extends ScalarTestCase {
     public void testEvaluateLog10() throws Exception {
         assertEvaluate("log(100)", 2.0);
         assertEvaluate("log(100.0)", 2.0);
-        assertEvaluate("log(null)", null);
+        assertEvaluateNull("log(null)");
     }
 
     @Test
@@ -107,15 +108,15 @@ public class LogFunctionTest extends ScalarTestCase {
         assertEvaluate("log(10, 100)", 0.5);
         assertEvaluate("log(10.0, 100.0)", 0.5);
         assertEvaluate("log(10, 100.0)", 0.5);
-        assertEvaluate("log(null, 10)", null);
-        assertEvaluate("log(10, null)", null);
-        assertEvaluate("log(null, null)", null);
+        assertEvaluateNull("log(null, 10)");
+        assertEvaluateNull("log(10, null)");
+        assertEvaluateNull("log(null, null)");
     }
 
     @Test
     public void testEvaluateLn() throws Exception {
         assertEvaluate("ln(1)", 0.0);
         assertEvaluate("ln(1.0)", 0.0);
-        assertEvaluate("ln(null)", null);
+        assertEvaluateNull("ln(null)");
     }
 }

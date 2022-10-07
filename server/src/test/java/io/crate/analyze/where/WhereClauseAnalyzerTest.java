@@ -21,9 +21,8 @@
 
 package io.crate.analyze.where;
 
-import static io.crate.testing.SymbolMatchers.isFunction;
-import static io.crate.testing.SymbolMatchers.isLiteral;
-import static io.crate.testing.SymbolMatchers.isReference;
+import static io.crate.testing.Asserts.isLiteral;
+import static io.crate.testing.Asserts.isReference;
 import static io.crate.testing.TestingHelpers.isSQL;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -59,6 +58,7 @@ import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.planner.WhereClauseOptimizer;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.Asserts;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
@@ -170,7 +170,7 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testSelectWherePartitionedByColumn() throws Exception {
         WhereClause whereClause = analyzeSelectWhere("select id from parted where date = 1395874800000");
-        assertThat(whereClause.queryOrFallback(), isLiteral(true));
+        Asserts.assertThat(whereClause.queryOrFallback()).isLiteral(true);
         assertThat(whereClause.partitions(),
             Matchers.contains(new PartitionName(new RelationName("doc", "parted"), Arrays.asList("1395874800000")).asIndexName()));
     }
@@ -178,7 +178,7 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testUpdateWherePartitionedByColumn() throws Exception {
         AnalyzedUpdateStatement update = analyzeUpdate("update parted set id = 2 where date = 1395874800000::timestamptz");
-        assertThat(update.query(), isFunction(EqOperator.NAME, isReference("date"), isLiteral(1395874800000L)));
+        Asserts.assertThat(update.query()).isFunction(EqOperator.NAME, isReference("date"), isLiteral(1395874800000L));
     }
 
     @Test
@@ -189,7 +189,7 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
         WhereClause whereClause = analyzeSelectWhere("select id, name from parted where date = 1395874800000");
         assertEquals(List.of(partition1), whereClause.partitions());
-        assertThat(whereClause.queryOrFallback(), isLiteral(true));
+        Asserts.assertThat(whereClause.queryOrFallback()).isLiteral(true);
 
         whereClause = analyzeSelectWhere("select id, name from parted where date = 1395874800000 " +
                                          "and substr(name, 0, 4) = 'this'");
@@ -198,31 +198,31 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
         whereClause = analyzeSelectWhere("select id, name from parted where date >= 1395874800000");
         assertThat(whereClause.partitions(), containsInAnyOrder(partition1, partition2));
-        assertThat(whereClause.queryOrFallback(), isLiteral(true));
+        Asserts.assertThat(whereClause.queryOrFallback()).isLiteral(true);
 
         whereClause = analyzeSelectWhere("select id, name from parted where date < 1395874800000");
         assertEquals(List.of(), whereClause.partitions());
-        assertThat(whereClause.queryOrFallback(), isLiteral(false));
+        Asserts.assertThat(whereClause.queryOrFallback()).isLiteral(false);
 
         whereClause = analyzeSelectWhere("select id, name from parted where date = 1395874800000 and date = 1395961200000");
         assertEquals(List.of(), whereClause.partitions());
-        assertThat(whereClause.queryOrFallback(), isLiteral(false));
+        Asserts.assertThat(whereClause.queryOrFallback()).isLiteral(false);
 
         whereClause = analyzeSelectWhere("select id, name from parted where date = 1395874800000 or date = 1395961200000");
-        assertThat(whereClause.partitions(), containsInAnyOrder(partition1, partition2));
-        assertThat(whereClause.queryOrFallback(), isLiteral(true));
+        Asserts.assertThat(whereClause.partitions()).containsExactlyInAnyOrder(partition1, partition2);
+        Asserts.assertThat(whereClause.queryOrFallback()).isLiteral(true);
 
         whereClause = analyzeSelectWhere("select id, name from parted where date < 1395874800000 or date > 1395874800000");
         assertEquals(List.of(partition2), whereClause.partitions());
-        assertThat(whereClause.queryOrFallback(), isLiteral(true));
+        Asserts.assertThat(whereClause.queryOrFallback()).isLiteral(true);
 
         whereClause = analyzeSelectWhere("select id, name from parted where date in (1395874800000, 1395961200000)");
         assertThat(whereClause.partitions(), containsInAnyOrder(partition1, partition2));
-        assertThat(whereClause.queryOrFallback(), isLiteral(true));
+        Asserts.assertThat(whereClause.queryOrFallback()).isLiteral(true);
 
         whereClause = analyzeSelectWhere("select id, name from parted where date in (1395874800000, 1395961200000) and id = 1");
         assertThat(whereClause.partitions(), containsInAnyOrder(partition1, partition2));
-        assertThat(whereClause.queryOrFallback(), isFunction("op_="));
+        Asserts.assertThat(whereClause.queryOrFallback()).isFunction("op_=");
 
         /**
          *
@@ -234,35 +234,35 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
          */
         whereClause = analyzeSelectWhere("select id, name from parted where not (date = 1395874800000 and obj['col'] = 'undefined')");
         assertThat(whereClause.partitions(), containsInAnyOrder(partition2));
-        assertThat(whereClause.queryOrFallback(), isLiteral(true));
+        Asserts.assertThat(whereClause.queryOrFallback()).isLiteral(true);
 
         whereClause = analyzeSelectWhere("select id, name from parted where date in (1395874800000) or date in (1395961200000)");
         assertThat(whereClause.partitions(), containsInAnyOrder(partition1, partition2));
-        assertThat(whereClause.queryOrFallback(), isLiteral(true));
+        Asserts.assertThat(whereClause.queryOrFallback()).isLiteral(true);
 
         whereClause = analyzeSelectWhere("select id, name from parted where date = 1395961200000 and id = 1");
         assertEquals(List.of(partition2), whereClause.partitions());
-        assertThat(whereClause.queryOrFallback(), isFunction("op_="));
+        Asserts.assertThat(whereClause.queryOrFallback()).isFunction("op_=");
 
         whereClause = analyzeSelectWhere("select id, name from parted where (date =1395874800000 or date = 1395961200000) and id = 1");
         assertThat(whereClause.partitions(), containsInAnyOrder(partition1, partition2));
-        assertThat(whereClause.queryOrFallback(), isFunction("op_="));
+        Asserts.assertThat(whereClause.queryOrFallback()).isFunction("op_=");
 
         whereClause = analyzeSelectWhere("select id, name from parted where date = 1395874800000 and id is null");
         assertEquals(List.of(partition1), whereClause.partitions());
-        assertThat(whereClause.queryOrFallback(), isFunction("op_isnull"));
+        Asserts.assertThat(whereClause.queryOrFallback()).isFunction("op_isnull");
 
         whereClause = analyzeSelectWhere("select id, name from parted where date is null and id = 1");
         assertEquals(List.of(partition3), whereClause.partitions());
-        assertThat(whereClause.queryOrFallback(), isFunction("op_="));
+        Asserts.assertThat(whereClause.queryOrFallback()).isFunction("op_=");
 
         whereClause = analyzeSelectWhere("select id, name from parted where 1395874700000 < date and date < 1395961200001");
         assertThat(whereClause.partitions(), containsInAnyOrder(partition1, partition2));
-        assertThat(whereClause.queryOrFallback(), isLiteral(true));
+        Asserts.assertThat(whereClause.queryOrFallback()).isLiteral(true);
 
         whereClause = analyzeSelectWhere("select id, name from parted where '2014-03-16T22:58:20' < date and date < '2014-03-27T23:00:01'");
         assertThat(whereClause.partitions(), containsInAnyOrder(partition1, partition2));
-        assertThat(whereClause.queryOrFallback(), isLiteral(true));
+        Asserts.assertThat(whereClause.queryOrFallback()).isLiteral(true);
     }
 
     @Test
@@ -297,20 +297,22 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         String s = sb.toString();
 
         WhereClause whereClause = analyzeSelectWhere(s);
-        assertThat(whereClause.query(), isFunction(AnyEqOperator.NAME,
-                                                   List.of(DataTypes.INTEGER, new ArrayType<>(DataTypes.INTEGER))));
+        Asserts.assertThat(whereClause.query())
+            .isFunction(AnyEqOperator.NAME, List.of(DataTypes.INTEGER, new ArrayType<>(DataTypes.INTEGER)));
     }
 
     @Test
     public void testAnyLikeArrayLiteral() throws Exception {
         WhereClause whereClause = analyzeSelectWhere("select * from users where name like any(['a', 'b', 'c'])");
-        assertThat(whereClause.query(), isFunction(LikeOperators.ANY_LIKE, List.of(DataTypes.STRING, new ArrayType<>(DataTypes.STRING))));
+        Asserts.assertThat(whereClause.query())
+            .isFunction(LikeOperators.ANY_LIKE, List.of(DataTypes.STRING, new ArrayType<>(DataTypes.STRING)));
     }
 
     @Test
     public void testAnyILikeArrayLiteral() throws Exception {
         WhereClause whereClause = analyzeSelectWhere("select * from users where name ilike any(['a', 'b', 'c'])");
-        assertThat(whereClause.query(), isFunction(LikeOperators.ANY_ILIKE, List.of(DataTypes.STRING, new ArrayType<>(DataTypes.STRING))));
+        Asserts.assertThat(whereClause.query())
+            .isFunction(LikeOperators.ANY_ILIKE, List.of(DataTypes.STRING, new ArrayType<>(DataTypes.STRING)));
     }
 
     @Test
@@ -348,7 +350,7 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         WhereClause whereClause = analyzeSelectWhere("select * from generated_col where y > 1");
         // no optimization is done
         assertThat(whereClause.partitions().size(), is(0));
-        assertThat(whereClause.queryOrFallback(), isFunction("op_>"));
+        Asserts.assertThat(whereClause.queryOrFallback()).isFunction("op_>");
     }
 
     @Test

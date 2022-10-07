@@ -21,17 +21,14 @@
 
 package io.crate.expression.scalar;
 
-import org.hamcrest.Matchers;
-import org.junit.Test;
+import static org.assertj.core.api.Assertions.assertThat;
 
-import io.crate.testing.MoreMatchers;
+import org.junit.Test;
 
 public class GenRandomTextUUIDFunctionTest extends ScalarTestCase {
 
     @Test
-    public void test_gen_random_text_uuid_returns_a_uuid() throws Exception {
-        assertEvaluate(
-            "gen_random_text_uuid()",
-            MoreMatchers.withFeature((String x) -> x.length(), "length", Matchers.is(20)));
+    public void test_gen_random_text_uuid_returns_a_uuid() {
+        assertEvaluate("gen_random_text_uuid()", s -> assertThat((String) s).hasSize(20));
     }
 }

@@ -21,7 +21,7 @@
 
 package io.crate.expression.scalar.postgres;
 
-import static io.crate.testing.SymbolMatchers.isLiteral;
+import static io.crate.testing.Asserts.isLiteral;
 
 import org.junit.Test;
 
@@ -30,12 +30,12 @@ import io.crate.expression.scalar.ScalarTestCase;
 public class PgEncodingToCharFunctionTest extends ScalarTestCase {
     @Test
     public void testPgEncodingToChar() throws Exception {
-        assertEvaluate("pg_encoding_to_char(-1)", null);
-        assertEvaluate("pg_encoding_to_char(null)", null);
+        assertEvaluateNull("pg_encoding_to_char(-1)");
+        assertEvaluateNull("pg_encoding_to_char(null)");
         assertEvaluate("pg_encoding_to_char(1)", "EUC_JP");
         assertEvaluate("pg_encoding_to_char(6)", "UTF8");
         assertEvaluate("pg_encoding_to_char(41)", "SHIFT_JIS_2004");
-        assertEvaluate("pg_encoding_to_char(42)", null);
+        assertEvaluateNull("pg_encoding_to_char(42)");
         assertNormalize("pg_encoding_to_char(6)", isLiteral("UTF8"));
     }
 

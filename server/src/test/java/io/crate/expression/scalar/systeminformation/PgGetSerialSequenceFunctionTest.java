@@ -21,7 +21,8 @@
 
 package io.crate.expression.scalar.systeminformation;
 
-import static io.crate.testing.SymbolMatchers.isLiteral;
+
+import static io.crate.testing.Asserts.isLiteral;
 
 import org.junit.Test;
 
@@ -31,7 +32,7 @@ public class PgGetSerialSequenceFunctionTest extends ScalarTestCase {
 
     @Test
     public void testPgGetExpr() throws Exception {
-        assertEvaluate("pg_get_serial_sequence('some_table', 'some_column')", null);
+        assertEvaluateNull("pg_get_serial_sequence('some_table', 'some_column')");
     }
 
     @Test

@@ -21,14 +21,12 @@
 
 package io.crate.analyze;
 
-import static io.crate.testing.RelationMatchers.isDocTable;
-import static io.crate.testing.SymbolMatchers.isField;
-import static io.crate.testing.SymbolMatchers.isReference;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
+import static io.crate.testing.Asserts.exactlyInstanceOf;
+import static io.crate.testing.Asserts.isDocTable;
+import static io.crate.testing.Asserts.isField;
+import static io.crate.testing.Asserts.isReference;
 
-import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -52,11 +50,11 @@ public class SelectFromViewAnalyzerTest extends CrateDummyClusterServiceUnitTest
     @Test
     public void testSelectFromViewIsResolvedToViewQueryDefinition() {
         QueriedSelectRelation query = e.analyze("select * from doc.v1");
-        assertThat(query.outputs(), contains(isField("name"), isField("count(*)")));
-        assertThat(query.groupBy(), Matchers.empty());
-        assertThat(query.from(), contains(instanceOf(AnalyzedView.class)));
+        assertThat(query.outputs()).satisfiesExactly(isField("name"), isField("count(*)"));
+        assertThat(query.groupBy()).isEmpty();
+        assertThat(query.from()).satisfiesExactly(exactlyInstanceOf(AnalyzedView.class));
         QueriedSelectRelation queriedDocTable = (QueriedSelectRelation) ((AnalyzedView) query.from().get(0)).relation();
-        assertThat(queriedDocTable.groupBy(), contains(isReference("name")));
-        assertThat(queriedDocTable.from(), contains(isDocTable(new RelationName("doc", "t1"))));
+        assertThat(queriedDocTable.groupBy()).satisfiesExactly(isReference("name"));
+        assertThat(queriedDocTable.from()).satisfiesExactly(isDocTable(new RelationName("doc", "t1")));
     }
 }

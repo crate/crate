@@ -21,10 +21,9 @@
 
 package io.crate.operation.language;
 
-import static io.crate.testing.SymbolMatchers.isLiteral;
+import static io.crate.testing.Asserts.isLiteral;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 
 import java.util.ArrayList;
@@ -332,7 +331,7 @@ public class JavascriptUserDefinedFunctionTest extends ScalarTestCase {
             DataTypes.STRING,
             List.of(DataTypes.STRING),
             "function f(name) { }");
-        assertEvaluate("f(name)", null, Literal.of("bar"));
+        assertEvaluateNull("f(name)", Literal.of("bar"));
     }
 
     @Test
@@ -342,7 +341,7 @@ public class JavascriptUserDefinedFunctionTest extends ScalarTestCase {
             DataTypes.STRING,
             List.of(),
             "function f() { return null; }");
-        assertEvaluate("f()", null);
+        assertEvaluateNull("f()");
     }
 
     @Test
@@ -352,8 +351,8 @@ public class JavascriptUserDefinedFunctionTest extends ScalarTestCase {
             DataTypes.STRING,
             List.of(DataTypes.STRING_ARRAY),
             "function f(a) { return a.join('.'); }");
-        assertEvaluate("f(['a', 'b'])", is("a.b"));
-        assertEvaluate("f(['a', 'b'])", is("a.b"), Literal.of(List.of("a", "b"), DataTypes.STRING_ARRAY));
+        assertEvaluate("f(['a', 'b'])", "a.b");
+        assertEvaluate("f(['a', 'b'])", "a.b", Literal.of(List.of("a", "b"), DataTypes.STRING_ARRAY));
     }
 
     @Test
@@ -363,14 +362,14 @@ public class JavascriptUserDefinedFunctionTest extends ScalarTestCase {
             DataTypes.INTEGER,
             List.of(DataTypes.UNTYPED_OBJECT),
             "function f_dot(a) { return a.y; }");
-        assertEvaluate("f_dot('{\"x\":1,\"y\":2}')", is(2));
+        assertEvaluate("f_dot('{\"x\":1,\"y\":2}')", 2);
 
         registerUserDefinedFunction(
             "f_brackets",
             DataTypes.INTEGER,
             List.of(DataTypes.UNTYPED_OBJECT),
             "function f_brackets(a) { return a[\"x\"]; }");
-        assertEvaluate("f_brackets('{\"x\":1,\"y\":2}')", is(1));
+        assertEvaluate("f_brackets('{\"x\":1,\"y\":2}')", 1);
     }
 
     @Test
@@ -380,6 +379,6 @@ public class JavascriptUserDefinedFunctionTest extends ScalarTestCase {
             DataTypes.STRING,
             List.of(DataTypes.GEO_SHAPE),
             "function f(a) { return a.type; }");
-        assertEvaluate("f('POINT(1 2)')", is("Point"));
+        assertEvaluate("f('POINT(1 2)')", "Point");
     }
 }

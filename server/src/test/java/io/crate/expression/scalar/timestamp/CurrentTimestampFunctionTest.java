@@ -21,7 +21,7 @@
 
 package io.crate.expression.scalar.timestamp;
 
-import static org.hamcrest.Matchers.instanceOf;
+import static io.crate.testing.Asserts.exactlyInstanceOf;
 
 import org.junit.After;
 import org.junit.Before;
@@ -74,7 +74,7 @@ public class CurrentTimestampFunctionTest extends ScalarTestCase {
     public void precisionLargerThan3RaisesException() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Precision must be between 0 and 3");
-        assertEvaluate("current_timestamp(4)", null);
+        assertEvaluateNull("current_timestamp(4)");
     }
 
     @Test
@@ -84,6 +84,6 @@ public class CurrentTimestampFunctionTest extends ScalarTestCase {
 
     @Test
     public void integerIsNormalizedToLiteral() {
-        assertNormalize("current_timestamp(1)", instanceOf(Literal.class));
+        assertNormalize("current_timestamp(1)", exactlyInstanceOf(Literal.class));
     }
 }

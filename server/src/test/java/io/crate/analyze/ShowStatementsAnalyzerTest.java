@@ -21,10 +21,10 @@
 
 package io.crate.analyze;
 
-import static io.crate.testing.SymbolMatchers.isAlias;
-import static io.crate.testing.SymbolMatchers.isFunction;
-import static io.crate.testing.SymbolMatchers.isLiteral;
-import static io.crate.testing.SymbolMatchers.isReference;
+import static io.crate.testing.Asserts.isAlias;
+import static io.crate.testing.Asserts.isFunction;
+import static io.crate.testing.Asserts.isLiteral;
+import static io.crate.testing.Asserts.isReference;
 import static io.crate.testing.TestingHelpers.isSQL;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.Matchers.contains;
@@ -37,6 +37,7 @@ import org.junit.Test;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.TableFunctionRelation;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.Asserts;
 import io.crate.testing.SQLExecutor;
 
 public class ShowStatementsAnalyzerTest extends CrateDummyClusterServiceUnitTest {
@@ -98,18 +99,16 @@ public class ShowStatementsAnalyzerTest extends CrateDummyClusterServiceUnitTest
         QueriedSelectRelation relation =
             analyze("show tables in QNAME where table_name = 'foo' or table_name like '%bar%'");
         assertThat(relation.isDistinct(), is(true));
-        assertThat(relation.outputs(), contains(
-            isAlias("table_name", isReference("table_name"))
-        ));
-        assertThat(
-            relation.where(),
-            isFunction(
+        Asserts.assertThat(relation.outputs())
+            .satisfiesExactly(
+                isAlias("table_name", isReference("table_name")));
+        Asserts.assertThat(relation.where())
+            .isFunction(
                 "op_and",
                 isFunction("op_and"),
-                isFunction("op_or", isFunction("op_="), isFunction("op_like"))
-            )
-        );
-        assertThat(relation.orderBy().orderBySymbols(), contains(isAlias("table_name", isReference("table_name"))));
+                isFunction("op_or", isFunction("op_="), isFunction("op_like")));
+        Asserts.assertThat(relation.orderBy().orderBySymbols())
+            .satisfiesExactly(isAlias("table_name", isReference("table_name")));
 
         relation = analyze("show tables where table_name like '%'");
         assertThat(relation.isDistinct(), is(true));
@@ -192,10 +191,12 @@ public class ShowStatementsAnalyzerTest extends CrateDummyClusterServiceUnitTest
     public void testRewriteOfTransactionIsolation() {
         QueriedSelectRelation stmt = analyze("show transaction isolation level");
         assertThat(stmt.from(), contains(instanceOf(TableFunctionRelation.class)));
-        assertThat(stmt.outputs(), contains(isAlias("transaction_isolation", isLiteral("read uncommitted"))));
+        Asserts.assertThat(stmt.outputs())
+            .satisfiesExactly(isAlias("transaction_isolation", isLiteral("read uncommitted")));
 
         stmt = analyze("show transaction_isolation");
         assertThat(stmt.from(), contains(instanceOf(TableFunctionRelation.class)));
-        assertThat(stmt.outputs(), contains(isAlias("transaction_isolation", isLiteral("read uncommitted"))));
+        Asserts.assertThat(stmt.outputs())
+            .satisfiesExactly(isAlias("transaction_isolation", isLiteral("read uncommitted")));
     }
 }

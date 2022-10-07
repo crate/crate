@@ -21,16 +21,17 @@
 
 package io.crate.expression.scalar;
 
-import static io.crate.testing.SymbolMatchers.isLiteral;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
+import static io.crate.testing.Asserts.isLiteral;
+import static io.crate.testing.Asserts.isNotSameInstance;
+import static io.crate.testing.Asserts.isNull;
+import static io.crate.testing.Asserts.isSameInstance;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
-import org.hamcrest.Matchers;
-import org.hamcrest.core.IsSame;
 import org.junit.Test;
 
 import io.crate.expression.symbol.Literal;
@@ -43,26 +44,31 @@ public class ArrayDifferenceFunctionTest extends ScalarTestCase {
 
     @Test
     public void testCompileWithValues() throws Exception {
-        assertCompile("array_difference(int_array, [3, 4, 5])", (s) -> not(IsSame.sameInstance(s)));
+        assertCompile("array_difference(int_array, [3, 4, 5])", isNotSameInstance());
     }
 
     @Test
     public void testCompileWithRefs() throws Exception {
-        assertCompile("array_difference(int_array, int_array)", IsSame::sameInstance);
+        assertCompile("array_difference(int_array, int_array)", isSameInstance());
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void testArrayDifferenceRemovesTheNestedArraysInTheFirstArrayThatAreContainedWithinTheSecondArray() {
         assertEvaluate(
             "array_difference([[1, 2], [1, 3]], [[1, 2]])",
-            Matchers.contains(Matchers.contains(1, 3)));
+            s -> assertThat((List<List<Integer>>) s).satisfiesExactly(
+                l -> assertThat(l).containsExactly(1, 3)));
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void testArrayDifferenceRemovesTheObjectsInTheFirstArrayThatAreContainedInTheSecond() {
         assertEvaluate(
             "array_difference([{x=[1, 2]}, {x=[1, 3]}], [{x=[1, 3]}])",
-            Matchers.contains(Matchers.hasEntry(is("x"), Matchers.contains(1, 2))));
+            s -> assertThat((List<Map<String, List<Integer>>>) s).satisfiesExactly(
+                l -> assertThat(l).containsOnlyKeys("x").satisfies(
+                    m -> assertThat(m.get("x")).containsExactly(1, 2))));
     }
 
     @Test
@@ -79,7 +85,7 @@ public class ArrayDifferenceFunctionTest extends ScalarTestCase {
     @Test
     public void testEvaluateNullArguments() throws Exception {
         assertEvaluate("array_difference([1], long_array)", List.of(1L), Literal.of(DataTypes.BIGINT_ARRAY, null));
-        assertEvaluate("array_difference(long_array, [1])", null, Literal.of(DataTypes.BIGINT_ARRAY, null));
+        assertEvaluateNull("array_difference(long_array, [1])", Literal.of(DataTypes.BIGINT_ARRAY, null));
     }
 
     @Test
@@ -87,7 +93,7 @@ public class ArrayDifferenceFunctionTest extends ScalarTestCase {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Unknown function: array_difference()." +
                                         " Possible candidates: array_difference(array(E), array(E)):array(E)");
-        assertNormalize("array_difference()", null);
+        assertNormalize("array_difference()", isNull());
     }
 
     @Test
@@ -95,7 +101,7 @@ public class ArrayDifferenceFunctionTest extends ScalarTestCase {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Unknown function: array_difference(_array(1))," +
                                         " no overload found for matching argument types: (integer_array).");
-        assertNormalize("array_difference([1])", null);
+        assertNormalize("array_difference([1])", isNull());
     }
 
     @Test
@@ -120,6 +126,6 @@ public class ArrayDifferenceFunctionTest extends ScalarTestCase {
     public void testEmptyArrays() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("One of the arguments of the `array_difference` function can be of undefined inner type, but not both");
-        assertNormalize("array_difference([], [])", null);
+        assertNormalize("array_difference([], [])", isNull());
     }
 }

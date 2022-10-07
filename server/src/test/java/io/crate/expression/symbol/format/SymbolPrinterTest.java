@@ -21,9 +21,7 @@
 
 package io.crate.expression.symbol.format;
 
-import static io.crate.testing.SymbolMatchers.isReference;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -86,14 +84,14 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
     }
 
     private void assertPrint(Symbol s, String formatted) {
-        assertThat(s.toString(Style.QUALIFIED), is(formatted));
+        assertThat(s.toString(Style.QUALIFIED)).isEqualTo(formatted);
     }
 
     private void assertPrintIsParseable(String sql) {
         Symbol symbol = sqlExpressions.asSymbol(sql);
         String formatted = symbol.toString(Style.UNQUALIFIED);
         Symbol formattedSymbol = sqlExpressions.asSymbol(formatted);
-        assertThat(symbol, is(formattedSymbol));
+        assertThat(symbol).isEqualTo(formattedSymbol);
     }
 
     private void assertPrintingRoundTrip(String sql, String expected) {
@@ -308,43 +306,41 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testFormatQualified() {
         Symbol ref = sqlExpressions.asSymbol("formatter.\"CraZy\"");
-        assertThat(ref.toString(Style.QUALIFIED), is("doc.formatter.\"CraZy\""));
-        assertThat(ref.toString(Style.UNQUALIFIED), is("\"CraZy\""));
+        assertThat(ref.toString(Style.QUALIFIED)).isEqualTo("doc.formatter.\"CraZy\"");
+        assertThat(ref.toString(Style.UNQUALIFIED)).isEqualTo("\"CraZy\"");
 
         ref = sqlExpressions.asSymbol("formatter.\"1a\"");
-        assertThat(ref.toString(Style.QUALIFIED), is("doc.formatter.\"1a\""));
-        assertThat(ref.toString(Style.UNQUALIFIED), is("\"1a\""));
+        assertThat(ref.toString(Style.QUALIFIED)).isEqualTo("doc.formatter.\"1a\"");
+        assertThat(ref.toString(Style.UNQUALIFIED)).isEqualTo("\"1a\"");
     }
 
     @Test
     public void testMaxDepthEllipsis() {
         Symbol nestedFn = sqlExpressions.asSymbol("abs(sqrt(ln(1+1+1+1+1+1+1+1)))");
-        assertThat(nestedFn.toString(), is("1.442026886600883"));
+        assertThat(nestedFn).hasToString("1.442026886600883");
     }
 
     @Test
     public void testStyles() {
         Symbol nestedFn = sqlExpressions.asSymbol("abs(sqrt(ln(bar+cast(\"select\" as long)+1+1+1+1+1+1)))");
-        assertThat(nestedFn.toString(Style.QUALIFIED),
-                   is("abs(sqrt(ln(_cast((((((((doc.formatter.bar + cast(doc.formatter.\"select\" AS bigint)) + 1::bigint) + 1::bigint) + 1::bigint) + 1::bigint) + 1::bigint) + 1::bigint), 'double precision'))))"));
-        assertThat(nestedFn.toString(Style.UNQUALIFIED),
-                   is("abs(sqrt(ln(_cast((((((((bar + cast(\"select\" AS bigint)) + 1::bigint) + 1::bigint) + 1::bigint) + 1::bigint) + 1::bigint) + 1::bigint), 'double precision'))))"));
+        assertThat(nestedFn.toString(Style.QUALIFIED)).isEqualTo(
+                   "abs(sqrt(ln(_cast((((((((doc.formatter.bar + cast(doc.formatter.\"select\" AS bigint)) + 1::bigint) + 1::bigint) + 1::bigint) + 1::bigint) + 1::bigint) + 1::bigint), 'double precision'))))");
+        assertThat(nestedFn.toString(Style.UNQUALIFIED)).isEqualTo(
+                   "abs(sqrt(ln(_cast((((((((bar + cast(\"select\" AS bigint)) + 1::bigint) + 1::bigint) + 1::bigint) + 1::bigint) + 1::bigint) + 1::bigint), 'double precision'))))");
     }
 
     @Test
     public void testFormatOperatorWithStaticInstance() {
         Symbol comparisonOperator = sqlExpressions.asSymbol("bar = 1 and foo = '2'");
         String printed = comparisonOperator.toString(Style.QUALIFIED);
-        assertThat(
-            printed,
-            is("((doc.formatter.bar = 1::bigint) AND (doc.formatter.foo = '2'))")
-        );
+        assertThat(printed).isEqualTo(
+            "((doc.formatter.bar = 1::bigint) AND (doc.formatter.foo = '2'))");
     }
 
     @Test
     public void testPrintFetchRefs() {
         Symbol field = sqlExpressions.asSymbol("bar");
-        assertThat(field, isReference("bar"));
+        assertThat(field).isReference("bar");
         Reference ref = (Reference) field;
         FetchReference fetchRef = new FetchReference(new InputColumn(0, field.valueType()), ref);
         assertPrint(fetchRef, "FETCH(INPUT(0), doc.formatter.bar)");

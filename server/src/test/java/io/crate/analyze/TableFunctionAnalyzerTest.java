@@ -21,9 +21,7 @@
 
 package io.crate.analyze;
 
-import static io.crate.testing.SymbolMatchers.isField;
-import static io.crate.testing.SymbolMatchers.isReference;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import java.io.IOException;
 
@@ -45,21 +43,21 @@ public class TableFunctionAnalyzerTest extends CrateDummyClusterServiceUnitTest 
     @Test
     public void TestTableFunctionNameIsUsedWhenTableFunctionReturnsBaseDataType() {
         var analyzedRelation = e.analyze("select * from regexp_matches('a', 'a')");
-        assertThat(analyzedRelation.outputs().get(0), isReference("regexp_matches"));
+        assertThat(analyzedRelation.outputs().get(0)).isReference("regexp_matches");
 
         analyzedRelation = e.analyze("select * from regexp_matches('a', 'a') as r");
-        assertThat(analyzedRelation.outputs().get(0), isField("r"));
+        assertThat(analyzedRelation.outputs().get(0)).isField("r");
 
         analyzedRelation = e.analyze("select * from generate_series(0, 1, 1)");
-        assertThat(analyzedRelation.outputs().get(0), isReference("generate_series"));
+        assertThat(analyzedRelation.outputs().get(0)).isReference("generate_series");
 
         analyzedRelation = e.analyze("select * from generate_series(0, 1, 1) as g");
-        assertThat(analyzedRelation.outputs().get(0), isField("g"));
+        assertThat(analyzedRelation.outputs().get(0)).isField("g");
 
         analyzedRelation = e.analyze("select * from unnest([1])");
-        assertThat(analyzedRelation.outputs().get(0), isReference("unnest"));
+        assertThat(analyzedRelation.outputs().get(0)).isReference("unnest");
 
         analyzedRelation = e.analyze("select * from unnest([1]) as u");
-        assertThat(analyzedRelation.outputs().get(0), isField("u"));
+        assertThat(analyzedRelation.outputs().get(0)).isField("u");
     }
 }

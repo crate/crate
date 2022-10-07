@@ -21,9 +21,9 @@
 
 package io.crate.analyze;
 
-import static io.crate.testing.SymbolMatchers.isReference;
-import static org.hamcrest.Matchers.contains;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
+import static io.crate.testing.Asserts.isField;
+import static io.crate.testing.Asserts.isReference;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -31,7 +31,6 @@ import org.junit.Test;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import io.crate.testing.SymbolMatchers;
 import io.crate.types.DataTypes;
 
 public class ValuesAnalyzerTest extends CrateDummyClusterServiceUnitTest {
@@ -61,27 +60,27 @@ public class ValuesAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_values_used_in_sub_query_can_be_analyzed() {
         QueriedSelectRelation rel = e.analyze("SELECT x, y FROM (VALUES (1, 2)) AS t (x, y)");
-        assertThat(rel.outputs(), contains(
-            SymbolMatchers.isField("x"),
-            SymbolMatchers.isField("y")
-        ));
+        assertThat(rel.outputs()).satisfiesExactly(
+            isField("x"),
+            isField("y")
+        );
     }
 
     @Test
     public void test_nulls_in_column_values_must_not_fail_type_validation() {
         AnalyzedRelation relation = e.analyze("VALUES (1), (null), (2), (null)");
-        assertThat(relation.outputs(), contains(isReference("col1", DataTypes.INTEGER)));
+        assertThat(relation.outputs()).satisfiesExactly(isReference("col1", DataTypes.INTEGER));
     }
 
     @Test
     public void test_implicitly_convertible_column_values_must_not_fail_type_validation() {
         AnalyzedRelation relation = e.analyze("VALUES (1), (1.0)");
-        assertThat(relation.outputs(), contains(isReference("col1", DataTypes.DOUBLE)));
+        assertThat(relation.outputs()).satisfiesExactly(isReference("col1", DataTypes.DOUBLE));
     }
 
     @Test
     public void test_highest_precedence_type_is_chosen_as_target_column_type() {
         AnalyzedRelation relation = e.analyze("VALUES (null), (1.0), (1), ('1')");
-        assertThat(relation.outputs(), contains(isReference("col1", DataTypes.DOUBLE)));
+        assertThat(relation.outputs()).satisfiesExactly(isReference("col1", DataTypes.DOUBLE));
     }
 }
