@@ -21,7 +21,8 @@
 
 package io.crate.planner.operators;
 
-import static io.crate.planner.operators.LogicalPlanner.NO_LIMIT;
+
+import static io.crate.execution.engine.pipeline.TopN.NO_LIMIT;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -164,7 +165,7 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
                 source.preferShardProjections() ? RowGranularity.SHARD : RowGranularity.CLUSTER,
                 plannerContext.transactionContext().sessionSettings().searchPath()
             );
-            executionPlan.addProjection(groupProjection, TopN.NO_LIMIT, 0, null);
+            executionPlan.addProjection(groupProjection, NO_LIMIT, 0, null);
             return executionPlan;
         }
 
@@ -191,7 +192,7 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
                         RowGranularity.NODE,
                         plannerContext.transactionContext().sessionSettings().searchPath()
                     ),
-                    TopN.NO_LIMIT,
+                    NO_LIMIT,
                     0,
                     null
                 );
@@ -207,7 +208,7 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
                         RowGranularity.NODE,
                         plannerContext.transactionContext().sessionSettings().searchPath()
                     ),
-                    TopN.NO_LIMIT,
+                    NO_LIMIT,
                     0,
                     null
                 );
@@ -293,10 +294,10 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
                 DistributionInfo.DEFAULT_BROADCAST,
                 null
             ),
-            TopN.NO_LIMIT,
+            NO_LIMIT,
             TopN.NO_OFFSET,
             this.outputs.size(),
-            TopN.NO_LIMIT,
+            NO_LIMIT,
             null
         );
     }

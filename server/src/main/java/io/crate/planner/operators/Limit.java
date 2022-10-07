@@ -22,7 +22,8 @@
 package io.crate.planner.operators;
 
 import static io.crate.analyze.SymbolEvaluator.evaluate;
-import static io.crate.planner.operators.LogicalPlanner.NO_LIMIT;
+import static io.crate.execution.engine.pipeline.TopN.NO_LIMIT;
+import static io.crate.execution.engine.pipeline.TopN.NO_OFFSET;
 
 import java.util.List;
 import java.util.Map;
@@ -37,7 +38,6 @@ import io.crate.data.Row;
 import io.crate.execution.dsl.phases.ExecutionPhases;
 import io.crate.execution.dsl.projection.TopNProjection;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
-import io.crate.execution.engine.pipeline.TopN;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
@@ -106,7 +106,7 @@ public class Limit extends ForwardingLogicalPlan {
                 this.offset,
                 params,
                 subQueryResults)),
-            0);
+            NO_OFFSET);
 
         ExecutionPlan executionPlan = source.build(
             executor, plannerContext, planHints, projectionBuilder, limit, offset, order, pageSizeHint, params, subQueryResults);

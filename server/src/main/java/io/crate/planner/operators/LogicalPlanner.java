@@ -112,8 +112,6 @@ import io.crate.types.DataTypes;
  */
 public class LogicalPlanner {
 
-    public static final int NO_LIMIT = -1;
-
     private final Optimizer optimizer;
     private final TableStats tableStats;
     private final Visitor statementVisitor = new Visitor();
