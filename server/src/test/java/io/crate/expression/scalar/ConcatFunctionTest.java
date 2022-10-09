@@ -26,6 +26,7 @@ import static io.crate.testing.Asserts.isNull;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
+import java.util.Map;
 
 import org.junit.Test;
 
@@ -112,5 +113,10 @@ public class ConcatFunctionTest extends ScalarTestCase {
     public void test_two_string_arguments_result_in_special_scalar() {
         var func = getFunction(ConcatFunction.NAME, List.of(DataTypes.STRING, DataTypes.STRING));
         assertThat(func).isExactlyInstanceOf(ConcatFunction.StringConcatFunction.class);
+    }
+
+    @Test
+    public void test_two_objects() {
+        assertEvaluate("concat({a=1},{a=2,b=2})", Map.of("a",2,"b",2));
     }
 }
