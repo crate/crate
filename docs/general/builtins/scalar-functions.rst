@@ -52,6 +52,11 @@ You can also use the ``||`` :ref:`operator <gloss-operator>`::
     +--------+
     SELECT 1 row in set (... sec)
 
+.. TIP::
+
+    The ``concat`` function can also be used for merging objects:
+    :ref:`concat(object, object) <scalar-concat-object>`
+
 
 .. _scalar-concat-ws:
 
@@ -3005,14 +3010,66 @@ Returns: ``array(text)``
 
 ::
 
-    cr> select
-    ...     object_keys({a = 1, b = { c = 2 }}) AS object_keys;
+    cr> SELECT
+    ...     object_keys({a = 1, b = {c = 2}}) AS object_keys;
     +-------------+
     | object_keys |
     +-------------+
     | ["a", "b"]  |
     +-------------+
     SELECT 1 row in set (... sec)
+
+
+.. _scalar-concat-object:
+
+``concat(object, object)``
+--------------------------
+
+The ``concat(object, object)`` function combines two objects into a new object 
+containing the union of their first level properties, taking the second 
+object's values for duplicate properties.  If one of the objects is ``NULL``, 
+the function returns the non-``NULL`` object. If both objects are ``NULL``, 
+the function returns ``NULL``.
+
+Returns: ``object``
+
+::
+
+    cr> SELECT
+    ...     concat({a = 1}, {a = 2, b = {c = 2}}) AS object_concat;
+    +-------------------------+
+    | object_concat           |
+    +-------------------------+
+    | {"a": 2, "b": {"c": 2}} |
+    +-------------------------+
+    SELECT 1 row in set (... sec)
+
+
+You can also use the concat :ref:`operator <gloss-operator>` ``||`` with
+objects::
+
+    cr> SELECT
+    ...     {a = 1} || {b = 2} || {c = 3} AS object_concat;
+    +--------------------------+
+    | object_concat            |
+    +--------------------------+
+    | {"a": 1, "b": 2, "c": 3} |
+    +--------------------------+
+    SELECT 1 row in set (... sec)
+
+.. NOTE::
+
+    ``concat(object, object)`` does not operate recursively: only the 
+    top-level object structure is merged::
+        
+        cr> SELECT
+        ...     concat({a = {b = 4}}, {a = {c = 2}}) as object_concat;                                                                                                                                                                                                                            
+        +-----------------+
+        | object_concat   |
+        +-----------------+
+        | {"a": {"c": 2}} |
+        +-----------------+
+        SELECT 1 row in set (... sec)
 
 
 .. _scalar-conditional-fn-exp:

@@ -22,6 +22,7 @@
 package io.crate.expression.scalar;
 
 import io.crate.data.Input;
+import io.crate.expression.scalar.object.ObjectMergeFunction;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
@@ -70,6 +71,16 @@ public abstract class ConcatFunction extends Scalar<String, String> {
             )
                 .withTypeVariableConstraints(typeVariable("E")),
             ArrayCatFunction::new
+        );
+
+        module.register(
+            Signature.scalar(
+                NAME,
+                DataTypes.UNTYPED_OBJECT.getTypeSignature(),
+                DataTypes.UNTYPED_OBJECT.getTypeSignature(),
+                DataTypes.UNTYPED_OBJECT.getTypeSignature()
+            ),
+            ObjectMergeFunction::new
         );
     }
 

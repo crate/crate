@@ -148,6 +148,11 @@ Changes
   supported. Optionally provided pattern conventions for the order of date 
   parts (Day, Month, Year) are ignored.
 
+- Added the :ref:`concat(object, object) <scalar-concat-object>` scalar function 
+  which combines two objects into a new object containing the union of their 
+  first level properties, taking the second object's values for duplicate 
+  properties.
+
 Fixes
 =====
 
