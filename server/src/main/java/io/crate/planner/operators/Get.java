@@ -50,7 +50,7 @@ import io.crate.execution.dsl.phases.PKLookupPhase;
 import io.crate.execution.dsl.projection.EvalProjection;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
-import io.crate.execution.engine.pipeline.TopN;
+import io.crate.execution.engine.pipeline.LimitAndOffset;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.SelectSymbol;
@@ -199,7 +199,7 @@ public class Get implements LogicalPlan {
                 toCollect,
                 idsByShardByNode
             ),
-            TopN.NO_LIMIT,
+            LimitAndOffset.NO_LIMIT,
             0,
             toCollect.size(),
             docKeys.size(),

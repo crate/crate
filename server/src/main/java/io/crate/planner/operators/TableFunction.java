@@ -30,7 +30,7 @@ import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.TableFunctionCollectPhase;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
-import io.crate.execution.engine.pipeline.TopN;
+import io.crate.execution.engine.pipeline.LimitAndOffset;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.SelectSymbol;
@@ -111,7 +111,7 @@ public final class TableFunction implements LogicalPlan {
             Lists2.map(toCollect, binder),
             binder.apply(where.queryOrFallback())
         );
-        return new Collect(collectPhase, TopN.NO_LIMIT, 0, toCollect.size(), TopN.NO_LIMIT, null);
+        return new Collect(collectPhase, LimitAndOffset.NO_LIMIT, 0, toCollect.size(), LimitAndOffset.NO_LIMIT, null);
     }
 
     @Override

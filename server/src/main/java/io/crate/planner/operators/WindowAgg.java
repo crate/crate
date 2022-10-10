@@ -46,7 +46,7 @@ import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.WindowAggProjection;
 import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
-import io.crate.execution.engine.pipeline.TopN;
+import io.crate.execution.engine.pipeline.LimitAndOffset;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.WindowFunction;
@@ -168,8 +168,8 @@ public class WindowAgg extends ForwardingLogicalPlan {
             plannerContext,
             planHints,
             projectionBuilder,
-            TopN.NO_LIMIT,
-            TopN.NO_OFFSET,
+            LimitAndOffset.NO_LIMIT,
+            LimitAndOffset.NO_OFFSET,
             null,
             pageSizeHint,
             params,
@@ -205,8 +205,8 @@ public class WindowAgg extends ForwardingLogicalPlan {
             return new Merge(
                 sourcePlan,
                 distWindowAgg,
-                TopN.NO_LIMIT,
-                TopN.NO_OFFSET,
+                LimitAndOffset.NO_LIMIT,
+                LimitAndOffset.NO_OFFSET,
                 windowAggProjection.outputs().size(),
                 resultDescription.maxRowsPerNode(),
                 null

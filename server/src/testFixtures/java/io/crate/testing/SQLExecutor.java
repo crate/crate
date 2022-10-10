@@ -125,7 +125,7 @@ import io.crate.data.Row;
 import io.crate.execution.ddl.RepositoryService;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.collect.stats.JobsLogs;
-import io.crate.execution.engine.pipeline.TopN;
+import io.crate.execution.engine.pipeline.LimitAndOffset;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.udf.UDFLanguage;
@@ -884,7 +884,7 @@ public class SQLExecutor {
                 plannerContext,
                 Set.of(),
                 new ProjectionBuilder(nodeCtx),
-                TopN.NO_LIMIT,
+                LimitAndOffset.NO_LIMIT,
                 0,
                 null,
                 null,

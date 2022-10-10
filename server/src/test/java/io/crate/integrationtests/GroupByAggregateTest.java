@@ -1318,7 +1318,7 @@ public class GroupByAggregateTest extends IntegTestCase {
     }
 
     @Test
-    public void test_optimized_topn_distinct_returns_2_unique_items() throws Throwable {
+    public void test_optimized_limit_distinct_returns_2_unique_items() throws Throwable {
         execute("create table m.tbl (id int primary key)");
         Object[][] ids = new Object[100][];
         for (int i = 0; i < ids.length; i++) {
@@ -1330,7 +1330,7 @@ public class GroupByAggregateTest extends IntegTestCase {
         execute("explain select distinct id from m.tbl limit 2");
         assertThat(
             printedTable(response.rows()),
-            is("TopNDistinct[2::bigint;0 | [id]]\n" +
+            is("LimitDistinct[2::bigint;0 | [id]]\n" +
                "  └ Collect[m.tbl | [id] | true]\n")
         );
         execute("select distinct id from m.tbl limit 2");

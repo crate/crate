@@ -34,7 +34,7 @@ import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.projection.DeleteProjection;
 import io.crate.execution.dsl.projection.MergeCountProjection;
 import io.crate.execution.engine.NodeOperationTreeGenerator;
-import io.crate.execution.engine.pipeline.TopN;
+import io.crate.execution.engine.pipeline.LimitAndOffset;
 import io.crate.execution.support.OneRowActionListener;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.InputColumn;
@@ -195,7 +195,7 @@ public final class DeletePlanner {
             Optimizer.optimizeCasts(where.queryOrFallback(), context),
             DistributionInfo.DEFAULT_BROADCAST
         );
-        Collect collect = new Collect(collectPhase, TopN.NO_LIMIT, 0, 1, 1, null);
+        Collect collect = new Collect(collectPhase, LimitAndOffset.NO_LIMIT, 0, 1, 1, null);
         return Merge.ensureOnHandler(collect, context, Collections.singletonList(MergeCountProjection.INSTANCE));
     }
 }

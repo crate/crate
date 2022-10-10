@@ -21,7 +21,7 @@
 
 package io.crate.planner;
 
-import io.crate.execution.engine.pipeline.TopN;
+import io.crate.execution.engine.pipeline.LimitAndOffset;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.types.DataType;
 
@@ -53,7 +53,7 @@ public interface ResultDescription {
      *         This does not indicate if a limit was applied to generate the result,
      *
      *         Therefore if a result was produced by applying the final limit it is allowed to return
-     *         {@link TopN#NO_LIMIT} to indicate that no additional limit needs to be applied.
+     *         {@link LimitAndOffset#NO_LIMIT} to indicate that no additional limit needs to be applied.
      */
     int limit();
 
@@ -97,6 +97,6 @@ public interface ResultDescription {
     }
 
     default boolean hasRemainingLimitOrOffset() {
-        return limit() != TopN.NO_LIMIT || offset() != 0;
+        return limit() != LimitAndOffset.NO_LIMIT || offset() != 0;
     }
 }

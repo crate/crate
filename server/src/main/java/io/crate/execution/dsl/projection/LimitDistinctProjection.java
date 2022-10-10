@@ -31,19 +31,19 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import java.io.IOException;
 import java.util.List;
 
-public class TopNDistinctProjection extends Projection {
+public class LimitDistinctProjection extends Projection {
 
     private final int limit;
     private final List<Symbol> outputs;
     private final RowGranularity granularity;
 
-    public TopNDistinctProjection(int limit, List<Symbol> outputs, RowGranularity granularity) {
+    public LimitDistinctProjection(int limit, List<Symbol> outputs, RowGranularity granularity) {
         this.limit = limit;
         this.outputs = outputs;
         this.granularity = granularity;
     }
 
-    public TopNDistinctProjection(StreamInput in) throws IOException {
+    public LimitDistinctProjection(StreamInput in) throws IOException {
         this.limit = in.readVInt();
         this.outputs = Symbols.listFromStream(in);
         this.granularity = RowGranularity.fromStream(in);
@@ -67,12 +67,12 @@ public class TopNDistinctProjection extends Projection {
 
     @Override
     public ProjectionType projectionType() {
-        return ProjectionType.TOPN_DISTINCT;
+        return ProjectionType.LIMIT_DISTINCT;
     }
 
     @Override
     public <C, R> R accept(ProjectionVisitor<C, R> visitor, C context) {
-        return visitor.visitTopNDistinct(this, context);
+        return visitor.visitLimitDistinct(this, context);
     }
 
     @Override
@@ -88,7 +88,7 @@ public class TopNDistinctProjection extends Projection {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        TopNDistinctProjection that = (TopNDistinctProjection) o;
+        LimitDistinctProjection that = (LimitDistinctProjection) o;
         if (limit != that.limit) {
             return false;
         }

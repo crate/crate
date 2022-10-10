@@ -24,7 +24,7 @@ package io.crate.planner;
 import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
-import static io.crate.testing.ProjectionMatchers.isTopN;
+import static io.crate.testing.ProjectionMatchers.isLimitAndOffset;
 import static io.crate.testing.TestingHelpers.isSQL;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.instanceOf;
@@ -44,9 +44,9 @@ import io.crate.execution.dsl.projection.EvalProjection;
 import io.crate.execution.dsl.projection.FetchProjection;
 import io.crate.execution.dsl.projection.FilterProjection;
 import io.crate.execution.dsl.projection.GroupProjection;
-import io.crate.execution.dsl.projection.OrderedTopNProjection;
+import io.crate.execution.dsl.projection.LimitAndOffsetProjection;
+import io.crate.execution.dsl.projection.OrderedLimitAndOffsetProjection;
 import io.crate.execution.dsl.projection.Projection;
-import io.crate.execution.dsl.projection.TopNProjection;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.dql.join.Join;
@@ -87,10 +87,10 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
         List<Projection> projections = nl.joinPhase().projections();
         assertThat(projections, Matchers.contains(
             instanceOf(EvalProjection.class),
-            isTopN(10, 0),
-            instanceOf(OrderedTopNProjection.class),
+            isLimitAndOffset(10, 0),
+            instanceOf(OrderedLimitAndOffsetProjection.class),
             instanceOf(EvalProjection.class),
-            isTopN(3, 0)
+            isLimitAndOffset(3, 0)
         ));
         assertThat(projections.get(0).outputs(), isSQL("INPUT(0)"));
         assertThat(projections.get(4).outputs(), isSQL("INPUT(0)"));
@@ -113,8 +113,8 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
                 instanceOf(GroupProjection.class),
                 instanceOf(EvalProjection.class),
                 instanceOf(GroupProjection.class),
-                instanceOf(OrderedTopNProjection.class),
-                instanceOf(TopNProjection.class)
+                instanceOf(OrderedLimitAndOffsetProjection.class),
+                instanceOf(LimitAndOffsetProjection.class)
             )
         );
     }
@@ -135,7 +135,7 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat("1 node, otherwise mergePhases would be required", left.nodeIds().size(), is(1));
         assertThat(left.orderBy(), isSQL("OrderByPositions{indices=[1], reverseFlags=[false], nullsFirst=[false]}"));
         assertThat(left.collectPhase().projections(), contains(
-            isTopN(10, 2),
+            isLimitAndOffset(10, 2),
             instanceOf(FetchProjection.class)
         ));
         QueryThenFetch rightQtf = (QueryThenFetch) join.right();
@@ -143,7 +143,7 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat("1 node, otherwise mergePhases would be required", right.nodeIds().size(), is(1));
         assertThat(((RoutedCollectPhase) right.collectPhase()).orderBy(), isSQL("doc.t2.b"));
         assertThat(right.collectPhase().projections(), contains(
-            isTopN(5, 5),
+            isLimitAndOffset(5, 5),
             instanceOf(FetchProjection.class),
             instanceOf(EvalProjection.class) // strips `b` used in order by from the outputs
         ));
@@ -163,7 +163,7 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat("1 node, otherwise mergePhases would be required", left.nodeIds().size(), is(1));
         assertThat(((RoutedCollectPhase) left.collectPhase()).orderBy(), isSQL("doc.t1.a"));
         assertThat(left.collectPhase().projections(), contains(
-            isTopN(10, 2),
+            isLimitAndOffset(10, 2),
             instanceOf(FetchProjection.class)
         ));
         assertThat(left.collectPhase().toCollect(), isSQL("doc.t1._fetchid, doc.t1.a"));
@@ -173,7 +173,7 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat("1 node, otherwise mergePhases would be required", right.nodeIds().size(), is(1));
         assertThat(((RoutedCollectPhase) right.collectPhase()).orderBy(), isSQL("doc.t2.i DESC"));
         assertThat(right.collectPhase().projections(), contains(
-            isTopN(5, 5)
+            isLimitAndOffset(5, 5)
         ));
 
 
@@ -198,7 +198,7 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(left.collectPhase().toCollect(), isSQL("doc.t1._fetchid, doc.t1.a"));
         assertThat(((RoutedCollectPhase) left.collectPhase()).orderBy(), isSQL("doc.t1.a"));
         assertThat(left.collectPhase().projections(), contains(
-            isTopN(10, 2),
+            isLimitAndOffset(10, 2),
             instanceOf(FetchProjection.class)
         ));
 
@@ -206,7 +206,7 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat("1 node, otherwise mergePhases would be required", right.nodeIds().size(), is(1));
         assertThat(((RoutedCollectPhase) right.collectPhase()).orderBy(), isSQL("doc.t2.i DESC"));
         assertThat(right.collectPhase().projections(), contains(
-            isTopN(5, 5)
+            isLimitAndOffset(5, 5)
         ));
 
         List<Projection> nlProjections = join.joinPhase().projections();

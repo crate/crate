@@ -46,13 +46,13 @@ import io.crate.data.Projector;
 import io.crate.data.Row;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.InputCollectExpression;
-import io.crate.execution.engine.pipeline.TopN;
+import io.crate.execution.engine.pipeline.LimitAndOffset;
 import io.crate.expression.symbol.Literal;
 import io.crate.testing.TestingBatchIterators;
 import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
 
-public class SortingTopNProjectorTest extends ESTestCase {
+public class SortingLimitAndOffsetProjectorTest extends ESTestCase {
 
     private static final InputCollectExpression INPUT = new InputCollectExpression(0);
     private static final Literal<Boolean> TRUE_LITERAL = Literal.of(true);
@@ -67,9 +67,10 @@ public class SortingTopNProjectorTest extends ESTestCase {
         if (random().nextFloat() >= 0.5f) {
             unboundedCollectorThreshold = 1;
         }
-        logger.info("Creating SortingTopN projector with unbounded collector threshold {}", unboundedCollectorThreshold);
+        logger.info("Creating SortingLimitAndOffsetProjector projector with unbounded collector threshold {}",
+                    unboundedCollectorThreshold);
 
-        return new SortingTopNProjector(
+        return new SortingLimitAndOffsetProjector(
             rowAccounting,
             INPUT_LITERAL_LIST,
             COLLECT_EXPRESSIONS,
@@ -103,7 +104,7 @@ public class SortingTopNProjectorTest extends ESTestCase {
 
     @Test
     public void testOrderByWithLimitMuchHigherThanExpectedRowsCount() throws Exception {
-        Projector projector = getProjector(new IgnoreRowCellsAccounting(), 1, 100_000, TopN.NO_OFFSET, FIRST_CELL_ORDERING);
+        Projector projector = getProjector(new IgnoreRowCellsAccounting(), 1, 100_000, LimitAndOffset.NO_OFFSET, FIRST_CELL_ORDERING);
         consumer.accept(projector.apply(TestingBatchIterators.range(1, 11)), null);
 
         Bucket rows = consumer.getBucket();
@@ -112,7 +113,7 @@ public class SortingTopNProjectorTest extends ESTestCase {
 
     @Test
     public void testOrderByWithoutOffset() throws Exception {
-        Projector projector = getProjector(2, 10, TopN.NO_OFFSET);
+        Projector projector = getProjector(2, 10, LimitAndOffset.NO_OFFSET);
         consumer.accept(projector.apply(TestingBatchIterators.range(1, 11)), null);
 
         Bucket rows = consumer.getBucket();
@@ -129,7 +130,8 @@ public class SortingTopNProjectorTest extends ESTestCase {
     public void testUsedMemoryIsAccountedFor() throws Exception {
         MemoryCircuitBreaker circuitBreaker = new MemoryCircuitBreaker(new ByteSizeValue(30, ByteSizeUnit.BYTES),
                                                                        1,
-                                                                       LogManager.getLogger(SortingTopNProjectorTest.class)
+                                                                       LogManager.getLogger(
+                                                                           SortingLimitAndOffsetProjectorTest.class)
         );
         RowCellsAccountingWithEstimators rowAccounting =
             new RowCellsAccountingWithEstimators(
@@ -137,7 +139,7 @@ public class SortingTopNProjectorTest extends ESTestCase {
                 ConcurrentRamAccounting.forCircuitBreaker("testContext", circuitBreaker),
                 0);
 
-        Projector projector = getProjector(rowAccounting, 1, 100_000, TopN.NO_OFFSET, FIRST_CELL_ORDERING);
+        Projector projector = getProjector(rowAccounting, 1, 100_000, LimitAndOffset.NO_OFFSET, FIRST_CELL_ORDERING);
         consumer.accept(projector.apply(TestingBatchIterators.range(1, 11)), null);
 
         expectedException.expect(CircuitBreakingException.class);

@@ -45,7 +45,7 @@ import java.util.stream.Collector;
  * limit + offset.
  * The final result is a sorted bucket with limit and offset applied.
  */
-public class BoundedSortingTopNCollector implements Collector<Row, RowPriorityQueue<Object[]>, Bucket> {
+public class BoundedSortingLimitAndOffsetCollector implements Collector<Row, RowPriorityQueue<Object[]>, Bucket> {
 
     private final Collection<? extends Input<?>> inputs;
     private final Iterable<? extends CollectExpression<Row, ?>> expressions;
@@ -66,13 +66,13 @@ public class BoundedSortingTopNCollector implements Collector<Row, RowPriorityQu
      * @param limit            the max number of rows the result should contain
      * @param offset           the number of rows to skip (after sort)
      */
-    public BoundedSortingTopNCollector(RowAccounting<Object[]> rowAccounting,
-                                       Collection<? extends Input<?>> inputs,
-                                       Iterable<? extends CollectExpression<Row, ?>> expressions,
-                                       int numOutputs,
-                                       Comparator<Object[]> comparator,
-                                       int limit,
-                                       int offset) {
+    public BoundedSortingLimitAndOffsetCollector(RowAccounting<Object[]> rowAccounting,
+                                                 Collection<? extends Input<?>> inputs,
+                                                 Iterable<? extends CollectExpression<Row, ?>> expressions,
+                                                 int numOutputs,
+                                                 Comparator<Object[]> comparator,
+                                                 int limit,
+                                                 int offset) {
         if (limit <= 0) {
             throw new IllegalArgumentException("Invalid LIMIT: value must be > 0; got: " + limit);
         }

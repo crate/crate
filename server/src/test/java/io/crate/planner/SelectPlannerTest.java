@@ -67,12 +67,12 @@ import io.crate.execution.dsl.projection.EvalProjection;
 import io.crate.execution.dsl.projection.FilterProjection;
 import io.crate.execution.dsl.projection.GroupProjection;
 import io.crate.execution.dsl.projection.MergeCountProjection;
-import io.crate.execution.dsl.projection.OrderedTopNProjection;
+import io.crate.execution.dsl.projection.OrderedLimitAndOffsetProjection;
 import io.crate.execution.dsl.projection.ProjectSetProjection;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.ProjectionType;
-import io.crate.execution.dsl.projection.TopNDistinctProjection;
-import io.crate.execution.dsl.projection.TopNProjection;
+import io.crate.execution.dsl.projection.LimitDistinctProjection;
+import io.crate.execution.dsl.projection.LimitAndOffsetProjection;
 import io.crate.execution.dsl.projection.WindowAggProjection;
 import io.crate.execution.engine.NodeOperationTreeGenerator;
 import io.crate.execution.engine.aggregation.impl.CountAggregation;
@@ -240,7 +240,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
         List<Projection> projections = collectPhase.projections();
         assertThat(projections, contains(
-            instanceOf(TopNProjection.class)
+            instanceOf(LimitAndOffsetProjection.class)
         ));
     }
 
@@ -255,8 +255,8 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) ((Collect) merge.subPlan()).collectPhase());
         assertThat(collectPhase.where().toString(), is("(name = 'x')"));
 
-        TopNProjection topNProjection = (TopNProjection) collectPhase.projections().get(0);
-        assertThat(topNProjection.limit(), is(10));
+        LimitAndOffsetProjection limitAndOffsetProjection = (LimitAndOffsetProjection) collectPhase.projections().get(0);
+        assertThat(limitAndOffsetProjection.limit(), is(10));
 
         MergePhase mergePhase = merge.mergePhase();
         assertThat(mergePhase.outputTypes().size(), is(1));
@@ -283,9 +283,9 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertTrue(mergePhase.finalProjection().isPresent());
 
         Projection lastProjection = mergePhase.finalProjection().get();
-        assertThat(lastProjection, instanceOf(TopNProjection.class));
-        TopNProjection topNProjection = (TopNProjection) lastProjection;
-        assertThat(topNProjection.outputs().size(), is(1));
+        assertThat(lastProjection, instanceOf(LimitAndOffsetProjection.class));
+        LimitAndOffsetProjection limitAndOffsetProjection = (LimitAndOffsetProjection) lastProjection;
+        assertThat(limitAndOffsetProjection.outputs().size(), is(1));
     }
 
     @Test
@@ -301,9 +301,9 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
         MergePhase mergePhase = merge.mergePhase();
         assertThat(mergePhase.projections().size(), is(2));
-        TopNProjection topN = (TopNProjection) mergePhase.projections().get(0);
-        assertThat(topN.limit(), is(100_000));
-        assertThat(topN.offset(), is(0));
+        LimitAndOffsetProjection projection = (LimitAndOffsetProjection) mergePhase.projections().get(0);
+        assertThat(projection.limit(), is(100_000));
+        assertThat(projection.offset(), is(0));
 
         // with offset
         qtf = e.plan("select name from users limit 100000 offset 20");
@@ -314,9 +314,9 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
         mergePhase = merge.mergePhase();
         assertThat(mergePhase.projections().size(), is(2));
-        topN = (TopNProjection) mergePhase.projections().get(0);
-        assertThat(topN.limit(), is(100_000));
-        assertThat(topN.offset(), is(20));
+        projection = (LimitAndOffsetProjection) mergePhase.projections().get(0);
+        assertThat(projection.limit(), is(100_000));
+        assertThat(projection.offset(), is(20));
     }
 
 
@@ -1049,7 +1049,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void test_distinct_with_limit_is_optimized_to_topn_distinct() throws Exception {
+    public void test_distinct_with_limit_is_optimized_to_limitandoffset_distinct() throws Exception {
         TableStats tableStats = new TableStats();
         tableStats.updateTableStats(
             Map.of(new RelationName("doc", "users"), new Stats(20, 20, Map.of())));
@@ -1061,12 +1061,12 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         String stmt = "select distinct name from users limit 1";
         LogicalPlan plan = e.logicalPlan(stmt);
         assertThat(plan, isPlan(
-            "TopNDistinct[1::bigint;0 | [name]]\n" +
+            "LimitDistinct[1::bigint;0 | [name]]\n" +
             "  └ Collect[doc.users | [name] | true]"));
     }
 
     @Test
-    public void test_group_by_without_aggregates_and_with_limit_is_optimized_to_topn_distinct() throws Exception {
+    public void test_group_by_without_aggregates_and_with_limit_is_optimized_to_limitandoffset_distinct() throws Exception {
         SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .build();
@@ -1074,7 +1074,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         String stmt = "select id, name from users group by id, name limit 1";
         LogicalPlan plan = e.logicalPlan(stmt);
         assertThat(plan, isPlan(
-            "TopNDistinct[1::bigint;0 | [id, name]]\n" +
+            "LimitDistinct[1::bigint;0 | [id, name]]\n" +
             "  └ Collect[doc.users | [id, name] | true]"));
     }
 
@@ -1087,7 +1087,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         String stmt = "select id, name from users group by id, name limit 1 offset 3";
         LogicalPlan plan = e.logicalPlan(stmt);
         assertThat(plan, isPlan(
-            "TopNDistinct[1::bigint;3::bigint | [id, name]]\n" +
+            "LimitDistinct[1::bigint;3::bigint | [id, name]]\n" +
             "  └ Collect[doc.users | [id, name] | true]"));
 
         Merge merge = e.plan(stmt);
@@ -1095,15 +1095,15 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(
             collectProjections,
             contains(
-                instanceOf(TopNDistinctProjection.class)
+                instanceOf(LimitDistinctProjection.class)
             )
         );
         List<Projection> mergeProjections = merge.mergePhase().projections();
         assertThat(
             mergeProjections,
             contains(
-                instanceOf(TopNDistinctProjection.class),
-                instanceOf(TopNProjection.class)
+                instanceOf(LimitDistinctProjection.class),
+                instanceOf(LimitAndOffsetProjection.class)
             )
         );
     }
@@ -1139,7 +1139,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         Collect collect = (Collect) merge.subPlan();
         RoutedCollectPhase collectPhase = (RoutedCollectPhase) collect.collectPhase();
         assertThat(collectPhase.projections(), contains(
-            instanceOf(OrderedTopNProjection.class),
+            instanceOf(OrderedLimitAndOffsetProjection.class),
             instanceOf(EvalProjection.class)
         ));
     }

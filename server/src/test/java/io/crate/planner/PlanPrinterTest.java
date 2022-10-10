@@ -67,7 +67,7 @@ public class PlanPrinterTest extends CrateDummyClusterServiceUnitTest {
                         "{keys=INPUT(1), type=HashAggregation, aggregations=max(INPUT(0))}, " +
                         "{keys=INPUT(0), type=HashAggregation, aggregations=max(INPUT(1))}, " +
                         "{filter=(INPUT(1) > 10), type=Filter}, " +
-                        "{outputs=INPUT(0), INPUT(1), offset=0, limit=-1, orderBy=[INPUT(0) ASC], type=OrderByTopN}], " +
+                        "{outputs=INPUT(0), INPUT(1), offset=0, limit=-1, orderBy=[INPUT(0) ASC], type=OrderLimitAndOffset}], " +
                     "routing={n1={t1=[0, 1, 2, 3]}}, " +
                     "toCollect=[x, a], type=executionPhase, where=true}}, " +
                     "type=executionPlan}}")
@@ -113,7 +113,7 @@ public class PlanPrinterTest extends CrateDummyClusterServiceUnitTest {
                "mergePhase={MERGE={" +
                     "distribution={distributedByColumn=0, type=BROADCAST}, " +
                     "executionNodes=[n1], id=2, " +
-                    "projections=[{outputs=INPUT(0), offset=0, limit=10, type=TopN}], " +
+                    "projections=[{outputs=INPUT(0), offset=0, limit=10, type=LimitAndOffset}], " +
                     "type=executionPhase}}, " +
                "right={Collect={" +
                     "collectPhase={COLLECT={distribution={distributedByColumn=0, type=BROADCAST}, " +

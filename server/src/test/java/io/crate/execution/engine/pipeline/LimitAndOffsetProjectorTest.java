@@ -39,17 +39,17 @@ import io.crate.data.Row;
 import io.crate.testing.TestingBatchIterators;
 import io.crate.testing.TestingRowConsumer;
 
-public class SimpleTopNProjectorTest extends ESTestCase {
+public class LimitAndOffsetProjectorTest extends ESTestCase {
 
     private final TestingRowConsumer consumer = new TestingRowConsumer();
 
-    private SimpleTopNProjector prepareProjector(int limit, int offset) {
-        return new SimpleTopNProjector(limit, offset);
+    private LimitAndOffsetProjector prepareProjector(int limit, int offset) {
+        return new LimitAndOffsetProjector(limit, offset);
     }
 
     @Test
     public void testProjectLimitOnly() throws Throwable {
-        Projector projector = prepareProjector(10, TopN.NO_OFFSET);
+        Projector projector = prepareProjector(10, LimitAndOffset.NO_OFFSET);
 
         BatchIterator<Row> batchIterator = projector.apply(TestingBatchIterators.range(0, 12));
         consumer.accept(batchIterator, null);
@@ -63,7 +63,7 @@ public class SimpleTopNProjectorTest extends ESTestCase {
 
     @Test
     public void testProjectLimitOnlyLessThanLimit() throws Throwable {
-        Projector projector = prepareProjector(10, TopN.NO_OFFSET);
+        Projector projector = prepareProjector(10, LimitAndOffset.NO_OFFSET);
         BatchIterator<Row> batchIterator = projector.apply(TestingBatchIterators.range(0, 5));
         consumer.accept(batchIterator, null);
 
@@ -76,7 +76,7 @@ public class SimpleTopNProjectorTest extends ESTestCase {
 
     @Test
     public void testProjectLimitOnlyExactlyLimit() throws Throwable {
-        Projector projector = prepareProjector(10, TopN.NO_OFFSET);
+        Projector projector = prepareProjector(10, LimitAndOffset.NO_OFFSET);
         BatchIterator<Row> batchIterator = projector.apply(TestingBatchIterators.range(0, 10));
         consumer.accept(batchIterator, null);
         Bucket projected = consumer.getBucket();
@@ -89,7 +89,7 @@ public class SimpleTopNProjectorTest extends ESTestCase {
 
     @Test
     public void testProjectLimitOnly0() throws Throwable {
-        Projector projector = prepareProjector(10, TopN.NO_OFFSET);
+        Projector projector = prepareProjector(10, LimitAndOffset.NO_OFFSET);
         consumer.accept(projector.apply(InMemoryBatchIterator.empty(SENTINEL)), null);
 
         Bucket projected = consumer.getBucket();
@@ -101,7 +101,7 @@ public class SimpleTopNProjectorTest extends ESTestCase {
 
     @Test
     public void testProjectLimitOnly1() throws Throwable {
-        Projector projector = prepareProjector(1, TopN.NO_OFFSET);
+        Projector projector = prepareProjector(1, LimitAndOffset.NO_OFFSET);
         BatchIterator<Row> batchIterator = projector.apply(TestingBatchIterators.range(0, 10));
         consumer.accept(batchIterator, null);
 
@@ -129,19 +129,19 @@ public class SimpleTopNProjectorTest extends ESTestCase {
     public void testNegativeOffset() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Invalid OFFSET");
-        new SimpleTopNProjector(10, -10);
+        new LimitAndOffsetProjector(10, -10);
     }
 
     @Test
     public void testNegativeLimit() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Invalid LIMIT");
-        new SimpleTopNProjector(-100, TopN.NO_OFFSET);
+        new LimitAndOffsetProjector(-100, LimitAndOffset.NO_OFFSET);
     }
 
     @Test
     public void testProjectLimitOnlyUpStream() throws Throwable {
-        Projector projector = prepareProjector(10, TopN.NO_OFFSET);
+        Projector projector = prepareProjector(10, LimitAndOffset.NO_OFFSET);
         BatchIterator<Row> batchIterator = projector.apply(TestingBatchIterators.range(0, 12));
         consumer.accept(batchIterator, null);
         Bucket projected = consumer.getBucket();
@@ -153,7 +153,7 @@ public class SimpleTopNProjectorTest extends ESTestCase {
 
     @Test
     public void testProjectLimitLessThanLimitUpStream() throws Throwable {
-        Projector projector = prepareProjector(10, TopN.NO_OFFSET);
+        Projector projector = prepareProjector(10, LimitAndOffset.NO_OFFSET);
         BatchIterator<Row> batchIterator = projector.apply(TestingBatchIterators.range(0, 5));
         consumer.accept(batchIterator, null);
         Bucket projected = consumer.getBucket();
@@ -166,7 +166,7 @@ public class SimpleTopNProjectorTest extends ESTestCase {
 
     @Test
     public void testProjectLimitOnly0UpStream() throws Throwable {
-        Projector projector = prepareProjector(10, TopN.NO_OFFSET);
+        Projector projector = prepareProjector(10, LimitAndOffset.NO_OFFSET);
         consumer.accept(projector.apply(InMemoryBatchIterator.empty(SENTINEL)), null);
         Bucket projected = consumer.getBucket();
         assertThat(projected, emptyIterable());
@@ -189,6 +189,6 @@ public class SimpleTopNProjectorTest extends ESTestCase {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Invalid LIMIT");
 
-        prepareProjector(TopN.NO_LIMIT, TopN.NO_OFFSET);
+        prepareProjector(LimitAndOffset.NO_LIMIT, LimitAndOffset.NO_OFFSET);
     }
 }

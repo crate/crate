@@ -49,9 +49,9 @@ import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.projection.EvalProjection;
 import io.crate.execution.dsl.projection.FilterProjection;
 import io.crate.execution.dsl.projection.GroupProjection;
-import io.crate.execution.dsl.projection.OrderedTopNProjection;
+import io.crate.execution.dsl.projection.OrderedLimitAndOffsetProjection;
 import io.crate.execution.dsl.projection.Projection;
-import io.crate.execution.dsl.projection.TopNProjection;
+import io.crate.execution.dsl.projection.LimitAndOffsetProjection;
 import io.crate.execution.engine.aggregation.impl.CountAggregation;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.Aggregation;
@@ -152,24 +152,24 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
         // distributed merge
         MergePhase distributedMergePhase = reducerMerge.mergePhase();
         assertThat(distributedMergePhase.projections().get(0), instanceOf(GroupProjection.class));
-        assertThat(distributedMergePhase.projections().get(1), instanceOf(TopNProjection.class));
+        assertThat(distributedMergePhase.projections().get(1), instanceOf(LimitAndOffsetProjection.class));
 
         // limit must include offset because the real limit can only be applied on the handler
         // after all rows have been gathered.
-        TopNProjection topN = (TopNProjection) distributedMergePhase.projections().get(1);
-        assertThat(topN.limit(), is(2));
-        assertThat(topN.offset(), is(0));
+        LimitAndOffsetProjection projection = (LimitAndOffsetProjection) distributedMergePhase.projections().get(1);
+        assertThat(projection.limit(), is(2));
+        assertThat(projection.offset(), is(0));
 
         // local merge
         MergePhase localMergePhase = distributedGroupByMerge.mergePhase();
-        assertThat(localMergePhase.projections().get(0), instanceOf(TopNProjection.class));
-        topN = (TopNProjection) localMergePhase.projections().get(0);
-        assertThat(topN.limit(), is(1));
-        assertThat(topN.offset(), is(1));
-        assertThat(topN.outputs().get(0), instanceOf(InputColumn.class));
-        assertThat(((InputColumn) topN.outputs().get(0)).index(), is(0));
-        assertThat(topN.outputs().get(1), instanceOf(InputColumn.class));
-        assertThat(((InputColumn) topN.outputs().get(1)).index(), is(1));
+        assertThat(localMergePhase.projections().get(0), instanceOf(LimitAndOffsetProjection.class));
+        projection = (LimitAndOffsetProjection) localMergePhase.projections().get(0);
+        assertThat(projection.limit(), is(1));
+        assertThat(projection.offset(), is(1));
+        assertThat(projection.outputs().get(0), instanceOf(InputColumn.class));
+        assertThat(((InputColumn) projection.outputs().get(0)).index(), is(0));
+        assertThat(projection.outputs().get(1), instanceOf(InputColumn.class));
+        assertThat(((InputColumn) projection.outputs().get(1)).index(), is(1));
     }
 
     @Test
@@ -208,13 +208,13 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) collect.collectPhase());
         assertThat(collectPhase.projections(), contains(
             instanceOf(GroupProjection.class),
-            instanceOf(TopNProjection.class),
+            instanceOf(LimitAndOffsetProjection.class),
             instanceOf(EvalProjection.class) // swaps id, count(*) output from group by to count(*), id
         ));
         assertThat(collectPhase.projections().get(0).requiredGranularity(), is(RowGranularity.SHARD));
         MergePhase mergePhase = merge.mergePhase();
         assertThat(mergePhase.projections(), contains(
-            instanceOf(TopNProjection.class))
+            instanceOf(LimitAndOffsetProjection.class))
         );
     }
 
@@ -230,16 +230,16 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
         List<Projection> collectProjections = collectPhase.projections();
         assertThat(collectProjections, contains(
             instanceOf(GroupProjection.class),
-            instanceOf(OrderedTopNProjection.class),
+            instanceOf(OrderedLimitAndOffsetProjection.class),
             instanceOf(EvalProjection.class) // swap id, count(*) -> count(*), id
         ));
-        assertThat(collectProjections.get(1), instanceOf(OrderedTopNProjection.class));
-        assertThat(((OrderedTopNProjection) collectProjections.get(1)).orderBy().size(), is(1));
+        assertThat(collectProjections.get(1), instanceOf(OrderedLimitAndOffsetProjection.class));
+        assertThat(((OrderedLimitAndOffsetProjection) collectProjections.get(1)).orderBy().size(), is(1));
 
         assertThat(collectProjections.get(0).requiredGranularity(), is(RowGranularity.SHARD));
         MergePhase mergePhase = merge.mergePhase();
         assertThat(mergePhase.projections(), contains(
-            instanceOf(TopNProjection.class)
+            instanceOf(LimitAndOffsetProjection.class)
         ));
 
         PositionalOrderBy positionalOrderBy = mergePhase.orderByPositions();
@@ -261,15 +261,15 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) collect.collectPhase());
         assertThat(collectPhase.projections(), contains(
             instanceOf(GroupProjection.class),
-            instanceOf(OrderedTopNProjection.class),
+            instanceOf(OrderedLimitAndOffsetProjection.class),
             instanceOf(EvalProjection.class)
         ));
-        assertThat(((OrderedTopNProjection) collectPhase.projections().get(1)).orderBy().size(), is(1));
+        assertThat(((OrderedLimitAndOffsetProjection) collectPhase.projections().get(1)).orderBy().size(), is(1));
 
         assertThat(collectPhase.projections().get(0).requiredGranularity(), is(RowGranularity.SHARD));
         MergePhase mergePhase = merge.mergePhase();
         assertThat(mergePhase.projections(), contains(
-            instanceOf(TopNProjection.class)
+            instanceOf(LimitAndOffsetProjection.class)
         ));
 
         PositionalOrderBy positionalOrderBy = mergePhase.orderByPositions();
@@ -295,11 +295,11 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(mergePhase.projections(), contains(
             instanceOf(GroupProjection.class),
-            instanceOf(OrderedTopNProjection.class),
+            instanceOf(OrderedLimitAndOffsetProjection.class),
             instanceOf(EvalProjection.class)
         ));
-        OrderedTopNProjection topNProjection = (OrderedTopNProjection) mergePhase.projections().get(1);
-        Symbol orderBy = topNProjection.orderBy().get(0);
+        OrderedLimitAndOffsetProjection projection = (OrderedLimitAndOffsetProjection) mergePhase.projections().get(1);
+        Symbol orderBy = projection.orderBy().get(0);
         assertThat(orderBy, instanceOf(InputColumn.class));
 
         assertThat(orderBy.valueType(), Is.is(DataTypes.LONG));
@@ -354,7 +354,7 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
         MergePhase mergePhase = reducerMerge.mergePhase();
         assertThat(mergePhase.projections(), contains(
             instanceOf(GroupProjection.class),
-            instanceOf(OrderedTopNProjection.class),
+            instanceOf(OrderedLimitAndOffsetProjection.class),
             instanceOf(EvalProjection.class))
         );
         Projection groupProjection1 = mergePhase.projections().get(0);
@@ -364,8 +364,9 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(groupProjection.mode(), is(AggregateMode.PARTIAL_FINAL));
         assertThat(groupProjection.values().get(0), instanceOf(Aggregation.class));
 
-        OrderedTopNProjection topNProjection = (OrderedTopNProjection) mergePhase.projections().get(1);
-        Symbol collection_count = topNProjection.outputs().get(0);
+        OrderedLimitAndOffsetProjection limitAndOffsetProjection =
+            (OrderedLimitAndOffsetProjection) mergePhase.projections().get(1);
+        Symbol collection_count = limitAndOffsetProjection.outputs().get(0);
         Asserts.assertThat(collection_count).isInputColumn(0);
 
         // handler
@@ -410,17 +411,17 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(((InputColumn) countArgument).index(), is(1));  // pointing to second output from group projection
 
         // outputs: name, count(*)
-        TopNProjection topN = (TopNProjection) mergePhase.projections().get(2);
-        assertThat(topN.outputs().get(0).valueType(), Is.is(DataTypes.STRING));
-        assertThat(topN.outputs().get(1).valueType(), Is.<DataType>is(DataTypes.LONG));
+        LimitAndOffsetProjection limitAndOffsetProjection = (LimitAndOffsetProjection) mergePhase.projections().get(2);
+        assertThat(limitAndOffsetProjection.outputs().get(0).valueType(), Is.is(DataTypes.STRING));
+        assertThat(limitAndOffsetProjection.outputs().get(1).valueType(), Is.is(DataTypes.LONG));
 
 
         MergePhase localMerge = planNode.mergePhase();
-        // topN projection
+        // limitAndOffset projection
         //      outputs: count(*), name
-        topN = (TopNProjection) localMerge.projections().get(0);
-        assertThat(topN.outputs().get(0).valueType(), Is.<DataType>is(DataTypes.LONG));
-        assertThat(topN.outputs().get(1).valueType(), Is.<DataType>is(DataTypes.STRING));
+        limitAndOffsetProjection = (LimitAndOffsetProjection) localMerge.projections().get(0);
+        assertThat(limitAndOffsetProjection.outputs().get(0).valueType(), Is.is(DataTypes.LONG));
+        assertThat(limitAndOffsetProjection.outputs().get(1).valueType(), Is.is(DataTypes.STRING));
     }
 
     @Test
@@ -504,7 +505,7 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
         //      outputs: name, count(*)
         // filter projection
         //      outputs: name, count(*)
-        // topN projection
+        // limitAndOffset projection
         //      outputs: name, count(*)
 
         Projection projection = reducePhase.projections().get(1);
@@ -520,18 +521,18 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(((InputColumn) filterProjection.outputs().get(1)).index(), is(1));
 
         // outputs: name, count(*)
-        TopNProjection topN = (TopNProjection) reducePhase.projections().get(2);
-        assertThat(((InputColumn) topN.outputs().get(0)).index(), is(0));
-        assertThat(((InputColumn) topN.outputs().get(1)).index(), is(1));
+        LimitAndOffsetProjection limitAndOffsetProjection = (LimitAndOffsetProjection) reducePhase.projections().get(2);
+        assertThat(((InputColumn) limitAndOffsetProjection.outputs().get(0)).index(), is(0));
+        assertThat(((InputColumn) limitAndOffsetProjection.outputs().get(1)).index(), is(1));
 
 
         MergePhase localMerge = planNode.mergePhase();
 
-        // topN projection
+        // limitAndOffset projection
         //      outputs: name, count(*)
-        topN = (TopNProjection) localMerge.projections().get(0);
-        assertThat(((InputColumn) topN.outputs().get(0)).index(), is(0));
-        assertThat(((InputColumn) topN.outputs().get(1)).index(), is(1));
+        limitAndOffsetProjection = (LimitAndOffsetProjection) localMerge.projections().get(0);
+        assertThat(((InputColumn) limitAndOffsetProjection.outputs().get(0)).index(), is(0));
+        assertThat(((InputColumn) limitAndOffsetProjection.outputs().get(1)).index(), is(1));
     }
 
     @Test
@@ -576,7 +577,7 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(collectPhase.projections().size(), is(3));
         assertThat(collectPhase.projections().get(0), instanceOf(GroupProjection.class));
         assertThat(collectPhase.projections().get(0).requiredGranularity(), is(RowGranularity.SHARD));
-        assertThat(collectPhase.projections().get(1), instanceOf(TopNProjection.class));
+        assertThat(collectPhase.projections().get(1), instanceOf(LimitAndOffsetProjection.class));
         assertThat(collectPhase.projections().get(2), instanceOf(EvalProjection.class));
     }
 
@@ -700,9 +701,10 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
             ).build();
         Merge plan = e.plan("select date from clustered_parted group by date order by date");
         Merge reduceMerge = (Merge) plan.subPlan();
-        OrderedTopNProjection topNProjection = (OrderedTopNProjection)reduceMerge.mergePhase().projections().get(1);
+        OrderedLimitAndOffsetProjection limitAndOffsetProjection =
+            (OrderedLimitAndOffsetProjection)reduceMerge.mergePhase().projections().get(1);
 
-        Symbol orderBy = topNProjection.orderBy().get(0);
+        Symbol orderBy = limitAndOffsetProjection.orderBy().get(0);
         assertThat(orderBy, instanceOf(InputColumn.class));
         assertThat(orderBy.valueType(), is(DataTypes.TIMESTAMPZ));
     }

@@ -55,13 +55,13 @@ import io.crate.data.Row;
 import io.crate.execution.dsl.projection.AggregationProjection;
 import io.crate.execution.dsl.projection.FilterProjection;
 import io.crate.execution.dsl.projection.GroupProjection;
-import io.crate.execution.dsl.projection.OrderedTopNProjection;
-import io.crate.execution.dsl.projection.TopNProjection;
+import io.crate.execution.dsl.projection.OrderedLimitAndOffsetProjection;
+import io.crate.execution.dsl.projection.LimitAndOffsetProjection;
 import io.crate.execution.engine.aggregation.AggregationPipe;
 import io.crate.execution.engine.aggregation.GroupingProjector;
 import io.crate.execution.engine.aggregation.impl.CountAggregation;
 import io.crate.execution.engine.sort.SortingProjector;
-import io.crate.execution.engine.sort.SortingTopNProjector;
+import io.crate.execution.engine.sort.SortingLimitAndOffsetProjector;
 import io.crate.execution.jobs.NodeLimits;
 import io.crate.expression.InputFactory;
 import io.crate.expression.eval.EvaluatingNormalizer;
@@ -120,12 +120,12 @@ public class ProjectionToProjectorVisitorTest extends CrateDummyClusterServiceUn
     }
 
     @Test
-    public void testSimpleTopNProjection() throws Exception {
-        TopNProjection projection = new TopNProjection(10, 2, Collections.singletonList(DataTypes.LONG));
+    public void testLimitAndOffsetProjection() throws Exception {
+        LimitAndOffsetProjection projection = new LimitAndOffsetProjection(10, 2, Collections.singletonList(DataTypes.LONG));
 
         Projector projector = visitor.create(
             projection, txnCtx, RamAccounting.NO_ACCOUNTING, memoryManager, UUID.randomUUID());
-        assertThat(projector, instanceOf(SimpleTopNProjector.class));
+        assertThat(projector, instanceOf(LimitAndOffsetProjector.class));
 
         TestingRowConsumer consumer = new TestingRowConsumer();
         consumer.accept(projector.apply(TestingBatchIterators.range(0, 20)), null);
@@ -136,25 +136,26 @@ public class ProjectionToProjectorVisitorTest extends CrateDummyClusterServiceUn
     }
 
     @Test
-    public void testSortingTopNProjection() throws Exception {
+    public void testSortingLimitAndOffsetProjection() throws Exception {
         List<Symbol> outputs = Arrays.asList(Literal.of("foo"), new InputColumn(0), new InputColumn(1));
-        OrderedTopNProjection projection = new OrderedTopNProjection(10, 0, outputs,
-            Arrays.asList(new InputColumn(0), new InputColumn(1)),
-            new boolean[]{false, false},
-            new boolean[]{false, false}
+        OrderedLimitAndOffsetProjection projection = new OrderedLimitAndOffsetProjection(10, 0, outputs,
+                                                                                         Arrays.asList(new InputColumn(0), new InputColumn(1)),
+                                                                                         new boolean[]{false, false},
+                                                                                         new boolean[]{false, false}
         );
         Projector projector = visitor.create(
             projection, txnCtx, RamAccounting.NO_ACCOUNTING, memoryManager, UUID.randomUUID());
-        assertThat(projector, instanceOf(SortingTopNProjector.class));
+        assertThat(projector, instanceOf(SortingLimitAndOffsetProjector.class));
     }
 
     @Test
-    public void testTopNProjectionToSortingProjector() throws Exception {
+    public void testOrderedLimitAndOffsetProjectionToSortingProjector() throws Exception {
         List<Symbol> outputs = Arrays.asList(Literal.of("foo"), new InputColumn(0), new InputColumn(1));
-        OrderedTopNProjection projection = new OrderedTopNProjection(TopN.NO_LIMIT, TopN.NO_OFFSET, outputs,
-            Arrays.asList(new InputColumn(0), new InputColumn(1)),
-            new boolean[]{false, false},
-            new boolean[]{false, false}
+        OrderedLimitAndOffsetProjection projection =
+            new OrderedLimitAndOffsetProjection(LimitAndOffset.NO_LIMIT, LimitAndOffset.NO_OFFSET, outputs,
+                                                Arrays.asList(new InputColumn(0), new InputColumn(1)),
+                                                new boolean[]{false, false},
+                                                new boolean[]{false, false}
         );
         Projector projector = visitor.create(
             projection, txnCtx, RamAccounting.NO_ACCOUNTING, memoryManager, UUID.randomUUID());
@@ -215,16 +216,17 @@ public class ProjectionToProjectorVisitorTest extends CrateDummyClusterServiceUn
             projection, txnCtx, RamAccounting.NO_ACCOUNTING, memoryManager, UUID.randomUUID());
         assertThat(projector, instanceOf(GroupingProjector.class));
 
-        // use a topN projection in order to get sorted outputs
+        // use an OrderedAndLimitAndOffset projection in order to get sorted outputs
         List<Symbol> outputs = Arrays.asList(
             new InputColumn(0, DataTypes.STRING), new InputColumn(1, DataTypes.STRING),
             new InputColumn(2, DataTypes.DOUBLE), new InputColumn(3, DataTypes.LONG));
-        OrderedTopNProjection topNProjection = new OrderedTopNProjection(10, 0, outputs,
-            List.of(new InputColumn(2, DataTypes.DOUBLE)),
-            new boolean[]{false},
-            new boolean[]{false});
-        Projector topNProjector = visitor.create(
-            topNProjection, txnCtx, RamAccounting.NO_ACCOUNTING, memoryManager, UUID.randomUUID());
+        OrderedLimitAndOffsetProjection orderedLimitAndOffsetProjection =
+            new OrderedLimitAndOffsetProjection(10, 0, outputs,
+                                                List.of(new InputColumn(2, DataTypes.DOUBLE)),
+                                                new boolean[]{false},
+                                                new boolean[]{false});
+        Projector limitAndOffsetProjector = visitor.create(
+            orderedLimitAndOffsetProjection, txnCtx, RamAccounting.NO_ACCOUNTING, memoryManager, UUID.randomUUID());
 
         String human = "human";
         String vogon = "vogon";
@@ -238,7 +240,7 @@ public class ProjectionToProjectorVisitorTest extends CrateDummyClusterServiceUn
         rows.add($(vogon, 48, male));
         rows.add($(human, 34, male));
 
-        BatchIterator<Row> batchIterator = topNProjector.apply(projector.apply(
+        BatchIterator<Row> batchIterator = limitAndOffsetProjector.apply(projector.apply(
             InMemoryBatchIterator.of(new CollectionBucket(rows), SENTINEL, true)));
         TestingRowConsumer consumer = new TestingRowConsumer();
 
