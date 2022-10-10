@@ -46,7 +46,7 @@ import java.util.stream.Collector;
  * limit + offset.
  * The final result is a sorted bucket with limit and offset applied.
  */
-public class UnboundedSortingTopNCollector implements Collector<Row, PriorityQueue<Object[]>, Bucket> {
+public class UnboundedSortingLimitAndOffsetCollector implements Collector<Row, PriorityQueue<Object[]>, Bucket> {
 
     private final Collection<? extends Input<?>> inputs;
     private final Iterable<? extends CollectExpression<Row, ?>> expressions;
@@ -67,14 +67,14 @@ public class UnboundedSortingTopNCollector implements Collector<Row, PriorityQue
      * @param limit           the max number of rows the result should contain
      * @param offset          the number of rows to skip (after sort)
      */
-    public UnboundedSortingTopNCollector(RowAccounting<Object[]> rowAccounting,
-                                         Collection<? extends Input<?>> inputs,
-                                         Iterable<? extends CollectExpression<Row, ?>> expressions,
-                                         int numOutputs,
-                                         Comparator<Object[]> comparator,
-                                         int initialCapacity,
-                                         int limit,
-                                         int offset) {
+    public UnboundedSortingLimitAndOffsetCollector(RowAccounting<Object[]> rowAccounting,
+                                                   Collection<? extends Input<?>> inputs,
+                                                   Iterable<? extends CollectExpression<Row, ?>> expressions,
+                                                   int numOutputs,
+                                                   Comparator<Object[]> comparator,
+                                                   int initialCapacity,
+                                                   int limit,
+                                                   int offset) {
         if (initialCapacity <= 0) {
             throw new IllegalArgumentException("Invalid initial capacity: value must be > 0; got: " + initialCapacity);
         }

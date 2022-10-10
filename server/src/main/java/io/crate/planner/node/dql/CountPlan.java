@@ -23,7 +23,7 @@ package io.crate.planner.node.dql;
 
 import io.crate.execution.dsl.phases.CountPhase;
 import io.crate.execution.dsl.phases.MergePhase;
-import io.crate.execution.engine.pipeline.TopN;
+import io.crate.execution.engine.pipeline.LimitAndOffset;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.ExecutionPlanVisitor;
 import io.crate.planner.PositionalOrderBy;
@@ -42,7 +42,7 @@ public class CountPlan implements ExecutionPlan, ResultDescription {
     private final CountPhase countPhase;
     private final MergePhase mergePhase;
 
-    private int unfinishedLimit = TopN.NO_LIMIT;
+    private int unfinishedLimit = LimitAndOffset.NO_LIMIT;
     private int unfinishedOffset = 0;
 
     @Nullable

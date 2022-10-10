@@ -74,16 +74,16 @@ import io.crate.execution.dsl.projection.EvalProjection;
 import io.crate.execution.dsl.projection.FetchProjection;
 import io.crate.execution.dsl.projection.FilterProjection;
 import io.crate.execution.dsl.projection.GroupProjection;
+import io.crate.execution.dsl.projection.LimitAndOffsetProjection;
+import io.crate.execution.dsl.projection.LimitDistinctProjection;
 import io.crate.execution.dsl.projection.MergeCountProjection;
-import io.crate.execution.dsl.projection.OrderedTopNProjection;
+import io.crate.execution.dsl.projection.OrderedLimitAndOffsetProjection;
 import io.crate.execution.dsl.projection.ProjectSetProjection;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.ProjectionVisitor;
 import io.crate.execution.dsl.projection.SourceIndexWriterProjection;
 import io.crate.execution.dsl.projection.SourceIndexWriterReturnSummaryProjection;
 import io.crate.execution.dsl.projection.SysUpdateProjection;
-import io.crate.execution.dsl.projection.TopNDistinctProjection;
-import io.crate.execution.dsl.projection.TopNProjection;
 import io.crate.execution.dsl.projection.UpdateProjection;
 import io.crate.execution.dsl.projection.WindowAggProjection;
 import io.crate.execution.dsl.projection.WriterProjection;
@@ -106,8 +106,9 @@ import io.crate.execution.engine.indexing.ShardDMLExecutor;
 import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
 import io.crate.execution.engine.indexing.UpsertResultContext;
 import io.crate.execution.engine.sort.OrderingByPosition;
+import io.crate.execution.engine.sort.SortingLimitAndOffsetProjector;
 import io.crate.execution.engine.sort.SortingProjector;
-import io.crate.execution.engine.sort.SortingTopNProjector;
+import io.crate.execution.engine.sort.UnboundedSortingLimitAndOffsetCollector;
 import io.crate.execution.engine.window.WindowProjector;
 import io.crate.execution.jobs.NodeLimits;
 import io.crate.execution.support.ThreadPools;
@@ -137,11 +138,12 @@ public class ProjectionToProjectorVisitor
     extends ProjectionVisitor<ProjectionToProjectorVisitor.Context, Projector> implements ProjectorFactory {
 
     /**
-     * Represents the minimum number of rows that have to be processed in a sorted TopN projector context after which
-     * we'll use an unbounded collector ie. {@link io.crate.execution.engine.sort.UnboundedSortingTopNCollector}. If
-     * less rows are needed (ie. limit + offset < threshold) a bounded collector will be used (a collector that
-     * pre-allocates the underlying structure in order to execute the sort and limit operation).
-     *
+     * Represents the minimum number of rows that have to be processed in a sorted LimitAndOffset projector context
+     * after which we'll use an unbounded collector ie.
+     * {@link UnboundedSortingLimitAndOffsetCollector}. If less rows are needed
+     * (i.e. limit + offset < threshold) a bounded collector will be used (a collector that pre-allocates
+     * the underlying structure in order to execute the sort and limit operation).
+     * <p>
      * We've chosen 10_000 because the usual user required limits are lower and our default limit applied over HTTP is
      * 10_000. These most common cases will be accommodated by a bounded collector which is slightly faster than the
      * unbounded one (however benchmarks have shown that using a collector that grows the underlying structure adds
@@ -236,7 +238,7 @@ public class ProjectionToProjectorVisitor
     }
 
     @Override
-    public Projector visitOrderedTopN(OrderedTopNProjection projection, Context context) {
+    public Projector visitOrderedLimitAndOffset(OrderedLimitAndOffsetProjection projection, Context context) {
         /* OrderBy symbols are added to the rows to enable sorting on them post-collect. E.g.:
          *
          * outputs: [x]
@@ -264,8 +266,8 @@ public class ProjectionToProjectorVisitor
             context.ramAccounting,
             rowMemoryOverhead
         );
-        if (projection.limit() > TopN.NO_LIMIT) {
-            return new SortingTopNProjector(
+        if (projection.limit() > LimitAndOffset.NO_LIMIT) {
+            return new SortingLimitAndOffsetProjector(
                 rowAccounting,
                 inputs,
                 ctx.expressions(),
@@ -287,19 +289,19 @@ public class ProjectionToProjectorVisitor
     }
 
     @Override
-    public Projector visitTopNDistinct(TopNDistinctProjection topNDistinct, Context context) {
+    public Projector visitLimitDistinct(LimitDistinctProjection limitDistinct, Context context) {
         var rowAccounting = new RowCellsAccountingWithEstimators(
-            Symbols.typeView(topNDistinct.outputs()),
+            Symbols.typeView(limitDistinct.outputs()),
             context.ramAccounting,
             0
         );
-        return new TopNDistinctProjector(topNDistinct.limit(), rowAccounting);
+        return new TopNDistinctProjector(limitDistinct.limit(), rowAccounting);
     }
 
     @Override
-    public Projector visitTopNProjection(TopNProjection projection, Context context) {
-        assert projection.limit() > TopN.NO_LIMIT : "TopNProjection must have a limit";
-        return new SimpleTopNProjector(projection.limit(), projection.offset());
+    public Projector visitLimitAndOffsetProjection(LimitAndOffsetProjection projection, Context context) {
+        assert projection.limit() > LimitAndOffset.NO_LIMIT : "LimitAndOffsetProjection must have a limit";
+        return new LimitAndOffsetProjector(projection.limit(), projection.offset());
     }
 
     @Override

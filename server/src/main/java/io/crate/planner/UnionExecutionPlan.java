@@ -21,6 +21,7 @@
 
 package io.crate.planner;
 
+import io.crate.execution.dsl.projection.LimitAndOffsetProjection;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.projection.Projection;
@@ -55,12 +56,14 @@ public class UnionExecutionPlan implements ExecutionPlan, ResultDescription {
      *
      * @param unfinishedLimit the limit a parent must apply after a merge to get the correct result
      * @param unfinishedOffset the offset a parent must apply after a merge to get the correct result
-     *
-     * If the data should be limited as part of the Merge, add a {@link io.crate.execution.dsl.projection.TopNProjection},
-     * if possible. If the limit of the TopNProjection is final, unfinishedLimit here should be set to NO_LIMIT (-1)
-     *
+     * <p>
+     * If the data should be limited as part of the Merge, add a {@link LimitAndOffsetProjection},
+     * if possible. If the limit of the {@link LimitAndOffsetProjection} is final, unfinishedLimit here
+     * should be set to NO_LIMIT (-1)
+     * </p>
+     * <p>
      * See also: {@link ResultDescription}
-     *
+     * </p>
      */
     public UnionExecutionPlan(ExecutionPlan left,
                               ExecutionPlan right,

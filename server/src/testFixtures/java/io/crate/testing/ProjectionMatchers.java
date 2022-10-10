@@ -22,7 +22,7 @@
 package io.crate.testing;
 
 import io.crate.execution.dsl.projection.Projection;
-import io.crate.execution.dsl.projection.TopNProjection;
+import io.crate.execution.dsl.projection.LimitAndOffsetProjection;
 import org.hamcrest.FeatureMatcher;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
@@ -32,13 +32,13 @@ import static org.hamcrest.core.AllOf.allOf;
 
 public class ProjectionMatchers {
 
-    public static Matcher<Projection> isTopN(int expectedLimit, int expectedOffset) {
+    public static Matcher<Projection> isLimitAndOffset(int expectedLimit, int expectedOffset) {
         FeatureMatcher<Projection, Integer> matchLimit = new FeatureMatcher<Projection, Integer>(
             equalTo(expectedLimit), "limit", "limit") {
 
             @Override
             protected Integer featureValueOf(Projection actual) {
-                return ((TopNProjection) actual).limit();
+                return ((LimitAndOffsetProjection) actual).limit();
             }
         };
         FeatureMatcher<Projection, Integer> matchOffset = new FeatureMatcher<Projection, Integer>(
@@ -46,9 +46,9 @@ public class ProjectionMatchers {
 
             @Override
             protected Integer featureValueOf(Projection actual) {
-                return ((TopNProjection) actual).offset();
+                return ((LimitAndOffsetProjection) actual).offset();
             }
         };
-        return allOf(Matchers.<Projection>instanceOf(TopNProjection.class), matchLimit, matchOffset);
+        return allOf(Matchers.<Projection>instanceOf(LimitAndOffsetProjection.class), matchLimit, matchOffset);
     }
 }

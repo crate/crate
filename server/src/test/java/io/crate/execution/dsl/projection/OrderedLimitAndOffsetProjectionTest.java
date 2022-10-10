@@ -21,7 +21,8 @@
 
 package io.crate.execution.dsl.projection;
 
-import static org.junit.Assert.assertEquals;
+import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertThat;
 
 import java.util.Collections;
 
@@ -30,20 +31,29 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
+import io.crate.expression.symbol.InputColumn;
+import io.crate.expression.symbol.Literal;
 import io.crate.types.DataTypes;
 
-public class TopNProjectionTest extends ESTestCase {
+public class OrderedLimitAndOffsetProjectionTest extends ESTestCase {
 
     @Test
     public void testStreaming() throws Exception {
-        TopNProjection p = new TopNProjection(5, 10, Collections.singletonList(DataTypes.INTEGER));
+        Projection p = new OrderedLimitAndOffsetProjection(
+            10,
+            20,
+            Collections.singletonList(Literal.of("foobar")),
+            Collections.singletonList(new InputColumn(0, DataTypes.STRING)),
+            new boolean[] { true },
+            new boolean[] { true }
+        );
 
         BytesStreamOutput out = new BytesStreamOutput();
         Projection.toStream(p, out);
 
         StreamInput in = out.bytes().streamInput();
-        TopNProjection p2 = (TopNProjection) Projection.fromStream(in);
-        assertEquals(p, p2);
-    }
+        Projection projection = Projection.fromStream(in);
 
+        assertThat(projection, equalTo(p));
+    }
 }

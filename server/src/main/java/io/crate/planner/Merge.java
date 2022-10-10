@@ -25,9 +25,10 @@ import io.crate.execution.dsl.phases.CollectPhase;
 import io.crate.execution.dsl.phases.ExecutionPhases;
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
+import io.crate.execution.dsl.projection.LimitAndOffsetProjection;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
-import io.crate.execution.engine.pipeline.TopN;
+import io.crate.execution.engine.pipeline.LimitAndOffset;
 import io.crate.data.Paging;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.Collect;
@@ -56,9 +57,9 @@ public class Merge implements ExecutionPlan, ResultDescription {
      * Wrap the subPlan into a Merge plan if it isn't executed on the handler.
      * @param projections projections to be applied on the subPlan or merge plan.
      *                    These projections must not affect the limit, offset, order by or numOutputs
-     *
-     *                    If the subPlan contains a limit/offset or orderBy in its resultDescription this method will
-     *                    add a TopNProjection AFTER the projections.
+     * <p>
+     * If the subPlan contains a limit/offset or orderBy in its resultDescription this method will
+     * add a {@link LimitAndOffset} AFTER the projections.
      */
     public static ExecutionPlan ensureOnHandler(ExecutionPlan subExecutionPlan, PlannerContext plannerContext, List<Projection> projections) {
         ResultDescription resultDescription = subExecutionPlan.resultDescription();
@@ -67,13 +68,13 @@ public class Merge implements ExecutionPlan, ResultDescription {
 
         // If a sub-Plan applies a limit it is usually limit+offset
         // So even if the execution is on the handler the limit may be too large and the final limit needs to be applied as well
-        Projection topN = ProjectionBuilder.topNOrEvalIfNeeded(
+        Projection limitAndOffset = ProjectionBuilder.limitAndOffsetOrEvalIfNeeded(
             resultDescription.limit(),
             resultDescription.offset(),
             resultDescription.numOutputs(),
             resultDescription.streamOutputs());
         if (ExecutionPhases.executesOnHandler(plannerContext.handlerNode(), resultDescription.nodeIds())) {
-            return addProjections(subExecutionPlan, projections, resultDescription, topN);
+            return addProjections(subExecutionPlan, projections, resultDescription, limitAndOffset);
         }
         maybeUpdatePageSizeHint(subExecutionPlan, resultDescription.maxRowsPerNode());
         Collection<String> handlerNodeIds = Collections.singletonList(plannerContext.handlerNode());
@@ -86,14 +87,14 @@ public class Merge implements ExecutionPlan, ResultDescription {
             1,
             handlerNodeIds,
             resultDescription.streamOutputs(),
-            addProjection(projections, topN),
+            addProjection(projections, limitAndOffset),
             DistributionInfo.DEFAULT_BROADCAST,
             resultDescription.orderBy()
         );
         return new Merge(
             subExecutionPlan,
             mergePhase,
-            TopN.NO_LIMIT,
+            LimitAndOffset.NO_LIMIT,
             0,
             resultDescription.numOutputs(),
             resultDescription.limit(),
@@ -120,14 +121,14 @@ public class Merge implements ExecutionPlan, ResultDescription {
     private static ExecutionPlan addProjections(ExecutionPlan subExecutionPlan,
                                                 List<Projection> projections,
                                                 ResultDescription resultDescription,
-                                                Projection topN) {
+                                                Projection limitAndOffset) {
         for (Projection projection : projections) {
             assert projection.outputs().size() == resultDescription.numOutputs()
                 : "projection must not affect numOutputs";
             subExecutionPlan.addProjection(projection);
         }
-        if (topN != null) {
-            subExecutionPlan.addProjection(topN, TopN.NO_LIMIT, 0, resultDescription.orderBy());
+        if (limitAndOffset != null) {
+            subExecutionPlan.addProjection(limitAndOffset, LimitAndOffset.NO_LIMIT, 0, resultDescription.orderBy());
         }
         return subExecutionPlan;
     }
@@ -153,10 +154,11 @@ public class Merge implements ExecutionPlan, ResultDescription {
      *
      * @param unfinishedLimit the limit a parent must apply after a merge to get the correct result
      * @param unfinishedOffset the offset a parent must apply after a merge to get the correct result
-     *
-     * If the data should be limited as part of the Merge, add a {@link io.crate.execution.dsl.projection.TopNProjection},
-     * if possible. If the limit of the TopNProjection is final, unfinishedLimit here should be set to NO_LIMIT (-1)
-     *
+     * <p>
+     * If the data should be limited as part of the Merge, add a {@link LimitAndOffsetProjection},
+     * if possible. If the limit of the {@link LimitAndOffsetProjection} is final,
+     * unfinishedLimit here should be set to NO_LIMIT (-1)
+     * <p>
      * See also: {@link ResultDescription}
      */
     public Merge(ExecutionPlan subExecutionPlan,

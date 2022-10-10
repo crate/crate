@@ -35,7 +35,7 @@ import io.crate.data.Row1;
 import io.crate.execution.dsl.projection.AggregationProjection;
 import io.crate.execution.dsl.projection.FilterProjection;
 import io.crate.execution.dsl.projection.Projection;
-import io.crate.execution.dsl.projection.TopNProjection;
+import io.crate.execution.dsl.projection.LimitAndOffsetProjection;
 import io.crate.metadata.RowGranularity;
 import io.crate.planner.node.dql.Collect;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -69,7 +69,7 @@ public class GlobalAggregatePlannerTest extends CrateDummyClusterServiceUnitTest
         List<Projection> projections = plan.collectPhase().projections();
         assertThat(projections)
             .satisfiesExactly(
-                s -> assertThat(s).isExactlyInstanceOf(TopNProjection.class),
+                s -> assertThat(s).isExactlyInstanceOf(LimitAndOffsetProjection.class),
                 s -> assertThat(s).isExactlyInstanceOf(AggregationProjection.class)
             );
     }

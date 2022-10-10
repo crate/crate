@@ -38,7 +38,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-public class OrderedTopNProjection extends Projection {
+public class OrderedLimitAndOffsetProjection extends Projection {
 
     private final int limit;
     private final int offset;
@@ -47,16 +47,16 @@ public class OrderedTopNProjection extends Projection {
     private final boolean[] reverseFlags;
     private final boolean[] nullsFirst;
 
-    public OrderedTopNProjection(int limit,
-                                 int offset,
-                                 List<Symbol> outputs,
-                                 List<Symbol> orderBy,
-                                 boolean[] reverseFlags,
-                                 boolean[] nullsFirst) {
+    public OrderedLimitAndOffsetProjection(int limit,
+                                           int offset,
+                                           List<Symbol> outputs,
+                                           List<Symbol> orderBy,
+                                           boolean[] reverseFlags,
+                                           boolean[] nullsFirst) {
         assert outputs.stream().noneMatch(s -> SymbolVisitors.any(Symbols.IS_COLUMN.or(x -> x instanceof SelectSymbol), s))
-            : "OrderedTopNProjection outputs cannot contain Field, Reference or SelectSymbol symbols: " + outputs;
+            : "OrderedLimitAndOffsetProjection outputs cannot contain Field, Reference or SelectSymbol symbols: " + outputs;
         assert orderBy.stream().noneMatch(s -> SymbolVisitors.any(Symbols.IS_COLUMN.or(x -> x instanceof SelectSymbol), s))
-            : "OrderedTopNProjection orderBy cannot contain Field, Reference or SelectSymbol symbols: " + orderBy;
+            : "OrderedLimitAndOffsetProjection orderBy cannot contain Field, Reference or SelectSymbol symbols: " + orderBy;
         assert orderBy.size() == reverseFlags.length : "reverse flags length does not match orderBy items count";
         assert orderBy.size() == nullsFirst.length : "nullsFirst length does not match orderBy items count";
 
@@ -68,7 +68,7 @@ public class OrderedTopNProjection extends Projection {
         this.nullsFirst = nullsFirst;
     }
 
-    public OrderedTopNProjection(StreamInput in) throws IOException {
+    public OrderedLimitAndOffsetProjection(StreamInput in) throws IOException {
         limit = in.readVInt();
         offset = in.readVInt();
         outputs = Symbols.listFromStream(in);
@@ -111,12 +111,12 @@ public class OrderedTopNProjection extends Projection {
 
     @Override
     public ProjectionType projectionType() {
-        return ProjectionType.TOPN_ORDERED;
+        return ProjectionType.LIMITANDOFFSET_ORDERED;
     }
 
     @Override
     public <C, R> R accept(ProjectionVisitor<C, R> visitor, C context) {
-        return visitor.visitOrderedTopN(this, context);
+        return visitor.visitOrderedLimitAndOffset(this, context);
     }
 
     @Override
@@ -142,7 +142,7 @@ public class OrderedTopNProjection extends Projection {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        OrderedTopNProjection that = (OrderedTopNProjection) o;
+        OrderedLimitAndOffsetProjection that = (OrderedLimitAndOffsetProjection) o;
 
         if (limit != that.limit) return false;
         if (offset != that.offset) return false;
@@ -168,7 +168,7 @@ public class OrderedTopNProjection extends Projection {
     @Override
     public Map<String, Object> mapRepresentation() {
         return MapBuilder.<String, Object>newMapBuilder()
-            .put("type", "OrderByTopN")
+            .put("type", "OrderLimitAndOffset")
             .put("limit", limit)
             .put("offset", offset)
             .put("outputs", Lists2.joinOn(", ", outputs, Symbol::toString))

@@ -64,7 +64,7 @@ public final class JoinOperations {
                                                     Collection<String> executionNodes) {
         List<Projection> projections = Collections.emptyList();
         if (resultDescription.hasRemainingLimitOrOffset()) {
-            projections = Collections.singletonList(ProjectionBuilder.topNOrEvalIfNeeded(
+            projections = Collections.singletonList(ProjectionBuilder.limitAndOffsetOrEvalIfNeeded(
                 resultDescription.limit(),
                 resultDescription.offset(),
                 resultDescription.numOutputs(),

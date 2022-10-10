@@ -48,9 +48,9 @@ import io.crate.execution.dsl.projection.FetchProjection;
 import io.crate.execution.dsl.projection.FilterProjection;
 import io.crate.execution.dsl.projection.GroupProjection;
 import io.crate.execution.dsl.projection.MergeCountProjection;
-import io.crate.execution.dsl.projection.OrderedTopNProjection;
+import io.crate.execution.dsl.projection.OrderedLimitAndOffsetProjection;
 import io.crate.execution.dsl.projection.Projection;
-import io.crate.execution.dsl.projection.TopNProjection;
+import io.crate.execution.dsl.projection.LimitAndOffsetProjection;
 import io.crate.expression.scalar.cast.ImplicitCastFunction;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
@@ -138,14 +138,14 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
             distMerge.mergePhase().projections(),
             contains(
                 instanceOf(GroupProjection.class),
-                instanceOf(OrderedTopNProjection.class),
+                instanceOf(OrderedLimitAndOffsetProjection.class),
                 instanceOf(EvalProjection.class)
             )
         );
         assertThat(
             localMerge.mergePhase().projections(),
             contains(
-                instanceOf(TopNProjection.class),
+                instanceOf(LimitAndOffsetProjection.class),
                 instanceOf(ColumnIndexWriterProjection.class)
             )
         );
@@ -283,11 +283,11 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
         QueryThenFetch qtf = e.plan("insert into users (date, id, name) (select date, id, name from users limit 10)");
         Merge merge = (Merge) qtf.subPlan();
         Collect collect = (Collect) merge.subPlan();
-        assertThat(collect.collectPhase().projections(), contains(instanceOf(TopNProjection.class)));
+        assertThat(collect.collectPhase().projections(), contains(instanceOf(LimitAndOffsetProjection.class)));
         assertThat(
             merge.mergePhase().projections(),
             contains(
-                instanceOf(TopNProjection.class),
+                instanceOf(LimitAndOffsetProjection.class),
                 instanceOf(FetchProjection.class),
                 instanceOf(ColumnIndexWriterProjection.class)
             )
@@ -361,8 +361,8 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
             instanceOf(GroupProjection.class),
             instanceOf(EvalProjection.class),
             instanceOf(ColumnIndexWriterProjection.class)));
-        EvalProjection collectTopN = (EvalProjection) collectPhase.projections().get(1);
-        Asserts.assertThat(collectTopN.outputs())
+        EvalProjection projection = (EvalProjection) collectPhase.projections().get(1);
+        Asserts.assertThat(projection.outputs())
             .satisfiesExactly(
                 s -> Asserts.assertThat(s).isInputColumn(0),
                 s -> Asserts.assertThat(s).isFunction(

@@ -34,7 +34,7 @@ public class ProjectionVisitor<C, R> {
         return null;
     }
 
-    public R visitTopNProjection(TopNProjection projection, C context) {
+    public R visitLimitAndOffsetProjection(LimitAndOffsetProjection projection, C context) {
         return visitProjection(projection, context);
     }
 
@@ -82,8 +82,8 @@ public class ProjectionVisitor<C, R> {
         return visitProjection(projection, context);
     }
 
-    public R visitOrderedTopN(OrderedTopNProjection orderedTopNProjection, C context) {
-        return visitProjection(orderedTopNProjection, context);
+    public R visitOrderedLimitAndOffset(OrderedLimitAndOffsetProjection orderedLimitAndOffsetProjection, C context) {
+        return visitProjection(orderedLimitAndOffsetProjection, context);
     }
 
     public R visitEvalProjection(EvalProjection evalProjection, C context) {
@@ -98,8 +98,8 @@ public class ProjectionVisitor<C, R> {
         return visitProjection(windowAgg, context);
     }
 
-    public R visitTopNDistinct(TopNDistinctProjection topNDistinctProjection, C context) {
-        return visitProjection(topNDistinctProjection, context);
+    public R visitLimitDistinct(LimitDistinctProjection limitDistinctProjection, C context) {
+        return visitProjection(limitDistinctProjection, context);
     }
 
     public R visitCorrelatedJoin(CorrelatedJoinProjection correlatedJoin, C context) {

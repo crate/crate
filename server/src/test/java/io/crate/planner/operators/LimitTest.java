@@ -39,7 +39,7 @@ import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
-import io.crate.execution.engine.pipeline.TopN;
+import io.crate.execution.engine.pipeline.LimitAndOffset;
 import io.crate.expression.symbol.Literal;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Merge;
@@ -83,7 +83,7 @@ public class LimitTest extends CrateDummyClusterServiceUnitTest {
             ctx,
             Set.of(),
             new ProjectionBuilder(e.nodeCtx),
-            TopN.NO_LIMIT,
+            LimitAndOffset.NO_LIMIT,
             0,
             null,
             null,
@@ -92,12 +92,12 @@ public class LimitTest extends CrateDummyClusterServiceUnitTest {
         );
         io.crate.planner.node.dql.Collect collect = (io.crate.planner.node.dql.Collect) merge.subPlan();
         assertThat(collect.collectPhase().projections(), contains(
-            ProjectionMatchers.isTopN(15, 0)
+            ProjectionMatchers.isLimitAndOffset(15, 0)
         ));
         //noinspection unchecked
         assertThat(merge.mergePhase().projections(), contains(
-            ProjectionMatchers.isTopN(10, 5),
-            ProjectionMatchers.isTopN(20, 7)
+            ProjectionMatchers.isLimitAndOffset(10, 5),
+            ProjectionMatchers.isLimitAndOffset(20, 7)
         ));
     }
 }

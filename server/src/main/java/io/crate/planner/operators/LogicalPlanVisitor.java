@@ -99,8 +99,8 @@ public class LogicalPlanVisitor<C, R> {
         return visitPlan(windowAgg, context);
     }
 
-    public R visitTopNDistinct(TopNDistinct topNDistinct, C context) {
-        return visitPlan(topNDistinct, context);
+    public R visitLimitDistinct(LimitDistinct limitDistinct, C context) {
+        return visitPlan(limitDistinct, context);
     }
 
     public R visitTableFunction(TableFunction tableFunction, C context) {

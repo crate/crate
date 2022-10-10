@@ -27,12 +27,12 @@ import io.crate.data.Projector;
 import io.crate.data.Row;
 import io.crate.data.SkippingBatchIterator;
 
-public class SimpleTopNProjector implements Projector {
+public class LimitAndOffsetProjector implements Projector {
 
     private final int offset;
     private final int limit;
 
-    public SimpleTopNProjector(int limit, int offset) {
+    public LimitAndOffsetProjector(int limit, int offset) {
         if (limit < 0) {
             throw new IllegalArgumentException("Invalid LIMIT: value must be >= 0; got: " + limit);
         }

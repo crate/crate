@@ -32,7 +32,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.GroupHashAggregate;
 import io.crate.planner.operators.Limit;
 import io.crate.planner.operators.LogicalPlan;
-import io.crate.planner.operators.TopNDistinct;
+import io.crate.planner.operators.LimitDistinct;
 import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.matcher.Capture;
 import io.crate.planner.optimizer.matcher.Captures;
@@ -42,28 +42,29 @@ import io.crate.types.DataTypes;
 
 
 /**
- * A rule to rewrite a `SELECT DISTINCT [...] LIMIT n` to use a special TopNDistinct operator.
+ * A rule to rewrite a `SELECT DISTINCT [...] LIMIT n` to use a special LimitDistinct operator.
  *
  * <p>
- * The TopNDistinct operator support early termination, reducing the amount of keys that have to be consumed/processed
- * from the source.
+ * The {@link LimitDistinct} operator support early termination, reducing the amount of keys that have to be
+ * consumed/processed from the source.
  * </p>
  *
  * <p>
  * This optimization is more efficient the lower the limit and the higher the cardinality ratio. (E.g. a unique column).
- * On a ENUM style column that only has like 5 distinct values in a large table, this TopNDistinct operator could cause a slow down:
+ * On a ENUM style column that only has like 5 distinct values in a large table, this {@link LimitDistinct}
+ * operator could cause a slow down:
  *
  * The "early terminate" case wouldn't happen; It would process almost all rows.
  * In that case our "optimized group by iterator" is more efficient as it contains a ordinal optimization.
  * (It already knows which values are unique and skips everything else)
  * </p>
  */
-public final class RewriteGroupByKeysLimitToTopNDistinct implements Rule<Limit> {
+public final class RewriteGroupByKeysLimitToLimitDistinct implements Rule<Limit> {
 
     private final Pattern<Limit> pattern;
     private final Capture<GroupHashAggregate> groupCapture;
 
-    public RewriteGroupByKeysLimitToTopNDistinct() {
+    public RewriteGroupByKeysLimitToLimitDistinct() {
         this.groupCapture = new Capture<>();
         this.pattern = typeOf(Limit.class)
             .with(
@@ -77,7 +78,7 @@ public final class RewriteGroupByKeysLimitToTopNDistinct implements Rule<Limit> 
     private static boolean eagerTerminateIsLikely(Limit limit, GroupHashAggregate groupAggregate) {
         if (groupAggregate.outputs().size() > 1 || !groupAggregate.outputs().get(0).valueType().equals(DataTypes.STRING)) {
             // `GroupByOptimizedIterator` can only be used for single text columns.
-            // If that is not the case we can always use TopNDistinct even if a eagerTerminate isn't likely
+            // If that is not the case we can always use LimitDistinct even if a eagerTerminate isn't likely
             // because a regular GROUP BY would have to do at least the same amount of work in any case.
             return true;
         }
@@ -96,7 +97,7 @@ public final class RewriteGroupByKeysLimitToTopNDistinct implements Rule<Limit> 
         }
         var cardinalityRatio = groupAggregate.numExpectedRows() / sourceRows;
         /*
-         * The threshold was chosen after comparing `with topNDistinct` vs. `without topNDistinct`
+         * The threshold was chosen after comparing `with limitDistinct` vs. `without limitDistinct`
          *
          * create table ids_with_tags (id text primary key, tag text not null)
          *
@@ -168,7 +169,7 @@ public final class RewriteGroupByKeysLimitToTopNDistinct implements Rule<Limit> 
         if (!eagerTerminateIsLikely(limit, groupBy)) {
             return null;
         }
-        return new TopNDistinct(
+        return new LimitDistinct(
             groupBy.source(),
             limit.limit(),
             limit.offset(),
