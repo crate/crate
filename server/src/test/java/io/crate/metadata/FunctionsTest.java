@@ -32,7 +32,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.BiFunction;
 
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
@@ -41,6 +40,7 @@ import io.crate.expression.symbol.Aggregation;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.FunctionProvider.FunctionFactory;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
@@ -48,8 +48,7 @@ public class FunctionsTest extends ESTestCase {
 
     private Map<FunctionName, List<FunctionProvider>> implementations = new HashMap<>();
 
-    private void register(Signature signature,
-                          BiFunction<Signature, Signature, FunctionImplementation> factory) {
+    private void register(Signature signature, FunctionFactory factory) {
         List<FunctionProvider> functions = implementations.computeIfAbsent(
             signature.getName(),
             k -> new ArrayList<>());

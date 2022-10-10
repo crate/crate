@@ -27,11 +27,13 @@ import java.util.function.BiFunction;
 
 public class FunctionProvider {
 
-    private final Signature signature;
-    private final BiFunction<Signature, Signature, FunctionImplementation> factory;
+    public interface FunctionFactory extends BiFunction<Signature, Signature, FunctionImplementation> {
+    }
 
-    public FunctionProvider(Signature signature,
-                            BiFunction<Signature, Signature, FunctionImplementation> factory) {
+    private final Signature signature;
+    private final FunctionFactory factory;
+
+    public FunctionProvider(Signature signature, FunctionFactory factory) {
         this.signature = signature;
         this.factory = factory;
     }
@@ -40,7 +42,7 @@ public class FunctionProvider {
         return signature;
     }
 
-    public BiFunction<Signature, Signature, FunctionImplementation> getFactory() {
+    public FunctionFactory getFactory() {
         return factory;
     }
 

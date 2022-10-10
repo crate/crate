@@ -23,7 +23,6 @@ package io.crate.expression.operator.any;
 
 import java.util.List;
 import java.util.Set;
-import java.util.function.BiFunction;
 
 import org.apache.lucene.search.Query;
 
@@ -36,7 +35,7 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.lucene.LuceneQueryBuilder.Context;
-import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.FunctionProvider.FunctionFactory;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
@@ -93,7 +92,7 @@ public abstract sealed class AnyOperator extends Operator<Object>
         reg(operatorModule, comparison.opName(), (sig, boundSig) -> new AnyRangeOperator(sig, boundSig, comparison));
     }
 
-    private static void reg(OperatorModule module, String name, BiFunction<Signature, Signature, FunctionImplementation> operatorFactory) {
+    private static void reg(OperatorModule module, String name, FunctionFactory operatorFactory) {
         module.register(
             Signature.scalar(
                 name,

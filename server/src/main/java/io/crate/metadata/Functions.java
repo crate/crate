@@ -45,6 +45,7 @@ import io.crate.common.collections.Lists2;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.format.Style;
+import io.crate.metadata.FunctionProvider.FunctionFactory;
 import io.crate.metadata.functions.BoundVariables;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.functions.SignatureBinder;
@@ -494,11 +495,11 @@ public class Functions {
 
         private final Signature declaredSignature;
         private final Signature boundSignature;
-        private final BiFunction<Signature, Signature, FunctionImplementation> factory;
+        private final FunctionFactory factory;
 
         public ApplicableFunction(Signature declaredSignature,
                                   Signature boundSignature,
-                                  BiFunction<Signature, Signature, FunctionImplementation> factory) {
+                                  FunctionFactory factory) {
             this.declaredSignature = declaredSignature;
             this.boundSignature = boundSignature;
             this.factory = factory;
