@@ -64,4 +64,10 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
-None
+- Fixed an issue that didn't allow queries with a greater than ``0`` ``OFFSET``
+  but without ``LIMIT`` to be executed successfully, i.e.::
+
+    SELECT * FROM test OFFSET 10
+    SELECT * FROM test LIMIT null OFFSET 10
+    SELECT * FROM test LIMIT ALL OFFSET 10
+

@@ -182,7 +182,7 @@ public class ProjectionBuilder {
         if (numOutputs < numInputTypes) {
             strippedInputs = inputTypes.subList(0, numOutputs);
         }
-        if (limit == TopN.NO_LIMIT && offset == 0) {
+        if (limit == TopN.NO_LIMIT && offset == TopN.NO_OFFSET) {
             if (numOutputs >= numInputTypes) {
                 return null;
             }

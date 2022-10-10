@@ -21,13 +21,17 @@
 
 package io.crate.planner.operators;
 
+import static io.crate.execution.engine.pipeline.TopN.NO_LIMIT;
+import static io.crate.execution.engine.pipeline.TopN.NO_OFFSET;
 import static io.crate.planner.operators.LogicalPlannerTest.isPlan;
+import static io.crate.testing.ProjectionMatchers.isTopN;
 import static org.hamcrest.Matchers.contains;
 import static org.junit.Assert.assertThat;
 
 import java.util.List;
 import java.util.Set;
 
+import org.assertj.core.api.Assertions;
 import org.junit.Test;
 
 import com.carrotsearch.randomizedtesting.RandomizedTest;
@@ -37,11 +41,13 @@ import io.crate.analyze.TableDefinitions;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.data.Row;
+import io.crate.execution.dsl.projection.FetchProjection;
+import io.crate.execution.dsl.projection.TopNProjection;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
-import io.crate.execution.engine.pipeline.TopN;
 import io.crate.expression.symbol.Literal;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
+import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.ProjectionMatchers;
@@ -80,8 +86,8 @@ public class LimitTest extends CrateDummyClusterServiceUnitTest {
             ctx,
             Set.of(),
             new ProjectionBuilder(e.nodeCtx),
-            TopN.NO_LIMIT,
-            0,
+            NO_LIMIT,
+            NO_OFFSET,
             null,
             null,
             Row.EMPTY,
@@ -91,10 +97,39 @@ public class LimitTest extends CrateDummyClusterServiceUnitTest {
         assertThat(collect.collectPhase().projections(), contains(
             ProjectionMatchers.isTopN(15, 0)
         ));
-        //noinspection unchecked
         assertThat(merge.mergePhase().projections(), contains(
             ProjectionMatchers.isTopN(10, 5),
             ProjectionMatchers.isTopN(20, 7)
         ));
+    }
+
+    @Test
+    public void test_no_limit_and_no_offset_on_limit_operator() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService, 1, RandomizedTest.getRandom(), List.of())
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
+            .build();
+        QueryThenFetch qtf = e.plan("SELECT * FROM users LIMIT null OFFSET 0");
+        Assertions.assertThat(qtf.subPlan()).isExactlyInstanceOf(io.crate.planner.node.dql.Collect.class);
+        io.crate.planner.node.dql.Collect collect = (io.crate.planner.node.dql.Collect) qtf.subPlan();
+        Assertions.assertThat(collect.limit()).isEqualTo(NO_LIMIT);
+        Assertions.assertThat(collect.offset()).isEqualTo(NO_OFFSET);
+        Assertions.assertThat(collect.collectPhase().projections()).hasSize(1);
+        Assertions.assertThat(collect.collectPhase().projections().get(0)).isExactlyInstanceOf(FetchProjection.class);
+    }
+
+    @Test
+    public void test_no_limit_with_offset_on_limit_operator() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService, 1, RandomizedTest.getRandom(), List.of())
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
+            .build();
+        QueryThenFetch qtf = e.plan("SELECT * FROM users LIMIT null OFFSET 10");
+        Assertions.assertThat(qtf.subPlan()).isExactlyInstanceOf(io.crate.planner.node.dql.Collect.class);
+        io.crate.planner.node.dql.Collect collect = (io.crate.planner.node.dql.Collect) qtf.subPlan();
+        Assertions.assertThat(collect.limit()).isEqualTo(NO_LIMIT);
+        Assertions.assertThat(collect.offset()).isEqualTo(NO_OFFSET);
+        Assertions.assertThat(collect.collectPhase().projections()).hasSize(2);
+        Assertions.assertThat(collect.collectPhase().projections().get(0)).isExactlyInstanceOf(TopNProjection.class);
+        Assertions.assertThat(collect.collectPhase().projections().get(1)).isExactlyInstanceOf(FetchProjection.class);
+        assertThat(collect.collectPhase().projections().get(0), isTopN(NO_LIMIT, 10));
     }
 }

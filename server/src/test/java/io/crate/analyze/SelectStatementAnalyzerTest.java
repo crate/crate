@@ -358,6 +358,10 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertThat(relation.limit(), nullValue());
         assertThat(relation.offset(), is(Literal.of(3L)));
 
+        relation = executor.analyze("select * from sys.nodes limit all offset 0");
+        assertThat(relation.limit(), nullValue());
+        assertThat(relation.offset(), is(Literal.of(0L)));
+
         relation = executor.analyze("select * from sys.nodes limit null offset 3");
         Asserts.assertThat(relation.limit()).isLiteral(null);
         assertThat(relation.offset(), is(Literal.of(3L)));
