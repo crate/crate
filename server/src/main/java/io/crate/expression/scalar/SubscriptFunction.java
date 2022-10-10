@@ -52,6 +52,7 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -147,11 +148,11 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
     }
 
     private final Signature signature;
-    private final Signature boundSignature;
+    private final BoundSignature boundSignature;
     private final TriFunction<Object, Object, Boolean, Object> lookup;
 
     private SubscriptFunction(Signature signature,
-                              Signature boundSignature,
+                              BoundSignature boundSignature,
                               TriFunction<Object, Object, Boolean, Object> lookup) {
         this.signature = signature;
         this.boundSignature = boundSignature;
@@ -164,7 +165,7 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
     }
 
     @Override
-    public Signature boundSignature() {
+    public BoundSignature boundSignature() {
         return boundSignature;
     }
 

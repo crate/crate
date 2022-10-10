@@ -100,7 +100,7 @@ public class CountAggregationTest extends AggregationTestCase {
             List.of(Literal.of(DataTypes.INTEGER, null)),
             SearchPath.pathWithPGCatalogAndDoc()
         );
-        assertThat(countFunction.boundSignature().getReturnType().createType()).isEqualTo(DataTypes.LONG);
+        assertThat(countFunction.boundSignature().returnType()).isEqualTo(DataTypes.LONG);
     }
 
     @Test

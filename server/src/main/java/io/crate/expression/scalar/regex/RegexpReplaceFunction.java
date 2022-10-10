@@ -28,6 +28,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 import io.crate.user.UserLookup;
@@ -71,13 +72,13 @@ public final class RegexpReplaceFunction extends Scalar<String, String> {
     @Nullable
     private final Pattern pattern;
     private final Signature signature;
-    private final Signature boundSignature;
+    private final BoundSignature boundSignature;
 
-    private RegexpReplaceFunction(Signature signature, Signature boundSignature) {
+    private RegexpReplaceFunction(Signature signature, BoundSignature boundSignature) {
         this(signature, boundSignature, null);
     }
 
-    private RegexpReplaceFunction(Signature signature, Signature boundSignature, @Nullable Pattern pattern) {
+    private RegexpReplaceFunction(Signature signature, BoundSignature boundSignature, @Nullable Pattern pattern) {
         this.signature = signature;
         this.boundSignature = boundSignature;
         this.pattern = pattern;
@@ -89,7 +90,7 @@ public final class RegexpReplaceFunction extends Scalar<String, String> {
     }
 
     @Override
-    public Signature boundSignature() {
+    public BoundSignature boundSignature() {
         return boundSignature;
     }
 

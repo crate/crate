@@ -33,6 +33,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import org.elasticsearch.Version;
 
@@ -81,7 +82,7 @@ public class AggregateToWindowFunctionAdapter implements WindowFunction {
     }
 
     @Override
-    public Signature boundSignature() {
+    public BoundSignature boundSignature() {
         return aggregationFunction.boundSignature();
     }
 

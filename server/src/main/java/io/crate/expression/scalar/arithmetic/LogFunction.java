@@ -26,6 +26,7 @@ import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
@@ -43,9 +44,9 @@ public abstract class LogFunction extends Scalar<Number, Number> {
     }
 
     protected final Signature signature;
-    protected final Signature boundSignature;
+    protected final BoundSignature boundSignature;
 
-    LogFunction(Signature signature, Signature boundSignature) {
+    LogFunction(Signature signature, BoundSignature boundSignature) {
         this.signature = signature;
         this.boundSignature = boundSignature;
     }
@@ -56,7 +57,7 @@ public abstract class LogFunction extends Scalar<Number, Number> {
     }
 
     @Override
-    public Signature boundSignature() {
+    public BoundSignature boundSignature() {
         return boundSignature;
     }
 
@@ -89,7 +90,7 @@ public abstract class LogFunction extends Scalar<Number, Number> {
             );
         }
 
-        LogBaseFunction(Signature signature, Signature boundSignature) {
+        LogBaseFunction(Signature signature, BoundSignature boundSignature) {
             super(signature, boundSignature);
         }
 
@@ -127,7 +128,7 @@ public abstract class LogFunction extends Scalar<Number, Number> {
             );
         }
 
-        Log10Function(Signature signature, Signature boundSignature) {
+        Log10Function(Signature signature, BoundSignature boundSignature) {
             super(signature, boundSignature);
         }
 
@@ -163,7 +164,7 @@ public abstract class LogFunction extends Scalar<Number, Number> {
 
         public static final String NAME = "ln";
 
-        LnFunction(Signature signature, Signature boundSignature) {
+        LnFunction(Signature signature, BoundSignature boundSignature) {
             super(signature, boundSignature);
         }
 

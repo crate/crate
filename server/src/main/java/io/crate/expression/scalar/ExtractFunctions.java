@@ -25,6 +25,7 @@ import io.crate.data.Input;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.sql.tree.Extract;
 import io.crate.types.DataTypes;
@@ -129,11 +130,11 @@ public class ExtractFunctions {
     private static class ExtractFunction extends Scalar<Number, Long> {
 
         private final Signature signature;
-        private final Signature boundSignature;
+        private final BoundSignature boundSignature;
         private final Function<Long, Number> evaluate;
 
         ExtractFunction(Signature signature,
-                        Signature boundSignature,
+                        BoundSignature boundSignature,
                         Function<Long, Number> evaluate) {
             this.signature = signature;
             this.boundSignature = boundSignature;
@@ -146,7 +147,7 @@ public class ExtractFunctions {
         }
 
         @Override
-        public Signature boundSignature() {
+        public BoundSignature boundSignature() {
             return boundSignature;
         }
 

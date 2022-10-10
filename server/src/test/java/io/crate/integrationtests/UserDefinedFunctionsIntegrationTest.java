@@ -59,6 +59,7 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.OidHash;
 import io.crate.types.DataType;
@@ -72,11 +73,14 @@ public class UserDefinedFunctionsIntegrationTest extends IntegTestCase {
 
         private final Signature signature;
         private final UserDefinedFunctionMetadata metadata;
+        private final BoundSignature boundSignature;
 
         private DummyFunction(UserDefinedFunctionMetadata metadata,
-                              Signature signature) {
+                              Signature signature,
+                              BoundSignature boundSignature) {
             this.signature = signature;
             this.metadata = metadata;
+            this.boundSignature = boundSignature;
         }
 
         @Override
@@ -85,8 +89,8 @@ public class UserDefinedFunctionsIntegrationTest extends IntegTestCase {
         }
 
         @Override
-        public Signature boundSignature() {
-            return signature;
+        public BoundSignature boundSignature() {
+            return boundSignature;
         }
 
         @Override
@@ -100,8 +104,9 @@ public class UserDefinedFunctionsIntegrationTest extends IntegTestCase {
 
         @Override
         public Scalar createFunctionImplementation(UserDefinedFunctionMetadata metadata,
-                                                   Signature signature) throws ScriptException {
-            return new DummyFunction<>(metadata, signature);
+                                                   Signature signature,
+                                                   BoundSignature boundSignature) throws ScriptException {
+            return new DummyFunction<>(metadata, signature, boundSignature);
         }
 
         @Override

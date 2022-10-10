@@ -25,6 +25,7 @@ import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
@@ -50,8 +51,8 @@ public class AbstractFunctionModuleTest extends ESTestCase {
         }
 
         @Override
-        public Signature boundSignature() {
-            return signature;
+        public BoundSignature boundSignature() {
+            return BoundSignature.sameAsUnbound(signature);
         }
     }
 

@@ -26,6 +26,7 @@ import io.crate.data.Row;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 import io.crate.types.RowType;
@@ -48,13 +49,13 @@ public final class SubscriptRecordFunction extends Scalar<Object, Object> {
     }
 
     private final Signature signature;
-    private final Signature boundSignature;
+    private final BoundSignature boundSignature;
     private final RowType rowType;
 
-    public SubscriptRecordFunction(Signature signature, Signature boundSignature) {
+    public SubscriptRecordFunction(Signature signature, BoundSignature boundSignature) {
         this.signature = signature;
         this.boundSignature = boundSignature;
-        this.rowType = (RowType) boundSignature.getArgumentDataTypes().get(0);
+        this.rowType = (RowType) boundSignature.argTypes().get(0);
     }
 
     @Override
@@ -63,7 +64,7 @@ public final class SubscriptRecordFunction extends Scalar<Object, Object> {
     }
 
     @Override
-    public Signature boundSignature() {
+    public BoundSignature boundSignature() {
         return boundSignature;
     }
 

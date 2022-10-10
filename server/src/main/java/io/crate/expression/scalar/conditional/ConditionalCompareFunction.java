@@ -25,6 +25,7 @@ import io.crate.data.Input;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 
 import java.util.Comparator;
@@ -32,9 +33,9 @@ import java.util.Comparator;
 abstract class ConditionalCompareFunction extends Scalar<Object, Object> implements Comparator<Object> {
 
     private final Signature signature;
-    private final Signature boundSignature;
+    private final BoundSignature boundSignature;
 
-    ConditionalCompareFunction(Signature signature, Signature boundSignature) {
+    ConditionalCompareFunction(Signature signature, BoundSignature boundSignature) {
         this.signature = signature;
         this.boundSignature = boundSignature;
     }
@@ -45,7 +46,7 @@ abstract class ConditionalCompareFunction extends Scalar<Object, Object> impleme
     }
 
     @Override
-    public Signature boundSignature() {
+    public BoundSignature boundSignature() {
         return boundSignature;
     }
 

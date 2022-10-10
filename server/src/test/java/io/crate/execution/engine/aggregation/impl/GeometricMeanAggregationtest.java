@@ -65,7 +65,7 @@ public class GeometricMeanAggregationtest extends AggregationTestCase {
                 List.of(Literal.of(type, null)),
                 SearchPath.pathWithPGCatalogAndDoc()
             );
-            assertThat(stddev.boundSignature().getReturnType().createType(), is(DataTypes.DOUBLE));
+            assertThat(stddev.boundSignature().returnType(), is(DataTypes.DOUBLE));
         }
     }
 

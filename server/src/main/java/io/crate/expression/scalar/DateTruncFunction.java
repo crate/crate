@@ -29,6 +29,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -88,16 +89,16 @@ public class DateTruncFunction extends Scalar<Long, Object> {
     }
 
     private final Signature signature;
-    private final Signature boundSignature;
+    private final BoundSignature boundSignature;
     @Nullable
     private final Rounding tzRounding;
 
-    DateTruncFunction(Signature signature, Signature boundSignature) {
+    DateTruncFunction(Signature signature, BoundSignature boundSignature) {
         this(signature, boundSignature, null);
     }
 
     private DateTruncFunction(Signature signature,
-                              Signature boundSignature,
+                              BoundSignature boundSignature,
                               @Nullable Rounding tzRounding) {
         this.signature = signature;
         this.boundSignature = boundSignature;
@@ -110,7 +111,7 @@ public class DateTruncFunction extends Scalar<Long, Object> {
     }
 
     @Override
-    public Signature boundSignature() {
+    public BoundSignature boundSignature() {
         return boundSignature;
     }
 

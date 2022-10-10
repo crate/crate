@@ -32,6 +32,7 @@ import io.crate.data.Input;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
@@ -39,12 +40,12 @@ public class ArrayPositionFunction extends Scalar<Integer, List<Object>> {
 
     public static final String NAME = "array_position";
     private final Signature signature;
-    private final Signature boundSignature;
+    private final BoundSignature boundSignature;
 
-    public ArrayPositionFunction(Signature signature, Signature boundSignature) {
+    public ArrayPositionFunction(Signature signature, BoundSignature boundSignature) {
         this.signature = signature;
         this.boundSignature = boundSignature;
-        ensureInnerTypeIsNotUndefined(boundSignature.getArgumentDataTypes(), signature.getName().name());
+        ensureInnerTypeIsNotUndefined(boundSignature.argTypes(), signature.getName().name());
     }
 
     public static void register(ScalarFunctionModule scalarFunctionModule) {
@@ -72,7 +73,7 @@ public class ArrayPositionFunction extends Scalar<Integer, List<Object>> {
     }
 
     @Override
-    public Signature boundSignature() {
+    public BoundSignature boundSignature() {
         return boundSignature;
     }
 

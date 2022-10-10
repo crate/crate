@@ -66,7 +66,7 @@ public class WindowAggProjectionSerialisationTest {
         WindowFunction firstWindowFunction = new WindowFunction(
             sumFunctionImpl.signature(),
             singletonList(Literal.of(1L)),
-            sumFunctionImpl.boundSignature().getReturnType().createType(),
+            sumFunctionImpl.boundSignature().returnType(),
             null,
             partitionByOneWindowDef,
             true
@@ -74,7 +74,7 @@ public class WindowAggProjectionSerialisationTest {
         WindowFunction secondWindowFunction = new WindowFunction(
             sumFunctionImpl.signature(),
             singletonList(Literal.of(2L)),
-            sumFunctionImpl.boundSignature().getReturnType().createType(),
+            sumFunctionImpl.boundSignature().returnType(),
             null,
             partitionByTwoWindowDef,
             null
@@ -109,7 +109,7 @@ public class WindowAggProjectionSerialisationTest {
         WindowFunction windowFunction = new WindowFunction(
             sumFunctionImpl.signature(),
             singletonList(Literal.of(2L)),
-            sumFunctionImpl.boundSignature().getReturnType().createType(),
+            sumFunctionImpl.boundSignature().returnType(),
             null,
             partitionByOneWindowDef,
             null);

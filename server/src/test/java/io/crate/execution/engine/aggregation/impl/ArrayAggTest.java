@@ -60,7 +60,7 @@ public class ArrayAggTest extends AggregationTestCase {
             ArrayAgg.SIGNATURE,
             List.of(DataTypes.LONG),
             DataTypes.BIGINT_ARRAY
-        ).boundSignature().getReturnType().createType();
+        ).boundSignature().returnType();
         assertThat(returnType, Matchers.is(DataTypes.BIGINT_ARRAY));
     }
 }

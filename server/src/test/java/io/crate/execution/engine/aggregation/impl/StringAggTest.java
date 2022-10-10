@@ -31,6 +31,7 @@ import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.expression.symbol.Literal;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.operation.aggregation.AggregationTestCase;
 
 public class StringAggTest extends AggregationTestCase {
@@ -74,7 +75,9 @@ public class StringAggTest extends AggregationTestCase {
 
     @Test
     public void testMergeOf2States() throws Exception {
-        var stringAgg = new StringAgg(StringAgg.SIGNATURE, StringAgg.SIGNATURE);
+        var stringAgg = new StringAgg(
+            StringAgg.SIGNATURE,
+            BoundSignature.sameAsUnbound(StringAgg.SIGNATURE));
         var state1 = stringAgg.newState(RAM_ACCOUNTING, Version.CURRENT, Version.CURRENT, memoryManager);
         stringAgg.iterate(RAM_ACCOUNTING, memoryManager, state1, Literal.of("a"), Literal.of(","));
         stringAgg.iterate(RAM_ACCOUNTING, memoryManager, state1, Literal.of("b"), Literal.of(";"));

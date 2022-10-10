@@ -32,6 +32,7 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.lucene.LuceneQueryBuilder.Context;
 import io.crate.metadata.Reference;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.sql.tree.ComparisonExpression;
 
@@ -89,7 +90,7 @@ public final class AnyRangeOperator extends AnyOperator {
 
     private final Comparison comparison;
 
-    AnyRangeOperator(Signature signature, Signature boundSignature, Comparison comparison) {
+    AnyRangeOperator(Signature signature, BoundSignature boundSignature, Comparison comparison) {
         super(signature, boundSignature);
         this.comparison = comparison;
     }

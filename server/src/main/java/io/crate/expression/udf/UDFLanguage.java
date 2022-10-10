@@ -22,6 +22,7 @@
 package io.crate.expression.udf;
 
 import io.crate.metadata.Scalar;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 
 import javax.annotation.Nullable;
@@ -46,7 +47,9 @@ public interface UDFLanguage {
      * @return the function implementation
      * @throws ScriptException if the implementation cannot be created
      */
-    Scalar createFunctionImplementation(UserDefinedFunctionMetadata metadata, Signature signature) throws ScriptException;
+    Scalar<?, ?> createFunctionImplementation(UserDefinedFunctionMetadata metadata,
+                                              Signature signature,
+                                              BoundSignature boundSignature) throws ScriptException;
 
     /**
      * Validate the function code provided by the meta data.
@@ -60,6 +63,4 @@ public interface UDFLanguage {
      * @return name of the language
      */
     String name();
-
 }
-

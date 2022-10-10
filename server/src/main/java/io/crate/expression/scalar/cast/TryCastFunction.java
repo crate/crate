@@ -31,6 +31,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 
@@ -53,12 +54,12 @@ public class TryCastFunction extends Scalar<Object, Object> {
 
     private final DataType<?> returnType;
     private final Signature signature;
-    private final Signature boundSignature;
+    private final BoundSignature boundSignature;
 
-    private TryCastFunction(Signature signature, Signature boundSignature) {
+    private TryCastFunction(Signature signature, BoundSignature boundSignature) {
         this.signature = signature;
         this.boundSignature = boundSignature;
-        this.returnType = boundSignature.getReturnType().createType();
+        this.returnType = boundSignature.returnType();
     }
 
     @Override
@@ -76,7 +77,7 @@ public class TryCastFunction extends Scalar<Object, Object> {
     }
 
     @Override
-    public Signature boundSignature() {
+    public BoundSignature boundSignature() {
         return boundSignature;
     }
 

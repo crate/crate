@@ -27,6 +27,7 @@ import io.crate.data.RowN;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
@@ -60,9 +61,9 @@ public final class PgGetKeywordsFunction extends TableFunctionImplementation<Lis
     }
 
     private final Signature signature;
-    private final Signature boundSignature;
+    private final BoundSignature boundSignature;
 
-    public PgGetKeywordsFunction(Signature signature, Signature boundSignature) {
+    public PgGetKeywordsFunction(Signature signature, BoundSignature boundSignature) {
         this.signature = signature;
         this.boundSignature = boundSignature;
     }
@@ -96,7 +97,7 @@ public final class PgGetKeywordsFunction extends TableFunctionImplementation<Lis
     }
 
     @Override
-    public Signature boundSignature() {
+    public BoundSignature boundSignature() {
         return boundSignature;
     }
 

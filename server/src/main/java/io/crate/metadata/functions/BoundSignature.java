@@ -19,34 +19,34 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.expression.scalar.arithmetic;
+package io.crate.metadata.functions;
 
-import io.crate.expression.scalar.ScalarFunctionModule;
-import io.crate.expression.scalar.UnaryScalar;
+import java.util.List;
+
 import io.crate.types.DataType;
-import io.crate.types.DataTypes;
 
-import static io.crate.metadata.functions.Signature.scalar;
+public final class BoundSignature {
 
-public final class AbsFunction {
+    private final List<DataType<?>> argTypes;
+    private final DataType<?> returnType;
 
-    public static final String NAME = "abs";
+    public static BoundSignature sameAsUnbound(Signature signature) {
+        return new BoundSignature(
+            signature.getArgumentDataTypes(),
+            signature.getReturnType().createType()
+        );
+    }
 
-    public static void register(ScalarFunctionModule module) {
-        for (var type : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
-            var typeSignature = type.getTypeSignature();
-            module.register(
-                scalar(NAME, typeSignature, typeSignature),
-                (signature, boundSignature) -> {
-                    DataType<?> argType = boundSignature.argTypes().get(0);
-                    return new UnaryScalar<>(
-                        signature,
-                        boundSignature,
-                        argType,
-                        x -> argType.sanitizeValue(Math.abs(((Number) x).doubleValue()))
-                    );
-                }
-            );
-        }
+    public BoundSignature(List<DataType<?>> argTypes, DataType<?> returnType) {
+        this.argTypes = argTypes;
+        this.returnType = returnType;
+    }
+
+    public List<DataType<?>> argTypes() {
+        return argTypes;
+    }
+
+    public DataType<?> returnType() {
+        return returnType;
     }
 }

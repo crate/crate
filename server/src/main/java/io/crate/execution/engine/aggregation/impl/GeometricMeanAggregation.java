@@ -47,6 +47,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.ByteType;
 import io.crate.types.DataType;
@@ -211,9 +212,9 @@ public class GeometricMeanAggregation extends AggregationFunction<GeometricMeanA
     }
 
     private final Signature signature;
-    private final Signature boundSignature;
+    private final BoundSignature boundSignature;
 
-    public GeometricMeanAggregation(Signature signature, Signature boundSignature) {
+    public GeometricMeanAggregation(Signature signature, BoundSignature boundSignature) {
         this.signature = signature;
         this.boundSignature = boundSignature;
     }
@@ -288,7 +289,7 @@ public class GeometricMeanAggregation extends AggregationFunction<GeometricMeanA
     }
 
     @Override
-    public Signature boundSignature() {
+    public BoundSignature boundSignature() {
         return boundSignature;
     }
 

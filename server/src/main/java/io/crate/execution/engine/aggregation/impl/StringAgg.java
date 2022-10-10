@@ -27,6 +27,7 @@ import io.crate.breaker.StringSizeEstimator;
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.memory.MemoryManager;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -136,9 +137,9 @@ public final class StringAgg extends AggregationFunction<StringAgg.StringAggStat
     }
 
     private final Signature signature;
-    private final Signature boundSignature;
+    private final BoundSignature boundSignature;
 
-    public StringAgg(Signature signature, Signature boundSignature) {
+    public StringAgg(Signature signature, BoundSignature boundSignature) {
         this.signature = signature;
         this.boundSignature = boundSignature;
     }
@@ -243,7 +244,7 @@ public final class StringAgg extends AggregationFunction<StringAgg.StringAggStat
     }
 
     @Override
-    public Signature boundSignature() {
+    public BoundSignature boundSignature() {
         return boundSignature;
     }
 }

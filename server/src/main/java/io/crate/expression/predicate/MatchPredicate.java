@@ -57,6 +57,7 @@ import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.lucene.LuceneQueryBuilder.Context;
 import io.crate.lucene.match.MatchQueries;
 import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -121,9 +122,9 @@ public class MatchPredicate implements FunctionImplementation, FunctionToQuery {
     private static final Set<String> SUPPORTED_GEO_MATCH_TYPES = Set.of("intersects", "disjoint", "within");
 
     private final Signature signature;
-    private final Signature boundSignature;
+    private final BoundSignature boundSignature;
 
-    private MatchPredicate(Signature signature, Signature boundSignature) {
+    private MatchPredicate(Signature signature, BoundSignature boundSignature) {
         this.signature = signature;
         this.boundSignature = boundSignature;
     }
@@ -134,7 +135,7 @@ public class MatchPredicate implements FunctionImplementation, FunctionToQuery {
     }
 
     @Override
-    public Signature boundSignature() {
+    public BoundSignature boundSignature() {
         return boundSignature;
     }
 

@@ -25,6 +25,7 @@ import io.crate.data.Input;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -64,18 +65,18 @@ class ArrayUniqueFunction extends Scalar<List<Object>, List<Object>> {
     }
 
     private final Signature signature;
-    private final Signature boundSignature;
+    private final BoundSignature boundSignature;
     private final DataType<?> elementType;
 
-    private ArrayUniqueFunction(Signature signature, Signature boundSignature) {
+    private ArrayUniqueFunction(Signature signature, BoundSignature boundSignature) {
         this.signature = signature;
         this.boundSignature = boundSignature;
-        this.elementType = ((ArrayType<?>) boundSignature.getReturnType().createType()).innerType();
-        var argumentTypes = boundSignature.getArgumentDataTypes();
+        this.elementType = ((ArrayType<?>) boundSignature.returnType()).innerType();
+        var argumentTypes = boundSignature.argTypes();
         if (argumentTypes.size() == 1) {
             ensureSingleArgumentArrayInnerTypeIsNotUndefined(argumentTypes);
         } else {
-            ensureBothInnerTypesAreNotUndefined(boundSignature.getArgumentDataTypes(), NAME);
+            ensureBothInnerTypesAreNotUndefined(boundSignature.argTypes(), NAME);
         }
     }
 
@@ -85,7 +86,7 @@ class ArrayUniqueFunction extends Scalar<List<Object>, List<Object>> {
     }
 
     @Override
-    public Signature boundSignature() {
+    public BoundSignature boundSignature() {
         return boundSignature;
     }
 

@@ -25,6 +25,7 @@ import io.crate.expression.udf.UDFLanguage;
 import io.crate.expression.udf.UserDefinedFunctionMetadata;
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import org.elasticsearch.common.inject.Inject;
@@ -60,9 +61,10 @@ public class JavaScriptLanguage implements UDFLanguage {
         udfService.registerLanguage(this);
     }
 
-    public Scalar createFunctionImplementation(UserDefinedFunctionMetadata meta,
-                                               Signature signature) throws ScriptException {
-        return new JavaScriptUserDefinedFunction(signature, meta.definition());
+    public Scalar<?, ?> createFunctionImplementation(UserDefinedFunctionMetadata meta,
+                                                     Signature signature,
+                                                     BoundSignature boundSignature) throws ScriptException {
+        return new JavaScriptUserDefinedFunction(signature, boundSignature, meta.definition());
     }
 
     @Nullable

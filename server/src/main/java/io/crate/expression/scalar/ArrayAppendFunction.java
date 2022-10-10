@@ -25,6 +25,7 @@ import io.crate.data.Input;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -52,13 +53,13 @@ class ArrayAppendFunction extends Scalar<List<Object>, Object> {
     }
 
     private final Signature signature;
-    private final Signature boundSignature;
+    private final BoundSignature boundSignature;
     private final DataType<?> innerType;
 
-    ArrayAppendFunction(Signature signature, Signature boundSignature) {
+    ArrayAppendFunction(Signature signature, BoundSignature boundSignature) {
         this.signature = signature;
         this.boundSignature = boundSignature;
-        this.innerType = ((ArrayType<?>) boundSignature.getReturnType().createType()).innerType();
+        this.innerType = ((ArrayType<?>) boundSignature.returnType()).innerType();
     }
 
     @Override
@@ -67,7 +68,7 @@ class ArrayAppendFunction extends Scalar<List<Object>, Object> {
     }
 
     @Override
-    public Signature boundSignature() {
+    public BoundSignature boundSignature() {
         return boundSignature;
     }
 

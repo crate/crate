@@ -28,6 +28,7 @@ import io.crate.data.Row;
 import io.crate.legacy.LegacySettings;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.types.ArrayType;
@@ -62,8 +63,8 @@ public class UnnestFunction {
                 signature,
                 boundSignature,
                 LegacySettings.LEGACY_TABLE_FUNCTION_COLUMN_NAMING.get(module.settings()) ?
-                    new RowType(List.of(boundSignature.getReturnType().createType())) :
-                    new RowType(List.of(boundSignature.getReturnType().createType()), List.of(NAME)))
+                    new RowType(List.of(boundSignature.returnType())) :
+                    new RowType(List.of(boundSignature.returnType()), List.of(NAME)))
         );
         module.register(
             Signature
@@ -76,7 +77,7 @@ public class UnnestFunction {
                 .withTypeVariableConstraints(typeVariable("E"), typeVariableOfAnyType("N"))
                 .withVariableArity(),
             (signature, boundSignature) -> {
-                var argTypes = boundSignature.getArgumentDataTypes();
+                var argTypes = boundSignature.argTypes();
                 ArrayList<DataType<?>> fieldTypes = new ArrayList<>(argTypes.size());
                 for (int i = 0; i < argTypes.size(); i++) {
                     DataType<?> dataType = argTypes.get(i);
@@ -89,13 +90,9 @@ public class UnnestFunction {
                 // of the record type from the array of any type with variable arity.
                 return new UnnestTableFunctionImplementation(
                     signature,
-                    Signature.builder()
-                        .name(boundSignature.getName())
-                        .kind(boundSignature.getKind())
-                        .argumentTypes(boundSignature.getArgumentTypes())
-                        .returnType(returnType.getTypeSignature())
-                        .build(),
-                    returnType);
+                    new BoundSignature(boundSignature.argTypes(), returnType),
+                    returnType
+                );
             }
         );
         // unnest() to keep it compatible with previous versions
@@ -115,15 +112,15 @@ public class UnnestFunction {
 
         private final RowType returnType;
         private final Signature signature;
-        private final Signature boundSignature;
+        private final BoundSignature boundSignature;
         private final List<DataType<?>> argumentTypes;
 
         private UnnestTableFunctionImplementation(Signature signature,
-                                                  Signature boundSignature,
+                                                  BoundSignature boundSignature,
                                                   RowType returnType) {
             this.signature = signature;
             this.boundSignature = boundSignature;
-            this.argumentTypes = boundSignature.getArgumentDataTypes();
+            this.argumentTypes = boundSignature.argTypes();
             this.returnType = returnType;
         }
 
@@ -133,7 +130,7 @@ public class UnnestFunction {
         }
 
         @Override
-        public Signature boundSignature() {
+        public BoundSignature boundSignature() {
             return boundSignature;
         }
 

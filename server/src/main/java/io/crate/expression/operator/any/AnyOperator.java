@@ -39,6 +39,7 @@ import io.crate.metadata.FunctionProvider.FunctionFactory;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.functions.TypeVariableConstraint;
 import io.crate.sql.tree.ComparisonExpression;
@@ -76,7 +77,7 @@ public abstract sealed class AnyOperator extends Operator<Object>
     );
 
     private final Signature signature;
-    private final Signature boundSignature;
+    private final BoundSignature boundSignature;
     protected final DataType<Object> leftType;
 
     public static void register(OperatorModule operatorModule) {
@@ -105,10 +106,10 @@ public abstract sealed class AnyOperator extends Operator<Object>
     }
 
     @SuppressWarnings("unchecked")
-    AnyOperator(Signature signature, Signature boundSignature) {
+    AnyOperator(Signature signature, BoundSignature boundSignature) {
         this.signature = signature;
         this.boundSignature = boundSignature;
-        this.leftType = (DataType<Object>) boundSignature.getArgumentDataTypes().get(0);
+        this.leftType = (DataType<Object>) boundSignature.argTypes().get(0);
     }
 
     @Override
@@ -117,7 +118,7 @@ public abstract sealed class AnyOperator extends Operator<Object>
     }
 
     @Override
-    public Signature boundSignature() {
+    public BoundSignature boundSignature() {
         return boundSignature;
     }
 

@@ -25,6 +25,7 @@ import io.crate.data.Input;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -54,12 +55,12 @@ class ArrayCatFunction extends Scalar<List<Object>, List<Object>> {
     }
 
     private final Signature signature;
-    private final Signature boundSignature;
+    private final BoundSignature boundSignature;
 
-    ArrayCatFunction(Signature signature, Signature boundSignature) {
+    ArrayCatFunction(Signature signature, BoundSignature boundSignature) {
         this.signature = signature;
         this.boundSignature = boundSignature;
-        ensureBothInnerTypesAreNotUndefined(boundSignature.getArgumentDataTypes(), signature.getName().name());
+        ensureBothInnerTypesAreNotUndefined(boundSignature.argTypes(), signature.getName().name());
     }
 
     @Override
@@ -68,14 +69,14 @@ class ArrayCatFunction extends Scalar<List<Object>, List<Object>> {
     }
 
     @Override
-    public Signature boundSignature() {
+    public BoundSignature boundSignature() {
         return boundSignature;
     }
 
     @SafeVarargs
     @Override
     public final List<Object> evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<List<Object>>... args) {
-        DataType<?> innerType = ((ArrayType<?>) this.boundSignature.getReturnType().createType()).innerType();
+        DataType<?> innerType = ((ArrayType<?>) this.boundSignature.returnType()).innerType();
         ArrayList<Object> resultList = new ArrayList<>();
         for (Input<List<Object>> arg : args) {
             List<Object> values = arg.value();

@@ -25,6 +25,7 @@ import io.crate.data.Input;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 
@@ -37,15 +38,15 @@ import io.crate.types.DataType;
 public final class TripleScalar<R, T> extends Scalar<R, T> {
 
     private final Signature signature;
-    private final Signature boundSignature;
+    private final BoundSignature boundSignature;
     private final ThreeParametersFunction<T, T, T, R> func;
     private final DataType<T> type;
 
     public TripleScalar(Signature signature,
-                        Signature boundSignature,
+                        BoundSignature boundSignature,
                         DataType<T> type,
                         ThreeParametersFunction<T, T, T, R> func) {
-        assert boundSignature.getArgumentDataTypes().stream().allMatch(t -> t.id() == type.id()) :
+        assert boundSignature.argTypes().stream().allMatch(t -> t.id() == type.id()) :
             "All argument types of the bound signature must match the type argument";
         this.signature = signature;
         this.boundSignature = boundSignature;
@@ -59,7 +60,7 @@ public final class TripleScalar<R, T> extends Scalar<R, T> {
     }
 
     @Override
-    public Signature boundSignature() {
+    public BoundSignature boundSignature() {
         return boundSignature;
     }
 

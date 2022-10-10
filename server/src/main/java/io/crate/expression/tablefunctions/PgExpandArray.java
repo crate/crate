@@ -27,6 +27,7 @@ import io.crate.data.RowN;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
@@ -57,13 +58,13 @@ public final class PgExpandArray extends TableFunctionImplementation<List<Object
     }
 
     private final Signature signature;
-    private final Signature boundSignature;
+    private final BoundSignature boundSignature;
     private final RowType resultType;
 
-    public PgExpandArray(Signature signature, Signature boundSignature) {
+    public PgExpandArray(Signature signature, BoundSignature boundSignature) {
         this.signature = signature;
         this.boundSignature = boundSignature;
-        ArrayType<?> argType = (ArrayType<?>) boundSignature.getArgumentDataTypes().get(0);
+        ArrayType<?> argType = (ArrayType<?>) boundSignature.argTypes().get(0);
         resultType = new RowType(
             List.of(argType.innerType(), DataTypes.INTEGER),
             List.of("x", "n")
@@ -101,7 +102,7 @@ public final class PgExpandArray extends TableFunctionImplementation<List<Object
     }
 
     @Override
-    public Signature boundSignature() {
+    public BoundSignature boundSignature() {
         return boundSignature;
     }
 

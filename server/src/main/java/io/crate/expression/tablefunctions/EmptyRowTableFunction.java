@@ -25,6 +25,7 @@ import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.types.RowType;
@@ -48,9 +49,9 @@ public class EmptyRowTableFunction {
     static class EmptyRowTableFunctionImplementation extends TableFunctionImplementation<Object> {
 
         private final Signature signature;
-        private final Signature boundSignature;
+        private final BoundSignature boundSignature;
 
-        private EmptyRowTableFunctionImplementation(Signature signature, Signature boundSignature) {
+        private EmptyRowTableFunctionImplementation(Signature signature, BoundSignature boundSignature) {
             this.signature = signature;
             this.boundSignature = boundSignature;
         }
@@ -61,7 +62,7 @@ public class EmptyRowTableFunction {
         }
 
         @Override
-        public Signature boundSignature() {
+        public BoundSignature boundSignature() {
             return boundSignature;
         }
 

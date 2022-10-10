@@ -25,6 +25,7 @@ import io.crate.breaker.RamAccounting;
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.memory.MemoryManager;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -68,9 +69,9 @@ class PercentileAggregation extends AggregationFunction<TDigestState, Object> {
     }
 
     private final Signature signature;
-    private final Signature boundSignature;
+    private final BoundSignature boundSignature;
 
-    private PercentileAggregation(Signature signature, Signature boundSignature) {
+    private PercentileAggregation(Signature signature, BoundSignature boundSignature) {
         this.signature = signature;
         this.boundSignature = boundSignature;
     }
@@ -81,7 +82,7 @@ class PercentileAggregation extends AggregationFunction<TDigestState, Object> {
     }
 
     @Override
-    public Signature boundSignature() {
+    public BoundSignature boundSignature() {
         return boundSignature;
     }
 
@@ -151,7 +152,7 @@ class PercentileAggregation extends AggregationFunction<TDigestState, Object> {
             return null;
         }
         List<Double> percentiles = new ArrayList<>(state.fractions().length);
-        if (boundSignature.getReturnType().createType() instanceof ArrayType) {
+        if (boundSignature.returnType() instanceof ArrayType) {
             for (int i = 0; i < state.fractions().length; i++) {
                 double percentile = state.quantile(state.fractions()[i]);
                 if (Double.isNaN(percentile)) {

@@ -27,6 +27,7 @@ import io.crate.metadata.FunctionName;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.metadata.settings.session.SessionSetting;
@@ -73,10 +74,10 @@ public class CurrentSettingFunction extends Scalar<String, Object> {
     }
 
     private final Signature signature;
-    private final Signature boundSignature;
+    private final BoundSignature boundSignature;
     private final Provider<SessionSettingRegistry> sessionSettingRegistry;
 
-    CurrentSettingFunction(Signature signature, Signature boundSignature, Provider<SessionSettingRegistry> sessionSettingRegistry) {
+    CurrentSettingFunction(Signature signature, BoundSignature boundSignature, Provider<SessionSettingRegistry> sessionSettingRegistry) {
         this.signature = signature;
         this.boundSignature = boundSignature;
         this.sessionSettingRegistry = sessionSettingRegistry;
@@ -89,7 +90,7 @@ public class CurrentSettingFunction extends Scalar<String, Object> {
     }
 
     @Override
-    public Signature boundSignature() {
+    public BoundSignature boundSignature() {
         return boundSignature;
     }
 

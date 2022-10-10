@@ -53,6 +53,7 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.view.ViewInfoFactory;
@@ -76,7 +77,8 @@ public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
         udfService.registerLanguage(new UDFLanguage() {
             @Override
             public Scalar createFunctionImplementation(UserDefinedFunctionMetadata metadata,
-                                                       Signature signature) throws ScriptException {
+                                                       Signature signature,
+                                                       BoundSignature boundSignature) throws ScriptException {
                 String error = validate(metadata);
                 if (error != null) {
                     throw new ScriptException("this is not Burlesque");
@@ -93,8 +95,8 @@ public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
                     }
 
                     @Override
-                    public Signature boundSignature() {
-                        return signature;
+                    public BoundSignature boundSignature() {
+                        return boundSignature;
                     }
                 };
             }

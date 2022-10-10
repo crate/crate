@@ -27,6 +27,7 @@ import io.crate.expression.scalar.array.ArraySummationFunctions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -73,9 +74,9 @@ public class ArraySumFunction<T extends Number, R extends Number> extends Scalar
     }
 
     private final Signature signature;
-    private final Signature boundSignature;
+    private final BoundSignature boundSignature;
 
-    private ArraySumFunction(Signature signature, Signature boundSignature) {
+    private ArraySumFunction(Signature signature, BoundSignature boundSignature) {
         this.signature = signature;
         this.boundSignature = boundSignature;
         returnType = (DataType<R>) signature.getReturnType().createType();
@@ -90,7 +91,7 @@ public class ArraySumFunction<T extends Number, R extends Number> extends Scalar
             summationFunction = ArraySummationFunctions.PRIMITIVE_NON_FLOAT_OVERFLOWING.getFunction();
         }
 
-        ensureInnerTypeIsNotUndefined(boundSignature.getArgumentDataTypes(), signature.getName().name());
+        ensureInnerTypeIsNotUndefined(boundSignature.argTypes(), signature.getName().name());
     }
 
     @Override
@@ -99,7 +100,7 @@ public class ArraySumFunction<T extends Number, R extends Number> extends Scalar
     }
 
     @Override
-    public Signature boundSignature() {
+    public BoundSignature boundSignature() {
         return boundSignature;
     }
 
