@@ -143,28 +143,4 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
-- Fixed an issue causing queries with matching on ``_id`` to not get rows
-  from :ref:`translog <concept-addressing-documents>`, and therefore only
-  rows that were visible from the latest manual or automatic
-  :ref:`REFRESH <sql-refresh>` were returned.
-
-- Fixed an issue causing an ``IllegalArgumentException`` to be thrown when the
-  optimizer attempts to convert a ``LEFT JOIN`` to an ``INNER JOIN`` and there
-  is also a subquery in the ``WHERE`` clause.
-
-- Fixed a file descriptor leak that was triggered by querying the ``os`` column
-  of the ``sys.nodes`` table.
-
-- Fixed an issue that could lead to a ``NoSuchElementException`` when using the
-  JDBC client and mixing different DML statements using the ``addBatch``
-  functionality.
-
-- Fixed an issue that could lead to stuck queries.
-
-- Fixed ``EXPLAIN`` plan output for queries with a ``WHERE`` clause containing
-  implicit cast symbols. A possible optimization of our planner/optimizer was
-  not used, resulting in different output than actually used on plan execution.
-
-- Fixed an issue that leads to stuck write queries if the
-  :ref:`indices.breaker.query.limit` is set to ``-1`` as the value was
-  interpreted as a byte value instead of disabling any breaking.
+None
