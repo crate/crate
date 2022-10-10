@@ -549,7 +549,7 @@ public class SignatureBinderTest extends ESTestCase {
 
     private static class BindSignatureAssertion {
         private final Signature function;
-        private List<TypeSignature> argumentTypes;
+        private List<DataType<?>> argumentTypes;
         private boolean allowCoercion;
 
         private BindSignatureAssertion(Signature function) {
@@ -571,14 +571,14 @@ public class SignatureBinderTest extends ESTestCase {
         }
 
         public BindSignatureAssertion boundTo(List<Object> arguments) {
-            ArrayList<TypeSignature> builder = new ArrayList<>(arguments.size());
+            ArrayList<DataType<?>> builder = new ArrayList<>(arguments.size());
             for (Object argument : arguments) {
-                if (argument instanceof DataType<?>) {
-                    builder.add(((DataType<?>) argument).getTypeSignature());
-                } else if (argument instanceof String) {
-                    builder.add(TypeSignature.parseTypeSignature((String) argument));
-                } else if (argument instanceof TypeSignature) {
-                    builder.add((TypeSignature) argument);
+                if (argument instanceof DataType<?> dataType) {
+                    builder.add(dataType);
+                } else if (argument instanceof String str) {
+                    builder.add(TypeSignature.parseTypeSignature(str).createType());
+                } else if (argument instanceof TypeSignature typeSig) {
+                    builder.add(typeSig.createType());
                 } else {
                     throw new IllegalArgumentException(format(
                         "argument is of type %s. It should be DataType, String or TypeSignature",

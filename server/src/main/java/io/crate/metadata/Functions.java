@@ -264,7 +264,7 @@ public class Functions {
         List<ApplicableFunction> applicableFunctions = new ArrayList<>();
         for (FunctionProvider candidate : candidates) {
             Signature boundSignature = new SignatureBinder(candidate.getSignature(), coercionType)
-                .bind(Lists2.map(arguments, DataType::getTypeSignature));
+                .bind(arguments);
             if (boundSignature != null) {
                 applicableFunctions.add(
                     new ApplicableFunction(
@@ -446,7 +446,7 @@ public class Functions {
      */
     private static boolean isMoreSpecificThan(ApplicableFunction left,
                                               ApplicableFunction right) {
-        List<TypeSignature> resolvedTypes = left.getBoundSignature().getArgumentTypes();
+        List<DataType<?>> resolvedTypes = left.getBoundSignature().getArgumentDataTypes();
         BoundVariables boundVariables = SignatureBinder.withPrecedenceOnly(right.getDeclaredSignature())
             .bindVariables(resolvedTypes);
         if (boundVariables == null) {
