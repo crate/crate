@@ -23,7 +23,7 @@ package io.crate.execution.dsl.projection;
 
 import io.crate.common.collections.Lists2;
 import io.crate.common.collections.MapBuilder;
-import io.crate.execution.engine.pipeline.TopN;
+import io.crate.execution.engine.pipeline.LimitAndOffset;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
@@ -35,21 +35,21 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
-public class TopNProjection extends Projection {
+public class LimitAndOffsetProjection extends Projection {
 
     private final int limit;
     private final int offset;
     private final List<Symbol> outputs;
 
-    public TopNProjection(int limit, int offset, List<DataType<?>> outputTypes) {
-        assert limit > TopN.NO_LIMIT : "limit of TopNProjection must not be negative/unlimited";
+    public LimitAndOffsetProjection(int limit, int offset, List<DataType<?>> outputTypes) {
+        assert limit > LimitAndOffset.NO_LIMIT : "limit of LimitAndOffsetProjection must not be negative/unlimited";
 
         this.limit = limit;
         this.offset = offset;
         this.outputs = InputColumn.mapToInputColumns(outputTypes);
     }
 
-    public TopNProjection(StreamInput in) throws IOException {
+    public LimitAndOffsetProjection(StreamInput in) throws IOException {
         offset = in.readVInt();
         limit = in.readVInt();
         outputs = Symbols.listFromStream(in);
@@ -70,12 +70,12 @@ public class TopNProjection extends Projection {
 
     @Override
     public ProjectionType projectionType() {
-        return ProjectionType.TOPN;
+        return ProjectionType.LIMITANDOFFSET;
     }
 
     @Override
     public <C, R> R accept(ProjectionVisitor<C, R> visitor, C context) {
-        return visitor.visitTopNProjection(this, context);
+        return visitor.visitLimitAndOffsetProjection(this, context);
     }
 
     @Override
@@ -90,7 +90,7 @@ public class TopNProjection extends Projection {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        TopNProjection that = (TopNProjection) o;
+        LimitAndOffsetProjection that = (LimitAndOffsetProjection) o;
 
         if (limit != that.limit) return false;
         if (offset != that.offset) return false;
@@ -109,7 +109,7 @@ public class TopNProjection extends Projection {
     @Override
     public Map<String, Object> mapRepresentation() {
         return MapBuilder.<String, Object>newMapBuilder()
-            .put("type", "TopN")
+            .put("type", "LimitAndOffset")
             .put("limit", limit)
             .put("offset", offset)
             .put("outputs", Lists2.joinOn(", ", outputs, Symbol::toString))
@@ -118,7 +118,7 @@ public class TopNProjection extends Projection {
 
     @Override
     public String toString() {
-        return "TopNProjection{" +
+        return "LimitAndOffsetProjection{" +
                "outputs=" + outputs +
                ", limit=" + limit +
                ", offset=" + offset +

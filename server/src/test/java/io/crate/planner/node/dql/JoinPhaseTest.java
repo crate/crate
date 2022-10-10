@@ -38,7 +38,7 @@ import org.junit.Test;
 import io.crate.execution.dsl.phases.HashJoinPhase;
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.phases.NestedLoopPhase;
-import io.crate.execution.dsl.projection.TopNProjection;
+import io.crate.execution.dsl.projection.LimitAndOffsetProjection;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.InputColumn;
@@ -51,7 +51,7 @@ import io.crate.types.DataTypes;
 
 public class JoinPhaseTest extends ESTestCase {
 
-    private TopNProjection topNProjection;
+    private LimitAndOffsetProjection limitAndOffsetProjection;
     private UUID jobId;
     private MergePhase mp1;
     private MergePhase mp2;
@@ -59,7 +59,7 @@ public class JoinPhaseTest extends ESTestCase {
 
     @Before
     public void setup() {
-        topNProjection = new TopNProjection(10, 0, Collections.emptyList());
+        limitAndOffsetProjection = new LimitAndOffsetProjection(10, 0, Collections.emptyList());
         jobId = UUID.randomUUID();
         mp1 = new MergePhase(
             jobId,
@@ -99,7 +99,7 @@ public class JoinPhaseTest extends ESTestCase {
             jobId,
             1,
             "nestedLoop",
-            List.of(topNProjection),
+            List.of(limitAndOffsetProjection),
             mp1,
             mp2,
             2,
@@ -139,7 +139,7 @@ public class JoinPhaseTest extends ESTestCase {
             jobId,
             1,
             "nestedLoop",
-            List.of(topNProjection),
+            List.of(limitAndOffsetProjection),
             mp1,
             mp2,
             2,

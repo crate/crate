@@ -36,7 +36,7 @@ import io.crate.data.Row;
 import io.crate.data.SentinelRow;
 import io.crate.execution.engine.collect.CollectExpression;
 
-public class SortingTopNProjector implements Projector {
+public class SortingLimitAndOffsetProjector implements Projector {
 
     private final Collector<Row, ?, Bucket> collector;
     private final boolean hasNoResult;
@@ -52,14 +52,14 @@ public class SortingTopNProjector implements Projector {
      * @param unboundedCollectorThreshold if (limit + offset) is greater than this threshold an unbounded collector will
      *                                    be used, otherwise a bounded one is used.
      */
-    public SortingTopNProjector(RowAccounting<Object[]> rowAccounting,
-                                Collection<? extends Input<?>> inputs,
-                                Iterable<? extends CollectExpression<Row, ?>> collectExpressions,
-                                int numOutputs,
-                                Comparator<Object[]> ordering,
-                                int limit,
-                                int offset,
-                                int unboundedCollectorThreshold) {
+    public SortingLimitAndOffsetProjector(RowAccounting<Object[]> rowAccounting,
+                                          Collection<? extends Input<?>> inputs,
+                                          Iterable<? extends CollectExpression<Row, ?>> collectExpressions,
+                                          int numOutputs,
+                                          Comparator<Object[]> ordering,
+                                          int limit,
+                                          int offset,
+                                          int unboundedCollectorThreshold) {
         this.hasNoResult = limit + offset == 0;
         if (offset < 0) {
             throw new IllegalArgumentException("Invalid OFFSET: value must be >= 0; got: " + offset);
@@ -74,7 +74,7 @@ public class SortingTopNProjector implements Projector {
             * Otherwise, we'll use a bounded queue as we want to avoid the case where we pre-allocate a large queue that
             * will never be filled.
             */
-            collector = new UnboundedSortingTopNCollector(
+            collector = new UnboundedSortingLimitAndOffsetCollector(
                 rowAccounting,
                 inputs,
                 collectExpressions,
@@ -85,7 +85,7 @@ public class SortingTopNProjector implements Projector {
                 offset
             );
         } else {
-            collector = new BoundedSortingTopNCollector(
+            collector = new BoundedSortingLimitAndOffsetCollector(
                 rowAccounting,
                 inputs,
                 collectExpressions,

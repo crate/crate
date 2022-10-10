@@ -66,7 +66,7 @@ import io.crate.execution.dsl.projection.SourceIndexWriterReturnSummaryProjectio
 import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.engine.JobLauncher;
 import io.crate.execution.engine.NodeOperationTreeGenerator;
-import io.crate.execution.engine.pipeline.TopN;
+import io.crate.execution.engine.pipeline.LimitAndOffset;
 import io.crate.expression.reference.file.SourceLineNumberExpression;
 import io.crate.expression.reference.file.SourceParsingFailureExpression;
 import io.crate.expression.reference.file.SourceUriExpression;
@@ -333,7 +333,7 @@ public final class CopyFromPlan implements Plan {
             boundedCopyFrom.settings()
         );
 
-        Collect collect = new Collect(collectPhase, TopN.NO_LIMIT, 0, 1, -1, null);
+        Collect collect = new Collect(collectPhase, LimitAndOffset.NO_LIMIT, 0, 1, -1, null);
         // add the projection to the plan to ensure that the outputs are correctly set to the projection outputs
         collect.addProjection(sourceIndexWriterProjection);
 

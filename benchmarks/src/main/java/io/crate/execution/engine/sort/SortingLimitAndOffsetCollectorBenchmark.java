@@ -52,7 +52,7 @@ import io.crate.execution.engine.collect.InputCollectExpression;
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
 @State(Scope.Benchmark)
-public class SortingTopNCollectorBenchmark {
+public class SortingLimitAndOffsetCollectorBenchmark {
 
     private static final Comparator<Object[]> COMPARATOR = (o1, o2) -> Integer.compare((int) o2[0], (int) o1[0]);
     private static final InputCollectExpression INPUT = new InputCollectExpression(0);
@@ -68,7 +68,7 @@ public class SortingTopNCollectorBenchmark {
         rows = IntStream.range(0, 10_000_000)
             .mapToObj(i -> new RowN(i))
             .collect(Collectors.toList());
-        boundedSortingCollector = new BoundedSortingTopNCollector(
+        boundedSortingCollector = new BoundedSortingLimitAndOffsetCollector(
             new RowAccounting<Object[]>() {
 
                 @Override
@@ -86,7 +86,7 @@ public class SortingTopNCollectorBenchmark {
             10_000,
             0);
 
-        unboundedSortingCollector = new UnboundedSortingTopNCollector(
+        unboundedSortingCollector = new UnboundedSortingLimitAndOffsetCollector(
             new RowAccounting<Object[]>() {
 
                 @Override

@@ -40,7 +40,7 @@ import org.junit.Test;
 
 import io.crate.analyze.TableDefinitions;
 import io.crate.execution.dsl.projection.Projection;
-import io.crate.execution.dsl.projection.TopNDistinctProjection;
+import io.crate.execution.dsl.projection.LimitDistinctProjection;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
@@ -363,7 +363,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void test_top_n_distinct_limits_outputs_to_the_group_keys_if_source_has_more_outputs() {
+    public void test_limit_distinct_limits_outputs_to_the_group_keys_if_source_has_more_outputs() {
         String statement = "select name, other_id " +
                            "from (select name, awesome, other_id from users) u " +
                            "group by name, other_id limit 20";
@@ -372,7 +372,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(
             plan,
             isPlan(
-                "TopNDistinct[20::bigint;0 | [name, other_id]]\n" +
+                "LimitDistinct[20::bigint;0 | [name, other_id]]\n" +
                 "  └ Rename[name, other_id] AS u\n" +
                 "    └ Collect[doc.users | [name, other_id] | true]"
             )
@@ -380,8 +380,8 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         io.crate.planner.node.dql.Collect collect = sqlExecutor.plan(statement);
         List<Projection> projections = collect.collectPhase().projections();
         assertThat(projections, contains(
-            instanceOf(TopNDistinctProjection.class),
-            instanceOf(TopNDistinctProjection.class)
+            instanceOf(LimitDistinctProjection.class),
+            instanceOf(LimitDistinctProjection.class)
         ));
         assertThat(projections.get(0).requiredGranularity(), is(RowGranularity.SHARD));
         assertThat(projections.get(1).requiredGranularity(), is(RowGranularity.CLUSTER));
@@ -430,13 +430,13 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void test_group_by_with_alias_and_limit_topn_distinct_rewrite_creates_valid_plan() {
+    public void test_group_by_with_alias_and_limit_distinct_rewrite_creates_valid_plan() {
         TableInfo t1 = sqlExecutor.resolveTableInfo("t1");
         tableStats.updateTableStats(Map.of(t1.ident(), new Stats(100L, 100L, Map.of())));
         LogicalPlan plan = plan("select a as b from doc.t1 group by a limit 10");
         assertThat(plan, isPlan(
             "Eval[a AS b]\n" +
-            "  └ TopNDistinct[10::bigint;0 | [a]]\n" +
+            "  └ LimitDistinct[10::bigint;0 | [a]]\n" +
             "    └ Collect[doc.t1 | [a] | true]"
         ));
     }

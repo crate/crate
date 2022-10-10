@@ -44,7 +44,7 @@ import io.crate.data.Row;
 import io.crate.exceptions.VersioningValidationException;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
-import io.crate.execution.engine.pipeline.TopN;
+import io.crate.execution.engine.pipeline.LimitAndOffset;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.AliasSymbol;
 import io.crate.expression.symbol.FetchMarker;
@@ -182,7 +182,7 @@ public class Collect implements LogicalPlan {
         maybeApplyPageSize(limitAndOffset, pageSizeHint, collectPhase);
         return new io.crate.planner.node.dql.Collect(
             collectPhase,
-            TopN.NO_LIMIT,
+            LimitAndOffset.NO_LIMIT,
             0,
             outputs.size(),
             limitAndOffset,
@@ -247,7 +247,7 @@ public class Collect implements LogicalPlan {
 
     private static void maybeApplyPageSize(int limit, @Nullable Integer pageSizeHint, RoutedCollectPhase collectPhase) {
         if (pageSizeHint == null) {
-            if (limit > TopN.NO_LIMIT) {
+            if (limit > LimitAndOffset.NO_LIMIT) {
                 collectPhase.nodePageSizeHint(limit);
             }
         } else {

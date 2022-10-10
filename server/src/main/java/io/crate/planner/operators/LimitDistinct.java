@@ -36,11 +36,11 @@ import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.ExecutionPhases;
 import io.crate.execution.dsl.projection.EvalProjection;
-import io.crate.execution.dsl.projection.TopNDistinctProjection;
-import io.crate.execution.dsl.projection.TopNProjection;
+import io.crate.execution.dsl.projection.LimitDistinctProjection;
+import io.crate.execution.dsl.projection.LimitAndOffsetProjection;
 import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
-import io.crate.execution.engine.pipeline.TopN;
+import io.crate.execution.engine.pipeline.LimitAndOffset;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
@@ -53,13 +53,13 @@ import io.crate.planner.PlannerContext;
 import io.crate.statistics.TableStats;
 import io.crate.types.DataTypes;
 
-public final class TopNDistinct extends ForwardingLogicalPlan {
+public final class LimitDistinct extends ForwardingLogicalPlan {
 
     private final Symbol limit;
     private final List<Symbol> outputs;
     private final Symbol offset;
 
-    public TopNDistinct(LogicalPlan source, Symbol limit, Symbol offset, List<Symbol> outputs) {
+    public LimitDistinct(LogicalPlan source, Symbol limit, Symbol offset, List<Symbol> outputs) {
         super(source);
         this.limit = limit;
         this.offset = offset;
@@ -91,8 +91,8 @@ public final class TopNDistinct extends ForwardingLogicalPlan {
             plannerContext,
             planHints,
             projectionBuilder,
-            TopN.NO_LIMIT,
-            TopN.NO_OFFSET,
+            LimitAndOffset.NO_LIMIT,
+            LimitAndOffset.NO_OFFSET,
             null,
             null,
             params,
@@ -127,7 +127,7 @@ public final class TopNDistinct extends ForwardingLogicalPlan {
         );
         var inputColOutputs = InputColumn.mapToInputColumns(outputs);
         executionPlan.addProjection(
-            new TopNDistinctProjection(
+            new LimitDistinctProjection(
                 limit + offset,
                 inputColOutputs,
                 source.preferShardProjections() ? RowGranularity.SHARD : RowGranularity.CLUSTER
@@ -139,18 +139,18 @@ public final class TopNDistinct extends ForwardingLogicalPlan {
             if (!onHandler) {
                 executionPlan = Merge.ensureOnHandler(executionPlan, plannerContext);
             }
-            TopNDistinctProjection topNDistinct = new TopNDistinctProjection(
+            LimitDistinctProjection limitDistinct = new LimitDistinctProjection(
                 limit + offset,
                 inputColOutputs,
                 RowGranularity.CLUSTER
             );
-            executionPlan.addProjection(topNDistinct);
+            executionPlan.addProjection(limitDistinct);
         }
         if (offset > 0) {
-            // TopNDistinctProjection outputs a distinct result-set,
-            // That allows us to use the TopNProjection to apply the offset
+            // LimitDistinctProjection outputs a distinct result-set,
+            // That allows us to use the LimitAndOffsetProjection to apply the offset
             executionPlan.addProjection(
-                new TopNProjection(limit, offset, Symbols.typeView(inputColOutputs))
+                new LimitAndOffsetProjection(limit, offset, Symbols.typeView(inputColOutputs))
             );
         }
         return executionPlan;
@@ -168,24 +168,24 @@ public final class TopNDistinct extends ForwardingLogicalPlan {
         if (prunedSource == source) {
             return this;
         }
-        return new TopNDistinct(prunedSource, limit, offset, outputs);
+        return new LimitDistinct(prunedSource, limit, offset, outputs);
     }
 
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
         var source = Lists2.getOnlyElement(sources);
-        return new TopNDistinct(source, limit, offset, outputs);
+        return new LimitDistinct(source, limit, offset, outputs);
     }
 
     @Override
     public <C, R> R accept(LogicalPlanVisitor<C, R> visitor, C context) {
-        return visitor.visitTopNDistinct(this, context);
+        return visitor.visitLimitDistinct(this, context);
     }
 
     @Override
     public void print(PrintContext printContext) {
         printContext
-            .text("TopNDistinct[")
+            .text("LimitDistinct[")
             .text(limit.toString())
             .text(";")
             .text(offset.toString())

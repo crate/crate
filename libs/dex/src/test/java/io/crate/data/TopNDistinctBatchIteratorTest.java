@@ -52,7 +52,7 @@ public class TopNDistinctBatchIteratorTest {
     }
 
     @Test
-    public void test_topn_distinct_fulfills_bi_contracts() throws Throwable {
+    public void test_topN_distinct_fulfills_bi_contracts() throws Throwable {
         var tester = new BatchIteratorTester(() -> {
             var source = InMemoryBatchIterator.of(
                 List.<Row>of(

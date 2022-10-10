@@ -27,7 +27,7 @@ import java.io.IOException;
 
 public enum ProjectionType {
 
-    TOPN(TopNProjection::new),
+    LIMITANDOFFSET(LimitAndOffsetProjection::new),
     GROUP(GroupProjection::new),
     AGGREGATION(AggregationProjection::new),
     MERGE_COUNT_AGGREGATION(i -> MergeCountProjection.INSTANCE),
@@ -40,11 +40,11 @@ public enum ProjectionType {
     SYS_UPDATE(SysUpdateProjection::new),
     DELETE(DeleteProjection::new),
     FETCH(null),
-    TOPN_ORDERED(OrderedTopNProjection::new),
+    LIMITANDOFFSET_ORDERED(OrderedLimitAndOffsetProjection::new),
     EVAL(EvalProjection::new),
     PROJECT_SET(ProjectSetProjection::new),
     WINDOW_AGGREGATION(WindowAggProjection::new),
-    TOPN_DISTINCT(TopNDistinctProjection::new),
+    LIMIT_DISTINCT(LimitDistinctProjection::new),
     CORRELATED_JOIN(in -> {
         throw new UnsupportedOperationException("Cannot stream correlated join projection");
     });

@@ -36,7 +36,7 @@ import javax.annotation.Nullable;
 import io.crate.analyze.OrderBy;
 import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
-import io.crate.execution.dsl.projection.OrderedTopNProjection;
+import io.crate.execution.dsl.projection.OrderedLimitAndOffsetProjection;
 import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.FieldsVisitor;
@@ -143,7 +143,7 @@ public class Order extends ForwardingLogicalPlan {
         InputColumns.SourceSymbols ctx = new InputColumns.SourceSymbols(source.outputs());
         List<Symbol> orderByInputColumns = InputColumns.create(this.orderBy.orderBySymbols(), ctx);
         ensureOrderByColumnsArePresentInOutputs(orderByInputColumns);
-        OrderedTopNProjection topNProjection = new OrderedTopNProjection(
+        OrderedLimitAndOffsetProjection orderedLimitAndOffsetProjection = new OrderedLimitAndOffsetProjection(
             Limit.limitAndOffset(limit, offset),
             0,
             InputColumns.create(outputs, ctx),
@@ -153,7 +153,7 @@ public class Order extends ForwardingLogicalPlan {
         );
         PositionalOrderBy positionalOrderBy = PositionalOrderBy.of(this.orderBy, outputs);
         plan.addProjection(
-            topNProjection,
+            orderedLimitAndOffsetProjection,
             limit,
             offset,
             positionalOrderBy

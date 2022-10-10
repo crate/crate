@@ -36,10 +36,10 @@ import io.crate.execution.dsl.projection.EvalProjection;
 import io.crate.execution.dsl.projection.FilterProjection;
 import io.crate.execution.dsl.projection.GroupProjection;
 import io.crate.execution.dsl.projection.Projection;
-import io.crate.execution.dsl.projection.TopNProjection;
+import io.crate.execution.dsl.projection.LimitAndOffsetProjection;
 import io.crate.execution.dsl.projection.WriterProjection;
 import io.crate.execution.engine.aggregation.AggregationFunction;
-import io.crate.execution.engine.pipeline.TopN;
+import io.crate.execution.engine.pipeline.LimitAndOffset;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.Aggregation;
 import io.crate.expression.symbol.Function;
@@ -162,7 +162,7 @@ public class ProjectionBuilder {
     }
 
     /**
-     * Create a {@link TopNProjection} or {@link EvalProjection} if required, otherwise null is returned.
+     * Create a {@link LimitAndOffsetProjection} or {@link EvalProjection} if required, otherwise null is returned.
      * <p>
      * The output symbols will consist of InputColumns.
      * </p>
@@ -170,25 +170,25 @@ public class ProjectionBuilder {
      *                   If inputTypes is longer this projection will cut off superfluous columns
      */
     @Nullable
-    public static Projection topNOrEvalIfNeeded(Integer limit,
-                                                int offset,
-                                                int numOutputs,
-                                                List<DataType<?>> inputTypes) {
+    public static Projection limitAndOffsetOrEvalIfNeeded(Integer limit,
+                                                          int offset,
+                                                          int numOutputs,
+                                                          List<DataType<?>> inputTypes) {
         if (limit == null) {
-            limit = TopN.NO_LIMIT;
+            limit = LimitAndOffset.NO_LIMIT;
         }
         int numInputTypes = inputTypes.size();
         List<DataType<?>> strippedInputs = inputTypes;
         if (numOutputs < numInputTypes) {
             strippedInputs = inputTypes.subList(0, numOutputs);
         }
-        if (limit == TopN.NO_LIMIT && offset == 0) {
+        if (limit == LimitAndOffset.NO_LIMIT && offset == 0) {
             if (numOutputs >= numInputTypes) {
                 return null;
             }
             return new EvalProjection(InputColumn.mapToInputColumns(strippedInputs));
         }
-        return new TopNProjection(limit, offset, strippedInputs);
+        return new LimitAndOffsetProjection(limit, offset, strippedInputs);
     }
 
     public static WriterProjection writerProjection(Collection<? extends Symbol> inputs,
