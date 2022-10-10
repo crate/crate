@@ -21,6 +21,9 @@
 
 package io.crate.execution.engine.pipeline;
 
+import static io.crate.execution.engine.pipeline.LimitAndOffset.NO_LIMIT;
+import static io.crate.execution.engine.pipeline.LimitAndOffset.NO_OFFSET;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -266,7 +269,7 @@ public class ProjectionToProjectorVisitor
             context.ramAccounting,
             rowMemoryOverhead
         );
-        if (projection.limit() > LimitAndOffset.NO_LIMIT) {
+        if (projection.limit() > NO_LIMIT) {
             return new SortingLimitAndOffsetProjector(
                 rowAccounting,
                 inputs,
@@ -300,8 +303,14 @@ public class ProjectionToProjectorVisitor
 
     @Override
     public Projector visitLimitAndOffsetProjection(LimitAndOffsetProjection projection, Context context) {
-        assert projection.limit() > LimitAndOffset.NO_LIMIT : "LimitAndOffsetProjection must have a limit";
-        return new LimitAndOffsetProjector(projection.limit(), projection.offset());
+        if (projection.limit() != NO_LIMIT) {
+            return new LimitAndOffsetProjector(projection.limit(), projection.offset());
+        } else if (projection.offset() != NO_OFFSET) {
+            return new OffsetProjector(projection.offset());
+        } else {
+            throw new IllegalArgumentException("LimitAndOffsetProjection should have at least one " +
+                                               "of the limit and offset set");
+        }
     }
 
     @Override
