@@ -21,7 +21,7 @@
 
 package io.crate.planner.operators;
 
-import static io.crate.execution.engine.pipeline.TopN.NO_LIMIT;
+import static io.crate.execution.engine.pipeline.LimitAndOffset.NO_LIMIT;
 
 import java.util.ArrayList;
 import java.util.Collection;

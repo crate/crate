@@ -32,7 +32,7 @@ import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.CorrelatedJoinProjection;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
-import io.crate.execution.engine.pipeline.TopN;
+import io.crate.execution.engine.pipeline.LimitAndOffset;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RelationName;
@@ -97,8 +97,8 @@ public class CorrelatedJoin implements LogicalPlan {
                 plannerContext,
                 planHints,
                 projectionBuilder,
-                TopN.NO_LIMIT,
-                TopN.NO_OFFSET,
+                LimitAndOffset.NO_LIMIT,
+                LimitAndOffset.NO_OFFSET,
                 null,
                 null,
                 params,

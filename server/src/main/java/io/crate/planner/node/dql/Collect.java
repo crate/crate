@@ -23,6 +23,7 @@ package io.crate.planner.node.dql;
 
 import io.crate.execution.dsl.phases.CollectPhase;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
+import io.crate.execution.dsl.projection.LimitAndOffsetProjection;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.RowGranularity;
@@ -56,11 +57,13 @@ public class Collect implements ExecutionPlan, ResultDescription {
     /**
      * @param unfinishedLimit the limit a parent must apply after a merge to get the correct result
      * @param unfinishedOffset the offset a parent must apply after a merge to get the correct result
-     *
-     * If the data should be limited as part of the Collect, add a {@link io.crate.execution.dsl.projection.TopNProjection},
-     * If the limit of the TopNProjection is final, unfinishedLimit here should be set to NO_LIMIT (-1)
-     *
+     * <ul>
+     * <li>If the data should be limited as part of the Collect, add a {@link LimitAndOffsetProjection}</li>
+     * <li>If the limit of the {@link LimitAndOffsetProjection} is final, unfinishedLimit here
+     *     should be set to NO_LIMIT (-1).</li>
+     * <p>
      * See also: {@link ResultDescription}
+     * </p>
      */
     public Collect(CollectPhase collectPhase,
                    int unfinishedLimit,

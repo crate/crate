@@ -44,7 +44,7 @@ import io.crate.data.Row;
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.projection.EvalProjection;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
-import io.crate.execution.engine.pipeline.TopN;
+import io.crate.execution.engine.pipeline.LimitAndOffset;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
@@ -95,14 +95,14 @@ public class Union implements LogicalPlan {
                                Row params,
                                SubQueryResults subQueryResults) {
 
-        Integer childPageSizeHint = limit != TopN.NO_LIMIT
+        Integer childPageSizeHint = limit != LimitAndOffset.NO_LIMIT
             ? limitAndOffset(limit, offset)
             : null;
 
         ExecutionPlan left = lhs.build(
-            executor, plannerContext, hints, projectionBuilder, limit + offset, TopN.NO_OFFSET, null, childPageSizeHint, params, subQueryResults);
+            executor, plannerContext, hints, projectionBuilder, limit + offset, LimitAndOffset.NO_OFFSET, null, childPageSizeHint, params, subQueryResults);
         ExecutionPlan right = rhs.build(
-            executor, plannerContext, hints, projectionBuilder, limit + offset, TopN.NO_OFFSET, null, childPageSizeHint, params, subQueryResults);
+            executor, plannerContext, hints, projectionBuilder, limit + offset, LimitAndOffset.NO_OFFSET, null, childPageSizeHint, params, subQueryResults);
 
         addCastsForIncompatibleObjects(lhs, left);
         addCastsForIncompatibleObjects(rhs, right);
@@ -141,7 +141,7 @@ public class Union implements LogicalPlan {
             limit,
             offset,
             lhs.outputs().size(),
-            TopN.NO_LIMIT,
+            LimitAndOffset.NO_LIMIT,
             leftResultDesc.orderBy()
         );
     }

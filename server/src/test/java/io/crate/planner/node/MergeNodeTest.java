@@ -39,7 +39,7 @@ import org.junit.Test;
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.projection.GroupProjection;
 import io.crate.execution.dsl.projection.Projection;
-import io.crate.execution.dsl.projection.TopNProjection;
+import io.crate.execution.dsl.projection.LimitAndOffsetProjection;
 import io.crate.execution.engine.aggregation.impl.CountAggregation;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.Aggregation;
@@ -64,9 +64,9 @@ public class MergeNodeTest extends ESTestCase {
         );
         GroupProjection groupProjection = new GroupProjection(
             keys, aggregations, AggregateMode.PARTIAL_FINAL, RowGranularity.CLUSTER);
-        TopNProjection topNProjection = new TopNProjection(10, 0, Symbols.typeView(groupProjection.outputs()));
+        LimitAndOffsetProjection limitAndOffsetProjection = new LimitAndOffsetProjection(10, 0, Symbols.typeView(groupProjection.outputs()));
 
-        List<Projection> projections = Arrays.asList(groupProjection, topNProjection);
+        List<Projection> projections = Arrays.asList(groupProjection, limitAndOffsetProjection);
         MergePhase node = new MergePhase(
             UUID.randomUUID(),
             0,

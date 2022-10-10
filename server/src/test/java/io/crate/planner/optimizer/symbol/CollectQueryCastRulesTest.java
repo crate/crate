@@ -42,7 +42,7 @@ import io.crate.analyze.relations.TableRelation;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
-import io.crate.execution.engine.pipeline.TopN;
+import io.crate.execution.engine.pipeline.LimitAndOffset;
 import io.crate.expression.operator.Operator;
 import io.crate.expression.operator.Operators;
 import io.crate.expression.operator.any.AnyOperator;
@@ -105,7 +105,7 @@ public class CollectQueryCastRulesTest extends CrateDummyClusterServiceUnitTest 
             plannerContext,
             Set.of(),
             new ProjectionBuilder(e.nodeCtx),
-            TopN.NO_LIMIT,
+            LimitAndOffset.NO_LIMIT,
             0,
             null,
             null,

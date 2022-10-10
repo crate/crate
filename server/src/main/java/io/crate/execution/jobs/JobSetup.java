@@ -982,7 +982,8 @@ public class JobSetup {
                 return null;
             }
 
-            // In case of join on virtual table the left or right merge phase of the nl might have projections (TopN)
+            // In case of join on virtual table the left or right merge phase
+            // of the nl might have projections (LimitAndOffset)
             if (mergePhase.hasProjections()) {
                 rowConsumer = ProjectingRowConsumer.create(
                     rowConsumer,

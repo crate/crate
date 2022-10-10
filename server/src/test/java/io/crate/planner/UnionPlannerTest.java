@@ -37,7 +37,7 @@ import com.carrotsearch.randomizedtesting.RandomizedTest;
 
 import io.crate.analyze.TableDefinitions;
 import io.crate.execution.dsl.projection.EvalProjection;
-import io.crate.execution.dsl.projection.TopNProjection;
+import io.crate.execution.dsl.projection.LimitAndOffsetProjection;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.operators.LogicalPlannerTest;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -82,7 +82,7 @@ public class UnionPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(unionExecutionPlan.mergePhase().numInputs(), is(2));
         assertThat(unionExecutionPlan.mergePhase().orderByPositions(), instanceOf(PositionalOrderBy.class));
         assertThat(unionExecutionPlan.mergePhase().projections(), contains(
-            instanceOf(TopNProjection.class)
+            instanceOf(LimitAndOffsetProjection.class)
         ));
         assertThat(unionExecutionPlan.left(), instanceOf(Collect.class));
         assertThat(unionExecutionPlan.right(), instanceOf(Collect.class));
@@ -100,7 +100,7 @@ public class UnionPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(unionExecutionPlan.mergePhase().numInputs(), is(2));
         assertThat(unionExecutionPlan.orderBy(), Matchers.notNullValue());
         assertThat(unionExecutionPlan.mergePhase().projections(), contains(
-            instanceOf(TopNProjection.class)
+            instanceOf(LimitAndOffsetProjection.class)
         ));
         assertThat(unionExecutionPlan.left(), instanceOf(Merge.class));
         Merge merge = (Merge) unionExecutionPlan.left();

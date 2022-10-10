@@ -22,7 +22,7 @@
 package io.crate.planner.operators;
 
 
-import static io.crate.execution.engine.pipeline.TopN.NO_LIMIT;
+import static io.crate.execution.engine.pipeline.LimitAndOffset.NO_LIMIT;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -42,7 +42,7 @@ import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.projection.GroupProjection;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
-import io.crate.execution.engine.pipeline.TopN;
+import io.crate.execution.engine.pipeline.LimitAndOffset;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.ScopedSymbol;
@@ -295,7 +295,7 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
                 null
             ),
             NO_LIMIT,
-            TopN.NO_OFFSET,
+            LimitAndOffset.NO_OFFSET,
             this.outputs.size(),
             NO_LIMIT,
             null

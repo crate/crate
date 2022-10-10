@@ -22,8 +22,8 @@
 package io.crate.planner.operators;
 
 import static io.crate.analyze.SymbolEvaluator.evaluate;
-import static io.crate.execution.engine.pipeline.TopN.NO_LIMIT;
-import static io.crate.execution.engine.pipeline.TopN.NO_OFFSET;
+import static io.crate.execution.engine.pipeline.LimitAndOffset.NO_LIMIT;
+import static io.crate.execution.engine.pipeline.LimitAndOffset.NO_OFFSET;
 
 import java.util.List;
 import java.util.Map;
@@ -36,8 +36,9 @@ import io.crate.analyze.OrderBy;
 import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.ExecutionPhases;
-import io.crate.execution.dsl.projection.TopNProjection;
+import io.crate.execution.dsl.projection.LimitAndOffsetProjection;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
+import io.crate.execution.engine.pipeline.LimitAndOffset;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
@@ -120,10 +121,10 @@ public class Limit extends ForwardingLogicalPlan {
         }
         if (ExecutionPhases.executesOnHandler(plannerContext.handlerNode(), resultDescription.nodeIds())) {
             executionPlan.addProjection(
-                new TopNProjection(limit, offset, sourceTypes), TopN.NO_LIMIT, 0, resultDescription.orderBy());
+                new LimitAndOffsetProjection(limit, offset, sourceTypes), LimitAndOffset.NO_LIMIT, 0, resultDescription.orderBy());
         } else if (resultDescription.limit() != limit || resultDescription.offset() != 0) {
             executionPlan.addProjection(
-                new TopNProjection(limit + offset, 0, sourceTypes), limit, offset, resultDescription.orderBy());
+                new LimitAndOffsetProjection(limit + offset, 0, sourceTypes), limit, offset, resultDescription.orderBy());
         }
         return executionPlan;
     }
@@ -172,7 +173,7 @@ public class Limit extends ForwardingLogicalPlan {
     }
 
     static int limitAndOffset(int limit, int offset) {
-        if (limit == TopN.NO_LIMIT) {
+        if (limit == LimitAndOffset.NO_LIMIT) {
             return limit;
         }
         return limit + offset;

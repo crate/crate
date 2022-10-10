@@ -21,7 +21,7 @@
 
 package io.crate.execution.engine.pipeline;
 
-public class TopN {
+public class LimitAndOffset {
 
     public static final int NO_OFFSET = 0;
     public static final int NO_LIMIT = -1;

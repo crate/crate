@@ -51,7 +51,7 @@ import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.SysUpdateProjection;
 import io.crate.execution.dsl.projection.UpdateProjection;
 import io.crate.execution.engine.NodeOperationTreeGenerator;
-import io.crate.execution.engine.pipeline.TopN;
+import io.crate.execution.engine.pipeline.LimitAndOffset;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.Assignments;
 import io.crate.expression.symbol.InputColumn;
@@ -332,7 +332,7 @@ public final class UpdatePlanner {
             Optimizer.optimizeCasts(where.queryOrFallback(), plannerCtx),
             DistributionInfo.DEFAULT_BROADCAST
         );
-        Collect collect = new Collect(collectPhase, TopN.NO_LIMIT, 0, numOutPuts, maxRowsPerNode, null);
+        Collect collect = new Collect(collectPhase, LimitAndOffset.NO_LIMIT, 0, numOutPuts, maxRowsPerNode, null);
         return Merge.ensureOnHandler(collect, plannerCtx, List.of(mergeProjections));
     }
 }

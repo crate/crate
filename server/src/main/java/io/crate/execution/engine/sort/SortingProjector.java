@@ -40,8 +40,8 @@ import java.util.stream.Collectors;
 /**
  * Sort rows by ordering criteria and process given offset before emitting.
  * <p>
- * Compared to {@link SortingTopNProjector} this projector does not support limiting,
- * while the {@link SortingTopNProjector} does not work WITHOUT a limit.
+ * Compared to {@link SortingLimitAndOffsetProjector} this projector does not support limiting,
+ * while the {@link SortingLimitAndOffsetProjector} does not work WITHOUT a limit.
  */
 public class SortingProjector implements Projector {
 
