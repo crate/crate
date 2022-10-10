@@ -19,29 +19,6 @@
 
 package org.elasticsearch.common.settings;
 
-import io.crate.common.Booleans;
-import io.crate.common.StringUtils;
-import io.crate.common.collections.Tuple;
-import io.crate.common.unit.TimeValue;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.ElasticsearchParseException;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.regex.Regex;
-import org.elasticsearch.common.unit.ByteSizeValue;
-import org.elasticsearch.common.unit.MemorySizeValue;
-import org.elasticsearch.common.xcontent.DeprecationHandler;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.ToXContentObject;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.common.xcontent.XContentParser;
-import org.elasticsearch.common.xcontent.XContentType;
-
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -64,6 +41,31 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import javax.annotation.Nullable;
+
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.ElasticsearchParseException;
+import org.elasticsearch.Version;
+import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.regex.Regex;
+import org.elasticsearch.common.unit.ByteSizeValue;
+import org.elasticsearch.common.unit.MemorySizeValue;
+import org.elasticsearch.common.xcontent.DeprecationHandler;
+import org.elasticsearch.common.xcontent.NamedXContentRegistry;
+import org.elasticsearch.common.xcontent.ToXContentObject;
+import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.common.xcontent.XContentParser;
+import org.elasticsearch.common.xcontent.XContentType;
+
+import io.crate.common.Booleans;
+import io.crate.common.StringUtils;
+import io.crate.common.collections.Tuple;
+import io.crate.common.unit.TimeValue;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
 /**
  * A setting. Encapsulates typical stuff like default value, parsing, and scope.
@@ -453,6 +455,19 @@ public class Setting<T> implements ToXContentObject {
      */
     public T get(Settings settings) {
         return get(settings, true);
+    }
+
+    /**
+     * Returns the settings value. If the setting is not present in the given settings object NULL is returned instead.
+     */
+    @Nullable
+    public T getOrNull(Settings settings) {
+        var value = get(settings);
+        var defaultValue = getDefault(settings);
+        if (value.equals(defaultValue)) {
+            return null;
+        }
+        return value;
     }
 
     private T get(Settings settings, boolean validate) {
