@@ -21,19 +21,19 @@
 
 package io.crate.execution.dsl.projection;
 
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+
 import io.crate.common.collections.Lists2;
 import io.crate.common.collections.MapBuilder;
-import io.crate.execution.engine.pipeline.LimitAndOffset;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.types.DataType;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
 
 public class LimitAndOffsetProjection extends Projection {
 
@@ -42,8 +42,6 @@ public class LimitAndOffsetProjection extends Projection {
     private final List<Symbol> outputs;
 
     public LimitAndOffsetProjection(int limit, int offset, List<DataType<?>> outputTypes) {
-        assert limit > LimitAndOffset.NO_LIMIT : "limit of LimitAndOffsetProjection must not be negative/unlimited";
-
         this.limit = limit;
         this.offset = offset;
         this.outputs = InputColumn.mapToInputColumns(outputTypes);
