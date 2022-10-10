@@ -26,6 +26,7 @@ import io.crate.metadata.FunctionName;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.types.DataTypes;
@@ -64,12 +65,12 @@ class ArrayToStringFunction extends Scalar<String, Object> {
     }
 
     private final Signature signature;
-    private final Signature boundSignature;
+    private final BoundSignature boundSignature;
 
-    private ArrayToStringFunction(Signature signature, Signature boundSignature) {
+    private ArrayToStringFunction(Signature signature, BoundSignature boundSignature) {
         this.signature = signature;
         this.boundSignature = boundSignature;
-        ensureInnerTypeIsNotUndefined(boundSignature.getArgumentDataTypes(), FQN.name());
+        ensureInnerTypeIsNotUndefined(boundSignature.argTypes(), FQN.name());
     }
 
     @Override
@@ -78,7 +79,7 @@ class ArrayToStringFunction extends Scalar<String, Object> {
     }
 
     @Override
-    public Signature boundSignature() {
+    public BoundSignature boundSignature() {
         return boundSignature;
     }
 

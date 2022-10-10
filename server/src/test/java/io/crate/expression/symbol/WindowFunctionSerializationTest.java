@@ -64,7 +64,7 @@ public class WindowFunctionSerializationTest {
         new WindowFunction(
             dummyFunction.signature(),
             singletonList(Literal.of(1L)),
-            dummyFunction.boundSignature().getReturnType().createType(),
+            dummyFunction.boundSignature().returnType(),
             null,
             new WindowDefinition(singletonList(Literal.of(1L)), null, null),
             true
@@ -74,7 +74,7 @@ public class WindowFunctionSerializationTest {
         new WindowFunction(
             dummyFunction.signature(),
             singletonList(Literal.of(1L)),
-            dummyFunction.boundSignature().getReturnType().createType(),
+            dummyFunction.boundSignature().returnType(),
             null,
             new WindowDefinition(singletonList(Literal.of(1L)), null, null),
             null

@@ -201,7 +201,7 @@ public final class GeneratedColumnExpander {
                 return new Function(
                     funcImpl.signature(),
                     List.of(generatedReference, wrapped),
-                    funcImpl.boundSignature().getReturnType().createType()
+                    funcImpl.boundSignature().returnType()
                 );
             }
             return null;

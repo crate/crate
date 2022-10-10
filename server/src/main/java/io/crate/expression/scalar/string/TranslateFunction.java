@@ -27,6 +27,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 import io.crate.user.UserLookup;
@@ -52,14 +53,14 @@ public class TranslateFunction extends Scalar<String, String> {
     }
 
     private final Signature signature;
-    private final Signature boundSignature;
+    private final BoundSignature boundSignature;
     private final Map<Character, Character> tmap;
 
-    private TranslateFunction(Signature signature, Signature boundSignature) {
+    private TranslateFunction(Signature signature, BoundSignature boundSignature) {
         this(signature, boundSignature, null);
     }
 
-    public TranslateFunction(Signature signature, Signature boundSignature, Map<Character, Character> tmap) {
+    public TranslateFunction(Signature signature, BoundSignature boundSignature, Map<Character, Character> tmap) {
         this.signature = signature;
         this.boundSignature = boundSignature;
         this.tmap = tmap;
@@ -128,7 +129,7 @@ public class TranslateFunction extends Scalar<String, String> {
     }
 
     @Override
-    public Signature boundSignature() {
+    public BoundSignature boundSignature() {
         return boundSignature;
     }
 }

@@ -91,7 +91,7 @@ public abstract class AbstractTableFunctionsTest extends ESTestCase {
             assertThat(
                 "If the rowType has multiple elements, the returnType of the boundSignature " +
                 "must be an exact match of the returnType",
-                functionImplementation.boundSignature().getReturnType().createType(),
+                functionImplementation.boundSignature().returnType(),
                 is(functionImplementation.returnType())
             );
         }

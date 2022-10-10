@@ -26,6 +26,7 @@ import io.crate.data.Row;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.window.WindowFrameState;
 import io.crate.execution.engine.window.WindowFunction;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.module.ExtraFunctionsModule;
 import io.crate.types.DataTypes;
@@ -41,12 +42,12 @@ public class RankFunctions implements WindowFunction {
     private static final String DENSE_RANK_NAME = "dense_rank";
 
     private final Signature signature;
-    private final Signature boundSignature;
+    private final BoundSignature boundSignature;
     private int seenLastUpperBound = -1;
     private int rank;
     private final IntBinaryOperator rankIncrementor;
 
-    private RankFunctions(Signature signature, Signature boundSignature, IntBinaryOperator rankIncrementor) {
+    private RankFunctions(Signature signature, BoundSignature boundSignature, IntBinaryOperator rankIncrementor) {
         this.signature = signature;
         this.boundSignature = boundSignature;
         this.rankIncrementor = rankIncrementor;
@@ -58,7 +59,7 @@ public class RankFunctions implements WindowFunction {
     }
 
     @Override
-    public Signature boundSignature() {
+    public BoundSignature boundSignature() {
         return boundSignature;
     }
 

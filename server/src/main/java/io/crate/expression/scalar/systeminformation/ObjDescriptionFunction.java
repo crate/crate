@@ -27,6 +27,7 @@ import io.crate.metadata.FunctionName;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.types.DataTypes;
@@ -49,9 +50,9 @@ public final class ObjDescriptionFunction extends Scalar<String, Object> {
     }
 
     private final Signature signature;
-    private final Signature boundSignature;
+    private final BoundSignature boundSignature;
 
-    public ObjDescriptionFunction(Signature signature, Signature boundSignature) {
+    public ObjDescriptionFunction(Signature signature, BoundSignature boundSignature) {
         this.signature = signature;
         this.boundSignature = boundSignature;
     }
@@ -69,7 +70,7 @@ public final class ObjDescriptionFunction extends Scalar<String, Object> {
     }
 
     @Override
-    public Signature boundSignature() {
+    public BoundSignature boundSignature() {
         return boundSignature;
     }
 }

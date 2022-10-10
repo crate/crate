@@ -26,6 +26,7 @@ import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
@@ -45,9 +46,9 @@ public final class PgGetFunctionResultFunction extends Scalar<String, Integer> {
 
 
     private final Signature signature;
-    private final Signature boundSignature;
+    private final BoundSignature boundSignature;
 
-    public PgGetFunctionResultFunction(Signature signature, Signature boundSignature) {
+    public PgGetFunctionResultFunction(Signature signature, BoundSignature boundSignature) {
         this.signature = signature;
         this.boundSignature = boundSignature;
     }
@@ -58,7 +59,7 @@ public final class PgGetFunctionResultFunction extends Scalar<String, Integer> {
     }
 
     @Override
-    public Signature boundSignature() {
+    public BoundSignature boundSignature() {
         return boundSignature;
     }
 

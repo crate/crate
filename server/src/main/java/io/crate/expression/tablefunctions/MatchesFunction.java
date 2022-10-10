@@ -32,6 +32,7 @@ import io.crate.legacy.LegacySettings;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.types.DataTypes;
@@ -92,14 +93,14 @@ public final class MatchesFunction extends TableFunctionImplementation<List<Obje
     @Nullable
     private final Pattern pattern;
     private final Signature signature;
-    private final Signature boundSignature;
+    private final BoundSignature boundSignature;
     private final RowType returnType;
 
-    private MatchesFunction(Signature signature, Signature boundSignature, RowType returnType) {
+    private MatchesFunction(Signature signature, BoundSignature boundSignature, RowType returnType) {
         this(signature, boundSignature, null, returnType);
     }
 
-    private MatchesFunction(Signature signature, Signature boundSignature, @Nullable Pattern pattern, RowType returnType) {
+    private MatchesFunction(Signature signature, BoundSignature boundSignature, @Nullable Pattern pattern, RowType returnType) {
         this.signature = signature;
         this.boundSignature = boundSignature;
         this.pattern = pattern;
@@ -112,7 +113,7 @@ public final class MatchesFunction extends TableFunctionImplementation<List<Obje
     }
 
     @Override
-    public Signature boundSignature() {
+    public BoundSignature boundSignature() {
         return boundSignature;
     }
 

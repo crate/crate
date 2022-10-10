@@ -21,13 +21,14 @@
 
 package io.crate.metadata;
 
-import io.crate.metadata.functions.Signature;
-
 import java.util.function.BiFunction;
+
+import io.crate.metadata.functions.BoundSignature;
+import io.crate.metadata.functions.Signature;
 
 public class FunctionProvider {
 
-    public interface FunctionFactory extends BiFunction<Signature, Signature, FunctionImplementation> {
+    public interface FunctionFactory extends BiFunction<Signature, BoundSignature, FunctionImplementation> {
     }
 
     private final Signature signature;

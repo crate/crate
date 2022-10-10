@@ -46,6 +46,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.FunctionProvider.FunctionFactory;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.BoundVariables;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.functions.SignatureBinder;
@@ -177,10 +178,7 @@ public class Functions {
         }
         for (var candidate : candidates) {
             if (candidate.getSignature().equals(signature)) {
-                var boundSignature = Signature.builder(signature)
-                    .argumentTypes(Lists2.map(actualArgumentTypes, DataType::getTypeSignature))
-                    .returnType(actualReturnType.getTypeSignature())
-                    .build();
+                var boundSignature = new BoundSignature(actualArgumentTypes, actualReturnType);
                 return candidate.getFactory().apply(signature, boundSignature);
             }
         }
@@ -264,7 +262,7 @@ public class Functions {
                                                                   SignatureBinder.CoercionType coercionType) {
         List<ApplicableFunction> applicableFunctions = new ArrayList<>();
         for (FunctionProvider candidate : candidates) {
-            Signature boundSignature = new SignatureBinder(candidate.getSignature(), coercionType)
+            BoundSignature boundSignature = new SignatureBinder(candidate.getSignature(), coercionType)
                 .bind(arguments);
             if (boundSignature != null) {
                 applicableFunctions.add(
@@ -447,7 +445,7 @@ public class Functions {
      */
     private static boolean isMoreSpecificThan(ApplicableFunction left,
                                               ApplicableFunction right) {
-        List<DataType<?>> resolvedTypes = left.getBoundSignature().getArgumentDataTypes();
+        List<DataType<?>> resolvedTypes = left.getBoundSignature().argTypes();
         BoundVariables boundVariables = SignatureBinder.withPrecedenceOnly(right.getDeclaredSignature())
             .bindVariables(resolvedTypes);
         if (boundVariables == null) {
@@ -475,7 +473,7 @@ public class Functions {
 
     private static boolean returnTypeIsTheSame(List<ApplicableFunction> applicableFunctions) {
         Set<DataType<?>> returnTypes = applicableFunctions.stream()
-            .map(function -> function.getBoundSignature().getReturnType().createType())
+            .map(function -> function.getBoundSignature().returnType())
             .collect(Collectors.toSet());
         return returnTypes.size() == 1;
     }
@@ -494,11 +492,11 @@ public class Functions {
     private static class ApplicableFunction implements Supplier<FunctionImplementation> {
 
         private final Signature declaredSignature;
-        private final Signature boundSignature;
+        private final BoundSignature boundSignature;
         private final FunctionFactory factory;
 
         public ApplicableFunction(Signature declaredSignature,
-                                  Signature boundSignature,
+                                  BoundSignature boundSignature,
                                   FunctionFactory factory) {
             this.declaredSignature = declaredSignature;
             this.boundSignature = boundSignature;
@@ -509,7 +507,7 @@ public class Functions {
             return declaredSignature;
         }
 
-        public Signature getBoundSignature() {
+        public BoundSignature getBoundSignature() {
             return boundSignature;
         }
 

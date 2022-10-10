@@ -50,6 +50,7 @@ import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.sort.OrderingByPosition;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.sql.tree.FrameBound;
 import io.crate.sql.tree.WindowFrame;
@@ -408,8 +409,8 @@ public class WindowBatchIteratorTest {
             }
 
             @Override
-            public Signature boundSignature() {
-                return signature();
+            public BoundSignature boundSignature() {
+                return BoundSignature.sameAsUnbound(signature());
             }
         };
     }
@@ -431,8 +432,8 @@ public class WindowBatchIteratorTest {
             }
 
             @Override
-            public Signature boundSignature() {
-                return signature();
+            public BoundSignature boundSignature() {
+                return BoundSignature.sameAsUnbound(signature());
             }
         };
     }
@@ -454,8 +455,8 @@ public class WindowBatchIteratorTest {
             }
 
             @Override
-            public Signature boundSignature() {
-                return signature();
+            public BoundSignature boundSignature() {
+                return BoundSignature.sameAsUnbound(signature());
             }
         };
     }

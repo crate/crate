@@ -27,6 +27,7 @@ import io.crate.breaker.SizeEstimatorFactory;
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.memory.MemoryManager;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import org.elasticsearch.Version;
@@ -54,13 +55,13 @@ public final class ArrayAgg extends AggregationFunction<List<Object>, List<Objec
     }
 
     private final Signature signature;
-    private final Signature boundSignature;
+    private final BoundSignature boundSignature;
     private final SizeEstimator<Object> sizeEstimator;
 
-    public ArrayAgg(Signature signature, Signature boundSignature) {
+    public ArrayAgg(Signature signature, BoundSignature boundSignature) {
         this.signature = signature;
         this.boundSignature = boundSignature;
-        this.sizeEstimator = SizeEstimatorFactory.create(boundSignature.getArgumentDataTypes().get(0));
+        this.sizeEstimator = SizeEstimatorFactory.create(boundSignature.argTypes().get(0));
     }
 
     @Override
@@ -69,7 +70,7 @@ public final class ArrayAgg extends AggregationFunction<List<Object>, List<Objec
     }
 
     @Override
-    public Signature boundSignature() {
+    public BoundSignature boundSignature() {
         return boundSignature;
     }
 
@@ -105,6 +106,6 @@ public final class ArrayAgg extends AggregationFunction<List<Object>, List<Objec
 
     @Override
     public DataType<?> partialType() {
-        return boundSignature.getReturnType().createType();
+        return boundSignature.returnType();
     }
 }

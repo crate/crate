@@ -146,7 +146,7 @@ public class ProjectionBuilder {
             var valueType = mode.returnType(aggregationFunction);
             Aggregation aggregation = new Aggregation(
                 aggregationFunction.signature(),
-                aggregationFunction.boundSignature().getReturnType().createType(),
+                aggregationFunction.boundSignature().returnType(),
                 valueType,
                 Lists2.map(aggregationInputs, subQueryAndParamBinder),
                 subQueryAndParamBinder.apply(filterInput)

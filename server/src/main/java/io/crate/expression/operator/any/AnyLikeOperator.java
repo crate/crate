@@ -32,6 +32,7 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.lucene.LuceneQueryBuilder.Context;
 import io.crate.metadata.Reference;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -43,11 +44,11 @@ public final class AnyLikeOperator extends AnyOperator {
     private final CaseSensitivity caseSensitivity;
 
     public AnyLikeOperator(Signature signature,
-                           Signature boundSignature,
+                           BoundSignature boundSignature,
                            CaseSensitivity caseSensitivity) {
         super(signature, boundSignature);
         this.caseSensitivity = caseSensitivity;
-        DataType<?> innerType = ((ArrayType<?>) boundSignature.getArgumentDataTypes().get(1)).innerType();
+        DataType<?> innerType = ((ArrayType<?>) boundSignature.argTypes().get(1)).innerType();
         if (innerType.id() == ObjectType.ID) {
             throw new IllegalArgumentException("ANY on object arrays is not supported");
         }

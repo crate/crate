@@ -27,6 +27,7 @@ import io.crate.breaker.SizeEstimatorFactory;
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.memory.MemoryManager;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -67,13 +68,13 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
     }
 
     private final Signature signature;
-    private final Signature boundSignature;
+    private final BoundSignature boundSignature;
     private final DataType<?> partialReturnType;
     private final SizeEstimator<Object> innerTypeEstimator;
 
-    private CollectSetAggregation(Signature signature, Signature boundSignature) {
+    private CollectSetAggregation(Signature signature, BoundSignature boundSignature) {
         this.innerTypeEstimator = SizeEstimatorFactory.create(
-            ((ArrayType<?>) boundSignature.getReturnType().createType()).innerType()
+            ((ArrayType<?>) boundSignature.returnType()).innerType()
         );
         this.signature = signature;
         this.boundSignature = boundSignature;
@@ -86,7 +87,7 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
     }
 
     @Override
-    public Signature boundSignature() {
+    public BoundSignature boundSignature() {
         return boundSignature;
     }
 
@@ -170,12 +171,12 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
         private final SizeEstimator<Object> innerTypeEstimator;
 
         private final Signature signature;
-        private final Signature boundSignature;
+        private final BoundSignature boundSignature;
         private final DataType<?> partialType;
 
-        RemovableCumulativeCollectSet(Signature signature, Signature boundSignature) {
+        RemovableCumulativeCollectSet(Signature signature, BoundSignature boundSignature) {
             this.innerTypeEstimator = SizeEstimatorFactory.create(
-                ((ArrayType<?>) boundSignature.getReturnType().createType()).innerType()
+                ((ArrayType<?>) boundSignature.returnType()).innerType()
             );
             this.signature = signature;
             this.boundSignature = boundSignature;
@@ -285,7 +286,7 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
         }
 
         @Override
-        public Signature boundSignature() {
+        public BoundSignature boundSignature() {
             return boundSignature;
         }
     }

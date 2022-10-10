@@ -89,35 +89,18 @@ public class SignatureBinder {
     }
 
     @Nullable
-    public Signature bind(List<DataType<?>> actualArgumentTypes) {
+    public BoundSignature bind(List<DataType<?>> actualArgumentTypes) {
         BoundVariables boundVariables = bindVariables(actualArgumentTypes);
         if (boundVariables == null) {
             return null;
         }
-        return applyBoundVariables(declaredSignature, boundVariables, typeVariableConstraints, actualArgumentTypes.size());
-    }
-
-    @Nullable
-    public BoundVariables bindVariables(List<DataType<?>> actualArgumentTypes) {
-        ArrayList<TypeConstraintSolver> constraintSolvers = new ArrayList<>();
-        if (!appendConstraintSolversForArguments(constraintSolvers, actualArgumentTypes)) {
-            return null;
-        }
-
-        return iterativeSolve(Collections.unmodifiableList(constraintSolvers));
-    }
-
-    @Nullable
-    private static Signature applyBoundVariables(Signature signature,
-                                                 BoundVariables boundVariables,
-                                                 Map<String, TypeVariableConstraint> typeVariableConstraints,
-                                                 int arity) {
+        int arity = actualArgumentTypes.size();
         List<TypeSignature> argumentSignatures;
-        var bindingInfo = signature.getBindingInfo();
+        var bindingInfo = declaredSignature.getBindingInfo();
         assert bindingInfo != null : "Expecting the signature's binding info to be not null";
         if (bindingInfo.isVariableArity()) {
             argumentSignatures = expandVarargFormalTypeSignature(
-                signature.getArgumentTypes(),
+                declaredSignature.getArgumentTypes(),
                 bindingInfo.getVariableArityGroup(),
                 typeVariableConstraints,
                 arity);
@@ -129,24 +112,31 @@ public class SignatureBinder {
                 return null;
             }
         } else {
-            if (signature.getArgumentTypes().size() != arity) {
+            if (declaredSignature.getArgumentTypes().size() != arity) {
                 if (LOGGER.isDebugEnabled()) {
                     LOGGER.debug("Size of argument types does not match given arity");
                 }
                 return null;
             }
-            argumentSignatures = signature.getArgumentTypes();
+            argumentSignatures = declaredSignature.getArgumentTypes();
         }
         List<TypeSignature> boundArgumentSignatures = applyBoundVariables(argumentSignatures, boundVariables);
-        TypeSignature boundReturnTypeSignature = applyBoundVariables(signature.getReturnType(), boundVariables);
+        TypeSignature boundReturnTypeSignature = applyBoundVariables(declaredSignature.getReturnType(), boundVariables);
 
-        return Signature.builder()
-            .name(signature.getName())
-            .kind(signature.getKind())
-            .argumentTypes(boundArgumentSignatures)
-            .returnType(boundReturnTypeSignature)
-            .setVariableArity(false)
-            .build();
+        return new BoundSignature(
+            Lists2.map(boundArgumentSignatures, TypeSignature::createType),
+            boundReturnTypeSignature.createType()
+        );
+    }
+
+    @Nullable
+    public BoundVariables bindVariables(List<DataType<?>> actualArgumentTypes) {
+        ArrayList<TypeConstraintSolver> constraintSolvers = new ArrayList<>();
+        if (!appendConstraintSolversForArguments(constraintSolvers, actualArgumentTypes)) {
+            return null;
+        }
+
+        return iterativeSolve(Collections.unmodifiableList(constraintSolvers));
     }
 
     private static List<TypeSignature> applyBoundVariables(List<TypeSignature> typeSignatures,

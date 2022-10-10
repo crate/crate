@@ -28,6 +28,7 @@ import io.crate.metadata.FunctionName;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.types.DataTypes;
@@ -38,7 +39,7 @@ public final class PgPostmasterStartTime extends Scalar<Long, Void> {
     private static final FunctionName FQN = new FunctionName(PgCatalogSchemaInfo.NAME, NAME);
 
     private final Signature signature;
-    private final Signature boundSignature;
+    private final BoundSignature boundSignature;
 
 
     public static void register(ScalarFunctionModule module) {
@@ -51,7 +52,7 @@ public final class PgPostmasterStartTime extends Scalar<Long, Void> {
         );
     }
 
-    public PgPostmasterStartTime(Signature signature, Signature boundSignature) {
+    public PgPostmasterStartTime(Signature signature, BoundSignature boundSignature) {
         this.signature = signature;
         this.boundSignature = boundSignature;
     }
@@ -63,7 +64,7 @@ public final class PgPostmasterStartTime extends Scalar<Long, Void> {
     }
 
     @Override
-    public Signature boundSignature() {
+    public BoundSignature boundSignature() {
         return boundSignature;
     }
 

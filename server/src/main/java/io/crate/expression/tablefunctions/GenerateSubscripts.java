@@ -26,6 +26,7 @@ import io.crate.data.Row;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
@@ -68,9 +69,9 @@ public final class GenerateSubscripts<T> extends TableFunctionImplementation<T> 
     }
 
     private final Signature signature;
-    private final Signature boundSignature;
+    private final BoundSignature boundSignature;
 
-    private GenerateSubscripts(Signature signature, Signature boundSignature) {
+    private GenerateSubscripts(Signature signature, BoundSignature boundSignature) {
         this.signature = signature;
         this.boundSignature = boundSignature;
     }
@@ -153,7 +154,7 @@ public final class GenerateSubscripts<T> extends TableFunctionImplementation<T> 
     }
 
     @Override
-    public Signature boundSignature() {
+    public BoundSignature boundSignature() {
         return boundSignature;
     }
 

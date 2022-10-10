@@ -38,6 +38,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.lucene.LuceneQueryBuilder.Context;
 import io.crate.metadata.Reference;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.sql.tree.ComparisonExpression;
 import io.crate.types.ArrayType;
@@ -49,7 +50,7 @@ public final class AnyEqOperator extends AnyOperator {
 
     public static String NAME = OPERATOR_PREFIX + ComparisonExpression.Type.EQUAL.getValue();
 
-    AnyEqOperator(Signature signature, Signature boundSignature) {
+    AnyEqOperator(Signature signature, BoundSignature boundSignature) {
         super(signature, boundSignature);
     }
 

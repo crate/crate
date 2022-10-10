@@ -32,6 +32,7 @@ import io.crate.lucene.LuceneQueryBuilder.Context;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
@@ -63,9 +64,9 @@ public class Ignore3vlFunction extends Scalar<Boolean, Boolean> {
     }
 
     private final Signature signature;
-    private final Signature boundSignature;
+    private final BoundSignature boundSignature;
 
-    public Ignore3vlFunction(Signature signature, Signature boundSignature) {
+    public Ignore3vlFunction(Signature signature, BoundSignature boundSignature) {
         this.signature = signature;
         this.boundSignature = boundSignature;
     }
@@ -86,7 +87,7 @@ public class Ignore3vlFunction extends Scalar<Boolean, Boolean> {
     }
 
     @Override
-    public Signature boundSignature() {
+    public BoundSignature boundSignature() {
         return boundSignature;
     }
 

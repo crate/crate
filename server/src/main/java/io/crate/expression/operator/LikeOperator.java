@@ -36,17 +36,18 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 
 public class LikeOperator extends Operator<String> {
 
     private final Signature signature;
-    private final Signature boundSignature;
+    private final BoundSignature boundSignature;
     private final TriPredicate<String, String, CaseSensitivity> matcher;
     private final CaseSensitivity caseSensitivity;
 
     public LikeOperator(Signature signature,
-                        Signature boundSignature,
+                        BoundSignature boundSignature,
                         TriPredicate<String, String, CaseSensitivity> matcher,
                         CaseSensitivity caseSensitivity) {
         this.signature = signature;
@@ -61,7 +62,7 @@ public class LikeOperator extends Operator<String> {
     }
 
     @Override
-    public Signature boundSignature() {
+    public BoundSignature boundSignature() {
         return boundSignature;
     }
 
@@ -101,10 +102,10 @@ public class LikeOperator extends Operator<String> {
 
     private static class CompiledLike extends Scalar<Boolean, String> {
         private final Signature signature;
-        private final Signature boundSignature;
+        private final BoundSignature boundSignature;
         private final Pattern pattern;
 
-        CompiledLike(Signature signature, Signature boundSignature, String pattern, CaseSensitivity caseSensitivity) {
+        CompiledLike(Signature signature, BoundSignature boundSignature, String pattern, CaseSensitivity caseSensitivity) {
             this.signature = signature;
             this.boundSignature = boundSignature;
             this.pattern = LikeOperators.makePattern(pattern, caseSensitivity);
@@ -116,7 +117,7 @@ public class LikeOperator extends Operator<String> {
         }
 
         @Override
-        public Signature boundSignature() {
+        public BoundSignature boundSignature() {
             return boundSignature;
         }
 

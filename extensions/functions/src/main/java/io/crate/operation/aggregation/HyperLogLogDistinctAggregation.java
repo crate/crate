@@ -57,6 +57,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.module.ExtraFunctionsModule;
 import io.crate.types.BooleanType;
@@ -105,11 +106,11 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
     }
 
     private final Signature signature;
-    private final Signature boundSignature;
+    private final BoundSignature boundSignature;
     private final DataType<?> dataType;
 
     private HyperLogLogDistinctAggregation(Signature signature,
-                                           Signature boundSignature,
+                                           BoundSignature boundSignature,
                                            DataType<?> dataType) {
         this.signature = signature;
         this.boundSignature = boundSignature;
@@ -311,7 +312,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
     }
 
     @Override
-    public Signature boundSignature() {
+    public BoundSignature boundSignature() {
         return boundSignature;
     }
 

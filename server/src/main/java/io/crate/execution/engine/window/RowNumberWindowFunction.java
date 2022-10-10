@@ -24,6 +24,7 @@ package io.crate.execution.engine.window;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.execution.engine.collect.CollectExpression;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
@@ -45,9 +46,9 @@ public class RowNumberWindowFunction implements WindowFunction {
     }
 
     private final Signature signature;
-    private final Signature boundSignature;
+    private final BoundSignature boundSignature;
 
-    private RowNumberWindowFunction(Signature signature, Signature boundSignature) {
+    private RowNumberWindowFunction(Signature signature, BoundSignature boundSignature) {
         this.signature = signature;
         this.boundSignature = boundSignature;
     }
@@ -70,7 +71,7 @@ public class RowNumberWindowFunction implements WindowFunction {
     }
 
     @Override
-    public Signature boundSignature() {
+    public BoundSignature boundSignature() {
         return boundSignature;
     }
 }

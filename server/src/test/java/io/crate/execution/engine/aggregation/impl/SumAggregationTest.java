@@ -67,16 +67,16 @@ public class SumAggregationTest extends AggregationTestCase {
     @Test
     public void testReturnType() throws Exception {
         DataType<?> type = DataTypes.DOUBLE;
-        assertThat(getSum(type).boundSignature().getReturnType(), is(type.getTypeSignature()));
+        assertThat(getSum(type).boundSignature().returnType().getTypeSignature(), is(type.getTypeSignature()));
 
         type = DataTypes.FLOAT;
-        assertThat(getSum(type).boundSignature().getReturnType(), is(type.getTypeSignature()));
+        assertThat(getSum(type).boundSignature().returnType().getTypeSignature(), is(type.getTypeSignature()));
 
         type = DataTypes.LONG;
-        assertThat(getSum(type).boundSignature().getReturnType(), is(type.getTypeSignature()));
-        assertThat(getSum(DataTypes.INTEGER).boundSignature().getReturnType(), is(type.getTypeSignature()));
-        assertThat(getSum(DataTypes.SHORT).boundSignature().getReturnType(), is(type.getTypeSignature()));
-        assertThat(getSum(DataTypes.BYTE).boundSignature().getReturnType(), is(type.getTypeSignature()));
+        assertThat(getSum(type).boundSignature().returnType().getTypeSignature(), is(type.getTypeSignature()));
+        assertThat(getSum(DataTypes.INTEGER).boundSignature().returnType().getTypeSignature(), is(type.getTypeSignature()));
+        assertThat(getSum(DataTypes.SHORT).boundSignature().returnType().getTypeSignature(), is(type.getTypeSignature()));
+        assertThat(getSum(DataTypes.BYTE).boundSignature().returnType().getTypeSignature(), is(type.getTypeSignature()));
     }
 
     private FunctionImplementation getSum(DataType<?> type) {

@@ -35,6 +35,7 @@ import io.crate.lucene.LuceneQueryBuilder.Context;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.EqQuery;
 import io.crate.types.StorageSupport;
@@ -42,10 +43,10 @@ import io.crate.types.StorageSupport;
 public final class CmpOperator extends Operator<Object> {
 
     private final Signature signature;
-    private final Signature boundSignature;
+    private final BoundSignature boundSignature;
     private final IntPredicate isMatch;
 
-    public CmpOperator(Signature signature, Signature boundSignature, IntPredicate cmpResultIsMatch) {
+    public CmpOperator(Signature signature, BoundSignature boundSignature, IntPredicate cmpResultIsMatch) {
         this.signature = signature;
         this.boundSignature = boundSignature;
         this.isMatch = cmpResultIsMatch;
@@ -57,7 +58,7 @@ public final class CmpOperator extends Operator<Object> {
     }
 
     @Override
-    public Signature boundSignature() {
+    public BoundSignature boundSignature() {
         return boundSignature;
     }
 

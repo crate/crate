@@ -28,6 +28,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
@@ -73,9 +74,9 @@ public abstract class ConcatFunction extends Scalar<String, String> {
     }
 
     private final Signature signature;
-    private final Signature boundSignature;
+    private final BoundSignature boundSignature;
 
-    ConcatFunction(Signature signature, Signature boundSignature) {
+    ConcatFunction(Signature signature, BoundSignature boundSignature) {
         this.signature = signature;
         this.boundSignature = boundSignature;
     }
@@ -86,7 +87,7 @@ public abstract class ConcatFunction extends Scalar<String, String> {
     }
 
     @Override
-    public Signature boundSignature() {
+    public BoundSignature boundSignature() {
         return boundSignature;
     }
 
@@ -100,12 +101,12 @@ public abstract class ConcatFunction extends Scalar<String, String> {
             inputs[i] = ((Input) function.arguments().get(i));
         }
         //noinspection unchecked
-        return Literal.ofUnchecked(boundSignature.getReturnType().createType(), evaluate(txnCtx, nodeCtx, inputs));
+        return Literal.ofUnchecked(boundSignature.returnType(), evaluate(txnCtx, nodeCtx, inputs));
     }
 
     static class StringConcatFunction extends ConcatFunction {
 
-        StringConcatFunction(Signature signature, Signature boundSignature) {
+        StringConcatFunction(Signature signature, BoundSignature boundSignature) {
             super(signature, boundSignature);
         }
 
@@ -128,7 +129,7 @@ public abstract class ConcatFunction extends Scalar<String, String> {
 
     private static class GenericConcatFunction extends ConcatFunction {
 
-        public GenericConcatFunction(Signature signature, Signature boundSignature) {
+        public GenericConcatFunction(Signature signature, BoundSignature boundSignature) {
             super(signature, boundSignature);
         }
 

@@ -25,6 +25,7 @@ import io.crate.data.Input;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
@@ -49,9 +50,9 @@ public class CollectionCountFunction extends Scalar<Long, List<Object>> {
     }
 
     private final Signature signature;
-    private final Signature boundSignature;
+    private final BoundSignature boundSignature;
 
-    private CollectionCountFunction(Signature signature, Signature boundSignature) {
+    private CollectionCountFunction(Signature signature, BoundSignature boundSignature) {
         this.signature = signature;
         this.boundSignature = boundSignature;
     }
@@ -71,7 +72,7 @@ public class CollectionCountFunction extends Scalar<Long, List<Object>> {
     }
 
     @Override
-    public Signature boundSignature() {
+    public BoundSignature boundSignature() {
         return boundSignature;
     }
 }

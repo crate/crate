@@ -39,6 +39,7 @@ import io.crate.metadata.IndexParts;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.doc.DocTableInfoFactory;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Expression;
@@ -261,7 +262,12 @@ public class UserDefinedFunctionService {
 
         final Scalar<?, ?> scalar;
         try {
-            scalar = getLanguage(udf.language()).createFunctionImplementation(udf, signature);
+            UDFLanguage language = getLanguage(udf.language());
+            scalar = language.createFunctionImplementation(
+                udf,
+                signature,
+                new BoundSignature(udf.argumentTypes(), udf.returnType())
+            );
         } catch (ScriptException | IllegalArgumentException e) {
             LOGGER.warn("Can't create user defined function: " + udf.specificName(), e);
             return null;

@@ -47,6 +47,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.ByteType;
 import io.crate.types.DataType;
@@ -213,10 +214,10 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
     }
 
     private final Signature signature;
-    private final Signature boundSignature;
+    private final BoundSignature boundSignature;
     private final boolean isIntegral;
 
-    AverageAggregation(Signature signature, Signature boundSignature, boolean isIntegral) {
+    AverageAggregation(Signature signature, BoundSignature boundSignature, boolean isIntegral) {
         this.signature = signature;
         this.boundSignature = boundSignature;
         this.isIntegral = isIntegral;
@@ -292,7 +293,7 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
     }
 
     @Override
-    public Signature boundSignature() {
+    public BoundSignature boundSignature() {
         return boundSignature;
     }
 

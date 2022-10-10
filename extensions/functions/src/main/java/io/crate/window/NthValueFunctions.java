@@ -27,6 +27,7 @@ import io.crate.data.RowN;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.window.WindowFrameState;
 import io.crate.execution.engine.window.WindowFunction;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.module.ExtraFunctionsModule;
 import io.crate.types.DataTypes;
@@ -207,13 +208,13 @@ public class NthValueFunctions implements WindowFunction {
 
     private final Implementation implementation;
     private final Signature signature;
-    private final Signature boundSignature;
+    private final BoundSignature boundSignature;
     private int seenFrameLowerBound = -1;
     private int seenFrameUpperBound = -1;
     private Object resultForCurrentFrame = null;
 
     private NthValueFunctions(Signature signature,
-                              Signature boundSignature,
+                              BoundSignature boundSignature,
                               Implementation implementation) {
         this.signature = signature;
         this.boundSignature = boundSignature;
@@ -226,7 +227,7 @@ public class NthValueFunctions implements WindowFunction {
     }
 
     @Override
-    public Signature boundSignature() {
+    public BoundSignature boundSignature() {
         return boundSignature;
     }
 

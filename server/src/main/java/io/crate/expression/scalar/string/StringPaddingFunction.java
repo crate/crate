@@ -27,6 +27,7 @@ import io.crate.expression.scalar.ThreeParametersFunction;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
@@ -105,11 +106,11 @@ public class StringPaddingFunction extends Scalar<String, Object> {
     }
 
     private final Signature signature;
-    private final Signature boundSignature;
+    private final BoundSignature boundSignature;
     private final ThreeParametersFunction<char[], Integer, char[], String> func;
 
     private StringPaddingFunction(Signature signature,
-                                  Signature boundSignature,
+                                  BoundSignature boundSignature,
                                   ThreeParametersFunction<char[], Integer, char[], String> func) {
         this.signature = signature;
         this.boundSignature = boundSignature;
@@ -122,7 +123,7 @@ public class StringPaddingFunction extends Scalar<String, Object> {
     }
 
     @Override
-    public Signature boundSignature() {
+    public BoundSignature boundSignature() {
         return boundSignature;
     }
 

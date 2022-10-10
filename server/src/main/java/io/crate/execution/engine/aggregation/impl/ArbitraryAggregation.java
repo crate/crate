@@ -45,6 +45,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.ByteType;
 import io.crate.types.DataType;
@@ -75,10 +76,10 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
     }
 
     private final Signature signature;
-    private final Signature boundSignature;
+    private final BoundSignature boundSignature;
     private final SizeEstimator<Object> partialEstimator;
 
-    ArbitraryAggregation(Signature signature, Signature boundSignature) {
+    ArbitraryAggregation(Signature signature, BoundSignature boundSignature) {
         this.signature = signature;
         this.boundSignature = boundSignature;
         partialEstimator = SizeEstimatorFactory.create(partialType());
@@ -90,13 +91,13 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
     }
 
     @Override
-    public Signature boundSignature() {
+    public BoundSignature boundSignature() {
         return boundSignature;
     }
 
     @Override
     public DataType<?> partialType() {
-        return boundSignature.getReturnType().createType();
+        return boundSignature.returnType();
     }
 
     @Nullable

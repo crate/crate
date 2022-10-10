@@ -27,6 +27,7 @@ import io.crate.legacy.LegacySettings;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
@@ -78,7 +79,7 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
                 Long::sum,
                 (x, y) -> x / y,
                 Long::compare,
-                new RowType(List.of(boundSignature.getArgumentDataTypes().get(0)), fieldNames))
+                new RowType(List.of(boundSignature.argTypes().get(0)), fieldNames))
         );
         module.register(
             Signature.table(
@@ -95,7 +96,7 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
                 Integer::sum,
                 (x, y) -> x / y,
                 Integer::compare,
-                new RowType(List.of(boundSignature.getArgumentDataTypes().get(0)), fieldNames))
+                new RowType(List.of(boundSignature.argTypes().get(0)), fieldNames))
         );
 
         // with step
@@ -115,7 +116,7 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
                 Long::sum,
                 (x, y) -> x / y,
                 Long::compare,
-                new RowType(List.of(boundSignature.getArgumentDataTypes().get(0)), fieldNames))
+                new RowType(List.of(boundSignature.argTypes().get(0)), fieldNames))
         );
         module.register(
             Signature.table(
@@ -133,7 +134,7 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
                 Integer::sum,
                 (x, y) -> x / y,
                 Integer::compare,
-                new RowType(List.of(boundSignature.getArgumentDataTypes().get(0)), fieldNames))
+                new RowType(List.of(boundSignature.argTypes().get(0)), fieldNames))
         );
 
         // generate_series(ts, ts, interval)
@@ -149,7 +150,7 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
                 (signature, boundSignature) -> new GenerateSeriesIntervals(
                     signature,
                     boundSignature,
-                    new RowType(List.of(boundSignature.getArgumentDataTypes().get(0)), fieldNames))
+                    new RowType(List.of(boundSignature.argTypes().get(0)), fieldNames))
             );
             module.register(
                 Signature.table(
@@ -160,7 +161,7 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
                 ),
                 (signature, boundSignature) -> {
                     throw new IllegalArgumentException(
-                        "generate_series(start, stop) has type `" + boundSignature.getArgumentDataTypes().get(0).getName() +
+                        "generate_series(start, stop) has type `" + boundSignature.argTypes().get(0).getName() +
                         "` for start, but requires long/int values for start and stop, " +
                         "or if used with timestamps, it requires a third argument for the step (interval)");
                 }
@@ -169,7 +170,7 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
     }
 
     private final Signature signature;
-    private final Signature boundSignature;
+    private final BoundSignature boundSignature;
     private final T defaultStep;
     private final BinaryOperator<T> minus;
     private final BinaryOperator<T> plus;
@@ -178,7 +179,7 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
     private final RowType returnType;
 
     private GenerateSeries(Signature signature,
-                           Signature boundSignature,
+                           BoundSignature boundSignature,
                            T defaultStep,
                            BinaryOperator<T> minus,
                            BinaryOperator<T> plus,
@@ -226,7 +227,7 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
     }
 
     @Override
-    public Signature boundSignature() {
+    public BoundSignature boundSignature() {
         return boundSignature;
     }
 
@@ -244,9 +245,9 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
 
         private final RowType returnType;
         private final Signature signature;
-        private final Signature boundSignature;
+        private final BoundSignature boundSignature;
 
-        public GenerateSeriesIntervals(Signature signature, Signature boundSignature, RowType returnType) {
+        public GenerateSeriesIntervals(Signature signature, BoundSignature boundSignature, RowType returnType) {
             this.signature = signature;
             this.boundSignature = boundSignature;
             this.returnType = returnType;
@@ -258,7 +259,7 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
         }
 
         @Override
-        public Signature boundSignature() {
+        public BoundSignature boundSignature() {
             return boundSignature;
         }
 
