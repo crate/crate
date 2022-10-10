@@ -112,6 +112,11 @@ public class ProjectionBuilder {
         for (Function function : functions) {
             assert function.signature().getKind() == FunctionType.AGGREGATE :
                     "function type must be " + FunctionType.AGGREGATE;
+            AggregationFunction<?, ?> aggregationFunction = (AggregationFunction<?, ?>) nodeCtx.functions().getQualified(
+                function
+            );
+            assert aggregationFunction != null :
+                "Aggregation function implementation not found using full qualified lookup: " + function;
             List<Symbol> aggregationInputs;
             Symbol filterInput;
             switch (mode) {
@@ -129,19 +134,14 @@ public class ProjectionBuilder {
                     break;
 
                 case PARTIAL_FINAL:
-                    aggregationInputs = List.of(sourceSymbols.getICForSource(function));
+                    InputColumn partialInput = sourceSymbols.getICForSource(function);
+                    aggregationInputs = List.of(new InputColumn(partialInput.index(), aggregationFunction.partialType()));
                     filterInput = Literal.BOOLEAN_TRUE;
                     break;
 
                 default:
                     throw new AssertionError("Invalid mode: " + mode.name());
             }
-
-            AggregationFunction<?, ?> aggregationFunction = (AggregationFunction<?, ?>) nodeCtx.functions().getQualified(
-                function
-            );
-            assert aggregationFunction != null :
-                "Aggregation function implementation not found using full qualified lookup: " + function;
 
             var valueType = mode.returnType(aggregationFunction);
             Aggregation aggregation = new Aggregation(

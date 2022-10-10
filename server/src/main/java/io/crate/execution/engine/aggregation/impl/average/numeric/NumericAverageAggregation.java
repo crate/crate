@@ -38,7 +38,6 @@ import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 
 import io.crate.breaker.RamAccounting;
-import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.aggregation.DocValueAggregator;
@@ -84,7 +83,7 @@ public class NumericAverageAggregation extends AggregationFunction<NumericAverag
     private final BoundSignature boundSignature;
     private final DataType<BigDecimal> returnType;
 
-    @VisibleForTesting
+    @SuppressWarnings("unchecked")
     private NumericAverageAggregation(Signature signature, BoundSignature boundSignature) {
         this.signature = signature;
         this.boundSignature = boundSignature;
@@ -95,9 +94,11 @@ public class NumericAverageAggregation extends AggregationFunction<NumericAverag
         // the return type from the signature `avg(count::numeric(16, 2))`
         // should return the type `numeric(16, 2)` not `numeric`
         var argumentType = boundSignature.argTypes().get(0);
-        assert argumentType.id() == DataTypes.NUMERIC.id();
-        //noinspection unchecked
-        this.returnType = (DataType<BigDecimal>) argumentType;
+        if (argumentType instanceof NumericAverageStateType partialType) {
+            this.returnType = (DataType<BigDecimal>) boundSignature.returnType();
+        } else {
+            this.returnType = (DataType<BigDecimal>) argumentType;
+        }
     }
 
     @Nullable
