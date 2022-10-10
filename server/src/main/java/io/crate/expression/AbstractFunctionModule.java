@@ -21,26 +21,27 @@
 
 package io.crate.expression;
 
-import io.crate.metadata.FunctionImplementation;
-import io.crate.metadata.FunctionName;
-import io.crate.metadata.FunctionProvider;
-import io.crate.metadata.functions.Signature;
-import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.common.inject.TypeLiteral;
-import org.elasticsearch.common.inject.multibindings.MapBinder;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.BiFunction;
+
+import org.elasticsearch.common.inject.AbstractModule;
+import org.elasticsearch.common.inject.TypeLiteral;
+import org.elasticsearch.common.inject.multibindings.MapBinder;
+
+import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.FunctionName;
+import io.crate.metadata.FunctionProvider;
+import io.crate.metadata.FunctionProvider.FunctionFactory;
+import io.crate.metadata.functions.Signature;
 
 public abstract class AbstractFunctionModule<T extends FunctionImplementation> extends AbstractModule {
 
     private HashMap<FunctionName, List<FunctionProvider>> functionImplementations = new HashMap<>();
     private MapBinder<FunctionName, List<FunctionProvider>> implementationsBinder;
 
-    public void register(Signature signature, BiFunction<Signature, Signature, FunctionImplementation> factory) {
+    public void register(Signature signature, FunctionFactory factory) {
         List<FunctionProvider> functions = functionImplementations.computeIfAbsent(
             signature.getName(),
             k -> new ArrayList<>());
