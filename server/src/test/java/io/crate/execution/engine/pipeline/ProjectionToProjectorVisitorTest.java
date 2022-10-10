@@ -23,8 +23,11 @@ package io.crate.execution.engine.pipeline;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static io.crate.data.SentinelRow.SENTINEL;
+import static io.crate.execution.engine.pipeline.TopN.NO_LIMIT;
+import static io.crate.execution.engine.pipeline.TopN.NO_OFFSET;
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static io.crate.testing.TestingHelpers.isRow;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
@@ -149,12 +152,31 @@ public class ProjectionToProjectorVisitorTest extends CrateDummyClusterServiceUn
     }
 
     @Test
+    public void testNoLimitWithOffsetProjection() throws Exception {
+        TopNProjection projection = new TopNProjection(NO_LIMIT, 10, Collections.singletonList(DataTypes.LONG));
+
+        Projector projector = visitor.create(
+            projection, txnCtx, RamAccounting.NO_ACCOUNTING, memoryManager, UUID.randomUUID());
+        assertThat(projector, instanceOf(OffsetProjector.class));
+    }
+
+    @Test
+    public void testNoLimitNorOffsetProjection() throws Exception {
+        TopNProjection projection = new TopNProjection(NO_LIMIT, NO_OFFSET, Collections.singletonList(DataTypes.LONG));
+
+        assertThatThrownBy(() -> visitor.create(
+            projection, txnCtx, RamAccounting.NO_ACCOUNTING, memoryManager, UUID.randomUUID()))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("LimitAndOffsetProjection should have at least one of the limit and offset set");
+    }
+
+    @Test
     public void testTopNProjectionToSortingProjector() throws Exception {
         List<Symbol> outputs = Arrays.asList(Literal.of("foo"), new InputColumn(0), new InputColumn(1));
-        OrderedTopNProjection projection = new OrderedTopNProjection(TopN.NO_LIMIT, TopN.NO_OFFSET, outputs,
-            Arrays.asList(new InputColumn(0), new InputColumn(1)),
-            new boolean[]{false, false},
-            new boolean[]{false, false}
+        OrderedTopNProjection projection = new OrderedTopNProjection(NO_LIMIT, NO_OFFSET, outputs,
+                                                                     Arrays.asList(new InputColumn(0), new InputColumn(1)),
+                                                                     new boolean[]{false, false},
+                                                                     new boolean[]{false, false}
         );
         Projector projector = visitor.create(
             projection, txnCtx, RamAccounting.NO_ACCOUNTING, memoryManager, UUID.randomUUID());

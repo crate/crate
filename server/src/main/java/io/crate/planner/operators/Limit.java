@@ -22,6 +22,7 @@
 package io.crate.planner.operators;
 
 import static io.crate.analyze.SymbolEvaluator.evaluate;
+import static io.crate.execution.engine.pipeline.TopN.NO_OFFSET;
 import static io.crate.planner.operators.LogicalPlanner.NO_LIMIT;
 
 import java.util.List;
@@ -110,6 +111,9 @@ public class Limit extends ForwardingLogicalPlan {
             plannerContext, planHints, projectionBuilder, limit, offset, order, pageSizeHint, params, subQueryResults);
         List<DataType<?>> sourceTypes = Symbols.typeView(source.outputs());
         ResultDescription resultDescription = executionPlan.resultDescription();
+        if (limit == NO_LIMIT && offset == NO_OFFSET) {
+            return executionPlan;
+        }
         if (resultDescription.hasRemainingLimitOrOffset()
             && (resultDescription.limit() != limit || resultDescription.offset() != offset)) {
 
