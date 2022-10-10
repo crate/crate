@@ -21,6 +21,7 @@
 
 package io.crate.planner.statement;
 
+import static io.crate.analyze.CopyStatementSettings.COMPRESSION_SETTING;
 import static io.crate.analyze.CopyStatementSettings.INPUT_FORMAT_SETTING;
 import static io.crate.analyze.CopyStatementSettings.settingAsEnum;
 import static io.crate.analyze.GenericPropertiesConverter.genericPropertiesToSettings;
@@ -38,11 +39,11 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
-import com.carrotsearch.hppc.cursors.ObjectCursor;
-
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.settings.Settings;
+
+import com.carrotsearch.hppc.cursors.ObjectCursor;
 
 import io.crate.analyze.AnalyzedCopyFrom;
 import io.crate.analyze.AnalyzedCopyFromReturnSummary;
@@ -325,7 +326,7 @@ public final class CopyFromPlan implements Plan {
             boundedCopyFrom.targetColumns(),
             toCollect,
             Collections.emptyList(),
-            boundedCopyFrom.settings().get("compression", null),
+            COMPRESSION_SETTING.getOrNull(boundedCopyFrom.settings()),
             boundedCopyFrom.settings().getAsBoolean("shared", null),
             CopyFromParserProperties.of(boundedCopyFrom.settings()),
             boundedCopyFrom.inputFormat(),
