@@ -72,11 +72,11 @@ E061	Basic predicates and search conditions	4	LIKE predicate	YES
 E061	Basic predicates and search conditions	5	LIKE predicate ESCAPE clause	NO		
 E061	Basic predicates and search conditions	6	NULL predicate	YES		
 E061	Basic predicates and search conditions	7	Quantified comparison predicate	NO		only ANY(array) 
-E061	Basic predicates and search conditions	8	EXISTS predicate	NO		
+E061	Basic predicates and search conditions	8	EXISTS predicate	YES		
 E061	Basic predicates and search conditions	9	Subqueries in comparison predicate	YES		
 E061	Basic predicates and search conditions	11	Subqueries in IN predicate	YES		
 E061	Basic predicates and search conditions	12	Subqueries in quantified comparison predicate	YES		
-E061	Basic predicates and search conditions	13	Correlated subqueries	NO		
+E061	Basic predicates and search conditions	13	Correlated subqueries	YES		
 E061	Basic predicates and search conditions	14	Search condition	YES		
 E071	Basic query expressions			NO		
 E071	Basic query expressions	1	UNION DISTINCT table operator	YES		
@@ -109,15 +109,15 @@ E101	Basic data manipulation	3	Searched UPDATE statement	YES
 E101	Basic data manipulation	4	Searched DELETE statement	YES		
 E111	Single row SELECT statement			NO		
 E121	Basic cursor support			NO		
-E121	Basic cursor support	1	DECLARE CURSOR	NO		
+E121	Basic cursor support	1	DECLARE CURSOR	YES		
 E121	Basic cursor support	2	ORDER BY columns need not be in select list	NO		
 E121	Basic cursor support	3	Value expressions in ORDER BY clause	NO		
 E121	Basic cursor support	4	OPEN statement	NO		
 E121	Basic cursor support	6	Positioned UPDATE statement	NO		
 E121	Basic cursor support	7	Positioned DELETE statement	NO		
-E121	Basic cursor support	8	CLOSE statement	NO		
-E121	Basic cursor support	10	FETCH statement implicit NEXT	NO		
-E121	Basic cursor support	17	WITH HOLD cursors	NO		
+E121	Basic cursor support	8	CLOSE statement	YES		
+E121	Basic cursor support	10	FETCH statement implicit NEXT	YES		
+E121	Basic cursor support	17	WITH HOLD cursors	YES		
 E131	Null value support (nulls in lieu of values)			YES		
 E141	Basic integrity constraints			NO		
 E141	Basic integrity constraints	1	NOT NULL constraints	YES		
@@ -287,7 +287,7 @@ F571	Truth value tests			YES
 F591	Derived tables			NO		
 F611	Indicator data types			NO		
 F641	Row and table constructors			NO		
-F651	Catalog name qualifiers			NO		
+F651	Catalog name qualifiers			YES		
 F661	Simple tables			NO		
 F671	Subqueries in CHECK			NO		
 F672	Retrospective check constraints			NO		
@@ -307,7 +307,7 @@ F762	CURRENT_CATALOG			NO
 F763	CURRENT_SCHEMA			YES		
 F771	Connection management			NO		crash shell only
 F781	Self-referencing operations			NO		
-F791	Insensitive cursors			NO		
+F791	Insensitive cursors			YES		
 F801	Full set function			NO		
 F812	Basic flagging			NO		
 F813	Extended flagging			NO		
