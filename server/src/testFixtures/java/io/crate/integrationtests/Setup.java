@@ -21,8 +21,7 @@
 
 package io.crate.integrationtests;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -255,7 +254,7 @@ public class Setup {
                     4, null, null, Arrays.asList("kuhl", null)
                 }
             );
-        assertThat(response.rowCount(), is(4L));
+        assertThat(response).hasRowCount(4L);
         transportExecutor.exec("refresh table any_table");
     }
 

@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -23,25 +23,17 @@ package io.crate.testing;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.sun.management.ThreadMXBean;
+import org.assertj.core.api.AbstractAssert;
 
-import java.lang.management.ManagementFactory;
-import java.util.function.Supplier;
+public final class SQLResponseAssert extends AbstractAssert<SQLResponseAssert, SQLResponse> {
 
-public final class MemoryLimits {
+    public SQLResponseAssert(SQLResponse actual) {
+        super(actual, SQLResponseAssert.class);
+    }
 
-    /**
-     * Asserts that `supplier.get` doesn't allocate more than `bytes` bytes.
-     * This is limited to the current thread and cannot account for memory accounted in other threads.
-     */
-    public static <T> T assertMaxBytesAllocated(long bytes, Supplier<T> supplier) {
-        ThreadMXBean threadMXBean = ManagementFactory.getPlatformMXBean(ThreadMXBean.class);
-        long threadId = Thread.currentThread().getId();
-        long allocatedBytesBegin = threadMXBean.getThreadAllocatedBytes(threadId);
-        T t = supplier.get();
-        long allocatedBytesAfter = threadMXBean.getThreadAllocatedBytes(threadId);
-        long allocatedBytes = allocatedBytesAfter - allocatedBytesBegin;
-        assertThat(allocatedBytes).isLessThanOrEqualTo(bytes);
-        return t;
+    public SQLResponseAssert hasRowCount(long expectedRowCount) {
+        isNotNull();
+        assertThat(actual.rowCount()).isEqualTo(expectedRowCount);
+        return this;
     }
 }
