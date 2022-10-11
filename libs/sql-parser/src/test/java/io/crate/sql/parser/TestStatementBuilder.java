@@ -534,9 +534,9 @@ public class TestStatementBuilder {
     @Test
     public void testDeallocate() {
         DeallocateStatement stmt = (DeallocateStatement) SqlParser.createStatement("DEALLOCATE test_prep_stmt");
-        assertThat(stmt.preparedStmt().toString()).isEqualTo("'test_prep_stmt'");
+        assertThat(stmt.preparedStmt()).hasToString("'test_prep_stmt'");
         stmt = (DeallocateStatement) SqlParser.createStatement("DEALLOCATE 'test_prep_stmt'");
-        assertThat(stmt.preparedStmt().toString()).isEqualTo("'test_prep_stmt'");
+        assertThat(stmt.preparedStmt()).hasToString("'test_prep_stmt'");
     }
 
     @Test
@@ -632,7 +632,7 @@ public class TestStatementBuilder {
 
         Assignment<?> assignment = stmt.assignments().get(0);
         assertThat(assignment.expressions()).hasSize(1);
-        assertThat(assignment.expressions().get(0).toString()).isEqualTo("'LICENSE_KEY'");
+        assertThat(assignment.expressions().get(0)).hasToString("'LICENSE_KEY'");
     }
 
     @Test
@@ -640,7 +640,7 @@ public class TestStatementBuilder {
         SetStatement<?> stmt = (SetStatement<?>) SqlParser.createStatement("SET TIME ZONE 'Europe/Vienna'");
         assertThat(stmt.scope()).isEqualTo(SetStatement.Scope.TIME_ZONE);
         assertThat(stmt.assignments()).hasSize(1);
-        assertThat(stmt.assignments().get(0).expressions().get(0).toString()).isEqualTo("'Europe/Vienna'");
+        assertThat(stmt.assignments().get(0).expressions().get(0)).hasToString("'Europe/Vienna'");
     }
 
     @Test
@@ -648,7 +648,7 @@ public class TestStatementBuilder {
         SetStatement<?> stmt = (SetStatement<?>) SqlParser.createStatement("SET TIME ZONE LOCAL");
         assertThat(stmt.scope()).isEqualTo(SetStatement.Scope.TIME_ZONE);
         assertThat(stmt.assignments()).hasSize(1);
-        assertThat(stmt.assignments().get(0).expressions().get(0).toString()).isEqualTo("'LOCAL'");
+        assertThat(stmt.assignments().get(0).expressions().get(0)).hasToString("'LOCAL'");
     }
 
     @Test
@@ -656,7 +656,7 @@ public class TestStatementBuilder {
         SetStatement<?> stmt = (SetStatement<?>) SqlParser.createStatement("SET TIME ZONE DEFAULT");
         assertThat(stmt.scope()).isEqualTo(SetStatement.Scope.TIME_ZONE);
         assertThat(stmt.assignments()).hasSize(1);
-        assertThat(stmt.assignments().get(0).expressions().get(0).toString()).isEqualTo("'DEFAULT'");
+        assertThat(stmt.assignments().get(0).expressions().get(0)).hasToString("'DEFAULT'");
     }
 
     @Test
@@ -1267,7 +1267,7 @@ public class TestStatementBuilder {
                 "insert into test_generated_column (id, ts) values (?, ?) on conflict (id) do update set ts = ?");
         Assignment<Expression> onDuplicateAssignment = insert.duplicateKeyContext().getAssignments().get(0);
         assertThat(onDuplicateAssignment.expression()).isExactlyInstanceOf(ParameterExpression.class);
-        assertThat(onDuplicateAssignment.expressions().get(0).toString()).isEqualTo("$3");
+        assertThat(onDuplicateAssignment.expressions().get(0)).hasToString("$3");
 
         // insert from query
         printStatement("insert into foo (id, name) select id, name from bar order by id");
@@ -1329,14 +1329,14 @@ public class TestStatementBuilder {
         printStatement("CREATE REPOSITORY \"myRepo\" TYPE \"fs\"");
         printStatement("CREATE REPOSITORY \"myRepo\" TYPE \"fs\" with (location='/mount/backups/my_backup', compress=True)");
         Statement statement = SqlParser.createStatement("CREATE REPOSITORY my_repo type s3 with (location='/mount/backups/my_backup')");
-        assertThat(statement.toString()).isEqualTo("CreateRepository{" +
+        assertThat(statement).hasToString("CreateRepository{" +
                                             "repository=my_repo, " +
                                             "type=s3, " +
                                             "properties={location='/mount/backups/my_backup'}}");
 
         printStatement("DROP REPOSITORY my_repo");
         statement = SqlParser.createStatement("DROP REPOSITORY \"myRepo\"");
-        assertThat(statement.toString()).isEqualTo("DropRepository{" +
+        assertThat(statement).hasToString("DropRepository{" +
                                             "repository=myRepo}");
     }
 
@@ -1348,7 +1348,7 @@ public class TestStatementBuilder {
         printStatement("CREATE SNAPSHOT my_repo.my_snapshot ALL with (wait_for_completion=True)");
         Statement statement = SqlParser.createStatement(
             "CREATE SNAPSHOT my_repo.my_snapshot TABLE authors PARTITION (year=2015, year=2014), books");
-        assertThat(statement.toString()).isEqualTo("CreateSnapshot{" +
+        assertThat(statement).hasToString("CreateSnapshot{" +
                                             "name=my_repo.my_snapshot, " +
                                             "properties={}, " +
                                             "tables=[Table{only=false, authors, partitionProperties=[" +
@@ -1360,7 +1360,7 @@ public class TestStatementBuilder {
     @Test
     public void testDropSnapshotStmtBuilder() {
         Statement statement = SqlParser.createStatement("DROP SNAPSHOT my_repo.my_snapshot");
-        assertThat(statement.toString()).isEqualTo("DropSnapshot{name=my_repo.my_snapshot}");
+        assertThat(statement).hasToString("DropSnapshot{name=my_repo.my_snapshot}");
     }
 
     @Test
@@ -1374,7 +1374,7 @@ public class TestStatementBuilder {
             "RESTORE SNAPSHOT my_repo.my_snapshot " +
             "TABLE authors PARTITION (year=2015, year=2014), books " +
             "WITH (wait_for_completion=True)");
-        assertThat(statement.toString()).isEqualTo("RestoreSnapshot{" +
+        assertThat(statement).hasToString("RestoreSnapshot{" +
                                             "name=my_repo.my_snapshot, " +
                                             "properties={wait_for_completion=true}, " +
                                             "tables=[" +
@@ -1383,7 +1383,7 @@ public class TestStatementBuilder {
                                             "Assignment{column=\"year\", expressions=[2014]}]}, " +
                                             "Table{only=false, books, partitionProperties=[]}]}");
         statement = SqlParser.createStatement("RESTORE SNAPSHOT my_repo.my_snapshot ALL");
-        assertThat(statement.toString()).isEqualTo("RestoreSnapshot{" +
+        assertThat(statement).hasToString("RestoreSnapshot{" +
                                             "name=my_repo.my_snapshot, " +
                                             "properties={}, " +
                                             "tables=[]}");
@@ -1459,10 +1459,10 @@ public class TestStatementBuilder {
     @Test
     public void testSafeSubscriptExpression() {
         MatchPredicate matchPredicate = (MatchPredicate) SqlParser.createExpression("match (a['1']['2'], 'abc')");
-        assertThat(matchPredicate.idents().get(0).columnIdent().toString()).isEqualTo("\"a\"['1']['2']");
+        assertThat(matchPredicate.idents().get(0).columnIdent()).hasToString("\"a\"['1']['2']");
 
         matchPredicate = (MatchPredicate) SqlParser.createExpression("match (a['1']['2']['4'], 'abc')");
-        assertThat(matchPredicate.idents().get(0).columnIdent().toString()).isEqualTo("\"a\"['1']['2']['4']");
+        assertThat(matchPredicate.idents().get(0).columnIdent()).hasToString("\"a\"['1']['2']['4']");
 
         assertThatThrownBy(
             () -> SqlParser.createExpression("match ([1]['1']['2'], 'abc')"))
@@ -1536,16 +1536,16 @@ public class TestStatementBuilder {
         ArrayLikePredicate arrayLikePredicate = (ArrayLikePredicate) expression;
         assertThat(arrayLikePredicate.inverse()).isFalse();
         assertThat(arrayLikePredicate.getEscape()).isNull();
-        assertThat(arrayLikePredicate.getPattern().toString()).isEqualTo("'books%'");
-        assertThat(arrayLikePredicate.getValue().toString()).isEqualTo("\"race\"['interests']");
+        assertThat(arrayLikePredicate.getPattern()).hasToString("'books%'");
+        assertThat(arrayLikePredicate.getValue()).hasToString("\"race\"['interests']");
 
         expression = SqlParser.createExpression("'b%' NOT LIKE ANY(race)");
         assertThat(expression).isExactlyInstanceOf(ArrayLikePredicate.class);
         arrayLikePredicate = (ArrayLikePredicate) expression;
         assertThat(arrayLikePredicate.inverse()).isTrue();
         assertThat(arrayLikePredicate.getEscape()).isNull();
-        assertThat(arrayLikePredicate.getPattern().toString()).isEqualTo("'b%'");
-        assertThat(arrayLikePredicate.getValue().toString()).isEqualTo("\"race\"");
+        assertThat(arrayLikePredicate.getPattern()).hasToString("'b%'");
+        assertThat(arrayLikePredicate.getValue()).hasToString("\"race\"");
     }
 
     @Test

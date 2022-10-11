@@ -86,7 +86,7 @@ class MockAmazonS3 extends AbstractAmazonS3 {
             assertThat(request.getMetadata().getSSEAlgorithm()).isNull();
         }
         assertThat(request.getCannedAcl()).isNotNull();
-        assertThat(request.getCannedAcl().toString()).isEqualTo(Objects.requireNonNullElse(cannedACL, "private"));
+        assertThat(request.getCannedAcl()).hasToString(Objects.requireNonNullElse(cannedACL, "private"));
 
         assertThat(request.getStorageClass()).isEqualTo(Objects.requireNonNullElse(storageClass, "STANDARD"));
 

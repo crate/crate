@@ -77,11 +77,13 @@ public class TasksServiceIntegrationTest extends IntegTestCase {
         activeTasks.setAccessible(true);
 
         assertBusy(() -> {
+            //noinspection resource
             for (TasksService tasksService : internalCluster().getInstances(TasksService.class)) {
                 Map<UUID, RootTask> tasksByJobId;
                 try {
+                    //noinspection unchecked
                     tasksByJobId = (Map<UUID, RootTask>) activeTasks.get(tasksService);
-                    assertThat(tasksByJobId.size()).isEqualTo(0);
+                    assertThat(tasksByJobId).isEmpty();
                 } catch (Exception e) {
                     fail(e.getMessage());
                 }

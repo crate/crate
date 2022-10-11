@@ -28,6 +28,7 @@ import static org.mockito.Mockito.when;
 import java.net.URI;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 
 import org.elasticsearch.test.ESTestCase;
 import org.junit.BeforeClass;
@@ -77,8 +78,8 @@ public class S3FileInputTest extends ESTestCase {
 
         List<URI> uris = s3FileInput.expandUri();
         assertThat(uris).hasSize(2);
-        assertThat(uris.get(0).toString()).isEqualTo("s3:///fakeBucket/prefix/test1.json.gz");
-        assertThat(uris.get(1).toString()).isEqualTo("s3:///fakeBucket/prefix/test2.json.gz");
+        assertThat(uris.get(0)).hasToString("s3:///fakeBucket/prefix/test1.json.gz");
+        assertThat(uris.get(1)).hasToString("s3:///fakeBucket/prefix/test2.json.gz");
     }
 
     @Test
@@ -87,8 +88,8 @@ public class S3FileInputTest extends ESTestCase {
 
         List<URI> uris = s3FileInput.expandUri();
         assertThat(uris).hasSize(2);
-        assertThat(uris.get(0).toString()).isEqualTo("s3:///fakeBucket/prefix/test1.json.gz");
-        assertThat(uris.get(1).toString()).isEqualTo("s3:///fakeBucket/prefix/test2.json.gz");
+        assertThat(uris.get(0)).hasToString("s3:///fakeBucket/prefix/test1.json.gz");
+        assertThat(uris.get(1)).hasToString("s3:///fakeBucket/prefix/test2.json.gz");
     }
 
     private List<S3ObjectSummary> objectSummaries() {
@@ -119,7 +120,7 @@ public class S3FileInputTest extends ESTestCase {
             );
         var preGlobURIs = uris.stream()
             .map(URI::create)
-            .map(u -> S3FileInput.toPreGlobUri(S3URI.toS3URI(u)).toString())
+            .map(u -> Objects.requireNonNull(S3FileInput.toPreGlobUri(S3URI.toS3URI(u))).toString())
             .toList();
         assertThat(preGlobURIs).isEqualTo(List.of(
             "s3:///fakeBucket3/",
