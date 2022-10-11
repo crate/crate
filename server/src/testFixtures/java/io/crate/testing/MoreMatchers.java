@@ -21,26 +21,12 @@
 
 package io.crate.testing;
 
-import org.hamcrest.FeatureMatcher;
-import org.hamcrest.Matcher;
-import org.hamcrest.Matchers;
-
 import java.util.function.Function;
 
+import org.hamcrest.FeatureMatcher;
+import org.hamcrest.Matcher;
+
 public class MoreMatchers {
-
-    public static <T extends Throwable> Matcher<T> exception(Class<? extends T> exceptionClass,
-                                                             Matcher<String> message) {
-        return Matchers.allOf(
-            Matchers.instanceOf(exceptionClass),
-            withFeature(Throwable::getMessage, "message", message)
-        );
-    }
-
-    public static <T extends Throwable> Matcher<T> exception(Class<? extends T> exceptionClass,
-                                                             String message) {
-        return exception(exceptionClass, Matchers.is(message));
-    }
 
     public static <T, U> FeatureMatcher<T, U> withFeature(Function<? super T, ? extends U> getFeature,
                                                           String featureName,
