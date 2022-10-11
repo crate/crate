@@ -22,7 +22,6 @@
 package io.crate.execution.engine.window;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
-import static org.hamcrest.Matchers.contains;
 
 import java.util.List;
 
@@ -48,7 +47,7 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
         assertEvaluate("sum(x) OVER(" +
                             "PARTITION BY x>2 ORDER BY x RANGE BETWEEN UNBOUNDED PRECEDING and UNBOUNDED FOLLOWING" +
                        ")",
-            contains(expected),
+            expected,
             List.of(new ColumnIdent("x")),
             INPUT_ROWS
         );
@@ -60,7 +59,7 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
         assertEvaluate("count(x) OVER(" +
                             "PARTITION BY x>2 ORDER BY x RANGE BETWEEN CURRENT ROW and UNBOUNDED FOLLOWING" +
                        ")",
-            contains(expected),
+            expected,
             List.of(new ColumnIdent("x")),
             INPUT_ROWS
         );
@@ -73,7 +72,7 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
             "avg(x) OVER(" +
             "   PARTITION BY x>2 ORDER BY x RANGE BETWEEN CURRENT ROW and UNBOUNDED FOLLOWING" +
             ")",
-            contains(expected),
+            expected,
             List.of(new ColumnIdent("x")),
             INPUT_ROWS);
     }
@@ -85,7 +84,7 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
             "sum(x) OVER(" +
             "   PARTITION BY x>2 ORDER BY x RANGE BETWEEN CURRENT ROW and UNBOUNDED FOLLOWING" +
             ")",
-            contains(expected),
+            expected,
             List.of(new ColumnIdent("x")),
             INPUT_ROWS);
     }
@@ -97,7 +96,7 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
             "variance(x) OVER(" +
             "   PARTITION BY x>2 ORDER BY x RANGE BETWEEN CURRENT ROW and UNBOUNDED FOLLOWING" +
             ")",
-            contains(expected),
+            expected,
             List.of(new ColumnIdent("x")),
             INPUT_ROWS);
     }
@@ -109,7 +108,7 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
             "stddev(x) OVER(" +
             "   PARTITION BY x>2 ORDER BY x RANGE BETWEEN CURRENT ROW and UNBOUNDED FOLLOWING" +
             ")",
-            contains(expected),
+            expected,
             List.of(new ColumnIdent("x")),
             INPUT_ROWS);
     }
@@ -121,7 +120,7 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
             "string_agg(z, ',') OVER(" +
             "   PARTITION BY z>'b' ORDER BY z RANGE BETWEEN CURRENT ROW and UNBOUNDED FOLLOWING" +
             ")",
-            contains(expected),
+            expected,
             List.of(new ColumnIdent("z")),
             new Object[]{"a"},
             new Object[]{"b"},
@@ -149,7 +148,7 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
             "collect_set(x) OVER(" +
             "   PARTITION BY x>2 ORDER BY x RANGE BETWEEN CURRENT ROW and UNBOUNDED FOLLOWING" +
             ")",
-            contains(expected),
+            expected,
             List.of(new ColumnIdent("x")),
             new Object[]{1},
             new Object[]{2},
@@ -177,7 +176,7 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
         assertEvaluate("collect_set(x) OVER(" +
                             "PARTITION BY x>2 ORDER BY x ROWS BETWEEN UNBOUNDED PRECEDING and CURRENT ROW" +
                        ")",
-            contains(expected),
+            expected,
             List.of(new ColumnIdent("x")),
             new Object[]{1, 1},
             new Object[]{2, 2},
@@ -204,7 +203,7 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
         assertEvaluate("sum(d) OVER(" +
                             "ORDER BY d RANGE BETWEEN 3 PRECEDING and CURRENT ROW" +
                        ")",
-            contains(expected),
+            expected,
             List.of(new ColumnIdent("d")),
             new Object[]{2.5, 2.5},
             new Object[]{4.0, 4.0},
@@ -232,7 +231,7 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
         assertEvaluate("sum(d) OVER(" +
                             "ORDER BY d ROWS BETWEEN 3 PRECEDING and CURRENT ROW" +
                        ")",
-            contains(expected),
+            expected,
             List.of(new ColumnIdent("d")),
             new Object[]{2.5, 2.5},
             new Object[]{4.0, 4.0},
@@ -260,7 +259,7 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
         assertEvaluate("sum(d) OVER(" +
                                "ORDER BY d RANGE BETWEEN CURRENT ROW and 3 FOLLOWING" +
                        ")",
-                       contains(expected),
+                       expected,
                        List.of(new ColumnIdent("d")),
                        new Object[]{2.5, 2.5},
                        new Object[]{4.0, 4.0},
@@ -288,7 +287,7 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
         assertEvaluate("sum(d) OVER(" +
                             "ORDER BY d ROWS BETWEEN CURRENT ROW and 3 FOLLOWING" +
                        ")",
-                       contains(expected),
+                       expected,
                        List.of(new ColumnIdent("d")),
                        new Object[]{2.5, 2.5},
                        new Object[]{4.0, 4.0},
@@ -328,7 +327,7 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
         };
         assertEvaluate(
             "sum(d) over (partition by z order by d range between 1000 preceding and 1000 following)",
-            contains(expected),
+            expected,
             List.of(new ColumnIdent("z"), new ColumnIdent("d")),
             rows
         );
