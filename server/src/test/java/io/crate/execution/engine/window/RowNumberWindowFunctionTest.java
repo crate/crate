@@ -21,8 +21,6 @@
 
 package io.crate.execution.engine.window;
 
-import static org.hamcrest.Matchers.contains;
-
 import java.util.List;
 
 import org.junit.Test;
@@ -37,7 +35,7 @@ public class RowNumberWindowFunctionTest extends AbstractWindowFunctionTest {
         Object[] expected = new Object[] {1, 2, 3, 4};
 
         assertEvaluate("row_number() over(order by x)",
-                       contains(expected),
+                       expected,
                        List.of(new ColumnIdent("x")),
                        new Object[] {4},
                        new Object[] {3},
@@ -50,7 +48,7 @@ public class RowNumberWindowFunctionTest extends AbstractWindowFunctionTest {
     public void testRowNumberOverPartitionedWindow() throws Throwable {
         Object[] expected = new Object[]{1, 2, 3, 1, 2, 3, 1};
         assertEvaluate("row_number() over(partition by x>2)",
-                       contains(expected),
+                       expected,
                        List.of(new ColumnIdent("x")),
                        new Object[]{1},
                        new Object[]{2},
@@ -65,7 +63,7 @@ public class RowNumberWindowFunctionTest extends AbstractWindowFunctionTest {
     public void testRowNumberOverPartitionedOrderedWindow() throws Throwable {
         Object[] expected = new Object[]{1, 2, 3, 1, 2, 3, 1};
         assertEvaluate("row_number() over(partition by x>2 order by x)",
-                       contains(expected),
+                       expected,
                        List.of(new ColumnIdent("x")),
                        new Object[]{1, 1},
                        new Object[]{2, 2},
@@ -82,7 +80,7 @@ public class RowNumberWindowFunctionTest extends AbstractWindowFunctionTest {
         assertEvaluate("row_number() OVER(" +
                             "PARTITION BY x>2 ORDER BY x RANGE BETWEEN CURRENT ROW and UNBOUNDED FOLLOWING" +
                        ")",
-                       contains(expected),
+                       expected,
                        List.of(new ColumnIdent("x")),
                        new Object[]{1, 1},
                        new Object[]{2, 2},

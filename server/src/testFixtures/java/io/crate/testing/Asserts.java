@@ -64,6 +64,10 @@ public class Asserts extends Assertions {
         return new NodeAssert(actual);
     }
 
+    public static SQLResponseAssert assertThat(SQLResponse actual) {
+        return new SQLResponseAssert(actual);
+    }
+
     public static <T> Condition<T> toCondition(Consumer<T> consumer) {
         return new Condition<>(t -> {
             consumer.accept(t);

@@ -36,7 +36,6 @@ import java.util.stream.Collectors;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.common.inject.AbstractModule;
-import org.hamcrest.Matcher;
 import org.junit.Before;
 
 import io.crate.analyze.OrderBy;
@@ -72,9 +71,9 @@ import io.crate.user.User;
 
 public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServiceUnitTest {
 
-    private AbstractModule[] additionalModules;
+    private final AbstractModule[] additionalModules;
+    private final TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
     private SqlExpressions sqlExpressions;
-    private TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
     private InputFactory inputFactory;
     private OnHeapMemoryManager memoryManager;
 
@@ -110,11 +109,11 @@ public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServic
         }
     }
 
-    @SuppressWarnings({"rawtypes", "unchecked"})
-    protected <T> void assertEvaluate(String functionExpression,
-                                      Matcher<T> expectedValue,
-                                      List<ColumnIdent> rowsColumnDescription,
-                                      Object[]... inputRows) throws Throwable {
+    @SuppressWarnings("rawtypes")
+    protected void assertEvaluate(String functionExpression,
+                                  Object[] expectedValue,
+                                  List<ColumnIdent> rowsColumnDescription,
+                                  Object[]... inputRows) throws Throwable {
         performInputSanityChecks(inputRows);
 
         Symbol normalizedFunctionSymbol = sqlExpressions.normalize(sqlExpressions.asSymbol(functionExpression));
@@ -181,7 +180,7 @@ public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServic
         } catch (ExecutionException e) {
             throw e.getCause();
         }
-        assertThat((T) actualResult).matches(expectedValue::matches);
+        assertThat(actualResult).containsExactly(expectedValue);
     }
 
     private static void ensureInputRowsHaveCorrectType(List<Symbol> sourceSymbols, Object[][] inputRows) {
