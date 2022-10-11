@@ -43,6 +43,8 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Scalar;
+import io.crate.sql.tree.ColumnPolicy;
+import io.crate.sql.tree.Node;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
@@ -58,6 +60,10 @@ public class Asserts extends Assertions {
         return new SymbolAssert(actual);
     }
 
+    public static NodeAssert assertThat(Node actual) {
+        return new NodeAssert(actual);
+    }
+
     public static <T> Condition<T> toCondition(Consumer<T> consumer) {
         return new Condition<>(t -> {
             consumer.accept(t);
@@ -65,20 +71,24 @@ public class Asserts extends Assertions {
         }, "");
     }
 
-    public static Consumer<Symbol> isNull() {
+    public static <T> Consumer<T> isEqualTo(T expectedValue) {
+        return x -> assertThat(x).isEqualTo(expectedValue);
+    }
+
+    public static <T> Consumer<T> isNull() {
         return s -> assertThat(s).isNull();
     }
 
-    public static Consumer<Symbol> isNotNull() {
+    public static <T> Consumer<T> isNotNull() {
         return s -> assertThat(s).isNotNull();
-    }
-
-    public static Consumer<String> startsWith(String expected) {
-        return s -> assertThat(s).startsWith(expected);
     }
 
     public static <T> Consumer<T> exactlyInstanceOf(Class<?> clazz) {
         return s -> assertThat(s).isExactlyInstanceOf(clazz);
+    }
+
+    public static Consumer<String> startsWith(String expected) {
+        return s -> assertThat(s).startsWith(expected);
     }
 
     // Table
@@ -158,6 +168,36 @@ public class Asserts extends Assertions {
         return s -> assertThat(s).isAlias(expectedAliasName, childMatcher);
     }
 
+    // Node
+    public static Consumer<Node> isColumnType(String expectedTypeName) {
+        return n -> assertThat(n).isColumnType(expectedTypeName);
+    }
+
+    public static Consumer<Node> isColumnType(String expectedTypeName, Integer... expectedParams) {
+        return n -> assertThat(n).isColumnType(expectedTypeName, expectedParams);
+    }
+
+    public static Consumer<Node> isObjectColumnType(String expectedTypeName,
+                                                    Consumer<ColumnPolicy> columnPolicyMatcher) {
+        return n -> assertThat(n).isObjectColumnType(expectedTypeName, columnPolicyMatcher);
+    }
+
+    public static Consumer<Node> isObjectColumnType(String expectedTypeName,
+                                                    Consumer<ColumnPolicy> columnPolicyMatcher,
+                                                    Consumer<Iterable<? extends Node>> nestedColumnsMatcher) {
+        return n -> assertThat(n).isObjectColumnType(expectedTypeName, columnPolicyMatcher, nestedColumnsMatcher);
+    }
+
+    public static Consumer<Node> isCollectionColumnType(String expectedTypeName, Consumer<Node> innerTypeMatcher) {
+        return n -> assertThat(n).isCollectionColumnType(expectedTypeName, innerTypeMatcher);
+    }
+
+    public static Consumer<Node> isColumnDefinition(String expectedIdent,
+                                                    Consumer<Node> columnTypeMatcher) {
+        return n -> assertThat(n).isColumnDefinition(expectedIdent, columnTypeMatcher);
+    }
+
+    // Functions
     @SuppressWarnings("rawtypes")
     public static Function<Scalar, Consumer<Scalar>> isSameInstance() {
         return scalar -> s -> assertThat(s).isSameAs(scalar);
