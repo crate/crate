@@ -21,7 +21,7 @@
 
 package io.crate.execution.engine.window;
 
-import static org.hamcrest.Matchers.anything;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 
@@ -31,16 +31,14 @@ import org.junit.Test;
 public class WindowFunctionsTestingFrameworkTest extends AbstractWindowFunctionTest {
 
     @Test
-    public void testInputOfDifferentSizeRaiseException() throws Throwable {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Inputs need to be of equal size");
-
-        assertEvaluate(
-            "row_number() over()",
-            anything("does not matter"),
-            List.of(),
-            new Object[]{1},
-            new Object[]{1, 2}
-        );
+    public void testInputOfDifferentSizeRaiseException() {
+        assertThatThrownBy(() -> assertEvaluate(
+                "row_number() over()",
+                new Object[] {1, 2, 3}, // doesn't matter
+                List.of(),
+                new Object[]{1},
+                new Object[]{1, 2}))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Inputs need to be of equal size");
     }
 }
