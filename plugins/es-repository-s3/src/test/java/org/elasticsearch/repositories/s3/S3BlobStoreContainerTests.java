@@ -149,10 +149,10 @@ public class S3BlobStoreContainerTests extends ESBlobStoreContainerTestCase {
         assertThat(blobPath.buildAsString() + blobName).isEqualTo(request.getKey());
         assertThat(inputStream).isEqualTo(request.getInputStream());
         assertThat(blobSize).isEqualTo(request.getMetadata().getContentLength());
-        assertThat(storageClass.toString()).isEqualTo(request.getStorageClass());
+        assertThat(storageClass).hasToString(request.getStorageClass());
         assertThat(cannedAccessControlList).isEqualTo(request.getCannedAcl());
         if (serverSideEncryption) {
-            assertThat(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION).isEqualTo(request.getMetadata().getSSEAlgorithm());
+            assertThat(request.getMetadata().getSSEAlgorithm()).isEqualTo(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION);
         }
     }
 
