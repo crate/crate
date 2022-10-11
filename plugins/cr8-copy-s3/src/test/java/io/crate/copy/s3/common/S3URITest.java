@@ -107,10 +107,10 @@ class S3URITest {
     public void testReplacePathMethod() {
         S3URI s3URI = S3URI.toS3URI(URI.create("s3://minioadmin:minio%2Fadmin@mj.myb/localhost:9000/"));
         S3URI replacedURI = s3URI.replacePath("new.Bucket", "newKey");
-        assertThat(replacedURI.uri().toString()).isEqualTo("s3://minioadmin:minio%2Fadmin@/new.Bucket/newKey");
+        assertThat(replacedURI.uri()).hasToString("s3://minioadmin:minio%2Fadmin@/new.Bucket/newKey");
 
         s3URI = S3URI.toS3URI(URI.create("s3://host:123/myb"));
         replacedURI = s3URI.replacePath("new.Bucket", "newKey");
-        assertThat(replacedURI.uri().toString()).isEqualTo("s3://host:123/new.Bucket/newKey");
+        assertThat(replacedURI.uri()).hasToString("s3://host:123/new.Bucket/newKey");
     }
 }
