@@ -21,7 +21,7 @@
 
 package io.crate.expression.scalar.arithmetic;
 
-import static io.crate.testing.SymbolMatchers.isFunction;
+import static io.crate.testing.Asserts.isFunction;
 
 import org.junit.Test;
 
@@ -37,7 +37,7 @@ public class RoundFunctionTest extends ScalarTestCase {
         assertEvaluate("round(42)", 42);
         assertEvaluate("round(42::bigint)", 42L);
         assertEvaluate("round(cast(42.2 as float))", 42);
-        assertEvaluate("round(null)", null);
+        assertEvaluateNull("round(null)");
 
         assertNormalize("round(id)", isFunction("round"));
     }
@@ -46,6 +46,6 @@ public class RoundFunctionTest extends ScalarTestCase {
     public void testInvalidType() throws Exception {
         expectedException.expect(ConversionException.class);
         expectedException.expectMessage("Cannot cast `'foo'` of type `text` to type `byte`");
-        assertEvaluate("round('foo')", null);
+        assertEvaluateNull("round('foo')");
     }
 }

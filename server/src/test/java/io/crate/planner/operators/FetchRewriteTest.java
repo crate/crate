@@ -22,18 +22,19 @@
 package io.crate.planner.operators;
 
 import static io.crate.planner.operators.LogicalPlannerTest.isPlan;
-import static io.crate.testing.SymbolMatchers.isAlias;
-import static io.crate.testing.SymbolMatchers.isFetchMarker;
-import static io.crate.testing.SymbolMatchers.isFetchStub;
-import static io.crate.testing.SymbolMatchers.isField;
-import static io.crate.testing.SymbolMatchers.isFunction;
-import static io.crate.testing.SymbolMatchers.isReference;
-import static org.hamcrest.Matchers.contains;
+import static io.crate.testing.Asserts.isAlias;
+import static io.crate.testing.Asserts.isFetchMarker;
+import static io.crate.testing.Asserts.isFetchStub;
+import static io.crate.testing.Asserts.isField;
+import static io.crate.testing.Asserts.isFunction;
+import static io.crate.testing.Asserts.isReference;
+import static io.crate.testing.Asserts.toCondition;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
 import java.util.List;
 
+import org.assertj.core.api.Condition;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
@@ -51,6 +52,7 @@ import io.crate.metadata.functions.Signature;
 import io.crate.metadata.table.Operation;
 import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.Asserts;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
 
@@ -85,13 +87,9 @@ public class FetchRewriteTest extends CrateDummyClusterServiceUnitTest {
         FetchRewrite fetchRewrite = eval.rewriteToFetch(new TableStats(), List.of());
         assertThat(fetchRewrite, Matchers.notNullValue());
         assertThat(fetchRewrite.newPlan(), isPlan("Collect[doc.tbl | [_fetchid] | true]"));
-        assertThat(
-            fetchRewrite.replacedOutputs(),
-            Matchers.hasEntry(
-                isFunction("add", isReference("x"), isReference("x")),
-                isFunction("add", isFetchStub("_doc['x']"), isFetchStub("_doc['x']"))
-            )
-        );
+        Asserts.assertThat(fetchRewrite.replacedOutputs()).hasEntrySatisfying(
+                toCondition(isFunction("add", isReference("x"), isReference("x"))),
+                toCondition(isFunction("add", isFetchStub("_doc['x']"), isFetchStub("_doc['x']"))));
         assertThat(List.copyOf(fetchRewrite.replacedOutputs().keySet()), is(eval.outputs()));
     }
 
@@ -120,13 +118,11 @@ public class FetchRewriteTest extends CrateDummyClusterServiceUnitTest {
             List.copyOf(fetchRewrite.replacedOutputs().keySet()),
             is(rename.outputs())
         );
-        assertThat(
-            fetchRewrite.replacedOutputs(),
-            Matchers.hasEntry(isField("x", alias.relationName()), isFetchStub("_doc['x']"))
-        );
-        assertThat(newRename.outputs(), contains(
-            isFetchMarker(alias.relationName(), contains(isReference("_doc['x']"))))
-        );
+        Asserts.assertThat(fetchRewrite.replacedOutputs()).hasEntrySatisfying(
+            toCondition(isField("x", alias.relationName())),
+            toCondition(isFetchStub("_doc['x']")));
+        Asserts.assertThat(newRename.outputs()).satisfiesExactly(
+            isFetchMarker(alias.relationName(), isReference("_doc['x']")));
 
         FetchStub fetchStub = (FetchStub) fetchRewrite.replacedOutputs().entrySet().iterator().next().getValue();
         assertThat(
@@ -154,12 +150,8 @@ public class FetchRewriteTest extends CrateDummyClusterServiceUnitTest {
         FetchRewrite fetchRewrite = eval.rewriteToFetch(new TableStats(), List.of());
         assertThat(fetchRewrite, Matchers.notNullValue());
         assertThat(fetchRewrite.newPlan(), isPlan("Collect[doc.tbl | [_fetchid] | true]"));
-        assertThat(
-            fetchRewrite.replacedOutputs(),
-            Matchers.hasEntry(
-                is(x),
-                isAlias("x_alias", isFetchStub("_doc['x']"))
-            )
-        );
+        Asserts.assertThat(fetchRewrite.replacedOutputs()).hasEntrySatisfying(
+                new Condition<>(k -> k.equals(x), ""),
+                toCondition(isAlias("x_alias", isFetchStub("_doc['x']"))));
     }
 }

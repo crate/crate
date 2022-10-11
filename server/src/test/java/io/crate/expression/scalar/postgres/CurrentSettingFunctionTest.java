@@ -21,8 +21,8 @@
 
 package io.crate.expression.scalar.postgres;
 
-import static io.crate.testing.SymbolMatchers.isFunction;
-import static io.crate.testing.SymbolMatchers.isLiteral;
+import static io.crate.testing.Asserts.isFunction;
+import static io.crate.testing.Asserts.isLiteral;
 
 import org.junit.Test;
 
@@ -99,7 +99,7 @@ public class CurrentSettingFunctionTest extends ScalarTestCase {
 
     @Test
     public void testEvaluateNonExistingSettingWithMissingOKArgumentAsTrue() {
-        assertEvaluate("current_setting(name, true)", null, Literal.of("foo"));
+        assertEvaluateNull("current_setting(name, true)", Literal.of("foo"));
     }
 
     @Test
@@ -111,8 +111,8 @@ public class CurrentSettingFunctionTest extends ScalarTestCase {
 
     @Test
     public void testEvaluateWithNulls() {
-        assertEvaluate("current_setting(name)", null, Literal.NULL);
-        assertEvaluate("current_setting(name, is_awesome)", null, Literal.of("search_path"), Literal.NULL);
-        assertEvaluate("current_setting(name, is_awesome)", null, Literal.NULL, Literal.NULL);
+        assertEvaluateNull("current_setting(name)", Literal.NULL);
+        assertEvaluateNull("current_setting(name, is_awesome)", Literal.of("search_path"), Literal.NULL);
+        assertEvaluateNull("current_setting(name, is_awesome)", Literal.NULL, Literal.NULL);
     }
 }

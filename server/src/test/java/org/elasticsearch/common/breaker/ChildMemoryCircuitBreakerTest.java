@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,36 +19,35 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.expression.scalar;
+package org.elasticsearch.common.breaker;
 
-import static io.crate.testing.Asserts.isLiteral;
+import static org.assertj.core.api.Assertions.assertThat;
 
+import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.indices.breaker.BreakerSettings;
 import org.junit.Test;
 
-import io.crate.expression.symbol.Literal;
-
-
-public class FormatFunctionTest extends ScalarTestCase {
+public class ChildMemoryCircuitBreakerTest {
 
     @Test
-    public void testNormalizeSymbol() {
-        assertNormalize(
-            "format('%tY', cast('2014-03-02' as timestamp with time zone))",
-            isLiteral("2014")
+    public void test_get_free_returns_max_long_if_breaking_is_disabled() {
+        var breaker = new ChildMemoryCircuitBreaker(
+            new BreakerSettings("test", -1, CircuitBreaker.Type.MEMORY),
+            Loggers.getLogger(getClass()),
+            null
         );
+
+        assertThat(breaker.getFree()).isEqualTo(Long.MAX_VALUE);
     }
 
     @Test
-    @SuppressWarnings("unchecked")
-    public void testEvaluate() throws Exception {
-        assertEvaluate("format('%s bla %s', name, age)",
-            "Arthur bla 38",
-            Literal.of("Arthur"),
-            Literal.of(38L));
+    public void test_get_free_returns_zero_if_usage_is_disabled() {
+        var breaker = new ChildMemoryCircuitBreaker(
+            new BreakerSettings("test", 0, CircuitBreaker.Type.MEMORY),
+            Loggers.getLogger(getClass()),
+            null
+        );
 
-        assertEvaluate("format('%s bla %s', name, age)",
-            "Arthur bla 42",
-            Literal.of("Arthur"),
-            Literal.of(42L));
+        assertThat(breaker.getFree()).isEqualTo(0L);
     }
 }

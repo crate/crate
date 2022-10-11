@@ -21,7 +21,8 @@
 
 package io.crate.expression.scalar.geo;
 
-import static io.crate.testing.SymbolMatchers.isLiteral;
+import static io.crate.testing.Asserts.isLiteral;
+import static io.crate.testing.Asserts.isNull;
 
 import org.junit.Test;
 
@@ -53,10 +54,8 @@ public class CoordinateFunctionTest extends ScalarTestCase {
 
     @Test
     public void testWithNullValue() throws Exception {
-        assertEvaluate("latitude(geopoint)", null,
-            Literal.of(DataTypes.GEO_POINT, null));
-        assertEvaluate("longitude(geopoint)", null,
-            Literal.of(DataTypes.GEO_POINT, null));
+        assertEvaluateNull("latitude(geopoint)", Literal.of(DataTypes.GEO_POINT, null));
+        assertEvaluateNull("longitude(geopoint)", Literal.of(DataTypes.GEO_POINT, null));
     }
 
     @Test
@@ -76,7 +75,7 @@ public class CoordinateFunctionTest extends ScalarTestCase {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Unknown function: latitude('POINT (10 20)', 'foo')," +
                                         " no overload found for matching argument types: (text, text).");
-        assertNormalize("latitude('POINT (10 20)', 'foo')", null);
+        assertNormalize("latitude('POINT (10 20)', 'foo')", isNull());
     }
 
     @Test
@@ -84,13 +83,13 @@ public class CoordinateFunctionTest extends ScalarTestCase {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage(
             "Unknown function: longitude(1), no overload found for matching argument types: (integer)");
-        assertEvaluate("longitude(1)", null);
+        assertEvaluateNull("longitude(1)");
     }
 
     @Test
     public void testWithInvalidStringReferences() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Cannot cast `'POINT (foo)'` of type `text` to type `geo_point`");
-        assertEvaluate("longitude('POINT (foo)')", null);
+        assertEvaluateNull("longitude('POINT (foo)')");
     }
 }

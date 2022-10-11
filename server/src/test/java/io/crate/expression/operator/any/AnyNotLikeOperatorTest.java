@@ -21,7 +21,7 @@
 
 package io.crate.expression.operator.any;
 
-import static io.crate.testing.SymbolMatchers.isLiteral;
+import static io.crate.testing.Asserts.isLiteral;
 
 import org.junit.Test;
 
@@ -112,10 +112,10 @@ public class AnyNotLikeOperatorTest extends ScalarTestCase {
 
     @Test
     public void testEvaluateNull() throws Exception {
-        assertEvaluate("null not like any ([null])", null);
-        assertEvaluate("'foo' not like any ([null])", null);
-        assertEvaluate("null not like any (['bar'])", null);
-        assertEvaluate("null not ilike any (['bar'])", null);
+        assertEvaluateNull("null not like any ([null])");
+        assertEvaluateNull("'foo' not like any ([null])");
+        assertEvaluateNull("null not like any (['bar'])");
+        assertEvaluateNull("null not ilike any (['bar'])");
     }
 
     @Test

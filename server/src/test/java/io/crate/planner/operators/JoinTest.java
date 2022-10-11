@@ -25,8 +25,7 @@ import static io.crate.analyze.TableDefinitions.TEST_DOC_LOCATIONS_TABLE_DEFINIT
 import static io.crate.analyze.TableDefinitions.USER_TABLE_DEFINITION;
 import static io.crate.analyze.TableDefinitions.USER_TABLE_IDENT;
 import static io.crate.planner.operators.LogicalPlannerTest.isPlan;
-import static io.crate.testing.SymbolMatchers.isInputColumn;
-import static io.crate.testing.SymbolMatchers.isReference;
+import static io.crate.testing.Asserts.isInputColumn;
 import static io.crate.testing.TestingHelpers.isSQL;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.instanceOf;
@@ -69,6 +68,7 @@ import io.crate.planner.node.dql.join.JoinType;
 import io.crate.statistics.Stats;
 import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.Asserts;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
 
@@ -256,7 +256,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
                    contains(TEST_DOC_LOCATIONS_TABLE_IDENT));
 
         Join join = buildJoin(operator);
-        assertThat(((Collect) join.left()).collectPhase().toCollect().get(1), isReference("other_id"));
+        Asserts.assertThat(((Collect) join.left()).collectPhase().toCollect().get(1)).isReference("other_id");
     }
 
     @Test
@@ -278,7 +278,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
                    contains(TEST_DOC_LOCATIONS_TABLE_IDENT));
 
         Join join = buildJoin(operator);
-        assertThat(((Collect) join.left()).collectPhase().toCollect().get(1), isReference("loc"));
+        Asserts.assertThat(((Collect) join.left()).collectPhase().toCollect().get(1)).isReference("loc");
     }
 
     @Test
@@ -467,10 +467,9 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         assertThat(logicalPlan, isPlan(expectedPlan));
 
         Join join = e.plan(statement);
-        assertThat(join.joinPhase().projections().get(0).outputs(), contains(
+        Asserts.assertThat(join.joinPhase().projections().get(0).outputs()).satisfiesExactly(
             isInputColumn(0),
-            isInputColumn(1)
-        ));
+            isInputColumn(1));
     }
 
     @Test

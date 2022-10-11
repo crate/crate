@@ -124,7 +124,7 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
     private void addDocToLucene(IndexWriter w, Long value) throws IOException {
         Document doc = new Document();
         if (value != null) {
-            fieldType.createFields("value", value, true, true, false).forEach(doc::add);
+            fieldType.createFields(doc::add, "value", value, true, true, false);
         } else {
             // Create a placeholder field
             doc.add(new SortedDocValuesField("null_value", new BytesRef("null")));

@@ -21,8 +21,7 @@
 
 package io.crate.planner.consumer;
 
-import static io.crate.testing.SymbolMatchers.isAggregation;
-import static io.crate.testing.SymbolMatchers.isReference;
+import static io.crate.testing.Asserts.isReference;
 import static io.crate.testing.TestingHelpers.isSQL;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.Matchers.contains;
@@ -70,8 +69,8 @@ import io.crate.planner.Merge;
 import io.crate.planner.PositionalOrderBy;
 import io.crate.planner.node.dql.Collect;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.Asserts;
 import io.crate.testing.SQLExecutor;
-import io.crate.testing.SymbolMatchers;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
@@ -86,9 +85,9 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
         Merge distributedGroupByMerge = e.plan("select count('foo'), name from users group by name");
         RoutedCollectPhase collectPhase =
             ((RoutedCollectPhase) ((Collect) ((Merge) distributedGroupByMerge.subPlan()).subPlan()).collectPhase());
-        assertThat(collectPhase.toCollect(), contains(isReference("name")));
+        Asserts.assertThat(collectPhase.toCollect()).satisfiesExactly(isReference("name"));
         GroupProjection groupProjection = (GroupProjection) collectPhase.projections().get(0);
-        assertThat(groupProjection.values().get(0), isAggregation("count"));
+        Asserts.assertThat(groupProjection.values().get(0)).isAggregation("count");
     }
 
     @Test
@@ -367,8 +366,7 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
 
         OrderedTopNProjection topNProjection = (OrderedTopNProjection) mergePhase.projections().get(1);
         Symbol collection_count = topNProjection.outputs().get(0);
-        assertThat(collection_count, SymbolMatchers.isInputColumn(0));
-
+        Asserts.assertThat(collection_count).isInputColumn(0);
 
         // handler
         MergePhase localMergeNode = distributedGroupByMerge.mergePhase();

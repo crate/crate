@@ -24,6 +24,7 @@ import static org.elasticsearch.index.mapper.TypeParsers.parseTextField;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
@@ -208,7 +209,7 @@ public class TextFieldMapper extends FieldMapper {
     }
 
     @Override
-    protected void parseCreateField(ParseContext context, List<IndexableField> fields) throws IOException {
+    protected void parseCreateField(ParseContext context, Consumer<IndexableField> onField) throws IOException {
         final String value = context.parser().textOrNull();
 
         if (value == null) {
@@ -217,9 +218,9 @@ public class TextFieldMapper extends FieldMapper {
 
         if (fieldType.indexOptions() != IndexOptions.NONE || fieldType.stored()) {
             Field field = new Field(fieldType().name(), value, fieldType);
-            fields.add(field);
+            onField.accept(field);
             if (fieldType.omitNorms()) {
-                createFieldNamesField(context, fields);
+                createFieldNamesField(context, onField);
             }
         }
     }

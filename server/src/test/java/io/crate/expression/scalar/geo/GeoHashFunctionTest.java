@@ -21,7 +21,8 @@
 
 package io.crate.expression.scalar.geo;
 
-import static io.crate.testing.SymbolMatchers.isLiteral;
+import static io.crate.testing.Asserts.assertThat;
+import static io.crate.testing.Asserts.isLiteral;
 
 import org.junit.Test;
 
@@ -39,8 +40,7 @@ public class GeoHashFunctionTest extends ScalarTestCase {
 
     @Test
     public void testWithNullValue() throws Exception {
-        assertEvaluate("geohash(geopoint)", null,
-            Literal.of(DataTypes.GEO_POINT, null));
+        assertEvaluateNull("geohash(geopoint)", Literal.of(DataTypes.GEO_POINT, null));
     }
 
     @Test
@@ -58,7 +58,7 @@ public class GeoHashFunctionTest extends ScalarTestCase {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Unknown function: geohash('POINT (10 20)', 'foo')," +
                                         " no overload found for matching argument types: (text, text).");
-        assertNormalize("geohash('POINT (10 20)', 'foo')", null);
+        assertNormalize("geohash('POINT (10 20)', 'foo')", s -> assertThat(s).isNull());
     }
 
     @Test
@@ -66,13 +66,13 @@ public class GeoHashFunctionTest extends ScalarTestCase {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage(
             "Unknown function: geohash(1), no overload found for matching argument types: (integer)");
-        assertEvaluate("geohash(1)", null);
+        assertEvaluateNull("geohash(1)");
     }
 
     @Test
     public void testWithInvalidStringReferences() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Cannot cast `'POINT (foo)'` of type `text` to type `geo_point`");
-        assertEvaluate("geohash('POINT (foo)')", null);
+        assertEvaluateNull("geohash('POINT (foo)')");
     }
 }

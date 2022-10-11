@@ -21,7 +21,7 @@
 
 package io.crate.expression.scalar;
 
-import static io.crate.testing.Asserts.assertThrowsMatches;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -85,7 +85,7 @@ public class ArrayAvgFunctionTest extends ScalarTestCase {
     @Test
     public void test_array_avg_on_numeric_array_returns_numeric() {
         assertEvaluate("array_avg(?)",
-                       new BigDecimal(5.5d),
+                       new BigDecimal("5.5"),
                        Literal.of(List.of(BigDecimal.ONE, BigDecimal.TEN), new ArrayType<>(DataTypes.NUMERIC))
         );
     }
@@ -97,28 +97,29 @@ public class ArrayAvgFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_all_elements_nulls_results_in_null() {
-        assertEvaluate("array_avg([null, null]::integer[])", null);
+        assertEvaluateNull("array_avg([null, null]::integer[])");
     }
 
     @Test
     public void test_null_array_results_in_null() {
-        assertEvaluate("array_avg(null::int[])", null);
+        assertEvaluateNull("array_avg(null::int[])");
     }
 
     @Test
     public void test_array_avg_returns_null_for_null_values() {
-        assertEvaluate("array_avg(null)", null);
+        assertEvaluateNull("array_avg(null)");
     }
 
     @Test
     public void test_empty_array_results_in_null() {
-        assertEvaluate("array_avg(cast([] as array(integer)))", null);
+        assertEvaluateNull("array_avg(cast([] as array(integer)))");
     }
 
     @Test
     public void test_array_avg_with_array_of_undefined_inner_type_throws_exception() {
-        assertThrowsMatches(() -> assertEvaluate("array_avg([])", null),
-                            UnsupportedOperationException.class,
-                            "Unknown function: array_avg([]), no overload found for matching argument types: (undefined_array).");
+        assertThatThrownBy(
+            () -> assertEvaluateNull("array_avg([])"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessageStartingWith("Unknown function: array_avg([]), no overload found for matching argument types: (undefined_array).");
     }
 }

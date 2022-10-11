@@ -49,11 +49,11 @@ public class StringRepeatFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_repeat_null_text_argument_returns_null() {
-        assertEvaluate("repeat(null, 1)", null);
+        assertEvaluateNull("repeat(null, 1)");
     }
 
     @Test
     public void test_repeat_null_repetitions_argument_returns_null() {
-        assertEvaluate("repeat('', null)", null);
+        assertEvaluateNull("repeat('', null)");
     }
 }

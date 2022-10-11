@@ -108,35 +108,35 @@ public class ArraySliceFunctionTest extends ScalarTestCase {
     public void testFromIsNotAnInteger() {
         expectedException.expect(ConversionException.class);
         expectedException.expectMessage("Cannot cast `'three'` of type `text` to type `integer`");
-        assertEvaluate("[1,2,3,4,5]['three':]", null);
+        assertEvaluateNull("[1,2,3,4,5]['three':]");
     }
 
     @Test
     public void testToIsNotAnInteger() {
         expectedException.expect(ConversionException.class);
         expectedException.expectMessage("Cannot cast `'three'` of type `text` to type `integer`");
-        assertEvaluate("[1,2,3,4,5][:'three']", null);
+        assertEvaluateNull("[1,2,3,4,5][:'three']");
     }
 
     @Test
     public void testBaseIsNotAnArray() {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Unknown function: array_slice('not an array', 1, 3), no overload found for matching argument types");
-        assertEvaluate("'not an array'[1:3]", null);
+        assertEvaluateNull("'not an array'[1:3]");
     }
 
     @Test
     public void testFromIsNegative() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Array index must be in range 1 to 2147483647");
-        assertEvaluate("[1,2,3,4,5][-1:]", null);
+        assertEvaluateNull("[1,2,3,4,5][-1:]");
     }
 
     @Test
     public void testToIsNegative() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Array index must be in range 1 to 2147483647");
-        assertEvaluate("[1,2,3,4,5][:-1]", null);
+        assertEvaluateNull("[1,2,3,4,5][:-1]");
     }
 
     @Test

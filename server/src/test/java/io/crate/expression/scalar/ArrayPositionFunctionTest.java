@@ -69,22 +69,22 @@ public class ArrayPositionFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_array_position_with_empty_array() {
-        assertEvaluate("array_position(cast([] as array(integer)), 14)", null);
+        assertEvaluateNull("array_position(cast([] as array(integer)), 14)");
     }
 
     @Test
     public void test_array_position_with_null_array() {
-        assertEvaluate("array_position(null, 1)", null);
+        assertEvaluateNull("array_position(null, 1)");
     }
 
     @Test
     public void test_array_position_find_element_when_begin_position_given_zero_or_negative_then_ignored() {
-        assertEvaluate("array_position([3,2,1,5,4,6], 4, 0)", null);
+        assertEvaluateNull("array_position([3,2,1,5,4,6], 4, 0)");
     }
 
     @Test
     public void test_array_position_find_element_when_begin_position_given_greater_than_array_size_then_ignored() {
-        assertEvaluate("array_position([3,2,1,5,4], 4, 6)", null);
+        assertEvaluateNull("array_position([3,2,1,5,4], 4, 6)");
     }
 
     @Test

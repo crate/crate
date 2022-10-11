@@ -21,11 +21,10 @@
 
 package io.crate.expression.scalar;
 
-import static org.hamcrest.core.IsNot.not;
+import static io.crate.testing.Asserts.isNotSameInstance;
 
 import java.util.Set;
 
-import org.hamcrest.core.IsSame;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -49,20 +48,20 @@ public class HasSchemaPrivilegeFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_no_user_compile_gets_new_instance() {
-        assertCompile("has_schema_privilege(name, 'USAGE')", (s) -> not(IsSame.sameInstance(s)), new StubUserManager());
+        assertCompile("has_schema_privilege(name, 'USAGE')", isNotSameInstance(), new StubUserManager());
     }
 
     @Test
     public void test_user_is_literal_compile_gets_new_instance() {
         // Using name column as schema name since having 3 literals leads to skipping even compilation and returning computed Literal
-        assertCompile("has_schema_privilege('crate', name, 'USAGE')", (s) -> not(IsSame.sameInstance(s)));
+        assertCompile("has_schema_privilege('crate', name, 'USAGE')", isNotSameInstance());
     }
 
     @Test
     public void test_at_least_one_arg_is_null_returns_null() {
-        assertEvaluate("has_schema_privilege(null, 'pg_catalog', 'USAGE')", null);
-        assertEvaluate("has_schema_privilege('test', null, 'USAGE')", null);
-        assertEvaluate("has_schema_privilege('test', 'pg_catalog', null)", null);
+        assertEvaluateNull("has_schema_privilege(null, 'pg_catalog', 'USAGE')");
+        assertEvaluateNull("has_schema_privilege('test', null, 'USAGE')");
+        assertEvaluateNull("has_schema_privilege('test', 'pg_catalog', null)");
     }
 
     @Test

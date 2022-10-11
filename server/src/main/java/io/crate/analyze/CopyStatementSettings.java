@@ -21,13 +21,14 @@
 
 package io.crate.analyze;
 
-import com.fasterxml.jackson.dataformat.csv.CsvSchema;
-import io.crate.metadata.settings.Validators;
-import io.crate.types.DataTypes;
+import java.util.Locale;
 
 import org.elasticsearch.common.settings.Setting;
 
-import java.util.Locale;
+import com.fasterxml.jackson.dataformat.csv.CsvSchema;
+
+import io.crate.metadata.settings.Validators;
+import io.crate.types.DataTypes;
 
 public final class CopyStatementSettings {
 

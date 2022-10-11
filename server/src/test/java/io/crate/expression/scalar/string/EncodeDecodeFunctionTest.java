@@ -32,73 +32,73 @@ public class EncodeDecodeFunctionTest extends ScalarTestCase {
     public void testInvalidBytea() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Illegal octal character b at index 4");
-        assertEvaluate("encode('123\\b\\t56', 'base64')", null);
+        assertEvaluateNull("encode('123\\b\\t56', 'base64')");
     }
 
     @Test
     public void testInvalidBased64() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Illegal base64 character 8");
-        assertEvaluate("decode(E'123\\b\\t56', 'base64')", null);
+        assertEvaluateNull("decode(E'123\\b\\t56', 'base64')");
     }
 
     @Test
     public void testInvalidBinaryEncodeToBase64() {
         expectedException.expect(IllegalStateException.class);
         expectedException.expectMessage("Illegal hexadecimal character h at index 3");
-        assertEvaluate("encode('\\xfh', 'base64')", null);
+        assertEvaluateNull("encode('\\xfh', 'base64')");
     }
 
     @Test
     public void testInvalidBinaryEncodeToHex() {
         expectedException.expect(IllegalStateException.class);
         expectedException.expectMessage("Illegal hexadecimal character h at index 3");
-        assertEvaluate("encode('\\xfh', 'hex')", null);
+        assertEvaluateNull("encode('\\xfh', 'hex')");
     }
 
     @Test
     public void testInvalidBinaryEncodeToEscape() {
         expectedException.expect(IllegalStateException.class);
         expectedException.expectMessage("Illegal hexadecimal character h at index 3");
-        assertEvaluate("encode('\\xfh', 'escape')", null);
+        assertEvaluateNull("encode('\\xfh', 'escape')");
     }
 
     @Test
     public void testInvalidBinaryDecodeFromHex1() {
         expectedException.expect(IllegalStateException.class);
         expectedException.expectMessage("Illegal hexadecimal character \\ at index 0");
-        assertEvaluate("decode('\\xff', 'hex')", null);
+        assertEvaluateNull("decode('\\xff', 'hex')");
     }
 
     @Test
     public void testInvalidBinaryDecodeFromHex2() {
         expectedException.expect(IllegalStateException.class);
         expectedException.expectMessage("Odd number of characters");
-        assertEvaluate("decode('ffa', 'hex')", null);
+        assertEvaluateNull("decode('ffa', 'hex')");
     }
 
     @Test
     public void testNulls() {
         // null format
-        assertEvaluate("encode('\\xff', null)", null);
-        assertEvaluate("decode('FA==', null)", null);
+        assertEvaluateNull("encode('\\xff', null)");
+        assertEvaluateNull("decode('FA==', null)");
         // null data
-        assertEvaluate("encode(null, 'base64')", null);
-        assertEvaluate("decode(null, 'base64')", null);
+        assertEvaluateNull("encode(null, 'base64')");
+        assertEvaluateNull("decode(null, 'base64')");
     }
 
     @Test
     public void testUnknownEncodeFormat() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Encoding format 'bad' is not supported");
-        assertEvaluate("encode('\\xff', 'bad')", null);
+        assertEvaluateNull("encode('\\xff', 'bad')");
     }
 
     @Test
     public void testUnknownDecodeFormat() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Encoding format 'bad' is not supported");
-        assertEvaluate("decode('FA==', 'bad')", null);
+        assertEvaluateNull("decode('FA==', 'bad')");
     }
 
     @Test

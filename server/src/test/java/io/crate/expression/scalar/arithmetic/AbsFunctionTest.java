@@ -21,8 +21,8 @@
 
 package io.crate.expression.scalar.arithmetic;
 
-import static io.crate.testing.SymbolMatchers.isFunction;
-import static io.crate.testing.SymbolMatchers.isLiteral;
+import static io.crate.testing.Asserts.isFunction;
+import static io.crate.testing.Asserts.isLiteral;
 
 import org.junit.Test;
 
@@ -38,14 +38,14 @@ public class AbsFunctionTest extends ScalarTestCase {
         assertEvaluate("abs(-2.0)", 2.0);
         assertEvaluate("abs(cast(-2 as bigint))", 2L);
         assertEvaluate("abs(cast(-2.0 as float))", 2.0f);
-        assertEvaluate("abs(null)", null);
+        assertEvaluateNull("abs(null)");
     }
 
     @Test
     public void testWrongType() throws Exception {
         expectedException.expect(ConversionException.class);
         expectedException.expectMessage("Cannot cast `'foo'` of type `text` to type `byte`");
-        assertEvaluate("abs('foo')", null);
+        assertEvaluateNull("abs('foo')");
     }
 
     @Test

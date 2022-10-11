@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.InetAddressPoint;
@@ -126,22 +127,22 @@ public class IpFieldMapper extends FieldMapper {
     }
 
     @Override
-    protected void parseCreateField(ParseContext context, List<IndexableField> fields) throws IOException {
+    protected void parseCreateField(ParseContext context, Consumer<IndexableField> onField) throws IOException {
         String addressAsString = context.parser().textOrNull();
         if (addressAsString == null) {
             return;
         }
         InetAddress address = InetAddresses.forString(addressAsString);
         if (fieldType().isSearchable()) {
-            fields.add(new InetAddressPoint(fieldType().name(), address));
+            onField.accept(new InetAddressPoint(fieldType().name(), address));
         }
         if (fieldType().hasDocValues()) {
-            fields.add(new SortedSetDocValuesField(fieldType().name(), new BytesRef(InetAddressPoint.encode(address))));
+            onField.accept(new SortedSetDocValuesField(fieldType().name(), new BytesRef(InetAddressPoint.encode(address))));
         } else if (fieldType.stored() || fieldType().isSearchable()) {
-            createFieldNamesField(context, fields);
+            createFieldNamesField(context, onField);
         }
         if (fieldType.stored()) {
-            fields.add(new StoredField(fieldType().name(), new BytesRef(InetAddressPoint.encode(address))));
+            onField.accept(new StoredField(fieldType().name(), new BytesRef(InetAddressPoint.encode(address))));
         }
     }
 

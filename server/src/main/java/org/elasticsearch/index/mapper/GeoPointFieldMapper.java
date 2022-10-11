@@ -22,9 +22,9 @@ package org.elasticsearch.index.mapper;
 import static org.elasticsearch.index.mapper.TypeParsers.parseField;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 
@@ -38,6 +38,7 @@ import org.elasticsearch.common.geo.GeoPoint;
 import org.elasticsearch.common.geo.GeoUtils;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
+import org.elasticsearch.index.mapper.ParseContext.Document;
 
 /**
  * Field Mapper for geo_point types.
@@ -109,7 +110,7 @@ public class GeoPointFieldMapper extends FieldMapper implements ArrayValueMapper
     }
 
     @Override
-    protected void parseCreateField(ParseContext context, List<IndexableField> fields) throws IOException {
+    protected void parseCreateField(ParseContext context, Consumer<IndexableField> onField) throws IOException {
         throw new UnsupportedOperationException("Parsing is implemented in parse(), this method should NEVER be called");
     }
 
@@ -134,20 +135,17 @@ public class GeoPointFieldMapper extends FieldMapper implements ArrayValueMapper
         if (point.lon() > 180.0 || point.lon() < -180) {
             throw new IllegalArgumentException("illegal longitude value [" + point.lon() + "] for " + name());
         }
+        Document doc = context.doc();
         if (fieldType().isSearchable()) {
-            context.doc().add(new LatLonPoint(fieldType().name(), point.lat(), point.lon()));
+            doc.add(new LatLonPoint(fieldType().name(), point.lat(), point.lon()));
         }
         if (fieldType.stored()) {
-            context.doc().add(new StoredField(fieldType().name(), point.toString()));
+            doc.add(new StoredField(fieldType().name(), point.toString()));
         }
         if (fieldType().hasDocValues()) {
-            context.doc().add(new LatLonDocValuesField(fieldType().name(), point.lat(), point.lon()));
+            doc.add(new LatLonDocValuesField(fieldType().name(), point.lat(), point.lon()));
         } else if (fieldType.stored() || fieldType().isSearchable()) {
-            List<IndexableField> fields = new ArrayList<>(1);
-            createFieldNamesField(context, fields);
-            for (IndexableField field : fields) {
-                context.doc().add(field);
-            }
+            createFieldNamesField(context, doc::add);
         }
     }
 

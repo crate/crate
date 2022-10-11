@@ -21,10 +21,11 @@
 
 package io.crate.expression.scalar;
 
-import static io.crate.testing.SymbolMatchers.isLiteral;
-import static org.hamcrest.Matchers.not;
+import static io.crate.testing.Asserts.isLiteral;
+import static io.crate.testing.Asserts.isNotSameInstance;
+import static io.crate.testing.Asserts.isNull;
+import static io.crate.testing.Asserts.isSameInstance;
 
-import org.hamcrest.core.IsSame;
 import org.junit.Test;
 
 import io.crate.expression.symbol.Literal;
@@ -60,20 +61,20 @@ public class DateTruncFunctionTest extends ScalarTestCase {
 
     @Test
     public void testEvaluateNullInterval() throws Exception {
-        assertEvaluate("date_trunc(interval, 919946281123)", null, Literal.of((String) null));
+        assertEvaluateNull("date_trunc(interval, 919946281123)", Literal.of((String) null));
     }
 
     @Test
     public void testInvalidInterval() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("invalid interval 'invalid interval' for scalar 'date_trunc'");
-        assertNormalize("date_trunc('invalid interval', 919946281123)", null);
+        assertNormalize("date_trunc('invalid interval', 919946281123)", isNull());
     }
 
     @Test
     public void testNullTimestamp() throws Exception {
-        assertEvaluate("date_trunc('second', timestamp_tz)", null, Literal.of(DataTypes.TIMESTAMPZ, null));
-        assertEvaluate("date_trunc('second', 'UTC', timestamp_tz)", null, Literal.of(DataTypes.TIMESTAMPZ, null));
+        assertEvaluateNull("date_trunc('second', timestamp_tz)", Literal.of(DataTypes.TIMESTAMPZ, null));
+        assertEvaluateNull("date_trunc('second', 'UTC', timestamp_tz)", Literal.of(DataTypes.TIMESTAMPZ, null));
     }
 
     @Test
@@ -125,7 +126,7 @@ public class DateTruncFunctionTest extends ScalarTestCase {
     public void testInvalidTimeZone() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("invalid time zone value 'no time zone'");
-        assertNormalize("date_trunc('day', 'no time zone', 919946281123)", null);
+        assertNormalize("date_trunc('day', 'no time zone', 919946281123)", isNull());
     }
 
     @Test
@@ -155,7 +156,7 @@ public class DateTruncFunctionTest extends ScalarTestCase {
 
     @Test
     public void testCompile() throws Exception {
-        assertCompile("date_trunc(interval, timezone, timestamp_tz)", IsSame::sameInstance);
-        assertCompile("date_trunc('day', 'UTC', timestamp_tz)", (s) -> not(IsSame.sameInstance(s)));
+        assertCompile("date_trunc(interval, timezone, timestamp_tz)", isSameInstance());
+        assertCompile("date_trunc('day', 'UTC', timestamp_tz)", isNotSameInstance());
     }
 }

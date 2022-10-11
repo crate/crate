@@ -21,9 +21,7 @@
 
 package io.crate.analyze;
 
-import static io.crate.testing.SymbolMatchers.isLiteral;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -47,7 +45,7 @@ public class WhereClauseTest extends CrateDummyClusterServiceUnitTest {
         WhereClause where2 = new WhereClause(sqlExpressions.asSymbol("x = 10"));
         WhereClause where1_where2 = where1.add(where2.query());
 
-        assertThat(where1_where2.queryOrFallback(), isLiteral(false));
+        assertThat(where1_where2.queryOrFallback()).isLiteral(false);
     }
 
     @Test
@@ -56,8 +54,8 @@ public class WhereClauseTest extends CrateDummyClusterServiceUnitTest {
         WhereClause where2 = new WhereClause(sqlExpressions.asSymbol("x = 10"));
         WhereClause where1_where2 = where1.add(where2.query());
 
-        assertThat(where1_where2.hasQuery(), is(true));
-        assertThat(where1_where2.query(), is(where2.query()));
+        assertThat(where1_where2.hasQuery()).isTrue();
+        assertThat(where1_where2.query()).isEqualTo(where2.query());
     }
 
     @Test
@@ -66,7 +64,7 @@ public class WhereClauseTest extends CrateDummyClusterServiceUnitTest {
         WhereClause where2 = new WhereClause(sqlExpressions.asSymbol("x = 10"));
         WhereClause where1_where2 = where1.add(where2.query());
 
-        assertThat(where1_where2.hasQuery(), is(true));
-        assertThat(where1_where2.query(), is(where2.query()));
+        assertThat(where1_where2.hasQuery()).isTrue();
+        assertThat(where1_where2.query()).isEqualTo(where2.query());
     }
 }

@@ -21,7 +21,8 @@
 
 package io.crate.expression.scalar.string;
 
-import static io.crate.testing.SymbolMatchers.isLiteral;
+
+import static io.crate.testing.Asserts.isLiteral;
 
 import org.junit.Test;
 
@@ -63,6 +64,6 @@ public class InitCapFunctionTest extends ScalarTestCase {
 
     @Test
     public void testEvaluateWithNull() {
-        assertEvaluate("initcap(name)", null, Literal.of(DataTypes.STRING, null));
+        assertEvaluateNull("initcap(name)", Literal.of(DataTypes.STRING, null));
     }
 }

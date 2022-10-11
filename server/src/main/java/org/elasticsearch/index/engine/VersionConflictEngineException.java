@@ -19,6 +19,7 @@
 
 package org.elasticsearch.index.engine;
 
+import org.elasticsearch.Assertions;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.ShardId;
@@ -62,5 +63,13 @@ public class VersionConflictEngineException extends EngineException {
 
     public VersionConflictEngineException(StreamInput in) throws IOException {
         super(in);
+    }
+
+    @Override
+    public synchronized Throwable fillInStackTrace() {
+        if (Assertions.ENABLED) {
+            return super.fillInStackTrace();
+        }
+        return this;
     }
 }

@@ -25,6 +25,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 
@@ -34,6 +35,7 @@ import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.index.mapper.FieldNamesFieldMapper.FieldNamesFieldType;
+import org.elasticsearch.index.mapper.ParseContext.Document;
 
 public abstract class FieldMapper extends Mapper implements Cloneable {
 
@@ -151,12 +153,10 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
      * Parse the field value using the provided {@link ParseContext}.
      */
     public void parse(ParseContext context) throws IOException {
-        final List<IndexableField> fields = new ArrayList<>(2);
+        Document doc = context.doc();
+        Consumer<IndexableField> addField = field -> doc.add(field);
         try {
-            parseCreateField(context, fields);
-            for (IndexableField field : fields) {
-                context.doc().add(field);
-            }
+            parseCreateField(context, addField);
         } catch (Exception e) {
             throw new MapperParsingException("failed to parse field [{}] of type [{}]", e, fieldType().name(),
                     fieldType().typeName());
@@ -166,15 +166,15 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
     /**
      * Parse the field value and populate <code>fields</code>.
      */
-    protected abstract void parseCreateField(ParseContext context, List<IndexableField> fields) throws IOException;
+    protected abstract void parseCreateField(ParseContext context, Consumer<IndexableField> onField) throws IOException;
 
-    protected void createFieldNamesField(ParseContext context, List<IndexableField> fields) {
+    protected void createFieldNamesField(ParseContext context, Consumer<IndexableField> onField) {
         FieldNamesFieldType fieldNamesFieldType = context.docMapper()
             .metadataMapper(FieldNamesFieldMapper.class)
             .fieldType();
         if (fieldNamesFieldType != null && fieldNamesFieldType.isEnabled()) {
             for (String fieldName : FieldNamesFieldMapper.extractFieldNames(fieldType().name())) {
-                fields.add(new Field(FieldNamesFieldMapper.NAME, fieldName, FieldNamesFieldMapper.Defaults.FIELD_TYPE));
+                onField.accept(new Field(FieldNamesFieldMapper.NAME, fieldName, FieldNamesFieldMapper.Defaults.FIELD_TYPE));
             }
         }
     }

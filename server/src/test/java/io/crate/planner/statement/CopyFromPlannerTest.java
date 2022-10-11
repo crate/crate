@@ -22,6 +22,7 @@
 package io.crate.planner.statement;
 
 import static io.crate.analyze.TableDefinitions.USER_TABLE_DEFINITION;
+import static io.crate.testing.Asserts.assertThrowsMatches;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
@@ -148,6 +149,15 @@ public class CopyFromPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testCopyFromPlanWithInvalidParameters() {
         expectedException.expect(IllegalArgumentException.class);
         plan("copy users from '/path/to/file.ext' with (bulk_size=-28)");
+    }
+
+    @Test
+    public void testCopyFromPlanWithInvalidCompressionParameter() {
+        assertThrowsMatches(
+            () -> plan("copy users from '/path/to/file.ext' with (compression=true)"),
+            IllegalArgumentException.class,
+            "Invalid value for argument 'compression'"
+        );
     }
 
     @Test

@@ -29,9 +29,9 @@ public class ObjDescriptionFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_obj_description_always_returns_null() {
-        assertEvaluate("pg_catalog.obj_description(1, '')", null);
-        assertEvaluate("obj_description(1, '')", null);
-        assertEvaluate("obj_description(null, '')", null);
-        assertEvaluate("obj_description(1, null)", null);
+        assertEvaluateNull("pg_catalog.obj_description(1, '')");
+        assertEvaluateNull("obj_description(1, '')");
+        assertEvaluateNull("obj_description(null, '')");
+        assertEvaluateNull("obj_description(1, null)");
     }
 }

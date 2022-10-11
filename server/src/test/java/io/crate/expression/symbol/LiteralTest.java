@@ -21,9 +21,7 @@
 
 package io.crate.expression.symbol;
 
-import static io.crate.testing.SymbolMatchers.isFunction;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 
@@ -33,6 +31,7 @@ import org.junit.Test;
 import org.locationtech.spatial4j.shape.Point;
 
 import io.crate.expression.scalar.cast.ImplicitCastFunction;
+import io.crate.testing.Asserts;
 import io.crate.types.ArrayType;
 import io.crate.types.BooleanType;
 import io.crate.types.DataType;
@@ -57,8 +56,8 @@ public class LiteralTest extends ESTestCase {
             }
             var nestedValue = List.of(List.of(value));
             Literal<?> nestedLiteral = Literal.ofUnchecked(nestedType, nestedValue);
-            assertThat(nestedLiteral.valueType(), is(nestedType));
-            assertThat(nestedLiteral.value(), is(nestedValue));
+            assertThat(nestedLiteral.valueType()).isEqualTo(nestedType);
+            assertThat(nestedLiteral.value()).isEqualTo(nestedValue);
         }
     }
 
@@ -72,7 +71,7 @@ public class LiteralTest extends ESTestCase {
             DataTypes.GEO_POINT,
             DataTypes.GEO_POINT.implicitCast(new Double[]{10.0, 20.2})
         );
-        assertThat(l1.hashCode(), is(l2.hashCode()));
+        assertThat(l1).hasSameHashCodeAs(l2);
     }
 
     @Test
@@ -81,19 +80,19 @@ public class LiteralTest extends ESTestCase {
 
         Literal<?> val1 = Literal.of(intTypeArr, List.of(1, 2, 3));
         Literal<?> val2 = Literal.of(intTypeArr, List.of(4,5,6));
-        assertThat(val1.equals(val2), is(false));
+        assertThat(val1).isNotEqualTo(val2);
 
         val1 = Literal.of(intTypeArr, List.of(1, 2, 3));
         val2 = Literal.of(intTypeArr, List.of(1,2,3));
-        assertThat(val1.equals(val2), is(true));
+        assertThat(val1).isEqualTo(val2);
 
         val1 = Literal.of(intTypeArr, List.of(3,2,1));
         val2 = Literal.of(intTypeArr, List.of(1,2,3));
-        assertThat(val1.equals(val2), is(false));
+        assertThat(val1).isNotEqualTo(val2);
 
         val1 = Literal.of(intTypeArr, List.of(1,2,3,4,5));
         val2 = Literal.of(intTypeArr, List.of(1,2,3));
-        assertThat(val1.equals(val2), is(false));
+        assertThat(val1).isNotEqualTo(val2);
     }
 
     @Test
@@ -102,30 +101,28 @@ public class LiteralTest extends ESTestCase {
 
         Literal<?> val1 = Literal.of(intTypeNestedArr, List.of(List.of(1, 2, 3)));
         Literal<?> val2 = Literal.of(intTypeNestedArr, List.of(List.of(4, 5, 6)));
-        assertThat(val1.equals(val2), is(false));
+        assertThat(val1).isNotEqualTo(val2);
 
         val1 = Literal.of(intTypeNestedArr, List.of(List.of(1, 2, 3)));
         val2 = Literal.of(intTypeNestedArr, List.of(List.of(1, 2, 3)));
-        assertThat(val1.equals(val2), is(true));
+        assertThat(val1).isEqualTo(val2);
 
         val1 = Literal.of(intTypeNestedArr, List.of(List.of(3, 2, 1)));
         val2 = Literal.of(intTypeNestedArr, List.of(List.of(1, 2, 3)));
-        assertThat(val1.equals(val2), is(false));
+        assertThat(val1).isNotEqualTo(val2);
 
         val1 = Literal.of(intTypeNestedArr, List.of(List.of(1, 2, 3, 4, 5)));
         val2 = Literal.of(intTypeNestedArr, List.of(List.of(1, 2, 3)));
-        assertThat(val1.equals(val2), is(false));
+        assertThat(val1).isNotEqualTo(val2);
     }
 
     @Test
     public void test_cast_on_literal_returns_cast_function() {
         Symbol intLiteral = Literal.of(1);
-        assertThat(
-            intLiteral.cast(DataTypes.LONG),
-            isFunction(
+        Asserts.assertThat(intLiteral.cast(DataTypes.LONG))
+            .isFunction(
                 ImplicitCastFunction.NAME,
                 List.of(intLiteral.valueType(), DataTypes.STRING)
-            )
-        );
+            );
     }
 }

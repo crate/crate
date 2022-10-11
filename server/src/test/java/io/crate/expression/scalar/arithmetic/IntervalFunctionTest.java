@@ -21,7 +21,7 @@
 
 package io.crate.expression.scalar.arithmetic;
 
-import static io.crate.testing.Asserts.assertThrowsMatches;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.hamcrest.Matchers;
 import org.joda.time.Period;
@@ -36,24 +36,24 @@ public class IntervalFunctionTest extends ScalarTestCase {
         assertEvaluate("interval '1 second' + interval '1 second'", Period.seconds(2));
         assertEvaluate("interval '1100 years' + interval '2000 years'", Period.years(3100));
         assertEvaluate("interval '-10 years' + interval '1 years'", Period.years(-9));
-        assertEvaluate("interval '2 second' - interval '1 second'", Matchers.is(Period.seconds(1)));
-        assertEvaluate("interval '-1 second' - interval '-1 second'", Matchers.is(Period.seconds(0)));
-        assertEvaluate("interval '1 month' + interval '1 year'", Matchers.is(Period.years(1).withMonths(1)));
+        assertEvaluate("interval '2 second' - interval '1 second'", Period.seconds(1));
+        assertEvaluate("interval '-1 second' - interval '-1 second'", Period.seconds(0));
+        assertEvaluate("interval '1 month' + interval '1 year'", Period.years(1).withMonths(1));
     }
 
     @Test
     public void test_out_of_range_value() {
         expectedException.expect(ArithmeticException.class);
         expectedException.expectMessage("Interval field value out of range");
-        assertEvaluate("interval '9223372036854775807'", Matchers.is(Period.seconds(1)));
+        assertEvaluate("interval '9223372036854775807'", Period.seconds(1));
     }
 
     @Test
     public void test_null_interval() {
-        assertEvaluate("null + interval '1 second'", Matchers.nullValue());
-        assertEvaluate("null - interval '1 second'", Matchers.nullValue());
-        assertEvaluate("interval '1 second' + null", Matchers.nullValue());
-        assertEvaluate("interval '1 second' - null", Matchers.nullValue());
+        assertEvaluateNull("null + interval '1 second'");
+        assertEvaluateNull("null - interval '1 second'");
+        assertEvaluateNull("interval '1 second' + null");
+        assertEvaluateNull("interval '1 second' - null");
     }
 
     @Test
@@ -66,20 +66,19 @@ public class IntervalFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_timestamp_interval() {
-        assertEvaluate("interval '1 second' + '86400000'::timestamp", Matchers.is(86401000L));
-        assertEvaluate("'86401000'::timestamp - interval '1 second'", Matchers.is(86400000L));
-        assertEvaluate("'86400000'::timestamp - interval '-1 second'", Matchers.is(86401000L));
-        assertEvaluate("'86400000'::timestamp + interval '-1 second'", Matchers.is(86399000L));
-        assertEvaluate("'86400000'::timestamp - interval '1000 years'", Matchers.is(-31556822400000L));
-        assertEvaluate("'9223372036854775807'::timestamp - interval '1 second'", Matchers.is(9223372036854774807L));
+        assertEvaluate("interval '1 second' + '86400000'::timestamp", 86401000L);
+        assertEvaluate("'86401000'::timestamp - interval '1 second'", 86400000L);
+        assertEvaluate("'86400000'::timestamp - interval '-1 second'", 86401000L);
+        assertEvaluate("'86400000'::timestamp + interval '-1 second'", 86399000L);
+        assertEvaluate("'86400000'::timestamp - interval '1000 years'", -31556822400000L);
+        assertEvaluate("'9223372036854775807'::timestamp - interval '1 second'", 9223372036854774807L);
     }
 
     @Test
     public void test_unallowed_operations() {
-        assertThrowsMatches(
-            () -> assertEvaluate("interval '1 second' - '86401000'::timestamptz", Matchers.is(86400000L)),
-            UnsupportedOperationException.class,
-            "Unknown function: (cast('1 second' AS interval) - cast('86401000' AS timestamp with time zone)), "
-        );
+        assertThatThrownBy(
+            () -> assertEvaluate("interval '1 second' - '86401000'::timestamptz", 86400000L))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessageStartingWith("Unknown function: (cast('1 second' AS interval) - cast('86401000' AS timestamp with time zone)), ");
     }
 }

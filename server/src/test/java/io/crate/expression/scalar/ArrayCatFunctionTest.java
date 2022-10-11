@@ -21,14 +21,16 @@
 
 package io.crate.expression.scalar;
 
-import static io.crate.testing.SymbolMatchers.isFunction;
-import static io.crate.testing.SymbolMatchers.isLiteral;
+import static io.crate.testing.Asserts.isFunction;
+import static io.crate.testing.Asserts.isLiteral;
 
 import java.util.Arrays;
+import java.util.function.Consumer;
 
 import org.junit.Test;
 
 import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 
@@ -56,7 +58,7 @@ public class ArrayCatFunctionTest extends ScalarTestCase {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Unknown function: array_cat()." +
                                         " Possible candidates: array_cat(array(E), array(E)):array(E)");
-        assertEvaluate("array_cat()", null);
+        assertEvaluateNull("array_cat()");
     }
 
     @Test
@@ -64,7 +66,7 @@ public class ArrayCatFunctionTest extends ScalarTestCase {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Unknown function: array_cat(_array(1))," +
                                         " no overload found for matching argument types: (integer_array).");
-        assertEvaluate("array_cat([1])", null);
+        assertEvaluateNull("array_cat([1])");
     }
 
     @Test
@@ -72,7 +74,7 @@ public class ArrayCatFunctionTest extends ScalarTestCase {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Unknown function: array_cat(_array(1), _array(2), _array(3))," +
                                         " no overload found for matching argument types: (integer_array, integer_array, integer_array).");
-        assertEvaluate("array_cat([1], [2], [3])", null);
+        assertEvaluateNull("array_cat([1], [2], [3])");
     }
 
     @Test
@@ -115,6 +117,6 @@ public class ArrayCatFunctionTest extends ScalarTestCase {
     public void testEmptyArrays() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("One of the arguments of the `array_cat` function can be of undefined inner type, but not both");
-        assertNormalize("array_cat([], [])", null);
+        assertNormalize("array_cat([], [])", (Consumer<Symbol>) null);
     }
 }

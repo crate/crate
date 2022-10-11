@@ -29,7 +29,7 @@ public class FormatTypeFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_format_type_null_oid_returns_null() throws Exception {
-        assertEvaluate("format_type(null, null)", null);
+        assertEvaluateNull("format_type(null, null)");
     }
 
     @Test

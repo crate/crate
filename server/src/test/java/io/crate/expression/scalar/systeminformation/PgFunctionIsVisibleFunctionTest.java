@@ -34,7 +34,7 @@ public class PgFunctionIsVisibleFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_null_oid_results_in_null() {
-        assertEvaluate("pg_function_is_visible(null)", null);
+        assertEvaluateNull("pg_function_is_visible(null)");
     }
 
     @Test

@@ -23,11 +23,10 @@ import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeBo
 import static org.elasticsearch.common.xcontent.support.XContentMapValues.nodeIntegerValue;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 
@@ -50,6 +49,7 @@ import org.elasticsearch.common.geo.builders.ShapeBuilder.Orientation;
 import org.elasticsearch.common.geo.parsers.ShapeParser;
 import org.elasticsearch.common.unit.DistanceUnit;
 import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.index.mapper.ParseContext.Document;
 import org.locationtech.spatial4j.shape.Point;
 import org.locationtech.spatial4j.shape.Shape;
 import org.locationtech.spatial4j.shape.jts.JtsGeometry;
@@ -404,16 +404,17 @@ public class GeoShapeFieldMapper extends FieldMapper {
     }
 
     private void indexShape(ParseContext context, Shape shape) {
+        Document doc = context.doc();
         Field[] indexableFields = fieldType().defaultStrategy().createIndexableFields(shape);
-        List<IndexableField> fields = new ArrayList<>(Arrays.asList(indexableFields));
-        createFieldNamesField(context, fields);
-        for (IndexableField field : fields) {
-            context.doc().add(field);
+        for (var field : indexableFields) {
+            doc.add(field);
         }
+        Consumer<IndexableField> addField = doc::add;
+        createFieldNamesField(context, addField);
     }
 
     @Override
-    protected void parseCreateField(ParseContext context, List<IndexableField> fields) throws IOException {
+    protected void parseCreateField(ParseContext context, Consumer<IndexableField> fields) throws IOException {
     }
 
     @Override

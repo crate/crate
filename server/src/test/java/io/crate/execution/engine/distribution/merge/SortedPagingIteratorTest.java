@@ -21,15 +21,13 @@
 
 package io.crate.execution.engine.distribution.merge;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 
-import org.assertj.core.api.Assertions;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
@@ -64,8 +62,8 @@ public class SortedPagingIteratorTest extends ESTestCase {
 
         consumeRows(pagingIterator, rows);
 
-        assertThat(rows.size(), is(3));
-        assertThat(TestingHelpers.printRows(rows), is("a\nb\nc\n"));
+        assertThat(rows).hasSize(3);
+        assertThat(TestingHelpers.printRows(rows)).isEqualTo("a\nb\nc\n");
 
         pagingIterator.merge(numberedBuckets(List.of(
             new ArrayBucket(new Object[][]{
@@ -79,13 +77,13 @@ public class SortedPagingIteratorTest extends ESTestCase {
         )));
 
         consumeRows(pagingIterator, rows);
-        assertThat(rows.size(), is(5));
-        assertThat(TestingHelpers.printRows(rows), is("a\nb\nc\nd\ne\n"));
+        assertThat(rows).hasSize(5);
+        assertThat(TestingHelpers.printRows(rows)).isEqualTo("a\nb\nc\nd\ne\n");
 
         pagingIterator.finish();
         consumeRows(pagingIterator, rows);
-        assertThat(rows.size(), is(9));
-        assertThat(TestingHelpers.printRows(rows), is("a\nb\nc\nd\ne\nx\ny\ny\nz\n"));
+        assertThat(rows).hasSize(9);
+        assertThat(TestingHelpers.printRows(rows)).isEqualTo("a\nb\nc\nd\ne\nx\ny\ny\nz\n");
     }
 
     private void consumeRows(Iterator<Row> pagingIterator, List<Object[]> rows) {
@@ -132,11 +130,11 @@ public class SortedPagingIteratorTest extends ESTestCase {
         )));
         pagingIterator.finish();
         consumeSingleColumnRows(pagingIterator, rows);
-        assertThat(rows.toString(), is("[a, b, c, d, e, f, m, n, o, x, y, z]"));
+        assertThat(rows).hasToString("[a, b, c, d, e, f, m, n, o, x, y, z]");
 
         List<Object> replayedRows = new ArrayList<>();
         consumeSingleColumnRows(pagingIterator.repeat().iterator(), replayedRows);
-        assertThat(rows, is(replayedRows));
+        assertThat(rows).isEqualTo(replayedRows);
     }
 
     @Test
@@ -149,10 +147,10 @@ public class SortedPagingIteratorTest extends ESTestCase {
         pagingIterator.merge(numberedBuckets(List.of(new ArrayBucket(new Object[][]{}))));
         pagingIterator.finish();
         consumeSingleColumnRows(pagingIterator, rows);
-        Assertions.assertThat(rows).isEmpty();
+        assertThat(rows).isEmpty();
         List<Object> replayedRows = new ArrayList<>();
         consumeSingleColumnRows(pagingIterator.repeat().iterator(), replayedRows);
-        Assertions.assertThat(replayedRows).isEmpty();
+        assertThat(replayedRows).isEmpty();
     }
 
     private Iterable<? extends KeyIterable<Void, Row>> numberedBuckets(List<Bucket> buckets) {
