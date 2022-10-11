@@ -60,7 +60,7 @@ public class S3BlobStoreTests extends ESBlobStoreTestCase {
         // it should init cannedACL correctly
         for (String aclString : aclList) {
             CannedAccessControlList acl = S3BlobStore.initCannedACL(aclString);
-            assertThat(acl.toString()).isEqualTo(aclString);
+            assertThat(acl).hasToString(aclString);
         }
 
         // it should accept all aws cannedACLs
