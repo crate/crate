@@ -22,7 +22,7 @@
 package io.crate.planner.statement;
 
 import static io.crate.analyze.TableDefinitions.USER_TABLE_DEFINITION;
-import static io.crate.testing.Asserts.assertThrowsMatches;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
@@ -153,11 +153,9 @@ public class CopyFromPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testCopyFromPlanWithInvalidCompressionParameter() {
-        assertThrowsMatches(
-            () -> plan("copy users from '/path/to/file.ext' with (compression=true)"),
-            IllegalArgumentException.class,
-            "Invalid value for argument 'compression'"
-        );
+        assertThatThrownBy(() -> plan("copy users from '/path/to/file.ext' with (compression=true)"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Unsupported setting value: true. Supported values are: gzip");
     }
 
     @Test
