@@ -25,6 +25,8 @@ import io.crate.common.Booleans;
 import org.elasticsearch.common.settings.Setting;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class Validators {
 
@@ -76,10 +78,26 @@ public class Validators {
         }
 
         @Override
-        public void validate(String value, Map settings) {
+        public void validate(String value) {
+            ensureAllowed(value);
+            super.validate(value);
+        }
+
+        @Override
+        public void validate(String value, Map<Setting<?>, Object> settings) {
+            ensureAllowed(value);
             super.validate(value, settings);
+        }
+
+        private void ensureAllowed(String value) {
             if (value.isEmpty() == false && allowedValues.contains(value) == false) {
-                throw new IllegalArgumentException(UNSUPPORTED_MESSAGE + value);
+                String supported = ". Supported values are: ";
+                if (allowedValues.size() > 10) {
+                    supported += Stream.concat(allowedValues.stream().sorted().limit(10), Stream.of("...")).collect(Collectors.joining(", "));
+                } else {
+                    supported += allowedValues.stream().sorted().collect(Collectors.joining(", "));
+                }
+                throw new IllegalArgumentException(UNSUPPORTED_MESSAGE + value + supported);
             }
         }
     }
