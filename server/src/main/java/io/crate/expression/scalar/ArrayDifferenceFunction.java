@@ -26,6 +26,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -65,16 +66,16 @@ class ArrayDifferenceFunction extends Scalar<List<Object>, List<Object>> {
     }
 
     private final Signature signature;
-    private final Signature boundSignature;
+    private final BoundSignature boundSignature;
     private final Optional<Set<Object>> optionalSubtractSet;
 
     private ArrayDifferenceFunction(Signature signature,
-                                    Signature boundSignature,
+                                    BoundSignature boundSignature,
                                     @Nullable Set<Object> subtractSet) {
         this.signature = signature;
         this.boundSignature = boundSignature;
         optionalSubtractSet = Optional.ofNullable(subtractSet);
-        ensureBothInnerTypesAreNotUndefined(boundSignature.getArgumentDataTypes(), NAME);
+        ensureBothInnerTypesAreNotUndefined(boundSignature.argTypes(), NAME);
     }
 
     @Override
@@ -83,7 +84,7 @@ class ArrayDifferenceFunction extends Scalar<List<Object>, List<Object>> {
     }
 
     @Override
-    public Signature boundSignature() {
+    public BoundSignature boundSignature() {
         return boundSignature;
     }
 
@@ -99,7 +100,7 @@ class ArrayDifferenceFunction extends Scalar<List<Object>, List<Object>> {
         Input<?> input = (Input<?>) symbol;
         Object inputValue = input.value();
 
-        DataType<?> innerType = ((ArrayType<?>) this.boundSignature.getReturnType().createType()).innerType();
+        DataType<?> innerType = ((ArrayType<?>) this.boundSignature.returnType()).innerType();
         List<Object> values = (List<Object>) inputValue;
         Set<Object> subtractSet;
         if (values == null) {
@@ -120,7 +121,7 @@ class ArrayDifferenceFunction extends Scalar<List<Object>, List<Object>> {
             return null;
         }
 
-        DataType<?> innerType = ((ArrayType<?>) this.boundSignature.getReturnType().createType()).innerType();
+        DataType<?> innerType = ((ArrayType<?>) this.boundSignature.returnType()).innerType();
         Set<Object> localSubtractSet;
         if (optionalSubtractSet.isEmpty()) {
             localSubtractSet = new HashSet<>();

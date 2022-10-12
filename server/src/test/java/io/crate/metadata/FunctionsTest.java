@@ -32,7 +32,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.BiFunction;
 
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
@@ -41,6 +40,8 @@ import io.crate.expression.symbol.Aggregation;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.FunctionProvider.FunctionFactory;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
@@ -48,8 +49,7 @@ public class FunctionsTest extends ESTestCase {
 
     private Map<FunctionName, List<FunctionProvider>> implementations = new HashMap<>();
 
-    private void register(Signature signature,
-                          BiFunction<Signature, Signature, FunctionImplementation> factory) {
+    private void register(Signature signature, FunctionFactory factory) {
         List<FunctionProvider> functions = implementations.computeIfAbsent(
             signature.getName(),
             k -> new ArrayList<>());
@@ -79,8 +79,8 @@ public class FunctionsTest extends ESTestCase {
         }
 
         @Override
-        public Signature boundSignature() {
-            return signature;
+        public BoundSignature boundSignature() {
+            return BoundSignature.sameAsUnbound(signature);
         }
     }
 
@@ -105,7 +105,7 @@ public class FunctionsTest extends ESTestCase {
                 new DummyFunction(signature)
         );
         var impl = resolve("foo", List.of(Literal.of("hoschi")));
-        assertThat(impl.boundSignature().getArgumentDataTypes(), contains(DataTypes.STRING));
+        assertThat(impl.boundSignature().argTypes(), contains(DataTypes.STRING));
     }
 
     @Test
@@ -120,7 +120,7 @@ public class FunctionsTest extends ESTestCase {
                 new DummyFunction(signature)
         );
         var impl = resolve("foo", List.of(Literal.of(1L)));
-        assertThat(impl.boundSignature().getArgumentDataTypes(), contains(DataTypes.INTEGER));
+        assertThat(impl.boundSignature().argTypes(), contains(DataTypes.INTEGER));
     }
 
     @Test
@@ -147,7 +147,7 @@ public class FunctionsTest extends ESTestCase {
         var impl = resolve("foo", List.of(Literal.of(1L)));
 
         // float is more specific than double
-        assertThat(impl.boundSignature().getArgumentDataTypes(), contains(DataTypes.FLOAT));
+        assertThat(impl.boundSignature().argTypes(), contains(DataTypes.FLOAT));
     }
 
     @Test
@@ -172,7 +172,7 @@ public class FunctionsTest extends ESTestCase {
         );
 
         var impl = resolve("foo", List.of(Literal.of(DataTypes.UNDEFINED, null)));
-        assertThat(impl.boundSignature().getArgumentDataTypes(), contains(DataTypes.STRING));
+        assertThat(impl.boundSignature().argTypes(), contains(DataTypes.STRING));
     }
 
     @Test
@@ -197,7 +197,7 @@ public class FunctionsTest extends ESTestCase {
         );
 
         var impl = resolve("foo", List.of(Literal.of(DataTypes.UNDEFINED, null)));
-        assertThat(impl.boundSignature().getArgumentDataTypes(), contains(DataTypes.STRING));
+        assertThat(impl.boundSignature().argTypes(), contains(DataTypes.STRING));
     }
 
     @Test
@@ -236,7 +236,7 @@ public class FunctionsTest extends ESTestCase {
         );
 
         var impl = resolve("foo", List.of(Literal.of(1), Literal.of(1L)));
-        assertThat(impl.boundSignature().getArgumentDataTypes(), contains(DataTypes.INTEGER, DataTypes.INTEGER));
+        assertThat(impl.boundSignature().argTypes(), contains(DataTypes.INTEGER, DataTypes.INTEGER));
     }
 
     @Test

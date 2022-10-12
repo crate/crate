@@ -26,6 +26,7 @@ import java.util.List;
 import io.crate.data.Input;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.functions.TypeVariableConstraint;
 import io.crate.types.TypeSignature;
@@ -34,7 +35,7 @@ public class ExistsOperator extends Operator<List<Object>> {
 
     public static final String NAME = "_exists";
     private final Signature signature;
-    private final Signature boundSignature;
+    private final BoundSignature boundSignature;
 
     public static void register(OperatorModule module) {
         Signature signature = Signature.scalar(
@@ -45,7 +46,7 @@ public class ExistsOperator extends Operator<List<Object>> {
         module.register(signature, ExistsOperator::new);
     }
 
-    private ExistsOperator(Signature signature, Signature boundSignature) {
+    private ExistsOperator(Signature signature, BoundSignature boundSignature) {
         this.signature = signature;
         this.boundSignature = boundSignature;
     }
@@ -56,7 +57,7 @@ public class ExistsOperator extends Operator<List<Object>> {
     }
 
     @Override
-    public Signature boundSignature() {
+    public BoundSignature boundSignature() {
         return boundSignature;
     }
 

@@ -89,35 +89,18 @@ public class SignatureBinder {
     }
 
     @Nullable
-    public Signature bind(List<TypeSignature> actualArgumentTypes) {
+    public BoundSignature bind(List<DataType<?>> actualArgumentTypes) {
         BoundVariables boundVariables = bindVariables(actualArgumentTypes);
         if (boundVariables == null) {
             return null;
         }
-        return applyBoundVariables(declaredSignature, boundVariables, typeVariableConstraints, actualArgumentTypes.size());
-    }
-
-    @Nullable
-    public BoundVariables bindVariables(List<TypeSignature> actualArgumentTypes) {
-        ArrayList<TypeConstraintSolver> constraintSolvers = new ArrayList<>();
-        if (!appendConstraintSolversForArguments(constraintSolvers, actualArgumentTypes)) {
-            return null;
-        }
-
-        return iterativeSolve(Collections.unmodifiableList(constraintSolvers));
-    }
-
-    @Nullable
-    private static Signature applyBoundVariables(Signature signature,
-                                                 BoundVariables boundVariables,
-                                                 Map<String, TypeVariableConstraint> typeVariableConstraints,
-                                                 int arity) {
+        int arity = actualArgumentTypes.size();
         List<TypeSignature> argumentSignatures;
-        var bindingInfo = signature.getBindingInfo();
+        var bindingInfo = declaredSignature.getBindingInfo();
         assert bindingInfo != null : "Expecting the signature's binding info to be not null";
         if (bindingInfo.isVariableArity()) {
             argumentSignatures = expandVarargFormalTypeSignature(
-                signature.getArgumentTypes(),
+                declaredSignature.getArgumentTypes(),
                 bindingInfo.getVariableArityGroup(),
                 typeVariableConstraints,
                 arity);
@@ -129,24 +112,31 @@ public class SignatureBinder {
                 return null;
             }
         } else {
-            if (signature.getArgumentTypes().size() != arity) {
+            if (declaredSignature.getArgumentTypes().size() != arity) {
                 if (LOGGER.isDebugEnabled()) {
                     LOGGER.debug("Size of argument types does not match given arity");
                 }
                 return null;
             }
-            argumentSignatures = signature.getArgumentTypes();
+            argumentSignatures = declaredSignature.getArgumentTypes();
         }
         List<TypeSignature> boundArgumentSignatures = applyBoundVariables(argumentSignatures, boundVariables);
-        TypeSignature boundReturnTypeSignature = applyBoundVariables(signature.getReturnType(), boundVariables);
+        TypeSignature boundReturnTypeSignature = applyBoundVariables(declaredSignature.getReturnType(), boundVariables);
 
-        return Signature.builder()
-            .name(signature.getName())
-            .kind(signature.getKind())
-            .argumentTypes(boundArgumentSignatures)
-            .returnType(boundReturnTypeSignature)
-            .setVariableArity(false)
-            .build();
+        return new BoundSignature(
+            Lists2.map(boundArgumentSignatures, TypeSignature::createType),
+            boundReturnTypeSignature.createType()
+        );
+    }
+
+    @Nullable
+    public BoundVariables bindVariables(List<DataType<?>> actualArgumentTypes) {
+        ArrayList<TypeConstraintSolver> constraintSolvers = new ArrayList<>();
+        if (!appendConstraintSolversForArguments(constraintSolvers, actualArgumentTypes)) {
+            return null;
+        }
+
+        return iterativeSolve(Collections.unmodifiableList(constraintSolvers));
     }
 
     private static List<TypeSignature> applyBoundVariables(List<TypeSignature> typeSignatures,
@@ -185,7 +175,7 @@ public class SignatureBinder {
     }
 
     private boolean appendConstraintSolversForArguments(List<TypeConstraintSolver> resultBuilder,
-                                                        List<TypeSignature> actualTypeSignatures) {
+                                                        List<DataType<?>> argumentTypes) {
         var declaredBindingInfo = declaredSignature.getBindingInfo();
         assert declaredBindingInfo != null : "Expecting the signature's binding info to be not null";
         boolean variableArity = declaredBindingInfo.isVariableArity();
@@ -193,11 +183,11 @@ public class SignatureBinder {
         if (variableArity) {
             int variableGroupCount = declaredBindingInfo.getVariableArityGroup().size();
             int variableArgumentCount = variableGroupCount > 0 ? variableGroupCount : 1;
-            if (actualTypeSignatures.size() <= formalTypeSignatures.size() - variableArgumentCount) {
+            if (argumentTypes.size() <= formalTypeSignatures.size() - variableArgumentCount) {
                 if (LOGGER.isTraceEnabled()) {
                     LOGGER.trace(
                         "Given signature size {} is not smaller than minimum variableArity of formal signature size {}",
-                        actualTypeSignatures.size(),
+                        argumentTypes.size(),
                         formalTypeSignatures.size() - variableArgumentCount);
                 }
                 return false;
@@ -206,17 +196,17 @@ public class SignatureBinder {
                 formalTypeSignatures,
                 declaredBindingInfo.getVariableArityGroup(),
                 typeVariableConstraints,
-                actualTypeSignatures.size());
+                argumentTypes.size());
             if (formalTypeSignatures == null) {
                 // var args expanding detected a no-match
                 return false;
             }
         }
 
-        if (formalTypeSignatures.size() != actualTypeSignatures.size()) {
+        if (formalTypeSignatures.size() != argumentTypes.size()) {
             if (LOGGER.isTraceEnabled()) {
                 LOGGER.trace("Given signature size {} does not match formal signature size {}",
-                             actualTypeSignatures.size(), formalTypeSignatures.size());
+                             argumentTypes.size(), formalTypeSignatures.size());
             }
             return false;
         }
@@ -224,28 +214,28 @@ public class SignatureBinder {
         for (int i = 0; i < formalTypeSignatures.size(); i++) {
             appendTypeRelationshipConstraintSolver(resultBuilder,
                                                    formalTypeSignatures.get(i),
-                                                   actualTypeSignatures.get(i),
+                                                   argumentTypes.get(i),
                                                    coercionType);
         }
 
-        return appendConstraintSolvers(resultBuilder, formalTypeSignatures, actualTypeSignatures, coercionType);
+        return appendConstraintSolvers(resultBuilder, formalTypeSignatures, argumentTypes, coercionType);
     }
 
     private boolean appendConstraintSolvers(List<TypeConstraintSolver> resultBuilder,
                                             List<? extends TypeSignature> formalTypeSignatures,
-                                            List<TypeSignature> actualTypeSignatures,
+                                            List<DataType<?>> actualArgumentTypes,
                                             CoercionType coercionType) {
-        if (formalTypeSignatures.size() != actualTypeSignatures.size()) {
+        if (formalTypeSignatures.size() != actualArgumentTypes.size()) {
             if (LOGGER.isTraceEnabled()) {
                 LOGGER.trace("Given signature size {} does not match formal signature size {}",
-                             actualTypeSignatures.size(), formalTypeSignatures.size());
+                             actualArgumentTypes.size(), formalTypeSignatures.size());
             }
             return false;
         }
         for (int i = 0; i < formalTypeSignatures.size(); i++) {
             if (!appendConstraintSolvers(resultBuilder,
                                          formalTypeSignatures.get(i),
-                                         actualTypeSignatures.get(i),
+                                         actualArgumentTypes.get(i),
                                          coercionType)) {
                 return false;
             }
@@ -255,46 +245,39 @@ public class SignatureBinder {
 
     private boolean appendConstraintSolvers(List<TypeConstraintSolver> resultBuilder,
                                             TypeSignature formalTypeSignature,
-                                            TypeSignature actualTypeSignature,
+                                            DataType<?> actualType,
                                             CoercionType coercionType) {
         if (formalTypeSignature.getParameters().isEmpty()) {
             TypeVariableConstraint typeVariableConstraint = typeVariableConstraints.get(formalTypeSignature.getBaseTypeName());
             if (typeVariableConstraint == null) {
                 return true;
             }
-            resultBuilder.add(new TypeParameterSolver(formalTypeSignature.getBaseTypeName(), actualTypeSignature.createType()));
+            resultBuilder.add(new TypeParameterSolver(formalTypeSignature.getBaseTypeName(), actualType));
             return true;
         }
 
-        DataType<?> actualType = actualTypeSignature.createType();
-
-        List<TypeSignature> actualTypeParametersTypeSignature;
+        List<DataType<?>> actualTypeParameters;
         if (UndefinedType.ID == actualType.id()) {
-            actualTypeParametersTypeSignature = Collections.nCopies(formalTypeSignature.getParameters().size(),
-                                                                            UndefinedType.INSTANCE.getTypeSignature());
+            actualTypeParameters = Collections.nCopies(formalTypeSignature.getParameters().size(), UndefinedType.INSTANCE);
         } else {
-            actualTypeParametersTypeSignature = Lists2.map(
-                actualType.getTypeParameters(),
-                DataType::getTypeSignature
-            );
+            actualTypeParameters = actualType.getTypeParameters();
         }
-
         return appendConstraintSolvers(
             resultBuilder,
             Collections.unmodifiableList(formalTypeSignature.getParameters()),
-            actualTypeParametersTypeSignature,
+            actualTypeParameters,
             coercionType);
     }
 
     private void appendTypeRelationshipConstraintSolver(List<TypeConstraintSolver> resultBuilder,
                                                         TypeSignature formalTypeSignature,
-                                                        TypeSignature actualTypeSignature,
+                                                        DataType<?> actualType,
                                                         CoercionType coercionType) {
         Set<String> typeVariables = typeVariablesOf(formalTypeSignature);
         resultBuilder.add(new TypeRelationshipConstraintSolver(
             formalTypeSignature,
             typeVariables,
-            actualTypeSignature.createType(),
+            actualType,
             coercionType));
     }
 

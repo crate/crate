@@ -102,8 +102,8 @@ public class PercentileAggregationTest extends AggregationTestCase {
 
     @Test
     public void testReturnTypes() throws Exception {
-        assertEquals(DataTypes.DOUBLE, singleArgPercentile.boundSignature().getReturnType().createType());
-        assertEquals(DataTypes.DOUBLE_ARRAY, arraysPercentile.boundSignature().getReturnType().createType());
+        assertEquals(DataTypes.DOUBLE, singleArgPercentile.boundSignature().returnType());
+        assertEquals(DataTypes.DOUBLE_ARRAY, arraysPercentile.boundSignature().returnType());
     }
 
     @Test

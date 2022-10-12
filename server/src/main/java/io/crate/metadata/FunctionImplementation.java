@@ -25,6 +25,7 @@ import javax.annotation.Nullable;
 
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 
 /**
@@ -46,7 +47,7 @@ public interface FunctionImplementation {
      *
      * Bound argument and return types are required by function symbols.
      */
-    Signature boundSignature();
+    BoundSignature boundSignature();
 
     /**
      * Normalize a symbol into a simplified form.

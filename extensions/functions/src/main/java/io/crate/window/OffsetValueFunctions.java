@@ -27,6 +27,7 @@ import io.crate.data.RowN;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.window.WindowFrameState;
 import io.crate.execution.engine.window.WindowFunction;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.module.ExtraFunctionsModule;
 import io.crate.types.DataTypes;
@@ -167,7 +168,7 @@ public class OffsetValueFunctions implements WindowFunction {
     private final int directionMultiplier;
 
     private final Signature signature;
-    private final Signature boundSignature;
+    private final BoundSignature boundSignature;
     private Integer cachedOffset;
     private int resolvedDirection;
     /* cachedNonNullIndex and idxInPartition forms an offset window containing 'offset' number of non-null elements and any number of nulls.
@@ -176,7 +177,7 @@ public class OffsetValueFunctions implements WindowFunction {
     private Integer cachedNonNullIndex;
     private Map<Integer, Row> indexToRow;
 
-    private OffsetValueFunctions(Signature signature, Signature boundSignature, int directionMultiplier) {
+    private OffsetValueFunctions(Signature signature, BoundSignature boundSignature, int directionMultiplier) {
         this.signature = signature;
         this.boundSignature = boundSignature;
         this.directionMultiplier = directionMultiplier;
@@ -188,7 +189,7 @@ public class OffsetValueFunctions implements WindowFunction {
     }
 
     @Override
-    public Signature boundSignature() {
+    public BoundSignature boundSignature() {
         return boundSignature;
     }
 

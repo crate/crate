@@ -38,7 +38,6 @@ import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 
 import io.crate.breaker.RamAccounting;
-import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.aggregation.DocValueAggregator;
@@ -50,6 +49,7 @@ import io.crate.expression.symbol.Symbols;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.ByteType;
 import io.crate.types.DataType;
@@ -80,11 +80,11 @@ public class NumericAverageAggregation extends AggregationFunction<NumericAverag
     }
 
     private final Signature signature;
-    private final Signature boundSignature;
+    private final BoundSignature boundSignature;
     private final DataType<BigDecimal> returnType;
 
-    @VisibleForTesting
-    private NumericAverageAggregation(Signature signature, Signature boundSignature) {
+    @SuppressWarnings("unchecked")
+    private NumericAverageAggregation(Signature signature, BoundSignature boundSignature) {
         this.signature = signature;
         this.boundSignature = boundSignature;
 
@@ -93,10 +93,12 @@ public class NumericAverageAggregation extends AggregationFunction<NumericAverag
         // the incoming numeric type as return type instead of
         // the return type from the signature `avg(count::numeric(16, 2))`
         // should return the type `numeric(16, 2)` not `numeric`
-        var argumentType = boundSignature.getArgumentDataTypes().get(0);
-        assert argumentType.id() == DataTypes.NUMERIC.id();
-        //noinspection unchecked
-        this.returnType = (DataType<BigDecimal>) argumentType;
+        var argumentType = boundSignature.argTypes().get(0);
+        if (argumentType instanceof NumericAverageStateType partialType) {
+            this.returnType = (DataType<BigDecimal>) boundSignature.returnType();
+        } else {
+            this.returnType = (DataType<BigDecimal>) argumentType;
+        }
     }
 
     @Nullable
@@ -160,7 +162,7 @@ public class NumericAverageAggregation extends AggregationFunction<NumericAverag
     }
 
     @Override
-    public Signature boundSignature() {
+    public BoundSignature boundSignature() {
         return boundSignature;
     }
 

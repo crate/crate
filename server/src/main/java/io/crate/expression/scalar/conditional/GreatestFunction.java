@@ -25,6 +25,7 @@ import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 import static io.crate.types.TypeSignature.parseTypeSignature;
 
 import io.crate.expression.scalar.ScalarFunctionModule;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 
@@ -45,14 +46,14 @@ public class GreatestFunction extends ConditionalCompareFunction {
         );
     }
 
-    public GreatestFunction(Signature signature, Signature boundSignature) {
+    public GreatestFunction(Signature signature, BoundSignature boundSignature) {
         super(signature, boundSignature);
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
     @Override
     public int compare(Object o1, Object o2) {
-        DataType dataType = boundSignature().getReturnType().createType();
+        DataType dataType = boundSignature().returnType();
         return dataType.compare(o2, o1);
     }
 }

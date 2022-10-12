@@ -74,8 +74,8 @@ public class AverageAggregationTest extends AggregationTestCase {
     @Test
     public void testReturnType() throws Exception {
         // Return type is fixed to Double
-        assertEquals(DataTypes.DOUBLE, getFunction("avg").boundSignature().getReturnType().createType());
-        assertEquals(DataTypes.DOUBLE, getFunction("mean").boundSignature().getReturnType().createType());
+        assertEquals(DataTypes.DOUBLE, getFunction("avg").boundSignature().returnType());
+        assertEquals(DataTypes.DOUBLE, getFunction("mean").boundSignature().returnType());
     }
 
     private FunctionImplementation getFunction(String name) {

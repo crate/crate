@@ -62,7 +62,7 @@ public class CollectSetAggregationTest extends AggregationTestCase {
     public void testReturnType() throws Exception {
         FunctionImplementation collectSet = nodeCtx.functions().get(
             null, "collect_set", List.of(Literal.of(DataTypes.INTEGER, null)), SearchPath.pathWithPGCatalogAndDoc());
-        assertEquals(new ArrayType<>(DataTypes.INTEGER), collectSet.boundSignature().getReturnType().createType());
+        assertEquals(new ArrayType<>(DataTypes.INTEGER), collectSet.boundSignature().returnType());
     }
 
     @Test

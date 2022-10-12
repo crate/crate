@@ -46,6 +46,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.ByteType;
 import io.crate.types.DataType;
@@ -206,7 +207,7 @@ public abstract class MinimumAggregation extends AggregationFunction<Comparable,
 
         private final SizeEstimator<Object> estimator;
 
-        VariableMinimumAggregation(Signature signature, Signature boundSignature) {
+        VariableMinimumAggregation(Signature signature, BoundSignature boundSignature) {
             super(signature, boundSignature);
             estimator = SizeEstimatorFactory.create(partialType());
         }
@@ -243,7 +244,7 @@ public abstract class MinimumAggregation extends AggregationFunction<Comparable,
 
         private final int size;
 
-        FixedMinimumAggregation(Signature signature, Signature boundSignature) {
+        FixedMinimumAggregation(Signature signature, BoundSignature boundSignature) {
             super(signature, boundSignature);
             size = ((FixedWidthType) partialType()).fixedSize();
         }
@@ -303,9 +304,9 @@ public abstract class MinimumAggregation extends AggregationFunction<Comparable,
     }
 
     private final Signature signature;
-    private final Signature boundSignature;
+    private final BoundSignature boundSignature;
 
-    private MinimumAggregation(Signature signature, Signature boundSignature) {
+    private MinimumAggregation(Signature signature, BoundSignature boundSignature) {
         this.signature = signature;
         this.boundSignature = boundSignature;
     }
@@ -316,13 +317,13 @@ public abstract class MinimumAggregation extends AggregationFunction<Comparable,
     }
 
     @Override
-    public Signature boundSignature() {
+    public BoundSignature boundSignature() {
         return boundSignature;
     }
 
     @Override
     public DataType<?> partialType() {
-        return boundSignature.getReturnType().createType();
+        return boundSignature.returnType();
     }
 
     @Override

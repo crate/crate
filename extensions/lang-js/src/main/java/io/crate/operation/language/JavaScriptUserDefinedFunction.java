@@ -21,31 +21,35 @@
 
 package io.crate.operation.language;
 
+import static io.crate.operation.language.JavaScriptLanguage.resolvePolyglotFunctionValue;
+
+import java.io.IOException;
+import java.util.List;
+
+import org.graalvm.polyglot.PolyglotException;
+import org.graalvm.polyglot.Value;
+
 import io.crate.common.collections.Lists2;
 import io.crate.data.Input;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.TypeSignature;
 import io.crate.user.UserLookup;
-import org.graalvm.polyglot.PolyglotException;
-import org.graalvm.polyglot.Value;
-
-import java.io.IOException;
-import java.util.List;
-
-import static io.crate.operation.language.JavaScriptLanguage.resolvePolyglotFunctionValue;
 
 public class JavaScriptUserDefinedFunction extends Scalar<Object, Object> {
 
     private final Signature signature;
     private final String script;
+    private final BoundSignature boundSignature;
 
-    JavaScriptUserDefinedFunction(Signature signature, String script) {
+    JavaScriptUserDefinedFunction(Signature signature, BoundSignature boundSignature, String script) {
         this.signature = signature;
+        this.boundSignature = boundSignature;
         this.script = script;
     }
 
@@ -93,8 +97,8 @@ public class JavaScriptUserDefinedFunction extends Scalar<Object, Object> {
     }
 
     @Override
-    public Signature boundSignature() {
-        return signature();
+    public BoundSignature boundSignature() {
+        return boundSignature;
     }
 
     private class CompiledFunction extends Scalar<Object, Object> {
@@ -130,8 +134,8 @@ public class JavaScriptUserDefinedFunction extends Scalar<Object, Object> {
         }
 
         @Override
-        public Signature boundSignature() {
-            return signature;
+        public BoundSignature boundSignature() {
+            return boundSignature;
         }
     }
 

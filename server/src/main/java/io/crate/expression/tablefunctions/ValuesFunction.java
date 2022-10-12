@@ -25,6 +25,7 @@ import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.types.ArrayType;
@@ -59,12 +60,12 @@ public class ValuesFunction {
 
         private final RowType returnType;
         private final Signature signature;
-        private final Signature boundSignature;
+        private final BoundSignature boundSignature;
 
         private ValuesTableFunctionImplementation(Signature signature,
-                                                  Signature boundSignature) {
+                                                  BoundSignature boundSignature) {
             this.signature = signature;
-            var argTypes = boundSignature.getArgumentDataTypes();
+            var argTypes = boundSignature.argTypes();
             ArrayList<DataType<?>> fieldTypes = new ArrayList<>(argTypes.size());
             for (int i = 0; i < argTypes.size(); i++) {
                 DataType<?> dataType = argTypes.get(i);
@@ -73,12 +74,7 @@ public class ValuesFunction {
                 fieldTypes.add(((ArrayType<?>) dataType).innerType());
             }
             returnType = new RowType(fieldTypes);
-            this.boundSignature = Signature.builder()
-                .name(boundSignature.getName())
-                .kind(boundSignature.getKind())
-                .argumentTypes(boundSignature.getArgumentTypes())
-                .returnType(returnType.getTypeSignature())
-                .build();
+            this.boundSignature = new BoundSignature(argTypes, returnType);
         }
 
         @Override
@@ -87,7 +83,7 @@ public class ValuesFunction {
         }
 
         @Override
-        public Signature boundSignature() {
+        public BoundSignature boundSignature() {
             return boundSignature;
         }
 

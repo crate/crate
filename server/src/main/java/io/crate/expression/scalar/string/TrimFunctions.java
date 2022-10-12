@@ -32,6 +32,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.sql.tree.TrimMode;
 import io.crate.types.DataTypes;
@@ -135,9 +136,9 @@ public final class TrimFunctions {
     private static class TrimFunction extends Scalar<String, String> {
 
         private final Signature signature;
-        private final Signature boundSignature;
+        private final BoundSignature boundSignature;
 
-        TrimFunction(Signature signature, Signature boundSignature) {
+        TrimFunction(Signature signature, BoundSignature boundSignature) {
             this.signature = signature;
             this.boundSignature = boundSignature;
         }
@@ -148,7 +149,7 @@ public final class TrimFunctions {
         }
 
         @Override
-        public Signature boundSignature() {
+        public BoundSignature boundSignature() {
             return boundSignature;
         }
 
@@ -198,10 +199,10 @@ public final class TrimFunctions {
     private static class OneCharTrimFunction extends Scalar<String, String> {
 
         private final Signature signature;
-        private final Signature boundSignature;
+        private final BoundSignature boundSignature;
         private final char charToTrim;
 
-        OneCharTrimFunction(Signature signature, Signature boundSignature, char charToTrim) {
+        OneCharTrimFunction(Signature signature, BoundSignature boundSignature, char charToTrim) {
             this.signature = signature;
             this.boundSignature = boundSignature;
             this.charToTrim = charToTrim;
@@ -213,7 +214,7 @@ public final class TrimFunctions {
         }
 
         @Override
-        public Signature boundSignature() {
+        public BoundSignature boundSignature() {
             return boundSignature;
         }
 
@@ -230,11 +231,11 @@ public final class TrimFunctions {
     private static class SingleSideTrimFunction extends Scalar<String, String> {
 
         private final Signature signature;
-        private final Signature boundSignature;
+        private final BoundSignature boundSignature;
         private final BiFunction<String, String, String> trimFunction;
 
         SingleSideTrimFunction(Signature signature,
-                               Signature boundSignature,
+                               BoundSignature boundSignature,
                                BiFunction<String, String, String> function) {
             this.signature = signature;
             this.boundSignature = boundSignature;
@@ -247,7 +248,7 @@ public final class TrimFunctions {
         }
 
         @Override
-        public Signature boundSignature() {
+        public BoundSignature boundSignature() {
             return boundSignature;
         }
 

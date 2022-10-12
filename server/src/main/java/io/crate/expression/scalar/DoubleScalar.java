@@ -25,6 +25,7 @@ import io.crate.data.Input;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 
 import java.util.function.DoubleUnaryOperator;
@@ -38,10 +39,10 @@ import java.util.function.DoubleUnaryOperator;
 public final class DoubleScalar extends Scalar<Double, Number> {
 
     private final Signature signature;
-    private final Signature boundSignature;
+    private final BoundSignature boundSignature;
     private final DoubleUnaryOperator func;
 
-    public DoubleScalar(Signature signature, Signature boundSignature, DoubleUnaryOperator func) {
+    public DoubleScalar(Signature signature, BoundSignature boundSignature, DoubleUnaryOperator func) {
         this.signature = signature;
         this.boundSignature = boundSignature;
         this.func = func;
@@ -53,7 +54,7 @@ public final class DoubleScalar extends Scalar<Double, Number> {
     }
 
     @Override
-    public Signature boundSignature() {
+    public BoundSignature boundSignature() {
         return boundSignature;
     }
 

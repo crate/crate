@@ -29,6 +29,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -58,15 +59,15 @@ public class ImplicitCastFunction extends Scalar<Object, Object> {
     }
 
     private final Signature signature;
-    private final Signature boundSignature;
+    private final BoundSignature boundSignature;
     @Nullable
     private final DataType<?> targetType;
 
-    private ImplicitCastFunction(Signature signature, Signature boundSignature) {
+    private ImplicitCastFunction(Signature signature, BoundSignature boundSignature) {
         this(signature, boundSignature, null);
     }
 
-    private ImplicitCastFunction(Signature signature, Signature boundSignature, @Nullable DataType<?> targetType) {
+    private ImplicitCastFunction(Signature signature, BoundSignature boundSignature, @Nullable DataType<?> targetType) {
         this.signature = signature;
         this.boundSignature = boundSignature;
         this.targetType = targetType;
@@ -118,7 +119,7 @@ public class ImplicitCastFunction extends Scalar<Object, Object> {
     }
 
     @Override
-    public Signature boundSignature() {
+    public BoundSignature boundSignature() {
         return boundSignature;
     }
 

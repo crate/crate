@@ -110,14 +110,14 @@ public class HyperLogLogDistinctAggregationTest extends AggregationTestCase {
             List.of(Literal.of(1)),
             SearchPath.pathWithPGCatalogAndDoc()
         );
-        assertThat(func.boundSignature().getReturnType().createType()).isEqualTo(DataTypes.LONG);
+        assertThat(func.boundSignature().returnType()).isEqualTo(DataTypes.LONG);
         func = nodeCtx.functions().get(
             null,
             HyperLogLogDistinctAggregation.NAME,
             List.of(Literal.of(1), Literal.of(2)),
             SearchPath.pathWithPGCatalogAndDoc()
         );
-        assertThat(func.boundSignature().getReturnType().createType()).isEqualTo(DataTypes.LONG);
+        assertThat(func.boundSignature().returnType()).isEqualTo(DataTypes.LONG);
     }
 
     @Test

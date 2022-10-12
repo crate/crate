@@ -69,8 +69,8 @@ public class VarianceAggregationTest extends AggregationTestCase {
                 SearchPath.pathWithPGCatalogAndDoc()
             );
             assertThat(
-                varianceFunction.boundSignature().getReturnType(),
-                is(DataTypes.DOUBLE.getTypeSignature())
+                varianceFunction.boundSignature().returnType(),
+                is(DataTypes.DOUBLE)
             );
         }
     }

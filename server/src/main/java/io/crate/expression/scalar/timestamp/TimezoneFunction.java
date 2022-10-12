@@ -26,6 +26,7 @@ import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -73,12 +74,12 @@ public class TimezoneFunction extends Scalar<Long, Object> {
     }
 
     private final Signature signature;
-    private final Signature boundSignature;
+    private final BoundSignature boundSignature;
 
-    private TimezoneFunction(Signature signature, Signature boundSignature) {
+    private TimezoneFunction(Signature signature, BoundSignature boundSignature) {
         this.signature = signature;
         this.boundSignature = boundSignature;
-        this.returnType = boundSignature.getReturnType().createType();
+        this.returnType = boundSignature.returnType();
     }
 
     @Override
@@ -87,7 +88,7 @@ public class TimezoneFunction extends Scalar<Long, Object> {
     }
 
     @Override
-    public Signature boundSignature() {
+    public BoundSignature boundSignature() {
         return boundSignature;
     }
 

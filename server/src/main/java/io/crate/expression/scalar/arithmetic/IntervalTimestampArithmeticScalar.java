@@ -26,6 +26,7 @@ import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -88,16 +89,16 @@ public class IntervalTimestampArithmeticScalar extends Scalar<Long, Object> impl
 
     private final BiFunction<DateTime, Period, DateTime> operation;
     private final Signature signature;
-    private final Signature boundSignature;
+    private final BoundSignature boundSignature;
     private final int periodIdx;
     private final int timestampIdx;
 
     public IntervalTimestampArithmeticScalar(String operator,
                                              Signature declaredSignature,
-                                             Signature boundSignature) {
+                                             BoundSignature boundSignature) {
         this.signature = declaredSignature;
         this.boundSignature = boundSignature;
-        var firstArgType = boundSignature.getArgumentDataTypes().get(0);
+        var firstArgType = boundSignature.argTypes().get(0);
         if (firstArgType.id() == IntervalType.ID) {
             periodIdx = 0;
             timestampIdx = 1;
@@ -129,7 +130,7 @@ public class IntervalTimestampArithmeticScalar extends Scalar<Long, Object> impl
     }
 
     @Override
-    public Signature boundSignature() {
+    public BoundSignature boundSignature() {
         return boundSignature;
     }
 

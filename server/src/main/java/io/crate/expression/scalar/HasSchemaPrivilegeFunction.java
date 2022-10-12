@@ -26,6 +26,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.PgCatalogTableDefinitions;
 import io.crate.types.DataTypes;
@@ -47,7 +48,7 @@ public class HasSchemaPrivilegeFunction extends Scalar<Boolean, Object> {
     public static final String NAME = "has_schema_privilege";
 
     private final Signature signature;
-    private final Signature boundSignature;
+    private final BoundSignature boundSignature;
 
     private BiFunction<UserLookup, Object, User> getUser;
 
@@ -195,7 +196,7 @@ public class HasSchemaPrivilegeFunction extends Scalar<Boolean, Object> {
 
 
     private HasSchemaPrivilegeFunction(Signature signature,
-                                       Signature boundSignature,
+                                       BoundSignature boundSignature,
                                        BiFunction<UserLookup, Object, User> getUser,
                                        TriFunction<User, Object, Collection<Privilege.Type>, Boolean> checkPrivilege) {
         this.signature = signature;
@@ -210,7 +211,7 @@ public class HasSchemaPrivilegeFunction extends Scalar<Boolean, Object> {
     }
 
     @Override
-    public Signature boundSignature() {
+    public BoundSignature boundSignature() {
         return boundSignature;
     }
 
@@ -309,7 +310,7 @@ public class HasSchemaPrivilegeFunction extends Scalar<Boolean, Object> {
         }
 
         @Override
-        public Signature boundSignature() {
+        public BoundSignature boundSignature() {
             return boundSignature;
         }
 

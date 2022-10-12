@@ -98,7 +98,7 @@ public class UnnestFunctionTest extends AbstractTableFunctionsTest {
             function
         );
         assertThat(
-            functionImplementation.boundSignature().getReturnType().createType().getTypeParameters(),
+            functionImplementation.boundSignature().returnType().getTypeParameters(),
             is(List.of(DataTypes.INTEGER, DataTypes.STRING, DataTypes.UNTYPED_OBJECT)));
     }
 }

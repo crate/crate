@@ -24,6 +24,7 @@ package io.crate.expression.operator;
 import io.crate.data.Input;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.sql.tree.ComparisonExpression;
 import io.crate.types.DataType;
@@ -75,15 +76,15 @@ public final class AllOperator extends Operator<Object> {
     }
 
     private final Signature signature;
-    private final Signature boundSignature;
+    private final BoundSignature boundSignature;
     private final IntPredicate cmp;
     private final DataType leftType;
 
-    public AllOperator(Signature signature, Signature boundSignature, IntPredicate cmp) {
+    public AllOperator(Signature signature, BoundSignature boundSignature, IntPredicate cmp) {
         this.signature = signature;
         this.boundSignature = boundSignature;
         this.cmp = cmp;
-        this.leftType = boundSignature.getArgumentDataTypes().get(0);
+        this.leftType = boundSignature.argTypes().get(0);
     }
 
     @SuppressWarnings("unchecked")
@@ -117,7 +118,7 @@ public final class AllOperator extends Operator<Object> {
     }
 
     @Override
-    public Signature boundSignature() {
+    public BoundSignature boundSignature() {
         return boundSignature;
     }
 }

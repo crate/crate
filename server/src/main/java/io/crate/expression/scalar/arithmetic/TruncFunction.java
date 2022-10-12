@@ -27,6 +27,7 @@ import io.crate.expression.scalar.UnaryScalar;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -80,7 +81,7 @@ public final class TruncFunction {
         );
     }
 
-    private static Scalar<Number, Number> createTruncWithMode(Signature signature, Signature boundSignature) {
+    private static Scalar<Number, Number> createTruncWithMode(Signature signature, BoundSignature boundSignature) {
         return new Scalar<>() {
 
             @Override
@@ -89,7 +90,7 @@ public final class TruncFunction {
             }
 
             @Override
-            public Signature boundSignature() {
+            public BoundSignature boundSignature() {
                 return boundSignature;
             }
 

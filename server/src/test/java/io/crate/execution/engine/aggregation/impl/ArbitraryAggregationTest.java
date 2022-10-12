@@ -59,7 +59,7 @@ public class ArbitraryAggregationTest extends AggregationTestCase {
             SearchPath.pathWithPGCatalogAndDoc()
         );
         assertThat(
-            arbitraryFunction.boundSignature().getReturnType().createType(),
+            arbitraryFunction.boundSignature().returnType(),
             is(DataTypes.INTEGER)
         );
     }

@@ -25,6 +25,7 @@ import io.crate.data.Input;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 
@@ -34,14 +35,14 @@ public final class BinaryScalar<T> extends Scalar<T, T> {
 
     private final BinaryOperator<T> func;
     private final Signature signature;
-    private final Signature boundSignature;
+    private final BoundSignature boundSignature;
     private final DataType<T> type;
 
     public BinaryScalar(BinaryOperator<T> func,
                         Signature signature,
-                        Signature boundSignature,
+                        BoundSignature boundSignature,
                         DataType<T> type) {
-        assert boundSignature.getArgumentDataTypes().stream().allMatch(t -> t.id() == type.id()) :
+        assert boundSignature.argTypes().stream().allMatch(t -> t.id() == type.id()) :
             "All bound argument types of the signature must match the type argument";
         this.func = func;
         this.signature = signature;
@@ -55,7 +56,7 @@ public final class BinaryScalar<T> extends Scalar<T, T> {
     }
 
     @Override
-    public Signature boundSignature() {
+    public BoundSignature boundSignature() {
         return boundSignature;
     }
 

@@ -49,6 +49,7 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.BitStringType;
 import io.crate.types.ByteType;
@@ -97,10 +98,10 @@ public class CountAggregation extends AggregationFunction<MutableLong, Long> {
     }
 
     private final Signature signature;
-    private final Signature boundSignature;
+    private final BoundSignature boundSignature;
     private final boolean hasArgs;
 
-    private CountAggregation(Signature signature, Signature boundSignature, boolean hasArgs) {
+    private CountAggregation(Signature signature, BoundSignature boundSignature, boolean hasArgs) {
         this.signature = signature;
         this.boundSignature = boundSignature;
         this.hasArgs = hasArgs;
@@ -133,7 +134,7 @@ public class CountAggregation extends AggregationFunction<MutableLong, Long> {
     }
 
     @Override
-    public Signature boundSignature() {
+    public BoundSignature boundSignature() {
         return boundSignature;
     }
 

@@ -32,6 +32,7 @@ import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.types.RowType;
@@ -73,13 +74,13 @@ public class TableFunctionFactory {
         private final Scalar<?, T> functionImplementation;
         private final RowType returnType;
         private final Signature signature;
-        private final Signature boundSignature;
+        private final BoundSignature boundSignature;
 
         private ScalarTableFunctionImplementation(Scalar<?, T> functionImplementation) {
             this.functionImplementation = functionImplementation;
-            var boundReturnTypeSignature = functionImplementation.boundSignature().getReturnType();
+            var boundReturnType = functionImplementation.boundSignature().returnType();
             returnType = new RowType(
-                List.of(boundReturnTypeSignature.createType()),
+                List.of(boundReturnType),
                 List.of(functionImplementation.signature().getName().name())
             );
             signature = Signature.table(
@@ -89,12 +90,9 @@ public class TableFunctionFactory {
                     functionImplementation.signature().getReturnType()
                 ).toArray(new TypeSignature[0])
             );
-            boundSignature = Signature.table(
-                functionImplementation.boundSignature().getName(),
-                Lists2.concat(
-                    functionImplementation.boundSignature().getArgumentTypes(),
-                    boundReturnTypeSignature
-                ).toArray(new TypeSignature[0])
+            boundSignature = new BoundSignature(
+                functionImplementation.boundSignature().argTypes(),
+                boundReturnType
             );
         }
 
@@ -104,7 +102,7 @@ public class TableFunctionFactory {
         }
 
         @Override
-        public Signature boundSignature() {
+        public BoundSignature boundSignature() {
             return boundSignature;
         }
 

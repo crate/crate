@@ -100,6 +100,7 @@ import io.crate.metadata.FunctionType;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.ExpressionFormatter;
@@ -1188,8 +1189,8 @@ public class ExpressionAnalyzer {
             coordinatorTxnCtx.sessionSettings().searchPath());
 
         Signature signature = funcImpl.signature();
-        Signature boundSignature = funcImpl.boundSignature();
-        List<Symbol> castArguments = cast(arguments, boundSignature.getArgumentDataTypes());
+        BoundSignature boundSignature = funcImpl.boundSignature();
+        List<Symbol> castArguments = cast(arguments, boundSignature.argTypes());
         Function newFunction;
         if (windowDefinition == null) {
             if (signature.getKind() == FunctionType.AGGREGATE) {
@@ -1204,7 +1205,7 @@ public class ExpressionAnalyzer {
                     "%s cannot accept RESPECT or IGNORE NULLS flag.",
                     functionName));
             }
-            newFunction = new Function(signature, castArguments, boundSignature.getReturnType().createType(), filter);
+            newFunction = new Function(signature, castArguments, boundSignature.returnType(), filter);
         } else {
             if (signature.getKind() != FunctionType.WINDOW) {
                 if (signature.getKind() != FunctionType.AGGREGATE) {
@@ -1224,7 +1225,7 @@ public class ExpressionAnalyzer {
             newFunction = new WindowFunction(
                 signature,
                 castArguments,
-                boundSignature.getReturnType().createType(),
+                boundSignature.returnType(),
                 filter,
                 windowDefinition,
                 ignoreNulls);

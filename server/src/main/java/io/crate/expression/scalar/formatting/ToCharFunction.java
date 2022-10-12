@@ -27,6 +27,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -81,27 +82,27 @@ public class ToCharFunction extends Scalar<String, Object> {
     }
 
     private final Signature signature;
-    private final Signature boundSignature;
+    private final BoundSignature boundSignature;
     private final DataType expressionType;
     private final TriFunction<Object, String, DateTimeFormatter, String> evaluatorFunc;
     @Nullable
     private final DateTimeFormatter formatter;
 
     public ToCharFunction(Signature signature,
-                          Signature boundSignature,
+                          BoundSignature boundSignature,
                           TriFunction<Object, String, DateTimeFormatter, String> evaluatorFunc) {
         this(signature, boundSignature, evaluatorFunc, null);
     }
 
     public ToCharFunction(Signature signature,
-                          Signature boundSignature,
+                          BoundSignature boundSignature,
                           TriFunction<Object, String, DateTimeFormatter, String> evaluatorFunc,
                           @Nullable DateTimeFormatter formatter) {
         this.signature = signature;
         this.boundSignature = boundSignature;
 
-        assert boundSignature.getArgumentDataTypes().size() == 2 : "Number of arguments to to_char must be 2";
-        this.expressionType = boundSignature.getArgumentDataTypes().get(0);
+        assert boundSignature.argTypes().size() == 2 : "Number of arguments to to_char must be 2";
+        this.expressionType = boundSignature.argTypes().get(0);
 
         this.evaluatorFunc = evaluatorFunc;
         this.formatter = formatter;
@@ -169,7 +170,7 @@ public class ToCharFunction extends Scalar<String, Object> {
     }
 
     @Override
-    public Signature boundSignature() {
+    public BoundSignature boundSignature() {
         return boundSignature;
     }
 }

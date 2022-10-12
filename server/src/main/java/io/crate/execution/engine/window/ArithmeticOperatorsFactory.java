@@ -23,6 +23,7 @@ package io.crate.execution.engine.window;
 
 import io.crate.expression.scalar.arithmetic.ArithmeticFunctions;
 import io.crate.expression.scalar.arithmetic.IntervalTimestampArithmeticScalar;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.types.ByteType;
 import io.crate.types.DataType;
 import io.crate.types.DoubleType;
@@ -61,7 +62,7 @@ class ArithmeticOperatorsFactory {
                     return new IntervalTimestampArithmeticScalar(
                         "+",
                         signature,
-                        signature
+                        BoundSignature.sameAsUnbound(signature)
                     );
                 }
                 return ADD_LONG_FUNCTION;
@@ -92,7 +93,7 @@ class ArithmeticOperatorsFactory {
                     return new IntervalTimestampArithmeticScalar(
                         "-",
                         signature,
-                        signature
+                        BoundSignature.sameAsUnbound(signature)
                     );
                 }
                 return SUB_LONG_FUNCTION;

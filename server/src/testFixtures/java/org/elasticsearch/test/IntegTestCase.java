@@ -1975,7 +1975,7 @@ public abstract class IntegTestCase extends ESTestCase {
                     Lists2.map(argTypes, t -> Literal.of(t, null)),
                     searchPath);
                 assertThat(func).isNotNull();
-                assertThat(func.boundSignature().getArgumentDataTypes()).isEqualTo(argTypes);
+                assertThat(func.boundSignature().argTypes()).isEqualTo(argTypes);
             }
         }, 20L, TimeUnit.SECONDS);
     }
@@ -1992,7 +1992,7 @@ public abstract class IntegTestCase extends ESTestCase {
                         // arguments will be returned. Therefore, we have to assert that
                         // the provided arguments do not match the arguments of the resolved
                         // function if the function was deleted.
-                        assertThat(func.boundSignature().getArgumentDataTypes()).isNotEqualTo(Symbols.typeView(arguments));
+                        assertThat(func.boundSignature().argTypes()).isNotEqualTo(Symbols.typeView(arguments));
                     }
                 } catch (UnsupportedOperationException e) {
                     assertThat(e.getMessage()).startsWith("Unknown function");

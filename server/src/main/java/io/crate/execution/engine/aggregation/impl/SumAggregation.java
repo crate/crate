@@ -23,7 +23,6 @@ package io.crate.execution.engine.aggregation.impl;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.function.BiFunction;
 import java.util.function.BinaryOperator;
 
 import javax.annotation.Nullable;
@@ -47,9 +46,10 @@ import io.crate.execution.engine.aggregation.impl.util.KahanSummationForDouble;
 import io.crate.execution.engine.aggregation.impl.util.KahanSummationForFloat;
 import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
-import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.FunctionProvider.FunctionFactory;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.ByteType;
 import io.crate.types.DataType;
@@ -98,7 +98,7 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
     }
 
     private final Signature signature;
-    private final Signature boundSignature;
+    private final BoundSignature boundSignature;
     private final BinaryOperator<T> addition;
     private final BinaryOperator<T> subtraction;
     private final DataType<T> returnType;
@@ -109,7 +109,7 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
                            final BinaryOperator<T> addition,
                            final BinaryOperator<T> subtraction,
                            Signature signature,
-                           Signature boundSignature) {
+                           BoundSignature boundSignature) {
         this.addition = addition;
         this.subtraction = subtraction;
         this.returnType = returnType;
@@ -162,7 +162,7 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
 
     @Override
     public DataType<?> partialType() {
-        return boundSignature.getReturnType().createType();
+        return boundSignature.returnType();
     }
 
     @Override
@@ -171,7 +171,7 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
     }
 
     @Override
-    public Signature boundSignature() {
+    public BoundSignature boundSignature() {
         return boundSignature;
     }
 
@@ -211,7 +211,7 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
         }
     }
 
-    private static BiFunction<Signature, Signature, FunctionImplementation> getSumAggregationForDoubleFactory() {
+    private static FunctionFactory getSumAggregationForDoubleFactory() {
         return (signature, boundSignature) -> {
             var kahanSummation = new KahanSummationForDouble();
             return new SumAggregation<>(
@@ -224,7 +224,7 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
         };
     }
 
-    private static BiFunction<Signature, Signature, FunctionImplementation> getSumAggregationForFloatFactory() {
+    private static FunctionFactory getSumAggregationForFloatFactory() {
         return (signature, boundSignature) -> {
             var kahanSummation = new KahanSummationForFloat();
             return new SumAggregation<>(

@@ -26,6 +26,7 @@ import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
@@ -49,9 +50,9 @@ public class CoalesceFunction extends Scalar<Object, Object> {
     public static final String NAME = "coalesce";
 
     private final Signature signature;
-    private final Signature boundSignature;
+    private final BoundSignature boundSignature;
 
-    private CoalesceFunction(Signature signature, Signature boundSignature) {
+    private CoalesceFunction(Signature signature, BoundSignature boundSignature) {
         this.signature = signature;
         this.boundSignature = boundSignature;
     }
@@ -62,7 +63,7 @@ public class CoalesceFunction extends Scalar<Object, Object> {
     }
 
     @Override
-    public Signature boundSignature() {
+    public BoundSignature boundSignature() {
         return boundSignature;
     }
 
