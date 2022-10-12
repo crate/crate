@@ -22,8 +22,7 @@
 package io.crate.testing;
 
 import static io.crate.action.sql.Session.UNNAMED;
-import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -71,7 +70,6 @@ import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
-import org.hamcrest.Matchers;
 import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
 import org.locationtech.spatial4j.shape.impl.PointImpl;
 import org.postgresql.geometric.PGpoint;
@@ -82,8 +80,8 @@ import com.carrotsearch.randomizedtesting.RandomizedContext;
 import io.crate.action.FutureActionListener;
 import io.crate.action.sql.BaseResultReceiver;
 import io.crate.action.sql.ResultReceiver;
-import io.crate.action.sql.Sessions;
 import io.crate.action.sql.Session;
+import io.crate.action.sql.Sessions;
 import io.crate.auth.AccessControl;
 import io.crate.common.unit.TimeValue;
 import io.crate.data.Row;
@@ -577,12 +575,14 @@ public class SQLTransportExecutor {
             var clusterState = FutureUtils.get(client.admin().cluster().state(new ClusterStateRequest())).getState();
             var pendingClusterTasks = FutureUtils.get(client.admin().cluster().execute(PendingClusterTasksAction.INSTANCE, new PendingClusterTasksRequest()));
             LOGGER.info("ensure state timed out, cluster state:\n{}\n{}", clusterState, pendingClusterTasks);
-            assertThat("timed out waiting for state", actionGet.isTimedOut(), equalTo(false));
+            assertThat(actionGet.isTimedOut()).as("timed out waiting for state").isFalse();
         }
         if (state == ClusterHealthStatus.YELLOW) {
-            assertThat(actionGet.getStatus(), Matchers.anyOf(equalTo(state), equalTo(ClusterHealthStatus.GREEN)));
+            assertThat(actionGet.getStatus()).satisfiesAnyOf(
+                s -> assertThat(s).isEqualTo(state),
+                s -> assertThat(s).isEqualTo(ClusterHealthStatus.GREEN));
         } else {
-            assertThat(actionGet.getStatus(), equalTo(state));
+            assertThat(actionGet.getStatus()).isEqualTo(state);
         }
         return actionGet.getStatus();
     }

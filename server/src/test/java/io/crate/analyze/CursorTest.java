@@ -99,7 +99,7 @@ public class CursorTest extends CrateDummyClusterServiceUnitTest {
         executePlan(executor, plan);
         AnalyzedFetch fetch = executor.analyze("fetch from c1");
         assertThat(fetch.outputs()).satisfiesExactly(
-            s -> assertThat(s.toString()).isEqualTo("1")
+            s -> assertThat(s).hasToString("1")
         );
     }
 

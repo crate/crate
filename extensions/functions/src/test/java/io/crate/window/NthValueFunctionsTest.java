@@ -21,15 +21,15 @@
 
 package io.crate.window;
 
-import static org.hamcrest.Matchers.contains;
+import static io.crate.testing.Asserts.assertThatThrownBy;
+
+import java.util.List;
+
+import org.junit.Test;
 
 import io.crate.execution.engine.window.AbstractWindowFunctionTest;
 import io.crate.metadata.ColumnIdent;
 import io.crate.module.ExtraFunctionsModule;
-import io.crate.testing.Asserts;
-import org.junit.Test;
-
-import java.util.List;
 
 
 public class NthValueFunctionsTest extends AbstractWindowFunctionTest {
@@ -42,7 +42,7 @@ public class NthValueFunctionsTest extends AbstractWindowFunctionTest {
     public void testLastValueWithEmptyOver() throws Throwable {
         assertEvaluate(
             "last_value(x) over()",
-            contains(new Object[] {4, 4, 4, 4}),
+            new Object[] {4, 4, 4, 4},
             List.of(new ColumnIdent("x")),
             new Object[] {1},
             new Object[] {2},
@@ -55,7 +55,7 @@ public class NthValueFunctionsTest extends AbstractWindowFunctionTest {
     public void testLastValueWithOrderByClause() throws Throwable {
         assertEvaluate(
             "last_value(x) over(order by y)",
-            contains(new Object[] {1, 3, 3, 2}),
+            new Object[] {1, 3, 3, 2},
             List.of(new ColumnIdent("x"), new ColumnIdent("y")),
             new Object[] {1, 1},
             new Object[] {1, 2},
@@ -68,7 +68,7 @@ public class NthValueFunctionsTest extends AbstractWindowFunctionTest {
     public void testLastValueUseSymbolMultipleTimes() throws Throwable {
         assertEvaluate(
             "last_value(x) over(order by y, x)",
-            contains(new Object[] {1, 1, 3, 2}),
+            new Object[] {1, 1, 3, 2},
             List.of(new ColumnIdent("x"), new ColumnIdent("y")),
             new Object[] {1, 1},
             new Object[] {1, 2},
@@ -81,7 +81,7 @@ public class NthValueFunctionsTest extends AbstractWindowFunctionTest {
     public void testLastWithIgnoreNullsValueUseSymbolMultipleTimes() throws Throwable {
         assertEvaluate(
             "last_value(x) ignore nulls over(order by y, x)",
-            contains(new Object[] {1, 1, 3, 2, 2}),
+            new Object[] {1, 1, 3, 2, 2},
             List.of(new ColumnIdent("x"), new ColumnIdent("y")),
             new Object[] {1, 1},
             new Object[] {1, 2},
@@ -95,7 +95,7 @@ public class NthValueFunctionsTest extends AbstractWindowFunctionTest {
     public void testFirstValueWithEmptyOver() throws Throwable {
         assertEvaluate(
             "first_value(x) over()",
-            contains(new Object[] {1, 1, 1, 1}),
+            new Object[] {1, 1, 1, 1},
             List.of(new ColumnIdent("x")),
             new Object[] {1},
             new Object[] {2},
@@ -107,7 +107,7 @@ public class NthValueFunctionsTest extends AbstractWindowFunctionTest {
     @Test
     public void testFirstValueWithOrderByClause() throws Throwable {
         assertEvaluate("first_value(x) over(order by y)",
-            contains(new Object[] {1, 1, 1, 1}),
+            new Object[] {1, 1, 1, 1},
             List.of(new ColumnIdent("x"), new ColumnIdent("y")),
             new Object[] {1, 1},
             new Object[] {1, 2},
@@ -119,7 +119,7 @@ public class NthValueFunctionsTest extends AbstractWindowFunctionTest {
     @Test
     public void testNthValueWithEmptyOver() throws Throwable {
         assertEvaluate("nth_value(x, 3) over()",
-            contains(new Object[] {3, 3, 3, 3}),
+            new Object[] {3, 3, 3, 3},
             List.of(new ColumnIdent("x")),
             new Object[] {1},
             new Object[] {2},
@@ -132,7 +132,7 @@ public class NthValueFunctionsTest extends AbstractWindowFunctionTest {
     public void testNthValueWithOrderByClause() throws Throwable {
         assertEvaluate(
             "nth_value(x, 3) over(order by y)",
-            contains(new Object[] {null, 3, 3, 3}),
+            new Object[] {null, 3, 3, 3},
             List.of(new ColumnIdent("x"), new ColumnIdent("y")),
             new Object[] {1, 1},
             new Object[] {1, 2},
@@ -144,7 +144,7 @@ public class NthValueFunctionsTest extends AbstractWindowFunctionTest {
     @Test
     public void testNthValueWithNullPositionReturnsNull() throws Throwable {
         assertEvaluate("nth_value(x,null) over(order by y)",
-            contains(new Object[] {null, null, null, null}),
+            new Object[] {null, null, null, null},
             List.of(new ColumnIdent("x"), new ColumnIdent("y")),
             new Object[] {1, 1},
             new Object[] {1, 2},
@@ -155,42 +155,38 @@ public class NthValueFunctionsTest extends AbstractWindowFunctionTest {
 
     @Test
     public void testFirstValueWithNullPositionReturnsNull() {
-        Asserts.assertThrowsMatches(
+        assertThatThrownBy(
             () -> assertEvaluate("first_value(x,null) over(order by y)",
-                                 contains(new Object[] {null, null, null, null}),
+                                 new Object[] {null, null, null, null},
                                  List.of(new ColumnIdent("x"), new ColumnIdent("y")),
                                  new Object[] {1, 1},
                                  new Object[] {1, 2},
                                  new Object[] {3, 2},
-                                 new Object[] {2, 3}
-            ),
-            UnsupportedOperationException.class,
-            "first_value(doc.t1.x, NULL), no overload found for matching argument types: (integer, undefined). Possible candidates: first_value(E):E"
-        );
-
+                                 new Object[] {2, 3}))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("Unknown function: first_value(doc.t1.x, NULL), no overload found for matching argument types: " +
+                        "(integer, undefined). Possible candidates: first_value(E):E");
     }
 
     @Test
     public void testLastValueWithNullPositionReturnsNull() {
-        Asserts.assertThrowsMatches(
+        assertThatThrownBy(
             () -> assertEvaluate("last_value(x,null) over(order by y)",
-                                 contains(new Object[] {null, null, null, null}),
+                                 new Object[] {null, null, null, null},
                                  List.of(new ColumnIdent("x"), new ColumnIdent("y")),
                                  new Object[] {1, 1},
                                  new Object[] {1, 2},
                                  new Object[] {3, 2},
-                                 new Object[] {2, 3}
-            ),
-            UnsupportedOperationException.class,
-            "last_value(doc.t1.x, NULL), no overload found for matching argument types: (integer, undefined). Possible candidates: last_value(E):E"
-        );
-
+                                 new Object[] {2, 3}))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("Unknown function: last_value(doc.t1.x, NULL), no overload found for matching argument types: " +
+                        "(integer, undefined). Possible candidates: last_value(E):E");
     }
 
     @Test
     public void testNthValueIgnoreNullsWithNullPositionReturnsNull() throws Throwable {
         assertEvaluate("nth_value(x,null) ignore nulls over(order by y)",
-                       contains(new Object[] {null, null, null, null}),
+                       new Object[] {null, null, null, null},
                        List.of(new ColumnIdent("x"), new ColumnIdent("y")),
                        new Object[] {1, 1},
                        new Object[] {null, 2},
@@ -204,7 +200,7 @@ public class NthValueFunctionsTest extends AbstractWindowFunctionTest {
         Object[] expected = new Object[]{2, 2, 2, 4, 4, 4, null};
         assertEvaluate(
             "nth_value(x, 2) over(partition by x > 2)",
-            contains(expected),
+            expected,
             List.of(new ColumnIdent("x")),
             new Object[]{1, 1},
             new Object[]{2, 2},
@@ -220,7 +216,7 @@ public class NthValueFunctionsTest extends AbstractWindowFunctionTest {
         Object[] expected = new Object[]{2, 2, 2, 4, 4, 4, null};
         assertEvaluate(
             "nth_value(x, 2) ignore nulls over(partition by x > 2)",
-            contains(expected),
+            expected,
             List.of(new ColumnIdent("x")),
             new Object[]{1, 1},
             new Object[]{2, 2},
@@ -236,7 +232,7 @@ public class NthValueFunctionsTest extends AbstractWindowFunctionTest {
         Object[] expected = new Object[]{null, 2, 2, null, 4, 4, null};
         assertEvaluate(
             "nth_value(x, 2) over(partition by x > 2 order by x)",
-            contains(expected),
+            expected,
             List.of(new ColumnIdent("x")),
             new Object[]{1},
             new Object[]{2},
@@ -252,7 +248,7 @@ public class NthValueFunctionsTest extends AbstractWindowFunctionTest {
         Object[] expected = new Object[]{null, 2, 2, null, 4, 4, null};
         assertEvaluate(
             "nth_value(x, 2) ignore nulls over(partition by x > 2 order by x)",
-            contains(expected),
+            expected,
             List.of(new ColumnIdent("x")),
             new Object[]{1},
             new Object[]{2},
@@ -268,7 +264,7 @@ public class NthValueFunctionsTest extends AbstractWindowFunctionTest {
         Object[] expected = new Object[]{2, 2, 2, 4, 5, null, null};
         assertEvaluate(
             "nth_value(x, 2) OVER(PARTITION BY x>2 ORDER BY x RANGE BETWEEN CURRENT ROW and UNBOUNDED FOLLOWING)",
-            contains(expected),
+            expected,
             List.of(new ColumnIdent("x")),
             new Object[]{1},
             new Object[]{2},
@@ -284,7 +280,7 @@ public class NthValueFunctionsTest extends AbstractWindowFunctionTest {
         Object[] expected = new Object[]{2, 2, 2, 4, 5, null, null};
         assertEvaluate(
             "nth_value(x, 2) ignore nulls OVER(PARTITION BY x>2 ORDER BY x RANGE BETWEEN CURRENT ROW and UNBOUNDED FOLLOWING)",
-            contains(expected),
+            expected,
             List.of(new ColumnIdent("x")),
             new Object[]{1},
             new Object[]{2},
@@ -300,7 +296,7 @@ public class NthValueFunctionsTest extends AbstractWindowFunctionTest {
         Object[] expected = new Object[]{1, 1};
         assertEvaluate(
             "nth_value(x, 1) OVER(ORDER BY x RANGE BETWEEN UNBOUNDED PRECEDING and CURRENT ROW)",
-            contains(expected),
+            expected,
             List.of(new ColumnIdent("x")),
             new Object[]{1},
             new Object[]{2});
@@ -311,7 +307,7 @@ public class NthValueFunctionsTest extends AbstractWindowFunctionTest {
         Object[] expected = new Object[]{null, 1, 1};
         assertEvaluate(
             "nth_value(x, 1) ignore Nulls OVER(ORDER BY x nulls first RANGE BETWEEN UNBOUNDED PRECEDING and CURRENT ROW)",
-            contains(expected),
+            expected,
             List.of(new ColumnIdent("x")),
             new Object[]{null},
             new Object[]{1},
@@ -323,7 +319,7 @@ public class NthValueFunctionsTest extends AbstractWindowFunctionTest {
         Object[] expected = new Object[]{1, 1};
         assertEvaluate(
             "nth_value(x, 1) OVER(ORDER BY x ROWS BETWEEN UNBOUNDED PRECEDING and CURRENT ROW)",
-            contains(expected),
+            expected,
             List.of(new ColumnIdent("x")),
             new Object[]{1},
             new Object[]{2});
@@ -334,7 +330,7 @@ public class NthValueFunctionsTest extends AbstractWindowFunctionTest {
         Object[] expected = new Object[]{null, 1, 1};
         assertEvaluate(
             "nth_value(x, 1) ignore nulls OVER(ORDER BY x nulls first ROWS BETWEEN UNBOUNDED PRECEDING and CURRENT ROW)",
-            contains(expected),
+            expected,
             List.of(new ColumnIdent("x")),
             new Object[]{null},
             new Object[]{1},
@@ -345,14 +341,14 @@ public class NthValueFunctionsTest extends AbstractWindowFunctionTest {
     public void testLastValueIgnoringNullsEmptyOver() throws Throwable {
         assertEvaluate(
             "last_value(x) ignore nulls over()",
-            contains(new Object[] {null, null}),
+            new Object[] {null, null},
             List.of(new ColumnIdent("x"), new ColumnIdent("y")),
             new Object[] {null,1},
             new Object[] {null,2}
         );
         assertEvaluate(
             "last_value(x) ignore nulls over()",
-            contains(new Object[] {2, 2, 2, 2}),
+            new Object[] {2, 2, 2, 2},
             List.of(new ColumnIdent("x")),
             new Object[] {1,1},
             new Object[] {null,2},
@@ -365,14 +361,14 @@ public class NthValueFunctionsTest extends AbstractWindowFunctionTest {
     public void testFirstValueIgnoringNullsEmptyOver() throws Throwable {
         assertEvaluate(
             "first_value(x) ignore nulls over()",
-            contains(new Object[] {null, null}),
+            new Object[] {null, null},
             List.of(new ColumnIdent("x")),
             new Object[] {null},
             new Object[] {null}
         );
         assertEvaluate(
             "first_value(x) ignore nulls over()",
-            contains(new Object[] {1, 1, 1, 1}),
+            new Object[] {1, 1, 1, 1},
             List.of(new ColumnIdent("x"), new ColumnIdent("y")),
             new Object[] {1,1},
             new Object[] {null,2},
@@ -385,21 +381,21 @@ public class NthValueFunctionsTest extends AbstractWindowFunctionTest {
     public void testNthValueIgnoringNullsEmptyOver() throws Throwable {
         assertEvaluate(
             "nth_value(x,3) ignore nulls over()",
-            contains(new Object[] {null, null}),
+            new Object[] {null, null},
             List.of(new ColumnIdent("x")),
             new Object[] {null},
             new Object[] {null}
         );
         assertEvaluate(
             "nth_value(x,1) ignore nulls over()",
-            contains(new Object[] {1, 1}),
+            new Object[] {1, 1},
             List.of(new ColumnIdent("x")),
             new Object[] {null},
             new Object[] {1}
         );
         assertEvaluate(
             "nth_value(x,2) ignore nulls over()",
-            contains(new Object[] {2, 2, 2, 2}),
+            new Object[] {2, 2, 2, 2},
             List.of(new ColumnIdent("x")),
             new Object[] {1},
             new Object[] {null},
@@ -412,7 +408,7 @@ public class NthValueFunctionsTest extends AbstractWindowFunctionTest {
     public void testNthValueIgnoringNullsAndWindowingClause() throws Throwable {
         assertEvaluate(
             "nth_value(x,1) ignore nulls over(order by y range between current row and unbounded following)",
-            contains(new Object[] {1, 2, 2, 3}),
+            new Object[] {1, 2, 2, 3},
             List.of(new ColumnIdent("x"), new ColumnIdent("y")),
             new Object[] {1,1},
             new Object[] {null,2},
@@ -421,7 +417,7 @@ public class NthValueFunctionsTest extends AbstractWindowFunctionTest {
         );
         assertEvaluate(
             "nth_value(x,2) ignore nulls over(order by y range between current row and unbounded following)",
-            contains(new Object[] {2, 3, 3, null}),
+            new Object[] {2, 3, 3, null},
             List.of(new ColumnIdent("x"), new ColumnIdent("y")),
             new Object[] {1,1},
             new Object[] {null,2},
@@ -430,7 +426,7 @@ public class NthValueFunctionsTest extends AbstractWindowFunctionTest {
         );
         assertEvaluate(
             "nth_value(x,1) ignore nulls over(order by y range between current row and current row)",
-            contains(new Object[] {1, null, 2, null}),
+            new Object[] {1, null, 2, null},
             List.of(new ColumnIdent("x"), new ColumnIdent("y")),
             new Object[] {1,1},
             new Object[] {null,2},
@@ -443,7 +439,7 @@ public class NthValueFunctionsTest extends AbstractWindowFunctionTest {
     public void testFirstValueIgnoringNullsAndWindowingClause() throws Throwable {
         assertEvaluate(
             "first_value(x) ignore nulls over(order by y range between current row and unbounded following)",
-            contains(new Object[] {1, 2, 2, 3}),
+            new Object[] {1, 2, 2, 3},
             List.of(new ColumnIdent("x"), new ColumnIdent("y")),
             new Object[] {1,1},
             new Object[] {null,2},
@@ -452,7 +448,7 @@ public class NthValueFunctionsTest extends AbstractWindowFunctionTest {
         );
         assertEvaluate(
             "first_value(x) ignore nulls over(order by y range between unbounded preceding and unbounded following)",
-            contains(new Object[] {2, 2, 2, 2}),
+            new Object[] {2, 2, 2, 2},
             List.of(new ColumnIdent("x"), new ColumnIdent("y")),
             new Object[] {null,1},
             new Object[] {null,2},
@@ -465,7 +461,7 @@ public class NthValueFunctionsTest extends AbstractWindowFunctionTest {
     public void testLastValueIgnoringNullsAndWindowingClause() throws Throwable {
         assertEvaluate(
             "last_value(x) ignore nulls over(order by y range between unbounded preceding and current row)",
-            contains(new Object[] {null, 1, 1, 1, 3}),
+            new Object[] {null, 1, 1, 1, 3},
             List.of(new ColumnIdent("x"), new ColumnIdent("y")),
             new Object[] {null,1},
             new Object[] {1,2},
@@ -475,7 +471,7 @@ public class NthValueFunctionsTest extends AbstractWindowFunctionTest {
         );
         assertEvaluate(
             "last_value(x) ignore nulls over(order by y range between unbounded preceding and unbounded following)",
-            contains(new Object[] {2, 2, 2, 2}),
+            new Object[] {2, 2, 2, 2},
             List.of(new ColumnIdent("x"), new ColumnIdent("y")),
             new Object[] {null,1},
             new Object[] {null,2},
@@ -488,7 +484,7 @@ public class NthValueFunctionsTest extends AbstractWindowFunctionTest {
     public void testFirstValueRespectNulls() throws Throwable {
         assertEvaluate(
             "first_value(x) respect nulls over()",
-            contains(new Object[] {null, null, null, null}),
+            new Object[] {null, null, null, null},
             List.of(new ColumnIdent("x"), new ColumnIdent("y")),
             new Object[] {null,1},
             new Object[] {1,2},

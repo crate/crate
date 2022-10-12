@@ -21,6 +21,7 @@
 
 package io.crate.execution.jobs;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -48,7 +49,6 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Routing;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.distribution.DistributionInfo;
-import io.crate.test.CauseMatcher;
 import io.crate.testing.TestingRowConsumer;
 
 public class CountTaskTest extends ESTestCase {
@@ -69,24 +69,26 @@ public class CountTaskTest extends ESTestCase {
         CountOperation countOperation = mock(CountOperation.class);
         when(countOperation.count(eq(txnCtx), any(), any(Symbol.class))).thenReturn(future);
 
-        CountTask countTask = new CountTask(countPhaseWithId(1), txnCtx, countOperation, new TestingRowConsumer(), null);
-        countTask.start();
+        final CountTask countTask1 = new CountTask(countPhaseWithId(1), txnCtx, countOperation, new TestingRowConsumer(), null);
+        countTask1.start();
         future.complete(1L);
-        assertTrue(countTask.isClosed());
+        assertTrue(countTask1.isClosed());
         // assure that there was no exception
-        countTask.completionFuture().get();
+        countTask1.completionFuture().get();
 
         // on error
         future = new CompletableFuture<>();
         when(countOperation.count(eq(txnCtx), any(), any(Symbol.class))).thenReturn(future);
 
-        countTask = new CountTask(countPhaseWithId(2), txnCtx, countOperation, new TestingRowConsumer(), null);
-        countTask.start();
+        final CountTask countTask2 =
+            new CountTask(countPhaseWithId(2), txnCtx, countOperation, new TestingRowConsumer(), null);
+        countTask2.start();
         future.completeExceptionally(new UnhandledServerException("dummy"));
-        assertTrue(countTask.isClosed());
+        assertTrue(countTask2.isClosed());
 
-        expectedException.expectCause(CauseMatcher.cause(UnhandledServerException.class));
-        countTask.completionFuture().get();
+        assertThatThrownBy(() -> countTask2.completionFuture().get())
+            .hasCauseExactlyInstanceOf(UnhandledServerException.class)
+            .hasMessageContaining("dummy");
     }
 
     @Test

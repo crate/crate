@@ -24,6 +24,7 @@ package io.crate.integrationtests;
 import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
@@ -49,7 +50,6 @@ import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.exceptions.PublicationUnknownException;
 import io.crate.replication.logical.metadata.Subscription;
 import io.crate.replication.logical.metadata.SubscriptionsMetadata;
-import io.crate.testing.MoreMatchers;
 import io.crate.testing.UseRandomizedSchema;
 import io.crate.user.User;
 import io.crate.user.UserLookup;
@@ -204,21 +204,17 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
         // createPublication is not used in order not to create SUBSCRIBING_USER and verify that check is done in PublicationsStateAction
         executeOnPublisher("CREATE PUBLICATION pub1 FOR TABLE doc.t1");
 
-        assertThrowsMatches(
-            () -> createSubscription("sub1", "pub1"),
-            Matchers.anyOf(
+        assertThatThrownBy(() -> createSubscription("sub1", "pub1"))
+            .satisfiesAnyOf(
                 // If executing via sniff mode, the user is not found
-                MoreMatchers.exception(
-                    IllegalStateException.class,
-                    "Cannot build publication state, subscribing user '" + SUBSCRIBING_USER + "' was not found."),
-
+                e -> assertThat(e)
+                    .isExactlyInstanceOf(IllegalStateException.class)
+                    .hasMessage("Cannot build publication state, subscribing user '" + SUBSCRIBING_USER + "' was not found."),
                 // If executing via pg-tunneling the authentication will fail because of the missing user
-                MoreMatchers.exception(
-                    IllegalStateException.class,
-                    Matchers.containsString("Error response: FATAL, trust authentication failed for user \"subscriber\"")
-                )
-            )
-        );
+                e -> assertThat(e)
+                    .isExactlyInstanceOf(IllegalStateException.class)
+                    .hasMessageStartingWith("Error response: FATAL, trust authentication failed for user \"subscriber\"")
+            );
     }
 
     @Test

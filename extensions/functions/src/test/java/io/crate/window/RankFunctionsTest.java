@@ -21,8 +21,6 @@
 
 package io.crate.window;
 
-import static org.hamcrest.Matchers.contains;
-
 import java.util.List;
 
 import org.junit.Test;
@@ -43,7 +41,7 @@ public class RankFunctionsTest extends AbstractWindowFunctionTest {
     public void testRankWithEmptyOver() throws Throwable {
         assertEvaluate(
             "rank() over()",
-            contains(new Object[] {1, 1, 1, 1, 1}),
+            new Object[] {1, 1, 1, 1, 1},
             List.of(new ColumnIdent("x"), new ColumnIdent("y")),
             new Object[] {1, 1},
             new Object[] {2, 1},
@@ -58,7 +56,7 @@ public class RankFunctionsTest extends AbstractWindowFunctionTest {
     public void testRankWithOrderByClause() throws Throwable {
         assertEvaluate(
             "rank() over(order by x)",
-            contains(new Object[] {1, 1, 1, 4, 4}),
+            new Object[] {1, 1, 1, 4, 4},
             List.of(new ColumnIdent("x"), new ColumnIdent("y")),
             new Object[] {1, 1},
             new Object[] {2, 1},
@@ -72,7 +70,7 @@ public class RankFunctionsTest extends AbstractWindowFunctionTest {
     public void testRankUseSymbolMultipleTimes() throws Throwable {
         assertEvaluate(
             "rank() over(order by y, x)",
-            contains(new Object[] {1, 2, 2, 4, 4}),
+            new Object[] {1, 2, 2, 4, 4},
             List.of(new ColumnIdent("x"), new ColumnIdent("y")),
             new Object[] {1, 1},
             new Object[] {2, 1},
@@ -87,7 +85,7 @@ public class RankFunctionsTest extends AbstractWindowFunctionTest {
         Object[] expected = new Object[]{1, 1, 1, 1, 1, 1};
         assertEvaluate(
             "rank() over(partition by y > 0)",
-            contains(expected),
+            expected,
             List.of(new ColumnIdent("x"), new ColumnIdent("y")),
             new Object[] {1, 1},
             new Object[] {2, 1},
@@ -102,7 +100,7 @@ public class RankFunctionsTest extends AbstractWindowFunctionTest {
         Object[] expected = new Object[]{1, 2, 3, 1, 2, 3};
         assertEvaluate(
             "rank() over(partition by y > 0 order by x)",
-            contains(expected),
+            expected,
             List.of(new ColumnIdent("x"), new ColumnIdent("y")),
             new Object[] {1, 1},
             new Object[] {2, 1},
@@ -116,7 +114,7 @@ public class RankFunctionsTest extends AbstractWindowFunctionTest {
     public void testDenseRankWithEmptyOver() throws Throwable {
         assertEvaluate(
             "dense_rank() over()",
-            contains(new Object[] {1, 1, 1, 1, 1}),
+            new Object[] {1, 1, 1, 1, 1},
             List.of(new ColumnIdent("x"), new ColumnIdent("y")),
             new Object[] {1, 1},
             new Object[] {2, 1},
@@ -131,7 +129,7 @@ public class RankFunctionsTest extends AbstractWindowFunctionTest {
     public void testDenseRankWithOrderByClause() throws Throwable {
         assertEvaluate(
             "dense_rank() over(order by x)",
-            contains(new Object[] {1, 1, 1, 2, 2}),
+            new Object[] {1, 1, 1, 2, 2},
             List.of(new ColumnIdent("x"), new ColumnIdent("y")),
             new Object[] {1, 1},
             new Object[] {2, 1},
@@ -145,7 +143,7 @@ public class RankFunctionsTest extends AbstractWindowFunctionTest {
     public void testDenseRankUseSymbolMultipleTimes() throws Throwable {
         assertEvaluate(
             "dense_rank() over(order by y, x)",
-            contains(new Object[] {1, 2, 2, 3, 3}),
+            new Object[] {1, 2, 2, 3, 3},
             List.of(new ColumnIdent("x"), new ColumnIdent("y")),
             new Object[] {1, 1},
             new Object[] {2, 1},
@@ -160,7 +158,7 @@ public class RankFunctionsTest extends AbstractWindowFunctionTest {
         Object[] expected = new Object[]{1, 1, 1, 1, 1, 1};
         assertEvaluate(
             "dense_rank() over(partition by y > 0)",
-            contains(expected),
+            expected,
             List.of(new ColumnIdent("x"), new ColumnIdent("y")),
             new Object[] {1, 1},
             new Object[] {2, 1},
@@ -175,7 +173,7 @@ public class RankFunctionsTest extends AbstractWindowFunctionTest {
         Object[] expected = new Object[]{1, 2, 3, 1, 2, 3};
         assertEvaluate(
             "dense_rank() over(partition by y > 0 order by x)",
-            contains(expected),
+            expected,
             List.of(new ColumnIdent("x"), new ColumnIdent("y")),
             new Object[] {1, 1},
             new Object[] {2, 1},
