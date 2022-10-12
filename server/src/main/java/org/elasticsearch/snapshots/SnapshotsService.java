@@ -226,7 +226,7 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                     Version.CURRENT
                 );
                 initializingSnapshots.add(newSnapshot.snapshot());
-                snapshots = new SnapshotsInProgress(newSnapshot);
+                snapshots = SnapshotsInProgress.of(Collections.singletonList(newSnapshot));
                 return ClusterState.builder(currentState).putCustom(SnapshotsInProgress.TYPE, snapshots).build();
             }
 
@@ -419,8 +419,7 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                                 }
                             }
                             return ClusterState.builder(currentState)
-                                .putCustom(SnapshotsInProgress.TYPE, new SnapshotsInProgress(unmodifiableList(entries)))
-                                .build();
+                                    .putCustom(SnapshotsInProgress.TYPE, SnapshotsInProgress.of(unmodifiableList(entries))).build();
                         }
 
                         @Override
@@ -715,7 +714,7 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                 }
                 if (changed) {
                     return ClusterState.builder(currentState)
-                        .putCustom(SnapshotsInProgress.TYPE, new SnapshotsInProgress(unmodifiableList(entries))).build();
+                        .putCustom(SnapshotsInProgress.TYPE, SnapshotsInProgress.of(unmodifiableList(entries))).build();
                 }
                 return currentState;
             }
@@ -754,7 +753,7 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                     }
                     if (changed) {
                         return ClusterState.builder(currentState)
-                            .putCustom(SnapshotsInProgress.TYPE, new SnapshotsInProgress(unmodifiableList(entries))).build();
+                                .putCustom(SnapshotsInProgress.TYPE, SnapshotsInProgress.of(unmodifiableList(entries))).build();
                     }
                 }
                 return currentState;
@@ -955,7 +954,7 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
             }
             if (changed) {
                 return ClusterState.builder(state).putCustom(
-                        SnapshotsInProgress.TYPE, new SnapshotsInProgress(unmodifiableList(entries))).build();
+                        SnapshotsInProgress.TYPE, SnapshotsInProgress.of(unmodifiableList(entries))).build();
             }
         }
         return state;
@@ -1114,12 +1113,12 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                     failure = snapshotEntry.failure();
                 }
                 return ClusterState.builder(currentState).putCustom(SnapshotsInProgress.TYPE,
-                                                                    new SnapshotsInProgress(snapshots.entries().stream().map(existing -> {
-                                                                        if (existing.equals(snapshotEntry)) {
-                                                                            return new SnapshotsInProgress.Entry(snapshotEntry, State.ABORTED, shards, failure);
-                                                                        }
-                                                                        return existing;
-                                                                    }).collect(Collectors.toList()))).build();
+                    SnapshotsInProgress.of(snapshots.entries().stream().map(existing -> {
+                        if (existing.equals(snapshotEntry)) {
+                            return new SnapshotsInProgress.Entry(snapshotEntry, State.ABORTED, shards, failure);
+                        }
+                        return existing;
+                    }).collect(Collectors.toList()))).build();
             }
 
             @Override
