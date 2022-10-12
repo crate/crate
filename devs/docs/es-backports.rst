@@ -306,7 +306,7 @@ should be crossed out as well.
 - [ ] b52a7641439 Fix NPE in SnapshotService CS Application (#58680) (#58735)
 - [ ] 95d85f29f80 Fix Snapshots Capturing Incomplete Datastreams (#58630) (#58656)
 - [ ] 4f2f257b12c Fix DataStream Handling on Restore of Global Metadata (#58631) (#58649)
-- [ ] 090211f7680 Fix Incorrect Snapshot Shar Status for DONE Shards in Running Snapshots (#58390) (#58593)
+- [x] 090211f7680 Fix Incorrect Snapshot Shar Status for DONE Shards in Running Snapshots (#58390) (#58593)
 - [x] eaa60b7c54e [Docs] Fix return tuple element order (#58463)
 - [x] 468e559ff7d Fix Memory Leak From Master Failover During Snapshot (#58511) (#58560)
 - [s] 52ad5842a95 Introduce node.roles setting (#58512)
