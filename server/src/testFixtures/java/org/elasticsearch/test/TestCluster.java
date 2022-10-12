@@ -1734,6 +1734,7 @@ public final class TestCluster implements Closeable {
         }
     }
 
+
     /**
      * Restarts a node and calls the callback during restart.
      */
