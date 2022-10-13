@@ -21,20 +21,15 @@
 
 package io.crate.planner;
 
+import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.assertThrowsMatches;
-import static io.crate.testing.TestingHelpers.isDocKey;
-import static java.util.Collections.singletonList;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.exactlyInstanceOf;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -55,8 +50,8 @@ import io.crate.testing.SQLExecutor;
 
 public class DeletePlannerTest extends CrateDummyClusterServiceUnitTest {
 
+    private final TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
     private SQLExecutor e;
-    private TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
 
     @Before
     public void prepare() throws IOException {
@@ -64,35 +59,35 @@ public class DeletePlannerTest extends CrateDummyClusterServiceUnitTest {
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .addPartitionedTable(
                 TableDefinitions.PARTED_PKS_TABLE_DEFINITION,
-                new PartitionName(new RelationName("doc", "parted_pks"), singletonList("1395874800000")).asIndexName(),
-                new PartitionName(new RelationName("doc", "parted_pks"), singletonList("1395961200000")).asIndexName())
+                new PartitionName(new RelationName("doc", "parted_pks"), List.of("1395874800000")).asIndexName(),
+                new PartitionName(new RelationName("doc", "parted_pks"), List.of("1395961200000")).asIndexName())
             .build();
     }
 
     @Test
     public void testDeletePlan() throws Exception {
         DeleteById plan = e.plan("delete from users where id = 1");
-        assertThat(plan.table().ident().name(), is("users"));
-        assertThat(plan.docKeys().size(), is(1));
-        assertThat(plan.docKeys().getOnlyKey(), isDocKey(1L));
+        assertThat(plan.table().ident().name()).isEqualTo("users");
+        assertThat(plan.docKeys()).hasSize(1);
+        assertThat(plan.docKeys().getOnlyKey()).isDocKey(1L);
     }
 
     @Test
     public void testBulkDeletePartitionedTable() throws Exception {
         DeletePartitions plan = e.plan("delete from parted_pks where date = ?");
         List<Symbol> partitionSymbols = plan.partitions().get(0);
-        assertThat(partitionSymbols, contains(instanceOf(ParameterSymbol.class)));
+        assertThat(partitionSymbols).satisfiesExactly(exactlyInstanceOf(ParameterSymbol.class));
     }
 
     @Test
     public void testMultiDeletePlan() throws Exception {
         DeleteById plan = e.plan("delete from users where id in (1, 2)");
-        assertThat(plan.docKeys().size(), is(2));
+        assertThat(plan.docKeys()).hasSize(2);
         List<String> docKeys = StreamSupport.stream(plan.docKeys().spliterator(), false)
             .map(x -> x.getId(txnCtx, e.nodeCtx, Row.EMPTY, SubQueryResults.EMPTY))
             .collect(Collectors.toList());
 
-        assertThat(docKeys, Matchers.containsInAnyOrder("1", "2"));
+        assertThat(docKeys).containsExactlyInAnyOrder("1", "2");
     }
 
     @Test
