@@ -21,11 +21,7 @@
 
 package io.crate.analyze.relations;
 
-import static io.crate.testing.TestingHelpers.isSQL;
-import static org.hamcrest.core.Is.is;
-import static org.hamcrest.core.IsNull.notNullValue;
-import static org.hamcrest.core.IsNull.nullValue;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -41,14 +37,13 @@ import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.QualifiedNameReference;
 import io.crate.sql.tree.SortItem;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.Asserts;
 import io.crate.testing.SQLExecutor;
 
 public class OrderByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void analyzeEmptySortItemsReturnsNull() {
-        assertThat(OrderyByAnalyzer.analyzeSortItems(Collections.emptyList(), null), is(nullValue()));
+        assertThat(OrderyByAnalyzer.analyzeSortItems(Collections.emptyList(), null)).isNull();
     }
 
     @Test
@@ -66,21 +61,17 @@ public class OrderByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         OrderBy orderBy = OrderyByAnalyzer.analyzeSortItems(sortItems,
             e -> Literal.of(((QualifiedNameReference) e).getName().toString()));
 
-        assertThat(orderBy, is(notNullValue()));
+        assertThat(orderBy).isNotNull();
         List<Symbol> orderBySymbols = orderBy.orderBySymbols();
-        assertThat(orderBySymbols.size(), is(2));
-        Asserts.assertThat(orderBySymbols.get(0)).isLiteral("t.x");
-        Asserts.assertThat(orderBySymbols.get(1)).isLiteral("t.y");
+        assertThat(orderBySymbols).satisfiesExactly(
+            s -> assertThat(s).isLiteral("t.x"),
+            s -> assertThat(s).isLiteral("t.y"));
 
         boolean[] reverseFlags = orderBy.reverseFlags();
-        assertThat(reverseFlags.length, is(2));
-        assertThat(reverseFlags[0], is(false));
-        assertThat(reverseFlags[1], is(true));
+        assertThat(reverseFlags).containsExactly(false, true);
 
         boolean[] nullsFirst = orderBy.nullsFirst();
-        assertThat(nullsFirst.length, is(2));
-        assertThat(nullsFirst[0], is(true));
-        assertThat(nullsFirst[1], is(false));
+        assertThat(nullsFirst).containsExactly(true, false);
     }
 
     @Test
@@ -88,6 +79,6 @@ public class OrderByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         var e = SQLExecutor.builder(clusterService)
             .build();
         QueriedSelectRelation relation = e.analyze("select * from unnest([1, 2]) order by null::integer");
-        assertThat(relation.orderBy(), isSQL("NULL"));
+        assertThat(relation.orderBy()).isSQL("NULL");
     }
 }

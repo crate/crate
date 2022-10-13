@@ -22,7 +22,6 @@
 package io.crate.planner.consumer;
 
 import static io.crate.testing.Asserts.isReference;
-import static io.crate.testing.TestingHelpers.isSQL;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
@@ -49,9 +48,9 @@ import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.projection.EvalProjection;
 import io.crate.execution.dsl.projection.FilterProjection;
 import io.crate.execution.dsl.projection.GroupProjection;
+import io.crate.execution.dsl.projection.LimitAndOffsetProjection;
 import io.crate.execution.dsl.projection.OrderedLimitAndOffsetProjection;
 import io.crate.execution.dsl.projection.Projection;
-import io.crate.execution.dsl.projection.LimitAndOffsetProjection;
 import io.crate.execution.engine.aggregation.impl.CountAggregation;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.Aggregation;
@@ -383,7 +382,7 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
             "select id from users group by id having id > 0");
         Collect collect = (Collect) merge.subPlan();
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) collect.collectPhase());
-        assertThat(collectPhase.where(), isSQL("(doc.users.id > 0::bigint)"));
+        Asserts.assertThat(collectPhase.where()).isSQL("(doc.users.id > 0::bigint)");
         assertThat(collectPhase.projections(), contains(
             instanceOf(GroupProjection.class)
         ));

@@ -21,13 +21,11 @@
 
 package io.crate.planner.optimizer.rule;
 
-import static io.crate.testing.TestingHelpers.isSQL;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import java.util.Collections;
 import java.util.Map;
 
-import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -48,14 +46,14 @@ import io.crate.testing.T3;
 public class MergeFiltersTest extends CrateDummyClusterServiceUnitTest {
 
     private SqlExpressions e;
-    private AbstractTableRelation tr1;
+    private AbstractTableRelation<?> tr1;
 
     @Before
     public void setUp() throws Exception {
         super.setUp();
         Map<RelationName, AnalyzedRelation> sources = T3.sources(clusterService);
         e = new SqlExpressions(sources);
-        tr1 = (AbstractTableRelation) sources.get(T3.T1);
+        tr1 = (AbstractTableRelation<?>) sources.get(T3.T1);
     }
 
     @Test
@@ -67,10 +65,10 @@ public class MergeFiltersTest extends CrateDummyClusterServiceUnitTest {
         MergeFilters mergeFilters = new MergeFilters();
         Match<Filter> match = mergeFilters.pattern().accept(parentFilter, Captures.empty());
 
-        assertThat(match.isPresent(), Matchers.is(true));
-        assertThat(match.value(), Matchers.sameInstance(parentFilter));
+        assertThat(match.isPresent()).isTrue();
+        assertThat(match.value()).isSameAs(parentFilter);
 
         Filter mergedFilter = mergeFilters.apply(match.value(), match.captures(), new TableStats(), CoordinatorTxnCtx.systemTransactionContext(), e.nodeCtx);
-        assertThat(mergedFilter.query(), isSQL("((doc.t2.y > 10) AND (doc.t1.x > 10))"));
+        assertThat(mergedFilter.query()).isSQL("((doc.t2.y > 10) AND (doc.t1.x > 10))");
     }
 }

@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -21,7 +21,22 @@
 
 package io.crate.testing;
 
-public class ProjectionMatchers {
+import java.util.List;
 
+import org.assertj.core.api.Assertions;
+import org.assertj.core.api.ListAssert;
 
+import io.crate.expression.symbol.Symbol;
+
+public final class SymbolsAssert<T extends Symbol> extends ListAssert<T> {
+
+    public SymbolsAssert(List<T> actual) {
+        super(actual);
+    }
+
+    public SymbolsAssert<T> isSQL(final String expectedStmt) {
+        isNotNull();
+        Assertions.assertThat(SQLPrinter.print(actual)).isEqualTo(expectedStmt);
+        return this;
+    }
 }
