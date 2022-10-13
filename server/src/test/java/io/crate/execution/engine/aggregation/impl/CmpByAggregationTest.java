@@ -38,7 +38,7 @@ public class CmpByAggregationTest extends AggregationTestCase {
     @Test
     public void test_max_by() throws Exception {
         Signature signature = Signature.aggregate(
-            "max_by",
+            randomFrom("max_by", "last"),
             DataTypes.STRING.getTypeSignature(),
             DataTypes.INTEGER.getTypeSignature(),
             DataTypes.STRING.getTypeSignature()
@@ -57,7 +57,7 @@ public class CmpByAggregationTest extends AggregationTestCase {
 
     @Test
     public void test_cmp_by_returns_null_if_all_search_fields_are_null() throws Exception {
-        for (String func : List.of("max_by", "min_by")) {
+        for (String func : List.of(randomFrom("max_by", "last"), randomFrom("min_by", "first"))) {
             Signature signature = Signature.aggregate(
                 func,
                 DataTypes.STRING.getTypeSignature(),
@@ -79,7 +79,7 @@ public class CmpByAggregationTest extends AggregationTestCase {
 
     @Test
     public void test_cmp_by_returns_null_if_all_return_fields_are_null() throws Exception {
-        for (String func : List.of("max_by", "min_by")) {
+        for (String func : List.of(randomFrom("max_by", "last"), randomFrom("min_by", "first"))) {
             Signature signature = Signature.aggregate(
                 func,
                 DataTypes.STRING.getTypeSignature(),
@@ -102,7 +102,7 @@ public class CmpByAggregationTest extends AggregationTestCase {
     @Test
     public void test_max_by_returns_null_if_return_field_of_max_search_field_is_null() throws Exception {
         Signature signature = Signature.aggregate(
-            "max_by",
+            randomFrom("max_by", "last"),
             DataTypes.STRING.getTypeSignature(),
             DataTypes.INTEGER.getTypeSignature(),
             DataTypes.STRING.getTypeSignature()
@@ -121,7 +121,7 @@ public class CmpByAggregationTest extends AggregationTestCase {
 
     @Test
     public void test_cmp_by_result_is_nondeterministic_on_ties() throws Exception {
-        for (String func : List.of("max_by", "min_by")) {
+        for (String func : List.of(randomFrom("max_by", "last"), randomFrom("min_by", "first"))) {
             Signature signature = Signature.aggregate(
                 func,
                 DataTypes.STRING.getTypeSignature(),
@@ -144,7 +144,7 @@ public class CmpByAggregationTest extends AggregationTestCase {
     @Test
     public void test_min_by() throws Exception {
         Signature signature = Signature.aggregate(
-            "min_by",
+            randomFrom("min_by", "first"),
             DataTypes.STRING.getTypeSignature(),
             DataTypes.INTEGER.getTypeSignature(),
             DataTypes.STRING.getTypeSignature()
@@ -163,9 +163,10 @@ public class CmpByAggregationTest extends AggregationTestCase {
     }
 
     @Test
-    public void test_cannot_use_max_by_on_non_comparable_types() throws Exception {
+    public void test_cannot_use_max_by_on_non_comparable_types() {
+        String functionName = randomFrom("max_by", "last", "min_by", "first");
         Signature signature = Signature.aggregate(
-            "max_by",
+            functionName,
             DataTypes.STRING.getTypeSignature(),
             DataTypes.UNTYPED_OBJECT.getTypeSignature(),
             DataTypes.STRING.getTypeSignature()
@@ -177,6 +178,6 @@ public class CmpByAggregationTest extends AggregationTestCase {
             },
             List.of()
         )).isExactlyInstanceOf(UnsupportedOperationException.class)
-            .hasMessage("Cannot use `max_by` on values of type object");
+          .hasMessage("Cannot use `%s` on values of type object", functionName);
     }
 }
