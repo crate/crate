@@ -33,6 +33,9 @@ import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 /**
  * BatchIterator implementation that is backed by a {@link PagingIterator}.
  *
@@ -44,6 +47,8 @@ import java.util.function.Function;
  *                                   will receive a throwable if the BatchIterator was killed)
  */
 public class BatchPagingIterator<Key> implements BatchIterator<Row> {
+
+    private static final Logger LOGGER = LogManager.getLogger(BatchPagingIterator.class);
 
     private final PagingIterator<Key, Row> pagingIterator;
     private final Function<Key, KillableCompletionStage<? extends Iterable<? extends KeyIterable<Key, Row>>>> fetchMore;
@@ -81,6 +86,7 @@ public class BatchPagingIterator<Key> implements BatchIterator<Row> {
 
     @Override
     public boolean moveNext() {
+        //LOGGER.info("moveNext");
         raiseIfClosedOrKilled();
 
         if (it.hasNext()) {
@@ -93,6 +99,7 @@ public class BatchPagingIterator<Key> implements BatchIterator<Row> {
 
     @Override
     public void close() {
+        LOGGER.info("close");
         if (!closed) {
             closed = true;
             pagingIterator.finish(); // release resource, specially possible ram accounted bytes
@@ -102,6 +109,7 @@ public class BatchPagingIterator<Key> implements BatchIterator<Row> {
 
     @Override
     public CompletionStage<?> loadNextBatch() throws Exception {
+        LOGGER.info("loadNextBatch");
         if (closed) {
             throw new IllegalStateException("BatchIterator already closed");
         }
@@ -125,6 +133,7 @@ public class BatchPagingIterator<Key> implements BatchIterator<Row> {
     }
 
     private void onNextPage(Iterable<? extends KeyIterable<Key, Row>> rows, Throwable ex) {
+        LOGGER.info("onNextPage: " + ex);
         if (ex == null) {
             pagingIterator.merge(rows);
             if (isUpstreamExhausted.getAsBoolean()) {
@@ -161,6 +170,7 @@ public class BatchPagingIterator<Key> implements BatchIterator<Row> {
 
     @Override
     public void kill(@Nonnull Throwable throwable) {
+        LOGGER.info("kill: " + throwable);
         KillableCompletionStage<? extends Iterable<? extends KeyIterable<Key, Row>>> loading;
         synchronized (this) {
             killed = throwable;

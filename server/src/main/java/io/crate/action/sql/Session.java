@@ -847,6 +847,7 @@ public class Session implements AutoCloseable {
 
     public void cancelCurrentJob() {
         if (mostRecentJobID == null) {
+            LOGGER.info("cancelling but mostRecentJobID is null");
             return;
         }
         var request = new KillJobsNodeRequest(

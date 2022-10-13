@@ -26,6 +26,9 @@ import java.util.List;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import io.crate.action.sql.BaseResultReceiver;
 import io.crate.auth.AccessControl;
 import io.crate.data.Row;
@@ -35,6 +38,8 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 
 class ResultSetReceiver extends BaseResultReceiver {
+
+    private static final Logger LOGGER = LogManager.getLogger(ResultSetReceiver.class);
 
     private final String query;
     private final DelayableWriteChannel channel;
@@ -71,12 +76,14 @@ class ResultSetReceiver extends BaseResultReceiver {
         rowCount++;
         Messages.sendDataRow(directChannel, row, columnTypes, formatCodes);
         if (rowCount % 1000 == 0) {
+            //LOGGER.info("flushing");
             directChannel.flush();
         }
     }
 
     @Override
     public void batchFinished() {
+        LOGGER.info("batchFinished");
         Messages.sendPortalSuspended(directChannel);
         Messages.sendReadyForQuery(directChannel, transactionState);
         channel.writePendingMessages(delayedWrites);
@@ -86,6 +93,7 @@ class ResultSetReceiver extends BaseResultReceiver {
 
     @Override
     public void allFinished(boolean interrupted) {
+        LOGGER.info("AllFinished: " + interrupted);
         if (interrupted) {
             channel.writePendingMessages(delayedWrites);
             super.allFinished(true);
@@ -99,6 +107,7 @@ class ResultSetReceiver extends BaseResultReceiver {
 
     @Override
     public void fail(@Nonnull Throwable throwable) {
+        LOGGER.info("fail: " + throwable);
         ChannelFuture sendErrorResponse = Messages.sendErrorResponse(directChannel, accessControl, throwable);
         channel.writePendingMessages(delayedWrites);
         channel.flush();

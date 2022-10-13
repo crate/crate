@@ -131,6 +131,7 @@ public class Messages {
      * rejected until block is ended).
      */
     static ChannelFuture sendReadyForQuery(Channel channel, TransactionState transactionState) {
+        LOGGER.info("readyForQuery");
         ByteBuf buffer = channel.alloc().buffer(6);
         buffer.writeByte('Z');
         buffer.writeInt(5);
@@ -187,6 +188,7 @@ public class Messages {
     }
 
     static ChannelFuture sendErrorResponse(Channel channel, AccessControl accessControl, Throwable throwable) {
+        LOGGER.info("sendErrorResponse: " + throwable + "  | channel.bytesBeforeWritable: " + channel.bytesBeforeWritable());
         final var error = PGError.fromThrowable(SQLExceptions.prepareForClientTransmission(accessControl, throwable));
 
         ByteBuf buffer = channel.alloc().buffer();
@@ -238,6 +240,7 @@ public class Messages {
         if (LOGGER.isTraceEnabled()) {
             channelFuture.addListener(f -> LOGGER.trace("sentErrorResponse msg={}", error.message()));
         }
+        channelFuture.addListener(f -> LOGGER.info("sentErrorResponse msg={}", error.message()));
         return channelFuture;
     }
 
