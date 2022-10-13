@@ -21,11 +21,8 @@
 
 package io.crate.analyze;
 
-import static io.crate.testing.TestingHelpers.isSQL;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
@@ -50,82 +47,82 @@ public class SubscriptValidatorTest extends ESTestCase {
     @Test
     public void testVisitSubscriptExpression() throws Exception {
         SubscriptContext context = analyzeSubscript("a['x']['y']");
-        assertThat("a", context.qualifiedName().getSuffix(), is("a"));
-        assertThat("x", context.parts().get(0), is("x"));
-        assertThat("y", context.parts().get(1), is("y"));
+        assertThat(context.qualifiedName().getSuffix()).as("a").isEqualTo("a");
+        assertThat(context.parts().get(0)).as("x").isEqualTo("x");
+        assertThat(context.parts().get(1)).as("y").isEqualTo("y");
     }
 
     @Test
     public void testInvalidSubscriptExpressionName() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("An expression of type StringLiteral cannot have an index accessor ([])");
-        analyzeSubscript("'a'['x']['y']");
+        assertThatThrownBy(() -> analyzeSubscript("'a'['x']['y']"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("An expression of type StringLiteral cannot have an index accessor ([])");
     }
 
     @Test
     public void testNestedSubscriptParameter() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Parameter substitution is not supported in subscript");
-        analyzeSubscript("a['x'][?]");
+        assertThatThrownBy(() -> analyzeSubscript("a['x'][?]"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("Parameter substitution is not supported in subscript index");
     }
 
     @Test
     public void testArraySubscriptParameter() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Parameter substitution is not supported in subscript");
-        analyzeSubscript("a[?]");
+        assertThatThrownBy(() -> analyzeSubscript("a[?]"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("Parameter substitution is not supported in subscript index");
     }
 
     @Test
     public void testSubscriptOnArrayLiteral() throws Exception {
         SubscriptContext context = analyzeSubscript("[1,2,3][1]");
-        assertThat(context.expression(), is(notNullValue()));
-        assertThat(context.expression(), instanceOf(ArrayLiteral.class));
-        assertThat(context.index(), isSQL("CAST(1 AS integer)"));
+        assertThat(context.expression()).isNotNull();
+        assertThat(context.expression()).isExactlyInstanceOf(ArrayLiteral.class);
+        assertThat(context.index()).isSQL("CAST(1 AS integer)");
     }
 
     @Test
     public void testSubscriptOnCast() throws Exception {
         SubscriptContext context = analyzeSubscript("cast([1.1,2.1] as array(integer))[2]");
-        assertThat(context.expression(), instanceOf(Cast.class));
-        assertThat(context.index(), isSQL("CAST(2 AS integer)"));
+        assertThat(context.expression()).isExactlyInstanceOf(Cast.class);
+        assertThat(context.index()).isSQL("CAST(2 AS integer)");
     }
 
     @Test
     public void testSubscriptOnTryCast() throws Exception {
         SubscriptContext context = analyzeSubscript("try_cast([1] as array(double))[1]");
-        assertThat(context.expression(), instanceOf(TryCast.class));
-        assertThat(context.index(), isSQL("CAST(1 AS integer)"));
+        assertThat(context.expression()).isExactlyInstanceOf(TryCast.class);
+        assertThat(context.index()).isSQL("CAST(1 AS integer)");
     }
 
     @Test
     public void testVisitSubscriptWithIndexExpression() throws Exception {
         SubscriptContext context = analyzeSubscript("a[1+2]");
-        assertThat(context.qualifiedName().getSuffix(), is("a"));
-        assertThat(context.index(), isSQL("1 + 2"));
+        assertThat(context.qualifiedName().getSuffix()).isEqualTo("a");
+        assertThat(context.index()).isSQL("1 + 2");
     }
 
     @SuppressWarnings("ConstantConditions")
     @Test
     public void testVisitSubscriptWithNestedIndexExpression() throws Exception {
         SubscriptContext context = analyzeSubscript("a[a[abs(2-3)]]");
-        assertThat(context.qualifiedName().getSuffix(), is("a"));
+        assertThat(context.qualifiedName().getSuffix()).isEqualTo("a");
         context = analyzeSubscript(context.index().toString());
-        assertThat(context.qualifiedName().getSuffix(), is("a"));
-        assertThat(context.index(), isSQL("abs((2 - 3))"));
+        assertThat(context.qualifiedName().getSuffix()).isEqualTo("a");
+        assertThat(context.index()).isSQL("abs((2 - 3))");
     }
 
     @Test
     public void testNestedArrayAccess() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Nested array access is not supported");
-        analyzeSubscript("a[1][2]");
+        assertThatThrownBy(() -> analyzeSubscript("a[1][2]"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("Nested array access is not supported");
     }
 
     @Test
     public void testNegativeArrayAccess() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Array index must be in range 1 to 2147483648");
-        analyzeSubscript("ref[-1]");
+        assertThatThrownBy(() -> analyzeSubscript("ref[-1]"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("Array index must be in range 1 to 2147483648");
     }
 }

@@ -25,8 +25,9 @@ import static io.crate.analyze.TableDefinitions.TEST_DOC_LOCATIONS_TABLE_DEFINIT
 import static io.crate.analyze.TableDefinitions.USER_TABLE_DEFINITION;
 import static io.crate.analyze.TableDefinitions.USER_TABLE_IDENT;
 import static io.crate.planner.operators.LogicalPlannerTest.isPlan;
+import static io.crate.testing.Asserts.assertList;
 import static io.crate.testing.Asserts.isInputColumn;
-import static io.crate.testing.TestingHelpers.isSQL;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
@@ -209,7 +210,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         Join nl = (Join) operator.build(
             mock(DependencyCarrier.class), context, Set.of(), projectionBuilder, -1, 0, null, null, Row.EMPTY, SubQueryResults.EMPTY);
 
-        assertThat(((Collect) nl.left()).collectPhase().toCollect(), isSQL("doc.users.id"));
+        assertList(((Collect) nl.left()).collectPhase().toCollect()).isSQL("doc.users.id");
         assertThat(nl.resultDescription().orderBy(), notNullValue());
     }
 
@@ -491,11 +492,11 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testForbidJoinWhereMatchOnBothTables() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage(
-            "Using constructs like `match(r1.c) OR match(r2.c)` is not supported");
-        e.plan("select * from t1, t2 " +
-               "where match(t1.a, 'Lanistas experimentum!') or match(t2.b, 'Rationes ridetis!')");
+        assertThatThrownBy(
+            () -> e.plan("select * from t1, t2 " +
+                         "where match(t1.a, 'Lanistas experimentum!') or match(t2.b, 'Rationes ridetis!')"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessageEndingWith("Using constructs like `match(r1.c) OR match(r2.c)` is not supported.");
     }
 
     /**

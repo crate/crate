@@ -21,10 +21,7 @@
 
 package io.crate.execution.engine.join;
 
-import static io.crate.testing.TestingHelpers.isSQL;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -67,7 +64,7 @@ public class JoinOperationsTest extends CrateDummyClusterServiceUnitTest {
         List<JoinPair> newJoinPairs =
             JoinOperations.convertImplicitJoinConditionsToJoinPairs(joinPairs, Collections.emptyMap());
 
-        assertThat(newJoinPairs, contains(JoinPair.of(T3.T1, T3.T2, JoinType.INNER, asSymbol("t1.a = t2.b"))));
+        assertThat(newJoinPairs).containsExactly(JoinPair.of(T3.T1, T3.T2, JoinType.INNER, asSymbol("t1.a = t2.b")));
     }
 
     @Test
@@ -79,11 +76,11 @@ public class JoinOperationsTest extends CrateDummyClusterServiceUnitTest {
         List<JoinPair> newJoinPairs =
             JoinOperations.convertImplicitJoinConditionsToJoinPairs(joinPairs, remainingQueries);
 
-        assertThat(newJoinPairs.size(), is(1));
+        assertThat(newJoinPairs).hasSize(1);
         JoinPair joinPair = newJoinPairs.get(0);
-        assertThat(joinPair.condition(), isSQL("(doc.t1.a = doc.t2.b)"));
-        assertThat(joinPair.joinType(), is(JoinType.INNER));
-        assertThat(remainingQueries.size(), is(1));
+        assertThat(joinPair.condition()).isSQL("(doc.t1.a = doc.t2.b)");
+        assertThat(joinPair.joinType()).isEqualTo(JoinType.INNER);
+        assertThat(remainingQueries).hasSize(1);
     }
 
     @Test
@@ -95,11 +92,11 @@ public class JoinOperationsTest extends CrateDummyClusterServiceUnitTest {
         List<JoinPair> newJoinPairs =
             JoinOperations.convertImplicitJoinConditionsToJoinPairs(joinPairs, remainingQueries);
 
-        assertThat(newJoinPairs.size(), is(1));
+        assertThat(newJoinPairs).hasSize(1);
         JoinPair joinPair = newJoinPairs.get(0);
-        assertThat(joinPair.condition(), isSQL("((doc.t1.a = doc.t2.b) AND (doc.t1.x = doc.t2.y))"));
-        assertThat(joinPair.joinType(), is(JoinType.INNER));
-        assertThat(remainingQueries.isEmpty(), is(true));
+        assertThat(joinPair.condition()).isSQL("((doc.t1.a = doc.t2.b) AND (doc.t1.x = doc.t2.y))");
+        assertThat(joinPair.joinType()).isEqualTo(JoinType.INNER);
+        assertThat(remainingQueries).isEmpty();
     }
 
     @Test
@@ -111,11 +108,11 @@ public class JoinOperationsTest extends CrateDummyClusterServiceUnitTest {
         List<JoinPair> newJoinPairs =
             JoinOperations.convertImplicitJoinConditionsToJoinPairs(joinPairs, remainingQueries);
 
-        assertThat(newJoinPairs.size(), is(1));
+        assertThat(newJoinPairs).hasSize(1);
         JoinPair joinPair = newJoinPairs.get(0);
-        assertThat(joinPair.condition(), isSQL("(doc.t1.x = doc.t2.y)"));
-        assertThat(joinPair.joinType(), is(JoinType.INNER));
-        assertThat(remainingQueries.isEmpty(), is(true));
+        assertThat(joinPair.condition()).isSQL("(doc.t1.x = doc.t2.y)");
+        assertThat(joinPair.joinType()).isEqualTo(JoinType.INNER);
+        assertThat(remainingQueries).isEmpty();
     }
 
     @Test
@@ -125,11 +122,11 @@ public class JoinOperationsTest extends CrateDummyClusterServiceUnitTest {
         List<JoinPair> newJoinPairs =
             JoinOperations.convertImplicitJoinConditionsToJoinPairs(Collections.emptyList(), remainingQueries);
 
-        assertThat(newJoinPairs.size(), is(1));
+        assertThat(newJoinPairs).hasSize(1);
         JoinPair joinPair = newJoinPairs.get(0);
-        assertThat(joinPair.condition(), isSQL("(doc.t1.x = doc.t2.y)"));
-        assertThat(joinPair.joinType(), is(JoinType.INNER));
-        assertThat(remainingQueries.isEmpty(), is(true));
+        assertThat(joinPair.condition()).isSQL("(doc.t1.x = doc.t2.y)");
+        assertThat(joinPair.joinType()).isEqualTo(JoinType.INNER);
+        assertThat(remainingQueries).isEmpty();
     }
 
     @Test
@@ -141,11 +138,11 @@ public class JoinOperationsTest extends CrateDummyClusterServiceUnitTest {
         List<JoinPair> newJoinPairs =
             JoinOperations.convertImplicitJoinConditionsToJoinPairs(joinPairs, remainingQueries);
 
-        assertThat(newJoinPairs.size(), is(1));
+        assertThat(newJoinPairs).hasSize(1);
         JoinPair joinPair = newJoinPairs.get(0);
-        assertThat(joinPair.condition(), isSQL("(doc.t1.a = doc.t2.b)"));
-        assertThat(joinPair.joinType(), is(JoinType.LEFT));
-        assertThat(remainingQueries.size(), is(1));
+        assertThat(joinPair.condition()).isSQL("(doc.t1.a = doc.t2.b)");
+        assertThat(joinPair.joinType()).isEqualTo(JoinType.LEFT);
+        assertThat(remainingQueries).hasSize(1);
     }
 
     @Test
@@ -157,11 +154,11 @@ public class JoinOperationsTest extends CrateDummyClusterServiceUnitTest {
 
         List<JoinPair> newJoinPairs = JoinOperations.convertImplicitJoinConditionsToJoinPairs(joinPairs, remainingQueries);
 
-        assertThat(newJoinPairs.size(), is(1));
+        assertThat(newJoinPairs).hasSize(1);
         JoinPair joinPair = newJoinPairs.get(0);
-        assertThat(joinPair.condition(), isSQL("(doc.t1.a = doc.t2.b)"));
-        assertThat(joinPair.joinType(), is(JoinType.SEMI));
-        assertThat(remainingQueries.size(), is(1));
+        assertThat(joinPair.condition()).isSQL("(doc.t1.a = doc.t2.b)");
+        assertThat(joinPair.joinType()).isEqualTo(JoinType.SEMI);
+        assertThat(remainingQueries).hasSize(1);
     }
 
     @Test
@@ -177,8 +174,8 @@ public class JoinOperationsTest extends CrateDummyClusterServiceUnitTest {
         for (int i = 0; i < joinPairs.size(); i++) {
             JoinPair oldPairAtPos = joinPairs.get(i);
             JoinPair newPairAtPos = newJoinPairs.get(i);
-            assertThat(oldPairAtPos.left(), is(newPairAtPos.left()));
-            assertThat(oldPairAtPos.right(), is(newPairAtPos.right()));
+            assertThat(newPairAtPos.left()).isEqualTo(oldPairAtPos.left());
+            assertThat(newPairAtPos.right()).isEqualTo(oldPairAtPos.right());
         }
     }
 }

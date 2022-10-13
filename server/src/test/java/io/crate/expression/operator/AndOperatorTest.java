@@ -21,11 +21,9 @@
 
 package io.crate.expression.operator;
 
+import static io.crate.testing.Asserts.assertList;
 import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
-import static io.crate.testing.TestingHelpers.isSQL;
-import static org.hamcrest.Matchers.contains;
-import static org.junit.Assert.assertThat;
 
 import java.util.List;
 
@@ -73,19 +71,15 @@ public class AndOperatorTest extends ScalarTestCase {
     public void test_get_conjunctions_of_predicate_with_2_ands() {
         Symbol query = sqlExpressions.asSymbol("(a = 1::int or a = 2::int) AND x = 2::int AND name = 'foo'");
         List<Symbol> split = AndOperator.split(query);
-        assertThat(split, contains(
-            isSQL("((doc.users.a = 1) OR (doc.users.a = 2))"),
-            isSQL("(doc.users.x = 2::bigint)"),
-            isSQL("(doc.users.name = 'foo')")
-        ));
+        assertList(split).isSQL("((doc.users.a = 1) OR (doc.users.a = 2)), " +
+                                "(doc.users.x = 2::bigint), " +
+                                "(doc.users.name = 'foo')");
     }
 
     @Test
     public void test_get_conjunctions_of_predicate_without_any_ands() {
         Symbol query = sqlExpressions.asSymbol("a = 1::int");
         List<Symbol> split = AndOperator.split(query);
-        assertThat(split, contains(
-            isSQL("(doc.users.a = 1)")
-        ));
+        assertList(split).isSQL("(doc.users.a = 1)");
     }
 }

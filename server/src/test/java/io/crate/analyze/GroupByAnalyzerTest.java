@@ -21,23 +21,18 @@
 
 package io.crate.analyze;
 
+import static io.crate.testing.Asserts.assertList;
+import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isAlias;
 import static io.crate.testing.Asserts.isField;
 import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
-import static io.crate.testing.TestingHelpers.isSQL;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
 import java.util.List;
 
-import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -49,7 +44,6 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.Asserts;
 import io.crate.testing.SQLExecutor;
 
 @SuppressWarnings("ConstantConditions")
@@ -78,186 +72,185 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testGroupBySubscriptMissingOutput() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("'load['5']' must appear in the GROUP BY clause");
-        analyze("select load['5'] from sys.nodes group by load['1']");
+        assertThatThrownBy(() -> analyze("select load['5'] from sys.nodes group by load['1']"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageStartingWith("'load['5']' must appear in the GROUP BY clause");
     }
 
     public void testGroupKeyNotInResultColumnList() throws Exception {
         QueriedSelectRelation relation = analyze("select count(*) from sys.nodes group by name");
-        assertThat(relation.groupBy().size(), is(1));
-        Asserts.assertThat(relation.outputs()).satisfiesExactly(isFunction("count"));
+        assertThat(relation.groupBy()).hasSize(1);
+        assertThat(relation.outputs()).satisfiesExactly(isFunction("count"));
     }
 
     @Test
     public void testGroupByOnAlias() throws Exception {
         QueriedSelectRelation relation = analyze("select count(*), name as n from sys.nodes group by n");
-        assertThat(relation.groupBy().size(), is(1));
-        Asserts.assertThat(relation.outputs())
+        assertThat(relation.groupBy()).hasSize(1);
+        assertThat(relation.outputs())
             .satisfiesExactly(
                 isFunction("count"),
                 isAlias("n", isReference("name")));
-        assertEquals(relation.groupBy().get(0), relation.outputs().get(1));
+        assertThat(relation.groupBy().get(0)).isEqualTo(relation.outputs().get(1));
     }
 
     @Test
     public void testGroupByOnOrdinal() throws Exception {
         // just like in postgres access by ordinal starts with 1
         QueriedSelectRelation relation = analyze("select count(*), name as n from sys.nodes group by 2");
-        assertThat(relation.groupBy().size(), is(1));
-        assertEquals(relation.groupBy().get(0), relation.outputs().get(1));
+        assertThat(relation.groupBy()).containsExactly(relation.outputs().get(1));
     }
 
     @Test
     public void testGroupByOnOrdinalAggregation() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Aggregate functions are not allowed in GROUP BY");
-        analyze("select count(*), name as n from sys.nodes group by 1");
+        assertThatThrownBy(() -> analyze("select count(*), name as n from sys.nodes group by 1"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Aggregate functions are not allowed in GROUP BY");
     }
 
     @Test
     public void testGroupByWithDistinctAggregation() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Aggregate functions are not allowed in GROUP BY");
-        analyze("select count(DISTINCT name) from sys.nodes group by 1");
+        assertThatThrownBy(() -> analyze("select count(DISTINCT name) from sys.nodes group by 1"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Aggregate functions are not allowed in GROUP BY");
     }
 
     @Test
     public void testGroupByScalarAliasedWithRealColumnNameFailsIfScalarColumnIsNotGrouped() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage(
-            "'(1 / height)' must appear in the GROUP BY clause");
-        analyze("select 1/height as age from foo.users group by age");
+        assertThatThrownBy(() -> analyze("select 1/height as age from foo.users group by age"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageStartingWith("'(1 / height)' must appear in the GROUP BY clause");
     }
 
     @Test
     public void testGroupByScalarAliasAndValueInScalar() {
         QueriedSelectRelation relation =
             analyze("select 1/age as age from foo.users group by age order by age");
-        assertThat(relation.groupBy().isEmpty(), is(false));
+        assertThat(relation.groupBy()).isNotEmpty();
         List<Symbol> groupBySymbols = relation.groupBy();
-        assertThat(((Reference) groupBySymbols.get(0)).column().fqn(), is("age"));
+        assertThat(((Reference) groupBySymbols.get(0)).column().fqn()).isEqualTo("age");
     }
 
     @Test
     public void testGroupByScalarAlias() {
         // grouping by what's under the alias, the 1/age values
         QueriedSelectRelation relation = analyze("select 1/age as theAlias from foo.users group by theAlias");
-        assertThat(relation.groupBy().isEmpty(), is(false));
+        assertThat(relation.groupBy()).isNotEmpty();
         List<Symbol> groupBySymbols = relation.groupBy();
         Symbol groupBy = groupBySymbols.get(0);
-        Asserts.assertThat(groupBy).isAlias("thealias", isFunction("divide"));
+        assertThat(groupBy).isAlias("thealias", isFunction("divide"));
     }
 
     @Test
     public void testGroupByColumnInScalar() {
         // grouping by height values
         QueriedSelectRelation relation = analyze("select 1/age as height from foo.users group by age");
-        assertThat(relation.groupBy().isEmpty(), is(false));
+        assertThat(relation.groupBy()).isNotEmpty();
         List<Symbol> groupBySymbols = relation.groupBy();
-        assertThat(((Reference) groupBySymbols.get(0)).column().fqn(), is("age"));
+        assertThat(((Reference) groupBySymbols.get(0)).column().fqn()).isEqualTo("age");
     }
 
     @Test
     public void testGroupByScalar() {
         QueriedSelectRelation relation = analyze("select 1/age from foo.users group by 1/age;");
-        assertThat(relation.groupBy().isEmpty(), is(false));
+        assertThat(relation.groupBy()).isNotEmpty();
         List<Symbol> groupBySymbols = relation.groupBy();
         Symbol groupBy = groupBySymbols.get(0);
-        assertThat(groupBy, instanceOf(Function.class));
+        assertThat(groupBy).isExactlyInstanceOf(Function.class);
     }
 
     @Test
     public void testGroupByAliasedLiteral() {
         QueriedSelectRelation relation = analyze("select 58 as fiftyEight from foo.users group by fiftyEight;");
-        assertThat(relation.groupBy().isEmpty(), is(false));
+        assertThat(relation.groupBy()).isNotEmpty();
         List<Symbol> groupBySymbols = relation.groupBy();
-        Asserts.assertThat(groupBySymbols.get(0)).isAlias("fiftyeight", isLiteral(58));
+        assertThat(groupBySymbols.get(0)).isAlias("fiftyeight", isLiteral(58));
     }
 
     @Test
     public void testGroupByLiteralAliasedWithRealColumnNameGroupsByColumnValue() {
         QueriedSelectRelation relation = analyze("select 58 as age from foo.users group by age;");
-        assertThat(relation.groupBy().isEmpty(), is(false));
+        assertThat(relation.groupBy()).isNotEmpty();
         List<Symbol> groupBySymbols = relation.groupBy();
         ReferenceIdent groupByIdent = ((Reference) groupBySymbols.get(0)).ident();
-        assertThat(groupByIdent.columnIdent().fqn(), is("age"));
-        assertThat(groupByIdent.tableIdent().fqn(), is("foo.users"));
+        assertThat(groupByIdent.columnIdent().fqn()).isEqualTo("age");
+        assertThat(groupByIdent.tableIdent().fqn()).isEqualTo("foo.users");
     }
 
     @Test
     public void testNegateAliasRealColumnGroupByAlias() {
         QueriedSelectRelation relation = analyze("select age age, - age age from foo.users group by age;");
-        assertThat(relation.groupBy().isEmpty(), is(false));
+        assertThat(relation.groupBy()).isNotEmpty();
         List<Symbol> groupBySymbols = relation.groupBy();
         ReferenceIdent groupByIdent = ((Reference) groupBySymbols.get(0)).ident();
-        assertThat(groupByIdent.columnIdent().fqn(), is("age"));
-        assertThat(groupByIdent.tableIdent().fqn(), is("foo.users"));
+        assertThat(groupByIdent.columnIdent().fqn()).isEqualTo("age");
+        assertThat(groupByIdent.tableIdent().fqn()).isEqualTo("foo.users");
     }
 
     @Test
     public void testGroupBySubscript() throws Exception {
         QueriedSelectRelation relation = analyze("select load['1'], count(*) from sys.nodes group by load['1']");
-        assertThat(relation.limit(), nullValue());
+        assertThat(relation.limit()).isNull();
 
-        assertThat(relation.groupBy(), notNullValue());
-        assertThat(relation.outputs().size(), is(2));
-        assertThat(relation.groupBy().size(), is(1));
-        Asserts.assertThat(relation.groupBy().get(0)).isReference("load['1']");
+        assertThat(relation.groupBy()).isNotNull();
+        assertThat(relation.outputs()).hasSize(2);
+        assertThat(relation.groupBy()).hasSize(1);
+        assertThat(relation.groupBy().get(0)).isReference("load['1']");
     }
 
     @Test
     public void testSelectGroupByOrderByWithColumnMissingFromSelect() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("ORDER BY expression 'id' must appear in the select clause " +
-                                        "when grouping or global aggregation is used");
-        analyze("select name, count(id) from users group by name order by id");
+        assertThatThrownBy(() -> analyze("select name, count(id) from users group by name order by id"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("ORDER BY expression 'id' must appear in the select clause " +
+                        "when grouping or global aggregation is used");
     }
 
     @Test
     public void testSelectGroupByOrderByWithAggregateFunctionInOrderByClauseWithoutHavingThemInTheSelectList() throws Exception {
         QueriedSelectRelation stmt = analyze("select name, count(id) from users group by name order by count(1)");
-        Asserts.assertThat(stmt.orderBy().orderBySymbols().get(0)).isFunction("count");
+        assertThat(stmt.orderBy().orderBySymbols().get(0)).isFunction("count");
     }
 
     @Test
     public void testSelectGroupByOrderByWithNestedAggregateFunctionInOrderByClause() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Aggregate function calls cannot be nested 'max(count(name))'.");
-        analyze("select name, count(id) from users group by name order by max(count(name))");
+        assertThatThrownBy(
+            () -> analyze("select name, count(id) from users group by name order by max(count(name))"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("Aggregate function calls cannot be nested 'max(count(name))'.");
     }
 
     @Test
     public void testSelectAggregationMissingGroupBy() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("'name' must appear in the GROUP BY clause");
-        analyze("select name, count(id) from users");
+        assertThatThrownBy(() -> analyze("select name, count(id) from users"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageStartingWith("'name' must appear in the GROUP BY clause");
     }
 
     @Test
     public void testSelectGlobalDistinctAggregationMissingGroupBy() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("'name' must appear in the GROUP BY clause");
-        analyze("select distinct name, count(id) from users");
+        assertThatThrownBy(() -> analyze("select distinct name, count(id) from users"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageStartingWith("'name' must appear in the GROUP BY clause");
     }
 
 
     @Test
     public void testSelectDistinctWithGroupBy() {
         QueriedSelectRelation relation = analyze("select distinct max(id) from users group by name order by 1");
-        assertThat(relation.isDistinct(), is(true));
-        assertThat(relation,
-            isSQL("SELECT max(doc.users.id) GROUP BY doc.users.name ORDER BY max(doc.users.id)"));
+        assertThat(relation.isDistinct()).isEqualTo(true);
+        assertThat(relation)
+            .isSQL("SELECT max(doc.users.id) GROUP BY doc.users.name ORDER BY max(doc.users.id)");
     }
 
     @Test
     public void testSelectDistinctWithGroupByLimitAndOffset() {
         QueriedSelectRelation relation =
             analyze("select distinct max(id) from users group by name order by 1 limit 5 offset 10");
-        assertThat(relation.isDistinct(), is(true));
-        assertThat(relation,
-            isSQL("SELECT max(doc.users.id) GROUP BY doc.users.name " +
-                  "ORDER BY max(doc.users.id) LIMIT 5::bigint OFFSET 10::bigint"));
+        assertThat(relation.isDistinct()).isEqualTo(true);
+        assertThat(relation)
+            .isSQL("SELECT max(doc.users.id) GROUP BY doc.users.name " +
+                  "ORDER BY max(doc.users.id) LIMIT 5::bigint OFFSET 10::bigint");
     }
 
     @Test
@@ -266,9 +259,9 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             analyze("select DISTINCT max(users.id) from users " +
                     "  inner join users_multi_pk on users.id = users_multi_pk.id " +
                     "group by users.name order by 1");
-        assertThat(relation.isDistinct(), is(true));
-        assertThat(relation,
-            isSQL("SELECT max(doc.users.id) GROUP BY doc.users.name ORDER BY max(doc.users.id)"));
+        assertThat(relation.isDistinct()).isEqualTo(true);
+        assertThat(relation)
+            .isSQL("SELECT max(doc.users.id) GROUP BY doc.users.name ORDER BY max(doc.users.id)");
     }
 
     @Test
@@ -276,11 +269,11 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         QueriedSelectRelation relation = analyze("select distinct max(id) from (" +
                                             "  select * from users order by name limit 10" +
                                             ") t group by name order by 1");
-        assertThat(relation.isDistinct(), is(true));
-        assertThat(relation,
-            isSQL("SELECT max(t.id) " +
+        assertThat(relation.isDistinct()).isEqualTo(true);
+        assertThat(relation)
+            .isSQL("SELECT max(t.id) " +
                   "GROUP BY t.name " +
-                  "ORDER BY max(t.id)"));
+                  "ORDER BY max(t.id)");
     }
 
     @Test
@@ -289,17 +282,17 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             analyze("select * from (" +
                     "  select distinct id from users group by id, name order by 1" +
                     ") t order by 1 desc");
-        assertThat(relation, instanceOf(QueriedSelectRelation.class));
+        assertThat(relation).isExactlyInstanceOf(QueriedSelectRelation.class);
         QueriedSelectRelation outerRelation = (QueriedSelectRelation) relation;
-        Asserts.assertThat(outerRelation.outputs()).satisfiesExactly(isField("id"));
+        assertThat(outerRelation.outputs()).satisfiesExactly(isField("id"));
 
-        assertThat(outerRelation.groupBy(), Matchers.empty());
-        Asserts.assertThat(outerRelation.orderBy().orderBySymbols()).satisfiesExactly(isField("id"));
+        assertThat(outerRelation.groupBy()).isEmpty();
+        assertThat(outerRelation.orderBy().orderBySymbols()).satisfiesExactly(isField("id"));
 
         AliasedAnalyzedRelation aliasedRelation = (AliasedAnalyzedRelation) outerRelation.from().get(0);
         QueriedSelectRelation innerRelation = (QueriedSelectRelation) aliasedRelation.relation();
-        assertThat(innerRelation.isDistinct(), is(true));
-        Asserts.assertThat(innerRelation.groupBy())
+        assertThat(innerRelation.isDistinct()).isEqualTo(true);
+        assertThat(innerRelation.groupBy())
             .satisfiesExactly(isReference("id"), isReference("name"));
     }
 
@@ -307,60 +300,60 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testGroupByOnLiteral() throws Exception {
         QueriedSelectRelation relation = analyze(
             "select [1,2,3], count(*) from users group by 1");
-        assertThat(relation.outputs(), isSQL("[1, 2, 3], count(*)"));
-        assertThat(relation.groupBy(), isSQL("[1, 2, 3]"));
+        assertList(relation.outputs()).isSQL("[1, 2, 3], count(*)");
+        assertList(relation.groupBy()).isSQL("[1, 2, 3]");
     }
 
     @Test
     public void testGroupByOnNullLiteral() throws Exception {
         QueriedSelectRelation relation = analyze(
             "select null, count(*) from users group by 1");
-        assertThat(relation.outputs(), isSQL("NULL, count(*)"));
-        assertThat(relation.groupBy(), isSQL("NULL"));
+        assertList(relation.outputs()).isSQL("NULL, count(*)");
+        assertList(relation.groupBy()).isSQL("NULL");
     }
 
     @Test
     public void testGroupWithInvalidOrdinal() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("GROUP BY position 2 is not in select list");
-        analyze("select name from users u group by 2");
+        assertThatThrownBy(() -> analyze("select name from users u group by 2"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("GROUP BY position 2 is not in select list");
     }
 
     @Test
     public void testGroupWithInvalidLiteral() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot use 'abc' in GROUP BY clause");
-        analyze("select max(id) from users u group by 'abc'");
+        assertThatThrownBy(() -> analyze("select max(id) from users u group by 'abc'"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Cannot use 'abc' in GROUP BY clause");
     }
 
     @Test
     public void testGroupByOnInvalidNegateLiteral() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("GROUP BY position -4 is not in select list");
-        analyze("select count(*), name from sys.nodes group by -4");
+        assertThatThrownBy(() -> analyze("select count(*), name from sys.nodes group by -4"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("GROUP BY position -4 is not in select list");
     }
 
     @Test
     public void testGroupWithInvalidNullLiteral() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot use NULL in GROUP BY clause");
-        analyze("select max(id) from users u group by NULL");
+        assertThatThrownBy(() -> analyze("select max(id) from users u group by NULL"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Cannot use NULL in GROUP BY clause");
     }
 
     @Test
     public void test_group_by_null_ordinal_with_explicit_cast_works() {
         QueriedSelectRelation relation = analyze("select max(id) from users u group by NULL::int");
-        assertThat(relation.groupBy(), isSQL("NULL"));
+        assertList(relation.groupBy()).isSQL("NULL");
     }
 
     @Test
     public void testGroupByHaving() throws Exception {
         QueriedSelectRelation relation = analyze("select sum(floats) from users group by name having name like 'Slartibart%'");
-        Asserts.assertThat(relation.having()).isFunction(LikeOperators.OP_LIKE);
+        assertThat(relation.having()).isFunction(LikeOperators.OP_LIKE);
         Function havingFunction = (Function) relation.having();
-        assertThat(havingFunction.arguments().size(), is(2));
-        Asserts.assertThat(havingFunction.arguments().get(0)).isReference("name");
-        Asserts.assertThat(havingFunction.arguments().get(1)).isLiteral("Slartibart%");
+        assertThat(havingFunction.arguments()).hasSize(2);
+        assertThat(havingFunction.arguments().get(0)).isReference("name");
+        assertThat(havingFunction.arguments().get(1)).isLiteral("Slartibart%");
     }
 
     @Test
@@ -369,51 +362,53 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             "select id as name from users group by id, name having name != null;");
 
         Symbol havingClause = relation.having();
-        Asserts.assertThat(havingClause).isLiteral(null);
+        assertThat(havingClause).isLiteral(null);
     }
 
     @Test
     public void testGroupByHavingNormalize() throws Exception {
         QueriedSelectRelation rel = analyze("select sum(floats) from users group by name having 1 > 4");
-        Asserts.assertThat(rel.having()).isLiteral(false);
+        assertThat(rel.having()).isLiteral(false);
     }
 
     @Test
     public void testGroupByHavingOtherColumnInAggregate() throws Exception {
         QueriedSelectRelation relation = analyze("select sum(floats), name from users group by name having max(bytes) = 4::\"char\"");
-        Asserts.assertThat(relation.having()).isFunction("op_=");
+        assertThat(relation.having()).isFunction("op_=");
         Function havingFunction = (Function) relation.having();
-        assertThat(havingFunction.arguments().size(), is(2));
-        Asserts.assertThat(havingFunction.arguments().get(0)).isFunction("max");
+        assertThat(havingFunction.arguments()).hasSize(2);
+        assertThat(havingFunction.arguments().get(0)).isFunction("max");
         Function maxFunction = (Function) havingFunction.arguments().get(0);
 
-        Asserts.assertThat(maxFunction.arguments().get(0)).isReference("bytes");
-        Asserts.assertThat(havingFunction.arguments().get(1)).isLiteral((byte) 4);
+        assertThat(maxFunction.arguments().get(0)).isReference("bytes");
+        assertThat(havingFunction.arguments().get(1)).isLiteral((byte) 4);
     }
 
     @Test
     public void testGroupByHavingOtherColumnOutsideAggregate() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot use column bytes outside of an Aggregation in HAVING clause");
-        analyze("select sum(floats) from users group by name having bytes = 4");
+        assertThatThrownBy(
+            () -> analyze("select sum(floats) from users group by name having bytes = 4"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageStartingWith("Cannot use column bytes outside of an Aggregation in HAVING clause");
     }
 
     @Test
     public void testGroupByHavingOtherColumnOutsideAggregateInFunction() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot use column bytes outside of an Aggregation in HAVING clause");
-        analyze("select sum(floats), name from users group by name having (bytes + 1)  = 4");
+        assertThatThrownBy(
+            () -> analyze("select sum(floats), name from users group by name having (bytes + 1)  = 4"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageStartingWith("Cannot use column bytes outside of an Aggregation in HAVING clause");
     }
 
     @Test
     public void testGroupByHavingByGroupKey() throws Exception {
         QueriedSelectRelation relation = analyze(
             "select sum(floats), name from users group by name having name like 'Slartibart%'");
-        Asserts.assertThat(relation.having()).isFunction(LikeOperators.OP_LIKE);
+        assertThat(relation.having()).isFunction(LikeOperators.OP_LIKE);
         Function havingFunction = (Function) relation.having();
-        assertThat(havingFunction.arguments().size(), is(2));
-        Asserts.assertThat(havingFunction.arguments().get(0)).isReference("name");
-        Asserts.assertThat(havingFunction.arguments().get(1)).isLiteral("Slartibart%");
+        assertThat(havingFunction.arguments()).hasSize(2);
+        assertThat(havingFunction.arguments().get(0)).isReference("name");
+        assertThat(havingFunction.arguments().get(1)).isLiteral("Slartibart%");
     }
 
     @Test
@@ -421,12 +416,11 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         QueriedSelectRelation relation = analyze("select sum(floats), name from users " +
                                             "group by name having 1=0 or sum(bytes) in (42, 43, 44) and name not like 'Slartibart%'");
         Function andFunction = (Function) relation.having();
-        assertThat(andFunction, is(notNullValue()));
-        assertThat(andFunction.signature().getName().name(), is("op_and"));
-        assertThat(andFunction.arguments().size(), is(2));
-
-        Asserts.assertThat(andFunction.arguments().get(0)).isFunction("any_=");
-        Asserts.assertThat(andFunction.arguments().get(1)).isFunction("op_not");
+        assertThat(andFunction).isNotNull();
+        assertThat(andFunction.signature().getName().name()).isEqualTo("op_and");
+        assertThat(andFunction.arguments()).hasSize(2);
+        assertThat(andFunction.arguments().get(0)).isFunction("any_=");
+        assertThat(andFunction.arguments().get(1)).isFunction("op_not");
     }
 
     @Test
@@ -436,9 +430,7 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             "from users " +
             "group by name " +
             "having sum(power(power(id::double, id::double), id::double)) > 0");
-        assertThat(
-            relation.having(),
-            isSQL("(sum(power(power(cast(doc.users.id AS double precision), cast(doc.users.id AS double precision)), cast(doc.users.id AS double precision))) > 0.0)")
-        );
+        assertThat(relation.having())
+            .isSQL("(sum(power(power(cast(doc.users.id AS double precision), cast(doc.users.id AS double precision)), cast(doc.users.id AS double precision))) > 0.0)");
     }
 }
