@@ -23,10 +23,10 @@ package io.crate.planner;
 
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isLiteral;
-import static io.crate.testing.TestingHelpers.isDocKey;
 import static java.util.Collections.singletonList;
 
-import org.junit.Assert;
+import java.util.List;
+
 import org.junit.Before;
 import org.junit.Test;
 
@@ -60,8 +60,8 @@ public class WhereClauseOptimizerTest extends CrateDummyClusterServiceUnitTest {
                 "   id int primary key, " +
                 "   date timestamp with time zone primary key" +
                 ") partitioned by (date)",
-                new PartitionName(new RelationName("doc", "parted_pk"), singletonList("1395874800000")).asIndexName(),
-                new PartitionName(new RelationName("doc", "parted_pk"), singletonList("1395961200000")).asIndexName(),
+                new PartitionName(new RelationName("doc", "parted_pk"), List.of("1395874800000")).asIndexName(),
+                new PartitionName(new RelationName("doc", "parted_pk"), List.of("1395961200000")).asIndexName(),
                 new PartitionName(new RelationName("doc", "parted_pk"), singletonList(null)).asIndexName()
             )
             .build();
@@ -108,20 +108,24 @@ public class WhereClauseOptimizerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(query.partitions().get(0)).satisfiesExactly(isLiteral(1395874800000L));
     }
 
+    @SuppressWarnings("OptionalGetWithoutIsPresent")
     @Test
     public void testClusteredByValueContainsComma() throws Exception {
         WhereClauseOptimizer.DetailedQuery query = optimize(
             "select * from bystring where name = 'a,b,c'");
         assertThat(query.clusteredBy()).satisfiesExactly(isLiteral("a,b,c"));
+        assertThat(query.docKeys()).isPresent();
         assertThat(query.docKeys().get()).hasSize(1);
-        Assert.assertThat(query.docKeys().get().getOnlyKey(), isDocKey("a,b,c"));
+        assertThat(query.docKeys().get().getOnlyKey()).isDocKey("a,b,c");
     }
 
+    @SuppressWarnings("OptionalGetWithoutIsPresent")
     @Test
     public void testEmptyClusteredByValue() throws Exception {
         WhereClauseOptimizer.DetailedQuery query = optimize("select * from bystring where name = ''");
         assertThat(query.clusteredBy()).satisfiesExactly(isLiteral(""));
-        Assert.assertThat(query.docKeys().get().getOnlyKey(), isDocKey(""));
+        assertThat(query.docKeys()).isPresent();
+        assertThat(query.docKeys().get().getOnlyKey()).isDocKey("");
     }
 
     @Test

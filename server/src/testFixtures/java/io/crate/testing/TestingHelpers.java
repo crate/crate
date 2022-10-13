@@ -63,8 +63,6 @@ import org.hamcrest.TypeSafeDiagnosingMatcher;
 
 import com.carrotsearch.randomizedtesting.RandomizedTest;
 
-import io.crate.analyze.where.DocKeys;
-import io.crate.common.collections.Lists2;
 import io.crate.common.collections.Sorted;
 import io.crate.data.Row;
 import io.crate.execution.engine.aggregation.impl.AggregationImplModule;
@@ -72,7 +70,6 @@ import io.crate.execution.engine.window.WindowFunctionModule;
 import io.crate.expression.operator.OperatorModule;
 import io.crate.expression.predicate.PredicateModule;
 import io.crate.expression.scalar.ScalarFunctionModule;
-import io.crate.expression.symbol.Literal;
 import io.crate.expression.tablefunctions.TableFunctionModule;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
@@ -261,27 +258,6 @@ public class TestingHelpers {
             @Override
             public void describeTo(Description description) {
                 description.appendText("is Row with cells: ")
-                    .appendValue(expected);
-            }
-        };
-    }
-
-    public static Matcher<DocKeys.DocKey> isDocKey(Object... keys) {
-        final List<Object> expected = Arrays.asList(keys);
-        return new TypeSafeDiagnosingMatcher<>() {
-            @Override
-            protected boolean matchesSafely(DocKeys.DocKey item, Description mismatchDescription) {
-                List<Object> docKeyValues = Lists2.map(item.values(), s -> ((Literal<?>) s).value());
-                if (!expected.equals(docKeyValues)) {
-                    mismatchDescription.appendText("is DocKey with values: ").appendValue(docKeyValues);
-                    return false;
-                }
-                return true;
-            }
-
-            @Override
-            public void describeTo(Description description) {
-                description.appendText("is DocKey with values: ")
                     .appendValue(expected);
             }
         };
