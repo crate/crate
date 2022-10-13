@@ -335,6 +335,13 @@ The return value is always of type ``bigint``.
     SELECT 3 rows in set (... sec)
 
 
+.. _aggregation-first:
+
+``first(returnField, searchField)``
+-------------------------------------
+
+An alias for :ref:`aggregation-max_by`.
+
 .. _aggregation-geometric-mean:
 
 ``geometric_mean(column)``
@@ -568,6 +575,12 @@ An Example::
     +--------------------------+
     SELECT 1 row in set (... sec)
 
+.. _aggregation-last:
+
+``last(returnField, searchField)``
+-------------------------------------
+
+An alias for :ref:`aggregation-last`.
 
 .. _aggregation-stddev:
 

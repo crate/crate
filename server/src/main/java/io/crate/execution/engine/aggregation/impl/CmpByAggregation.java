@@ -23,6 +23,8 @@ package io.crate.execution.engine.aggregation.impl;
 
 import static io.crate.types.TypeSignature.parseTypeSignature;
 
+import java.util.List;
+
 import javax.annotation.Nullable;
 
 import org.elasticsearch.Version;
@@ -42,7 +44,9 @@ import io.crate.types.TypeSignature;
 public final class CmpByAggregation extends AggregationFunction<CmpByAggregation.CompareBy, Object> {
 
     public static final String MAX_BY = "max_by";
+    public static final String FIRST = "first";
     public static final String MIN_BY = "min_by";
+    public static final String LAST = "last";
 
     static class CompareBy {
 
@@ -59,30 +63,34 @@ public final class CmpByAggregation extends AggregationFunction<CmpByAggregation
         TypeSignature cmpType = parseTypeSignature("B");
         var variableConstraintA = TypeVariableConstraint.typeVariableOfAnyType("A");
         var variableConstraintB = TypeVariableConstraint.typeVariableOfAnyType("B");
-        mod.register(
-            Signature.aggregate(
-                MAX_BY,
-                returnValueType,
-                cmpType,
-                returnValueType
-            ).withTypeVariableConstraints(
-                variableConstraintA,
-                variableConstraintB
-            ),
-            (signature, boundSignature) -> new CmpByAggregation(1, signature, boundSignature)
-        );
-        mod.register(
-            Signature.aggregate(
-                MIN_BY,
-                returnValueType,
-                cmpType,
-                returnValueType
-            ).withTypeVariableConstraints(
-                variableConstraintA,
-                variableConstraintB
-            ),
-            (signature, boundSignature) -> new CmpByAggregation(-1, signature, boundSignature)
-        );
+        for (String name : List.of(MAX_BY, FIRST)) {
+            mod.register(
+                Signature.aggregate(
+                    name,
+                    returnValueType,
+                    cmpType,
+                    returnValueType
+                ).withTypeVariableConstraints(
+                    variableConstraintA,
+                    variableConstraintB
+                ),
+                (signature, boundSignature) -> new CmpByAggregation(1, signature, boundSignature)
+            );
+        }
+        for (String name : List.of(MIN_BY, LAST)) {
+            mod.register(
+                Signature.aggregate(
+                    name,
+                    returnValueType,
+                    cmpType,
+                    returnValueType
+                ).withTypeVariableConstraints(
+                    variableConstraintA,
+                    variableConstraintB
+                ),
+                (signature, boundSignature) -> new CmpByAggregation(-1, signature, boundSignature)
+            );
+        }
     }
 
     private final Signature signature;
