@@ -39,6 +39,7 @@ import org.junit.jupiter.api.function.Executable;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
+import io.crate.analyze.where.DocKeys;
 import io.crate.data.Input;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.expression.symbol.Literal;
@@ -79,6 +80,11 @@ public class Asserts extends Assertions {
         return new SQLResponseAssert(actual);
     }
 
+    public static DocKeyAssert assertThat(DocKeys.DocKey actual) {
+        return new DocKeyAssert(actual);
+    }
+
+    // isSQL Assertions
     public static SQLAssert<AnalyzedRelation> assertThat(AnalyzedRelation actual) {
         return new SQLAssert<>(actual);
     }
@@ -91,6 +97,7 @@ public class Asserts extends Assertions {
         return new SQLAssert<>(actual);
     }
 
+    // generic helper methods
     public static <T> Condition<T> toCondition(Consumer<T> consumer) {
         return new Condition<>(t -> {
             consumer.accept(t);
