@@ -340,7 +340,7 @@ The return value is always of type ``bigint``.
 ``first(returnField, searchField)``
 -------------------------------------
 
-An alias for :ref:`aggregation-max_by`.
+An alias for :ref:`aggregation-min_by`.
 
 .. _aggregation-geometric-mean:
 
@@ -580,7 +580,7 @@ An Example::
 ``last(returnField, searchField)``
 -------------------------------------
 
-An alias for :ref:`aggregation-last`.
+An alias for :ref:`aggregation-max_by`.
 
 .. _aggregation-stddev:
 

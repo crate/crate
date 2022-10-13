@@ -54,8 +54,8 @@ Changes
 =======
 
 - Added the :ref:`MAX_BY <aggregation-max_by>` (alias
-  :ref:`FIRST <aggregation-first>`) and :ref:`MIN_BY <aggregation-min_by>`
-  (alias :ref:`LAST <aggregation-last>`) aggregation functions.
+  :ref:`LAST <aggregation-last>`) and :ref:`MIN_BY <aggregation-min_by>`
+  (alias :ref:`FIRST <aggregation-first>`) aggregation functions.
 
 Fixes
 =====

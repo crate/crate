@@ -44,9 +44,9 @@ import io.crate.types.TypeSignature;
 public final class CmpByAggregation extends AggregationFunction<CmpByAggregation.CompareBy, Object> {
 
     public static final String MAX_BY = "max_by";
-    public static final String FIRST = "first";
-    public static final String MIN_BY = "min_by";
     public static final String LAST = "last";
+    public static final String MIN_BY = "min_by";
+    public static final String FIRST = "first";
 
     static class CompareBy {
 
@@ -63,7 +63,7 @@ public final class CmpByAggregation extends AggregationFunction<CmpByAggregation
         TypeSignature cmpType = parseTypeSignature("B");
         var variableConstraintA = TypeVariableConstraint.typeVariableOfAnyType("A");
         var variableConstraintB = TypeVariableConstraint.typeVariableOfAnyType("B");
-        for (String name : List.of(MAX_BY, FIRST)) {
+        for (String name : List.of(MAX_BY, LAST)) {
             mod.register(
                 Signature.aggregate(
                     name,
@@ -77,7 +77,7 @@ public final class CmpByAggregation extends AggregationFunction<CmpByAggregation
                 (signature, boundSignature) -> new CmpByAggregation(1, signature, boundSignature)
             );
         }
-        for (String name : List.of(MIN_BY, LAST)) {
+        for (String name : List.of(MIN_BY, FIRST)) {
             mod.register(
                 Signature.aggregate(
                     name,
