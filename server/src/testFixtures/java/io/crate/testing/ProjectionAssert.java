@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -21,7 +21,24 @@
 
 package io.crate.testing;
 
-public class ProjectionMatchers {
+import static org.assertj.core.api.Assertions.assertThat;
 
+import org.assertj.core.api.AbstractAssert;
 
+import io.crate.execution.dsl.projection.LimitAndOffsetProjection;
+import io.crate.execution.dsl.projection.Projection;
+
+public final class ProjectionAssert extends AbstractAssert<ProjectionAssert, Projection> {
+
+    public ProjectionAssert(Projection actual) {
+        super(actual, ProjectionAssert.class);
+    }
+
+    public ProjectionAssert isLimitAndOffset(int expectedLimit, int expectedOffset) {
+        isNotNull();
+        isExactlyInstanceOf(LimitAndOffsetProjection.class);
+        assertThat(((LimitAndOffsetProjection) actual).limit()).isEqualTo(expectedLimit);
+        assertThat(((LimitAndOffsetProjection) actual).offset()).isEqualTo(expectedOffset);
+        return this;
+    }
 }

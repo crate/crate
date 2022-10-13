@@ -36,14 +36,17 @@ import org.hamcrest.Matcher;
 import org.hamcrest.MatcherAssert;
 import org.junit.jupiter.api.function.Executable;
 
+import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.data.Input;
+import io.crate.execution.dsl.projection.Projection;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Scalar;
 import io.crate.sql.tree.ColumnPolicy;
+import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.Node;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -60,12 +63,32 @@ public class Asserts extends Assertions {
         return new SymbolAssert(actual);
     }
 
+    public static SymbolsAssert<? extends Symbol> assertList(List<? extends Symbol> actual) {
+        return new SymbolsAssert<>(actual);
+    }
+
     public static NodeAssert assertThat(Node actual) {
         return new NodeAssert(actual);
     }
 
+    public static ProjectionAssert assertThat(Projection actual) {
+        return new ProjectionAssert(actual);
+    }
+
     public static SQLResponseAssert assertThat(SQLResponse actual) {
         return new SQLResponseAssert(actual);
+    }
+
+    public static SQLAssert<AnalyzedRelation> assertThat(AnalyzedRelation actual) {
+        return new SQLAssert<>(actual);
+    }
+
+    public static SQLAssert<OrderBy> assertThat(OrderBy actual) {
+        return new SQLAssert<>(actual);
+    }
+
+    public static SQLAssert<Expression> assertThat(Expression actual) {
+        return new SQLAssert<>(actual);
     }
 
     public static <T> Condition<T> toCondition(Consumer<T> consumer) {
@@ -172,6 +195,10 @@ public class Asserts extends Assertions {
         return s -> assertThat(s).isAlias(expectedAliasName, childMatcher);
     }
 
+    public static void assertSQL(Object obj, String expectedStmt) {
+        assertThat(SQLPrinter.print(obj)).as(expectedStmt).isEqualTo(expectedStmt);
+    }
+
     // Node
     public static Consumer<Node> isColumnType(String expectedTypeName) {
         return n -> assertThat(n).isColumnType(expectedTypeName);
@@ -201,6 +228,11 @@ public class Asserts extends Assertions {
         return n -> assertThat(n).isColumnDefinition(expectedIdent, columnTypeMatcher);
     }
 
+    // Prijections
+    public static Consumer<Projection> isLimitAndOffset(int expectedLimit, int expectedOffset) {
+        return p -> assertThat(p).isLimitAndOffset(expectedLimit, expectedOffset);
+    }
+
     // Functions
     @SuppressWarnings("rawtypes")
     public static Function<Scalar, Consumer<Scalar>> isSameInstance() {
@@ -212,6 +244,7 @@ public class Asserts extends Assertions {
         return scalar -> s -> assertThat(s).isNotSameAs(scalar);
     }
 
+    // Exceptions
     public static void assertThrowsMatches(Executable executable, Matcher<? super Throwable> matcher) {
         try {
             executable.execute();

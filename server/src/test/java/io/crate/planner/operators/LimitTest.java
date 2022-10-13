@@ -24,15 +24,14 @@ package io.crate.planner.operators;
 import static io.crate.execution.engine.pipeline.LimitAndOffset.NO_LIMIT;
 import static io.crate.execution.engine.pipeline.LimitAndOffset.NO_OFFSET;
 import static io.crate.planner.operators.LogicalPlannerTest.isPlan;
-import static io.crate.testing.ProjectionMatchers.isLimitAndOffset;
-import static org.hamcrest.Matchers.contains;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
+import static io.crate.testing.Asserts.isLimitAndOffset;
 import static org.mockito.Mockito.mock;
 
 import java.util.List;
 import java.util.Set;
 
-import org.assertj.core.api.Assertions;
+import org.junit.Assert;
 import org.junit.Test;
 
 import com.carrotsearch.randomizedtesting.RandomizedTest;
@@ -78,7 +77,7 @@ public class LimitTest extends CrateDummyClusterServiceUnitTest {
             Literal.of(20L),
             Literal.of(7L)
         );
-        assertThat(plan, isPlan(
+        Assert.assertThat(plan, isPlan(
             "Limit[20::bigint;7::bigint]\n" +
             "  └ Limit[10::bigint;5::bigint]\n" +
             "    └ Collect[doc.users | [name] | true]"));
@@ -96,13 +95,11 @@ public class LimitTest extends CrateDummyClusterServiceUnitTest {
             SubQueryResults.EMPTY
         );
         io.crate.planner.node.dql.Collect collect = (io.crate.planner.node.dql.Collect) merge.subPlan();
-        assertThat(collect.collectPhase().projections(), contains(
-            isLimitAndOffset(15, 0)
-        ));
-        assertThat(merge.mergePhase().projections(), contains(
+        assertThat(collect.collectPhase().projections()).satisfiesExactly(
+            isLimitAndOffset(15, 0));
+        assertThat(merge.mergePhase().projections()).satisfiesExactly(
             isLimitAndOffset(10, 5),
-            isLimitAndOffset(20, 7)
-        ));
+            isLimitAndOffset(20, 7));
     }
 
     @Test
@@ -111,12 +108,12 @@ public class LimitTest extends CrateDummyClusterServiceUnitTest {
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .build();
         QueryThenFetch qtf = e.plan("SELECT * FROM users LIMIT null OFFSET 0");
-        Assertions.assertThat(qtf.subPlan()).isExactlyInstanceOf(io.crate.planner.node.dql.Collect.class);
+        assertThat(qtf.subPlan()).isExactlyInstanceOf(io.crate.planner.node.dql.Collect.class);
         io.crate.planner.node.dql.Collect collect = (io.crate.planner.node.dql.Collect) qtf.subPlan();
-        Assertions.assertThat(collect.limit()).isEqualTo(NO_LIMIT);
-        Assertions.assertThat(collect.offset()).isEqualTo(NO_OFFSET);
-        Assertions.assertThat(collect.collectPhase().projections()).hasSize(1);
-        Assertions.assertThat(collect.collectPhase().projections().get(0)).isExactlyInstanceOf(FetchProjection.class);
+        assertThat(collect.limit()).isEqualTo(NO_LIMIT);
+        assertThat(collect.offset()).isEqualTo(NO_OFFSET);
+        assertThat(collect.collectPhase().projections()).hasSize(1);
+        assertThat(collect.collectPhase().projections().get(0)).isExactlyInstanceOf(FetchProjection.class);
     }
 
     @Test
@@ -125,13 +122,13 @@ public class LimitTest extends CrateDummyClusterServiceUnitTest {
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .build();
         QueryThenFetch qtf = e.plan("SELECT * FROM users LIMIT null OFFSET 10");
-        Assertions.assertThat(qtf.subPlan()).isExactlyInstanceOf(io.crate.planner.node.dql.Collect.class);
+        assertThat(qtf.subPlan()).isExactlyInstanceOf(io.crate.planner.node.dql.Collect.class);
         io.crate.planner.node.dql.Collect collect = (io.crate.planner.node.dql.Collect) qtf.subPlan();
-        Assertions.assertThat(collect.limit()).isEqualTo(NO_LIMIT);
-        Assertions.assertThat(collect.offset()).isEqualTo(NO_OFFSET);
-        Assertions.assertThat(collect.collectPhase().projections()).hasSize(2);
-        Assertions.assertThat(collect.collectPhase().projections().get(0)).isExactlyInstanceOf(LimitAndOffsetProjection.class);
-        Assertions.assertThat(collect.collectPhase().projections().get(1)).isExactlyInstanceOf(FetchProjection.class);
-        assertThat(collect.collectPhase().projections().get(0), isLimitAndOffset(NO_LIMIT, 10));
+        assertThat(collect.limit()).isEqualTo(NO_LIMIT);
+        assertThat(collect.offset()).isEqualTo(NO_OFFSET);
+        assertThat(collect.collectPhase().projections()).hasSize(2);
+        assertThat(collect.collectPhase().projections().get(0)).isExactlyInstanceOf(LimitAndOffsetProjection.class);
+        assertThat(collect.collectPhase().projections().get(1)).isExactlyInstanceOf(FetchProjection.class);
+        assertThat(collect.collectPhase().projections().get(0)).isLimitAndOffset(NO_LIMIT, 10);
     }
 }

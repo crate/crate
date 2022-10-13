@@ -26,7 +26,6 @@ import static io.crate.expression.symbol.SelectSymbol.ResultType.SINGLE_COLUMN_S
 import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
 import static io.crate.testing.Asserts.toCondition;
-import static io.crate.testing.TestingHelpers.isSQL;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.instanceOf;
@@ -107,7 +106,7 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
         Collect collect = (Collect) merge.subPlan();
 
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) collect.collectPhase());
-        assertThat(collectPhase.where(), isSQL("true"));
+        Asserts.assertThat(collectPhase.where()).isSQL("true");
         assertThat(collectPhase.projections().size(), is(1));
         assertThat(collectPhase.projections().get(0), instanceOf(UpdateProjection.class));
         assertThat(collectPhase.toCollect().size(), is(1));
@@ -164,11 +163,11 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testUpdateUsingSeqNoRequiresPk() {
-        expectedException.expect(VersioningValidationException.class);
-        expectedException.expectMessage(VersioningValidationException.SEQ_NO_AND_PRIMARY_TERM_USAGE_MSG);
         UpdatePlanner.Update plan = e.plan("update users set name = 'should not update' where _seq_no = 11 and _primary_term = 1");
-        plan.createExecutionPlan.create(
-            e.getPlannerContext(clusterService.state()), Row.EMPTY, SubQueryResults.EMPTY);
+        assertThatThrownBy(() -> plan.createExecutionPlan.create(
+            e.getPlannerContext(clusterService.state()), Row.EMPTY, SubQueryResults.EMPTY))
+            .isExactlyInstanceOf(VersioningValidationException.class)
+            .hasMessage(VersioningValidationException.SEQ_NO_AND_PRIMARY_TERM_USAGE_MSG);
     }
 
     @Test
@@ -204,8 +203,8 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
         cleanup();
         this.clusterService = createClusterService(additionalClusterSettings(), Metadata.EMPTY_METADATA, Version.V_4_1_0);
         e = buildExecutor(clusterService);
-        expectedException.expect(UnsupportedFeatureException.class);
-        expectedException.expectMessage(UpdatePlanner.RETURNING_VERSION_ERROR_MSG);
-        e.plan("update users set name='test' where id=1 returning id");
+        assertThatThrownBy(() -> e.plan("update users set name='test' where id=1 returning id"))
+            .isExactlyInstanceOf(UnsupportedFeatureException.class)
+            .hasMessage(UpdatePlanner.RETURNING_VERSION_ERROR_MSG);
     }
 }

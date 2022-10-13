@@ -21,19 +21,11 @@
 
 package io.crate.analyze.expressions;
 
+import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.exactlyInstanceOf;
 import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
-import static io.crate.testing.TestingHelpers.isSQL;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.sameInstance;
-import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -50,7 +42,6 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.FullQualifiedNameFieldProvider;
 import io.crate.analyze.relations.ParentRelations;
 import io.crate.analyze.relations.TableRelation;
-import io.crate.common.collections.Lists2;
 import io.crate.exceptions.ConversionException;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.operator.LikeOperators;
@@ -113,14 +104,14 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_can_access_array_element_from_subscript_on_object_array() {
         var symbol = executor.asSymbol("o_arr['x'][1]");
-        Asserts.assertThat(symbol).isFunction(
+        assertThat(symbol).isFunction(
             "subscript",
             isReference("o_arr['x']"),
             isLiteral(1)
         );
 
         symbol = executor.asSymbol("o_arr['o_arr_nested']['y'][1]");
-        Asserts.assertThat(symbol).isFunction(
+        assertThat(symbol).isFunction(
             "subscript",
             isReference("o_arr['o_arr_nested']['y']"),
             isLiteral(1)
@@ -135,7 +126,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testExpressionCurrentDateWorks() {
         var symbol = expressions.asSymbol("current_date");
 
-        assertThat(symbol.valueType(), is(DataTypes.DATE));
+        assertThat(symbol.valueType()).isEqualTo(DataTypes.DATE);
     }
 
     @Test
@@ -143,7 +134,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         // Test when use subscript function is used explicitly then it's handled (and validated)
         // the same way it's handled when the subscript operator `[]` is used
         var symbol = executor.asSymbol("subscript(nested_obj.\"myObj\", 'x')");
-        Asserts.assertThat(symbol).isReference("myObj['x']");
+        assertThat(symbol).isReference("myObj['x']");
     }
 
     @Test
@@ -173,33 +164,33 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
         ScopedSymbol t1Id = ((ScopedSymbol) ((Function) ((Function) andFunction.arguments().get(0)).arguments().get(0)).arguments().get(0));
         ScopedSymbol t2Id = ((ScopedSymbol) ((Function) ((Function) andFunction.arguments().get(1)).arguments().get(0)).arguments().get(0));
-        assertThat(t1Id.relation(), is(not(t2Id.relation())));
+        assertThat(t1Id.relation()).isNotEqualTo(t2Id.relation());
     }
 
     @Test
     public void testSwapFunctionLeftSide() throws Exception {
         Function cmp = (Function) expressions.normalize(executor.asSymbol("8 + 5 > t1.x"));
         // the comparison was swapped so the field is on the left side
-        assertThat(cmp.name(), is("op_<"));
-        Asserts.assertThat(cmp.arguments().get(0)).isReference("x");
+        assertThat(cmp.name()).isEqualTo("op_<");
+        assertThat(cmp.arguments().get(0)).isReference("x");
     }
 
     @Test
     public void testBetweenIsRewrittenToLteAndGte() throws Exception {
         Symbol symbol = executor.asSymbol("2 between t1.x and 20");
-        assertThat(symbol, isSQL("(doc.t1.x <= 2)"));
+        assertThat(symbol).isSQL("(doc.t1.x <= 2)");
     }
 
     @Test
     public void test_between_rewrite_if_first_arg_is_a_reference() throws Exception {
         Symbol symbol = executor.asSymbol("t1.x between 10 and 20");
-        assertThat(symbol, isSQL("((doc.t1.x >= 10) AND (doc.t1.x <= 20))"));
+        assertThat(symbol).isSQL("((doc.t1.x >= 10) AND (doc.t1.x <= 20))");
     }
 
     @Test
     public void testBetweenNullIsRewrittenToLteAndGte() throws Exception {
         Symbol symbol = expressions.asSymbol("10 between 1 and NULL");
-        assertThat(symbol, isSQL("NULL"));
+        assertThat(symbol).isSQL("NULL");
     }
 
     @Test
@@ -230,163 +221,159 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             expressions.nodeCtx);
 
         // different instances
-        assertThat(fn1, allOf(
-            not(sameInstance(fn2)),
-            not(sameInstance(fn3))
-
-        ));
+        assertThat(fn1)
+            .isNotSameAs(fn2)
+            .isNotSameAs(fn3);
         // but equal
-        assertThat(fn1, is(equalTo(fn2)));
-        assertThat(fn1, is(not(equalTo(fn3))));
+        assertThat(fn1).isEqualTo(fn2);
+        assertThat(fn1).isNotEqualTo(fn3);
     }
 
     @Test
     public void testInPredicateWithSubqueryIsRewrittenToAnyEq() {
         Symbol symbol = executor.asSymbol("t1.x in (select t2.y from t2)");
-        assertThat(symbol, isSQL("(doc.t1.x = ANY((SELECT y FROM (doc.t2))))"));
+        assertThat(symbol).isSQL("(doc.t1.x = ANY((SELECT y FROM (doc.t2))))");
     }
 
     @Test
     public void testEarlyConstantFolding() {
-        Asserts.assertThat(expressions.asSymbol("1 = (1 = (1 = 1))")).isLiteral(true);
+        assertThat(expressions.asSymbol("1 = (1 = (1 = 1))")).isLiteral(true);
     }
 
     @Test
     public void testLiteralCastsAreFlattened() {
         Symbol symbol = expressions.asSymbol("cast(cast(1 as long) as double)");
-        Asserts.assertThat(symbol).isLiteral(1.0);
+        assertThat(symbol).isLiteral(1.0);
     }
 
     @Test
     public void testParameterSymbolCastsAreFlattened() {
         Function comparisonFunction = (Function) executor.asSymbol("doc.t2.i = $1");
-        assertThat(comparisonFunction.arguments().get(1), is(instanceOf(ParameterSymbol.class)));
-        assertThat(comparisonFunction.arguments().get(1).valueType(), is(DataTypes.INTEGER));
+        assertThat(comparisonFunction.arguments().get(1)).isExactlyInstanceOf(ParameterSymbol.class);
+        assertThat(comparisonFunction.arguments().get(1).valueType()).isEqualTo(DataTypes.INTEGER);
     }
 
     @Test
     public void testColumnsAreCastedToLiteralType() {
         Function symbol = (Function) executor.asSymbol("doc.t2.i = 1.1");
-        assertThat(symbol, isSQL("(_cast(doc.t2.i, 'double precision') = 1.1)"));
+        assertThat(symbol).isSQL("(_cast(doc.t2.i, 'double precision') = 1.1)");
     }
 
     @Test
     public void testFunctionsCanBeCasted() {
         Function symbol2 = (Function) executor.asSymbol("doc.t5.w = doc.t2.i + 1::smallint");
-        Asserts.assertThat(symbol2).isFunction(EqOperator.NAME);
-        Asserts.assertThat(symbol2.arguments().get(0)).isReference("w");
-        Asserts.assertThat(symbol2.arguments().get(1))
+        assertThat(symbol2).isFunction(EqOperator.NAME);
+        assertThat(symbol2.arguments().get(0)).isReference("w");
+        assertThat(symbol2.arguments().get(1))
             .isFunction(ImplicitCastFunction.NAME, List.of(DataTypes.INTEGER, DataTypes.STRING));
     }
 
     @Test
     public void testColumnsCanBeCastedWhenOnBothSidesOfOperator() {
         Function symbol = (Function) executor.asSymbol("doc.t5.i < doc.t5.w");
-        Asserts.assertThat(symbol).isFunction(LtOperator.NAME);
-        Asserts.assertThat(symbol.arguments().get(0))
+        assertThat(symbol).isFunction(LtOperator.NAME);
+        assertThat(symbol.arguments().get(0))
             .isFunction(ImplicitCastFunction.NAME, List.of(DataTypes.INTEGER, DataTypes.STRING));
-        assertThat(symbol.arguments().get(1).valueType(), is(DataTypes.LONG));
+        assertThat(symbol.arguments().get(1)).hasDataType(DataTypes.LONG);
     }
 
     @Test
     public void testTimestampTypesCanBeCastedToLong() {
         Symbol symbol = executor.asSymbol("doc.t5.ts::long");
-        assertThat(symbol.valueType(), is(DataTypes.LONG));
+        assertThat(symbol).hasDataType(DataTypes.LONG);
 
         symbol = executor.asSymbol("doc.t5.ts_z::long");
-        assertThat(symbol.valueType(), is(DataTypes.LONG));
+        assertThat(symbol).hasDataType(DataTypes.LONG);
     }
 
     @Test
     public void testBetweenIsEagerlyEvaluatedIfPossible() throws Exception {
         Symbol x = expressions.asSymbol("5 between 1 and 10");
-        Asserts.assertThat(x).isLiteral(true);
+        assertThat(x).isLiteral(true);
     }
 
     @Test
     public void testParameterExpressionInAny() throws Exception {
         Symbol s = expressions.asSymbol("5 = ANY(?)");
-        Asserts.assertThat(s).isFunction(AnyEqOperator.NAME, isLiteral(5), exactlyInstanceOf(ParameterSymbol.class));
+        assertThat(s).isFunction(AnyEqOperator.NAME, isLiteral(5), exactlyInstanceOf(ParameterSymbol.class));
     }
 
     @Test
     public void testParameterExpressionInLikeAny() throws Exception {
         Symbol s = expressions.asSymbol("5 LIKE ANY(?)");
-        Asserts.assertThat(s).isFunction(LikeOperators.ANY_LIKE, isLiteral(5), exactlyInstanceOf(ParameterSymbol.class));
+        assertThat(s).isFunction(LikeOperators.ANY_LIKE, isLiteral(5), exactlyInstanceOf(ParameterSymbol.class));
     }
 
     @Test
     public void testAnyWithArrayOnBothSidesResultsInNiceErrorMessage() {
-        expectedException.expectMessage("Unknown function: (doc.tarr.xs = ANY(_array(10, 20)))," +
-                                        " no overload found for matching argument types: (integer_array, integer_array).");
-        executor.analyze("select * from tarr where xs = ANY([10, 20])");
+        assertThatThrownBy(() -> executor.analyze("select * from tarr where xs = ANY([10, 20])"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessageStartingWith("Unknown function: (doc.tarr.xs = ANY(_array(10, 20)))," +
+                        " no overload found for matching argument types: (integer_array, integer_array).");
     }
 
     @Test
     public void testCallingUnknownFunctionWithExplicitSchemaRaisesNiceError() {
-        expectedException.expectMessage("Unknown function: foo.bar(1)");
-        executor.analyze("select foo.bar(1)");
+        assertThatThrownBy(() -> executor.analyze("select foo.bar(1)"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("Unknown function: foo.bar(1)");
     }
 
     @Test
     public void testTypeAliasCanBeUsedInCastNotation() {
         Symbol symbol = expressions.asSymbol("10::int2");
-        assertThat(symbol.valueType(), is(DataTypes.SHORT));
+        assertThat(symbol).hasDataType(DataTypes.SHORT);
     }
 
     @Test
     public void windowDefinitionOrderedByArrayTypeIsUnsupported() {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Cannot ORDER BY 'xs': invalid data type 'integer_array'");
-        executor.analyze("select count(*) over(order by xs) from tarr");
+        assertThatThrownBy(() -> executor.analyze("select count(*) over(order by xs) from tarr"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("Cannot ORDER BY 'xs': invalid data type 'integer_array'.");
     }
 
     @Test
     public void windowDefinitionPartitionedByArrayTypeIsUnsupported() {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Cannot PARTITION BY 'xs': invalid data type 'integer_array'");
-        executor.analyze("select count(*) over(partition by xs) from tarr");
+        assertThatThrownBy(() -> executor.analyze("select count(*) over(partition by xs) from tarr"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("Cannot PARTITION BY 'xs': invalid data type 'integer_array'.");
     }
 
     @Test
     public void testInterval() throws Exception {
-        Literal literal = (Literal) expressions.asSymbol("INTERVAL '1' MONTH");
-        assertThat(literal.valueType(), is(DataTypes.INTERVAL));
-        Period period = (Period) literal.value();
-        assertThat(period, is(new Period().withMonths(1)));
+        Symbol literal = expressions.asSymbol("INTERVAL '1' MONTH");
+        assertThat(literal).isLiteral(new Period().withMonths(1), DataTypes.INTERVAL);
     }
 
     @Test
     public void testIntervalConversion() throws Exception {
-        Literal literal = (Literal) expressions.asSymbol("INTERVAL '1' HOUR to SECOND");
-        assertThat(literal.valueType(), is(DataTypes.INTERVAL));
-        Period period = (Period) literal.value();
-        assertThat(period, is(new Period().withSeconds(1)));
+        Symbol literal = expressions.asSymbol("INTERVAL '1' HOUR to SECOND");
+        assertThat(literal).isLiteral(new Period().withSeconds(1), DataTypes.INTERVAL);
     }
 
     @Test
     public void testIntervalInvalidStartEnd() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Startfield must be less significant than Endfield");
-        expressions.asSymbol("INTERVAL '1' MONTH TO YEAR");
+        assertThatThrownBy(() -> expressions.asSymbol("INTERVAL '1' MONTH TO YEAR"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Startfield must be less significant than Endfield");
     }
 
     @Test
     public void test_quoted_subscript() {
         var symbol = executor.asSymbol("nested_obj.\"o['a']['b']['c']\"");
-        Asserts.assertThat(symbol).isReference("o['a']['b']['c']");
+        assertThat(symbol).isReference("o['a']['b']['c']");
 
         symbol = executor.asSymbol("nested_obj.\"myObj['x']['AbC']\"");
-        Asserts.assertThat(symbol).isReference("myObj['x']['AbC']");
+        assertThat(symbol).isReference("myObj['x']['AbC']");
     }
 
     @Test
     public void test_partial_quoted_subscript() {
         var symbol = executor.asSymbol("nested_obj.\"o['a']['b']\"['c']");
-        Asserts.assertThat(symbol).isReference("o['a']['b']['c']");
+        assertThat(symbol).isReference("o['a']['b']['c']");
 
         symbol = executor.asSymbol("nested_obj.\"myObj['x']\"['AbC']");
-        Asserts.assertThat(symbol).isReference("myObj['x']['AbC']");
+        assertThat(symbol).isReference("myObj['x']['AbC']");
     }
 
     @Test
@@ -395,9 +382,9 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table tbl (str varchar(3))")
             .build();
         var eq = (Function) e.asSymbol("tbl.str = 'abc'");
-        assertThat(
-            Lists2.map(eq.arguments(), Symbol::valueType),
-            contains(DataTypes.STRING, DataTypes.STRING));
+        assertThat(eq.arguments()).satisfiesExactly(
+            s -> assertThat(s).hasDataType(DataTypes.STRING),
+            s -> assertThat(s).hasDataType(DataTypes.STRING));
     }
 
     @Test
@@ -436,7 +423,6 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
         var result = executor.asSymbol("tarr.xs[1:3]");
 
-        assertThat(result, is(equalTo(function)));
+        assertThat(result).isEqualTo(function);
     }
-
 }

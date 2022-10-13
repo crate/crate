@@ -325,24 +325,6 @@ public class TestingHelpers {
         return new SimpleReference(refIdent, rowGranularity, dataType, 0, null);
     }
 
-    public static <T> Matcher<T> isSQL(final String stmt) {
-        return new BaseMatcher<>() {
-            @Override
-            public boolean matches(Object item) {
-                return SQLPrinter.print(item).equals(stmt);
-            }
-
-            @Override
-            public void describeTo(Description description) {
-                description.appendText(stmt);
-            }
-
-            @Override
-            public void describeMismatch(Object item, Description description) {
-                description.appendText(SQLPrinter.print(item));
-            }
-        };
-    }
 
     public static Matcher<SQLResponse> isPrintedTable(String expectedPrintedResponse) {
         return new FeatureMatcher<>(equalTo(expectedPrintedResponse), "same output", "printedTable") {

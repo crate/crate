@@ -235,4 +235,9 @@ public final class SymbolAssert extends AbstractAssert<SymbolAssert, Symbol> {
         return this;
     }
 
+    public SymbolAssert isSQL(final String expectedStmt) {
+        isNotNull();
+        assertThat(SQLPrinter.print(actual)).isEqualTo(expectedStmt);
+        return this;
+    }
 }
