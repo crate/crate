@@ -23,7 +23,6 @@ package io.crate.testing;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
@@ -56,10 +55,9 @@ import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
+import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
-import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;
-import org.hamcrest.FeatureMatcher;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
 
@@ -130,9 +128,8 @@ public class TestingHelpers {
         }
         if (o == null) {
             out.print("NULL");
-        } else if (o instanceof Object[]) {
+        } else if (o instanceof Object[] oArray) {
             out.print("[");
-            Object[] oArray = (Object[]) o;
             for (int i = 0; i < oArray.length; i++) {
                 printObject(out, true, oArray[i]);
                 if (i < oArray.length - 1) {
@@ -206,15 +203,15 @@ public class TestingHelpers {
         return modulesBuilder;
     }
 
-    public static Reference createReference(String columnName, DataType dataType) {
+    public static Reference createReference(String columnName, DataType<?> dataType) {
         return createReference("dummyTable", new ColumnIdent(columnName), dataType);
     }
 
-    public static Reference createReference(ColumnIdent columnIdent, DataType dataType) {
+    public static Reference createReference(ColumnIdent columnIdent, DataType<?> dataType) {
         return createReference("dummyTable", columnIdent, dataType);
     }
 
-    public static Reference createReference(String tableName, ColumnIdent columnIdent, DataType dataType) {
+    public static Reference createReference(String tableName, ColumnIdent columnIdent, DataType<?> dataType) {
         return new SimpleReference(
             new ReferenceIdent(new RelationName(Schemas.DOC_SCHEMA_NAME, tableName), columnIdent),
             RowGranularity.DOC,
@@ -274,7 +271,7 @@ public class TestingHelpers {
         return new TypeSafeDiagnosingMatcher<>() {
             @Override
             protected boolean matchesSafely(DocKeys.DocKey item, Description mismatchDescription) {
-                List<Object> docKeyValues = Lists2.map(item.values(), s -> ((Literal) s).value());
+                List<Object> docKeyValues = Lists2.map(item.values(), s -> ((Literal<?>) s).value());
                 if (!expected.equals(docKeyValues)) {
                     mismatchDescription.appendText("is DocKey with values: ").appendValue(docKeyValues);
                     return false;
@@ -304,7 +301,10 @@ public class TestingHelpers {
         return column;
     }
 
-    public static Reference refInfo(String fqColumnName, DataType dataType, RowGranularity rowGranularity, String... nested) {
+    public static Reference refInfo(String fqColumnName,
+                                    DataType<?> dataType,
+                                    RowGranularity rowGranularity,
+                                    String... nested) {
         String[] parts = fqColumnName.split("\\.");
         ReferenceIdent refIdent;
 
@@ -312,27 +312,13 @@ public class TestingHelpers {
         if (nested.length > 0) {
             nestedParts = Arrays.asList(nested);
         }
-        switch (parts.length) {
-            case 2:
-                refIdent = new ReferenceIdent(new RelationName(Schemas.DOC_SCHEMA_NAME, parts[0]), parts[1], nestedParts);
-                break;
-            case 3:
-                refIdent = new ReferenceIdent(new RelationName(parts[0], parts[1]), parts[2], nestedParts);
-                break;
-            default:
-                throw new IllegalArgumentException("fqColumnName must contain <table>.<column> or <schema>.<table>.<column>");
-        }
-        return new SimpleReference(refIdent, rowGranularity, dataType, 0, null);
-    }
-
-
-    public static Matcher<SQLResponse> isPrintedTable(String expectedPrintedResponse) {
-        return new FeatureMatcher<>(equalTo(expectedPrintedResponse), "same output", "printedTable") {
-            @Override
-            protected String featureValueOf(SQLResponse actual) {
-                return printedTable(actual.rows());
-            }
+        refIdent = switch (parts.length) {
+            case 2 -> new ReferenceIdent(new RelationName(Schemas.DOC_SCHEMA_NAME, parts[0]), parts[1], nestedParts);
+            case 3 -> new ReferenceIdent(new RelationName(parts[0], parts[1]), parts[2], nestedParts);
+            default -> throw new IllegalArgumentException(
+                "fqColumnName must contain <table>.<column> or <schema>.<table>.<column>");
         };
+        return new SimpleReference(refIdent, rowGranularity, dataType, 0, null);
     }
 
     public static <T, K extends Comparable> Matcher<Iterable<? extends T>> isSortedBy(final Function<T, K> extractSortingKeyFunction) {
@@ -401,14 +387,14 @@ public class TestingHelpers {
         }, reverse, nullsFirst);
     }
 
-    public static DataType randomPrimitiveType() {
+    public static DataType<?> randomPrimitiveType() {
         return DataTypes.PRIMITIVE_TYPES.get(ThreadLocalRandom.current().nextInt(DataTypes.PRIMITIVE_TYPES.size()));
     }
 
-    public static Map<String, Object> jsonMap(String json) {
-        try {
-            return JsonXContent.JSON_XCONTENT.createParser(
-                NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, json).map();
+    public static Map<String, Object> jsonMap(final String json) {
+        try (XContentParser parser = JsonXContent.JSON_XCONTENT.createParser(
+            NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, json)) {
+            return parser.map();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -425,6 +411,7 @@ public class TestingHelpers {
         return str.replaceAll("/", java.util.regex.Matcher.quoteReplacement(File.separator));
     }
 
+    @SuppressWarnings("unchecked")
     public static void assertCrateVersion(Object object, Version versionCreated, Version versionUpgraded) {
         var map = (Map<String, String>) object;
         assertThat(
