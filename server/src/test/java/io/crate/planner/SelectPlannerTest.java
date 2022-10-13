@@ -24,8 +24,8 @@ package io.crate.planner;
 import static io.crate.planner.operators.LogicalPlannerTest.isPlan;
 import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.Asserts.isReference;
-import static io.crate.testing.TestingHelpers.isSQL;
 import static java.util.Collections.singletonList;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
@@ -66,13 +66,13 @@ import io.crate.execution.dsl.projection.AggregationProjection;
 import io.crate.execution.dsl.projection.EvalProjection;
 import io.crate.execution.dsl.projection.FilterProjection;
 import io.crate.execution.dsl.projection.GroupProjection;
+import io.crate.execution.dsl.projection.LimitAndOffsetProjection;
+import io.crate.execution.dsl.projection.LimitDistinctProjection;
 import io.crate.execution.dsl.projection.MergeCountProjection;
 import io.crate.execution.dsl.projection.OrderedLimitAndOffsetProjection;
 import io.crate.execution.dsl.projection.ProjectSetProjection;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.ProjectionType;
-import io.crate.execution.dsl.projection.LimitDistinctProjection;
-import io.crate.execution.dsl.projection.LimitAndOffsetProjection;
 import io.crate.execution.dsl.projection.WindowAggProjection;
 import io.crate.execution.engine.NodeOperationTreeGenerator;
 import io.crate.execution.engine.aggregation.impl.CountAggregation;
@@ -100,7 +100,6 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.Asserts;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
-import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
 
 public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
@@ -496,9 +495,9 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
                 ")")
             .build();
 
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Cannot ORDER BY 'details['unknown_column']': invalid data type 'undefined'.");
-        e.plan("select details from ignored_nested order by details['unknown_column']");
+        assertThatThrownBy(() -> e.plan("select details from ignored_nested order by details['unknown_column']"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("Cannot ORDER BY 'details['unknown_column']': invalid data type 'undefined'.");
     }
 
     @Test
@@ -507,9 +506,9 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .build();
 
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot select analyzed column 'text' within grouping or aggregations");
-        e.plan("select min(substr(text, 0, 2)) from users");
+        assertThatThrownBy(() -> e.plan("select min(substr(text, 0, 2)) from users"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Cannot select analyzed column 'text' within grouping or aggregations");
     }
 
     @Test
@@ -556,7 +555,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
         Merge merge = e.plan("select min(name) from users having 1 = 2");
         assertThat(merge.mergePhase().projections().get(1), instanceOf(FilterProjection.class));
-        assertThat(((FilterProjection) merge.mergePhase().projections().get(1)).query(), isSQL("false"));
+        Asserts.assertThat(((FilterProjection) merge.mergePhase().projections().get(1)).query()).isSQL("false");
     }
 
     @Test
@@ -665,7 +664,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
                                     "  and u2.name = u1.name");
         Join innerNl = (Join) outerNl.left();
 
-        assertThat(innerNl.joinPhase().joinCondition(), isSQL("((INPUT(0) = INPUT(2)) AND (INPUT(1) = INPUT(3)))"));
+        Asserts.assertThat(innerNl.joinPhase().joinCondition()).isSQL("((INPUT(0) = INPUT(2)) AND (INPUT(1) = INPUT(3)))");
         assertThat(innerNl.joinPhase().projections().size(), is(1));
         assertThat(innerNl.joinPhase().projections().get(0), instanceOf(EvalProjection.class));
 
@@ -696,8 +695,8 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         Join nl = (Join) merge.subPlan();
         assertThat(nl.joinPhase().joinType(), is(JoinType.INNER));
         Collect rightCM = (Collect) nl.right();
-        assertThat(((RoutedCollectPhase) rightCM.collectPhase()).where(),
-            isSQL("((doc.users.name = 'Arthur') AND (doc.users.id > 1::bigint))"));
+        Asserts.assertThat(((RoutedCollectPhase) rightCM.collectPhase()).where())
+            .isSQL("((doc.users.name = 'Arthur') AND (doc.users.id > 1::bigint))");
     }
 
     @Test
@@ -773,9 +772,8 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             merge.mergePhase().projections(),
             contains(instanceOf(AggregationProjection.class))
         );
-        assertThat(
-            ((AggregationProjection)projections.get(0)).aggregations().get(0).inputs().get(0),
-            isSQL("INPUT(0)"));
+        Asserts.assertThat(((AggregationProjection)projections.get(0)).aggregations().get(0).inputs().get(0))
+            .isSQL("INPUT(0)");
     }
 
     @Test
@@ -788,7 +786,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
                             "where t1.id = t2.id and t2.id = t3.id");
         assertThat(plan.subPlan(), instanceOf(Join.class));
         Join outerNL = (Join)plan.subPlan();
-        assertThat(outerNL.joinPhase().joinCondition(), isSQL("(INPUT(1) = INPUT(2))"));
+        Asserts.assertThat(outerNL.joinPhase().joinCondition()).isSQL("(INPUT(1) = INPUT(2))");
         assertThat(outerNL.joinPhase().projections().size(), is(2));
         assertThat(outerNL.joinPhase().projections().get(0), instanceOf(EvalProjection.class));
         assertThat(outerNL.joinPhase().projections().get(1), instanceOf(AggregationProjection.class));
@@ -796,7 +794,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(outerNL.joinPhase().outputTypes().get(0), is(CountAggregation.LongStateType.INSTANCE));
 
         Join innerNL = (Join) outerNL.left();
-        assertThat(innerNL.joinPhase().joinCondition(), isSQL("(INPUT(0) = INPUT(1))"));
+        Asserts.assertThat(innerNL.joinPhase().joinCondition()).isSQL("(INPUT(0) = INPUT(1))");
         assertThat(innerNL.joinPhase().projections().size(), is(1));
         assertThat(innerNL.joinPhase().projections().get(0), instanceOf(EvalProjection.class));
         assertThat(innerNL.joinPhase().outputTypes().size(), is(2));
@@ -806,7 +804,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
                       "where t1.id = t2.id and t2.id = t3.id");
         assertThat(plan.subPlan(), instanceOf(Join.class));
         outerNL = (Join)plan.subPlan();
-        assertThat(outerNL.joinPhase().joinCondition(), isSQL("(INPUT(2) = INPUT(3))"));
+        Asserts.assertThat(outerNL.joinPhase().joinCondition()).isSQL("(INPUT(2) = INPUT(3))");
         assertThat(outerNL.joinPhase().projections().size(), is(2));
         assertThat(outerNL.joinPhase().projections().get(0), instanceOf(EvalProjection.class));
         assertThat(outerNL.joinPhase().projections().get(1), instanceOf(AggregationProjection.class));
@@ -814,7 +812,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(outerNL.joinPhase().outputTypes().get(0), is(CountAggregation.LongStateType.INSTANCE));
 
         innerNL = (Join) outerNL.left();
-        assertThat(innerNL.joinPhase().joinCondition(), isSQL("(INPUT(1) = INPUT(2))"));
+        Asserts.assertThat(innerNL.joinPhase().joinCondition()).isSQL("(INPUT(1) = INPUT(2))");
         assertThat(innerNL.joinPhase().projections().size(), is(1));
         assertThat(innerNL.joinPhase().projections().get(0), instanceOf(EvalProjection.class));
         assertThat(innerNL.joinPhase().outputTypes().size(), is(3));
@@ -831,8 +829,8 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         Join nl = e.plan("select * from users t1, users t2 WHERE 1=2");
         assertThat(nl.left(), instanceOf(Collect.class));
         assertThat(nl.right(), instanceOf(Collect.class));
-        assertThat(((RoutedCollectPhase)((Collect)nl.left()).collectPhase()).where(), isSQL("false"));
-        assertThat(((RoutedCollectPhase)((Collect)nl.right()).collectPhase()).where(), isSQL("false"));
+        Asserts.assertThat(((RoutedCollectPhase)((Collect)nl.left()).collectPhase()).where()).isSQL("false");
+        Asserts.assertThat(((RoutedCollectPhase)((Collect)nl.right()).collectPhase()).where()).isSQL("false");
     }
 
     @Test
@@ -842,7 +840,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             .build();
 
         Join outer = e.plan("select * from users t1, users t2, users t3 WHERE 1=2");
-        assertThat(((RoutedCollectPhase)((Collect)outer.right()).collectPhase()).where(), isSQL("false"));
+        Asserts.assertThat(((RoutedCollectPhase)((Collect)outer.right()).collectPhase()).where()).isSQL("false");
         Join inner = (Join) outer.left();
         Asserts.assertThat(((RoutedCollectPhase)((Collect)inner.left()).collectPhase()).where()).isLiteral(false);
         Asserts.assertThat(((RoutedCollectPhase)((Collect)inner.right()).collectPhase()).where()).isLiteral(false);
@@ -933,8 +931,9 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
             .build();
 
-        expectedException.expectMessage("Cannot use table functions inside aggregates");
-        e.logicalPlan("select sum(unnest([1, 2]))");
+        assertThatThrownBy(() -> e.logicalPlan("select sum(unnest([1, 2]))"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("Cannot use table functions inside aggregates");
     }
 
     @Test
@@ -999,11 +998,10 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .build();
 
-        expectedException.expect(VersioningValidationException.class);
-        expectedException.expectMessage(VersioningValidationException.SEQ_NO_AND_PRIMARY_TERM_USAGE_MSG);
-        e.plan("select * from users where _seq_no = 2 and _primary_term = 1");
+        assertThatThrownBy(() -> e.plan("select * from users where _seq_no = 2 and _primary_term = 1"))
+            .isExactlyInstanceOf(VersioningValidationException.class)
+            .hasMessage(VersioningValidationException.SEQ_NO_AND_PRIMARY_TERM_USAGE_MSG);
     }
-
 
     @Test
     public void testTablePartitionsAreNarrowedToMatchWhereClauseOfParentQuery() throws Exception {
@@ -1367,7 +1365,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         Collect collect = (Collect) ((Merge) e.plan(stmt)).subPlan();;
         RoutedCollectPhase routedCollectPhase = (RoutedCollectPhase) collect.collectPhase();
         Symbol where = routedCollectPhase.where();
-        assertThat(where, TestingHelpers.isSQL("(doc.parted_by_generated.ts >= 1580515200000::bigint)"));
+        Asserts.assertThat(where).isSQL("(doc.parted_by_generated.ts >= 1580515200000::bigint)");
         assertThat(routedCollectPhase.routing().locations().values().stream()
             .flatMap(x -> x.keySet().stream())
             .collect(Collectors.toSet()),
@@ -1439,7 +1437,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             .build();
 
         CountPlan plan = e.plan("select count(*) from tbl where 'a' = ANY(xs)");
-        assertThat(plan.countPhase().where(), isSQL("(_cast('a', 'text(1)') = ANY(doc.tbl.xs))"));
+        Asserts.assertThat(plan.countPhase().where()).isSQL("(_cast('a', 'text(1)') = ANY(doc.tbl.xs))");
     }
 
     @Test

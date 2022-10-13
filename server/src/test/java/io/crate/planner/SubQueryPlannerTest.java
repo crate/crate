@@ -21,11 +21,12 @@
 
 package io.crate.planner;
 
+import static io.crate.testing.Asserts.assertSQL;
+import static io.crate.testing.Asserts.exactlyInstanceOf;
 import static io.crate.testing.Asserts.isFunction;
+import static io.crate.testing.Asserts.isLimitAndOffset;
 import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
-import static io.crate.testing.ProjectionMatchers.isLimitAndOffset;
-import static io.crate.testing.TestingHelpers.isSQL;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
@@ -85,15 +86,15 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
                         "select t1.x as t1x, t2.i as t2i from t1 as t1, t1 as t2 order by t1x asc limit 10" +
                         ") t order by t1x desc limit 3");
         List<Projection> projections = nl.joinPhase().projections();
-        assertThat(projections, Matchers.contains(
-            instanceOf(EvalProjection.class),
+        Asserts.assertThat(projections).satisfiesExactly(
+            exactlyInstanceOf(EvalProjection.class),
             isLimitAndOffset(10, 0),
-            instanceOf(OrderedLimitAndOffsetProjection.class),
-            instanceOf(EvalProjection.class),
+            exactlyInstanceOf(OrderedLimitAndOffsetProjection.class),
+            exactlyInstanceOf(EvalProjection.class),
             isLimitAndOffset(3, 0)
-        ));
-        assertThat(projections.get(0).outputs(), isSQL("INPUT(0)"));
-        assertThat(projections.get(4).outputs(), isSQL("INPUT(0)"));
+        );
+        assertSQL(projections.get(0).outputs(), "INPUT(0)");
+        assertSQL(projections.get(4).outputs(), "INPUT(0)");
     }
 
     @Test
@@ -133,20 +134,18 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
         QueryThenFetch leftQtf = (QueryThenFetch) join.left();
         Collect left = (Collect) leftQtf.subPlan();
         assertThat("1 node, otherwise mergePhases would be required", left.nodeIds().size(), is(1));
-        assertThat(left.orderBy(), isSQL("OrderByPositions{indices=[1], reverseFlags=[false], nullsFirst=[false]}"));
-        assertThat(left.collectPhase().projections(), contains(
+        assertSQL(left.orderBy(), "OrderByPositions{indices=[1], reverseFlags=[false], nullsFirst=[false]}");
+        Asserts.assertThat(left.collectPhase().projections()).satisfiesExactly(
             isLimitAndOffset(10, 2),
-            instanceOf(FetchProjection.class)
-        ));
+            exactlyInstanceOf(FetchProjection.class));
         QueryThenFetch rightQtf = (QueryThenFetch) join.right();
         Collect right = (Collect) rightQtf.subPlan();
         assertThat("1 node, otherwise mergePhases would be required", right.nodeIds().size(), is(1));
-        assertThat(((RoutedCollectPhase) right.collectPhase()).orderBy(), isSQL("doc.t2.b"));
-        assertThat(right.collectPhase().projections(), contains(
+        assertSQL(((RoutedCollectPhase) right.collectPhase()).orderBy(), "doc.t2.b");
+        Asserts.assertThat(right.collectPhase().projections()).satisfiesExactly(
             isLimitAndOffset(5, 5),
-            instanceOf(FetchProjection.class),
-            instanceOf(EvalProjection.class) // strips `b` used in order by from the outputs
-        ));
+            exactlyInstanceOf(FetchProjection.class),
+            exactlyInstanceOf(EvalProjection.class)); // strips `b` used in order by from the outputs
     }
 
     @Test
@@ -161,27 +160,23 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
         QueryThenFetch qtf = (QueryThenFetch) join.left();
         Collect left = (Collect) qtf.subPlan();
         assertThat("1 node, otherwise mergePhases would be required", left.nodeIds().size(), is(1));
-        assertThat(((RoutedCollectPhase) left.collectPhase()).orderBy(), isSQL("doc.t1.a"));
-        assertThat(left.collectPhase().projections(), contains(
+        assertSQL(((RoutedCollectPhase) left.collectPhase()).orderBy(), "doc.t1.a");
+        Asserts.assertThat(left.collectPhase().projections()).satisfiesExactly(
             isLimitAndOffset(10, 2),
-            instanceOf(FetchProjection.class)
-        ));
-        assertThat(left.collectPhase().toCollect(), isSQL("doc.t1._fetchid, doc.t1.a"));
+            exactlyInstanceOf(FetchProjection.class));
+        assertSQL(left.collectPhase().toCollect(), "doc.t1._fetchid, doc.t1.a");
 
 
         Collect right = (Collect) join.right();
         assertThat("1 node, otherwise mergePhases would be required", right.nodeIds().size(), is(1));
-        assertThat(((RoutedCollectPhase) right.collectPhase()).orderBy(), isSQL("doc.t2.i DESC"));
-        assertThat(right.collectPhase().projections(), contains(
-            isLimitAndOffset(5, 5)
-        ));
-
+        assertSQL(((RoutedCollectPhase) right.collectPhase()).orderBy(), "doc.t2.i DESC");
+        Asserts.assertThat(right.collectPhase().projections()).satisfiesExactly(
+            isLimitAndOffset(5, 5));
 
         List<Projection> nlProjections = join.joinPhase().projections();
-        assertThat(nlProjections, contains(
-            instanceOf(EvalProjection.class),
-            instanceOf(GroupProjection.class)
-        ));
+        Asserts.assertThat(nlProjections).satisfiesExactly(
+            exactlyInstanceOf(EvalProjection.class),
+            exactlyInstanceOf(GroupProjection.class));
     }
 
     @Test
@@ -195,19 +190,17 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
         QueryThenFetch leftQtf = (QueryThenFetch) join.left();
         Collect left = (Collect) leftQtf.subPlan();
         assertThat("1 node, otherwise mergePhases would be required", left.nodeIds().size(), is(1));
-        assertThat(left.collectPhase().toCollect(), isSQL("doc.t1._fetchid, doc.t1.a"));
-        assertThat(((RoutedCollectPhase) left.collectPhase()).orderBy(), isSQL("doc.t1.a"));
-        assertThat(left.collectPhase().projections(), contains(
+        assertSQL(left.collectPhase().toCollect(), "doc.t1._fetchid, doc.t1.a");
+        assertSQL(((RoutedCollectPhase) left.collectPhase()).orderBy(), "doc.t1.a");
+        Asserts.assertThat(left.collectPhase().projections()).satisfiesExactly(
             isLimitAndOffset(10, 2),
-            instanceOf(FetchProjection.class)
-        ));
+            exactlyInstanceOf(FetchProjection.class));
 
         Collect right = (Collect) join.right();
         assertThat("1 node, otherwise mergePhases would be required", right.nodeIds().size(), is(1));
-        assertThat(((RoutedCollectPhase) right.collectPhase()).orderBy(), isSQL("doc.t2.i DESC"));
-        assertThat(right.collectPhase().projections(), contains(
-            isLimitAndOffset(5, 5)
-        ));
+        Asserts.assertThat(((RoutedCollectPhase) right.collectPhase()).orderBy()).isSQL("doc.t2.i DESC");
+        Asserts.assertThat(right.collectPhase().projections()).satisfiesExactly(
+            isLimitAndOffset(5, 5));
 
         List<Projection> nlProjections = join.joinPhase().projections();
         assertThat(nlProjections, contains(

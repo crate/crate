@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import static io.crate.testing.Asserts.assertList;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.exactlyInstanceOf;
 import static io.crate.testing.Asserts.isAlias;
@@ -29,13 +30,12 @@ import static io.crate.testing.Asserts.isField;
 import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
-import static io.crate.testing.TestingHelpers.isSQL;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
 import java.util.Objects;
 
-import org.junit.Assert;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -45,6 +45,7 @@ import io.crate.analyze.relations.DocTableRelation;
 import io.crate.exceptions.AmbiguousColumnException;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -54,6 +55,7 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     private SQLExecutor executor;
     private DocTableInfo t1Info;
+    private Schemas schemas;
 
     @Before
     public void prepare() throws IOException {
@@ -62,7 +64,13 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             .addTable(T3.T1_DEFINITION)
             .addTable(T3.T2_DEFINITION)
             .build();
-        t1Info = executor.schemas().getTableInfo(new RelationName("doc", "t1"));
+        schemas = executor.schemas();
+        t1Info = schemas.getTableInfo(new RelationName("doc", "t1"));
+    }
+
+    @After
+    public void closeResources() {
+        this.schemas.close();
     }
 
     private <T extends AnalyzedRelation> T analyze(String stmt) {
@@ -142,14 +150,14 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                                                  " (select b, i from t2 where b > '10') t2 " +
                                                  "on t1.i = t2.i where t1.a > '50' and t2.b > '100' " +
                                                  "limit 10");
-        Assert.assertThat(relation,
-                   isSQL("SELECT t1.a, t1.i, t2.b, t2.i WHERE ((t1.a > '50') AND (t2.b > '100')) LIMIT 10::bigint"));
-        Assert.assertThat(relation.joinPairs().get(0).condition(),
-                   isSQL("(t1.i = t2.i)"));
-        Assert.assertThat(((AliasedAnalyzedRelation) relation.from().get(0)).relation(),
-                   isSQL("SELECT doc.t1.a, doc.t1.i ORDER BY doc.t1.a LIMIT 5::bigint"));
-        Assert.assertThat(((AliasedAnalyzedRelation) relation.from().get(1)).relation(),
-                   isSQL("SELECT doc.t2.b, doc.t2.i WHERE (doc.t2.b > '10')"));
+        assertThat(relation)
+                   .isSQL("SELECT t1.a, t1.i, t2.b, t2.i WHERE ((t1.a > '50') AND (t2.b > '100')) LIMIT 10::bigint");
+        assertThat(relation.joinPairs().get(0).condition())
+                   .isSQL("(t1.i = t2.i)");
+        assertThat(((AliasedAnalyzedRelation) relation.from().get(0)).relation())
+                   .isSQL("SELECT doc.t1.a, doc.t1.i ORDER BY doc.t1.a LIMIT 5::bigint");
+        assertThat(((AliasedAnalyzedRelation) relation.from().get(1)).relation())
+                   .isSQL("SELECT doc.t2.b, doc.t2.i WHERE (doc.t2.b > '10')");
     }
 
     @Test
@@ -160,14 +168,14 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                                                  " (select b, i from t2 where b > '10') t2 " +
                                                  "on t1.i = t2.i where t1.a > '50' and t2.b > '100' " +
                                                  "order by 2 limit 10");
-        Assert.assertThat(relation,
-            isSQL("SELECT t1.a, t1.i, t2.b, t2.i WHERE ((t1.a > '50') AND (t2.b > '100')) ORDER BY t1.i LIMIT 10::bigint"));
-        Assert.assertThat(relation.joinPairs().get(0).condition(),
-            isSQL("(t1.i = t2.i)"));
-        Assert.assertThat(((AliasedAnalyzedRelation) relation.from().get(0)).relation(),
-            isSQL("SELECT doc.t1.a, doc.t1.i ORDER BY doc.t1.a LIMIT 5::bigint"));
-        Assert.assertThat(((AliasedAnalyzedRelation) relation.from().get(1)).relation(),
-            isSQL("SELECT doc.t2.b, doc.t2.i WHERE (doc.t2.b > '10')"));
+        assertThat(relation)
+            .isSQL("SELECT t1.a, t1.i, t2.b, t2.i WHERE ((t1.a > '50') AND (t2.b > '100')) ORDER BY t1.i LIMIT 10::bigint");
+        assertThat(relation.joinPairs().get(0).condition())
+            .isSQL("(t1.i = t2.i)");
+        assertThat(((AliasedAnalyzedRelation) relation.from().get(0)).relation())
+            .isSQL("SELECT doc.t1.a, doc.t1.i ORDER BY doc.t1.a LIMIT 5::bigint");
+        assertThat(((AliasedAnalyzedRelation) relation.from().get(1)).relation())
+            .isSQL("SELECT doc.t2.b, doc.t2.i WHERE (doc.t2.b > '10')");
     }
 
     @Test
@@ -214,14 +222,14 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                                                  "order by 2 limit 10");
         assertThat(relation.outputs()).satisfiesExactly(
             isField("a"), isField("i"), isField("b"), isField("i"));
-        Assert.assertThat(relation.where(), isSQL("((t1.a > '50') AND (t2.b > '100'))"));
+        assertThat(relation.where()).isSQL("((t1.a > '50') AND (t2.b > '100'))");
         assertThat(Objects.requireNonNull(relation.orderBy()).orderBySymbols()).satisfiesExactly(isField("i"));
         assertThat(relation.limit()).isLiteral(10L);
 
         AliasedAnalyzedRelation t1Alias = (AliasedAnalyzedRelation) relation.from().get(0);
         QueriedSelectRelation t1 = ((QueriedSelectRelation) t1Alias.relation());
-        Assert.assertThat(t1.where(), isSQL("true"));
-        Assert.assertThat(t1.orderBy(), isSQL("doc.t1.a"));
+        assertThat(t1.where()).isSQL("true");
+        assertThat(t1.orderBy()).isSQL("doc.t1.a");
 
         AliasedAnalyzedRelation t2Alias = (AliasedAnalyzedRelation) relation.from().get(1);
         QueriedSelectRelation t2 = ((QueriedSelectRelation) t2Alias.relation());
@@ -236,16 +244,16 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                                                  "left join" +
                                                  " (select max(b) mb, i from t2 group by i having i > 10::int) t2 " +
                                                  "on t1.i = t2.i where t1.ma > '50' and t2.mb > '100'");
-        Assert.assertThat(relation.outputs(), isSQL("t1.ma, t1.i, t2.mb, t2.i"));
-        Assert.assertThat(relation.joinPairs().get(0).condition(), isSQL("(t1.i = t2.i)"));
-        Assert.assertThat(relation.where(), isSQL("((t1.ma > '50') AND (t2.mb > '100'))"));
+        assertList(relation.outputs()).isSQL("t1.ma, t1.i, t2.mb, t2.i");
+        assertThat(relation.joinPairs().get(0).condition()).isSQL("(t1.i = t2.i)");
+        assertThat(relation.where()).isSQL("((t1.ma > '50') AND (t2.mb > '100'))");
 
         AliasedAnalyzedRelation t1Alias = (AliasedAnalyzedRelation) relation.from().get(0);
         QueriedSelectRelation t1Sel = (QueriedSelectRelation) t1Alias.relation();
         assertThat(t1Sel.outputs()).satisfiesExactly(
             isAlias("ma", isFunction("max")),
             isReference("i"));
-        Assert.assertThat(t1Sel.groupBy(), isSQL("doc.t1.i"));
+        assertList(t1Sel.groupBy()).isSQL("doc.t1.i");
         assertThat(t1Sel.having()).isNull();
 
         AliasedAnalyzedRelation t2Alias = (AliasedAnalyzedRelation) relation.from().get(1);
@@ -253,8 +261,8 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(t2Sel.outputs()).satisfiesExactly(
             isAlias("mb", isFunction("max", isReference("b"))),
             isReference("i"));
-        Assert.assertThat(t2Sel.groupBy(), isSQL("doc.t2.i"));
-        Assert.assertThat(t2Sel.having(), isSQL("(doc.t2.i > 10)"));
+        assertList(t2Sel.groupBy()).isSQL("doc.t2.i");
+        assertThat(t2Sel.having()).isSQL("(doc.t2.i > 10)");
     }
 
     @Test

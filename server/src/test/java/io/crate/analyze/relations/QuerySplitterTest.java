@@ -21,9 +21,7 @@
 
 package io.crate.analyze.relations;
 
-import static io.crate.testing.TestingHelpers.isSQL;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import java.util.Map;
 import java.util.Set;
@@ -40,10 +38,10 @@ import io.crate.testing.T3;
 
 public class QuerySplitterTest extends CrateDummyClusterServiceUnitTest {
 
+    private static final RelationName tr1 = new RelationName("doc", "t1");
+    private static final RelationName tr2 = new RelationName("doc", "t2");
+    private static final RelationName tr3 = new RelationName("doc", "t3");
     private SqlExpressions expressions;
-    private RelationName tr1 = new RelationName("doc", "t1");
-    private RelationName tr2 = new RelationName("doc", "t2");
-    private RelationName tr3 = new RelationName("doc", "t3");
 
     @Before
     public void prepare() throws Exception {
@@ -58,9 +56,9 @@ public class QuerySplitterTest extends CrateDummyClusterServiceUnitTest {
     public void testSplitWithQueryMerge() throws Exception {
         Symbol symbol = asSymbol("t1.a = '10' and (t2.b = '30' or t2.b = '20') and t1.x = 1");
         Map<Set<RelationName>, Symbol> split = QuerySplitter.split(symbol);
-        assertThat(split.size(), is(2));
-        assertThat(split.get(Set.of(tr1)), isSQL("((doc.t1.a = '10') AND (doc.t1.x = 1))"));
-        assertThat(split.get(Set.of(tr2)), isSQL("((doc.t2.b = '30') OR (doc.t2.b = '20'))"));
+        assertThat(split).hasSize(2);
+        assertThat(split.get(Set.of(tr1))).isSQL("((doc.t1.a = '10') AND (doc.t1.x = 1))");
+        assertThat(split.get(Set.of(tr2))).isSQL("((doc.t2.b = '30') OR (doc.t2.b = '20'))");
     }
 
     @Test
@@ -68,63 +66,52 @@ public class QuerySplitterTest extends CrateDummyClusterServiceUnitTest {
         expressions.context().allowEagerNormalize(false);
         Symbol symbol = asSymbol("t1.a = 10::text and t1.x = t2.y and (false)");
         Map<Set<RelationName>, Symbol> split = QuerySplitter.split(symbol);
-        assertThat(split.size(), is(2));
-        assertThat(split.get(Set.of(tr1)), isSQL("(doc.t1.a = cast(10 AS text))"));
-        assertThat(split.get(Set.of(tr1, tr2)), isSQL("((doc.t1.x = doc.t2.y) AND false)"));
+        assertThat(split).hasSize(2);
+        assertThat(split.get(Set.of(tr1))).isSQL("(doc.t1.a = cast(10 AS text))");
+        assertThat(split.get(Set.of(tr1, tr2))).isSQL("((doc.t1.x = doc.t2.y) AND false)");
     }
 
     @Test
     public void testSplitDownTo1Relation() throws Exception {
         Symbol symbol = asSymbol("t1.a = '10' and (t2.b = '30' or t2.b = '20')");
         Map<Set<RelationName>, Symbol> split = QuerySplitter.split(symbol);
-        assertThat(split.size(), is(2));
-        assertThat(split.get(Set.of(tr1)), isSQL("(doc.t1.a = '10')"));
-        assertThat(split.get(Set.of(tr2)), isSQL("((doc.t2.b = '30') OR (doc.t2.b = '20'))"));
+        assertThat(split).hasSize(2);
+        assertThat(split.get(Set.of(tr1))).isSQL("(doc.t1.a = '10')");
+        assertThat(split.get(Set.of(tr2))).isSQL("((doc.t2.b = '30') OR (doc.t2.b = '20'))");
     }
 
     @Test
     public void testMixedSplit() throws Exception {
         Symbol symbol = asSymbol("t1.a = '10' and (t2.b = t3.c)");
         Map<Set<RelationName>, Symbol> split = QuerySplitter.split(symbol);
-        assertThat(split.size(), is(2));
-        assertThat(split.get(Set.of(tr1)), isSQL("(doc.t1.a = '10')"));
-        assertThat(split.get(Set.of(tr2, tr3)), isSQL("(doc.t2.b = doc.t3.c)"));
+        assertThat(split).hasSize(2);
+        assertThat(split.get(Set.of(tr1))).isSQL("(doc.t1.a = '10')");
+        assertThat(split.get(Set.of(tr2, tr3))).isSQL("(doc.t2.b = doc.t3.c)");
     }
 
     @Test
     public void testSplitQueryWith3Relations() throws Exception {
         Symbol symbol = asSymbol("t1.a = t2.b and t2.b = t3.c");
         Map<Set<RelationName>, Symbol> split = QuerySplitter.split(symbol);
-        assertThat(split.size(), is(2));
-
+        assertThat(split).hasSize(2);
 
         Symbol t1t2 = asSymbol("t1.a = t2.b");
         Symbol t2t3 = asSymbol("t2.b = t3.c");
-
-        Set<RelationName> tr1AndTr2 = Set.of(tr1, tr2);
-        assertThat(split.containsKey(tr1AndTr2), is(true));
-        assertThat(split.get(tr1AndTr2), is(t1t2));
-
-        Set<RelationName> tr2AndTr3 = Set.of(tr2, tr3);
-        assertThat(split.containsKey(tr2AndTr3), is(true));
-        assertThat(split.get(tr2AndTr3), is(t2t3));
+        assertThat(split).containsExactlyInAnyOrderEntriesOf(Map.of(
+            Set.of(tr1, tr2), t1t2,
+            Set.of(tr2, tr3), t2t3));
     }
 
     @Test
     public void testSplitQueryWith2TableJoinAnd3TableJoin() throws Exception {
         Symbol symbol = asSymbol("t1.a = t2.b and t2.b = t3.c || t1.a");
         Map<Set<RelationName>, Symbol> split = QuerySplitter.split(symbol);
-        assertThat(split.size(), is(2));
+        assertThat(split).hasSize(2);
 
         Symbol t1t2 = asSymbol("t1.a = t2.b");
         Symbol t1t2t3 = asSymbol("t2.b = t3.c || t1.a");
-
-        Set<RelationName> tr1AndTr2 = Set.of(tr1, tr2);
-        assertThat(split.containsKey(tr1AndTr2), is(true));
-        assertThat(split.get(tr1AndTr2), is(t1t2));
-
-        Set<RelationName> tr1AndTr2AndTr3 = Set.of(tr1, tr2, tr3);
-        assertThat(split.containsKey(tr1AndTr2AndTr3), is(true));
-        assertThat(split.get(tr1AndTr2AndTr3), is(t1t2t3));
+        assertThat(split).containsExactlyInAnyOrderEntriesOf(Map.of(
+            Set.of(tr1, tr2), t1t2,
+            Set.of(tr1, tr2, tr3), t1t2t3));
     }
 }
