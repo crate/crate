@@ -17,3 +17,11 @@ f353e6766f1192366a1c010d35e5a2457d6a8f73
 a4aff04b69d5f53c62dee2f932b0fe49d1f9c0c5
 # assertj SymbolMatchers->SymbolAssert
 a9e3d857c43f50c76c782fd8ad5e5bf30257db53
+# assertj Replace NodeMatchers & CauseMatcher
+cc6873198c54bfb3c88971cd021b94aafdce27f4
+# assertj SQLReponseAssert & WindowFunctions
+c1d641ccae22235825dda595bac7f8bab396976f
+# assertj ProjectionMatchers & isSQL
+8b29c69fcfec6d9ed3deb53b21eab0e93d93a806
+# assertj isDocKey
+32c831abf7b3d2336261ed0cf25641d078bc85be
