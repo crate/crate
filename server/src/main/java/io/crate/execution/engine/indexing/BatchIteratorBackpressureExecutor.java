@@ -211,13 +211,6 @@ public class BatchIteratorBackpressureExecutor<T, R> {
 
     private void resumeConsumption() {
         T item = batchIterator.currentElement();
-        if (pauseConsumption.test(item)) {
-            long delayInMs = getDelayInMs.apply(item);
-            if (delayInMs > 0) {
-                scheduler.schedule(this::resumeConsumption, delayInMs, TimeUnit.MILLISECONDS);
-                return;
-            }
-        }
         try {
             executor.execute(() -> doResumeConsumption(item));
         } catch (RejectedExecutionException e) {
