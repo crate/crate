@@ -83,7 +83,7 @@ public class RepositoriesService implements ClusterStateApplier {
         // Doesn't make sense to maintain repositories on non-master and non-data nodes
         // Nothing happens there anyway
         if (DiscoveryNode.isDataNode(settings) || DiscoveryNode.isMasterEligibleNode(settings)) {
-            clusterService.addStateApplier(this);
+            clusterService.addHighPriorityApplier(this);
         }
         this.verifyAction = new VerifyNodeRepositoryAction(transportService, clusterService, this);
     }
