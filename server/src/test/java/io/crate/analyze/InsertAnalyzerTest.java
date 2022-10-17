@@ -23,6 +23,7 @@ package io.crate.analyze;
 
 import static io.crate.testing.Asserts.isAlias;
 import static io.crate.testing.Asserts.isFunction;
+import static io.crate.testing.Asserts.isInputColumn;
 import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
 import static io.crate.testing.Asserts.toCondition;
@@ -92,6 +93,15 @@ public class InsertAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                 "create table doc.nested_clustered (" +
                 "   obj object(strict) as (id int, name text)" +
                 ") clustered by (obj['id'])"
+            )
+            .addTable(
+            """
+                create table doc.pk_generated_default (
+                  col1 int not null primary key,
+                  col2 int default 10 not null,
+                  col3 int default 20 not null,
+                  col4 int generated always as ((col2 + col3) * col1 - 2) primary key)
+                """
             )
             .build();
     }
@@ -468,5 +478,20 @@ public class InsertAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             .satisfiesExactly(
                 isReference("col1", DataTypes.LONG),
                 isReference("col2", DataTypes.STRING));
+    }
+
+    @Test
+    public void test_pk_col_generated_from_col_with_default() throws Exception {
+        AnalyzedInsertStatement stmt = e.analyze("insert into doc.pk_generated_default(col1) values (1)");
+        Asserts.assertThat(stmt.subQueryRelation().outputs())
+            .satisfiesExactly(
+                isReference("col1", DataTypes.INTEGER));
+        Asserts.assertThat(stmt.primaryKeySymbols()).satisfiesExactly(
+            isInputColumn(0),
+            isFunction("subtract",
+                       isFunction("multiply",
+                                  isFunction("add", isLiteral(10), isLiteral(20)),
+                                  isInputColumn(0)),
+                       isLiteral(2)));
     }
 }

@@ -252,10 +252,13 @@ public final class InputColumns extends DefaultTraversalSymbolVisitor<InputColum
         InputColumn inputColumn = sourceSymbols.inputs.get(ref);
         if (inputColumn == null) {
             Symbol subscriptOnRoot = tryCreateSubscriptOnRoot(ref, ref.column(), sourceSymbols.inputs);
-            if (subscriptOnRoot == null) {
-                return ref;
+            if (subscriptOnRoot != null) {
+                return subscriptOnRoot;
             }
-            return subscriptOnRoot;
+            if (ref.defaultExpression() != null) {
+                return ref.defaultExpression();
+            }
+            return ref;
         }
         return inputColumn;
     }
