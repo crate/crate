@@ -24,10 +24,16 @@ package io.crate.expression.operator;
 import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isLiteral;
 
+import io.crate.testing.Asserts;
+import io.crate.testing.DataTypeTesting;
+import io.crate.testing.QueryTester;
+import io.crate.types.DataType;
+import org.elasticsearch.Version;
 import org.junit.Test;
 
 import io.crate.expression.scalar.ScalarTestCase;
 
+import java.util.List;
 
 public class EqOperatorTest extends ScalarTestCase {
 
@@ -95,5 +101,29 @@ public class EqOperatorTest extends ScalarTestCase {
 
         assertNormalize("1.2 = null", isLiteral(null));
         assertNormalize("'foo' = null", isLiteral(null));
+    }
+
+    @Test
+    public void test_array_equals_empty_array_on_all_types() throws Exception {
+        for (DataType<?> type : DataTypeTesting.ALL_STORED_TYPES_EXCEPT_ARRAYS) {
+            // Universal values for all types, '=[]' should match 1 row for all types.
+            // Also covers cases when we need to add extra generic filter to differentiate between null and empty array.
+            Object[] values = new Object[] {new Object[] {}, null};
+
+            // ensure the test is operating on a fresh, empty cluster state (no tables)
+            resetClusterService();
+
+            try (QueryTester tester = new QueryTester.Builder(
+                createTempDir(),
+                THREAD_POOL,
+                clusterService,
+                Version.CURRENT,
+                "create table \"t_" + type.getName() + "\" (xs array(\"" + type.getName() + "\"))"
+            ).indexValues("xs", values).build()) {
+                List<Object> result = tester.runQuery("xs", "xs = []");
+                Asserts.assertThat(result.size()).isEqualTo(1).withFailMessage("xs = [] should match 1 row for type " + type);
+                Asserts.assertThat(result.get(0)).asList().isEmpty();
+            }
+        }
     }
 }
