@@ -64,6 +64,9 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Fixed an issue that could cause ``COPY FROM``, ``INSERT INTO``,
+  ``UPDATE`` and ``DELETE`` operations to get stuck if under memory pressure.
+
 - Fixed an issue that didn't allow queries with a greater than ``0`` ``OFFSET``
   but without ``LIMIT`` to be executed successfully, i.e.::
 
