@@ -143,7 +143,7 @@ public final class RoutingProvider {
                     break;
 
                 case PRIMARIES:
-                    shardIt = shard.primaryActiveInitializingShardIt();
+                    shardIt = shard.primaryShardIt();
                     break;
 
 

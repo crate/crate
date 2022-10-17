@@ -34,7 +34,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -55,7 +54,6 @@ public class IndexShardRoutingTable implements Iterable<ShardRouting> {
     final ShardId shardId;
 
     final ShardRouting primary;
-    final List<ShardRouting> primaryAsList;
     final List<ShardRouting> replicas;
     final List<ShardRouting> shards;
     final List<ShardRouting> activeShards;
@@ -117,11 +115,6 @@ public class IndexShardRoutingTable implements Iterable<ShardRouting> {
         }
         this.allShardsStarted = allShardsStarted;
         this.primary = primary;
-        if (primary != null) {
-            this.primaryAsList = Collections.singletonList(primary);
-        } else {
-            this.primaryAsList = Collections.emptyList();
-        }
         this.replicas = Collections.unmodifiableList(replicas);
         this.activeShards = Collections.unmodifiableList(activeShards);
         this.assignedShards = Collections.unmodifiableList(assignedShards);
@@ -238,88 +231,13 @@ public class IndexShardRoutingTable implements Iterable<ShardRouting> {
     }
 
     /**
-     * Returns true if no primaries are active or initializing for this shard
-     */
-    private boolean noPrimariesActive() {
-        if (!primaryAsList.isEmpty() && !primaryAsList.get(0).active() && !primaryAsList.get(0).initializing()) {
-            return true;
-        }
-        return false;
-    }
-
-    /**
      * Returns an iterator only on the primary shard.
      */
     public ShardIterator primaryShardIt() {
-        return new PlainShardIterator(shardId, primaryAsList);
-    }
-
-    public ShardIterator primaryActiveInitializingShardIt() {
-        if (noPrimariesActive()) {
-            return new PlainShardIterator(shardId, NO_SHARDS);
+        if (primary != null) {
+            return new PlainShardIterator(shardId, Collections.singletonList(primary));
         }
-        return primaryShardIt();
-    }
-
-    public ShardIterator primaryFirstActiveInitializingShardsIt() {
-        ArrayList<ShardRouting> ordered = new ArrayList<>(activeShards.size() + allInitializingShards.size());
-        // fill it in a randomized fashion
-        for (ShardRouting shardRouting : shuffler.shuffle(activeShards)) {
-            ordered.add(shardRouting);
-            if (shardRouting.primary()) {
-                // switch, its the matching node id
-                ordered.set(ordered.size() - 1, ordered.get(0));
-                ordered.set(0, shardRouting);
-            }
-        }
-        // no need to worry about primary first here..., its temporal
-        if (!allInitializingShards.isEmpty()) {
-            ordered.addAll(allInitializingShards);
-        }
-        return new PlainShardIterator(shardId, ordered);
-    }
-
-    public ShardIterator replicaActiveInitializingShardIt() {
-        // If the primaries are unassigned, return an empty list (there aren't
-        // any replicas to query anyway)
-        if (noPrimariesActive()) {
-            return new PlainShardIterator(shardId, NO_SHARDS);
-        }
-
-        LinkedList<ShardRouting> ordered = new LinkedList<>();
-        for (ShardRouting replica : shuffler.shuffle(replicas)) {
-            if (replica.active()) {
-                ordered.addFirst(replica);
-            } else if (replica.initializing()) {
-                ordered.addLast(replica);
-            }
-        }
-        return new PlainShardIterator(shardId, ordered);
-    }
-
-    public ShardIterator replicaFirstActiveInitializingShardsIt() {
-        // If the primaries are unassigned, return an empty list (there aren't
-        // any replicas to query anyway)
-        if (noPrimariesActive()) {
-            return new PlainShardIterator(shardId, NO_SHARDS);
-        }
-
-        ArrayList<ShardRouting> ordered = new ArrayList<>(activeShards.size() + allInitializingShards.size());
-        // fill it in a randomized fashion with the active replicas
-        for (ShardRouting replica : shuffler.shuffle(replicas)) {
-            if (replica.active()) {
-                ordered.add(replica);
-            }
-        }
-
-        // Add the primary shard
-        ordered.add(primary);
-
-        // Add initializing shards last
-        if (!allInitializingShards.isEmpty()) {
-            ordered.addAll(allInitializingShards);
-        }
-        return new PlainShardIterator(shardId, ordered);
+        return new PlainShardIterator(shardId, Collections.emptyList());
     }
 
     public ShardIterator onlyNodeActiveInitializingShardsIt(String nodeId) {
