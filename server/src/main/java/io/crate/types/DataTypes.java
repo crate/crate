@@ -379,7 +379,7 @@ public final class DataTypes {
         return conversions != null && conversions.contains(target);
     }
 
-    private static final Map<String, DataType<?>> TYPES_BY_NAME_OR_ALIAS = Map.ofEntries(
+    public static final Map<String, DataType<?>> TYPES_BY_NAME_OR_ALIAS = Map.ofEntries(
         entry(UNDEFINED.getName(), UNDEFINED),
         entry(BYTE.getName(), BYTE),
         entry(BOOLEAN.getName(), BOOLEAN),

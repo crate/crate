@@ -89,3 +89,6 @@ Fixes
     SELECT * FROM test LIMIT ALL OFFSET 10
 
 - Fixed an issue that caused ``col IS NULL`` to match empty objects.
+
+- Fixed an issue that caused ``ARRAY_COL = []`` to throw an exception on
+  ``OBJECT``, ``GEO_SHAPE``, ``IP`` or ``BIT`` array element types.
