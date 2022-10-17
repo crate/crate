@@ -29,6 +29,7 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.env.Environment;
+import org.elasticsearch.indices.recovery.RecoverySettings;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.plugins.RepositoryPlugin;
 import org.elasticsearch.repositories.Repository;
@@ -50,7 +51,8 @@ public class URLRepositoryPlugin extends Plugin implements RepositoryPlugin {
     @Override
     public Map<String, Repository.Factory> getRepositories(Environment env,
                                                            NamedXContentRegistry namedXContentRegistry,
-                                                           ClusterService clusterService) {
+                                                           ClusterService clusterService,
+                                                           RecoverySettings recoverySettings) {
         return Collections.singletonMap(
             URLRepository.TYPE,
             new Repository.Factory() {
@@ -62,7 +64,7 @@ public class URLRepositoryPlugin extends Plugin implements RepositoryPlugin {
 
                 @Override
                 public Repository create(RepositoryMetadata metadata) throws Exception {
-                    return new URLRepository(metadata, env, namedXContentRegistry, clusterService);
+                    return new URLRepository(metadata, env, namedXContentRegistry, clusterService, recoverySettings);
                 }
             }
         );

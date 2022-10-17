@@ -627,6 +627,7 @@ public class Node implements Closeable {
 
             LogicalReplicationSettings replicationSettings = new LogicalReplicationSettings(settings, clusterService);
 
+            final RecoverySettings recoverySettings = new RecoverySettings(settings, settingsModule.getClusterSettings());
             RepositoriesModule repositoriesModule = new RepositoriesModule(
                 this.environment,
                 pluginsService.filterPlugins(RepositoryPlugin.class),
@@ -636,7 +637,9 @@ public class Node implements Closeable {
                 remoteClusters,
                 threadPool,
                 xContentRegistry,
-                replicationSettings);
+                replicationSettings,
+                recoverySettings
+            );
             modules.add(repositoriesModule);
 
             CopyModule copyModule = new CopyModule(pluginsService.filterPlugins(CopyPlugin.class));
@@ -728,8 +731,6 @@ public class Node implements Closeable {
                     b.bind(RestoreService.class).toInstance(restoreService);
                     b.bind(Discovery.class).toInstance(discoveryModule.getDiscovery());
                     {
-                        RecoverySettings recoverySettings = new RecoverySettings(settings,
-                                                                                 settingsModule.getClusterSettings());
                         processRecoverySettings(settingsModule.getClusterSettings(), recoverySettings);
                         b.bind(PeerRecoverySourceService.class).toInstance(new PeerRecoverySourceService(transportService,
                                                                                                          indicesService,

@@ -25,6 +25,7 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.env.Environment;
+import org.elasticsearch.indices.recovery.RecoverySettings;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.plugins.RepositoryPlugin;
 import org.elasticsearch.repositories.Repository;
@@ -67,7 +68,10 @@ public class S3RepositoryPlugin extends Plugin implements RepositoryPlugin {
     }
 
     @Override
-    public Map<String, Repository.Factory> getRepositories(final Environment env, final NamedXContentRegistry registry, ClusterService clusterService) {
+    public Map<String, Repository.Factory> getRepositories(final Environment env,
+                                                           final NamedXContentRegistry registry,
+                                                           ClusterService clusterService,
+                                                           RecoverySettings recoverySettings) {
         return Collections.singletonMap(
             S3Repository.TYPE,
             new Repository.Factory() {
@@ -79,7 +83,7 @@ public class S3RepositoryPlugin extends Plugin implements RepositoryPlugin {
 
                 @Override
                 public Repository create(RepositoryMetadata metadata) throws Exception {
-                    return new S3Repository(metadata, registry, service, clusterService);
+                    return new S3Repository(metadata, registry, service, clusterService, recoverySettings);
                 }
             }
         );

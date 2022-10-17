@@ -24,13 +24,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import io.crate.replication.logical.LogicalReplicationSettings;
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.env.Environment;
+import org.elasticsearch.indices.recovery.RecoverySettings;
 import org.elasticsearch.plugins.RepositoryPlugin;
 import org.elasticsearch.repositories.fs.FsRepository;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -39,6 +39,7 @@ import org.elasticsearch.transport.TransportService;
 
 import io.crate.analyze.repositories.TypeSettings;
 import io.crate.replication.logical.LogicalReplicationService;
+import io.crate.replication.logical.LogicalReplicationSettings;
 import io.crate.replication.logical.repository.LogicalReplicationRepository;
 
 /**
@@ -56,7 +57,8 @@ public class RepositoriesModule extends AbstractModule {
                               RemoteClusters remoteClusters,
                               ThreadPool threadPool,
                               NamedXContentRegistry namedXContentRegistry,
-                              LogicalReplicationSettings replicationSettings) {
+                              LogicalReplicationSettings replicationSettings,
+                              RecoverySettings recoverySettings) {
         Map<String, Repository.Factory> factories = new HashMap<>();
         factories.put(FsRepository.TYPE, new Repository.Factory() {
 
@@ -67,7 +69,7 @@ public class RepositoriesModule extends AbstractModule {
 
             @Override
             public Repository create(RepositoryMetadata metadata) throws Exception {
-                return new FsRepository(metadata, env, namedXContentRegistry, clusterService);
+                return new FsRepository(metadata, env, namedXContentRegistry, clusterService, recoverySettings);
             }
         });
         factories.put(
@@ -92,7 +94,8 @@ public class RepositoriesModule extends AbstractModule {
         );
 
         for (RepositoryPlugin repoPlugin : repoPlugins) {
-            Map<String, Repository.Factory> newRepoTypes = repoPlugin.getRepositories(env, namedXContentRegistry, clusterService);
+            Map<String, Repository.Factory> newRepoTypes = repoPlugin.getRepositories(env, namedXContentRegistry, clusterService,
+                recoverySettings);
             for (Map.Entry<String, Repository.Factory> entry : newRepoTypes.entrySet()) {
                 if (factories.put(entry.getKey(), entry.getValue()) != null) {
                     throw new IllegalArgumentException("Repository type [" + entry.getKey() + "] is already registered");

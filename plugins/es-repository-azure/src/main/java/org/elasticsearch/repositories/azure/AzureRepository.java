@@ -44,6 +44,7 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
+import org.elasticsearch.indices.recovery.RecoverySettings;
 import org.elasticsearch.repositories.blobstore.BlobStoreRepository;
 
 import io.crate.common.unit.TimeValue;
@@ -167,8 +168,9 @@ public class AzureRepository extends BlobStoreRepository {
     public AzureRepository(RepositoryMetadata metadata,
                            NamedXContentRegistry namedXContentRegistry,
                            AzureStorageService storageService,
-                           ClusterService clusterService) {
-        super(metadata, namedXContentRegistry, clusterService, buildBasePath(metadata));
+                           ClusterService clusterService,
+                           RecoverySettings recoverySettings) {
+        super(metadata, namedXContentRegistry, clusterService, recoverySettings, buildBasePath(metadata));
         this.chunkSize = Repository.CHUNK_SIZE_SETTING.get(metadata.settings());
         this.storageService = storageService;
 
