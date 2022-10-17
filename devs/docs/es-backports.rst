@@ -287,7 +287,7 @@ should be crossed out as well.
 - [ ] de6ac6aea6d Fix recovery stage transition with sync_id (#57754)
 - [ ] 46c8d00852d Remove nodes with read-only filesystems (#52680) (#59138)
 - [ ] 1ced3f0eb38 Extract recovery files details to its own class (#59121)
-- [ ] 0752a86fe58 Enforce higher priority for RepositoriesService ClusterStateApplier (#59040)
+- [x] 0752a86fe58 Enforce higher priority for RepositoriesService ClusterStateApplier (#59040)
 - [x] 00ed31d000f Remove IndexShardRoutingTable#primaryAsList (#59044)
 - [s] f0dd9b4ace6 Add data stream timestamp validation via metadata field mapper (#59002)
 - [s] c1781bc7e7a [7.x] Add include_data_streams flag for authorization (#59008)
