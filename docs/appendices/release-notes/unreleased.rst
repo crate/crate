@@ -62,6 +62,18 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Fixed an issue which caused ``PRIMARY KEY`` columns to be required on insert
+  even if they are generated and their source columns are default not-null,
+  i.e.::
+
+    CREATE TABLE test (
+      id INT NOT NULL PRIMARY KEY,
+      created TIMESTAMP WITH TIME ZONE DEFAULT current_timestamp NOT NULL,
+      month TIMESTAMP GENERATED ALWAYS AS date_trunc('month', created) PRIMARY KEY
+    );
+
+    INSERT INTO test(id) VALUES(1);
+
 - Fixed an issue that could cause ``COPY FROM``, ``INSERT INTO``,
   ``UPDATE`` and ``DELETE`` operations to get stuck if under memory pressure.
 
