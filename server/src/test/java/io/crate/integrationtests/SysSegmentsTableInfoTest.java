@@ -21,13 +21,7 @@
 
 package io.crate.integrationtests;
 
-import static org.hamcrest.CoreMatchers.anyOf;
-import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Map;
 
@@ -41,44 +35,51 @@ public class SysSegmentsTableInfoTest extends IntegTestCase {
 
     @Test
     public void test_retrieve_segment_information() {
-        execute("create table t1 (id INTEGER, name STRING) clustered into 1 shards" +
-                " partitioned by(id)" +
-                " with (number_of_replicas = 1)");
-        execute("insert into t1 values (1, 'test')");
+        execute(
+            """
+                CREATE TABLE t1 (id INTEGER, name STRING)
+                CLUSTERED INTO 1 SHARDS
+                PARTITIONED BY(id)
+                WITH (number_of_replicas = 1)
+            """);
+        execute("INSERT INTO t1 VALUES(1, 'test')");
         refresh();
         ensureGreen();
-        execute("select table_name, shard_id, segment_name, generation, num_docs, deleted_docs, size, memory, " +
-                "committed, search, compound, version, node, node['id'], node['name'], attributes, primary, partition_ident" +
-                " from sys.segments order by primary desc");
-        assertThat(response.rowCount(), is(2L));
+        execute(
+            """
+                SELECT table_name, shard_id, segment_name, generation, num_docs, deleted_docs, size, memory, committed,
+                       search, compound, version, node, node['id'], node['name'], attributes, primary, partition_ident
+                FROM sys.segments ORDER BY primary DESC
+            """);
+        assertThat(response.rowCount()).isEqualTo(2);
         validateResponse(response.rows()[0], true);
         validateResponse(response.rows()[1], false);
     }
 
     @SuppressWarnings("unchecked")
     private void validateResponse(Object[] result, boolean primary) {
-        assertThat(result[0], is("t1"));
-        assertThat(result[1], is(0));
-        assertThat(result[2], is(notNullValue()));
-        assertThat(result[3], is(0L));
-        assertThat(result[4], is(1));
-        assertThat(result[5], is(0));
-        assertThat((Long) result[6], greaterThan(2700L));
-        assertThat((Long) result[7], is(-1L));
-        assertThat(result[8], anyOf(is(true), is(false)));
-        assertThat(result[9], is(true));
-        assertThat(result[10], is(true));
-        assertThat(result[11], is(Version.CURRENT.luceneVersion.toString()));
+        assertThat(result[0]).isEqualTo("t1");
+        assertThat(result[1]).isEqualTo(0);
+        assertThat(result[2]).isNotNull();
+        assertThat((Long) result[3]).isNotNegative();
+        assertThat(result[4]).isEqualTo(1);
+        assertThat(result[5]).isEqualTo(0);
+        assertThat((Long) result[6]).isGreaterThan(2700L);
+        assertThat((Long) result[7]).isEqualTo(-1L);
+        assertThat(result[8]).isIn(true, false);
+        assertThat(result[9]).isEqualTo(true);
+        assertThat(result[10]).isEqualTo(true);
+        assertThat(result[11]).isEqualTo(Version.CURRENT.luceneVersion.toString());
         Map<String, Object> node = (Map<String, Object>) result[12];
-        assertNotNull(node);
-        assertThat(node.size(), is(2));
-        assertThat(node.keySet(), containsInAnyOrder("name", "id"));
-        assertNotNull(result[13]);
-        assertNotNull(result[14]);
-        Map attributes = (Map) result[15];
-        assertNotNull(attributes);
-        assertThat(attributes.size(), is(1));
-        assertThat(result[16], is(primary));
-        assertThat(result[17], is("04132"));
+        assertThat(node).isNotNull();
+        assertThat(node).hasSize(2);
+        assertThat(node.keySet()).containsExactlyInAnyOrder("name", "id");
+        assertThat(result[13]).isNotNull();
+        assertThat(result[14]).isNotNull();
+        Map<?, ?> attributes = (Map<?, ?>) result[15];
+        assertThat(attributes).isNotNull();
+        assertThat(attributes).hasSize(1);
+        assertThat(result[16]).isEqualTo(primary);
+        assertThat(result[17]).isEqualTo("04132");
     }
 }
