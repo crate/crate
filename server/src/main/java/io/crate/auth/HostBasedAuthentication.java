@@ -35,7 +35,6 @@ import org.elasticsearch.common.settings.Settings;
 import javax.annotation.Nullable;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Locale;
@@ -43,6 +42,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.function.Supplier;
 
 
 public class HostBasedAuthentication implements Authentication {
@@ -176,26 +176,31 @@ public class HostBasedAuthentication implements Authentication {
             return hbaUser == null || user.equals(hbaUser);
         }
 
-        static boolean isValidAddress(@Nullable String hbaAddressOrHostname, InetAddress address, DnsResolver resolver) {
+        static boolean isValidAddress(@Nullable String hbaAddressOrHostname, long address, Supplier<String> getHostname, DnsResolver resolver) {
             if (hbaAddressOrHostname == null) {
                 // no IP/CIDR --> 0.0.0.0/0 --> match all
                 return true;
             }
             if (hbaAddressOrHostname.equals("_local_")) {
                 // special case "_local_" which matches both IPv4 and IPv6 localhost addresses
-                return inetAddressToInt(address) == IPV4_LOCALHOST || inetAddressToInt(address) == IPV6_LOCALHOST;
+                return address == IPV4_LOCALHOST || address == IPV6_LOCALHOST;
             }
             int p = hbaAddressOrHostname.indexOf('/');
             if (p < 0) {
                 try {
                     if (hbaAddressOrHostname.startsWith(".")) {
                         // not an ip address, subdomain
-                        var clientHostName = address.getCanonicalHostName();
+                        var clientHostName = getHostname.get();
                         return clientHostName != null ? clientHostName.endsWith(hbaAddressOrHostname) : false;
                     } else {
                         // SystemDefaultDnsResolver is injected here and internally it uses InetAddress.getAllByName
                         // which tries to treat argument as an ip address and then as a hostname.
-                        return Arrays.stream(resolver.resolve(hbaAddressOrHostname)).anyMatch(inetAddress -> inetAddress.equals(address));
+                        for (var resolvedAddress : resolver.resolve(hbaAddressOrHostname)) {
+                            if (inetAddressToInt(resolvedAddress) == address) {
+                                return true;
+                            }
+                        }
+                        return false;
                     }
                 } catch (UnknownHostException e) {
                     LOGGER.warn("Cannot resolve hostname {} specified in the HBA configuration.", hbaAddressOrHostname);
@@ -203,8 +208,11 @@ public class HostBasedAuthentication implements Authentication {
                 }
             }
             long[] minAndMax = Cidrs.cidrMaskToMinMax(hbaAddressOrHostname);
-            long addressAsLong = inetAddressToInt(address);
-            return minAndMax[0] <= addressAsLong && addressAsLong < minAndMax[1];
+            return minAndMax[0] <= address && address < minAndMax[1];
+        }
+
+        static boolean isValidAddress(@Nullable String hbaAddressOrHostname, InetAddress address, DnsResolver resolver) {
+            return isValidAddress(hbaAddressOrHostname, inetAddressToInt(address), address::getCanonicalHostName, resolver);
         }
 
         static boolean isValidProtocol(String hbaProtocol, Protocol protocol) {
@@ -223,7 +231,7 @@ public class HostBasedAuthentication implements Authentication {
             };
         }
 
-        private static long inetAddressToInt(InetAddress address) {
+        static long inetAddressToInt(InetAddress address) {
             long net = 0;
             for (byte a : address.getAddress()) {
                 net <<= 8;
