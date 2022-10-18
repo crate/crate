@@ -137,6 +137,7 @@ import org.apache.lucene.index.ParallelCompositeReader;
 import org.apache.lucene.index.ParallelLeafReader;
 import org.apache.lucene.index.PointValues;
 import org.apache.lucene.index.PostingsEnum;
+import org.apache.lucene.index.QueryTimeout;
 import org.apache.lucene.index.SerialMergeScheduler;
 import org.apache.lucene.index.SimpleMergedSegmentWarmer;
 import org.apache.lucene.index.SortedDocValues;
@@ -2029,6 +2030,15 @@ public abstract class CrateLuceneTestCase {
             }
             ret.setSimilarity(classEnvRule.similarity);
             ret.setQueryCachingPolicy(MAYBE_CACHE_POLICY);
+            if (random().nextBoolean()) {
+              ret.setTimeout(
+                  new QueryTimeout() {
+                    @Override
+                    public boolean shouldExit() {
+                      return false;
+                    }
+                  });
+            }
             return ret;
         }
     }
