@@ -258,29 +258,19 @@ public class HostBasedAuthenticationTest extends ESTestCase {
         assertFalse(isValidAddress(hbaAddress, InetAddresses.forString("10.0.2.0"), SystemDefaultDnsResolver.INSTANCE));
 
         hbaAddress = ".b.crate.io";
-        // Tests below check only  subdomain logic (ends with),
-        // no operation with real InetAddress except getCanonicalHostName happens in real code when starts with .
-        // Mocks imitate what InetAddress.getCanonicalHostName does - we cannot change InetAddress internal DNS resolver without affecting all tests.
-        // InMemoryDnsResolver is not bidirectional and thus mocks are used here.
-        InetAddress subdomainAddressMock = mock(InetAddress.class);
-        when(subdomainAddressMock.getCanonicalHostName()).thenReturn(TEST_SUBDOMAIN_HOSTNAME);
 
-        InetAddress domainAddressMock = mock(InetAddress.class);
-        when(domainAddressMock.getCanonicalHostName()).thenReturn(TEST_DOMAIN_HOSTNAME);
+        InetAddress randomAddress = InetAddresses.forString(
+              String.format("%s.%s.%s.%s",
+                            randomInt(255),
+                            randomInt(255),
+                            randomInt(255),
+                            randomInt(255)));
+        long randomAddressAsLong = HostBasedAuthentication.Matchers.inetAddressToInt(randomAddress);
 
-        assertTrue(isValidAddress(hbaAddress, subdomainAddressMock, IN_MEMORY_RESOLVER));
-        assertFalse(isValidAddress(hbaAddress, domainAddressMock, IN_MEMORY_RESOLVER));
+        assertTrue(isValidAddress(hbaAddress, randomAddressAsLong, () -> TEST_SUBDOMAIN_HOSTNAME, IN_MEMORY_RESOLVER));
+        assertFalse(isValidAddress(hbaAddress, randomAddressAsLong, () -> TEST_DOMAIN_HOSTNAME, IN_MEMORY_RESOLVER));
 
-        assertTrue(isValidAddress(null,
-                                  InetAddresses.forString(
-                                      String.format("%s.%s.%s.%s",
-                                                    randomInt(255),
-                                                    randomInt(255),
-                                                    randomInt(255),
-                                                    randomInt(255))),
-                                  SystemDefaultDnsResolver.INSTANCE
-                   )
-        );
+        assertTrue(isValidAddress(null, randomAddress, SystemDefaultDnsResolver.INSTANCE));
     }
 
     @Test
