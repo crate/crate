@@ -641,6 +641,7 @@ should be crossed out as well.
 - [x] 433b3458522 Fix port range allocation with large worker IDs (#44213)
 - [x] c40b77b771b Simplify port usage in transport tests (#44157)
 - [x] 45b8aca6203 Some Cleanup in Test Framework (#44039)
+- [x] e689b20eba8 Add voting-only master node (#43410)
 - [x] 3166f7b836c Use unique ports per test worker (#43983)
 - [x] 25792d31321 Remove nodeId from BaseNodeRequest (#43658)
 - [x] aa12af8a3c4 Enable node roles to be pluggable (#43175)

@@ -26,6 +26,8 @@ import org.elasticsearch.Version;
 import org.elasticsearch.cluster.AbstractDiffable;
 import org.elasticsearch.cluster.Diff;
 import io.crate.common.Booleans;
+import io.crate.common.collections.Sets;
+
 import javax.annotation.Nullable;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -367,6 +369,17 @@ public class DiscoveryNodes extends AbstractDiffable<DiscoveryNodes> implements 
                                 resolvedNodesIds.removeAll(getCoordinatingOnlyNodes().keys());
                             }
                         } else {
+                            for (DiscoveryNode node : this) {
+                                for (DiscoveryNodeRole role : Sets.difference(node.getRoles(), DiscoveryNodeRole.BUILT_IN_ROLES)) {
+                                    if (role.roleName().equals(matchAttrName)) {
+                                        if (Booleans.parseBoolean(matchAttrValue, true)) {
+                                            resolvedNodesIds.add(node.getId());
+                                        } else {
+                                            resolvedNodesIds.remove(node.getId());
+                                        }
+                                    }
+                                }
+                            }
                             for (DiscoveryNode node : this) {
                                 for (Map.Entry<String, String> entry : node.getAttributes().entrySet()) {
                                     String attrName = entry.getKey();
