@@ -61,6 +61,7 @@ import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.coordination.ClusterFormationFailureHelper.ClusterFormationState;
 import org.elasticsearch.cluster.coordination.CoordinationMetadata.VotingConfigExclusion;
 import org.elasticsearch.cluster.coordination.CoordinationMetadata.VotingConfiguration;
+import org.elasticsearch.cluster.coordination.CoordinationState.VoteCollection;
 import org.elasticsearch.cluster.coordination.FollowersChecker.FollowerCheckRequest;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -113,6 +114,7 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
 
     private final Settings settings;
     private final boolean singleNodeDiscovery;
+    private final ElectionStrategy electionStrategy;
     private final TransportService transportService;
     private final MasterService masterService;
     private final AllocationService allocationService;
@@ -160,13 +162,14 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
                        NamedWriteableRegistry namedWriteableRegistry, AllocationService allocationService, MasterService masterService,
                        Supplier<CoordinationState.PersistedState> persistedStateSupplier, SeedHostsProvider seedHostsProvider,
                        ClusterApplier clusterApplier, Collection<BiConsumer<DiscoveryNode, ClusterState>> onJoinValidators, Random random,
-                       RerouteService rerouteService) {
+                       RerouteService rerouteService, ElectionStrategy electionStrategy) {
         this.settings = settings;
         this.transportService = transportService;
         this.masterService = masterService;
         this.allocationService = allocationService;
         this.onJoinValidators = JoinTaskExecutor.addBuiltInJoinValidators(onJoinValidators);
-        this.singleNodeDiscovery = DiscoveryModule.isSingleNodeDiscovery(settings);
+        this.singleNodeDiscovery = DiscoveryModule.SINGLE_NODE_DISCOVERY_TYPE.equals(DiscoveryModule.DISCOVERY_TYPE_SETTING.get(settings));
+        this.electionStrategy = electionStrategy;
         this.joinHelper = new JoinHelper(settings, allocationService, masterService, transportService,
             this::getCurrentTerm, this::getStateForMasterService, this::handleJoinRequest, this::joinLeaderInTerm, this.onJoinValidators,
             rerouteService);
@@ -179,7 +182,7 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
         this.publishInfoTimeout = PUBLISH_INFO_TIMEOUT_SETTING.get(settings);
         this.random = random;
         this.electionSchedulerFactory = new ElectionSchedulerFactory(settings, random, transportService.getThreadPool());
-        this.preVoteCollector = new PreVoteCollector(transportService, this::startElection, this::updateMaxTermSeen);
+        this.preVoteCollector = new PreVoteCollector(transportService, this::startElection, this::updateMaxTermSeen, electionStrategy);
         configuredHostsResolver = new SeedHostsResolver(nodeName, settings, transportService, seedHostsProvider);
         this.peerFinder = new CoordinatorPeerFinder(settings, transportService,
             new HandshakingTransportAddressConnector(settings, transportService), configuredHostsResolver);
@@ -202,7 +205,7 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
     private ClusterFormationState getClusterFormationState() {
         return new ClusterFormationState(settings, getStateForMasterService(), peerFinder.getLastResolvedAddresses(),
             Stream.concat(Stream.of(getLocalNode()), StreamSupport.stream(peerFinder.getFoundPeers().spliterator(), false))
-                .collect(Collectors.toList()), getCurrentTerm());
+                    .collect(Collectors.toList()), getCurrentTerm(), electionStrategy);
     }
 
     private void onLeaderFailure(Exception e) {
@@ -661,7 +664,7 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
     protected void doStart() {
         synchronized (mutex) {
             CoordinationState.PersistedState persistedState = persistedStateSupplier.get();
-            coordinationState.set(new CoordinationState(settings, getLocalNode(), persistedState));
+            coordinationState.set(new CoordinationState(getLocalNode(), persistedState, electionStrategy));
             peerFinder.setCurrentTerm(getCurrentTerm());
             configuredHostsResolver.start();
             final ClusterState lastAcceptedState = coordinationState.get().getLastAcceptedState();
@@ -1160,11 +1163,10 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
             synchronized (mutex) {
                 final Iterable<DiscoveryNode> foundPeers = getFoundPeers();
                 if (mode == Mode.CANDIDATE) {
-                    final CoordinationState.VoteCollection expectedVotes = new CoordinationState.VoteCollection();
+                    final VoteCollection expectedVotes = new VoteCollection();
                     foundPeers.forEach(expectedVotes::addVote);
                     expectedVotes.addVote(Coordinator.this.getLocalNode());
-                    final ClusterState lastAcceptedState = coordinationState.get().getLastAcceptedState();
-                    final boolean foundQuorum = CoordinationState.isElectionQuorum(expectedVotes, lastAcceptedState);
+                    final boolean foundQuorum = coordinationState.get().isElectionQuorum(expectedVotes);
 
                     if (foundQuorum) {
                         if (electionScheduler == null) {
@@ -1381,6 +1383,18 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
                                             final List<DiscoveryNode> masterCandidates = completedNodes().stream()
                                                 .filter(DiscoveryNode::isMasterEligibleNode)
                                                 .filter(node -> nodeMayWinElection(state, node))
+                                                .filter(node -> {
+                                                    // check if master candidate would be able to get an election quorum if we were to
+                                                    // abdicate to it. Assume that every node that completed the publication can provide
+                                                    // a vote in that next election and has the latest state.
+                                                    final long futureElectionTerm = state.term() + 1;
+                                                    final VoteCollection futureVoteCollection = new VoteCollection();
+                                                    completedNodes().forEach(completedNode -> futureVoteCollection.addJoinVote(
+                                                        new Join(completedNode, node, futureElectionTerm, state.term(), state.version())));
+                                                    return electionStrategy.isElectionQuorum(node, futureElectionTerm,
+                                                        state.term(), state.version(), state.getLastCommittedConfiguration(),
+                                                        state.getLastAcceptedConfiguration(), futureVoteCollection);
+                                                })
                                                 .collect(Collectors.toList());
                                             if (masterCandidates.isEmpty() == false) {
                                                 abdicateTo(masterCandidates.get(random.nextInt(masterCandidates.size())));
@@ -1429,7 +1443,7 @@ public class Coordinator extends AbstractLifecycleComponent implements Discovery
         }
 
         @Override
-        protected boolean isPublishQuorum(CoordinationState.VoteCollection votes) {
+        protected boolean isPublishQuorum(VoteCollection votes) {
             assert Thread.holdsLock(mutex) : "Coordinator mutex not held";
             return coordinationState.get().isPublishQuorum(votes);
         }

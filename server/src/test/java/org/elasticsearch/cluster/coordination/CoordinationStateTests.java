@@ -49,7 +49,6 @@ import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
-import org.elasticsearch.node.Node;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.EqualsHashCodeTestUtils;
 import org.junit.Before;
@@ -244,6 +243,7 @@ public class CoordinationStateTests extends ESTestCase {
         assertTrue(cs1.handleJoin(join));
         assertTrue(cs1.electionWon());
         assertTrue(cs1.containsJoinVoteFor(node1));
+        assertTrue(cs1.containsJoin(join));
         assertFalse(cs1.containsJoinVoteFor(node2));
         assertEquals(cs1.getLastPublishedVersion(), cs1.getLastAcceptedVersion());
         assertFalse(cs1.handleJoin(join));
@@ -326,7 +326,10 @@ public class CoordinationStateTests extends ESTestCase {
         Join v2 = cs2.handleStartJoin(startJoinRequest1);
         assertTrue(cs1.handleJoin(v1));
         assertTrue(cs1.electionWon());
+        assertTrue(cs1.containsJoin(v1));
+        assertFalse(cs1.containsJoin(v2));
         assertTrue(cs1.handleJoin(v2));
+        assertTrue(cs1.containsJoin(v2));
 
         VotingConfiguration newConfig = VotingConfiguration.of(node2);
 
@@ -775,12 +778,14 @@ public class CoordinationStateTests extends ESTestCase {
     }
 
     public void testSafety() {
-        new Cluster(randomIntBetween(1, 5)).runRandomly();
+        new CoordinationStateTestCluster(IntStream.range(0, randomIntBetween(1, 5))
+            .mapToObj(i -> new DiscoveryNode("node_" + i, buildNewFakeTransportAddress(), Version.CURRENT))
+            .collect(Collectors.toList()), ElectionStrategy.DEFAULT_INSTANCE)
+            .runRandomly();
     }
 
     public static CoordinationState createCoordinationState(PersistedState storage, DiscoveryNode localNode) {
-        final Settings initialSettings = Settings.builder().put(Node.NODE_NAME_SETTING.getKey(), localNode.getId()).build();
-        return new CoordinationState(initialSettings, localNode, storage);
+        return new CoordinationState(localNode, storage, ElectionStrategy.DEFAULT_INSTANCE);
     }
 
     public static ClusterState clusterState(long term, long version, DiscoveryNode localNode, VotingConfiguration lastCommittedConfig,
@@ -830,11 +835,11 @@ public class CoordinationStateTests extends ESTestCase {
             this.localNode = localNode;
             persistedState = new InMemoryPersistedState(0L,
                 clusterState(0L, 0L, localNode, VotingConfiguration.EMPTY_CONFIG, VotingConfiguration.EMPTY_CONFIG, 0L));
-            state = new CoordinationState(Settings.EMPTY, localNode, persistedState);
+            state = new CoordinationState(localNode, persistedState, ElectionStrategy.DEFAULT_INSTANCE);
         }
 
         void reboot() {
-            state = new CoordinationState(Settings.EMPTY, localNode, persistedState);
+            state = new CoordinationState(localNode, persistedState, ElectionStrategy.DEFAULT_INSTANCE);
         }
 
         void setInitialState(VotingConfiguration initialConfig, long initialValue) {

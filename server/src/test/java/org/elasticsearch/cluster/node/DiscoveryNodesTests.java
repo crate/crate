@@ -29,6 +29,11 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import com.carrotsearch.randomizedtesting.generators.RandomPicks;
+import org.elasticsearch.Version;
+import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.transport.TransportAddress;
+import org.elasticsearch.test.ESTestCase;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -43,12 +48,6 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
-
-import org.elasticsearch.Version;
-import org.elasticsearch.common.transport.TransportAddress;
-import org.elasticsearch.test.ESTestCase;
-
-import com.carrotsearch.randomizedtesting.generators.RandomPicks;
 
 public class DiscoveryNodesTests extends ESTestCase {
 
@@ -246,8 +245,16 @@ public class DiscoveryNodesTests extends ESTestCase {
             if (frequently()) {
                 attributes.put("custom", randomBoolean() ? "match" : randomAlphaOfLengthBetween(3, 5));
             }
-            final DiscoveryNode node = newNode(idGenerator.getAndIncrement(), attributes,
-                new HashSet<>(randomSubsetOf(DiscoveryNodeRole.BUILT_IN_ROLES)));
+            final Set<DiscoveryNodeRole> roles = new HashSet<>(randomSubsetOf(DiscoveryNodeRole.BUILT_IN_ROLES));
+            if (frequently()) {
+                roles.add(new DiscoveryNodeRole("custom_role", "cr") {
+                    @Override
+                    protected Setting<Boolean> roleSetting() {
+                        return null;
+                    }
+                });
+            }
+            final DiscoveryNode node = newNode(idGenerator.getAndIncrement(), attributes, roles);
             nodesList.add(node);
         }
         return nodesList;
@@ -308,6 +315,17 @@ public class DiscoveryNodesTests extends ESTestCase {
                 Set<String> ids = new HashSet<>();
                 nodes.getNodes().valuesIt().forEachRemaining(node -> {
                     if ("value".equals(node.getAttributes().get("attr"))) {
+                        ids.add(node.getId());
+                    }
+                });
+                return ids;
+            }
+        }, CUSTOM_ROLE("custom_role:true") {
+            @Override
+            Set<String> matchingNodeIds(DiscoveryNodes nodes) {
+                Set<String> ids = new HashSet<>();
+                nodes.getNodes().valuesIt().forEachRemaining(node -> {
+                    if (node.getRoles().stream().anyMatch(role -> role.roleName().equals("custom_role"))) {
                         ids.add(node.getId());
                     }
                 });
