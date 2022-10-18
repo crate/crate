@@ -448,6 +448,7 @@ public class SysShardsTest extends IntegTestCase {
         execute("create table doc.tbl (x int)");
         execute("insert into doc.tbl values(1)");
         execute("alter table doc.tbl close");
+        waitNoPendingTasksOnAll(); // ensure close is processed
         assertThrowsMatches(() -> execute("select * from doc.tbl"),
                      OperationOnInaccessibleRelationException.class,
                      "The relation \"doc.tbl\" doesn't support or allow READ operations, as it is currently closed.");
