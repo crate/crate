@@ -67,8 +67,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.security.AccessControlContext;
-import java.security.AccessController;
 import java.security.Permission;
 import java.security.PermissionCollection;
 import java.security.Permissions;
@@ -3083,33 +3081,6 @@ public abstract class CrateLuceneTestCase {
      */
     public static Path createTempFile() throws IOException {
         return createTempFile("tempFile", ".tmp");
-    }
-
-    /**
-     * Runs a code part with restricted permissions (be sure to add all required permissions, because
-     * it would start with empty permissions). You cannot grant more permissions than our policy file
-     * allows, but you may restrict writing to several dirs...
-     *
-     * <p><em>Note:</em> This assumes a {@link SecurityManager} enabled, otherwise it stops test
-     * execution. If enabled, it needs the following {@link SecurityPermission}: {@code
-     * "createAccessControlContext"}
-     */
-    public static <T> T runWithRestrictedPermissions(
-        PrivilegedExceptionAction<T> action, Permission... permissions) throws Exception {
-        assumeTrue(
-            "runWithRestrictedPermissions requires a SecurityManager enabled",
-            System.getSecurityManager() != null);
-        // be sure to have required permission, otherwise doPrivileged runs with *no* permissions:
-        AccessController.checkPermission(new SecurityPermission("createAccessControlContext"));
-        final PermissionCollection perms = new Permissions();
-        Arrays.stream(permissions).forEach(perms::add);
-        final AccessControlContext ctx =
-            new AccessControlContext(new ProtectionDomain[] {new ProtectionDomain(null, perms)});
-        try {
-            return AccessController.doPrivileged(action, ctx);
-        } catch (PrivilegedActionException e) {
-            throw e.getException();
-        }
     }
 
     /** True if assertions (-ea) are enabled (at least for this class). */
