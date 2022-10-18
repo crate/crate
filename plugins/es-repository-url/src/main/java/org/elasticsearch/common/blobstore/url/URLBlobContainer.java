@@ -19,23 +19,19 @@
 
 package org.elasticsearch.common.blobstore.url;
 
-import io.crate.common.SuppressForbidden;
-import org.elasticsearch.common.blobstore.BlobContainer;
-import org.elasticsearch.common.blobstore.BlobMetadata;
-import org.elasticsearch.common.blobstore.BlobPath;
-import org.elasticsearch.common.blobstore.support.AbstractBlobContainer;
-
 import java.io.BufferedInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.nio.file.NoSuchFileException;
-import java.security.AccessController;
-import java.security.PrivilegedActionException;
-import java.security.PrivilegedExceptionAction;
 import java.util.List;
 import java.util.Map;
+
+import org.elasticsearch.common.blobstore.BlobContainer;
+import org.elasticsearch.common.blobstore.BlobMetadata;
+import org.elasticsearch.common.blobstore.BlobPath;
+import org.elasticsearch.common.blobstore.support.AbstractBlobContainer;
 
 /**
  * URL blob implementation of {@link org.elasticsearch.common.blobstore.BlobContainer}
@@ -104,8 +100,9 @@ public class URLBlobContainer extends AbstractBlobContainer {
 
     @Override
     public InputStream readBlob(String name) throws IOException {
+        URL url = new URL(path, name);
         try {
-            return new BufferedInputStream(getInputStream(new URL(path, name)), blobStore.bufferSizeInBytes());
+            return new BufferedInputStream(url.openStream(), blobStore.bufferSizeInBytes());
         } catch (FileNotFoundException fnfe) {
             throw new NoSuchFileException("[" + name + "] blob not found");
         }
@@ -114,14 +111,5 @@ public class URLBlobContainer extends AbstractBlobContainer {
     @Override
     public void writeBlob(String blobName, InputStream inputStream, long blobSize, boolean failIfAlreadyExists) throws IOException {
         throw new UnsupportedOperationException("URL repository doesn't support this operation");
-    }
-
-    @SuppressForbidden(reason = "We call connect in doPrivileged and provide SocketPermission")
-    private static InputStream getInputStream(URL url) throws IOException {
-        try {
-            return AccessController.doPrivileged((PrivilegedExceptionAction<InputStream>) url::openStream);
-        } catch (PrivilegedActionException e) {
-            throw (IOException) e.getCause();
-        }
     }
 }
