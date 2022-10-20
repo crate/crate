@@ -30,10 +30,17 @@ where ``isolation_level`` is one of::
 Description
 ===========
 
-The statement starts a transaction block until it committed or rolled back.
+The statement starts a transaction block.
 
-As CrateDB does not support transactions, this command has no effect and will
-be ignored.
+As CrateDB does not support transactions, the only effect of this command is
+to start a scope in which cursors ``WITHOUT HOLD`` can be
+:ref:`declared <sql-declare>`.
+
+.. NOTE::
+
+   Cursors ``WITHOUT HOLD`` are closed automatically after an
+   :ref:`END <ref-end>` or :ref:`COMMIT <ref-commit>` command. There is no
+   nesting and this happens regardless of how many times `BEGIN` has run.
 
 .. NOTE::
 
