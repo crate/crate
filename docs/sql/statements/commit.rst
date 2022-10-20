@@ -34,5 +34,5 @@ Description
 
 The statement commits the current transaction.
 
-As CrateDB does not support transactions, this command has no effect and will
-be ignored.
+As CrateDB does not support transactions, the only effect of this command is
+to close all existing cursors ``WITHOUT HOLD`` in the current session.

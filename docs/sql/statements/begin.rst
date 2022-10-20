@@ -32,8 +32,9 @@ Description
 
 The statement starts a transaction block until it committed or rolled back.
 
-As CrateDB does not support transactions, this command has no effect and will
-be ignored.
+As CrateDB does not support transactions, the only effect of this command is
+to start a scope on which cursors ``WITHOUT HOLD`` can be
+:ref:`declared <sql-declare>`.
 
 .. NOTE::
 
