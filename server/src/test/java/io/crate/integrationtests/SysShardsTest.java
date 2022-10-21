@@ -29,6 +29,7 @@ import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.resolveCanonicalString;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.endsWith;
@@ -50,6 +51,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.lucene.util.Version;
 import org.elasticsearch.action.admin.indices.template.delete.DeleteIndexTemplateRequest;
+import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -59,6 +61,7 @@ import org.junit.Test;
 
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.metadata.PartitionName;
+import io.crate.testing.Asserts;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
@@ -449,9 +452,14 @@ public class SysShardsTest extends IntegTestCase {
         execute("insert into doc.tbl values(1)");
         execute("alter table doc.tbl close");
         waitNoPendingTasksOnAll(); // ensure close is processed
-        assertThrowsMatches(() -> execute("select * from doc.tbl"),
-                     OperationOnInaccessibleRelationException.class,
-                     "The relation \"doc.tbl\" doesn't support or allow READ operations, as it is currently closed.");
+        assertThatThrownBy(() -> execute("select * from doc.tbl"))
+            .satisfiesAnyOf(
+                e -> Asserts.assertThat(e)
+                    .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
+                    .hasMessage("The relation \"doc.tbl\" doesn't support or allow READ operations, as it is currently closed."),
+                e -> Asserts.assertThat(e)
+                    .isExactlyInstanceOf(ClusterBlockException.class)
+                    .hasMessageContaining("Table or partition preparing to close."));
     }
 
     @UseJdbc(0)
@@ -461,8 +469,13 @@ public class SysShardsTest extends IntegTestCase {
         execute("insert into doc.tbl values(1)");
         execute("alter table doc.tbl close");
         waitNoPendingTasksOnAll(); // ensure close is processed
-        assertThrowsMatches(() -> execute("insert into doc.tbl values(2)"),
-                     OperationOnInaccessibleRelationException.class,
-                     "The relation \"doc.tbl\" doesn't support or allow INSERT operations, as it is currently closed.");
+        assertThatThrownBy(() -> execute("insert into doc.tbl values(2)"))
+            .satisfiesAnyOf(
+                e -> Asserts.assertThat(e)
+                    .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
+                    .hasMessage("The relation \"doc.tbl\" doesn't support or allow INSERT operations, as it is currently closed."),
+                e -> Asserts.assertThat(e)
+                    .isExactlyInstanceOf(ClusterBlockException.class)
+                    .hasMessageContaining("Table or partition preparing to close."));
     }
 }
