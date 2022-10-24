@@ -24,6 +24,7 @@ package io.crate.execution.engine.collect.count;
 import com.carrotsearch.hppc.IntIndexedContainer;
 import com.carrotsearch.hppc.cursors.IntCursor;
 
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.concurrent.CompletableFutures;
 import io.crate.exceptions.JobKilledException;
 import io.crate.execution.support.ThreadPools;
@@ -47,6 +48,7 @@ import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.engine.Engine;
+import org.elasticsearch.index.shard.IllegalIndexShardStateException;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -140,10 +142,11 @@ public class InternalCountOperation implements CountOperation {
         return futureCount;
     }
 
-    private long syncCount(IndexService indexService,
-                           IndexShard indexShard,
-                           TransactionContext txnCtx,
-                           Symbol filter) {
+    @VisibleForTesting
+    long syncCount(IndexService indexService,
+                   IndexShard indexShard,
+                   TransactionContext txnCtx,
+                   Symbol filter) {
         try (Engine.Searcher searcher = indexShard.acquireSearcher("count-operation")) {
             String indexName = indexShard.shardId().getIndexName();
             var relationName = RelationName.fromIndexName(indexName);
@@ -163,6 +166,11 @@ public class InternalCountOperation implements CountOperation {
             return searcher.count(queryCtx.query());
         } catch (IOException e) {
             throw new UncheckedIOException(e);
+        } catch (IllegalIndexShardStateException e) {
+            if (IndexParts.isPartitioned(e.getIndex().getName())) {
+                return 0L;
+            }
+            throw e;
         }
     }
 
