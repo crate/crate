@@ -105,6 +105,81 @@ public class CursorITest extends IntegTestCase {
     }
 
     @Test
+    public void test_fetch_0_returns_same_row_again_except_before_start_or_after_end() throws Exception {
+        try (var conn = DriverManager.getConnection(url(), properties)) {
+            Statement statement = conn.createStatement();
+            conn.setAutoCommit(false);
+
+            String declare = "declare c1 scroll cursor for select * from generate_series(1, 10)";
+            statement.execute(declare);
+
+            ResultSet result = statement.executeQuery("FETCH 0 FROM c1");
+            assertThat(result.next()).isFalse();
+
+            result = statement.executeQuery("FETCH FROM c1");
+            assertThat(result.next()).isTrue();
+            assertThat(result.getInt(1)).isEqualTo(1);
+            assertThat(result.next()).isFalse();
+
+            result = statement.executeQuery("FETCH 0 FROM c1");
+            assertThat(result.next()).isTrue();
+            assertThat(result.getInt(1)).isEqualTo(1);
+            assertThat(result.next()).isFalse();
+
+            result = statement.executeQuery("FETCH ALL FROM c1");
+            result = statement.executeQuery("FETCH 0 FROM c1");
+            assertThat(result.next()).isFalse();
+        }
+    }
+
+    @Test
+    public void test_scroll_operations() throws Exception {
+        try (var conn = DriverManager.getConnection(url(), properties)) {
+            Statement statement = conn.createStatement();
+            conn.setAutoCommit(false);
+
+            String declare = "declare c1 scroll cursor for select * from generate_series(1, 7)";
+            statement.execute(declare);
+            ResultSet result = statement.executeQuery("FETCH 3 FROM c1");
+            assertThat(result.next()).isTrue();
+            assertThat(result.getInt(1)).isEqualTo(1);
+            assertThat(result.next()).isTrue();
+            assertThat(result.getInt(1)).isEqualTo(2);
+            assertThat(result.next()).isTrue();
+            assertThat(result.getInt(1)).isEqualTo(3);
+            assertThat(result.next()).isFalse();
+
+            result = statement.executeQuery("FETCH ABSOLUTE 5 FROM c1");
+            assertThat(result.next()).isTrue();
+            assertThat(result.getInt(1)).isEqualTo(5);
+            assertThat(result.next()).isFalse();
+
+            result = statement.executeQuery("FETCH BACKWARD 2 FROM c1");
+            assertThat(result.next()).isTrue();
+            assertThat(result.getInt(1)).isEqualTo(4);
+            assertThat(result.next()).isTrue();
+            assertThat(result.getInt(1)).isEqualTo(3);
+            assertThat(result.next()).isFalse();
+
+            result = statement.executeQuery("FETCH BACKWARD 0 FROM c1");
+            assertThat(result.next()).isTrue();
+            assertThat(result.getInt(1)).isEqualTo(3);
+            assertThat(result.next()).isFalse();
+
+            result = statement.executeQuery("FETCH ALL FROM c1");
+            assertThat(result.next()).isTrue();
+            assertThat(result.getInt(1)).isEqualTo(4);
+            assertThat(result.next()).isTrue();
+            assertThat(result.getInt(1)).isEqualTo(5);
+            assertThat(result.next()).isTrue();
+            assertThat(result.getInt(1)).isEqualTo(6);
+            assertThat(result.next()).isTrue();
+            assertThat(result.getInt(1)).isEqualTo(7);
+            assertThat(result.next()).isFalse();
+        }
+    }
+
+    @Test
     public void test_declare_with_hold_survives_transaction() throws Exception {
         try (var conn = DriverManager.getConnection(url(), properties)) {
             Statement statement = conn.createStatement();

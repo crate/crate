@@ -53,8 +53,12 @@ None
 Changes
 =======
 
+- Added support for ``SCROLL`` and backward movement to cursors. See
+  :ref:`DECLARE <sql-declare>` and :ref:`FETCH <sql-fetch>`.
+
 - Added the :ref:`MAX_BY <aggregation-max_by>` and :ref:`MIN_BY
   <aggregation-min_by>` aggregation functions
+
 
 Fixes
 =====
