@@ -31,16 +31,29 @@ import java.util.Optional;
 
 import org.apache.logging.log4j.Level;
 import org.elasticsearch.Version;
+import org.elasticsearch.action.ActionListenerResponseHandler;
+import org.elasticsearch.action.support.PlainActionFuture;
+import org.elasticsearch.cluster.ClusterName;
+import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.NotMasterException;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.monitor.StatusInfo;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.transport.CapturingTransport;
 import org.elasticsearch.test.transport.CapturingTransport.CapturedRequest;
+import org.elasticsearch.test.transport.MockTransport;
 import org.elasticsearch.transport.RemoteTransportException;
 import org.elasticsearch.transport.TransportException;
 import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportService;
+
+import java.util.concurrent.atomic.AtomicReference;
+
+import static org.elasticsearch.monitor.StatusInfo.Status.HEALTHY;
+import static org.elasticsearch.monitor.StatusInfo.Status.UNHEALTHY;
+import static org.hamcrest.Matchers.containsString;
 
 public class JoinHelperTests extends ESTestCase {
 
@@ -57,7 +70,8 @@ public class JoinHelperTests extends ESTestCase {
         );
         JoinHelper joinHelper = new JoinHelper(Settings.EMPTY, null, null, transportService, () -> 0L, () -> null,
             (joinRequest, joinCallback) -> { throw new AssertionError(); }, startJoinRequest -> { throw new AssertionError(); },
-            Collections.emptyList(), (s, p, r) -> {});
+            Collections.emptyList(), (s, p, r) -> {},
+            () -> new StatusInfo(HEALTHY, "info"));
         transportService.start();
 
         DiscoveryNode node1 = new DiscoveryNode("node1", buildNewFakeTransportAddress(), Version.CURRENT);
@@ -137,5 +151,92 @@ public class JoinHelperTests extends ESTestCase {
         assertThat(JoinHelper.FailedJoinAttempt.getLogLevel(
                 new RemoteTransportException("caused by NotMasterException",
                         new NotMasterException("test"))), is(Level.DEBUG));
+    }
+
+    public void testJoinValidationRejectsMismatchedClusterUUID() {
+        assertJoinValidationRejectsMismatchedClusterUUID(JoinHelper.VALIDATE_JOIN_ACTION_NAME,
+            "join validation on cluster state with a different cluster uuid");
+    }
+
+    private void assertJoinValidationRejectsMismatchedClusterUUID(String actionName, String expectedMessage) {
+        DeterministicTaskQueue deterministicTaskQueue = new DeterministicTaskQueue(
+            Settings.builder().put(NODE_NAME_SETTING.getKey(), "node0").build(), random());
+        MockTransport mockTransport = new MockTransport();
+        DiscoveryNode localNode = new DiscoveryNode("node0", buildNewFakeTransportAddress(), Version.CURRENT);
+
+        final ClusterState localClusterState = ClusterState.builder(ClusterName.DEFAULT).metadata(Metadata.builder()
+            .generateClusterUuidIfNeeded().clusterUUIDCommitted(true)).build();
+
+        TransportService transportService = mockTransport.createTransportService(Settings.EMPTY,
+            deterministicTaskQueue.getThreadPool(), x -> localNode, null);
+        new JoinHelper(Settings.EMPTY, null, null, transportService, () -> 0L, () -> localClusterState,
+            (joinRequest, joinCallback) -> { throw new AssertionError(); }, startJoinRequest -> { throw new AssertionError(); },
+            Collections.emptyList(), (s, p, r) -> {}, null); // registers request handler
+        transportService.start();
+        transportService.acceptIncomingRequests();
+
+        final ClusterState otherClusterState = ClusterState.builder(ClusterName.DEFAULT).metadata(Metadata.builder()
+            .generateClusterUuidIfNeeded()).build();
+
+        final PlainActionFuture<TransportResponse.Empty> future = new PlainActionFuture<>();
+        transportService.sendRequest(localNode, actionName,
+            new ValidateJoinRequest(otherClusterState),
+            new ActionListenerResponseHandler<>(future, in -> TransportResponse.Empty.INSTANCE));
+        deterministicTaskQueue.runAllTasks();
+
+        final CoordinationStateRejectedException coordinationStateRejectedException
+            = expectThrows(CoordinationStateRejectedException.class, future::actionGet);
+        assertThat(coordinationStateRejectedException.getMessage(), containsString(expectedMessage));
+        assertThat(coordinationStateRejectedException.getMessage(), containsString(localClusterState.metadata().clusterUUID()));
+        assertThat(coordinationStateRejectedException.getMessage(), containsString(otherClusterState.metadata().clusterUUID()));
+    }
+
+    public void testJoinFailureOnUnhealthyNodes() {
+        DeterministicTaskQueue deterministicTaskQueue = new DeterministicTaskQueue(
+            Settings.builder().put(NODE_NAME_SETTING.getKey(), "node0").build(), random());
+        CapturingTransport capturingTransport = new CapturingTransport();
+        DiscoveryNode localNode = new DiscoveryNode("node0", buildNewFakeTransportAddress(), Version.CURRENT);
+        TransportService transportService = capturingTransport.createTransportService(Settings.EMPTY,
+            deterministicTaskQueue.getThreadPool(), x -> localNode, null);
+        AtomicReference<StatusInfo> nodeHealthServiceStatus = new AtomicReference<>
+            (new StatusInfo(UNHEALTHY, "unhealthy-info"));
+        JoinHelper joinHelper = new JoinHelper(Settings.EMPTY, null, null, transportService, () -> 0L, () -> null,
+            (joinRequest, joinCallback) -> { throw new AssertionError(); }, startJoinRequest -> { throw new AssertionError(); },
+            Collections.emptyList(), (s, p, r) -> {}, () -> nodeHealthServiceStatus.get());
+        transportService.start();
+
+        DiscoveryNode node1 = new DiscoveryNode("node1", buildNewFakeTransportAddress(), Version.CURRENT);
+        DiscoveryNode node2 = new DiscoveryNode("node2", buildNewFakeTransportAddress(), Version.CURRENT);
+
+        assertFalse(joinHelper.isJoinPending());
+
+        // check that sending a join to node1 doesn't work
+        Optional<Join> optionalJoin1 = randomBoolean() ? Optional.empty() :
+            Optional.of(new Join(localNode, node1, randomNonNegativeLong(), randomNonNegativeLong(), randomNonNegativeLong()));
+        joinHelper.sendJoinRequest(node1, randomNonNegativeLong(), optionalJoin1);
+        CapturedRequest[] capturedRequests1 = capturingTransport.getCapturedRequestsAndClear();
+        assertThat(capturedRequests1.length, equalTo(0));
+
+        assertFalse(joinHelper.isJoinPending());
+
+        // check that sending a join to node2 doesn't work
+        Optional<Join> optionalJoin2 = randomBoolean() ? Optional.empty() :
+            Optional.of(new Join(localNode, node2, randomNonNegativeLong(), randomNonNegativeLong(), randomNonNegativeLong()));
+
+        transportService.start();
+        joinHelper.sendJoinRequest(node2, randomNonNegativeLong(), optionalJoin2);
+
+        CapturedRequest[] capturedRequests2 = capturingTransport.getCapturedRequestsAndClear();
+        assertThat(capturedRequests2.length, equalTo(0));
+
+        assertFalse(joinHelper.isJoinPending());
+
+        nodeHealthServiceStatus.getAndSet(new StatusInfo(HEALTHY, "healthy-info"));
+        // check that sending another join to node1 now works again
+        joinHelper.sendJoinRequest(node1, 0L, optionalJoin1);
+        CapturedRequest[] capturedRequests1a = capturingTransport.getCapturedRequestsAndClear();
+        assertThat(capturedRequests1a.length, equalTo(1));
+        CapturedRequest capturedRequest1a = capturedRequests1a[0];
+        assertEquals(node1, capturedRequest1a.node);
     }
 }
