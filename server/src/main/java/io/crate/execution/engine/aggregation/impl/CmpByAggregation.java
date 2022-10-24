@@ -172,12 +172,11 @@ public final class CmpByAggregation extends AggregationFunction<CmpByAggregation
             case TimestampType.ID_WITH_TZ:
             case TimestampType.ID_WITHOUT_TZ:
                 var resultExpression = referenceResolver.getImplementation(aggregationReferences.get(0));
-                return new CmpByLong(
-                    cmpResult,
-                    searchRef.column().fqn(),
-                    searchType,
-                    resultExpression
-                );
+                if (signature.getName().name().equalsIgnoreCase("min_by")) {
+                    return new MinByLong(searchRef.column().fqn(), searchType, resultExpression);
+                } else {
+                    return new MaxByLong(searchRef.column().fqn(), searchType, resultExpression);
+                }
             default:
                 return null;
         }
@@ -256,28 +255,59 @@ public final class CmpByAggregation extends AggregationFunction<CmpByAggregation
 
         static final long SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(CmpByLongState.class);
 
-        long cmpValue = Long.MIN_VALUE;
-
+        long cmpValue;
         int docId;
         LeafReaderContext leafReaderContext;
         boolean hasValue = false;
+
+        public CmpByLongState(long cmpValue) {
+            this.cmpValue = cmpValue;
+        }
     }
 
-    static class CmpByLong implements DocValueAggregator<CmpByLongState> {
+    static class MinByLong extends CmpByLong {
 
-        private final int mod;
+        public MinByLong(String columnName,
+                         DataType<?> searchType,
+                         LuceneCollectorExpression<?> resultExpression) {
+            super(Long.MAX_VALUE, columnName, searchType, resultExpression);
+        }
+
+        @Override
+        boolean hasPrecedence(long currentValue, long stateValue) {
+            return currentValue < stateValue;
+        }
+    }
+
+    static class MaxByLong extends CmpByLong {
+
+        public MaxByLong(String columnName,
+                         DataType<?> searchType,
+                         LuceneCollectorExpression<?> resultExpression) {
+            super(Long.MIN_VALUE, columnName, searchType, resultExpression);
+        }
+
+        @Override
+        boolean hasPrecedence(long currentValue, long stateValue) {
+            return currentValue > stateValue;
+        }
+    }
+
+    abstract static class CmpByLong implements DocValueAggregator<CmpByLongState> {
+
         private final String columnName;
         private final LuceneCollectorExpression<?> resultExpression;
         private final DataType<?> searchType;
+        private final long sentinelValue;
 
         private SortedNumericDocValues values;
         private LeafReaderContext leafReaderContext;
 
-        public CmpByLong(int mod,
+        public CmpByLong(long sentinelValue,
                          String columnName,
                          DataType<?> searchType,
                          LuceneCollectorExpression<?> resultExpression) {
-            this.mod = mod;
+            this.sentinelValue = sentinelValue;
             this.columnName = columnName;
             this.searchType = searchType;
             this.resultExpression = resultExpression;
@@ -289,7 +319,7 @@ public final class CmpByAggregation extends AggregationFunction<CmpByAggregation
                                            MemoryManager memoryManager,
                                            Version minNodeVersion) {
             ramAccounting.addBytes(CmpByLongState.SHALLOW_SIZE);
-            return new CmpByLongState();
+            return new CmpByLongState(sentinelValue);
         }
 
         @Override
@@ -298,11 +328,13 @@ public final class CmpByAggregation extends AggregationFunction<CmpByAggregation
             values = DocValues.getSortedNumeric(leafReaderContext.reader(), columnName);
         }
 
+        abstract boolean hasPrecedence(long currentValue, long stateValue);
+
         @Override
         public void apply(RamAccounting ramAccounting, int doc, CmpByLongState state) throws IOException {
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
                 long value = values.nextValue();
-                if (value * mod > state.cmpValue * mod) {
+                if (hasPrecedence(value, state.cmpValue)) {
                     state.hasValue = true;
                     state.cmpValue = value;
 

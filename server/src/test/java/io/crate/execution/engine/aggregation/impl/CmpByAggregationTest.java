@@ -179,4 +179,25 @@ public class CmpByAggregationTest extends AggregationTestCase {
         )).isExactlyInstanceOf(UnsupportedOperationException.class)
             .hasMessage("Cannot use `max_by` on values of type object");
     }
+
+
+    @Test
+    public void test_min_by_does_not_overflow_on_MIN_VALUE() throws Exception {
+        Signature signature = Signature.aggregate(
+            "min_by",
+            DataTypes.STRING.getTypeSignature(),
+            DataTypes.LONG.getTypeSignature(),
+            DataTypes.STRING.getTypeSignature()
+        );
+        Object result = executeAggregation(
+            signature,
+            new Object[][] {
+                new Object[] { "a", 1L },
+                new Object[] { "b", 2L },
+                new Object[] { "c", Long.MIN_VALUE},
+            },
+            List.of()
+        );
+        assertThat(result).isEqualTo("c");
+    }
 }
