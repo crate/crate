@@ -63,6 +63,9 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Fixed an issue that could lead to ``IllegalIndexShardStateException`` errors
+  when running a ``SELECT count(*) FROM tbl`` on partitioned tables.
+
 - Fixed an issue which caused ``PRIMARY KEY`` columns to be required on insert
   even if they are generated and their source columns are default not-null,
   i.e.::

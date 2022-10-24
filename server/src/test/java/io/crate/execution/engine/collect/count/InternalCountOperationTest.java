@@ -21,9 +21,13 @@
 
 package io.crate.execution.engine.collect.count;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -31,8 +35,14 @@ import java.util.concurrent.TimeUnit;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.index.Index;
+import org.elasticsearch.index.IndexService;
+import org.elasticsearch.index.shard.IllegalIndexShardStateException;
+import org.elasticsearch.index.shard.IndexShard;
+import org.elasticsearch.index.shard.IndexShardState;
+import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntIndexedContainer;
@@ -42,6 +52,7 @@ import io.crate.analyze.relations.TableRelation;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.table.TableInfo;
@@ -83,5 +94,30 @@ public class InternalCountOperationTest extends IntegTestCase {
             CompletableFuture<Long> count = countOperation.count(txnCtx, indexShards, filter);
             assertThat(count.get(5, TimeUnit.SECONDS), is(1L));
         }
+    }
+
+    @Test
+    public void test_handles_recovering_shard_state_for_partitioned_tables() throws Exception {
+        execute("create table doc.t (name string, p int) partitioned by (p) clustered into 1 shards with (number_of_replicas = 0)");
+        execute("insert into doc.t (name, p) values ('Foo', 1)");
+        ClusterService clusterService = internalCluster().getDataNodeInstance(ClusterService.class);
+        CoordinatorTxnCtx txnCtx = CoordinatorTxnCtx.systemTransactionContext();
+        Metadata metadata = clusterService.state().getMetadata();
+        Index index = metadata.index(new PartitionName(new RelationName("doc", "t"), List.of("1")).asIndexName()).getIndex();
+        var countOperation = (InternalCountOperation) internalCluster().getDataNodeInstance(CountOperation.class);
+        IndexService indexService = mock(IndexService.class);
+        IndexShard indexShard = mock(IndexShard.class);
+        when(indexShard.acquireSearcher(Mockito.anyString())).thenThrow(new IllegalIndexShardStateException(
+            new ShardId(index, 0),
+            IndexShardState.RECOVERING,
+            "index is recovering"
+        ));
+        long count = countOperation.syncCount(
+            indexService,
+            indexShard,
+            txnCtx,
+            Literal.BOOLEAN_TRUE
+        );
+        assertThat(count).isEqualTo(0);
     }
 }
