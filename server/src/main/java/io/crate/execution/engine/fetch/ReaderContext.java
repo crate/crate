@@ -21,30 +21,36 @@
 
 package io.crate.execution.engine.fetch;
 
+import java.io.IOException;
+
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.StoredFieldVisitor;
-import org.elasticsearch.common.CheckedBiConsumer;
-
-import java.io.IOException;
 
 public class ReaderContext {
 
     private final LeafReaderContext leafReaderContext;
-    private final CheckedBiConsumer<Integer,StoredFieldVisitor, IOException> storedFieldsReader;
 
-    public ReaderContext(LeafReaderContext leafReaderContext,
-                         CheckedBiConsumer<Integer, StoredFieldVisitor, IOException> storedFieldsReader) {
+    interface DocumentFieldsReader {
+
+        void document(int docId, StoredFieldVisitor visitor) throws IOException;
+    }
+
+    private final DocumentFieldsReader storedFieldsReader;
+
+    public ReaderContext(LeafReaderContext leafReaderContext, DocumentFieldsReader storedFieldsReader) {
         this.leafReaderContext = leafReaderContext;
         this.storedFieldsReader = storedFieldsReader;
     }
 
     public ReaderContext(LeafReaderContext leafReaderContext) {
-        this(leafReaderContext, leafReaderContext.reader()::document);
+        LeafReader reader = leafReaderContext.reader();
+        this.leafReaderContext = leafReaderContext;
+        this.storedFieldsReader = reader::document;
     }
 
     public void visitDocument(int docId, StoredFieldVisitor visitor) throws IOException {
-        storedFieldsReader.accept(docId, visitor);
+        storedFieldsReader.document(docId, visitor);
     }
 
     public LeafReader reader() {
