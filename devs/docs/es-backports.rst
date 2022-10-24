@@ -285,7 +285,7 @@ should be crossed out as well.
 - [ ] 9268b257895 Add Check for Metadata Existence in BlobStoreRepository (#59141) (#59216)
 - [x] ef5c397c0f6 Sending operations concurrently in peer recovery (#58018)
 - [ ] de6ac6aea6d Fix recovery stage transition with sync_id (#57754)
-- [ ] 46c8d00852d Remove nodes with read-only filesystems (#52680) (#59138)
+- [x] 46c8d00852d Remove nodes with read-only filesystems (#52680) (#59138)
 - [ ] 1ced3f0eb38 Extract recovery files details to its own class (#59121)
 - [x] 0752a86fe58 Enforce higher priority for RepositoriesService ClusterStateApplier (#59040)
 - [x] 00ed31d000f Remove IndexShardRoutingTable#primaryAsList (#59044)
