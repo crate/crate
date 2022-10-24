@@ -33,6 +33,7 @@ import javax.annotation.Nullable;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedNumericDocValues;
+import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 
@@ -66,6 +67,8 @@ public final class CmpByAggregation extends AggregationFunction<CmpByAggregation
     public static final String MIN_BY = "min_by";
 
     static class CompareBy {
+
+        static final long SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(CompareBy.class);
 
         Comparable<Object> cmpValue;
         Object resultValue;
@@ -196,6 +199,7 @@ public final class CmpByAggregation extends AggregationFunction<CmpByAggregation
                               Version indexVersionCreated,
                               Version minNodeInCluster,
                               MemoryManager memoryManager) {
+        ramAccounting.addBytes(CompareBy.SHALLOW_SIZE);
         return new CompareBy();
     }
 
@@ -249,6 +253,9 @@ public final class CmpByAggregation extends AggregationFunction<CmpByAggregation
 
 
     static class CmpByLongState {
+
+        static final long SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(CmpByLongState.class);
+
         long cmpValue = Long.MIN_VALUE;
 
         int docId;
@@ -281,6 +288,7 @@ public final class CmpByAggregation extends AggregationFunction<CmpByAggregation
         public CmpByLongState initialState(RamAccounting ramAccounting,
                                            MemoryManager memoryManager,
                                            Version minNodeVersion) {
+            ramAccounting.addBytes(CmpByLongState.SHALLOW_SIZE);
             return new CmpByLongState();
         }
 
