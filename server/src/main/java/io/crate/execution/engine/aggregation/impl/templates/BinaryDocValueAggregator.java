@@ -21,31 +21,32 @@
 
 package io.crate.execution.engine.aggregation.impl.templates;
 
-import io.crate.breaker.RamAccounting;
-import io.crate.execution.engine.aggregation.DocValueAggregator;
-import io.crate.memory.MemoryManager;
+import java.io.IOException;
+
+import javax.annotation.Nullable;
+
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.SortedSetDocValues;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.CheckedBiConsumer;
 import org.elasticsearch.common.TriFunction;
-import org.elasticsearch.index.fielddata.FieldData;
-import org.elasticsearch.index.fielddata.SortedBinaryDocValues;
 
-import javax.annotation.Nullable;
-import java.io.IOException;
+import io.crate.breaker.RamAccounting;
+import io.crate.execution.engine.aggregation.DocValueAggregator;
+import io.crate.memory.MemoryManager;
 
 public class BinaryDocValueAggregator<T> implements DocValueAggregator<T> {
 
     private final String columnName;
     private final TriFunction<RamAccounting, MemoryManager, Version, T> stateInitializer;
-    private final CheckedBiConsumer<SortedBinaryDocValues, T, IOException> docValuesConsumer;
+    private final CheckedBiConsumer<SortedSetDocValues, T, IOException> docValuesConsumer;
 
-    protected SortedBinaryDocValues values;
+    protected SortedSetDocValues values;
 
     public BinaryDocValueAggregator(String columnName,
                                     TriFunction<RamAccounting, MemoryManager, Version, T> stateInitializer,
-                                    CheckedBiConsumer<SortedBinaryDocValues, T, IOException> docValuesConsumer) {
+                                    CheckedBiConsumer<SortedSetDocValues, T, IOException> docValuesConsumer) {
         this.columnName = columnName;
         this.stateInitializer = stateInitializer;
         this.docValuesConsumer = docValuesConsumer;
@@ -58,7 +59,7 @@ public class BinaryDocValueAggregator<T> implements DocValueAggregator<T> {
 
     @Override
     public void loadDocValues(LeafReaderContext reader) throws IOException {
-        values = FieldData.toString(DocValues.getSortedSet(reader.reader(), columnName));
+        values = DocValues.getSortedSet(reader.reader(), columnName);
     }
 
     @Override
