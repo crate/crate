@@ -70,6 +70,7 @@ import io.crate.execution.jobs.SharedShardContext;
 import io.crate.expression.InputFactory;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
+import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
@@ -87,6 +88,7 @@ final class DocValuesGroupByOptimizedIterator {
 
     @Nullable
     static BatchIterator<Row> tryOptimize(Functions functions,
+                                          LuceneReferenceResolver referenceResolver,
                                           IndexShard indexShard,
                                           DocTableInfo table,
                                           LuceneQueryBuilder luceneQueryBuilder,
@@ -123,6 +125,7 @@ final class DocValuesGroupByOptimizedIterator {
         //noinspection rawtypes
         List<DocValueAggregator> aggregators = DocValuesAggregates.createAggregators(
             functions,
+            referenceResolver,
             groupProjection.values(),
             collectPhase.toCollect(),
             table
@@ -357,7 +360,7 @@ final class DocValuesGroupByOptimizedIterator {
                     keyExpressions.get(i).setNextReader(new ReaderContext(leaf));
                 }
                 for (int i = 0; i < aggregators.size(); i++) {
-                    aggregators.get(i).loadDocValues(leaf.reader());
+                    aggregators.get(i).loadDocValues(leaf);
                 }
 
                 DocIdSetIterator docs = scorer.iterator();

@@ -23,6 +23,7 @@ package io.crate.execution.engine.collect;
 
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 import java.util.Collections;
 import java.util.List;
@@ -36,6 +37,7 @@ import io.crate.analyze.relations.TableRelation;
 import io.crate.execution.engine.aggregation.impl.CountAggregation;
 import io.crate.execution.engine.aggregation.impl.SumAggregation;
 import io.crate.execution.engine.aggregation.impl.templates.SortedNumericDocValueAggregator;
+import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.symbol.Aggregation;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
@@ -79,6 +81,7 @@ public class DocValuesAggregatesTest extends CrateDummyClusterServiceUnitTest {
     public void test_create_aggregators_for_reference_and_doc_value_field_for_the_correct_field_type() {
         var aggregators = DocValuesAggregates.createAggregators(
             functions,
+            mock(LuceneReferenceResolver.class),
             List.of(longSumAggregation()),
             List.of(e.asSymbol("tbl.x")),
             table
@@ -91,6 +94,7 @@ public class DocValuesAggregatesTest extends CrateDummyClusterServiceUnitTest {
     public void test_create_aggregators_for_cast_reference_returns_aggregator_only_if_it_is_cast_to_numeric() {
         var aggregators = DocValuesAggregates.createAggregators(
             functions,
+            mock(LuceneReferenceResolver.class),
             List.of(longSumAggregation()),
             List.of(e.asSymbol("tbl.x::real")),
             table
@@ -99,6 +103,7 @@ public class DocValuesAggregatesTest extends CrateDummyClusterServiceUnitTest {
 
         aggregators = DocValuesAggregates.createAggregators(
             functions,
+            mock(LuceneReferenceResolver.class),
             List.of(longSumAggregation()),
             List.of(e.asSymbol("tbl.x::numeric")),
             table
@@ -111,6 +116,7 @@ public class DocValuesAggregatesTest extends CrateDummyClusterServiceUnitTest {
     public void test_create_aggregators_for_literal_aggregation_input_returns_null() {
         var aggregators = DocValuesAggregates.createAggregators(
             functions,
+            mock(LuceneReferenceResolver.class),
             List.of(new Aggregation(
                 Signature.aggregate(
                     SumAggregation.NAME,
@@ -130,6 +136,7 @@ public class DocValuesAggregatesTest extends CrateDummyClusterServiceUnitTest {
     public void test_create_aggregators_for_reference_not_mapped_to_field_returns_null() {
         var aggregators = DocValuesAggregates.createAggregators(
             functions,
+            mock(LuceneReferenceResolver.class),
             List.of(longSumAggregation()),
             List.of(Literal.of(1)),
             table
@@ -142,6 +149,7 @@ public class DocValuesAggregatesTest extends CrateDummyClusterServiceUnitTest {
         Reference xRef = (Reference) e.asSymbol("tbl.x");
         var aggregators = DocValuesAggregates.createAggregators(
             functions,
+            mock(LuceneReferenceResolver.class),
             List.of(longSumAggregation()),
             List.of(xRef),
             table
@@ -150,6 +158,7 @@ public class DocValuesAggregatesTest extends CrateDummyClusterServiceUnitTest {
 
         aggregators = DocValuesAggregates.createAggregators(
             functions,
+            mock(LuceneReferenceResolver.class),
             List.of(longSumAggregation()),
             List.of(new SimpleReference(
                 xRef.ident(),
@@ -171,6 +180,7 @@ public class DocValuesAggregatesTest extends CrateDummyClusterServiceUnitTest {
     public void test_create_aggregators_for_multiple_aggregations() {
         var actualAggregators = DocValuesAggregates.createAggregators(
             functions,
+            mock(LuceneReferenceResolver.class),
             List.of(countAggregation(0),
                     countAggregation(1),
                     longSumAggregation(2)

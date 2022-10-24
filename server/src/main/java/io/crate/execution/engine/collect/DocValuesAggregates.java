@@ -56,6 +56,7 @@ import io.crate.execution.dsl.projection.Projections;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.aggregation.DocValueAggregator;
 import io.crate.execution.jobs.SharedShardContext;
+import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.scalar.cast.ExplicitCastFunction;
 import io.crate.expression.symbol.Aggregation;
 import io.crate.expression.symbol.InputColumn;
@@ -74,6 +75,7 @@ public class DocValuesAggregates {
 
     @Nullable
     public static BatchIterator<Row> tryOptimize(Functions functions,
+                                                 LuceneReferenceResolver referenceResolver,
                                                  IndexShard indexShard,
                                                  DocTableInfo table,
                                                  LuceneQueryBuilder luceneQueryBuilder,
@@ -86,6 +88,7 @@ public class DocValuesAggregates {
         }
         var aggregators = createAggregators(
             functions,
+            referenceResolver,
             aggregateProjection.aggregations(),
             phase.toCollect(),
             table
@@ -134,6 +137,7 @@ public class DocValuesAggregates {
     @Nullable
     @SuppressWarnings("rawtypes")
     public static List<DocValueAggregator> createAggregators(Functions functions,
+                                                             LuceneReferenceResolver referenceResolver,
                                                              List<Aggregation> aggregations,
                                                              List<Symbol> toCollect,
                                                              DocTableInfo table) {
@@ -168,6 +172,7 @@ public class DocValuesAggregates {
                 return null;
             }
             DocValueAggregator<?> docValueAggregator = aggFunc.getDocValueAggregator(
+                referenceResolver,
                 aggregationReferences,
                 table,
                 literals
@@ -235,7 +240,7 @@ public class DocValuesAggregates {
                 continue;
             }
             for (int i = 0; i < aggregators.size(); i++) {
-                aggregators.get(i).loadDocValues(leaf.reader());
+                aggregators.get(i).loadDocValues(leaf);
             }
             DocIdSetIterator docs = scorer.iterator();
             Bits liveDocs = leaf.reader().getLiveDocs();

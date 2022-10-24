@@ -25,7 +25,7 @@ import io.crate.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.DocValueAggregator;
 import io.crate.memory.MemoryManager;
 import org.apache.lucene.index.DocValues;
-import org.apache.lucene.index.LeafReader;
+import org.apache.lucene.index.LeafReaderContext;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.CheckedBiConsumer;
 import org.elasticsearch.common.TriFunction;
@@ -57,8 +57,8 @@ public class BinaryDocValueAggregator<T> implements DocValueAggregator<T> {
     }
 
     @Override
-    public void loadDocValues(LeafReader reader) throws IOException {
-        values = FieldData.toString(DocValues.getSortedSet(reader, columnName));
+    public void loadDocValues(LeafReaderContext reader) throws IOException {
+        values = FieldData.toString(DocValues.getSortedSet(reader.reader(), columnName));
     }
 
     @Override

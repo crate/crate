@@ -104,6 +104,7 @@ import io.crate.execution.engine.collect.DocValuesAggregates;
 import io.crate.execution.engine.collect.InputCollectExpression;
 import io.crate.execution.engine.collect.MapSideDataCollectOperation;
 import io.crate.execution.jobs.SharedShardContexts;
+import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.Aggregation;
 import io.crate.expression.symbol.Function;
@@ -205,6 +206,12 @@ public abstract class AggregationTestCase extends ESTestCase {
         );
 
         var shard = newStartedPrimaryShard(buildMapping(actualArgumentTypes));
+        var mapperService = shard.mapperService();
+        var refResolver = new LuceneReferenceResolver(
+            shard.shardId().getIndexName(),
+            mapperService::fieldType,
+            List.of()
+        );
         when(indexService.getShard(shard.shardId().id()))
             .thenReturn(shard);
         when(indexServices.indexServiceSafe(shard.routingEntry().index()))
@@ -214,6 +221,7 @@ public abstract class AggregationTestCase extends ESTestCase {
             shard.refresh("test");
 
             List<Row> partialResultWithDocValues = execPartialAggregationWithDocValues(
+                refResolver,
                 aggregationFunction.signature(),
                 actualArgumentTypes,
                 actualReturnType,
@@ -229,6 +237,7 @@ public abstract class AggregationTestCase extends ESTestCase {
                     partialResultWithDocValues.get(0).get(0));
             } else {
                 var docValueAggregator = aggregationFunction.getDocValueAggregator(
+                    refResolver,
                     toReference(actualArgumentTypes),
                     mock(DocTableInfo.class),
                     List.of()
@@ -277,7 +286,8 @@ public abstract class AggregationTestCase extends ESTestCase {
     }
 
     @Nullable
-    private List<Row> execPartialAggregationWithDocValues(Signature signature,
+    private List<Row> execPartialAggregationWithDocValues(LuceneReferenceResolver refResolver,
+                                                          Signature signature,
                                                           List<DataType<?>> argumentTypes,
                                                           DataType<?> actualReturnType,
                                                           IndexShard shard,
@@ -339,6 +349,7 @@ public abstract class AggregationTestCase extends ESTestCase {
 
         var batchIterator = DocValuesAggregates.tryOptimize(
             nodeCtx.functions(),
+            refResolver,
             shard,
             mock(DocTableInfo.class),
             new LuceneQueryBuilder(nodeCtx),
@@ -576,6 +587,7 @@ public abstract class AggregationTestCase extends ESTestCase {
             SearchPath.pathWithPGCatalogAndDoc()
         );
         var docValueAggregator = aggregationFunction.getDocValueAggregator(
+            mock(LuceneReferenceResolver.class),
             toReference(argumentTypes),
             mock(DocTableInfo.class),
             List.of()
