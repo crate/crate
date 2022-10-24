@@ -30,6 +30,7 @@ import org.elasticsearch.common.breaker.CircuitBreakingException;
 
 import io.crate.breaker.RamAccounting;
 import io.crate.data.Input;
+import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.FunctionImplementation;
@@ -118,7 +119,8 @@ public abstract class AggregationFunction<TPartial, TFinal> implements FunctionI
     }
 
     @Nullable
-    public DocValueAggregator<?> getDocValueAggregator(List<Reference> aggregationReferences,
+    public DocValueAggregator<?> getDocValueAggregator(LuceneReferenceResolver referenceResolver,
+                                                       List<Reference> aggregationReferences,
                                                        DocTableInfo table,
                                                        List<Literal<?>> optionalParams) {
         return null;

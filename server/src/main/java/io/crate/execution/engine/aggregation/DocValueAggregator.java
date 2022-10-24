@@ -27,14 +27,14 @@ import javax.annotation.Nullable;
 
 import io.crate.breaker.RamAccounting;
 import io.crate.memory.MemoryManager;
-import org.apache.lucene.index.LeafReader;
+import org.apache.lucene.index.LeafReaderContext;
 import org.elasticsearch.Version;
 
 public interface DocValueAggregator<T> {
 
     public T initialState(RamAccounting ramAccounting, MemoryManager memoryManager, Version minNodeVersion);
 
-    public void loadDocValues(LeafReader reader) throws IOException;
+    public void loadDocValues(LeafReaderContext leafReaderContext) throws IOException;
 
     public void apply(RamAccounting ramAccounting, int doc, T state) throws IOException;
 

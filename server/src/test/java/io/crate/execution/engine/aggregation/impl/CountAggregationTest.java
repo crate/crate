@@ -38,6 +38,7 @@ import io.crate.common.MutableLong;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.aggregation.impl.templates.BinaryDocValueAggregator;
 import io.crate.execution.engine.aggregation.impl.templates.SortedNumericDocValueAggregator;
+import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.ColumnIdent;
@@ -80,6 +81,7 @@ public class CountAggregationTest extends AggregationTestCase {
             SearchPath.pathWithPGCatalogAndDoc()
         );
         var docValueAggregator = aggregationFunction.getDocValueAggregator(
+            mock(LuceneReferenceResolver.class),
             aggregationReferences,
             sourceTable,
             List.of()

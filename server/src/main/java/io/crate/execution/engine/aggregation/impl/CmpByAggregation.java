@@ -23,20 +23,40 @@ package io.crate.execution.engine.aggregation.impl;
 
 import static io.crate.types.TypeSignature.parseTypeSignature;
 
+import java.io.IOException;
+import java.util.List;
+import java.util.Objects;
+
 import javax.annotation.Nullable;
 
+import org.apache.lucene.index.DocValues;
+import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.SortedNumericDocValues;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 
 import io.crate.breaker.RamAccounting;
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
+import io.crate.execution.engine.aggregation.DocValueAggregator;
+import io.crate.execution.engine.fetch.ReaderContext;
+import io.crate.expression.reference.doc.lucene.CollectorContext;
+import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
+import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
+import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
+import io.crate.metadata.Reference;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.functions.TypeVariableConstraint;
+import io.crate.types.ByteType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.IntegerType;
+import io.crate.types.LongType;
+import io.crate.types.ShortType;
+import io.crate.types.TimestampType;
 import io.crate.types.TypeSignature;
 
 public final class CmpByAggregation extends AggregationFunction<CmpByAggregation.CompareBy, Object> {
@@ -48,6 +68,31 @@ public final class CmpByAggregation extends AggregationFunction<CmpByAggregation
 
         Comparable<Object> cmpValue;
         Object resultValue;
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(cmpValue, resultValue);
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (obj == null) {
+                return false;
+            }
+            if (getClass() != obj.getClass()) {
+                return false;
+            }
+            CompareBy other = (CompareBy) obj;
+            return Objects.equals(cmpValue, other.cmpValue) && Objects.equals(resultValue, other.resultValue);
+        }
+
+        @Override
+        public String toString() {
+            return "CompareBy{cmpValue=" + cmpValue + ", resultValue=" + resultValue + "}";
+        }
     }
 
     static {
@@ -102,6 +147,35 @@ public final class CmpByAggregation extends AggregationFunction<CmpByAggregation
                 boundSignature.argTypes().get(0),
                 boundSignature.argTypes().get(1)
             );
+        }
+    }
+
+    @Override
+    public DocValueAggregator<?> getDocValueAggregator(LuceneReferenceResolver referenceResolver,
+                                                       List<Reference> aggregationReferences,
+                                                       DocTableInfo table,
+                                                       List<Literal<?>> optionalParams) {
+        Reference searchRef = aggregationReferences.get(1);
+        if (!searchRef.hasDocValues()) {
+            return null;
+        }
+        DataType<?> searchType = searchRef.valueType();
+        switch (searchType.id()) {
+            case ByteType.ID:
+            case ShortType.ID:
+            case IntegerType.ID:
+            case LongType.ID:
+            case TimestampType.ID_WITH_TZ:
+            case TimestampType.ID_WITHOUT_TZ:
+                var resultExpression = referenceResolver.getImplementation(aggregationReferences.get(0));
+                return new CmpByLong(
+                    cmpResult,
+                    searchRef.column().fqn(),
+                    searchType,
+                    resultExpression
+                );
+            default:
+                return null;
         }
     }
 
@@ -170,5 +244,68 @@ public final class CmpByAggregation extends AggregationFunction<CmpByAggregation
     @Override
     public DataType<?> partialType() {
         return partialType;
+    }
+
+
+    static class CmpByLongState {
+        long cmpValue = Long.MIN_VALUE;
+        Object resultValue;
+        boolean hasValue = false;
+    }
+
+    static class CmpByLong implements DocValueAggregator<CmpByLongState> {
+
+        private final int mod;
+        private final String columnName;
+        private final LuceneCollectorExpression<?> resultExpression;
+        private final DataType<?> searchType;
+        private SortedNumericDocValues values;
+
+        public CmpByLong(int mod,
+                         String columnName,
+                         DataType<?> searchType,
+                         LuceneCollectorExpression<?> resultExpression) {
+            this.mod = mod;
+            this.columnName = columnName;
+            this.searchType = searchType;
+            this.resultExpression = resultExpression;
+            resultExpression.startCollect(new CollectorContext());
+        }
+
+        @Override
+        public CmpByLongState initialState(RamAccounting ramAccounting,
+                                           MemoryManager memoryManager,
+                                           Version minNodeVersion) {
+            return new CmpByLongState();
+        }
+
+        @Override
+        public void loadDocValues(LeafReaderContext leafReaderContext) throws IOException {
+            resultExpression.setNextReader(new ReaderContext(leafReaderContext));
+            values = DocValues.getSortedNumeric(leafReaderContext.reader(), columnName);
+        }
+
+        @Override
+        public void apply(RamAccounting ramAccounting, int doc, CmpByLongState state) throws IOException {
+            if (values.advanceExact(doc) && values.docValueCount() == 1) {
+                long value = values.nextValue();
+                if (value * mod > state.cmpValue * mod) {
+                    state.hasValue = true;
+                    state.cmpValue = value;
+                    resultExpression.setNextDocId(doc);
+                    state.resultValue = resultExpression.value();
+                }
+            }
+        }
+
+        @Override
+        public Object partialResult(RamAccounting ramAccounting, CmpByLongState state) {
+            CompareBy compareBy = new CompareBy();
+            if (state.hasValue) {
+                compareBy.cmpValue = (Comparable) searchType.sanitizeValue(state.cmpValue);
+                compareBy.resultValue = state.resultValue;
+            }
+            return compareBy;
+        }
     }
 }

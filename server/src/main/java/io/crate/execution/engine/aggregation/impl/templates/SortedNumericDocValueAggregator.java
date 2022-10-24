@@ -25,7 +25,7 @@ import io.crate.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.DocValueAggregator;
 import io.crate.memory.MemoryManager;
 import org.apache.lucene.index.DocValues;
-import org.apache.lucene.index.LeafReader;
+import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.CheckedBiConsumer;
@@ -56,8 +56,8 @@ public class SortedNumericDocValueAggregator<T> implements DocValueAggregator<T>
     }
 
     @Override
-    public void loadDocValues(LeafReader reader) throws IOException {
-        values = DocValues.getSortedNumeric(reader, columnName);
+    public void loadDocValues(LeafReaderContext reader) throws IOException {
+        values = DocValues.getSortedNumeric(reader.reader(), columnName);
     }
 
     @Override

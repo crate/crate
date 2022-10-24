@@ -43,6 +43,7 @@ import io.crate.execution.engine.aggregation.DocValueAggregator;
 import io.crate.execution.engine.aggregation.impl.AggregationImplModule;
 import io.crate.execution.engine.aggregation.impl.templates.SortedNumericDocValueAggregator;
 import io.crate.execution.engine.aggregation.impl.util.KahanSummationForDouble;
+import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.Reference;
@@ -299,7 +300,8 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
 
     @Nullable
     @Override
-    public DocValueAggregator<?> getDocValueAggregator(List<Reference> aggregationReferences,
+    public DocValueAggregator<?> getDocValueAggregator(LuceneReferenceResolver referenceResolver,
+                                                       List<Reference> aggregationReferences,
                                                        DocTableInfo table,
                                                        List<Literal<?>> optionalParams) {
         Reference reference = aggregationReferences.get(0);

@@ -27,7 +27,7 @@ import java.util.List;
 import javax.annotation.Nullable;
 
 import org.apache.lucene.index.DocValues;
-import org.apache.lucene.index.LeafReader;
+import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.Version;
@@ -42,6 +42,7 @@ import io.crate.common.MutableLong;
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.aggregation.DocValueAggregator;
+import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.Reference;
@@ -97,8 +98,8 @@ public abstract class MinimumAggregation extends AggregationFunction<Comparable,
         }
 
         @Override
-        public void loadDocValues(LeafReader reader) throws IOException {
-            values = DocValues.getSortedNumeric(reader, columnName);
+        public void loadDocValues(LeafReaderContext reader) throws IOException {
+            values = DocValues.getSortedNumeric(reader.reader(), columnName);
         }
 
         @Override
@@ -138,8 +139,8 @@ public abstract class MinimumAggregation extends AggregationFunction<Comparable,
         }
 
         @Override
-        public void loadDocValues(LeafReader reader) throws IOException {
-            values = DocValues.getSortedNumeric(reader, columnName);
+        public void loadDocValues(LeafReaderContext reader) throws IOException {
+            values = DocValues.getSortedNumeric(reader.reader(), columnName);
         }
 
         @Override
@@ -178,8 +179,8 @@ public abstract class MinimumAggregation extends AggregationFunction<Comparable,
         }
 
         @Override
-        public void loadDocValues(LeafReader reader) throws IOException {
-            values = DocValues.getSortedNumeric(reader, columnName);
+        public void loadDocValues(LeafReaderContext reader) throws IOException {
+            values = DocValues.getSortedNumeric(reader.reader(), columnName);
         }
 
         @Override
@@ -251,7 +252,8 @@ public abstract class MinimumAggregation extends AggregationFunction<Comparable,
 
         @Nullable
         @Override
-        public DocValueAggregator<?> getDocValueAggregator(List<Reference> aggregationReferences,
+        public DocValueAggregator<?> getDocValueAggregator(LuceneReferenceResolver referenceResolver,
+                                                           List<Reference> aggregationReferences,
                                                            DocTableInfo table,
                                                            List<Literal<?>> optionalParams) {
             Reference reference = aggregationReferences.get(0);

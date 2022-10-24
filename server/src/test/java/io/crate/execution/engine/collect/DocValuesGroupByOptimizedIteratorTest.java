@@ -56,6 +56,7 @@ import io.crate.expression.reference.doc.lucene.BytesRefColumnReference;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LongColumnReference;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
+import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.metadata.Functions;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
@@ -112,6 +113,7 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
         );
 
         var sumDocValuesAggregator = sumAggregation.getDocValueAggregator(
+            mock(LuceneReferenceResolver.class),
             List.of(new SimpleReference(
                 new ReferenceIdent(RelationName.fromIndexName("test"), "z"),
                 RowGranularity.DOC,
@@ -169,6 +171,7 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
         );
 
         var sumDocValuesAggregator = sumAggregation.getDocValueAggregator(
+            mock(LuceneReferenceResolver.class),
             List.of(new SimpleReference(
                 new ReferenceIdent(
                     RelationName.fromIndexName("test"),
