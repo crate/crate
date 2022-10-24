@@ -24,6 +24,7 @@ package io.crate.execution.engine.aggregation.impl;
 import static io.crate.types.TypeSignature.parseTypeSignature;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.List;
 import java.util.Objects;
 
@@ -249,7 +250,9 @@ public final class CmpByAggregation extends AggregationFunction<CmpByAggregation
 
     static class CmpByLongState {
         long cmpValue = Long.MIN_VALUE;
-        Object resultValue;
+
+        int docId;
+        LeafReaderContext leafReaderContext;
         boolean hasValue = false;
     }
 
@@ -259,7 +262,9 @@ public final class CmpByAggregation extends AggregationFunction<CmpByAggregation
         private final String columnName;
         private final LuceneCollectorExpression<?> resultExpression;
         private final DataType<?> searchType;
+
         private SortedNumericDocValues values;
+        private LeafReaderContext leafReaderContext;
 
         public CmpByLong(int mod,
                          String columnName,
@@ -281,7 +286,7 @@ public final class CmpByAggregation extends AggregationFunction<CmpByAggregation
 
         @Override
         public void loadDocValues(LeafReaderContext leafReaderContext) throws IOException {
-            resultExpression.setNextReader(new ReaderContext(leafReaderContext));
+            this.leafReaderContext = leafReaderContext;
             values = DocValues.getSortedNumeric(leafReaderContext.reader(), columnName);
         }
 
@@ -292,8 +297,9 @@ public final class CmpByAggregation extends AggregationFunction<CmpByAggregation
                 if (value * mod > state.cmpValue * mod) {
                     state.hasValue = true;
                     state.cmpValue = value;
-                    resultExpression.setNextDocId(doc);
-                    state.resultValue = resultExpression.value();
+
+                    state.docId = doc;
+                    state.leafReaderContext = this.leafReaderContext;
                 }
             }
         }
@@ -303,7 +309,13 @@ public final class CmpByAggregation extends AggregationFunction<CmpByAggregation
             CompareBy compareBy = new CompareBy();
             if (state.hasValue) {
                 compareBy.cmpValue = (Comparable) searchType.sanitizeValue(state.cmpValue);
-                compareBy.resultValue = state.resultValue;
+                try {
+                    resultExpression.setNextReader(new ReaderContext(state.leafReaderContext));
+                    resultExpression.setNextDocId(state.docId);
+                } catch (IOException ex) {
+                    throw new UncheckedIOException(ex);
+                }
+                compareBy.resultValue = resultExpression.value();
             }
             return compareBy;
         }
