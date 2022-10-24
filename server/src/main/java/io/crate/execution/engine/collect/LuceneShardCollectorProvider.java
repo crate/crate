@@ -78,6 +78,8 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
     private final FieldTypeLookup fieldTypeLookup;
     private final RelationName relationName;
 
+    private LuceneReferenceResolver referenceResolver;
+
     public LuceneShardCollectorProvider(Schemas schemas,
                                         LuceneQueryBuilder luceneQueryBuilder,
                                         ClusterService clusterService,
@@ -114,14 +116,12 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
         }
         this.relationName = RelationName.fromIndexName(indexShard.shardId().getIndexName());
         DocTableInfo table = schemas.getTableInfo(relationName);
-        this.docInputFactory = new DocInputFactory(
-            nodeCtx,
-            new LuceneReferenceResolver(
-                indexShard.shardId().getIndexName(),
-                fieldTypeLookup,
-                table.partitionedByColumns()
-            )
+        this.referenceResolver = new LuceneReferenceResolver(
+            indexShard.shardId().getIndexName(),
+            fieldTypeLookup,
+            table.partitionedByColumns()
         );
+        this.docInputFactory = new DocInputFactory(nodeCtx, referenceResolver);
         this.bigArrays = bigArrays;
     }
 
@@ -185,6 +185,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
         }
         it = DocValuesGroupByOptimizedIterator.tryOptimize(
             nodeCtx.functions(),
+            referenceResolver,
             indexShard,
             table,
             luceneQueryBuilder,
@@ -198,6 +199,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
         }
         return DocValuesAggregates.tryOptimize(
             nodeCtx.functions(),
+            referenceResolver,
             indexShard,
             table,
             luceneQueryBuilder,

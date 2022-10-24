@@ -23,20 +23,42 @@ package io.crate.execution.engine.aggregation.impl;
 
 import static io.crate.types.TypeSignature.parseTypeSignature;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.util.List;
+import java.util.Objects;
+
 import javax.annotation.Nullable;
 
+import org.apache.lucene.index.DocValues;
+import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.SortedNumericDocValues;
+import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 
 import io.crate.breaker.RamAccounting;
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
+import io.crate.execution.engine.aggregation.DocValueAggregator;
+import io.crate.execution.engine.fetch.ReaderContext;
+import io.crate.expression.reference.doc.lucene.CollectorContext;
+import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
+import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
+import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
+import io.crate.metadata.Reference;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.functions.TypeVariableConstraint;
+import io.crate.types.ByteType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.IntegerType;
+import io.crate.types.LongType;
+import io.crate.types.ShortType;
+import io.crate.types.TimestampType;
 import io.crate.types.TypeSignature;
 
 public final class CmpByAggregation extends AggregationFunction<CmpByAggregation.CompareBy, Object> {
@@ -46,8 +68,35 @@ public final class CmpByAggregation extends AggregationFunction<CmpByAggregation
 
     static class CompareBy {
 
+        static final long SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(CompareBy.class);
+
         Comparable<Object> cmpValue;
         Object resultValue;
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(cmpValue, resultValue);
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (obj == null) {
+                return false;
+            }
+            if (getClass() != obj.getClass()) {
+                return false;
+            }
+            CompareBy other = (CompareBy) obj;
+            return Objects.equals(cmpValue, other.cmpValue) && Objects.equals(resultValue, other.resultValue);
+        }
+
+        @Override
+        public String toString() {
+            return "CompareBy{cmpValue=" + cmpValue + ", resultValue=" + resultValue + "}";
+        }
     }
 
     static {
@@ -106,6 +155,34 @@ public final class CmpByAggregation extends AggregationFunction<CmpByAggregation
     }
 
     @Override
+    public DocValueAggregator<?> getDocValueAggregator(LuceneReferenceResolver referenceResolver,
+                                                       List<Reference> aggregationReferences,
+                                                       DocTableInfo table,
+                                                       List<Literal<?>> optionalParams) {
+        Reference searchRef = aggregationReferences.get(1);
+        if (!searchRef.hasDocValues()) {
+            return null;
+        }
+        DataType<?> searchType = searchRef.valueType();
+        switch (searchType.id()) {
+            case ByteType.ID:
+            case ShortType.ID:
+            case IntegerType.ID:
+            case LongType.ID:
+            case TimestampType.ID_WITH_TZ:
+            case TimestampType.ID_WITHOUT_TZ:
+                var resultExpression = referenceResolver.getImplementation(aggregationReferences.get(0));
+                if (signature.getName().name().equalsIgnoreCase("min_by")) {
+                    return new MinByLong(searchRef.column().fqn(), searchType, resultExpression);
+                } else {
+                    return new MaxByLong(searchRef.column().fqn(), searchType, resultExpression);
+                }
+            default:
+                return null;
+        }
+    }
+
+    @Override
     public Signature signature() {
         return signature;
     }
@@ -121,6 +198,7 @@ public final class CmpByAggregation extends AggregationFunction<CmpByAggregation
                               Version indexVersionCreated,
                               Version minNodeInCluster,
                               MemoryManager memoryManager) {
+        ramAccounting.addBytes(CompareBy.SHALLOW_SIZE);
         return new CompareBy();
     }
 
@@ -170,5 +248,116 @@ public final class CmpByAggregation extends AggregationFunction<CmpByAggregation
     @Override
     public DataType<?> partialType() {
         return partialType;
+    }
+
+
+    static class CmpByLongState {
+
+        static final long SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(CmpByLongState.class);
+
+        long cmpValue;
+        int docId;
+        LeafReaderContext leafReaderContext;
+        boolean hasValue = false;
+
+        public CmpByLongState(long cmpValue) {
+            this.cmpValue = cmpValue;
+        }
+    }
+
+    static class MinByLong extends CmpByLong {
+
+        public MinByLong(String columnName,
+                         DataType<?> searchType,
+                         LuceneCollectorExpression<?> resultExpression) {
+            super(Long.MAX_VALUE, columnName, searchType, resultExpression);
+        }
+
+        @Override
+        boolean hasPrecedence(long currentValue, long stateValue) {
+            return currentValue < stateValue;
+        }
+    }
+
+    static class MaxByLong extends CmpByLong {
+
+        public MaxByLong(String columnName,
+                         DataType<?> searchType,
+                         LuceneCollectorExpression<?> resultExpression) {
+            super(Long.MIN_VALUE, columnName, searchType, resultExpression);
+        }
+
+        @Override
+        boolean hasPrecedence(long currentValue, long stateValue) {
+            return currentValue > stateValue;
+        }
+    }
+
+    abstract static class CmpByLong implements DocValueAggregator<CmpByLongState> {
+
+        private final String columnName;
+        private final LuceneCollectorExpression<?> resultExpression;
+        private final DataType<?> searchType;
+        private final long sentinelValue;
+
+        private SortedNumericDocValues values;
+        private LeafReaderContext leafReaderContext;
+
+        public CmpByLong(long sentinelValue,
+                         String columnName,
+                         DataType<?> searchType,
+                         LuceneCollectorExpression<?> resultExpression) {
+            this.sentinelValue = sentinelValue;
+            this.columnName = columnName;
+            this.searchType = searchType;
+            this.resultExpression = resultExpression;
+            resultExpression.startCollect(new CollectorContext());
+        }
+
+        @Override
+        public CmpByLongState initialState(RamAccounting ramAccounting,
+                                           MemoryManager memoryManager,
+                                           Version minNodeVersion) {
+            ramAccounting.addBytes(CmpByLongState.SHALLOW_SIZE);
+            return new CmpByLongState(sentinelValue);
+        }
+
+        @Override
+        public void loadDocValues(LeafReaderContext leafReaderContext) throws IOException {
+            this.leafReaderContext = leafReaderContext;
+            values = DocValues.getSortedNumeric(leafReaderContext.reader(), columnName);
+        }
+
+        abstract boolean hasPrecedence(long currentValue, long stateValue);
+
+        @Override
+        public void apply(RamAccounting ramAccounting, int doc, CmpByLongState state) throws IOException {
+            if (values.advanceExact(doc) && values.docValueCount() == 1) {
+                long value = values.nextValue();
+                if (hasPrecedence(value, state.cmpValue)) {
+                    state.hasValue = true;
+                    state.cmpValue = value;
+
+                    state.docId = doc;
+                    state.leafReaderContext = this.leafReaderContext;
+                }
+            }
+        }
+
+        @Override
+        public Object partialResult(RamAccounting ramAccounting, CmpByLongState state) {
+            CompareBy compareBy = new CompareBy();
+            if (state.hasValue) {
+                compareBy.cmpValue = (Comparable) searchType.sanitizeValue(state.cmpValue);
+                try {
+                    resultExpression.setNextReader(new ReaderContext(state.leafReaderContext));
+                    resultExpression.setNextDocId(state.docId);
+                } catch (IOException ex) {
+                    throw new UncheckedIOException(ex);
+                }
+                compareBy.resultValue = resultExpression.value();
+            }
+            return compareBy;
+        }
     }
 }

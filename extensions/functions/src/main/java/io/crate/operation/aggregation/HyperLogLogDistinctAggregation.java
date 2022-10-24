@@ -32,7 +32,7 @@ import javax.annotation.Nullable;
 import com.carrotsearch.hppc.BitMixer;
 
 import org.apache.lucene.index.DocValues;
-import org.apache.lucene.index.LeafReader;
+import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.Version;
@@ -53,6 +53,7 @@ import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.aggregation.DocValueAggregator;
 import io.crate.execution.engine.aggregation.impl.HyperLogLogPlusPlus;
 import io.crate.execution.engine.aggregation.impl.templates.SortedNumericDocValueAggregator;
+import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.Reference;
@@ -166,7 +167,8 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
 
     @Nullable
     @Override
-    public DocValueAggregator<?> getDocValueAggregator(List<Reference> aggregationReferences,
+    public DocValueAggregator<?> getDocValueAggregator(LuceneReferenceResolver referenceResolver,
+                                                       List<Reference> aggregationReferences,
                                                        DocTableInfo table,
                                                        List<Literal<?>> optionalParams) {
         if (aggregationReferences.stream().anyMatch(x -> !x.hasDocValues())) {
@@ -288,8 +290,8 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
         }
 
         @Override
-        public void loadDocValues(LeafReader reader) throws IOException {
-            values = FieldData.toString(DocValues.getSortedSet(reader, columnName));
+        public void loadDocValues(LeafReaderContext reader) throws IOException {
+            values = FieldData.toString(DocValues.getSortedSet(reader.reader(), columnName));
         }
 
         @Override

@@ -27,7 +27,7 @@ import java.util.List;
 import javax.annotation.Nullable;
 
 import org.apache.lucene.index.DocValues;
-import org.apache.lucene.index.LeafReader;
+import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.Version;
@@ -41,6 +41,7 @@ import io.crate.common.MutableObject;
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.aggregation.DocValueAggregator;
+import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.Reference;
@@ -136,7 +137,8 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
 
     @Nullable
     @Override
-    public DocValueAggregator<?> getDocValueAggregator(List<Reference> aggregationReferences,
+    public DocValueAggregator<?> getDocValueAggregator(LuceneReferenceResolver referenceResolver,
+                                                       List<Reference> aggregationReferences,
                                                        DocTableInfo table,
                                                        List<Literal<?>> optionalParams) {
         Reference arg = aggregationReferences.get(0);
@@ -263,8 +265,8 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
         }
 
         @Override
-        public void loadDocValues(LeafReader reader) throws IOException {
-            values = DocValues.getSortedNumeric(reader, columnName);
+        public void loadDocValues(LeafReaderContext reader) throws IOException {
+            values = DocValues.getSortedNumeric(reader.reader(), columnName);
         }
 
         @Nullable
@@ -300,8 +302,8 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
         }
 
         @Override
-        public void loadDocValues(LeafReader reader) throws IOException {
-            values = FieldData.toString(DocValues.getSortedSet(reader, columnName));
+        public void loadDocValues(LeafReaderContext reader) throws IOException {
+            values = FieldData.toString(DocValues.getSortedSet(reader.reader(), columnName));
         }
 
         @Override

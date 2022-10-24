@@ -41,6 +41,7 @@ import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.aggregation.DocValueAggregator;
 import io.crate.execution.engine.aggregation.impl.templates.BinaryDocValueAggregator;
 import io.crate.execution.engine.aggregation.impl.templates.SortedNumericDocValueAggregator;
+import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
@@ -283,7 +284,8 @@ public class CountAggregation extends AggregationFunction<MutableLong, Long> {
 
     @Nullable
     @Override
-    public DocValueAggregator<?> getDocValueAggregator(List<Reference> aggregationReferences,
+    public DocValueAggregator<?> getDocValueAggregator(LuceneReferenceResolver referenceResolver,
+                                                       List<Reference> aggregationReferences,
                                                        DocTableInfo table,
                                                        List<Literal<?>> optionalParams) {
         if (aggregationReferences.size() != 1) {

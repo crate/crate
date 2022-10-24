@@ -28,7 +28,7 @@ import java.util.function.BinaryOperator;
 import javax.annotation.Nullable;
 
 import org.apache.lucene.index.DocValues;
-import org.apache.lucene.index.LeafReader;
+import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.Version;
@@ -44,6 +44,7 @@ import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.aggregation.DocValueAggregator;
 import io.crate.execution.engine.aggregation.impl.util.KahanSummationForDouble;
 import io.crate.execution.engine.aggregation.impl.util.KahanSummationForFloat;
+import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.FunctionProvider.FunctionFactory;
@@ -187,7 +188,8 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
 
     @Nullable
     @Override
-    public DocValueAggregator<?> getDocValueAggregator(List<Reference> aggregationReferences,
+    public DocValueAggregator<?> getDocValueAggregator(LuceneReferenceResolver referenceResolver,
+                                                       List<Reference> aggregationReferences,
                                                        DocTableInfo table,
                                                        List<Literal<?>> optionalParams) {
         Reference reference = aggregationReferences.get(0);
@@ -254,8 +256,8 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
         }
 
         @Override
-        public void loadDocValues(LeafReader reader) throws IOException {
-            values = DocValues.getSortedNumeric(reader, columnName);
+        public void loadDocValues(LeafReaderContext reader) throws IOException {
+            values = DocValues.getSortedNumeric(reader.reader(), columnName);
         }
 
         @Override
@@ -288,8 +290,8 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
         }
 
         @Override
-        public void loadDocValues(LeafReader reader) throws IOException {
-            values = DocValues.getSortedNumeric(reader, columnName);
+        public void loadDocValues(LeafReaderContext reader) throws IOException {
+            values = DocValues.getSortedNumeric(reader.reader(), columnName);
         }
 
         @Override
@@ -326,8 +328,8 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
         }
 
         @Override
-        public void loadDocValues(LeafReader reader) throws IOException {
-            values = DocValues.getSortedNumeric(reader, columnName);
+        public void loadDocValues(LeafReaderContext reader) throws IOException {
+            values = DocValues.getSortedNumeric(reader.reader(), columnName);
         }
 
         @Override
