@@ -22,6 +22,7 @@
 package io.crate.data;
 
 import java.util.concurrent.CompletionStage;
+import java.util.function.Consumer;
 
 
 /**
@@ -71,13 +72,13 @@ public interface BatchIterator<T> extends Killable {
 
     IllegalStateException CLOSED = new IllegalStateException("BatchIterator is closed");
 
-
     /**
      * This method returns the item that is at the current position of the BatchIterator.
      *
      * The behaviour of this method if the BatchIterator is "not on a position" is undefined.
      */
     T currentElement();
+
 
     /**
      * Moves the Iterator back to the starting position.
@@ -138,4 +139,50 @@ public interface BatchIterator<T> extends Killable {
      *              then this should return false - even if there is an on-demand transformation.
      */
     boolean hasLazyResultSet();
+
+
+    /**
+     * Move the batchIterator by {@code steps} utilizing {@link #moveNext()
+     *
+     * @param onNext called for each successful moveNext.
+     * @param onFinish called after {@code steps}, if exhausted, or on error.
+     */
+    default void move(int steps, Consumer<T> onNext, Consumer<Throwable> onFinish) {
+        assert steps >= 0 : "steps must be positive";
+        try {
+            for (int i = 0; i < steps; i++) {
+                if (moveNext()) {
+                    onNext.accept(currentElement());
+                } else {
+                    if (allLoaded()) {
+                        onFinish.accept(null);
+                        return;
+                    } else {
+                        var nextBatch = loadNextBatch().toCompletableFuture();
+                        if (nextBatch.isDone()) {
+                            if (nextBatch.isCompletedExceptionally()) {
+                                // trigger exception
+                                nextBatch.join();
+                            }
+                            i--;
+                            continue;
+                        } else {
+                            int remainingSteps = steps - i;
+                            nextBatch.whenComplete((res, err) -> {
+                                if (err == null) {
+                                    move(remainingSteps, onNext, onFinish);
+                                } else {
+                                    onFinish.accept(err);
+                                }
+                            });
+                            return;
+                        }
+                    }
+                }
+            }
+            onFinish.accept(null);
+        } catch (Throwable ex) {
+            onFinish.accept(ex);
+        }
+    }
 }

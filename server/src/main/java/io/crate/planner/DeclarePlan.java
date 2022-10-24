@@ -23,6 +23,11 @@ package io.crate.planner;
 
 import java.util.concurrent.CompletableFuture;
 
+import javax.annotation.Nullable;
+
+import org.elasticsearch.common.breaker.CircuitBreaker;
+import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
+
 import io.crate.action.sql.Cursor;
 import io.crate.action.sql.Cursors;
 import io.crate.analyze.AnalyzedDeclare;
@@ -33,6 +38,7 @@ import io.crate.data.RowConsumer;
 import io.crate.data.SentinelRow;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.protocols.postgres.TransactionState;
+import io.crate.sql.tree.Declare;
 import io.crate.sql.tree.Declare.Hold;
 
 public class DeclarePlan implements Plan {
@@ -62,12 +68,16 @@ public class DeclarePlan implements Plan {
         }
         CursorRowConsumer cursorRowConsumer = new CursorRowConsumer(consumer);
         Cursors cursors = plannerContext.cursors();
+        Declare declareStmt = declare.declare();
+        CircuitBreaker circuitBreaker = dependencies.circuitBreaker(HierarchyCircuitBreakerService.QUERY);
         Cursor cursor = new Cursor(
-            declare.declare().hold(),
+            circuitBreaker,
+            declareStmt.scroll(),
+            declareStmt.hold(),
             cursorRowConsumer.result,
             declare.query().outputs()
         );
-        cursors.add(declare.declare().cursorName(), cursor);
+        cursors.add(declareStmt.cursorName(), cursor);
         queryPlan.execute(dependencies, plannerContext, cursorRowConsumer, params, subQueryResults);
     }
 
@@ -81,7 +91,7 @@ public class DeclarePlan implements Plan {
         }
 
         @Override
-        public void accept(BatchIterator<Row> iterator, Throwable failure) {
+        public void accept(BatchIterator<Row> iterator, @Nullable Throwable failure) {
             if (failure != null) {
                 result.completeExceptionally(failure);
             } else {
