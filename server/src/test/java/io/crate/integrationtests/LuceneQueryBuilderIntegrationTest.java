@@ -37,13 +37,10 @@ import org.elasticsearch.search.SearchModule;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
-import com.carrotsearch.randomizedtesting.annotations.Seed;
-
 import io.crate.testing.DataTypeTesting;
 import io.crate.types.DataType;
 
 @IntegTestCase.ClusterScope(scope = IntegTestCase.Scope.TEST)
-@Seed("54904E791E52DEFD")
 public class LuceneQueryBuilderIntegrationTest extends IntegTestCase {
 
     private static final int NUMBER_OF_BOOLEAN_CLAUSES = 10_000;
