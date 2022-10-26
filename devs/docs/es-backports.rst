@@ -280,7 +280,7 @@ should be crossed out as well.
 - [x] f4caadd239f MappedFieldType no longer requires equals/hashCode/clone (#59212)
 - [x] d56fc72ee5b Fix node health-check-related test failures (#59277)
 - [ ] 67a27e2b9d4 Add declarative parameters to FieldMappers (#58663)
-- [ ] 6a0f7411e25 Do not release safe commit with CancellableThreads (#59182)
+- [x] 6a0f7411e25 Do not release safe commit with CancellableThreads (#59182)
 - [ ] 17bd5592537 Fix the timestamp field of a data stream to @timestamp (#59210)
 - [x] 9268b257895 Add Check for Metadata Existence in BlobStoreRepository (#59141) (#59216)
 - [x] ef5c397c0f6 Sending operations concurrently in peer recovery (#58018)
