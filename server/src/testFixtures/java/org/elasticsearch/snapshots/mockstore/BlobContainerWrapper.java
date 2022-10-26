@@ -46,6 +46,12 @@ public class BlobContainerWrapper implements BlobContainer {
     }
 
     @Override
+    public boolean blobExists(String blobName) throws IOException {
+        return delegate.blobExists(blobName);
+    }
+
+
+    @Override
     public InputStream readBlob(String blobName, long position, long length) throws IOException {
         return delegate.readBlob(blobName, position, length);
     }

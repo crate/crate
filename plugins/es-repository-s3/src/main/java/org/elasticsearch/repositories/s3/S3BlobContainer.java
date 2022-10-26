@@ -65,6 +65,7 @@ import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.amazonaws.services.s3.model.UploadPartRequest;
 import com.amazonaws.services.s3.model.UploadPartResult;
+import org.elasticsearch.common.blobstore.BlobStoreException;
 
 import io.crate.common.collections.Tuple;
 
@@ -83,6 +84,15 @@ class S3BlobContainer extends AbstractBlobContainer {
         super(path);
         this.blobStore = blobStore;
         this.keyPath = path.buildAsString();
+    }
+
+    @Override
+    public boolean blobExists(String blobName) {
+        try (AmazonS3Reference clientReference = blobStore.clientReference()) {
+            return clientReference.client().doesObjectExist(blobStore.bucket(), buildKey(blobName));
+        } catch (final Exception e) {
+            throw new BlobStoreException("Failed to check if blob [" + blobName + "] exists", e);
+        }
     }
 
     @Override

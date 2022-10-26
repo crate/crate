@@ -282,7 +282,7 @@ should be crossed out as well.
 - [ ] 67a27e2b9d4 Add declarative parameters to FieldMappers (#58663)
 - [ ] 6a0f7411e25 Do not release safe commit with CancellableThreads (#59182)
 - [ ] 17bd5592537 Fix the timestamp field of a data stream to @timestamp (#59210)
-- [ ] 9268b257895 Add Check for Metadata Existence in BlobStoreRepository (#59141) (#59216)
+- [x] 9268b257895 Add Check for Metadata Existence in BlobStoreRepository (#59141) (#59216)
 - [x] ef5c397c0f6 Sending operations concurrently in peer recovery (#58018)
 - [x] de6ac6aea6d Fix recovery stage transition with sync_id (#57754)
 - [x] 46c8d00852d Remove nodes with read-only filesystems (#52680) (#59138)
