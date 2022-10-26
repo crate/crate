@@ -916,11 +916,11 @@ public class IndexShardTests extends IndexShardTestCase {
         RecoveryState recoveryState = targetShard.recoveryState();
         assertEquals(RecoveryState.Stage.DONE, recoveryState.getStage());
         assertTrue(recoveryState.getIndex().fileDetails().size() > 0);
-        for (var entry : recoveryState.getIndex().fileDetails().entrySet()) {
-            if (entry.getValue().reused()) {
-                assertEquals(entry.getValue().recovered(), 0);
+        for (var entry : recoveryState.getIndex().fileDetails().values()) {
+            if (entry.reused()) {
+                assertEquals(entry.recovered(), 0);
             } else {
-                assertEquals(entry.getValue().recovered(), entry.getValue().length());
+                assertEquals(entry.recovered(), entry.length());
             }
         }
         // check that local checkpoint of new primary is properly tracked after recovery
