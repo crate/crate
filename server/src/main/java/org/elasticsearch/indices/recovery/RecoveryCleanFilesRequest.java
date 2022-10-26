@@ -36,7 +36,7 @@ public class RecoveryCleanFilesRequest extends RecoveryTransportRequest {
     private final int totalTranslogOps;
     private final long globalCheckpoint;
 
-    RecoveryCleanFilesRequest(long recoveryId,
+    public RecoveryCleanFilesRequest(long recoveryId,
                               long requestSeqNo,
                               ShardId shardId,
                               Store.MetadataSnapshot snapshotFiles,
