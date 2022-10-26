@@ -24,29 +24,22 @@ import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.routing.RecoverySource;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import javax.annotation.Nullable;
-import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.common.unit.ByteSizeValue;
 import io.crate.common.unit.TimeValue;
-import org.elasticsearch.common.xcontent.ToXContentFragment;
-import org.elasticsearch.common.xcontent.ToXContentObject;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 
 import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.Map;
 
 /**
  * Keeps track of state related to shard recovery.
  */
-public class RecoveryState implements ToXContentFragment, Writeable {
+public class RecoveryState implements Writeable {
 
     public enum Stage {
         INIT((byte) 0),
@@ -259,97 +252,6 @@ public class RecoveryState implements ToXContentFragment, Writeable {
         out.writeBoolean(primary);
     }
 
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-
-        builder.field(Fields.ID, shardId.id());
-        builder.field(Fields.TYPE, recoverySource.getType());
-        builder.field(Fields.STAGE, stage.toString());
-        builder.field(Fields.PRIMARY, primary);
-        builder.timeField(Fields.START_TIME_IN_MILLIS, Fields.START_TIME, timer.startTime);
-        if (timer.stopTime > 0) {
-            builder.timeField(Fields.STOP_TIME_IN_MILLIS, Fields.STOP_TIME, timer.stopTime);
-        }
-        builder.humanReadableField(Fields.TOTAL_TIME_IN_MILLIS, Fields.TOTAL_TIME, new TimeValue(timer.time()));
-
-        if (recoverySource.getType() == RecoverySource.Type.PEER) {
-            builder.startObject(Fields.SOURCE);
-            builder.field(Fields.ID, sourceNode.getId());
-            builder.field(Fields.HOST, sourceNode.getHostName());
-            builder.field(Fields.TRANSPORT_ADDRESS, sourceNode.getAddress().toString());
-            builder.field(Fields.IP, sourceNode.getHostAddress());
-            builder.field(Fields.NAME, sourceNode.getName());
-            builder.endObject();
-        } else {
-            builder.startObject(Fields.SOURCE);
-            recoverySource.addAdditionalFields(builder, params);
-            builder.endObject();
-        }
-
-        builder.startObject(Fields.TARGET);
-        builder.field(Fields.ID, targetNode.getId());
-        builder.field(Fields.HOST, targetNode.getHostName());
-        builder.field(Fields.TRANSPORT_ADDRESS, targetNode.getAddress().toString());
-        builder.field(Fields.IP, targetNode.getHostAddress());
-        builder.field(Fields.NAME, targetNode.getName());
-        builder.endObject();
-
-        builder.startObject(Fields.INDEX);
-        index.toXContent(builder, params);
-        builder.endObject();
-
-        builder.startObject(Fields.TRANSLOG);
-        translog.toXContent(builder, params);
-        builder.endObject();
-
-        builder.startObject(Fields.VERIFY_INDEX);
-        verifyIndex.toXContent(builder, params);
-        builder.endObject();
-
-        return builder;
-    }
-
-    static final class Fields {
-        static final String ID = "id";
-        static final String TYPE = "type";
-        static final String STAGE = "stage";
-        static final String PRIMARY = "primary";
-        static final String START_TIME = "start_time";
-        static final String START_TIME_IN_MILLIS = "start_time_in_millis";
-        static final String STOP_TIME = "stop_time";
-        static final String STOP_TIME_IN_MILLIS = "stop_time_in_millis";
-        static final String TOTAL_TIME = "total_time";
-        static final String TOTAL_TIME_IN_MILLIS = "total_time_in_millis";
-        static final String SOURCE = "source";
-        static final String HOST = "host";
-        static final String TRANSPORT_ADDRESS = "transport_address";
-        static final String IP = "ip";
-        static final String NAME = "name";
-        static final String TARGET = "target";
-        static final String INDEX = "index";
-        static final String TRANSLOG = "translog";
-        static final String TOTAL_ON_START = "total_on_start";
-        static final String VERIFY_INDEX = "verify_index";
-        static final String RECOVERED = "recovered";
-        static final String RECOVERED_IN_BYTES = "recovered_in_bytes";
-        static final String CHECK_INDEX_TIME = "check_index_time";
-        static final String CHECK_INDEX_TIME_IN_MILLIS = "check_index_time_in_millis";
-        static final String LENGTH = "length";
-        static final String LENGTH_IN_BYTES = "length_in_bytes";
-        static final String FILES = "files";
-        static final String TOTAL = "total";
-        static final String TOTAL_IN_BYTES = "total_in_bytes";
-        static final String REUSED = "reused";
-        static final String REUSED_IN_BYTES = "reused_in_bytes";
-        static final String PERCENT = "percent";
-        static final String DETAILS = "details";
-        static final String SIZE = "size";
-        static final String SOURCE_THROTTLE_TIME = "source_throttle_time";
-        static final String SOURCE_THROTTLE_TIME_IN_MILLIS = "source_throttle_time_in_millis";
-        static final String TARGET_THROTTLE_TIME = "target_throttle_time";
-        static final String TARGET_THROTTLE_TIME_IN_MILLIS = "target_throttle_time_in_millis";
-    }
-
     public static class Timer implements Writeable {
 
         protected long startTime;
@@ -422,7 +324,7 @@ public class RecoveryState implements ToXContentFragment, Writeable {
         }
     }
 
-    public static class VerifyIndex extends Timer implements ToXContentFragment, Writeable {
+    public static class VerifyIndex extends Timer implements Writeable {
 
         private volatile long checkIndexTime;
 
@@ -457,15 +359,9 @@ public class RecoveryState implements ToXContentFragment, Writeable {
             out.writeVLong(checkIndexTime);
         }
 
-        @Override
-        public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-            builder.humanReadableField(Fields.CHECK_INDEX_TIME_IN_MILLIS, Fields.CHECK_INDEX_TIME, new TimeValue(checkIndexTime));
-            builder.humanReadableField(Fields.TOTAL_TIME_IN_MILLIS, Fields.TOTAL_TIME, new TimeValue(time()));
-            return builder;
-        }
     }
 
-    public static class Translog extends Timer implements ToXContentFragment, Writeable {
+    public static class Translog extends Timer implements Writeable {
 
         public static final int UNKNOWN = -1;
 
@@ -574,19 +470,9 @@ public class RecoveryState implements ToXContentFragment, Writeable {
                 }
             }
         }
-
-        @Override
-        public synchronized XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-            builder.field(Fields.RECOVERED, recovered);
-            builder.field(Fields.TOTAL, total);
-            builder.field(Fields.PERCENT, String.format(Locale.ROOT, "%1.1f%%", recoveredPercent()));
-            builder.field(Fields.TOTAL_ON_START, totalOnStart);
-            builder.humanReadableField(Fields.TOTAL_TIME_IN_MILLIS, Fields.TOTAL_TIME, new TimeValue(time()));
-            return builder;
-        }
     }
 
-    public static class File implements ToXContentObject, Writeable {
+    public static class File implements Writeable {
 
         private final String name;
         private final long length;
@@ -655,17 +541,6 @@ public class RecoveryState implements ToXContentFragment, Writeable {
         }
 
         @Override
-        public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-            builder.startObject();
-            builder.field(Fields.NAME, name);
-            builder.humanReadableField(Fields.LENGTH_IN_BYTES, Fields.LENGTH, new ByteSizeValue(length));
-            builder.field(Fields.REUSED, reused);
-            builder.humanReadableField(Fields.RECOVERED_IN_BYTES, Fields.RECOVERED, new ByteSizeValue(recovered));
-            builder.endObject();
-            return builder;
-        }
-
-        @Override
         public boolean equals(Object obj) {
             if (obj instanceof File) {
                 File other = (File) obj;
@@ -690,7 +565,7 @@ public class RecoveryState implements ToXContentFragment, Writeable {
     }
 
 
-    public static class RecoveryFilesDetails implements ToXContentFragment, Writeable {
+    public static class RecoveryFilesDetails implements Writeable {
         private final Map<String, File> fileDetails = new HashMap<>();
         private boolean complete;
 
@@ -724,19 +599,6 @@ public class RecoveryState implements ToXContentFragment, Writeable {
             if (out.getVersion().onOrAfter(Version.V_5_2_0)) {
                 out.writeBoolean(complete);
             }
-        }
-
-        @Override
-        public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-            if (params.paramAsBoolean("detailed", false)) {
-                builder.startArray(Fields.DETAILS);
-                for (File file : values()) {
-                    file.toXContent(builder, params);
-                }
-                builder.endArray();
-            }
-
-            return builder;
         }
 
         public void addFileDetails(String name, long length, boolean reused) {
@@ -781,7 +643,7 @@ public class RecoveryState implements ToXContentFragment, Writeable {
         }
     }
 
-    public static class Index extends Timer implements ToXContentFragment, Writeable {
+    public static class Index extends Timer implements Writeable {
         private final RecoveryFilesDetails fileDetails;
 
         public static final long UNKNOWN = -1L;
@@ -993,42 +855,6 @@ public class RecoveryState implements ToXContentFragment, Writeable {
                 }
             }
             return reused;
-        }
-
-        @Override
-        public synchronized XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-            // stream size first, as it matters more and the files section can be long
-            builder.startObject(Fields.SIZE);
-            builder.humanReadableField(Fields.TOTAL_IN_BYTES, Fields.TOTAL, new ByteSizeValue(totalBytes()));
-            builder.humanReadableField(Fields.REUSED_IN_BYTES, Fields.REUSED, new ByteSizeValue(reusedBytes()));
-            builder.humanReadableField(Fields.RECOVERED_IN_BYTES, Fields.RECOVERED, new ByteSizeValue(recoveredBytes()));
-            builder.field(Fields.PERCENT, String.format(Locale.ROOT, "%1.1f%%", recoveredBytesPercent()));
-            builder.endObject();
-
-            builder.startObject(Fields.FILES);
-            builder.field(Fields.TOTAL, totalFileCount());
-            builder.field(Fields.REUSED, reusedFileCount());
-            builder.field(Fields.RECOVERED, recoveredFileCount());
-            builder.field(Fields.PERCENT, String.format(Locale.ROOT, "%1.1f%%", recoveredFilesPercent()));
-            fileDetails.toXContent(builder, params);
-            builder.endObject();
-            builder.humanReadableField(Fields.TOTAL_TIME_IN_MILLIS, Fields.TOTAL_TIME, new TimeValue(time()));
-            builder.humanReadableField(Fields.SOURCE_THROTTLE_TIME_IN_MILLIS, Fields.SOURCE_THROTTLE_TIME, sourceThrottling());
-            builder.humanReadableField(Fields.TARGET_THROTTLE_TIME_IN_MILLIS, Fields.TARGET_THROTTLE_TIME, targetThrottling());
-            return builder;
-        }
-
-        @Override
-        public synchronized String toString() {
-            try {
-                XContentBuilder builder = XContentFactory.jsonBuilder().prettyPrint();
-                builder.startObject();
-                toXContent(builder, EMPTY_PARAMS);
-                builder.endObject();
-                return Strings.toString(builder);
-            } catch (IOException e) {
-                return "{ \"error\" : \"" + e.getMessage() + "\"}";
-            }
         }
 
         public File getFileDetails(String dest) {
