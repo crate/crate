@@ -276,7 +276,7 @@ should be crossed out as well.
 - [ ] 19ba6c39d27 Migrate CompletionFieldMapper to parametrized format (#59291)
 - [ ] 08b54feaaf2 Remove Snapshot INIT Step (#55918) (#59374)
 - [ ] c810a4a12e8 Continue to accept unused 'universal' params in <8.0 indexes (#59381)
-- [ ] 483386136d9 Move all Snapshot Master Node Steps to SnapshotsService (#56365) (#59373)
+- [x] 483386136d9 Move all Snapshot Master Node Steps to SnapshotsService (#56365) (#59373)
 - [x] f4caadd239f MappedFieldType no longer requires equals/hashCode/clone (#59212)
 - [x] d56fc72ee5b Fix node health-check-related test failures (#59277)
 - [ ] 67a27e2b9d4 Add declarative parameters to FieldMappers (#58663)
