@@ -91,3 +91,7 @@ Fixes
 
 - Fixed an issue that caused ``ARRAY_COL = []`` to throw an exception on
   ``OBJECT``, ``GEO_SHAPE``, ``IP`` or ``BIT`` array element types.
+
+- Fixed an issue that caused queries reading values of type ``BIT`` to return a
+  wrong result if the query contains a ``WHERE`` clause ``pk_col = ?``
+  condition.
