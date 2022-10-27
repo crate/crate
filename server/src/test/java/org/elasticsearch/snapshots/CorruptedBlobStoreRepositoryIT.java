@@ -247,7 +247,7 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
         final ThreadPool threadPool = internalCluster().getCurrentMasterNodeInstance(ThreadPool.class);
         assertThat(
             FutureUtils.get(threadPool.generic().submit(() ->
-                snapshotsService.minCompatibleVersion(Version.CURRENT, repoName, getRepositoryData(repository), null)
+                snapshotsService.minCompatibleVersion(Version.CURRENT, getRepositoryData(repository), null)
             )),
             is(SnapshotsService.OLD_SNAPSHOT_FORMAT)
         );
@@ -258,7 +258,7 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
         logger.info("--> verify that repository is assumed in new metadata format after removing corrupted snapshot");
         assertThat(
             FutureUtils.get(threadPool.generic().submit(() ->
-                snapshotsService.minCompatibleVersion(Version.CURRENT, repoName, getRepositoryData(repository), null)
+                snapshotsService.minCompatibleVersion(Version.CURRENT, getRepositoryData(repository), null)
             )),
             is(Version.CURRENT)
         );

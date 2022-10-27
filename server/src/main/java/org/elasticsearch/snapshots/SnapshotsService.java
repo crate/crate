@@ -32,10 +32,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -107,8 +105,6 @@ import java.io.IOException;
 
 import io.crate.common.collections.Tuple;
 import io.crate.common.unit.TimeValue;
-import io.crate.exceptions.Exceptions;
-import io.crate.exceptions.SQLExceptions;
 
 /**
  * Service responsible for creating snapshots. This service runs all the steps executed on the master node during snapshot creation and
@@ -190,78 +186,95 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
         final String snapshotName = request.snapshot();
         validate(repositoryName, snapshotName);
         final SnapshotId snapshotId = new SnapshotId(snapshotName, UUIDs.randomBase64UUID()); // new UUID for the snapshot
-        clusterService.submitStateUpdateTask("create_snapshot [" + snapshotName + ']', new ClusterStateUpdateTask() {
-
-            private List<String> indices;
+        Repository repository = repositoriesService.repository(request.repository());
+        if (repository.isReadOnly()) {
+            listener.onFailure(
+                    new RepositoryException(repository.getMetadata().name(), "cannot create snapshot in a readonly repository"));
+            return;
+        }
+        final Snapshot snapshot = new Snapshot(repositoryName, snapshotId);
+        repository.executeConsistentStateUpdate(repositoryData -> new ClusterStateUpdateTask() {
 
             private SnapshotsInProgress.Entry newEntry;
 
             @Override
             public ClusterState execute(ClusterState currentState) {
+                // check if the snapshot name already exists in the repository
+                if (repositoryData.getSnapshotIds().stream().anyMatch(s -> s.getName().equals(snapshotName))) {
+                    throw new InvalidSnapshotNameException(
+                            repository.getMetadata().name(), snapshotName, "snapshot with the same name already exists");
+                }
                 validate(repositoryName, snapshotName, currentState);
                 SnapshotDeletionsInProgress deletionsInProgress = currentState.custom(SnapshotDeletionsInProgress.TYPE);
                 if (deletionsInProgress != null && deletionsInProgress.hasDeletionsInProgress()) {
                     throw new ConcurrentSnapshotExecutionException(repositoryName, snapshotName,
-                        "cannot snapshot while a snapshot deletion is in-progress in [" + deletionsInProgress + "]");
+                            "cannot snapshot while a snapshot deletion is in-progress in [" + deletionsInProgress + "]");
                 }
                 SnapshotsInProgress snapshots = currentState.custom(SnapshotsInProgress.TYPE);
                 // Fail if there are any concurrently running snapshots. The only exception to this being a snapshot in INIT state from a
                 // previous master that we can simply ignore and remove from the cluster state because we would clean it up from the
                 // cluster state anyway in #applyClusterState.
-                if (snapshots != null && snapshots.entries().stream().anyMatch(entry ->
-                    (entry.state() == State.INIT && initializingSnapshots.contains(entry.snapshot()) == false) == false)) {
+                if (snapshots != null && snapshots.entries().stream().anyMatch(entry -> entry.state() != State.INIT)) {
                     throw new ConcurrentSnapshotExecutionException(repositoryName, snapshotName, " a snapshot is already running");
                 }
                 // Store newSnapshot here to be processed in clusterStateProcessed
-                indices = Arrays.asList(IndexNameExpressionResolver.concreteIndexNames(currentState, request));
-
+                List<String> indices = Arrays.asList(IndexNameExpressionResolver.concreteIndexNames(currentState, request));
                 LOGGER.trace("[{}][{}] creating snapshot for indices [{}]", repositoryName, snapshotName, indices);
-                newEntry = new SnapshotsInProgress.Entry(
-                    new Snapshot(repositoryName, snapshotId),
-                    request.includeGlobalState(),
-                    request.partial(),
-                    State.INIT,
-                    Collections.emptyList(), // We'll resolve the list of indices when moving to the STARTED state in #beginSnapshot
-                    List.of(request.templates()),
-                    threadPool.absoluteTimeInMillis(),
-                    RepositoryData.UNKNOWN_REPO_GEN,
-                    null,
-                    Version.CURRENT
-                );
-                initializingSnapshots.add(newEntry.snapshot());
-                snapshots = SnapshotsInProgress.of(Collections.singletonList(newEntry));
-                return ClusterState.builder(currentState).putCustom(SnapshotsInProgress.TYPE, snapshots).build();
+
+                final List<IndexId> indexIds = repositoryData.resolveNewIndices(indices);
+                final Version version = minCompatibleVersion(
+                        clusterService.state().nodes().getMinNodeVersion(), repositoryData, null);
+                ImmutableOpenMap<ShardId, ShardSnapshotStatus> shards =
+                        shards(currentState, indexIds, useShardGenerations(version), repositoryData);
+                if (request.partial() == false) {
+                    Tuple<Set<String>, Set<String>> indicesWithMissingShards = indicesWithMissingShards(shards,
+                            currentState.metadata());
+                    Set<String> missing = indicesWithMissingShards.v1();
+                    Set<String> closed = indicesWithMissingShards.v2();
+                    if (missing.isEmpty() == false || closed.isEmpty() == false) {
+                        final StringBuilder failureMessage = new StringBuilder();
+                        if (missing.isEmpty() == false) {
+                            failureMessage.append("Indices don't have primary shards ");
+                            failureMessage.append(missing);
+                        }
+                        if (closed.isEmpty() == false) {
+                            if (failureMessage.length() > 0) {
+                                failureMessage.append("; ");
+                            }
+                            failureMessage.append("Indices are closed ");
+                        }
+                        // TODO: We should just throw here instead of creating a FAILED and hence useless snapshot in the repository
+                        newEntry = new SnapshotsInProgress.Entry(
+                                new Snapshot(repositoryName, snapshotId), request.includeGlobalState(), false,
+                                State.FAILED, indexIds, List.of(request.templates()), threadPool.absoluteTimeInMillis(), repositoryData.getGenId(), shards,
+                                failureMessage.toString(), version);
+                    }
+                }
+                if (newEntry == null) {
+                    newEntry = new SnapshotsInProgress.Entry(
+                            new Snapshot(repositoryName, snapshotId), request.includeGlobalState(), request.partial(),
+                            State.STARTED, indexIds, List.of(request.templates()), threadPool.absoluteTimeInMillis(), repositoryData.getGenId(), shards,
+                            null, version);
+                }
+                return ClusterState.builder(currentState).putCustom(SnapshotsInProgress.TYPE,
+                        SnapshotsInProgress.of(Collections.singletonList(newEntry))).build();
             }
 
             @Override
             public void onFailure(String source, Exception e) {
                 LOGGER.warn(() -> new ParameterizedMessage("[{}][{}] failed to create snapshot", repositoryName, snapshotName), e);
-                if (newEntry != null) {
-                    initializingSnapshots.remove(newEntry.snapshot());
-                }
-                newEntry = null;
                 listener.onFailure(e);
             }
 
             @Override
             public void clusterStateProcessed(String source, ClusterState oldState, final ClusterState newState) {
-                if (newEntry != null) {
-                    final Snapshot current = newEntry.snapshot();
-                    assert initializingSnapshots.contains(current);
-                    assert indices != null;
-                    beginSnapshot(newState, newEntry, request.partial(), indices, new ActionListener<Snapshot>() {
-                        @Override
-                        public void onResponse(final Snapshot snapshot) {
-                            initializingSnapshots.remove(snapshot);
-                            listener.onResponse(snapshot);
-                        }
-
-                        @Override
-                        public void onFailure(final Exception e) {
-                            initializingSnapshots.remove(current);
-                            listener.onFailure(e);
-                        }
-                    });
+                try {
+                    LOGGER.info("snapshot [{}] started", snapshot);
+                    listener.onResponse(snapshot);
+                } finally {
+                    if (newEntry.state().completed() || newEntry.shards().isEmpty()) {
+                        endSnapshot(newEntry, newState.metadata());
+                    }
                 }
             }
 
@@ -269,7 +282,7 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
             public TimeValue timeout() {
                 return request.masterNodeTimeout();
             }
-        });
+        }, "create_snapshot [" + snapshotName + ']', listener::onFailure);
     }
 
     /**
@@ -311,170 +324,6 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                 snapshotName,
                 "must not contain the following characters " + Strings.INVALID_FILENAME_CHARS);
         }
-    }
-
-    /**
-     * Starts snapshot.
-     * <p>
-     * Creates snapshot in repository and updates snapshot metadata record with list of shards that needs to be processed.
-     *
-     * @param clusterState               cluster state
-     * @param snapshot                   snapshot meta data
-     * @param partial                    allow partial snapshots
-     * @param userCreateSnapshotListener listener
-     */
-    private void beginSnapshot(final ClusterState clusterState,
-                               final SnapshotsInProgress.Entry snapshot,
-                               final boolean partial,
-                               final List<String> indices,
-                               final ActionListener<Snapshot> userCreateSnapshotListener) {
-        threadPool.executor(ThreadPool.Names.SNAPSHOT).execute(new AbstractRunnable() {
-
-            boolean hadAbortedInitializations;
-
-            @Override
-            protected void doRun() {
-                assert initializingSnapshots.contains(snapshot.snapshot());
-                Repository repository = repositoriesService.repository(snapshot.snapshot().getRepository());
-                String repoName = repository.getMetadata().name();
-                if (repository.isReadOnly()) {
-                    throw new RepositoryException(repoName, "cannot create snapshot in a readonly repository");
-                }
-                final String snapshotName = snapshot.snapshot().getSnapshotId().getName();
-                CompletableFuture<RepositoryData> futureRepositoryData = repository.getRepositoryData();
-                futureRepositoryData.whenComplete((hasOldFormatSnapshots, err) -> {
-                    if (err != null) {
-                        onFailure(Exceptions.toException(SQLExceptions.unwrap(err)));
-                        return;
-                    }
-                    RepositoryData repositoryData = futureRepositoryData.join();
-                    // check if the snapshot name already exists in the repository
-                    if (repositoryData.getSnapshotIds().stream().anyMatch(s -> s.getName().equals(snapshotName))) {
-                        throw new InvalidSnapshotNameException(
-                            repository.getMetadata().name(), snapshotName, "snapshot with the same name already exists");
-                    }
-
-                    LOGGER.info("snapshot [{}] started", snapshot.snapshot());
-                    final Version version =
-                        minCompatibleVersion(clusterState.nodes().getMinNodeVersion(), snapshot.repository(), repositoryData, null);
-                    if (indices.isEmpty()) {
-                        // No indices in this snapshot - we are done
-                        userCreateSnapshotListener.onResponse(snapshot.snapshot());
-                        endSnapshot(
-                            new SnapshotsInProgress.Entry(
-                                snapshot,
-                                State.STARTED,
-                                Collections.emptyList(),
-                                repositoryData.getGenId(),
-                                null,
-                                version,
-                            null),
-                            clusterState.metadata()
-                        );
-                        return;
-                    }
-                    clusterService.submitStateUpdateTask("update_snapshot [" + snapshot.snapshot() + "]", new ClusterStateUpdateTask() {
-
-                        @Override
-                        public ClusterState execute(ClusterState currentState) {
-                            SnapshotsInProgress snapshots = currentState.custom(SnapshotsInProgress.TYPE);
-                            List<SnapshotsInProgress.Entry> entries = new ArrayList<>();
-                            for (SnapshotsInProgress.Entry entry : snapshots.entries()) {
-                                if (entry.snapshot().equals(snapshot.snapshot()) == false) {
-                                    entries.add(entry);
-                                    continue;
-                                }
-
-                                if (entry.state() == State.ABORTED) {
-                                    entries.add(entry);
-                                    assert entry.shards().isEmpty();
-                                    hadAbortedInitializations = true;
-                                } else {
-                                    final List<IndexId> indexIds = repositoryData.resolveNewIndices(indices);
-                                    // Replace the snapshot that was just initialized
-                                    ImmutableOpenMap<ShardId, ShardSnapshotStatus> shards =
-                                        shards(currentState, indexIds, useShardGenerations(version), repositoryData);
-                                    if (!partial) {
-                                        Tuple<Set<String>, Set<String>> indicesWithMissingShards = indicesWithMissingShards(shards,
-                                            currentState.metadata());
-                                        Set<String> missing = indicesWithMissingShards.v1();
-                                        Set<String> closed = indicesWithMissingShards.v2();
-                                        if (missing.isEmpty() == false || closed.isEmpty() == false) {
-                                            final StringBuilder failureMessage = new StringBuilder();
-                                            if (missing.isEmpty() == false) {
-                                                failureMessage.append("Indices don't have primary shards ");
-                                                failureMessage.append(missing);
-                                            }
-                                            if (closed.isEmpty() == false) {
-                                                if (failureMessage.length() > 0) {
-                                                    failureMessage.append("; ");
-                                                }
-                                                failureMessage.append("Indices are closed ");
-                                                failureMessage.append(closed);
-                                            }
-                                            entries.add(new SnapshotsInProgress.Entry(entry, State.FAILED, indexIds,
-                                                repositoryData.getGenId(), shards, version, failureMessage.toString()));
-                                            continue;
-                                        }
-                                    }
-                                    entries.add(new SnapshotsInProgress.Entry(entry, State.STARTED, indexIds, repositoryData.getGenId(),
-                                        shards, version, null));
-                                }
-                            }
-                            return ClusterState.builder(currentState)
-                                    .putCustom(SnapshotsInProgress.TYPE, SnapshotsInProgress.of(unmodifiableList(entries))).build();
-                        }
-
-                        @Override
-                        public void onFailure(String source, Exception e) {
-                            LOGGER.warn(() -> new ParameterizedMessage("[{}] failed to create snapshot",
-                                snapshot.snapshot().getSnapshotId()), e);
-                            removeSnapshotFromClusterState(snapshot.snapshot(), e,
-                                new CleanupAfterErrorListener(userCreateSnapshotListener, e));
-                        }
-
-                        @Override
-                        public void onNoLongerMaster(String source) {
-                            // We are not longer a master - we shouldn't try to do any cleanup
-                            // The new master will take care of it
-                            LOGGER.warn("[{}] failed to create snapshot - no longer a master", snapshot.snapshot().getSnapshotId());
-                            userCreateSnapshotListener.onFailure(
-                                new SnapshotException(snapshot.snapshot(), "master changed during snapshot initialization"));
-                        }
-
-                        @Override
-                        public void clusterStateProcessed(String source, ClusterState oldState, ClusterState newState) {
-                            // The userCreateSnapshotListener.onResponse() notifies caller that the snapshot was accepted
-                            // for processing. If client wants to wait for the snapshot completion, it can register snapshot
-                            // completion listener in this method. For the snapshot completion to work properly, the snapshot
-                            // should still exist when listener is registered.
-                            userCreateSnapshotListener.onResponse(snapshot.snapshot());
-
-                            if (hadAbortedInitializations) {
-                                final SnapshotsInProgress snapshotsInProgress = newState.custom(SnapshotsInProgress.TYPE);
-                                assert snapshotsInProgress != null;
-                                final SnapshotsInProgress.Entry entry = snapshotsInProgress.snapshot(snapshot.snapshot());
-                                assert entry != null;
-                                endSnapshot(entry, newState.metadata());
-                            } else {
-                                endCompletedSnapshots(newState);
-                            }
-                        }
-                    });
-                }).exceptionally(err -> {
-                    onFailure(Exceptions.toException(SQLExceptions.unwrap(err)));
-                    return null;
-                });
-            }
-
-            @Override
-            public void onFailure(Exception e) {
-                LOGGER.warn(() -> new ParameterizedMessage("failed to create snapshot [{}]",
-                    snapshot.snapshot().getSnapshotId()), e);
-                removeSnapshotFromClusterState(snapshot.snapshot(), e,
-                    new CleanupAfterErrorListener(userCreateSnapshotListener, e));
-            }
-        });
     }
 
     private static class CleanupAfterErrorListener {
@@ -1345,17 +1194,14 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
      * repository and all nodes in the cluster.
      *
      * @param minNodeVersion minimum node version in the cluster
-     * @param repositoryName name of the repository to modify
      * @param repositoryData current {@link RepositoryData} of that repository
      * @param excluded       snapshot id to ignore when computing the minimum version
      *                       (used to use newer metadata version after a snapshot delete)
      * @return minimum node version that must still be able to read the repository metadata
      */
-    public Version minCompatibleVersion(Version minNodeVersion, String repositoryName, RepositoryData repositoryData,
-                                        @Nullable Collection<SnapshotId> excluded) {
+    public Version minCompatibleVersion(Version minNodeVersion, RepositoryData repositoryData, @Nullable Collection<SnapshotId> excluded) {
         Version minCompatVersion = minNodeVersion;
         final Collection<SnapshotId> snapshotIds = repositoryData.getSnapshotIds();
-        final Repository repository = repositoriesService.repository(repositoryName);
         for (SnapshotId snapshotId : snapshotIds.stream().filter(excluded == null ? sn -> true : sn -> excluded.contains(sn) == false)
                 .collect(Collectors.toList())) {
             final Version known = repositoryData.getVersion(snapshotId);
@@ -1364,18 +1210,7 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                 assert repositoryData.shardGenerations().totalShards() == 0 :
                     "Saw shard generations [" + repositoryData.shardGenerations() +
                         "] but did not have versions tracked for snapshot [" + snapshotId + "]";
-                try {
-                    final Version foundVersion = repository.getSnapshotInfo(snapshotId).get().version();
-                    if (useShardGenerations(foundVersion) == false) {
-                        // We don't really care about the exact version if its before 7.6 as the 7.5 metadata is the oldest we are able
-                        // to write out so we stop iterating here and just use 7.5.0 as a placeholder.
-                        return OLD_SNAPSHOT_FORMAT;
-                    }
-                    minCompatVersion = minCompatVersion.before(foundVersion) ? minCompatVersion : foundVersion;
-                } catch (SnapshotMissingException | InterruptedException | ExecutionException e) {
-                    LOGGER.warn("Failed to load snapshot metadata, assuming repository is in old format", e);
-                    return OLD_SNAPSHOT_FORMAT;
-                }
+                return OLD_SNAPSHOT_FORMAT;
             } else {
                 minCompatVersion = minCompatVersion.before(known) ? minCompatVersion : known;
             }
@@ -1408,7 +1243,7 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
             Repository repository = repositoriesService.repository(repoName);
             repository.getRepositoryData(ActionListener.wrap(repositoryData -> repository.deleteSnapshots(snapshotIds,
                 repositoryStateId,
-                minCompatibleVersion(minNodeVersion, repoName, repositoryData, snapshotIds),
+                minCompatibleVersion(minNodeVersion, repositoryData, snapshotIds),
                 ActionListener.wrap(v -> {
                         LOGGER.info("snapshots {} deleted", snapshotIds);
                         removeSnapshotDeletionFromClusterState(snapshotIds, null, l);
