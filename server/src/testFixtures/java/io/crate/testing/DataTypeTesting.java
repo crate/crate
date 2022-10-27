@@ -22,14 +22,14 @@
 package io.crate.testing;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import org.elasticsearch.common.network.InetAddresses;
 import org.elasticsearch.common.network.NetworkAddress;
@@ -44,6 +44,7 @@ import com.carrotsearch.randomizedtesting.generators.RandomNumbers;
 import com.carrotsearch.randomizedtesting.generators.RandomPicks;
 
 import io.crate.sql.tree.BitString;
+import io.crate.types.ArrayType;
 import io.crate.types.BitStringType;
 import io.crate.types.BooleanType;
 import io.crate.types.ByteType;
@@ -66,23 +67,17 @@ import io.crate.types.RegclassType;
 import io.crate.types.ShortType;
 import io.crate.types.StringType;
 import io.crate.types.TimestampType;
+import io.crate.types.UndefinedType;
 
 public class DataTypeTesting {
 
-    public static final List<DataType<?>> ALL_TYPES_EXCEPT_ARRAYS = new ArrayList<>();
-
-    static {
-        ALL_TYPES_EXCEPT_ARRAYS.addAll(DataTypes.PRIMITIVE_TYPES);
-        ALL_TYPES_EXCEPT_ARRAYS.add(DataTypes.GEO_POINT);
-        ALL_TYPES_EXCEPT_ARRAYS.add(DataTypes.GEO_SHAPE);
-        // ALL_TYPES_EXCEPT_ARRAYS.add(DataTypes.INTERVAL); Member of DataTypes.STORAGE_UNSUPPORTED
-        ALL_TYPES_EXCEPT_ARRAYS.add(DataTypes.UNTYPED_OBJECT);
-
-        ALL_TYPES_EXCEPT_ARRAYS.removeIf(x -> x.storageSupport() == null);
-    }
+    public static final Set<DataType<?>> ALL_STORED_TYPES_EXCEPT_ARRAYS = DataTypes.TYPES_BY_NAME_OR_ALIAS
+        .values().stream()
+        .filter(x -> x.storageSupport() != null && x.id() != ArrayType.ID && x.id() != UndefinedType.ID)
+        .collect(Collectors.toSet());
 
     public static DataType<?> randomType() {
-        return RandomPicks.randomFrom(RandomizedContext.current().getRandom(), ALL_TYPES_EXCEPT_ARRAYS);
+        return RandomPicks.randomFrom(RandomizedContext.current().getRandom(), ALL_STORED_TYPES_EXCEPT_ARRAYS);
     }
 
     @SuppressWarnings("unchecked")

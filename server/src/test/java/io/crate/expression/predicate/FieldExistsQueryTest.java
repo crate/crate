@@ -73,7 +73,7 @@ public class FieldExistsQueryTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_is_null_does_not_match_empty_arrays() throws Exception {
-        for (DataType<?> type : DataTypeTesting.ALL_TYPES_EXCEPT_ARRAYS) {
+        for (DataType<?> type : DataTypeTesting.ALL_STORED_TYPES_EXCEPT_ARRAYS) {
             String createStatement = "create table t_" +
                 type.getName().replaceAll(" ", "_") +
                 " (xs array(" + type.getName() + "))";
@@ -83,7 +83,7 @@ public class FieldExistsQueryTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_is_null_does_not_match_empty_arrays_with_index_off() throws Exception {
-        for (DataType<?> type : DataTypeTesting.ALL_TYPES_EXCEPT_ARRAYS) {
+        for (DataType<?> type : DataTypeTesting.ALL_STORED_TYPES_EXCEPT_ARRAYS) {
             if (UNSUPPORTED_INDEX_TYPE_IDS.contains(type.id()) == false) {
                 String createStatement = "create table t_" +
                     type.getName().replaceAll(" ", "_") +
@@ -95,7 +95,7 @@ public class FieldExistsQueryTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_is_null_does_not_match_empty_arrays_with_index_and_column_store_off() throws Exception {
-        for (DataType<?> type : DataTypeTesting.ALL_TYPES_EXCEPT_ARRAYS) {
+        for (DataType<?> type : DataTypeTesting.ALL_STORED_TYPES_EXCEPT_ARRAYS) {
             if (UNSUPPORTED_INDEX_TYPE_IDS.contains(type.id()) == false) {
                 String createStatement = "create table t_" +
                     type.getName().replaceAll(" ", "_") +
@@ -117,7 +117,7 @@ public class FieldExistsQueryTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_is_not_null_does_not_match_empty_arrays() throws Exception {
-        for (DataType<?> type : DataTypeTesting.ALL_TYPES_EXCEPT_ARRAYS) {
+        for (DataType<?> type : DataTypeTesting.ALL_STORED_TYPES_EXCEPT_ARRAYS) {
             // including geo_shape
             String createStatement = "create table t_" +
                 type.getName().replaceAll(" ", "_") +
@@ -128,7 +128,7 @@ public class FieldExistsQueryTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_is_not_null_does_not_match_empty_arrays_with_index_off() throws Exception {
-        for (DataType<?> type : DataTypeTesting.ALL_TYPES_EXCEPT_ARRAYS) {
+        for (DataType<?> type : DataTypeTesting.ALL_STORED_TYPES_EXCEPT_ARRAYS) {
             if (UNSUPPORTED_INDEX_TYPE_IDS.contains(type.id()) == false) {
                 String createStatement = "create table t_" +
                     type.getName().replaceAll(" ", "_") +
@@ -140,7 +140,7 @@ public class FieldExistsQueryTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_is_not_null_does_not_match_empty_arrays_with_index_and_column_store_off() throws Exception {
-        for (DataType<?> type : DataTypeTesting.ALL_TYPES_EXCEPT_ARRAYS) {
+        for (DataType<?> type : DataTypeTesting.ALL_STORED_TYPES_EXCEPT_ARRAYS) {
             if (UNSUPPORTED_INDEX_TYPE_IDS.contains(type.id()) == false) {
                 String createStatement = "create table t_" +
                     type.getName().replaceAll(" ", "_") +
