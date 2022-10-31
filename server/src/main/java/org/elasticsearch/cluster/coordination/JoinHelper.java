@@ -58,6 +58,8 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.discovery.DiscoveryModule;
+import org.elasticsearch.monitor.NodeHealthService;
+import org.elasticsearch.monitor.StatusInfo;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.threadpool.ThreadPool.Names;
 import org.elasticsearch.transport.TransportChannel;
@@ -71,6 +73,8 @@ import org.elasticsearch.transport.TransportService;
 
 import io.crate.common.collections.Tuple;
 import io.crate.common.unit.TimeValue;
+
+import static org.elasticsearch.monitor.StatusInfo.Status.UNHEALTHY;
 
 public class JoinHelper {
 
@@ -91,10 +95,12 @@ public class JoinHelper {
 
     @Nullable // if using single-node discovery
     private final TimeValue joinTimeout;
+    private final NodeHealthService nodeHealthService;
 
     private final Set<Tuple<DiscoveryNode, JoinRequest>> pendingOutgoingJoins = Collections.synchronizedSet(new HashSet<>());
 
     private AtomicReference<FailedJoinAttempt> lastFailedJoinAttempt = new AtomicReference<>();
+
 
     JoinHelper(Settings settings,
                AllocationService allocationService,
@@ -105,9 +111,11 @@ public class JoinHelper {
                BiConsumer<JoinRequest, JoinCallback> joinHandler,
                Function<StartJoinRequest, Join> joinLeaderInTerm,
                Collection<BiConsumer<DiscoveryNode, ClusterState>> joinValidators,
-               RerouteService rerouteService) {
+               RerouteService rerouteService,
+               NodeHealthService nodeHealthService) {
         this.masterService = masterService;
         this.transportService = transportService;
+        this.nodeHealthService = nodeHealthService;
         this.joinTimeout = DiscoveryModule.isSingleNodeDiscovery(settings) ? null : JOIN_TIMEOUT_SETTING.get(settings);
         this.joinTaskExecutor = new JoinTaskExecutor(allocationService, LOGGER, rerouteService) {
 
@@ -243,8 +251,14 @@ public class JoinHelper {
         }
     }
 
+
     public void sendJoinRequest(DiscoveryNode destination, long term, Optional<Join> optionalJoin) {
         assert destination.isMasterEligibleNode() : "trying to join master-ineligible " + destination;
+        final StatusInfo statusInfo = nodeHealthService.getHealth();
+        if (statusInfo.getStatus() == UNHEALTHY) {
+            LOGGER.debug("dropping join request to [{}]: [{}]", destination, statusInfo.getInfo());
+            return;
+        }
         final JoinRequest joinRequest = new JoinRequest(transportService.getLocalNode(), term, optionalJoin);
         final Tuple<DiscoveryNode, JoinRequest> dedupKey = Tuple.tuple(destination, joinRequest);
         if (pendingOutgoingJoins.add(dedupKey)) {

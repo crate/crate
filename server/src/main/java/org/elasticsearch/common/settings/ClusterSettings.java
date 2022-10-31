@@ -84,6 +84,7 @@ import org.elasticsearch.indices.analysis.HunspellService;
 import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 import org.elasticsearch.indices.recovery.RecoverySettings;
 import org.elasticsearch.indices.store.IndicesStore;
+import org.elasticsearch.monitor.fs.FsHealthService;
 import org.elasticsearch.monitor.fs.FsService;
 import org.elasticsearch.monitor.jvm.JvmGcMonitorService;
 import org.elasticsearch.monitor.jvm.JvmService;
@@ -462,6 +463,9 @@ public final class ClusterSettings extends AbstractScopedSettings {
         LogicalReplicationSettings.REPLICATION_READ_POLL_DURATION,
         LogicalReplicationSettings.REPLICATION_RECOVERY_CHUNK_SIZE,
         LogicalReplicationSettings.REPLICATION_RECOVERY_MAX_CONCURRENT_FILE_CHUNKS,
-        LegacySettings.LEGACY_TABLE_FUNCTION_COLUMN_NAMING
+        LegacySettings.LEGACY_TABLE_FUNCTION_COLUMN_NAMING,
+        FsHealthService.ENABLED_SETTING,
+        FsHealthService.REFRESH_INTERVAL_SETTING,
+        FsHealthService.SLOW_PATH_LOGGING_THRESHOLD_SETTING
     );
 }

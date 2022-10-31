@@ -43,6 +43,7 @@ import org.apache.lucene.search.Weight;
 
 import io.crate.metadata.Reference;
 import io.crate.types.ArrayType;
+import io.crate.types.BitStringType;
 import io.crate.types.BooleanType;
 import io.crate.types.ByteType;
 import io.crate.types.CharacterType;
@@ -96,33 +97,13 @@ public class NumTermsPerDocQuery extends Query {
 
             case StringType.ID:
             case CharacterType.ID:
-                return numValuesPerDocForString(reader, fqColumn);
-
+            case BitStringType.ID:
             case IpType.ID:
-                return numValuesPerDocForIP(reader, fqColumn);
+                return numValuesPerDocForString(reader, fqColumn);
 
             default:
                 throw new UnsupportedOperationException("NYI: " + elementType);
         }
-    }
-
-    private static IntUnaryOperator numValuesPerDocForIP(LeafReader reader, String fqColumn) {
-        SortedSetDocValues docValues;
-        try {
-            docValues = reader.getSortedSetDocValues(fqColumn);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        return doc -> {
-            try {
-                if (docValues.advanceExact(doc)) {
-                    return docValues.docValueCount();
-                }
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-            return 0;
-        };
     }
 
     private static IntUnaryOperator numValuesPerDocForString(LeafReader reader, String fqColumn) {

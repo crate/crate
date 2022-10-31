@@ -144,7 +144,7 @@ public final class EqOperator extends Operator<Object> {
             return Queries.newMatchNoDocsQuery("`" + fqn + "` = null is always null");
         }
         DataType<?> dataType = ref.valueType();
-        if (dataType.id() != ObjectType.ID && ref.indexType() == IndexType.NONE) {
+        if (dataType.id() != ObjectType.ID && dataType.id() != ArrayType.ID && ref.indexType() == IndexType.NONE) {
             throw new IllegalArgumentException(
                 "Cannot search on field [" + fqn + "] since it is not indexed.");
         }
@@ -198,6 +198,9 @@ public final class EqOperator extends Operator<Object> {
     private static Query termsAndGenericFilter(Function function, String column, DataType<?> elementType, Collection<?> values, LuceneQueryBuilder.Context context) {
         MappedFieldType fieldType = context.getFieldTypeOrNull(column);
         if (fieldType == null) {
+            if (elementType.id() == ObjectType.ID) {
+                return null; // Fallback to generic filter on ARRAY(OBJECT)
+            }
             // field doesn't exist, can't match
             return Queries.newMatchNoDocsQuery("column does not exist in this index");
         }
@@ -206,6 +209,11 @@ public final class EqOperator extends Operator<Object> {
         Query genericFunctionFilter = genericFunctionFilter(function, context);
         if (values.isEmpty()) {
             // `arrayRef = []` - termsQuery would be null
+
+            if (fieldType.hasDocValues() == false) {
+                //  Cannot use NumTermsPerDocQuery if column store is disabled, for example, ARRAY(GEO_SHAPE).
+                return genericFunctionFilter;
+            }
 
             filterClauses.add(
                 NumTermsPerDocQuery.forColumn(column, elementType, numDocs -> numDocs == 0),

@@ -138,6 +138,7 @@ import org.elasticsearch.indices.recovery.PeerRecoveryTargetService;
 import org.elasticsearch.indices.recovery.RecoverySettings;
 import org.elasticsearch.indices.store.IndicesStore;
 import org.elasticsearch.monitor.MonitorService;
+import org.elasticsearch.monitor.fs.FsHealthService;
 import org.elasticsearch.monitor.jvm.JvmInfo;
 import org.elasticsearch.plugins.ActionPlugin;
 import org.elasticsearch.plugins.AnalysisPlugin;
@@ -429,6 +430,8 @@ public class Node implements Closeable {
                                                             clusterService,
                                                             clusterPlugins,
                                                             clusterInfoService);
+            final FsHealthService fsHealthService = new FsHealthService(settings, clusterService.getClusterSettings(), threadPool,
+                nodeEnvironment);
             modules.add(clusterModule);
             IndicesModule indicesModule = new IndicesModule(pluginsService.filterPlugins(MapperPlugin.class));
             modules.add(indicesModule);
@@ -693,7 +696,8 @@ public class Node implements Closeable {
                 clusterModule.getAllocationService(),
                 environment.configFile(),
                 gatewayMetaState,
-                rerouteService
+                rerouteService,
+                fsHealthService
             );
             this.nodeService = new NodeService(monitorService, indicesService, transportService);
 
@@ -752,6 +756,7 @@ public class Node implements Closeable {
                     b.bind(LogicalReplicationSettings.class).toInstance(logicalReplicationSettings);
                     b.bind(RemoteClusters.class).toInstance(remoteClusters);
                     pluginComponents.stream().forEach(p -> b.bind((Class) p.getClass()).toInstance(p));
+                    b.bind(FsHealthService.class).toInstance(fsHealthService);
                 }
             );
             injector = modules.createInjector();
@@ -896,6 +901,7 @@ public class Node implements Closeable {
         injector.getInstance(IndicesClusterStateService.class).start();
         injector.getInstance(SnapshotsService.class).start();
         injector.getInstance(SnapshotShardsService.class).start();
+        injector.getInstance(FsHealthService.class).start();
         nodeService.getMonitorService().start();
 
         final ClusterService clusterService = injector.getInstance(ClusterService.class);
@@ -1038,6 +1044,7 @@ public class Node implements Closeable {
         // we close indices first, so operations won't be allowed on it
         injector.getInstance(ClusterService.class).stop();
         injector.getInstance(NodeConnectionsService.class).stop();
+        injector.getInstance(FsHealthService.class).stop();
         nodeService.getMonitorService().stop();
         injector.getInstance(GatewayService.class).stop();
         injector.getInstance(TransportService.class).stop();
@@ -1116,6 +1123,8 @@ public class Node implements Closeable {
         toClose.add(injector.getInstance(Discovery.class));
         toClose.add(() -> stopWatch.stop().start("monitor"));
         toClose.add(nodeService.getMonitorService());
+        toClose.add(() -> stopWatch.stop().start("fsHealth"));
+        toClose.add(injector.getInstance(FsHealthService.class));
         toClose.add(() -> stopWatch.stop().start("gateway"));
         toClose.add(injector.getInstance(GatewayService.class));
         toClose.add(() -> stopWatch.stop().start("transport"));
