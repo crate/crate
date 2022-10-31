@@ -49,7 +49,6 @@ import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.MapperTestUtils;
 import org.elasticsearch.index.VersionType;
-import org.elasticsearch.index.cache.IndexCache;
 import org.elasticsearch.index.cache.query.DisabledQueryCache;
 import org.elasticsearch.index.engine.DocIdSeqNoAndSource;
 import org.elasticsearch.index.engine.Engine;
@@ -510,7 +509,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
         final Store store = storeProvider.apply(indexSettings);
         boolean success = false;
         try {
-            IndexCache indexCache = new IndexCache(indexSettings, new DisabledQueryCache(indexSettings));
+            var queryCache = new DisabledQueryCache(indexSettings);
             MapperService mapperService = MapperTestUtils.newMapperService(
                 xContentRegistry(),
                 createTempDir(),
@@ -525,7 +524,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
                 indexSettings,
                 shardPath,
                 store,
-                indexCache,
+                queryCache,
                 mapperService,
                 engineFactoryProviders,
                 indexEventListener,
