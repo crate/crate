@@ -62,6 +62,9 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Fixed an issue that could lead to serialization errors when using the ``bit``
+  type in objects.
+
 - Fixed an issue that could lead to ``IllegalIndexShardStateException`` errors
   when running a ``SELECT count(*) FROM tbl`` on partitioned tables.
 

@@ -43,6 +43,7 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.Collections;
 import java.util.Date;
 import java.util.EnumSet;
@@ -81,6 +82,7 @@ import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
 import org.locationtech.spatial4j.shape.impl.PointImpl;
 
 import io.crate.common.unit.TimeValue;
+import io.crate.sql.tree.BitString;
 import io.crate.types.TimeTZ;
 
 /**
@@ -681,6 +683,8 @@ public abstract class StreamInput extends InputStream {
                 return readPeriod();
             case 27:
                 return new PointImpl(readDouble(), readDouble(), JtsSpatialContext.GEO);
+            case 28:
+                return new BitString(BitSet.valueOf(readByteArray()), readVInt());
             default:
                 throw new IOException("Can't read unknown type [" + type + "]");
         }

@@ -70,6 +70,7 @@ import org.joda.time.ReadableInstant;
 import org.locationtech.spatial4j.shape.impl.PointImpl;
 
 import io.crate.common.unit.TimeValue;
+import io.crate.sql.tree.BitString;
 import io.crate.types.TimeTZ;
 
 /**
@@ -707,6 +708,12 @@ public abstract class StreamOutput extends OutputStream {
             PointImpl value = (PointImpl) v;
             o.writeDouble(value.getX());
             o.writeDouble(value.getY());
+        }),
+        Map.entry(BitString.class, (o, v) -> {
+            o.writeByte((byte) 28);
+            BitString bs = (BitString) v;
+            o.writeByteArray(bs.bitSet().toByteArray());
+            o.writeVInt(bs.length());
         })
     );
 
