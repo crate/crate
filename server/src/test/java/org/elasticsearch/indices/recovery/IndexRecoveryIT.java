@@ -59,7 +59,6 @@ import java.util.stream.StreamSupport;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.util.SetOnce;
 import org.elasticsearch.Version;
-import org.elasticsearch.action.ActionRunnable;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsAction;
@@ -127,7 +126,6 @@ import org.elasticsearch.test.TestCluster;
 import org.elasticsearch.test.store.MockFSIndexStore;
 import org.elasticsearch.test.transport.MockTransportService;
 import org.elasticsearch.test.transport.StubbableTransport;
-import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.ConnectTransportException;
 import org.elasticsearch.transport.Transport;
 import org.elasticsearch.transport.TransportChannel;
@@ -700,10 +698,8 @@ public class IndexRecoveryIT extends IntegTestCase {
         var indexName = IndexParts.toIndexName(sqlExecutor.getCurrentSchema(), INDEX_NAME, null);
         RecoveryResponse response = client().execute(RecoveryAction.INSTANCE, new RecoveryRequest(indexName)).get();
 
-        ThreadPool threadPool = internalCluster().getMasterNodeInstance(ThreadPool.class);
         Repository repository = internalCluster().getMasterNodeInstance(RepositoriesService.class).repository(REPO_NAME);
-        final RepositoryData repositoryData = PlainActionFuture.get(f ->
-            threadPool.executor(ThreadPool.Names.SNAPSHOT).execute(ActionRunnable.wrap(f, repository::getRepositoryData)));
+        final RepositoryData repositoryData = PlainActionFuture.get(repository::getRepositoryData);
         for (Map.Entry<String, List<RecoveryState>> indexRecoveryStates : response.shardRecoveryStates().entrySet()) {
 
             assertThat(indexRecoveryStates.getKey(), equalTo(indexName));
