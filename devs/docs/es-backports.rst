@@ -268,7 +268,7 @@ should be crossed out as well.
 - [ ] 68d56fa7dba Implement rejections in `WriteMemoryLimits` (#59451)
 - [ ] eb0b28dd1d6 Move getPointReaderOrNull into AggregatorBase (#58769) (#59455)
 - [ ] 64c5f70a2d4 Remove Needless Context Switches on Loading RepositoryData (#56935) (#59452)
-- [ ] bde92fc5fcc Remove Needless Context Switch From Snapshot Finalization (#56871) (#59443)
+- [x] bde92fc5fcc Remove Needless Context Switch From Snapshot Finalization (#56871) (#59443)
 - [x] 31be3a36452 More Efficient Snapshot State Handling (#56669) (#59430)
 - [ ] b1b7bf39122 Make data streams a basic licensed feature. (#59392)
 - [ ] bd01fd107ce Revert "Migrate CompletionFieldMapper to parametrized format (#59291)"
