@@ -227,27 +227,26 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                 ImmutableOpenMap<ShardId, ShardSnapshotStatus> shards =
                         shards(currentState, indexIds, useShardGenerations(version), repositoryData);
                 if (request.partial() == false) {
-                    Tuple<Set<String>, Set<String>> indicesWithMissingShards = indicesWithMissingShards(shards,
-                            currentState.metadata());
-                    Set<String> missing = indicesWithMissingShards.v1();
-                    Set<String> closed = indicesWithMissingShards.v2();
-                    if (missing.isEmpty() == false || closed.isEmpty() == false) {
-                        final StringBuilder failureMessage = new StringBuilder();
-                        if (missing.isEmpty() == false) {
-                            failureMessage.append("Indices don't have primary shards ");
-                            failureMessage.append(missing);
+                    Set<String> missing = new HashSet<>();
+                    for (ObjectObjectCursor<ShardId, SnapshotsInProgress.ShardSnapshotStatus> entry : shards) {
+                        if (entry.value.state() == ShardState.MISSING) {
+                            missing.add(entry.key.getIndex().getName());
                         }
-                        if (closed.isEmpty() == false) {
-                            if (failureMessage.length() > 0) {
-                                failureMessage.append("; ");
-                            }
-                            failureMessage.append("Indices are closed ");
-                        }
+                    }
+                    if (missing.isEmpty() == false) {
                         // TODO: We should just throw here instead of creating a FAILED and hence useless snapshot in the repository
                         newEntry = new SnapshotsInProgress.Entry(
-                                new Snapshot(repositoryName, snapshotId), request.includeGlobalState(), false,
-                                State.FAILED, indexIds, List.of(request.templates()), threadPool.absoluteTimeInMillis(), repositoryData.getGenId(), shards,
-                                failureMessage.toString(), version);
+                            new Snapshot(repositoryName, snapshotId),
+                            request.includeGlobalState(),
+                            false,
+                            State.FAILED,
+                            indexIds,
+                            List.of(request.templates()),
+                            threadPool.absoluteTimeInMillis(),
+                            repositoryData.getGenId(),
+                            shards,
+                            "Indices don't have primary shards " + missing,
+                            version);
                     }
                 }
                 if (newEntry == null) {
