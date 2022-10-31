@@ -48,10 +48,8 @@ Deprecations
 - Deprecated the ``*.overhead`` setting for all circuit breakers. It now
   defaults to 1.0 for all of them and changing it has no effect.
 
-- Deprecated the :ref:`indices.breaker.fielddata.limit
-  <indices.breaker.fielddata.limit>` and
-  :ref:`indices.breaker.fielddata.overhead
-  <indices.breaker.fielddata.overhead>` settings. These no longer have any
+- Deprecated the ``indices.breaker.fielddata.limit`` and
+  ``indices.breaker.fielddata.overhead`` settings. These no longer have any
   effect as there is no fielddata cache anymore.
 
 
