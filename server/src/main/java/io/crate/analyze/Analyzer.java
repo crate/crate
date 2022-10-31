@@ -696,9 +696,6 @@ public class Analyzer {
             if (declare.binary()) {
                 throw new UnsupportedOperationException("BINARY mode in DECLARE is not supported");
             }
-            if (declare.scroll()) {
-                throw new UnsupportedOperationException("SCROLL mode in DECLARE is not supported");
-            }
             AnalyzedStatement query = declare.query().accept(this, context);
             return new AnalyzedDeclare(declare, query);
         }

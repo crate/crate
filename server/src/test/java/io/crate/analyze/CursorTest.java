@@ -27,6 +27,7 @@ import static org.mockito.Mockito.mock;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Answers;
 
 import io.crate.data.Row;
 import io.crate.planner.DependencyCarrier;
@@ -44,7 +45,7 @@ public class CursorTest extends CrateDummyClusterServiceUnitTest {
     private TestingRowConsumer executePlan(SQLExecutor executor, Plan plan) {
         TestingRowConsumer consumer = new TestingRowConsumer(true);
         plan.execute(
-            mock(DependencyCarrier.class),
+            mock(DependencyCarrier.class, Answers.RETURNS_MOCKS),
             executor.getPlannerContext(clusterService.state()),
             consumer,
             Row.EMPTY,
@@ -64,12 +65,6 @@ public class CursorTest extends CrateDummyClusterServiceUnitTest {
         // binary mode from pg-wire is possible, but not via HTTP; so we forbid it on a statement level
         assertThatThrownBy(() -> executor.analyze("declare c1 binary cursor for select 1"))
             .hasMessage("BINARY mode in DECLARE is not supported");
-    }
-
-    @Test
-    public void test_scroll_mode_is_not_supported() {
-        assertThatThrownBy(() -> executor.analyze("declare c1 scroll cursor for select 1"))
-            .hasMessage("SCROLL mode in DECLARE is not supported");
     }
 
     @Test
@@ -128,25 +123,5 @@ public class CursorTest extends CrateDummyClusterServiceUnitTest {
         Plan plan = executor.plan("declare c1 no scroll cursor for select 1");
         assertThatThrownBy(() -> executePlan(executor, plan).getBucket())
             .hasMessage("DECLARE CURSOR can only be used in transaction blocks");
-    }
-
-    @Test
-    public void test_fetch_backward_is_not_supported() {
-        Plan plan = executor.plan("declare c1 no scroll cursor for select 1");
-        executePlan(executor, plan);
-
-        Plan fetch = executor.plan("fetch backward from c1");
-        assertThatThrownBy(() -> executePlan(executor, fetch).getBucket())
-            .hasMessage("Cannot scroll backwards");
-    }
-
-    @Test
-    public void test_fetch_absolute_is_not_supported() {
-        Plan plan = executor.plan("declare c1 no scroll cursor for select 1");
-        executePlan(executor, plan);
-
-        Plan fetch = executor.plan("fetch absolute 3 from c1");
-        assertThatThrownBy(() -> executePlan(executor, fetch).getBucket())
-            .hasMessage("Scrolling to an absolute position is not supported");
     }
 }
