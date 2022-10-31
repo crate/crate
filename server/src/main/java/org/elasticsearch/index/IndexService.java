@@ -62,7 +62,6 @@ import org.elasticsearch.env.ShardLockObtainFailedException;
 import org.elasticsearch.gateway.MetadataStateFormat;
 import org.elasticsearch.gateway.WriteStateException;
 import org.elasticsearch.index.analysis.AnalysisRegistry;
-import org.elasticsearch.index.cache.IndexCache;
 import org.elasticsearch.index.cache.query.QueryCache;
 import org.elasticsearch.index.engine.EngineFactory;
 import org.elasticsearch.index.mapper.MapperService;
@@ -91,7 +90,7 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
     private final IndexEventListener eventListener;
     private final NodeEnvironment nodeEnv;
     private final ShardStoreDeleter shardStoreDeleter;
-    private final IndexCache indexCache;
+    private final QueryCache queryCache;
     private final IndexStorePlugin.DirectoryFactory directoryFactory;
     private final MapperService mapperService;
     private final NamedXContentRegistry xContentRegistry;
@@ -137,7 +136,7 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
         if (indexSettings.getIndexMetadata().getState() == IndexMetadata.State.CLOSE &&
                 indexCreationContext == IndexCreationContext.CREATE_INDEX) { // metadata verification needs a mapper service
             this.mapperService = null;
-            this.indexCache = null;
+            this.queryCache = null;
         } else {
             this.mapperService = new MapperService(
                 indexSettings,
@@ -147,7 +146,7 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
                 // we parse all percolator queries as they would be parsed on shard 0
                 this::newQueryShardContext
             );
-            this.indexCache = new IndexCache(indexSettings, queryCache);
+            this.queryCache = queryCache;
         }
         this.shardStoreDeleter = shardStoreDeleter;
         this.bigArrays = bigArrays;
@@ -207,8 +206,9 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
         return shards.keySet();
     }
 
-    public IndexCache cache() {
-        return indexCache;
+    @Nullable
+    public QueryCache cache() {
+        return queryCache;
     }
 
     public MapperService mapperService() {
@@ -229,7 +229,7 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
                 }
             } finally {
                 IOUtils.close(
-                        indexCache,
+                        queryCache,
                         mapperService,
                         refreshTask,
                         fsyncTask,
@@ -362,7 +362,7 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
                 this.indexSettings,
                 path,
                 store,
-                indexCache,
+                queryCache,
                 mapperService,
                 engineFactoryProviders,
                 eventListener,

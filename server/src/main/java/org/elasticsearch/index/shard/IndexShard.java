@@ -62,6 +62,7 @@ import org.apache.lucene.index.IndexCommit;
 import org.apache.lucene.index.SegmentInfos;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.Query;
+import org.apache.lucene.search.QueryCache;
 import org.apache.lucene.search.QueryCachingPolicy;
 import org.apache.lucene.search.ReferenceManager;
 import org.apache.lucene.search.UsageTrackingQueryCachingPolicy;
@@ -105,7 +106,6 @@ import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.VersionType;
-import org.elasticsearch.index.cache.IndexCache;
 import org.elasticsearch.index.codec.CodecService;
 import org.elasticsearch.index.engine.CommitStats;
 import org.elasticsearch.index.engine.Engine;
@@ -169,7 +169,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
 
     private final ThreadPool threadPool;
     private final MapperService mapperService;
-    private final IndexCache indexCache;
+    private final QueryCache queryCache;
     private final Store store;
     private final Object mutex = new Object();
     private final String checkIndexOnStartup;
@@ -249,7 +249,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
             IndexSettings indexSettings,
             ShardPath path,
             Store store,
-            IndexCache indexCache,
+            QueryCache queryCache,
             MapperService mapperService,
             Collection<Function<IndexSettings, Optional<EngineFactory>>> engineFactoryProviders,
             IndexEventListener indexEventListener,
@@ -271,7 +271,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         this.indexEventListener = indexEventListener;
         this.threadPool = threadPool;
         this.mapperService = mapperService;
-        this.indexCache = indexCache;
+        this.queryCache = queryCache;
         this.indexingOperationListeners = new IndexingOperationListener.CompositeListener(listeners, logger);
         this.globalCheckpointSyncer = globalCheckpointSyncer;
         this.retentionLeaseSyncer = retentionLeaseSyncer;
@@ -2644,7 +2644,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
             mapperService == null ? null : mapperService.indexAnalyzer(),
             codecService,
             shardEventListener,
-            indexCache == null ? null : indexCache.query(),
+            queryCache,
             cachingPolicy,
             translogConfig,
             IndexingMemoryController.SHARD_INACTIVE_TIME_SETTING.get(indexSettings.getSettings()),

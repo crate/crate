@@ -38,12 +38,12 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.Query;
+import org.apache.lucene.search.QueryCache;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.lucene.search.Queries;
-import org.elasticsearch.index.cache.IndexCache;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.query.QueryShardContext;
@@ -97,7 +97,7 @@ public class LuceneQueryBuilder {
                            String indexName,
                            QueryShardContext queryShardContext,
                            DocTableInfo table,
-                           IndexCache indexCache) throws UnsupportedFeatureException {
+                           QueryCache queryCache) throws UnsupportedFeatureException {
         var refResolver = new LuceneReferenceResolver(
             indexName,
             mapperService::fieldType,
@@ -109,7 +109,7 @@ public class LuceneQueryBuilder {
             txnCtx,
             nodeCtx,
             mapperService,
-            indexCache,
+            queryCache,
             queryShardContext,
             indexName,
             table.partitionedByColumns()
@@ -138,7 +138,7 @@ public class LuceneQueryBuilder {
         private final DocTableInfo table;
         final DocInputFactory docInputFactory;
         final MapperService mapperService;
-        final IndexCache indexCache;
+        final QueryCache queryCache;
         private final TransactionContext txnCtx;
         final QueryShardContext queryShardContext;
 
@@ -149,7 +149,7 @@ public class LuceneQueryBuilder {
                 TransactionContext txnCtx,
                 NodeContext nodeCtx,
                 MapperService mapperService,
-                IndexCache indexCache,
+                QueryCache queryCache,
                 QueryShardContext queryShardContext,
                 String indexName,
                 List<Reference> partitionColumns) {
@@ -167,7 +167,7 @@ public class LuceneQueryBuilder {
                 )
             );
             this.mapperService = mapperService;
-            this.indexCache = indexCache;
+            this.queryCache = queryCache;
         }
 
         public Query query() {

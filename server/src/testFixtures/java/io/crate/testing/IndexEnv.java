@@ -31,6 +31,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.search.QueryCache;
 import org.apache.lucene.store.ByteBuffersDirectory;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
@@ -49,7 +50,6 @@ import org.elasticsearch.index.IndexService.IndexCreationContext;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.analysis.AnalysisRegistry;
 import org.elasticsearch.index.analysis.IndexAnalyzers;
-import org.elasticsearch.index.cache.IndexCache;
 import org.elasticsearch.index.cache.query.DisabledQueryCache;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.query.QueryShardContext;
@@ -71,7 +71,7 @@ public final class IndexEnv implements AutoCloseable {
     private final MapperService mapperService;
     private final LuceneReferenceResolver luceneReferenceResolver;
     private final NodeEnvironment nodeEnvironment;
-    private final IndexCache indexCache;
+    private final QueryCache queryCache;
     private final IndexService indexService;
     private final IndexWriter writer;
 
@@ -106,8 +106,7 @@ public final class IndexEnv implements AutoCloseable {
             indexMetadata.mapping().source(),
             MapperService.MergeReason.MAPPING_UPDATE
         );
-        DisabledQueryCache queryCache = new DisabledQueryCache(idxSettings);
-        indexCache = new IndexCache(idxSettings, queryCache);
+        queryCache = new DisabledQueryCache(idxSettings);
         IndexModule indexModule = new IndexModule(idxSettings, analysisRegistry, List.of(), Collections.emptyMap());
         nodeEnvironment = new NodeEnvironment(Settings.EMPTY, env);
         luceneReferenceResolver = new LuceneReferenceResolver(
@@ -156,8 +155,8 @@ public final class IndexEnv implements AutoCloseable {
         return queryShardContext.get();
     }
 
-    public IndexCache indexCache() {
-        return indexCache;
+    public QueryCache queryCache() {
+        return queryCache;
     }
 
     public IndexWriter writer() {
