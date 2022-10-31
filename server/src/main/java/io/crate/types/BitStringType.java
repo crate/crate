@@ -22,7 +22,6 @@
 package io.crate.types;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.BitSet;
 import java.util.List;
 import java.util.Locale;
@@ -30,6 +29,7 @@ import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
+import com.fasterxml.jackson.core.Base64Variants;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
@@ -132,7 +132,10 @@ public final class BitStringType extends DataType<BitString> implements Streamer
     @Override
     public BitString sanitizeValue(Object value) {
         if (value instanceof String str) {
-            return new BitString(BitSet.valueOf(str.getBytes(StandardCharsets.UTF_8)), length);
+            // InsertSourceGen.SOURCE_WRITERS writes a BitSet bytes as a byte array
+            // which internally uses JsonGenerator.writeBinary which is by default Base64Variants.MIME_NO_LINEFEEDS encoder
+            // and thus we have to decode using the same variant.
+            return new BitString(BitSet.valueOf(Base64Variants.MIME_NO_LINEFEEDS.decode(str)), length);
         }
         return (BitString) value;
     }
