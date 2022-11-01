@@ -59,13 +59,13 @@ public class SysNodesTableInfoTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testCompatibilityVersion() {
-        RowCollectExpressionFactory<NodeStatsContext> sysNodeTableStatws = SysNodesTableInfo.create().expressions().get(
+        RowCollectExpressionFactory<NodeStatsContext> sysNodeTableStats = SysNodesTableInfo.create().expressions().get(
             SysNodesTableInfo.Columns.VERSION);
 
-        assertThat(sysNodeTableStatws.create().getChild("minimum_index_compatibility_version").value(),
+        assertThat(sysNodeTableStats.create().getChild("minimum_index_compatibility_version").value(),
                    is(Version.CURRENT.minimumIndexCompatibilityVersion().externalNumber()));
 
-        assertThat(sysNodeTableStatws.create().getChild("minimum_wire_compatibility_version").value(),
+        assertThat(sysNodeTableStats.create().getChild("minimum_wire_compatibility_version").value(),
                    is(Version.CURRENT.minimumCompatibilityVersion().externalNumber()));
     }
 
