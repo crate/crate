@@ -196,6 +196,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         List<String> outputNames = outputNames(relation);
         assertThat(outputNames).containsExactly(
             "id",
+            "attributes",
             "cluster_state_version",
             "connections",
             "fs",

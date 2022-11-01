@@ -53,6 +53,9 @@ None
 Changes
 =======
 
+- Added ``attributes`` column to :ref:`sys.nodes <sys-nodes>` table to expose
+  :ref:`custom node settings <conf-node-attributes>`.
+
 - Added support for ``SCROLL`` and backward movement to cursors. See
   :ref:`DECLARE <sql-declare>` and :ref:`FETCH <sql-fetch>`.
 

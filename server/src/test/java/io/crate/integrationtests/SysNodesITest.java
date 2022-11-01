@@ -24,17 +24,35 @@ package io.crate.integrationtests;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
+import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertThat;
 
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.IntegTestCase;
 import org.hamcrest.CoreMatchers;
 import org.junit.Test;
 
 @IntegTestCase.ClusterScope(numClientNodes = 0, supportsDedicatedMasters = false)
 public class SysNodesITest extends IntegTestCase {
+
+    /**
+     * See {@link #test_node_attributes()}
+     */
+    @Override
+    protected Settings nodeSettings(int nodeOrdinal) {
+        Settings settings = super.nodeSettings(nodeOrdinal);
+        return Settings.builder().put(settings)
+            .put("node.attr.color", getColor(nodeOrdinal))
+            .put("node.attr.ordinal", nodeOrdinal)
+            .build();
+    }
+
+    private static String getColor(int nodeOrdinal) {
+        return nodeOrdinal % 2 == 0 ? "blue" : "red";
+    }
 
     @Override
     protected boolean addMockHttpTransport() {
@@ -63,6 +81,15 @@ public class SysNodesITest extends IntegTestCase {
         assertThat((String) response.rows()[0][0], startsWith("127.0.0.1:"));
     }
 
+    @Test
+    public void test_node_attributes() throws Exception {
+        execute("SELECT attributes FROM sys.nodes ORDER BY name");
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < cluster().numDataNodes(); i++) {
+            sb.append("{color=").append(getColor(i)).append(", ").append("ordinal=").append(i).append("}\n");
+        }
+        assertThat(printedTable(response.rows()), is(sb.toString()));
+    }
 
     @Test
     public void test_filter_on_not_selected_column_on_sys_nodes_returns_record() throws Exception {
