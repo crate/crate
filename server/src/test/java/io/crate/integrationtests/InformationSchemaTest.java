@@ -562,7 +562,7 @@ public class InformationSchemaTest extends IntegTestCase {
     @Test
     public void testDefaultColumns() {
         execute("select * from information_schema.columns order by table_schema, table_name");
-        assertEquals(936, response.rowCount());
+        assertEquals(937, response.rowCount());
     }
 
     @Test
@@ -813,7 +813,7 @@ public class InformationSchemaTest extends IntegTestCase {
         execute("select max(ordinal_position) from information_schema.columns");
         assertEquals(1, response.rowCount());
 
-        assertEquals(119, response.rows()[0][0]);
+        assertEquals(120, response.rows()[0][0]);
 
         execute("create table t1 (id integer, col1 string)");
         execute("select max(ordinal_position) from information_schema.columns where table_schema = ?",

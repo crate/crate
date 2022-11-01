@@ -284,6 +284,19 @@ The table schema is as follows:
 |              | and port.                                           |             |
 +--------------+-----------------------------------------------------+-------------+
 
+``attributes``
+--------------
+
++----------------+-----------------------------------------------------+-------------+
+| Column Name    | Description                                         | Return Type |
++================+=====================================================+=============+
+| ``attributes`` | The :ref:`custom attributes <conf-node-attributes>` | ``OBJECT``  |
+|                | set for the node, e.g. if ``node.attr.color`` is    |             |
+|                | ``blue``, and ``node.attr.location`` is ``east`,    |             |
+|                | the value of this column would be:                  |             |
+|                | ``{color=blue, location=east}``                     |             |
++----------------+-----------------------------------------------------+-------------+
+
 ``port``
 --------
 
