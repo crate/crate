@@ -62,6 +62,12 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Fixed an issue that prevented defining a ``bit`` column with the same name as
+  the parent object within a table. An example::
+
+    CREATE TABLE tbl (x OBJECT AS (x bit(1)))
+                      ^            ^
+
 - Fixed an issue that could lead to out of memory errors if using the
   ``percentile`` aggregation.
 
