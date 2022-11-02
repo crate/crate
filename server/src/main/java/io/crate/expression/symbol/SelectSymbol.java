@@ -39,6 +39,7 @@ public class SelectSymbol implements Symbol {
     private final ArrayType<?> dataType;
     private final ResultType resultType;
     private final boolean isCorrelated;
+    private final boolean parentIsOrderSensitive;
 
     public enum ResultType {
         SINGLE_COLUMN_SINGLE_VALUE,
@@ -46,7 +47,10 @@ public class SelectSymbol implements Symbol {
         SINGLE_COLUMN_EXISTS
     }
 
-    public SelectSymbol(AnalyzedRelation relation, ArrayType<?> dataType, ResultType resultType) {
+    public SelectSymbol(AnalyzedRelation relation, ArrayType<?> dataType,
+                        ResultType resultType,
+                        boolean parentIsOrderSensitive) {
+
         this.relation = relation;
         this.dataType = dataType;
         this.resultType = resultType;
@@ -57,6 +61,7 @@ public class SelectSymbol implements Symbol {
             }
         });
         this.isCorrelated = isCorrelatedArr[0];
+        this.parentIsOrderSensitive = parentIsOrderSensitive;
     }
 
     public AnalyzedRelation relation() {
@@ -65,6 +70,10 @@ public class SelectSymbol implements Symbol {
 
     public boolean isCorrelated() {
         return isCorrelated;
+    }
+
+    public boolean parentIsOrderSensitive() {
+        return parentIsOrderSensitive;
     }
 
     @Override

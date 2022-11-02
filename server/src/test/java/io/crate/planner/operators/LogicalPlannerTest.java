@@ -478,6 +478,17 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         ));
     }
 
+    @Test
+    public void test_orderBy_not_optimized_for_array_subquery_expression() {
+        LogicalPlan plan = plan("select array(select x from t1 order by a desc limit 10)");
+        assertThat(plan.dependencies().entrySet().size(), is(1));
+        LogicalPlan subPlan = plan.dependencies().keySet().iterator().next();
+        assertThat(subPlan, isPlan(
+            "Eval[x]\n" +
+            "  └ Limit[10::bigint;0]\n" +
+            "    └ OrderBy[a DESC]\n" +
+            "      └ Collect[doc.t1 | [x, a] | true]"));
+    }
 
     public static String printPlan(LogicalPlan logicalPlan) {
         var printContext = new PrintContext();

@@ -218,8 +218,10 @@ public class LogicalPlanner {
             return planBuilder;
         }
 
-        if (selectSymbol.getResultType() == SelectSymbol.ResultType.SINGLE_COLUMN_MULTIPLE_VALUES && relation instanceof QueriedSelectRelation) {
-            QueriedSelectRelation queriedRelation = (QueriedSelectRelation) relation;
+        if (selectSymbol.parentIsOrderSensitive() == false
+            && selectSymbol.getResultType() == SelectSymbol.ResultType.SINGLE_COLUMN_MULTIPLE_VALUES
+            && relation instanceof QueriedSelectRelation queriedRelation) {
+
             OrderBy relationOrderBy = queriedRelation.orderBy();
             Symbol firstOutput = queriedRelation.outputs().get(0);
             if ((relationOrderBy == null || relationOrderBy.orderBySymbols().get(0).equals(firstOutput) == false)
@@ -573,14 +575,14 @@ public class LogicalPlanner {
 
         @Override
         public LogicalPlan visitSelectStatement(AnalyzedRelation relation, PlannerContext context) {
-            SubqueryPlanner subqueryPlanner = new SubqueryPlanner((s) -> planSubSelect(s, context));
+            SubqueryPlanner subqueryPlanner = new SubqueryPlanner(s -> planSubSelect(s, context));
             LogicalPlan logicalPlan = plan(relation, context, subqueryPlanner, false);
             return new RootRelationBoundary(logicalPlan);
         }
 
         @Override
         protected LogicalPlan visitAnalyzedInsertStatement(AnalyzedInsertStatement statement, PlannerContext context) {
-            SubqueryPlanner subqueryPlanner = new SubqueryPlanner((s) -> planSubSelect(s, context));
+            SubqueryPlanner subqueryPlanner = new SubqueryPlanner(s -> planSubSelect(s, context));
             return writeOptimizer.optimize(
                 InsertFromSubQueryPlanner.plan(
                     statement,

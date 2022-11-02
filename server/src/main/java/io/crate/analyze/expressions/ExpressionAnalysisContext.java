@@ -41,6 +41,7 @@ public class ExpressionAnalysisContext {
 
     private boolean hasAggregates;
     private boolean allowEagerNormalize = true;
+    private boolean parentIsOrderSensitive = true;
     private final boolean errorOnUnknownObjectKey;
 
     private Map<String, Window> windows = Map.of();
@@ -63,6 +64,14 @@ public class ExpressionAnalysisContext {
 
     public void allowEagerNormalize(boolean value) {
         this.allowEagerNormalize = value;
+    }
+
+    public boolean parentIsOrderSensitive() {
+        return parentIsOrderSensitive;
+    }
+
+    public void parentIsOrderSensitive(boolean parentIsOrderSensitive) {
+        this.parentIsOrderSensitive = parentIsOrderSensitive;
     }
 
     public void windows(Map<String, Window> windows) {
