@@ -2797,11 +2797,6 @@ An alternative is the following syntax to refer to arrays::
 
 This means ``TEXT[]`` is equivalent to ``ARRAY(text)``.
 
-.. NOTE::
-
-    Nested arrays are not supported. Something like ``ARRAY(ARRAY(TEXT))``
-    won't work.
-
 Arrays are always represented as zero or more literal elements inside square
 brackets (``[]``), for example::
 
@@ -2866,6 +2861,58 @@ constant array values.
 
 
 .. _data-types-geo:
+
+Nested arrays
+..............
+
+Nested arrays cannot be used directly in column definitions  (i.e. 
+``ARRAY(ARRAY(DOUBLE))`` is not accepted), but multiple arrays can be nested
+as long as there are objects in-between:
+
+::
+
+    CREATE TABLE SensorData (sensorID char(10), readings ARRAY(OBJECT AS (innerarray ARRAY(DOUBLE))));
+
+
+Nested arrays can still be used directly in input and output to UDFs:
+
+::
+
+    CREATE FUNCTION sort_nested_array("data" ARRAY(ARRAY(DOUBLE)), sort_dimension SMALLINT)
+    RETURNS ARRAY(ARRAY(DOUBLE))
+    LANGUAGE JAVASCRIPT
+    AS 'function sort_nested_array(data, sort_dimension) {			
+        data = data.sort(function compareFn(a, b) {
+            if (a[sort_dimension] < b[sort_dimension]){return -1;}
+            if (a[sort_dimension] > b[sort_dimension]){return 1;}
+            return 0; 
+        });
+        return data;
+    }';
+
+
+Nested arrays can be constructed using ``ARRAY_AGG`` and accessing them
+requires an intermediate cast:
+
+::
+
+    CREATE TABLE metrics (ts TIMESTAMP, reading DOUBLE);
+    INSERT INTO metrics SELECT '2022-11-01',2;
+    INSERT INTO metrics SELECT '2022-10-01',1;
+    
+    WITH sorteddata AS (
+        SELECT sort_nested_array(ARRAY_AGG([ts,reading]),0) AS nestedarray
+        FROM metrics 
+    )
+    SELECT (nestedarray[generate_series]::ARRAY(DOUBLE))[2] AS "ReadingsSortedByTimestamp"
+    FROM generate_series(1, 2), sorteddata;
+
+    +---------------------------+
+    | ReadingsSortedByTimestamp |
+    +---------------------------+
+    |                       1.0 |
+    |                       2.0 |
+    +---------------------------+
 
 Geographic types
 ================
