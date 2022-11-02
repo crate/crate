@@ -2001,7 +2001,7 @@ public class TransportSQLActionTest extends IntegTestCase {
 
     @Test
     @UseJdbc(0)
-    public void test_types_with_storage_can_be_inserted_and_queried() {
+    public void test_types_with_storage_can_be_inserted_and_queried() throws Exception {
         for (var type : DataTypeTesting.ALL_STORED_TYPES_EXCEPT_ARRAYS) {
             if (type.equals(DataTypes.GEO_POINT)) {
                 // source and doc-value values don't match exactly
@@ -2014,37 +2014,42 @@ public class TransportSQLActionTest extends IntegTestCase {
             execute("insert into tbl (id, x) values (?, ?)", new Object[] { 1, val1 });
             execute("refresh table tbl");
 
-            var resp1 = execute("select _doc['x'], x, _raw FROM tbl where x = ?", new Object[] { val1 });
-            Object x = resp1.rows()[0][1];
-            boolean hasPrecisionChange = false;
-            if (val1 instanceof Map<?, ?> map) {
-                Object x1 = map.get("x");
-                hasPrecisionChange = x1 instanceof Map<?, ?> innerMap && innerMap.containsKey("coordinates");
-            }
-            if (!hasPrecisionChange) {
-                assertThat(
-                    "inserted value must match selected value for type " + type + ": val=" + val1 + " response=" + x,
-                    ((DataType) type).compare(x, val1),
-                    is(0)
-                );
-            }
+            assertBusy(() -> {
+                           var resp1 = execute("select _doc['x'], x, _raw FROM tbl where x = ?", new Object[]{val1});
+                           assertThat(resp1.rows().length, is(1));
+                           Object x = resp1.rows()[0][1];
+                           boolean hasPrecisionChange = false;
+                           if (val1 instanceof Map<?, ?> map) {
+                               Object x1 = map.get("x");
+                               hasPrecisionChange = x1 instanceof Map<?, ?> innerMap && innerMap.containsKey("coordinates");
+                           }
+                           if (!hasPrecisionChange) {
+                               assertThat(
+                                   "inserted value must match selected value for type " + type + ": val=" + val1 + " response=" +
+                                   x,
+                                   ((DataType) type).compare(x, val1),
+                                   is(0)
+                               );
+                           }
 
-            var resp2 = execute("select _doc['x'], x, _raw FROM tbl where id = ?", new Object[] { 1 });
-            assertThat(
-                "primary key lookup output must match regular select output for type " + type,
-                resp2.rows()[0],
-                Matchers.arrayContaining(resp1.rows()[0])
+                           var resp2 = execute("select _doc['x'], x, _raw FROM tbl where id = ?", new Object[]{1});
+                           assertThat(
+                               "primary key lookup output must match regular select output for type " + type,
+                               resp2.rows()[0],
+                               Matchers.arrayContaining(resp1.rows()[0])
+                           );
+
+                           if (SemanticSortValidator.SUPPORTED_TYPES.contains(type)) {
+                               // should use doc-values/query-without-fetch execution path due to order + limit
+                               var resp3 = execute("select _doc['x'], x, _raw FROM tbl order by x limit 1");
+                               assertThat(
+                                   "output of query with order and limit must match output of query without" + type,
+                                   resp3.rows()[0],
+                                   Matchers.arrayContaining(resp1.rows()[0])
+                               );
+                           }
+                       }
             );
-
-            if (SemanticSortValidator.SUPPORTED_TYPES.contains(type)) {
-                // should use doc-values/query-without-fetch execution path due to order + limit
-                var resp3 = execute("select _doc['x'], x, _raw FROM tbl order by x limit 1");
-                assertThat(
-                    "output of query with order and limit must match output of query without" + type,
-                    resp3.rows()[0],
-                    Matchers.arrayContaining(resp1.rows()[0])
-                );
-            }
 
             execute("drop table tbl");
         }
