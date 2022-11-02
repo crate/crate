@@ -656,14 +656,13 @@ public class Node implements Closeable {
                 settings,
                 clusterService,
                 repositoryService,
-                threadPool
+                transportService
             );
 
             final SnapshotShardsService snapshotShardsService = new SnapshotShardsService(
                 settings,
                 clusterService,
                 repositoryService,
-                threadPool,
                 transportService,
                 indicesService
             );
