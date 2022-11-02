@@ -21,6 +21,7 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
@@ -199,9 +200,10 @@ public class PercentileAggregationTest extends AggregationTestCase {
         assertThat(result, is(nullValue()));
     }
 
+    @Test
     public void testIterate() throws Exception {
         PercentileAggregation pa = singleArgPercentile;
-        TDigestState state = pa.iterate(null, memoryManager, TDigestState.createEmptyState(), Literal.of(1), Literal.of(0.5));
+        TDigestState state = pa.iterate(RamAccounting.NO_ACCOUNTING, memoryManager, TDigestState.createEmptyState(), Literal.of(1), Literal.of(0.5));
         assertThat(state, is(notNullValue()));
         assertThat(state.fractions()[0], is(0.5));
     }
@@ -250,5 +252,49 @@ public class PercentileAggregationTest extends AggregationTestCase {
         Object result = impl.terminatePartial(ramAccounting, state);
 
         assertThat("result must be an array", result, instanceOf(List.class));
+    }
+
+    @Test
+    public void test_percentile_accounts_memory_for_tdigeststate() throws Exception {
+        AggregationFunction impl = (AggregationFunction<?, ?>) nodeCtx.functions().getQualified(
+            Signature.aggregate(
+                PercentileAggregation.NAME,
+                DataTypes.LONG.getTypeSignature(),
+                DataTypes.DOUBLE_ARRAY.getTypeSignature(),
+                DataTypes.DOUBLE_ARRAY.getTypeSignature()
+            ),
+            List.of(DataTypes.LONG, DataTypes.DOUBLE_ARRAY),
+            DataTypes.DOUBLE_ARRAY
+        );
+        RamAccounting ramAccounting = new RamAccounting() {
+
+            long total = 0;
+
+            @Override
+            public void addBytes(long bytes) {
+                total += bytes;
+            }
+
+            @Override
+            public long totalBytes() {
+                return total;
+            }
+
+            @Override
+            public void release() {
+                total = 0;
+            }
+
+            @Override
+            public void close() {
+                release();
+            }
+        };
+        Object state = impl.newState(ramAccounting, Version.CURRENT, Version.CURRENT, memoryManager);
+        assertThat(ramAccounting.totalBytes()).isEqualTo(72L);
+        Literal<List<Double>> fractions = Literal.of(Collections.singletonList(0.95D), DataTypes.DOUBLE_ARRAY);
+        impl.iterate(ramAccounting, memoryManager, state, Literal.of(10L), fractions);
+        impl.iterate(ramAccounting, memoryManager, state, Literal.of(20L), fractions);
+        assertThat(ramAccounting.totalBytes()).isEqualTo(104L);
     }
 }
