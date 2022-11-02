@@ -29,6 +29,7 @@ import io.crate.metadata.functions.Signature;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 
@@ -91,6 +92,7 @@ class PercentileAggregation extends AggregationFunction<TDigestState, Object> {
                                  Version indexVersionCreated,
                                  Version minNodeInCluster,
                                  MemoryManager memoryManager) {
+        ramAccounting.addBytes(TDigestState.SHALLOW_SIZE);
         return TDigestState.createEmptyState();
     }
 
@@ -101,30 +103,36 @@ class PercentileAggregation extends AggregationFunction<TDigestState, Object> {
                                 Input... args) throws CircuitBreakingException {
         if (state.isEmpty()) {
             Object fractionValue = args[1].value();
-            initState(state, fractionValue);
+            initState(state, fractionValue, ramAccounting);
         }
         Double value = DataTypes.DOUBLE.sanitizeValue(args[0].value());
         if (value != null) {
+            int sizeBefore = state.byteSize();
             state.add(value);
+            int sizeDelta = state.byteSize() - sizeBefore;
+            if (sizeDelta > 0) {
+                ramAccounting.addBytes(sizeDelta);
+            }
         }
         return state;
     }
 
-    private void initState(TDigestState state, Object argValue) {
+    private void initState(TDigestState state, Object argValue, RamAccounting ramAccounting) {
         if (argValue != null) {
-            if (argValue instanceof List) {
-                List values = (List) argValue;
+            if (argValue instanceof List<?> values) {
                 if (values.isEmpty() || values.contains(null)) {
                     throw new IllegalArgumentException("no fraction value specified");
                 }
+                ramAccounting.addBytes(values.size() * Double.BYTES);
                 state.fractions(toDoubleArray(values));
             } else {
+                ramAccounting.addBytes(Double.BYTES);
                 state.fractions(new double[]{DataTypes.DOUBLE.sanitizeValue(argValue)});
             }
         }
     }
 
-    private static double[] toDoubleArray(List values) {
+    private static double[] toDoubleArray(List<?> values) {
         double[] result = new double[values.size()];
         for (int i = 0; i < values.size(); i++) {
             result[i] = DataTypes.DOUBLE.sanitizeValue(values.get(i));
