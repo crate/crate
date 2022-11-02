@@ -262,7 +262,7 @@ should be crossed out as well.
 - [ ] d456f7870a7 Deduplicate Index Metadata in BlobStore (#50278) (#59514)
 - [ ] 408a07f96a6 Separate coordinating and primary bytes in stats (#59487)
 - [ ] 1a24916fef8 Enable replication retries on 7.9+ (#59546)
-- [ ] 0e3d87ab54b Add Assertions on CS Application in Snapshot Logic (#58681) (#59511)
+- [x] 0e3d87ab54b Add Assertions on CS Application in Snapshot Logic (#58681) (#59511)
 - [x] 81e96954d01 Improve Efficiency of SnapshotsService CS Apply (#56874) (#59508)
 - [ ] 623df95a323 Adding indexing pressure stats to node stats API (#59467)
 - [ ] 68d56fa7dba Implement rejections in `WriteMemoryLimits` (#59451)
