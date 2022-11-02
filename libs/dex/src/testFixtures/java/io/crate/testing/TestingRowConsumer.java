@@ -28,6 +28,8 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
+import javax.annotation.Nullable;
+
 import io.crate.data.BatchIterator;
 import io.crate.data.Bucket;
 import io.crate.data.CollectionBucket;
@@ -42,18 +44,15 @@ public final class TestingRowConsumer implements RowConsumer {
     private final boolean autoClose;
 
     static CompletionStage<?> moveToEnd(BatchIterator<Row> it) {
-        try {
-            while (it.moveNext()) {
-                // just moving it to the end
-            }
-            if (it.allLoaded()) {
-                return CompletableFuture.completedFuture(null);
+        CompletableFuture<Object> future = new CompletableFuture<>();
+        it.move(Integer.MAX_VALUE, row -> {}, err -> {
+            if (err == null) {
+                future.complete(null);
             } else {
-                return it.loadNextBatch().thenCompose(ignored -> moveToEnd(it));
+                future.completeExceptionally(err);
             }
-        } catch (Throwable t) {
-            return CompletableFuture.failedFuture(t);
-        }
+        });
+        return future;
     }
 
     public TestingRowConsumer() {
@@ -65,28 +64,18 @@ public final class TestingRowConsumer implements RowConsumer {
     }
 
     @Override
-    public void accept(BatchIterator<Row> it, Throwable failure) {
+    public void accept(BatchIterator<Row> it, @Nullable Throwable failure) {
         if (failure == null) {
-            try {
-                while (it.moveNext()) {
-                    rows.add(it.currentElement().materialize());
-                }
-                if (it.allLoaded()) {
-                    if (autoClose) {
-                        it.close();
-                    }
-                    result.complete(rows);
-                } else {
-                    it.loadNextBatch().whenComplete((res, err) -> {
-                        accept(it, err);
-                    });
-                }
-            } catch (Throwable t) {
+            it.move(Integer.MAX_VALUE, row -> rows.add(row.materialize()), err -> {
                 if (autoClose) {
                     it.close();
                 }
-                result.completeExceptionally(t);
-            }
+                if (err == null) {
+                    result.complete(rows);
+                } else {
+                    result.completeExceptionally(err);
+                }
+            });
         } else {
             if (it != null && autoClose) {
                 it.close();

@@ -43,7 +43,7 @@ public class RowCellsAccountingWithEstimators implements RowAccounting<Object[]>
                                             RamAccounting ramAccounting,
                                             int extraSizePerRow) {
         this.estimators = new ArrayList<>(columnTypes.size());
-        for (DataType columnType : columnTypes) {
+        for (DataType<?> columnType : columnTypes) {
             estimators.add(SizeEstimatorFactory.create(columnType));
         }
         this.ramAccounting = ramAccounting;

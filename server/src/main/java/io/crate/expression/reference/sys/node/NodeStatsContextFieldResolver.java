@@ -21,12 +21,22 @@
 
 package io.crate.expression.reference.sys.node;
 
-import io.crate.common.annotations.VisibleForTesting;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.sys.SysNodesTableInfo;
-import io.crate.monitor.ExtendedNodeInfo;
-import io.crate.protocols.ConnectionStats;
-import io.crate.protocols.postgres.PostgresNetty;
+import static io.crate.expression.reference.sys.node.Ports.portFromAddress;
+import static java.util.Map.entry;
+
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Locale;
+import java.util.Map;
+import java.util.function.Consumer;
+import java.util.function.LongSupplier;
+import java.util.function.Supplier;
+
+import javax.annotation.Nullable;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Build;
@@ -48,18 +58,12 @@ import org.elasticsearch.node.NodeService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import javax.annotation.Nullable;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.util.Collection;
-import java.util.Locale;
-import java.util.Map;
-import java.util.function.Consumer;
-import java.util.function.LongSupplier;
-import java.util.function.Supplier;
-
-import static io.crate.expression.reference.sys.node.Ports.portFromAddress;
-import static java.util.Map.entry;
+import io.crate.common.annotations.VisibleForTesting;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.sys.SysNodesTableInfo;
+import io.crate.monitor.ExtendedNodeInfo;
+import io.crate.protocols.ConnectionStats;
+import io.crate.protocols.postgres.PostgresNetty;
 
 @Singleton
 public class NodeStatsContextFieldResolver {
@@ -184,6 +188,14 @@ public class NodeStatsContextFieldResolver {
                     String url = node.getAttributes().get("http_address");
                     context.restUrl(url);
                 }
+            }
+        }),
+        entry(SysNodesTableInfo.Columns.ATTRIBUTES, new Consumer<NodeStatsContext>() {
+            @Override
+            public void accept(NodeStatsContext context) {
+                Map<String, Object> attrs = new LinkedHashMap<>(localNode.get().getAttributes());
+                attrs.remove("http_address"); // already exposed as "rest_url"
+                context.attributes(Collections.unmodifiableMap(attrs));
             }
         }),
         entry(SysNodesTableInfo.Columns.PORT, new Consumer<>() {

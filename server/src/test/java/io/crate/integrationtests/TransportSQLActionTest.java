@@ -63,7 +63,6 @@ import java.util.UUID;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-import io.crate.types.BitStringType;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
@@ -1975,7 +1974,7 @@ public class TransportSQLActionTest extends IntegTestCase {
         // primary key lookup uses different execution path to decode the value
         execute("select xs from tbl where id = 6");
         assertThat(TestingHelpers.printedTable(response.rows()), is(
-            "B'1100'\n"
+            "B'1001'\n"
         ));
 
         var properties = new Properties();
@@ -2006,11 +2005,6 @@ public class TransportSQLActionTest extends IntegTestCase {
         for (var type : DataTypeTesting.ALL_STORED_TYPES_EXCEPT_ARRAYS) {
             if (type.equals(DataTypes.GEO_POINT)) {
                 // source and doc-value values don't match exactly
-                continue;
-            }
-
-            if (type.equals(BitStringType.INSTANCE_ONE)) {
-                // TODO: remove this and investigate failure in case when bit string  = B'1'.
                 continue;
             }
 

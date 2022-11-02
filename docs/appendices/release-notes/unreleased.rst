@@ -53,8 +53,15 @@ None
 Changes
 =======
 
+- Added ``attributes`` column to :ref:`sys.nodes <sys-nodes>` table to expose
+  :ref:`custom node settings <conf-node-attributes>`.
+
+- Added support for ``SCROLL`` and backward movement to cursors. See
+  :ref:`DECLARE <sql-declare>` and :ref:`FETCH <sql-fetch>`.
+
 - Added the :ref:`MAX_BY <aggregation-max_by>` and :ref:`MIN_BY
   <aggregation-min_by>` aggregation functions
+
 
 Fixes
 =====
@@ -62,6 +69,9 @@ Fixes
 .. If you add an entry here, the fix needs to be backported to the latest
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
+
+- Fixed an issue that could lead to serialization errors when using the ``bit``
+  type in objects.
 
 - Fixed an issue that could lead to ``IllegalIndexShardStateException`` errors
   when running a ``SELECT count(*) FROM tbl`` on partitioned tables.
@@ -92,3 +102,7 @@ Fixes
 
 - Fixed an issue that caused ``ARRAY_COL = []`` to throw an exception on
   ``OBJECT``, ``GEO_SHAPE``, ``IP`` or ``BIT`` array element types.
+
+- Fixed an issue that caused queries reading values of type ``BIT`` to return a
+  wrong result if the query contains a ``WHERE`` clause ``pk_col = ?``
+  condition.

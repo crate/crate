@@ -21,9 +21,9 @@
 
 package io.crate.expression.reference.sys.node;
 
-import io.crate.monitor.ExtendedOsStats;
-import io.crate.protocols.ConnectionStats;
-import io.crate.types.DataTypes;
+import java.io.IOException;
+import java.util.Map;
+
 import org.apache.lucene.util.Constants;
 import org.elasticsearch.Build;
 import org.elasticsearch.Version;
@@ -38,7 +38,9 @@ import org.elasticsearch.monitor.os.OsStats;
 import org.elasticsearch.monitor.process.ProcessStats;
 import org.elasticsearch.threadpool.ThreadPoolStats;
 
-import java.io.IOException;
+import io.crate.monitor.ExtendedOsStats;
+import io.crate.protocols.ConnectionStats;
+import io.crate.types.DataTypes;
 
 public class NodeStatsContext implements Writeable {
 
@@ -52,6 +54,7 @@ public class NodeStatsContext implements Writeable {
     private long clusterStateVersion;
     private Build build;
     private String restUrl;
+    private Map<String, Object> attributes;
     private JvmStats jvmStats;
     private OsInfo osInfo;
     private ProcessStats processStats;
@@ -128,6 +131,10 @@ public class NodeStatsContext implements Writeable {
 
     public String restUrl() {
         return restUrl;
+    }
+
+    public Map<String, Object> attributes() {
+        return attributes;
     }
 
     public JvmStats jvmStats() {
@@ -242,6 +249,10 @@ public class NodeStatsContext implements Writeable {
         this.restUrl = restUrl;
     }
 
+    public void attributes(Map<String, Object> attributes) {
+        this.attributes = attributes;
+    }
+
     public void httpPort(Integer http) {
         this.httpPort = http;
     }
@@ -303,6 +314,9 @@ public class NodeStatsContext implements Writeable {
         this.version = in.readBoolean() ? Version.readVersion(in) : null;
         this.build = in.readBoolean() ? Build.readBuild(in) : null;
         this.restUrl = DataTypes.STRING.readValueFrom(in);
+        if (in.getVersion().onOrAfter(Version.V_5_2_0)) {
+            this.attributes = in.readMap();
+        }
         this.pgPort = in.readOptionalVInt();
         this.httpPort = in.readOptionalVInt();
         this.transportPort = in.readOptionalVInt();
@@ -342,6 +356,9 @@ public class NodeStatsContext implements Writeable {
             Build.writeBuildTo(build, out);
         }
         DataTypes.STRING.writeValueTo(out, restUrl);
+        if (out.getVersion().onOrAfter(Version.V_5_2_0)) {
+            out.writeMap(attributes);
+        }
         out.writeOptionalVInt(pgPort);
         out.writeOptionalVInt(httpPort);
         out.writeOptionalVInt(transportPort);

@@ -69,7 +69,6 @@ import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.MapperTestUtils;
 import org.elasticsearch.index.VersionType;
-import org.elasticsearch.index.cache.IndexCache;
 import org.elasticsearch.index.cache.query.DisabledQueryCache;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.mapper.SourceToParse;
@@ -513,10 +512,7 @@ public abstract class AggregationTestCase extends ESTestCase {
                                        ShardPath shardPath,
                                        IndexMetadata indexMetadata) throws IOException {
         var indexSettings = new IndexSettings(indexMetadata, Settings.EMPTY);
-        var indexCache = new IndexCache(
-            indexSettings,
-            new DisabledQueryCache(indexSettings)
-        );
+        var queryCache = new DisabledQueryCache(indexSettings);
         var store = new Store(
             shardPath.getShardId(),
             indexSettings,
@@ -538,7 +534,7 @@ public abstract class AggregationTestCase extends ESTestCase {
                 indexSettings,
                 shardPath,
                 store,
-                indexCache,
+                queryCache,
                 mapperService,
                 List.of(),
                 EMPTY_EVENT_LISTENER,

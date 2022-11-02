@@ -46,10 +46,12 @@ import io.crate.statistics.TransportAnalyzeAction;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.client.ElasticsearchClient;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.threadpool.ThreadPool;
 
@@ -88,6 +90,7 @@ public class DependencyCarrier {
     private final TransportCreateSubscriptionAction createSubscriptionAction;
     private final LogicalReplicationService logicalReplicationService;
     private final ElasticsearchClient client;
+    private CircuitBreakerService circuitBreakerService;
 
     @Inject
     public DependencyCarrier(Settings settings,
@@ -98,6 +101,7 @@ public class DependencyCarrier {
                              NodeContext nodeCtx,
                              ClusterService clusterService,
                              NodeLimits nodeLimits,
+                             CircuitBreakerService circuitBreakerService,
                              DCLStatementDispatcher dclStatementDispatcher,
                              TransportDropTableAction transportDropTableAction,
                              TransportCreateViewAction createViewAction,
@@ -124,6 +128,7 @@ public class DependencyCarrier {
         this.nodeCtx = nodeCtx;
         this.clusterService = clusterService;
         this.nodeLimits = nodeLimits;
+        this.circuitBreakerService = circuitBreakerService;
         this.dclStatementDispatcher = dclStatementDispatcher;
         this.transportDropTableAction = transportDropTableAction;
         projectionBuilder = new ProjectionBuilder(nodeCtx);
@@ -259,5 +264,9 @@ public class DependencyCarrier {
 
     public ElasticsearchClient client() {
         return client;
+    }
+
+    public CircuitBreaker circuitBreaker(String name) {
+        return circuitBreakerService.getBreaker(name);
     }
 }

@@ -54,66 +54,17 @@ public class BatchIterators {
                                                          A state,
                                                          Collector<T, A, R> collector,
                                                          CompletableFuture<R> resultFuture) {
-        var biCollector = new BiCollector<>(it, state, collector, resultFuture);
-        biCollector.collect();
-        return resultFuture;
-    }
-
-    static class BiCollector<T, A, R> {
-
-        private final BiConsumer<A, T> accumulator;
-        private final Function<A, R> finisher;
-        private final BatchIterator<T> it;
-        private final A state;
-        private final CompletableFuture<R> resultFuture;
-
-        public BiCollector(BatchIterator<T> it,
-                           A state,
-                           Collector<T, A, R> collector,
-                           CompletableFuture<R> resultFuture) {
-            this.it = it;
-            this.state = state;
-            this.resultFuture = resultFuture;
-            this.accumulator = collector.accumulator();
-            this.finisher = collector.finisher();
-        }
-
-        public void collect() {
-            while (true) {
-                try {
-                    while (it.moveNext()) {
-                        accumulator.accept(state, it.currentElement());
-                    }
-                    if (it.allLoaded()) {
-                        it.close();
-                        resultFuture.complete(finisher.apply(state));
-                        return;
-                    } else {
-                        var nextBatch = it.loadNextBatch().toCompletableFuture();
-                        if (nextBatch.isDone()) {
-                            // need to fail resultFuture if nextBatch failed; this triggers exception
-                            if (nextBatch.isCompletedExceptionally()) {
-                                nextBatch.join();
-                            }
-                            continue;
-                        }
-                        nextBatch.whenComplete((res, err) -> {
-                            if (err == null) {
-                                collect();
-                            } else {
-                                it.close();
-                                resultFuture.completeExceptionally(err);
-                            }
-                        });
-                        return;
-                    }
-                } catch (Throwable t) {
-                    it.close();
-                    resultFuture.completeExceptionally(t);
-                    return;
-                }
+        BiConsumer<A, T> accumulator = collector.accumulator();
+        Function<A, R> finisher = collector.finisher();
+        it.move(Integer.MAX_VALUE, row -> accumulator.accept(state, row), err -> {
+            it.close();
+            if (err == null) {
+                resultFuture.complete(finisher.apply(state));
+            } else {
+                resultFuture.completeExceptionally(err);
             }
-        }
+        });
+        return resultFuture;
     }
 
     /**

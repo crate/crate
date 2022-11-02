@@ -78,4 +78,5 @@ Cursors in CrateDB are always insensitive.
 ``NO SCROLL`` (the default) specifies that the cursor can only be used to move
 forward.
 
-``SCROLL`` is currently not supported.
+``SCROLL`` allows using a cursor for backward movement but also adds memory
+overhead.

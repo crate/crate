@@ -21,13 +21,18 @@
 
 package io.crate.types;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.CoreMatchers.is;
+
+import java.util.BitSet;
+import java.util.Map;
 
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.test.ESTestCase;
 import org.hamcrest.MatcherAssert;
 import org.junit.Test;
 
+import io.crate.sql.tree.BitString;
 import io.crate.testing.DataTypeTesting;
 
 public class UndefinedTypeTest extends ESTestCase {
@@ -61,5 +66,21 @@ public class UndefinedTypeTest extends ESTestCase {
     @Test
     public void test_undefined_type_can_stream_geo_point_values() throws Exception {
         testRoundTrip(DataTypes.GEO_POINT);
+    }
+
+    @Test
+    public void test_can_stream_bitstring_values() throws Exception {
+        BitSet bits = new BitSet();
+        bits.set(0);
+        bits.set(1);
+        BitString bitString = new BitString(bits, 4);
+        var map = Map.of("foo", bitString);
+
+        var out = new BytesStreamOutput();
+        DataTypes.UNDEFINED.writeValueTo(out, map);
+
+        var in = out.bytes().streamInput();
+        var mapIn = DataTypes.UNDEFINED.readValueFrom(in);
+        assertThat(map).isEqualTo(mapIn);
     }
 }

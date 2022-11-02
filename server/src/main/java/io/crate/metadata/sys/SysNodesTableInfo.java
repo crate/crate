@@ -21,25 +21,25 @@
 
 package io.crate.metadata.sys;
 
-import io.crate.expression.reference.sys.node.NodeStatsContext;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.SystemTable;
-import io.crate.monitor.FsInfoHelpers;
-import io.crate.types.DataTypes;
-
-import org.elasticsearch.Version;
-import org.elasticsearch.monitor.fs.FsInfo;
-import org.elasticsearch.monitor.jvm.JvmStats;
-import org.elasticsearch.threadpool.ThreadPoolStats;
-
-
 import static io.crate.types.DataTypes.DOUBLE;
 import static io.crate.types.DataTypes.INTEGER;
 import static io.crate.types.DataTypes.LONG;
 import static io.crate.types.DataTypes.SHORT;
 import static io.crate.types.DataTypes.STRING;
 import static io.crate.types.DataTypes.TIMESTAMPZ;
+import static io.crate.types.DataTypes.UNTYPED_OBJECT;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.monitor.fs.FsInfo;
+import org.elasticsearch.monitor.jvm.JvmStats;
+import org.elasticsearch.threadpool.ThreadPoolStats;
+
+import io.crate.expression.reference.sys.node.NodeStatsContext;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.SystemTable;
+import io.crate.monitor.FsInfoHelpers;
+import io.crate.types.DataTypes;
 
 public class SysNodesTableInfo {
 
@@ -49,6 +49,7 @@ public class SysNodesTableInfo {
     private static final String SYS_COL_NODE_NAME = "name";
     private static final String SYS_COL_HOSTNAME = "hostname";
     private static final String SYS_COL_REST_URL = "rest_url";
+    private static final String SYS_COL_ATTRIBUTES = "attributes";
     private static final String SYS_COL_PORT = "port";
     private static final String SYS_COL_CLUSTER_STATE_VERSION = "cluster_state_version";
     private static final String SYS_COL_LOAD = "load";
@@ -67,6 +68,7 @@ public class SysNodesTableInfo {
         public static final ColumnIdent NAME = new ColumnIdent(SYS_COL_NODE_NAME);
         public static final ColumnIdent HOSTNAME = new ColumnIdent(SYS_COL_HOSTNAME);
         public static final ColumnIdent REST_URL = new ColumnIdent(SYS_COL_REST_URL);
+        public static final ColumnIdent ATTRIBUTES = new ColumnIdent(SYS_COL_ATTRIBUTES);
 
         public static final ColumnIdent PORT = new ColumnIdent(SYS_COL_PORT);
         public static final ColumnIdent CLUSTER_STATE_VERSION = new ColumnIdent(SYS_COL_CLUSTER_STATE_VERSION);
@@ -101,6 +103,7 @@ public class SysNodesTableInfo {
             .add("name", STRING, NodeStatsContext::name)
             .add("hostname", STRING, NodeStatsContext::hostname)
             .add("rest_url", STRING, NodeStatsContext::restUrl)
+            .add("attributes", UNTYPED_OBJECT, NodeStatsContext::attributes)
             .startObject("port")
                 .add("http", INTEGER, NodeStatsContext::httpPort)
                 .add("transport", INTEGER, NodeStatsContext::transportPort)

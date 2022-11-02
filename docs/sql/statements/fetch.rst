@@ -24,6 +24,7 @@ Where direction can be empty or one of:
 
     NEXT
     RELATIVE count
+    ABSOLUTE position
     count
     ALL
     FORWARD
@@ -53,6 +54,13 @@ Parameters
 :RELATIVE count:
   Fetch ``count`` rows relative to the current position.
 
+:ABSOLUTE position:
+  Jumps to the ``position`` and returns the row, or an empty result if jumped to
+  a position outside the result set.
+
+  Jumping backward is only possible if the cursor was created with ``SCROLL``
+  set in ``DECLARE``.
+
 :count:
   Fetch the next ``count`` rows
 
@@ -67,6 +75,18 @@ Parameters
 
 :FORWARD ALL:
   Same as ``ALL``
+
+:BACKWARD:
+  Move 1 row back
+
+  Moving backward is only possible if the cursor was created with ``SCROLL``
+  set in ``DECLARE``.
+
+:BACKWARD count:
+  Move ``count`` rows back
+
+  Moving backward is only possible if the cursor was created with ``SCROLL``
+  set in ``DECLARE``.
 
 
 ``count``
