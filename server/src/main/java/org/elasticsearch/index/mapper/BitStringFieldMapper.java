@@ -102,7 +102,7 @@ public class BitStringFieldMapper extends FieldMapper {
                 length,
                 defaultExpression,
                 fieldType,
-                new BitStringFieldType(name, true, true),
+                new BitStringFieldType(buildFullName(context), true, true),
                 copyTo);
             context.putPositionInfo(mapper, position);
             return mapper;
@@ -128,6 +128,11 @@ public class BitStringFieldMapper extends FieldMapper {
             builder.length((Integer) length);
             return builder;
         }
+    }
+
+    @Override
+    protected BitStringFieldMapper clone() {
+        return (BitStringFieldMapper) super.clone();
     }
 
     @Override
