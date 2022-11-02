@@ -62,6 +62,12 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Fixed an issue that caused incorrect results to be returned when using
+  :ref:`array(subquery) <scalar-array>` when the subquery is using ``ORDER BY``
+  on a different column than the one returned, i.e.::
+
+    SELECT array(SELECT country FROM sys.summits ORDER BY height DESC LIMIT 3)
+
 - Fixed an issue that prevented defining a ``bit`` column with the same name as
   the parent object within a table. An example::
 

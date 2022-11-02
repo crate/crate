@@ -674,7 +674,8 @@ public class ExpressionAnalyzer {
             SelectSymbol selectSymbol = new SelectSymbol(
                 relation,
                 new ArrayType<>(innerType),
-                SelectSymbol.ResultType.SINGLE_COLUMN_EXISTS
+                SelectSymbol.ResultType.SINGLE_COLUMN_EXISTS,
+                false
             );
             return allocateFunction(ExistsOperator.NAME, List.of(selectSymbol), context);
         }
@@ -795,8 +796,10 @@ public class ExpressionAnalyzer {
         @Override
         public Symbol visitArrayComparisonExpression(ArrayComparisonExpression node, ExpressionAnalysisContext context) {
             context.registerArrayChild(node.getRight());
+            context.parentIsOrderSensitive(false);
             Symbol leftSymbol = node.getLeft().accept(this, context);
             Symbol arraySymbol = node.getRight().accept(this, context);
+            context.parentIsOrderSensitive(true);
             ComparisonExpression.Type operationType = node.getType();
             final String operatorName;
             switch (node.quantifier()) {
@@ -1127,7 +1130,7 @@ public class ExpressionAnalyzer {
             } else {
                 resultType = SelectSymbol.ResultType.SINGLE_COLUMN_SINGLE_VALUE;
             }
-            return new SelectSymbol(relation, dataType, resultType);
+            return new SelectSymbol(relation, dataType, resultType, context.parentIsOrderSensitive());
         }
     }
 
