@@ -162,22 +162,19 @@ public final class ExpressionFormatter {
 
         @Override
         public String visitArrayComparisonExpression(ArrayComparisonExpression node, @Nullable List<Expression> parameters) {
-            StringBuilder builder = new StringBuilder();
 
             String array = node.getRight().accept(this, parameters);
             String left = node.getLeft().accept(this, parameters);
             String type = node.getType().getValue();
 
-            builder.append("(" + left + " " + type + " ANY(" + array + "))");
-            return builder.toString();
+            return "(" + left + " " + type + " ANY(" + array + "))";
         }
 
         @Override
         protected String visitArraySubQueryExpression(ArraySubQueryExpression node, @Nullable List<Expression> parameters) {
-            StringBuilder builder = new StringBuilder();
             String subqueryExpression = node.subqueryExpression().accept(this, parameters);
             assert subqueryExpression.startsWith("(") : "subqueryExpression must be enclosed in parenthesis";
-            return builder.append("ARRAY").append(subqueryExpression).append("").toString();
+            return "ARRAY" + subqueryExpression;
         }
 
         @Override
