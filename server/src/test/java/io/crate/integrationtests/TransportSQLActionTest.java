@@ -80,12 +80,16 @@ import com.carrotsearch.randomizedtesting.generators.RandomPicks;
 import io.crate.analyze.validator.SemanticSortValidator;
 import io.crate.common.collections.Lists2;
 import io.crate.exceptions.SQLExceptions;
+import io.crate.sql.SqlFormatter;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.testing.DataTypeTesting;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedSchema;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
+import io.crate.types.ObjectType.Builder;
 
 @IntegTestCase.ClusterScope(minNumDataNodes = 2)
 public class TransportSQLActionTest extends IntegTestCase {
@@ -1999,6 +2003,29 @@ public class TransportSQLActionTest extends IntegTestCase {
         ));
     }
 
+    /**
+     * Adds innerTypes to object type definitions
+     **/
+    private static DataType<?> extendedType(DataType<?> type, Object value) {
+        if (type.id() == ObjectType.ID) {
+            var entryIt = ((Map<?, ?>) value).entrySet().iterator();
+            Builder builder = ObjectType.builder();
+            while (entryIt.hasNext()) {
+                var entry = entryIt.next();
+                String innerName = (String) entry.getKey();
+                Object innerValue = entry.getValue();
+                DataType<?> innerType = DataTypes.guessType(innerValue);
+                if (innerType.id() == ObjectType.ID && innerValue instanceof Map<?, ?> m && m.containsKey("coordinates")) {
+                    innerType = DataTypes.GEO_SHAPE;
+                }
+                builder.setInnerType(innerName, extendedType(innerType, innerValue));
+            }
+            return builder.build();
+        } else {
+            return type;
+        }
+    }
+
     @Test
     @UseJdbc(0)
     public void test_types_with_storage_can_be_inserted_and_queried() {
@@ -2007,10 +2034,11 @@ public class TransportSQLActionTest extends IntegTestCase {
                 // source and doc-value values don't match exactly
                 continue;
             }
-
-            execute("create table tbl (id int primary key, x " + type.getName() + ")");
             Supplier<?> dataGenerator = DataTypeTesting.getDataGenerator(type);
             Object val1 = dataGenerator.get();
+            var extendedType = extendedType(type, val1);
+            String typeDefinition = SqlFormatter.formatSql(extendedType.toColumnType(ColumnPolicy.STRICT, null));
+            execute("create table tbl (id int primary key, x " + typeDefinition + ")");
             execute("insert into tbl (id, x) values (?, ?)", new Object[] { 1, val1 });
             execute("refresh table tbl");
 
