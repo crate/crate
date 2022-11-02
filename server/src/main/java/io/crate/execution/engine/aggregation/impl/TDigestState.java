@@ -23,12 +23,16 @@ package io.crate.execution.engine.aggregation.impl;
 
 import com.tdunning.math.stats.AVLTreeDigest;
 import com.tdunning.math.stats.Centroid;
+
+import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
 class TDigestState extends AVLTreeDigest {
+
+    public static final long SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(TDigestState.class);
 
     private static final int DEFAULT_COMPRESSION = 100;
     private final double compression;
