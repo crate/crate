@@ -70,6 +70,9 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Fixed an issue that could lead to out of memory errors if using the
+  ``percentile`` aggregation.
+
 - Fixed an issue that could lead to serialization errors when using the ``bit``
   type in objects.
 
