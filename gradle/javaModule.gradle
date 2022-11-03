@@ -32,13 +32,13 @@ def getJdkBundleOSFromPropertiesOrDefault = {
         "bundled_jdk_os",
         versions['bundled_jdk_os'] != null
             ? "${versions['bundled_jdk_os']}"
-            : OS.current().name().toLowerCase())
+            : OS.current().osName())
 }
 
 def getJdkBundleArchFromPropertiesOrDefault = {
     System.getProperty(
         "bundled_jdk_arch",
-        versions['bundled_jdk_arch'] != null ? "${versions['bundled_jdk_arch']}" : "x64")
+        versions['bundled_jdk_arch'] != null ? "${versions['bundled_jdk_arch']}" : OS.current().arch())
 }
 
 

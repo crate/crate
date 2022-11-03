@@ -21,22 +21,53 @@
 
 package io.crate.gradle;
 
-public enum OS {
-    WINDOWS,
-    MAC,
-    LINUX;
+import java.util.Locale;
+
+public final class OS {
+
+    private final String osName;
+    private final String arch;
+
+    private OS(String osName, String arch) {
+        this.osName = osName;
+        this.arch = arch;
+    }
+
+    private static OS mac(String arch) {
+        return new OS("mac", arch);
+    }
+
+    private static OS linux(String arch) {
+        return new OS("linux", arch);
+    }
+
+    private static OS windows(String arch) {
+        return new OS("windows", arch);
+    }
+
+    public String osName() {
+        return osName;
+    }
+
+    public String arch() {
+        return arch;
+    }
 
     @SuppressWarnings("unused")
     public static OS current() {
-        String os = System.getProperty("os.name", "");
-        if (os.startsWith("Windows")) {
-            return OS.WINDOWS;
+        String arch = System.getProperty("os.arch", "");
+        if ("amd64".equals(arch)) {
+            arch = "x64";
         }
-        if (os.startsWith("Linux") || os.startsWith("LINUX")) {
-            return OS.LINUX;
+        String os = System.getProperty("os.name", "").toLowerCase(Locale.ROOT);
+        if (os.startsWith("windows")) {
+            return windows(arch);
         }
-        if (os.startsWith("Mac")) {
-            return OS.MAC;
+        if (os.startsWith("linux")) {
+            return linux(arch);
+        }
+        if (os.startsWith("mac") || os.startsWith("darwin")) {
+            return mac(arch);
         }
         throw new IllegalStateException("Can't determine OS from: " + os);
     }

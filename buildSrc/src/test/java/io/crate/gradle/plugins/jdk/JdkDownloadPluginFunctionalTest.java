@@ -68,8 +68,13 @@ public class JdkDownloadPluginFunctionalTest {
     }
 
     @Test
-    public void testMacJDKExtraction() {
-        assertExtraction("getMacJdk", "Contents/Home/bin/java", "mac", "x64", VENDOR, VERSION);
+    public void testX64MacJDKExtraction() {
+        assertExtraction("getX64MacJdk", "Contents/Home/bin/java", "mac", "x64", VENDOR, VERSION);
+    }
+
+    @Test
+    public void testAarch64MacJDKExtraction() {
+        assertExtraction("getAarch64MacJdk", "Contents/Home/bin/java", "mac", "aarch64", VENDOR, VERSION);
     }
 
     @Test
