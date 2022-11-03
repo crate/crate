@@ -18,11 +18,17 @@ jdks {
         os = "linux"
         arch = "x64"
     }
-    mac {
+    x64_mac {
         vendor = fakeJdkVendor
         version = fakeJdkVersion
         os = "mac"
         arch = "x64"
+    }
+    aarch64_mac {
+        vendor = fakeJdkVendor
+        version = fakeJdkVersion
+        os = "mac"
+        arch = "aarch64"
     }
     windows {
         vendor = fakeJdkVendor
@@ -46,10 +52,18 @@ tasks.register("getX64LinuxJdk") {
     }
 }
 
-tasks.register("getMacJdk") {
-    dependsOn jdks.mac
+tasks.register("getX64MacJdk") {
+    dependsOn jdks.x64_mac
     doLast {
-        println "JDK HOME: " + jdks.mac
+        println "JDK HOME: " + jdks.x64_mac
+    }
+}
+
+
+tasks.register("getAarch64MacJdk") {
+    dependsOn jdks.aarch64_mac
+    doLast {
+        println "JDK HOME: " + jdks.aarch64_mac
     }
 }
 
