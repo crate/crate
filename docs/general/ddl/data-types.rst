@@ -2860,10 +2860,10 @@ constructor syntax explained further above is the preferred way to define
 constant array values.
 
 
-.. _data-types-geo:
+.. _data-types-arrays-nested:
 
 Nested arrays
-..............
+.............
 
 Nested arrays cannot be used directly in column definitions  (i.e. 
 ``ARRAY(ARRAY(DOUBLE))`` is not accepted), but multiple arrays can be nested
@@ -2913,6 +2913,9 @@ requires an intermediate cast:
     |                       1.0 |
     |                       2.0 |
     +---------------------------+
+
+
+.. _data-types-geo:
 
 Geographic types
 ================
