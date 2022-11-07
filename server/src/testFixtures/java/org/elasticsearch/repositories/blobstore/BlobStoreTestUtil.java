@@ -39,16 +39,17 @@ import java.nio.file.NoSuchFileException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import org.apache.lucene.util.SameThreadExecutorService;
-import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRunnable;
 import org.elasticsearch.action.support.PlainActionFuture;
 import org.elasticsearch.cluster.ClusterChangedEvent;
@@ -73,10 +74,12 @@ import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.repositories.RepositoryData;
 import org.elasticsearch.repositories.ShardGenerations;
 import org.elasticsearch.snapshots.SnapshotId;
+import org.elasticsearch.snapshots.SnapshotInfo;
 import org.elasticsearch.test.TestCluster;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import io.crate.common.unit.TimeValue;
+import java.util.Set;
 
 public final class BlobStoreTestUtil {
 
@@ -120,7 +123,7 @@ public final class BlobStoreTestUtil {
                                                                                        LoggingDeprecationHandler.INSTANCE, blob)) {
                     repositoryData = RepositoryData.snapshotsFromXContent(parser, latestGen, false);
                 }
-                assertIndexUUIDs(blobContainer, repositoryData);
+                assertIndexUUIDs(repository, repositoryData);
                 assertSnapshotUUIDs(repository, repositoryData);
                 assertShardIndexGenerations(blobContainer, repositoryData.shardGenerations());
                 return null;
@@ -163,10 +166,10 @@ public final class BlobStoreTestUtil {
         }
     }
 
-    private static void assertIndexUUIDs(BlobContainer repoRoot, RepositoryData repositoryData) throws IOException {
+    private static void assertIndexUUIDs(BlobStoreRepository repository, RepositoryData repositoryData) throws IOException {
         final List<String> expectedIndexUUIDs =
             repositoryData.getIndices().values().stream().map(IndexId::getId).collect(Collectors.toList());
-        final BlobContainer indicesContainer = repoRoot.children().get("indices");
+        final BlobContainer indicesContainer = repository.blobContainer().children().get("indices");
         final List<String> foundIndexUUIDs;
         if (indicesContainer == null) {
             foundIndexUUIDs = Collections.emptyList();
@@ -176,9 +179,24 @@ public final class BlobStoreTestUtil {
                 s -> s.startsWith("extra") == false).collect(Collectors.toList());
         }
         assertThat(foundIndexUUIDs, containsInAnyOrder(expectedIndexUUIDs.toArray(Strings.EMPTY_ARRAY)));
+        for (String indexId : foundIndexUUIDs) {
+            final Set<String> indexMetaGenerationsFound = indicesContainer.children().get(indexId)
+                .listBlobsByPrefix(BlobStoreRepository.METADATA_PREFIX).keySet().stream()
+                .map(p -> p.replace(BlobStoreRepository.METADATA_PREFIX, "").replace(".dat", ""))
+                .collect(Collectors.toSet());
+            final Set<String> indexMetaGenerationsExpected = new HashSet<>();
+            final IndexId idx =
+                repositoryData.getIndices().values().stream().filter(i -> i.getId().equals(indexId)).findFirst().get();
+            for (SnapshotId snapshotId : repositoryData.getSnapshots(idx)) {
+                indexMetaGenerationsExpected.add(repositoryData.indexMetaDataGenerations().indexMetaBlobId(snapshotId, idx));
+            }
+            // TODO: assertEquals(indexMetaGenerationsExpected, indexMetaGenerationsFound); requires cleanup functionality for
+            //       index meta generations blobs
+            assertTrue(indexMetaGenerationsFound.containsAll(indexMetaGenerationsExpected));
+        }
     }
 
-    private static void assertSnapshotUUIDs(BlobStoreRepository repository, RepositoryData repositoryData) throws IOException {
+    private static void assertSnapshotUUIDs(BlobStoreRepository repository, RepositoryData repositoryData) throws Exception {
         final BlobContainer repoRoot = repository.blobContainer();
         final Collection<SnapshotId> snapshotIds = repositoryData.getSnapshotIds();
         final List<String> expectedSnapshotUUIDs = snapshotIds.stream().map(SnapshotId::getUUID).collect(Collectors.toList());
@@ -200,48 +218,42 @@ public final class BlobStoreTestUtil {
         final Map<IndexId, Integer> maxShardCountsSeen = new HashMap<>();
         // Assert that for each snapshot, the relevant metadata was written to index and shard folders
         for (SnapshotId snapshotId: snapshotIds) {
-            repository.getSnapshotInfo(
-                snapshotId,
-                ActionListener.wrap(
-                    snapshotInfo -> {
-                        for (String index : snapshotInfo.indices()) {
-                            final IndexId indexId = repositoryData.resolveIndexId(index);
-                            assertThat(indices, hasKey(indexId.getId()));
-                            final BlobContainer indexContainer = indices.get(indexId.getId());
-                            assertThat(indexContainer.listBlobs(),
-                                       hasKey(String.format(Locale.ROOT, BlobStoreRepository.METADATA_NAME_FORMAT, snapshotId.getUUID())));
-                            final IndexMetadata indexMetadata = PlainActionFuture.get(x -> repository.getSnapshotIndexMetadata(snapshotId, indexId, x));
-                            for (Map.Entry<String, BlobContainer> entry : indexContainer.children().entrySet()) {
-                                // Skip Lucene MockFS extraN directory
-                                if (entry.getKey().startsWith("extra")) {
-                                    continue;
-                                }
-                                final int shardId = Integer.parseInt(entry.getKey());
-                                final int shardCount = indexMetadata.getNumberOfShards();
-                                maxShardCountsExpected.compute(
-                                    indexId, (i, existing) -> existing == null || existing < shardCount ? shardCount : existing);
-                                final BlobContainer shardContainer = entry.getValue();
-                                // TODO: we shouldn't be leaking empty shard directories when a shard (but not all of the index it belongs to)
-                                //       becomes unreferenced. We should fix that and remove this conditional once its fixed.
-                                if (shardContainer.listBlobs().keySet().stream().anyMatch(blob -> blob.startsWith("extra") == false)) {
-                                    final int impliedCount = shardId - 1;
-                                    maxShardCountsSeen.compute(
-                                        indexId, (i, existing) -> existing == null || existing < impliedCount ? impliedCount : existing);
-                                }
-                                if (shardId < shardCount && snapshotInfo.shardFailures().stream().noneMatch(
-                                    shardFailure -> shardFailure.index().equals(index) && shardFailure.shardId() == shardId)) {
-                                    final Map<String, BlobMetadata> shardPathContents = shardContainer.listBlobs();
-                                    assertThat(shardPathContents,
-                                               hasKey(String.format(Locale.ROOT, BlobStoreRepository.SNAPSHOT_NAME_FORMAT, snapshotId.getUUID())));
-                                    assertThat(shardPathContents.keySet().stream()
-                                                   .filter(name -> name.startsWith(BlobStoreRepository.INDEX_FILE_PREFIX)).count(), lessThanOrEqualTo(2L));
-                                }
-                            }
-                        }
-                    },
-                    (e) -> {}
-                )
-            );
+            SnapshotInfo snapshotInfo = repository.getSnapshotInfo(snapshotId).get();
+            for (String index : snapshotInfo.indices()) {
+                final IndexId indexId = repositoryData.resolveIndexId(index);
+                assertThat(indices, hasKey(indexId.getId()));
+                final BlobContainer indexContainer = indices.get(indexId.getId());
+                assertThat(indexContainer.listBlobs(),
+                    hasKey(String.format(Locale.ROOT, BlobStoreRepository.METADATA_NAME_FORMAT,
+                        repositoryData.indexMetaDataGenerations().indexMetaBlobId(snapshotId, indexId))));
+                final IndexMetadata indexMetadata = PlainActionFuture.get(x -> repository.getSnapshotIndexMetadata(repositoryData, snapshotId, indexId, x));
+                for (Map.Entry<String, BlobContainer> entry : indexContainer.children().entrySet()) {
+                    // Skip Lucene MockFS extraN directory
+                    if (entry.getKey().startsWith("extra")) {
+                        continue;
+                    }
+                    final int shardId = Integer.parseInt(entry.getKey());
+                    final int shardCount = indexMetadata.getNumberOfShards();
+                    maxShardCountsExpected.compute(
+                        indexId, (i, existing) -> existing == null || existing < shardCount ? shardCount : existing);
+                    final BlobContainer shardContainer = entry.getValue();
+                    // TODO: we shouldn't be leaking empty shard directories when a shard (but not all of the index it belongs to)
+                    //       becomes unreferenced. We should fix that and remove this conditional once its fixed.
+                    if (shardContainer.listBlobs().keySet().stream().anyMatch(blob -> blob.startsWith("extra") == false)) {
+                        final int impliedCount = shardId - 1;
+                        maxShardCountsSeen.compute(
+                            indexId, (i, existing) -> existing == null || existing < impliedCount ? impliedCount : existing);
+                    }
+                    if (shardId < shardCount && snapshotInfo.shardFailures().stream().noneMatch(
+                        shardFailure -> shardFailure.index().equals(index) && shardFailure.shardId() == shardId)) {
+                        final Map<String, BlobMetadata> shardPathContents = shardContainer.listBlobs();
+                        assertThat(shardPathContents,
+                            hasKey(String.format(Locale.ROOT, BlobStoreRepository.SNAPSHOT_NAME_FORMAT, snapshotId.getUUID())));
+                        assertThat(shardPathContents.keySet().stream()
+                            .filter(name -> name.startsWith(BlobStoreRepository.INDEX_FILE_PREFIX)).count(), lessThanOrEqualTo(2L));
+                    }
+                }
+            }
         }
         maxShardCountsSeen.forEach(((indexId, count) -> assertThat("Found unreferenced shard paths for index [" + indexId + "]",
                                                                    count, lessThanOrEqualTo(maxShardCountsExpected.get(indexId)))));

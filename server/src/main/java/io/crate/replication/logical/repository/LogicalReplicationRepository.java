@@ -184,9 +184,11 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
     }
 
     @Override
-    public void getSnapshotIndexMetadata(SnapshotId snapshotId,
-                                         Collection<IndexId> indexIds,
-                                         ActionListener<Collection<IndexMetadata>> listener) {
+    public void getSnapshotIndexMetadata(
+        RepositoryData repositoryData,
+        SnapshotId snapshotId,
+        Collection<IndexId> indexIds,
+        ActionListener<Collection<IndexMetadata>> listener) {
         assert SNAPSHOT_ID.equals(snapshotId) : "SubscriptionRepository only supports " + SNAPSHOT_ID + " as the SnapshotId";
         var remoteIndices = indexIds.stream().map(IndexId::getName).toArray(String[]::new);
         StepListener<ClusterState> stepListener = new StepListener<>();
@@ -213,7 +215,11 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
         }, listener::onFailure);
     }
 
-    public void getSnapshotIndexMetadata(SnapshotId snapshotId, IndexId index, ActionListener<IndexMetadata> listener) throws IOException {
+    public void getSnapshotIndexMetadata(
+        RepositoryData repositoryData,
+        SnapshotId snapshotId,
+        IndexId index,
+        ActionListener<IndexMetadata> listener) {
         assert SNAPSHOT_ID.equals(snapshotId) : "SubscriptionRepository only supports " + SNAPSHOT_ID + " as the SnapshotId";
         StepListener<ClusterState> stepListener = new StepListener<>();
         getRemoteClusterState(stepListener, index.getName());
@@ -255,8 +261,12 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                         shardGenerations.put(indexId, i, "dummy");
                     }
                 }
-                var repositoryData = RepositoryData.EMPTY
-                    .addSnapshot(SNAPSHOT_ID, SnapshotState.SUCCESS, Version.CURRENT, shardGenerations.build());
+                var repositoryData = RepositoryData.EMPTY.addSnapshot(SNAPSHOT_ID,
+                                                                      SnapshotState.SUCCESS,
+                                                                      Version.CURRENT,
+                                                                      shardGenerations.build(),
+                                                                      null,
+                                                                      null);
                 listener.onResponse(repositoryData);
             }, listener::onFailure);
         }, listener::onFailure);

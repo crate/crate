@@ -43,6 +43,7 @@ import java.util.stream.StreamSupport;
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.repositories.IndexMetaDataGenerations;
 import org.elasticsearch.repositories.Repository;
 import org.elasticsearch.repositories.RepositoryData;
 import org.elasticsearch.repositories.ShardGenerations;
@@ -64,7 +65,7 @@ public class SysSnapshotsTest extends ESTestCase {
         snapshots.put(s1.getUUID(), s1);
         snapshots.put(s2.getUUID(), s2);
         RepositoryData repositoryData = new RepositoryData(
-            1, snapshots, Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(), ShardGenerations.EMPTY);
+            1, snapshots, Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(), ShardGenerations.EMPTY, IndexMetaDataGenerations.EMPTY);
 
         Repository r1 = mock(Repository.class);
         doReturn(CompletableFuture.completedFuture(repositoryData))
