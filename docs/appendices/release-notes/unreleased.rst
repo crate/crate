@@ -62,6 +62,9 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Fixed an issue that could lead to a encoded value getting returned for ``bit``
+  columns that are part of an ``object`` column.
+
 - Fixed an issue that caused incorrect results to be returned when using
   :ref:`array(subquery) <scalar-array>` when the subquery is using ``ORDER BY``
   on a different column than the one returned, i.e.::
