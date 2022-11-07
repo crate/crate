@@ -57,7 +57,7 @@ public class FileUriCollectPhaseTest {
             Collections.emptyList(),
             null,
             false,
-            new CopyFromParserProperties(true, true, '|'),
+            new CopyFromParserProperties(true, true, '|', 0),
             FileUriCollectPhase.InputFormat.CSV,
             Settings.EMPTY
         );
@@ -100,7 +100,7 @@ public class FileUriCollectPhaseTest {
             Collections.emptyList(),
             null,
             false,
-            new CopyFromParserProperties(true, true, '|'),
+            new CopyFromParserProperties(true, true, '|', 0),
             FileUriCollectPhase.InputFormat.CSV,
             Settings.EMPTY
         );
@@ -131,7 +131,7 @@ public class FileUriCollectPhaseTest {
             Collections.emptyList(),
             null,
             false,
-            new CopyFromParserProperties(true, true, '|'),
+            new CopyFromParserProperties(true, true, '|', 0),
             FileUriCollectPhase.InputFormat.CSV,
             Settings.EMPTY
         );
@@ -147,7 +147,7 @@ public class FileUriCollectPhaseTest {
             Collections.emptyList(),
             null,
             false,
-            new CopyFromParserProperties(true, true, '|'),
+            new CopyFromParserProperties(true, true, '|', 0),
             FileUriCollectPhase.InputFormat.CSV,
             Settings.builder().put("protocol", "http").build()
         );
@@ -176,7 +176,7 @@ public class FileUriCollectPhaseTest {
             Collections.emptyList(),
             null,
             false,
-            new CopyFromParserProperties(true, true, '|'),
+            new CopyFromParserProperties(true, true, '|', 0),
             FileUriCollectPhase.InputFormat.CSV,
             Settings.builder().put("protocol", "http").build()
         );

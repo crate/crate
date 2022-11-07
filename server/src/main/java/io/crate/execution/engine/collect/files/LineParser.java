@@ -52,6 +52,9 @@ public class LineParser {
     public void readFirstLine(URI currentUri,
                               FileUriCollectPhase.InputFormat inputFormat,
                               BufferedReader currentReader) throws IOException {
+        for (long i = 0; i < parserProperties.skipNumLines(); i++) {
+            currentReader.readLine();
+        }
         if (isInputCsv(inputFormat, currentUri)) {
             csvLineParser = new CSVLineParser(parserProperties, targetColumns);
             if (parserProperties.fileHeader()) {

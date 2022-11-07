@@ -582,6 +582,22 @@ If the table has generated columns or default expressions, validation
 will always take place and the parameter is ignored.
 
 
+.. _sql-copy-from-skip:
+
+``skip``
+''''''''
+
+Default: ``0``
+
+Setting this option to ``n`` skips the first ``n`` rows while copying.
+
+.. NOTE::
+
+    CrateDB by default expects a header in CSV files. If you're using the SKIP
+    option to skip the header, you have to set ``header = false`` as well. See
+    :ref:`header <sql-copy-from-header>`.
+
+
 .. _sql-copy-from-return-summary:
 
 ``RETURN SUMMARY``
