@@ -73,6 +73,13 @@ And then start CrateDB like this::
 
     ./app/build/install/crate/bin/crate
 
+If you want to attach a debugger to the instance, you'd have to start it with::
+
+    CRATE_JAVA_OPTS="-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005" ./app/build/install/crate/bin/crate
+
+Then create an "Attach" configuration in your IDE or editor. If using Visual
+Studio Code you can use the pre-defined "Attach to CrateDB" configuration.
+
 To get a full list of all available tasks, run::
 
     $ ./gradlew tasks
