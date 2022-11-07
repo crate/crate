@@ -120,7 +120,8 @@ public interface Repository extends LifecycleComponent {
      * @param indexId    the {@link IndexId} to load the metadata from
      * @param listener   listener invoked on completion
      */
-    void getSnapshotIndexMetadata(SnapshotId snapshotId, IndexId indexId, ActionListener<IndexMetadata> listener) throws IOException;
+    void getSnapshotIndexMetadata(RepositoryData repositoryData, SnapshotId snapshotId, IndexId indexId, ActionListener<IndexMetadata> listener);
+
 
     /**
      * Returns index metadata associated with the snapshot.
@@ -129,7 +130,8 @@ public interface Repository extends LifecycleComponent {
      * @param indexIds   the Collection of {@link IndexId} to load the metadata from
      * @param listener   listener invoked on completion
      */
-    void getSnapshotIndexMetadata(SnapshotId snapshotId, Collection<IndexId> indexIds, ActionListener<Collection<IndexMetadata>> listener);
+    void getSnapshotIndexMetadata(RepositoryData repositoryData, SnapshotId snapshotId, Collection<IndexId> indexIds, ActionListener<Collection<IndexMetadata>> listener);
+
 
     /**
      * Returns a {@link RepositoryData} to describe the data in the repository, including the snapshots

@@ -120,6 +120,8 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
 
     public static final Version MULTI_DELETE_VERSION = Version.V_5_1_0;
 
+    public static final Version INDEX_GEN_IN_REPO_DATA_VERSION = Version.V_5_2_0;
+
     public static final String UPDATE_SNAPSHOT_STATUS_ACTION_NAME = "internal:cluster/snapshot/update_snapshot_status";
 
     private final ClusterService clusterService;
@@ -1201,7 +1203,16 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
     }
 
     /**
-     * Deletes snapshot from repository
+     * Checks whether the metadata version supports writing {@link ShardGenerations} to the repository.
+     *
+     * @param repositoryMetaVersion version to check
+     * @return true if version supports {@link ShardGenerations}
+     */
+    public static boolean useIndexGenerations(Version repositoryMetaVersion) {
+        return repositoryMetaVersion.onOrAfter(INDEX_GEN_IN_REPO_DATA_VERSION);
+    }
+
+    /** Deletes snapshot from repository
      *
      * @param repoName          repository name
      * @param snapshotIds       snapshot ids

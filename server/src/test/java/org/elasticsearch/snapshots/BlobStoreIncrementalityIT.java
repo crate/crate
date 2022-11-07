@@ -356,7 +356,7 @@ public class BlobStoreIncrementalityIT extends AbstractSnapshotIntegTestCase {
             IndexId indexId = repositoryData.resolveIndexId(index);
             FutureActionListener<IndexMetadata, IndexMetadata> indexMetadataListener = FutureActionListener.newInstance();
             listeners.add(indexMetadataListener);
-            repository.getSnapshotIndexMetadata(snapshotInfo.snapshotId(), indexId, indexMetadataListener);
+            repository.getSnapshotIndexMetadata(repositoryData, snapshotInfo.snapshotId(), indexId, indexMetadataListener);
         }
 
         final Map<ShardId, IndexShardSnapshotStatus> shardStatus = new HashMap<>();

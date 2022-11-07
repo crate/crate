@@ -38,6 +38,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionRunnable;
@@ -177,17 +178,18 @@ public class BlobStoreRepositoryTest extends IntegTestCase {
         writeIndexGen(repository, repoData, repoData.getGenId());
         assertEquals(repoData, ESBlobStoreTestCase.getRepositoryData(repository));
 
-        // write to and read from a index file with random repository data
+        // write to and read from an index file with random repository data
         repoData = addRandomSnapshotsToRepoData(ESBlobStoreTestCase.getRepositoryData(repository), true);
         writeIndexGen(repository, repoData, repoData.getGenId());
-        assertEquals(repoData, ESBlobStoreTestCase.getRepositoryData(repository));
+        RepositoryData actual = ESBlobStoreTestCase.getRepositoryData(repository);
+        assertEquals(repoData, actual);
     }
 
-    private static void writeIndexGen(BlobStoreRepository repository, RepositoryData repositoryData, long generation) {
-        final PlainActionFuture<RepositoryData> future = PlainActionFuture.newFuture();
-        repository.writeIndexGen(repositoryData, generation, true, Function.identity(), future);
-        future.actionGet();
+    private static void writeIndexGen(BlobStoreRepository repository, RepositoryData repositoryData, long generation) throws Exception {
+        PlainActionFuture.<RepositoryData, Exception>get(
+            f -> repository.writeIndexGen(repositoryData, generation, Version.CURRENT, Function.identity(), f));
     }
+
 
     @Test
     public void testIndexGenerationalFiles() throws Exception {
@@ -203,7 +205,9 @@ public class BlobStoreRepositoryTest extends IntegTestCase {
         // adding more and writing to a new index generational file
         repositoryData = addRandomSnapshotsToRepoData(ESBlobStoreTestCase.getRepositoryData(repository), true);
         writeIndexGen(repository, repositoryData, repositoryData.getGenId());
-        assertEquals(ESBlobStoreTestCase.getRepositoryData(repository), repositoryData);
+        RepositoryData repositoryData1 = ESBlobStoreTestCase.getRepositoryData(repository);
+        assertEquals(
+            repositoryData1, repositoryData);
         assertThat(repository.latestIndexBlobId(), equalTo(1L));
         assertThat(repository.readSnapshotIndexLatestBlob(), equalTo(1L));
 
@@ -235,17 +239,22 @@ public class BlobStoreRepositoryTest extends IntegTestCase {
         return (BlobStoreRepository) service.repository(REPOSITORY_NAME);
     }
 
-    private static RepositoryData addRandomSnapshotsToRepoData(RepositoryData repoData, boolean inclIndices) {
+    private RepositoryData addRandomSnapshotsToRepoData(RepositoryData repoData, boolean inclIndices) {
         int numSnapshots = randomIntBetween(1, 20);
         for (int i = 0; i < numSnapshots; i++) {
             SnapshotId snapshotId = new SnapshotId(randomAlphaOfLength(8), UUIDs.randomBase64UUID());
             int numIndices = inclIndices ? randomIntBetween(0, 20) : 0;
             final ShardGenerations.Builder builder = ShardGenerations.builder();
             for (int j = 0; j < numIndices; j++) {
-                builder.put(new IndexId(randomAlphaOfLength(8), UUIDs.randomBase64UUID()), 0, "new");
+                builder.put(new IndexId(randomAlphaOfLength(8), UUIDs.randomBase64UUID()), 0, "1");
             }
-            repoData = repoData.addSnapshot(snapshotId, randomFrom(SnapshotState.SUCCESS, SnapshotState.PARTIAL, SnapshotState.FAILED),
-                                            Version.CURRENT,builder.build());
+            final ShardGenerations shardGenerations = builder.build();
+            final Map<IndexId, String> indexLookup = shardGenerations.indices().stream().collect(Collectors.toMap(Function.identity(), ind -> randomAlphaOfLength(256)));
+            final Map<String, String> newIdentifiers = indexLookup.values().stream().collect(Collectors.toMap(Function.identity(), ignored -> UUIDs.randomBase64UUID(random())));
+            repoData = repoData.addSnapshot(snapshotId,
+                                            randomFrom(SnapshotState.SUCCESS, SnapshotState.PARTIAL, SnapshotState.FAILED), Version.CURRENT, shardGenerations,
+                                            indexLookup,
+                                            newIdentifiers);
         }
         return repoData;
     }
