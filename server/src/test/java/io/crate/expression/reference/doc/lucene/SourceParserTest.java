@@ -21,6 +21,7 @@
 
 package io.crate.expression.reference.doc.lucene;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
@@ -34,6 +35,8 @@ import org.junit.Test;
 
 import io.crate.common.collections.Maps;
 import io.crate.metadata.ColumnIdent;
+import io.crate.sql.tree.BitString;
+import io.crate.types.BitStringType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 
@@ -129,5 +132,28 @@ public class SourceParserTest extends ESTestCase {
             """));
 
         assertThat(result.get("b"), is(true));
+    }
+
+    @Test
+    public void test_uses_inner_type_info_to_parse_objects() throws Exception {
+        SourceParser sourceParser = new SourceParser();
+        BitStringType bitStringType = new BitStringType(4);
+        ObjectType objectType = ObjectType.builder()
+            .setInnerType("bs", bitStringType)
+            .build();
+        sourceParser.register(new ColumnIdent("_doc", List.of("o")), objectType);
+        Map<String, Object> result = sourceParser.parse(new BytesArray(
+            """
+            {
+                "o": {
+                    "bs": "CQ=="
+                }
+            }
+            """
+        ));
+        assertThat(result)
+            .extracting("o")
+            .extracting("bs")
+            .isEqualTo(BitString.ofRawBits("1001"));
     }
 }
