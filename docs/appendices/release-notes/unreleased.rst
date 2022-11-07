@@ -62,6 +62,12 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Changed the logic to resolve functions. Previously it would first look for
+  built-ins for all schemas within the search path before looking up user
+  defined functions. Now it will search for built-in and UDF per schema to
+  prioritize UDFs earlier in the search path over built-ins later in the search
+  path.
+
 - Fixed an issue that could lead to a encoded value getting returned for ``bit``
   columns that are part of an ``object`` column.
 
