@@ -53,6 +53,7 @@ import io.crate.types.FloatType;
 import io.crate.types.GeoPointType;
 import io.crate.types.IntegerType;
 import io.crate.types.LongType;
+import io.crate.types.ObjectType;
 import io.crate.types.ShortType;
 import io.crate.types.TimestampType;
 
@@ -63,6 +64,7 @@ public final class SourceParser {
     public SourceParser() {
     }
 
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public void register(ColumnIdent docColumn, DataType<?> type) {
         assert docColumn.name().equals(DocSysColumns.DOC.name()) && docColumn.path().size() > 0
             : "All columns registered for sourceParser must start with _doc";
@@ -103,7 +105,7 @@ public final class SourceParser {
             if (token == null) {
                 token = parser.nextToken();
             }
-            return parseObject(parser, null, requiredColumns);
+            return parseObject(parser, null, requiredColumns, false);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
@@ -127,9 +129,11 @@ public final class SourceParser {
         }
     }
 
+    @SuppressWarnings({"unchecked", "rawtypes"})
     private static Map<String, Object> parseObject(XContentParser parser,
                                                    @Nullable DataType<?> type,
-                                                   @Nullable Map<String, Object> requiredColumns) throws IOException {
+                                                   @Nullable Map<String, Object> requiredColumns,
+                                                   boolean includeUnknown) throws IOException {
         if (requiredColumns == null || requiredColumns.isEmpty()) {
             return type == null ? parser.map() : (Map) type.implicitCast(parser.map());
         } else {
@@ -139,10 +143,12 @@ public final class SourceParser {
                 String fieldName = parser.currentName();
                 parser.nextToken();
                 var required = requiredColumns.get(fieldName);
-                if (required == null) {
+                if (required == null && !includeUnknown) {
                     parser.skipChildren();
-                } else if (required instanceof DataType) {
-                    values.put(fieldName, parseValue(parser, (DataType<?>) required, null));
+                } else if (required instanceof ObjectType objectType) {
+                    values.put(fieldName, parseObject(parser, objectType, (Map) objectType.innerTypes(), true));
+                } else if (required instanceof DataType<?> dataType) {
+                    values.put(fieldName, parseValue(parser, dataType, null));
                 } else {
                     values.put(fieldName, parseValue(parser, null, (Map) required));
                 }
@@ -163,7 +169,7 @@ public final class SourceParser {
         return switch (parser.currentToken()) {
             case VALUE_NULL -> null;
             case START_ARRAY -> parseArray(parser, type, requiredColumns);
-            case START_OBJECT -> parseObject(parser, type, requiredColumns);
+            case START_OBJECT -> parseObject(parser, type, requiredColumns, false);
             case VALUE_STRING -> type == null ? parser.text() : parseByType(parser, type);
             case VALUE_NUMBER -> type == null ? parser.numberValue() : parseByType(parser, type);
             case VALUE_BOOLEAN -> type == null ? parser.booleanValue() : parseByType(parser, type);
