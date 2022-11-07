@@ -149,17 +149,9 @@ public class Functions {
             argumentTypes,
             arguments,
             searchPath,
-            functionImplementations
+            functionImplementations,
+            udfFunctionImplementations
         );
-        if (func == null) {
-            func = resolveFunctionBySignature(
-                fqnName,
-                argumentTypes,
-                arguments,
-                searchPath,
-                udfFunctionImplementations
-            );
-        }
         if (func == null) {
             raiseUnknownFunction(suppliedSchema, functionName, arguments, List.of());
         }
@@ -190,17 +182,34 @@ public class Functions {
                                                                      List<DataType<?>> argumentTypes,
                                                                      List<Symbol> arguments,
                                                                      SearchPath searchPath,
-                                                                     Map<FunctionName, List<FunctionProvider>> candidatesByName) {
-        var candidates = getCandidates(name, searchPath, candidatesByName);
-        if (candidates == null) {
-            return null;
+                                                                     Map<FunctionName, List<FunctionProvider>> builtInFunctions,
+                                                                     Map<FunctionName, List<FunctionProvider>> udfs) {
+        var candidates = builtInFunctions.get(name);
+        if (candidates == null && name.schema() == null) {
+            for (String pathSchema : searchPath) {
+                FunctionName searchPathFunctionName = new FunctionName(pathSchema, name.name());
+                candidates = builtInFunctions.get(searchPathFunctionName);
+                if (candidates == null) {
+                    candidates = udfs.get(searchPathFunctionName);
+                }
+                if (candidates != null) {
+                    break;
+                }
+            }
         }
+        if (candidates == null) {
+            candidates = udfs.get(name);
+            if (candidates == null) {
+                return null;
+            }
+        }
+        final var finalCandidates = candidates;
 
         assert candidates.stream().allMatch(f -> f.getSignature().getBindingInfo() != null) :
             "Resolving/Matching of signatures can only be done with non-null signature's binding info";
 
         // First lets try exact candidates, no generic type variables, no coercion allowed.
-        Iterable<FunctionProvider> exactCandidates = () -> candidates.stream()
+        Iterable<FunctionProvider> exactCandidates = () -> finalCandidates.stream()
             .filter(function -> function.getSignature().getBindingInfo().getTypeVariableConstraints().isEmpty())
             .iterator();
         var match = matchFunctionCandidates(exactCandidates, argumentTypes, SignatureBinder.CoercionType.NONE);
@@ -209,7 +218,7 @@ public class Functions {
         }
 
         // Second, try candidates with generic type variables, still no coercion allowed.
-        Iterable<FunctionProvider> genericCandidates = () -> candidates.stream()
+        Iterable<FunctionProvider> genericCandidates = () -> finalCandidates.stream()
             .filter(function -> !function.getSignature().getBindingInfo().getTypeVariableConstraints().isEmpty())
             .iterator();
         match = matchFunctionCandidates(genericCandidates, argumentTypes, SignatureBinder.CoercionType.NONE);
@@ -218,7 +227,7 @@ public class Functions {
         }
 
         // Third, try all candidates which allow coercion with precedence based coercion.
-        Iterable<FunctionProvider> candidatesAllowingCoercion = () -> candidates.stream()
+        Iterable<FunctionProvider> candidatesAllowingCoercion = () -> finalCandidates.stream()
             .filter(function -> function.getSignature().getBindingInfo().isCoercionAllowed())
             .iterator();
         match = matchFunctionCandidates(
@@ -237,23 +246,6 @@ public class Functions {
             raiseUnknownFunction(name.schema(), name.name(), arguments, candidates);
         }
         return match;
-    }
-
-    @Nullable
-    private static List<FunctionProvider> getCandidates(FunctionName name,
-                                                        SearchPath searchPath,
-                                                        Map<FunctionName, List<FunctionProvider>> candidatesByName) {
-        var candidates = candidatesByName.get(name);
-        if (candidates == null && name.schema() == null) {
-            for (String pathSchema : searchPath) {
-                FunctionName searchPathFunctionName = new FunctionName(pathSchema, name.name());
-                candidates = candidatesByName.get(searchPathFunctionName);
-                if (candidates != null) {
-                    return candidates;
-                }
-            }
-        }
-        return candidates;
     }
 
     @Nullable

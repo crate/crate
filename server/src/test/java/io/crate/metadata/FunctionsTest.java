@@ -23,6 +23,7 @@ package io.crate.metadata;
 
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 import static io.crate.types.TypeSignature.parseTypeSignature;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
@@ -173,6 +174,36 @@ public class FunctionsTest extends ESTestCase {
 
         var impl = resolve("foo", List.of(Literal.of(DataTypes.UNDEFINED, null)));
         assertThat(impl.boundSignature().argTypes(), contains(DataTypes.STRING));
+    }
+
+    @Test
+    public void test_checks_built_in_and_udf_per_search_path_schema() throws Exception {
+        register(
+            Signature.scalar(
+                new FunctionName("schema1", "foo"),
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.INTEGER.getTypeSignature()
+            ),
+            (signature, args) ->
+                new DummyFunction(signature)
+        );
+        Functions functions = createFunctions();
+        Signature signature = Signature.scalar(
+            new FunctionName("schema2", "foo"),
+            DataTypes.STRING.getTypeSignature(),
+            DataTypes.INTEGER.getTypeSignature()
+        );
+        functions.registerUdfFunctionImplementationsForSchema(
+            "schema2",
+            Map.of(
+                new FunctionName("schema2", "foo"),
+                List.of(new FunctionProvider(signature, (sig, args) -> new DummyFunction(sig)))
+            )
+        );
+
+        SearchPath searchPath = SearchPath.createSearchPathFrom("schema2", "schema1");
+        var implementation = functions.get(null, "foo", List.of(Literal.of("foo")), searchPath);
+        assertThat(implementation.signature()).isEqualTo(signature);
     }
 
     @Test
