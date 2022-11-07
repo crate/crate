@@ -259,7 +259,7 @@ should be crossed out as well.
 - [ ] e1014038e90 Simplify Repository.finalizeSnapshot Signature (#58834) (#59574)
 - [ ] 16a47e0d089 Simplify SnapshotsInProgress Construction (#58893) (#59573)
 - [ ] 68a199f75fe Minor Cleanup Dead Code Snapshotting (#57716) (#59569)
-- [ ] d456f7870a7 Deduplicate Index Metadata in BlobStore (#50278) (#59514)
+- [x] d456f7870a7 Deduplicate Index Metadata in BlobStore (#50278) (#59514)
 - [ ] 408a07f96a6 Separate coordinating and primary bytes in stats (#59487)
 - [ ] 1a24916fef8 Enable replication retries on 7.9+ (#59546)
 - [x] 0e3d87ab54b Add Assertions on CS Application in Snapshot Logic (#58681) (#59511)
