@@ -266,7 +266,7 @@ public class FileReadingIteratorTest extends ESTestCase {
                 1,
                 0,
                 List.of("id"),
-                new CopyFromParserProperties(true, true, ','),
+                new CopyFromParserProperties(true, true, ',', 0),
                 CSV,
                 Settings.EMPTY
             ) {
@@ -293,6 +293,70 @@ public class FileReadingIteratorTest extends ESTestCase {
 
         List<Object[]> expectedResult = Arrays.asList(
             new Object[]{"{\"id\":\"1\"}"},
+            new Object[]{"{\"id\":\"2\"}"},
+            new Object[]{"{\"id\":\"3\"}"},
+            new Object[]{"{\"id\":\"4\"}"},
+            new Object[]{"{\"id\":\"5\"}"}
+        );
+        BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier);
+        tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
+    }
+
+    @Test
+    public void test_skipping_csv_headers_and_rows_combined_with_retry_logic() throws Exception {
+        final int skipNumLines = 2;
+        ArrayList<String> fileUris = new ArrayList<>();
+
+        var tempFilePath1 = createTempFile("tempfile1", ".csv");
+        try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(tempFilePath1.toFile()),
+                                                                StandardCharsets.UTF_8)) {
+            writer.write("id\n");
+            writer.write("1\n2\n3\n4\n5\n");
+        }
+        fileUris.add(tempFilePath1.toUri().toString());
+
+        Reference raw = createReference("_raw", DataTypes.STRING);
+        InputFactory.Context<LineCollectorExpression<?>> ctx =
+            inputFactory.ctxForRefs(TXN_CTX, FileLineReferenceResolver::getImplementation);
+        List<Input<?>> inputs = Collections.singletonList(ctx.add(raw));
+
+
+        Supplier<BatchIterator<Row>> batchIteratorSupplier =
+            () -> new FileReadingIterator(
+                fileUris,
+                inputs,
+                ctx.expressions(),
+                null,
+                Map.of(LocalFsFileInputFactory.NAME, new LocalFsFileInputFactory()),
+                false,
+                1,
+                0,
+                List.of("id"),
+                new CopyFromParserProperties(true, false, ',', skipNumLines),
+                CSV,
+                Settings.EMPTY
+            ) {
+                int retry = 0;
+
+                @Override
+                BufferedReader createBufferedReader(InputStream inputStream) throws IOException {
+                    return new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8)) {
+
+                        private int currentLineNumber = 0;
+
+                        @Override
+                        public String readLine() throws IOException {
+                            var line = super.readLine();
+                            if (currentLineNumber++ >= skipNumLines && retry++ < MAX_SOCKET_TIMEOUT_RETRIES) {
+                                throw new SocketTimeoutException("dummy");
+                            }
+                            return line;
+                        }
+                    };
+                }
+            };
+
+        List<Object[]> expectedResult = Arrays.asList(
             new Object[]{"{\"id\":\"2\"}"},
             new Object[]{"{\"id\":\"3\"}"},
             new Object[]{"{\"id\":\"4\"}"},
