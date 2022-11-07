@@ -437,8 +437,8 @@ list of addresses that will act as the seed nodes in the discovery process
 using the `discovery.seed_hosts`_ setting.
 
 CrateDB also has support for several different mechanisms of seed nodes
-discovery. Currently there are three other discovery types: via DNS, via EC2
-API and via Microsoft Azure mechanisms.
+discovery. Currently there are two other discovery types: via DNS and via EC2
+API.
 
 When a node starts up with one of these discovery types enabled, it performs a
 lookup using the settings for the specified mechanism listed below. The hosts
@@ -453,7 +453,7 @@ is re-elected (see `Cluster Meta Data`).
 **discovery.seed_providers**
   | *Default:*   ``not set``
   | *Runtime:*   ``no``
-  | *Allowed values:* ``srv``, ``ec2``, ``azure``
+  | *Allowed values:* ``srv``, ``ec2``
 
 See also: `Discovery`_.
 
@@ -1371,7 +1371,5 @@ Chunk size to transfer files during the initial recovery of a replicating table.
 Controls the number of file chunk requests that can be sent in parallel between
 clusters during the recovery.
 
-.. _`Active Directory application`: https://docs.microsoft.com/en-us/azure/active-directory/develop/app-objects-and-service-principals
-.. _`Azure Portal`: https://portal.azure.com
 .. _bootstrap checks: https://crate.io/docs/crate/howtos/en/latest/admin/bootstrap-checks.html
 .. _multi-zone setup how-to guide: https://crate.io/docs/crate/howtos/en/latest/clustering/multi-zone-setup.html
