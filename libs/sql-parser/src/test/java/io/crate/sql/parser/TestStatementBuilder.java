@@ -1842,6 +1842,8 @@ public class TestStatementBuilder {
     @Test
     public void testCreateViewParsing() {
         printStatement("CREATE VIEW myView AS SELECT * FROM foobar");
+        printStatement("CREATE VIEW myView AS ( SELECT * FROM foobar )");
+        printStatement("CREATE VIEW myView AS ((( SELECT * FROM foobar )))");
         printStatement("CREATE OR REPLACE VIEW myView AS SELECT * FROM foobar");
     }
 

@@ -53,6 +53,9 @@ None
 Changes
 =======
 
+- Extended the syntax for ``CREATE VIEW`` to allow parenthesis surrounding the
+  query.
+
 - Added ``attributes`` column to :ref:`sys.nodes <sys-nodes>` table to expose
   :ref:`custom node settings <conf-node-attributes>`.
 

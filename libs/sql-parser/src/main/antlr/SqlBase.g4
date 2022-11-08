@@ -132,6 +132,12 @@ alterStmt
     ;
 
 
+queryOptParens
+    : '(' query ')'
+    | query
+    | '(' queryOptParens ')'
+    ;
+
 query
     : with? queryNoWith
     ;
@@ -546,13 +552,14 @@ createStmt
         LANGUAGE language=parameterOrIdent
         AS body=parameterOrString                                                    #createFunction
     | CREATE USER name=ident withProperties?                                         #createUser
-    | CREATE ( OR REPLACE )? VIEW name=qname AS query                                #createView
+    | CREATE ( OR REPLACE )? VIEW name=qname AS queryOptParens                       #createView
     | CREATE PUBLICATION name=ident
         (FOR ALL TABLES | FOR TABLE qname '*'?  (',' qname '*'? )*)?                 #createPublication
     | CREATE SUBSCRIPTION name=ident CONNECTION conninfo=expr
           PUBLICATION publications=idents
           withProperties?                                                            #createSubscription
     ;
+
 
 functionArgument
     : (name=ident)? type=dataType
