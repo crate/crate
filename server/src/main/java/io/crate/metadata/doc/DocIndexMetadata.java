@@ -240,10 +240,12 @@ public class DocIndexMetadata {
                                  @Nullable String tree,
                                  @Nullable String precision,
                                  @Nullable Integer treeLevels,
-                                 @Nullable Double distanceErrorPct) {
+                                 @Nullable Double distanceErrorPct,
+                                 boolean nullable) {
         GeoReference info = new GeoReference(
             position,
             refIdent(column),
+            nullable,
             tree,
             precision,
             treeLevels,
@@ -452,7 +454,7 @@ public class DocIndexMetadata {
                 String precision = (String) columnProperties.get("precision");
                 Integer treeLevels = (Integer) columnProperties.get("tree_levels");
                 Double distanceErrorPct = (Double) columnProperties.get("distance_error_pct");
-                addGeoReference(position, newIdent, geoTree, precision, treeLevels, distanceErrorPct);
+                addGeoReference(position, newIdent, geoTree, precision, treeLevels, distanceErrorPct, nullable);
             } else if (columnDataType.id() == ObjectType.ID
                        || (columnDataType.id() == ArrayType.ID
                            && ((ArrayType) columnDataType).innerType().id() == ObjectType.ID)) {
