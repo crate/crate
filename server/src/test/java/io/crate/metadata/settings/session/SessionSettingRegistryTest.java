@@ -76,9 +76,9 @@ public class SessionSettingRegistryTest {
     @Test
     public void test_search_path_session_setting() {
         SessionSetting<?> setting = new SessionSettingRegistry(Set.of(new LoadedRules())).settings().get("search_path");
-        assertThat(setting.defaultValue(),is("pg_catalog, doc"));
+        assertThat(setting.defaultValue(),is("doc"));
         setting.apply(sessionSettings, generateInput("a_schema"), eval);
-        assertThat(setting.getValue(sessionSettings),is("pg_catalog, a_schema"));
+        assertThat(setting.getValue(sessionSettings),is("a_schema"));
         setting.apply(sessionSettings, generateInput("a_schema,  pg_catalog ,b_schema", " c_schema "), eval);
         assertThat(setting.getValue(sessionSettings),is("a_schema, pg_catalog, b_schema, c_schema"));
     }

@@ -21,8 +21,8 @@
 
 package io.crate.metadata.settings.session;
 
-import static io.crate.metadata.SearchPath.createSearchPathFrom;
 import static io.crate.Constants.DEFAULT_DATE_STYLE;
+import static io.crate.metadata.SearchPath.createSearchPathFrom;
 
 import java.util.ArrayList;
 import java.util.Locale;
@@ -82,8 +82,8 @@ public class SessionSettingRegistry {
                      objects -> {}, // everything allowed, empty list (resulting by ``SET .. TO DEFAULT`` results in defaults
                      objects -> createSearchPathFrom(objectsToStringArray(objects)),
                      CoordinatorSessionSettings::setSearchPath,
-                     s -> String.join(", ", s.searchPath()),
-                     () -> String.join(", ", SearchPath.pathWithPGCatalogAndDoc()),
+                     s -> String.join(", ", s.searchPath().showPath()),
+                     () -> String.join(", ", SearchPath.pathWithPGCatalogAndDoc().showPath()),
                      "Sets the schema search order.",
                      DataTypes.STRING))
             .put(HASH_JOIN_KEY,

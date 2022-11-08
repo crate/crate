@@ -22,6 +22,7 @@
 package io.crate.metadata;
 
 import static io.crate.metadata.SearchPath.pathWithPGCatalogAndDoc;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
@@ -71,6 +72,12 @@ public class SearchPathTest {
     public void testPgCatalogISCurrentSchemaIfSetFirstInPath() {
         SearchPath searchPath = SearchPath.createSearchPathFrom(PgCatalogSchemaInfo.NAME, "secondSchema");
         assertThat(searchPath.currentSchema(), is(PgCatalogSchemaInfo.NAME));
+    }
+
+    @Test
+    public void test_pg_catalog_is_included_in_show_path_if_set_explicitly() throws Exception {
+        SearchPath searchPath = SearchPath.createSearchPathFrom(PgCatalogSchemaInfo.NAME, "secondSchema");
+        assertThat(searchPath.showPath()).contains("pg_catalog", "secondSchema");
     }
 
     @Test

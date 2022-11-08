@@ -34,7 +34,7 @@ public class CurrentSettingFunctionTest extends ScalarTestCase {
 
     @Test
     public void testNormalizeExistingSettingSingleArg() {
-        assertNormalize("current_setting('search_path')", isLiteral("pg_catalog, doc"));
+        assertNormalize("current_setting('search_path')", isLiteral("doc"));
         assertNormalize("current_setting('enable_hashjoin')", isLiteral("true"));
     }
 
@@ -48,8 +48,8 @@ public class CurrentSettingFunctionTest extends ScalarTestCase {
 
     @Test
     public void testNormalizeExistingSettingWithMissingOKArgument() {
-        assertNormalize("current_setting('search_path', true)", isLiteral("pg_catalog, doc"));
-        assertNormalize("current_setting('search_path', false)", isLiteral("pg_catalog, doc"));
+        assertNormalize("current_setting('search_path', true)", isLiteral("doc"));
+        assertNormalize("current_setting('search_path', false)", isLiteral("doc"));
     }
 
     @Test
@@ -81,13 +81,13 @@ public class CurrentSettingFunctionTest extends ScalarTestCase {
 
     @Test
     public void testEvaluateExistingSettingSingleArgument() {
-        assertEvaluate("current_setting(name)", "pg_catalog, doc", Literal.of("search_path"));
+        assertEvaluate("current_setting(name)", "doc", Literal.of("search_path"));
     }
 
     @Test
     public void testEvaluateExistingSettingWithMissingOKArgument() {
-        assertEvaluate("current_setting(name, true)", "pg_catalog, doc", Literal.of("search_path"));
-        assertEvaluate("current_setting(name, false)", "pg_catalog, doc", Literal.of("search_path"));
+        assertEvaluate("current_setting(name, true)", "doc", Literal.of("search_path"));
+        assertEvaluate("current_setting(name, false)", "doc", Literal.of("search_path"));
     }
 
     @Test
