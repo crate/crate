@@ -909,8 +909,8 @@ public class DDLIntegrationTest extends IntegTestCase {
                                  "{\"dynamic\":\"strict\"," +
                                  "\"_meta\":{" +
                                  "\"generated_columns\":{" +
-                                 "\"added\":\"date_trunc('day', ts)\"," +
-                                 "\"day\":\"date_trunc('day', ts)\"}}," +
+                                 "\"day\":\"date_trunc('day', ts)\"," +
+                                 "\"added\":\"date_trunc('day', ts)\"}}," +
                                  "\"properties\":{" +
                                  "\"added\":{\"type\":\"date\",\"position\":3,\"format\":\"epoch_millis||strict_date_optional_time\"}," +
                                  "\"day\":{\"type\":\"date\",\"position\":2,\"format\":\"epoch_millis||strict_date_optional_time\"}," +
@@ -978,4 +978,132 @@ public class DDLIntegrationTest extends IntegTestCase {
         ));
 
     }
+
+    @Test
+    public void test_add_column_all_supported_configs_applied_to_altered_table() throws Exception {
+        // add at least one of each constraints (not null, PK, check, generated) to the initial table
+        // to make sure that merge logic doesn't override existing mapping
+        execute("CREATE TABLE tbl (id int primary key constraint id_check check (id>0), gen_col int generated always as 123 not null)");
+
+        execute("ALTER TABLE tbl ADD COLUMN col1 text " +
+            "generated always as 'test' " +
+            "not null " +
+            "constraint test_check check (col1!='d') " +
+            "INDEX USING FULLTEXT WITH (analyzer = 'simple')");
+
+        execute("show create table tbl");
+        assertThat((String) response.rows()[0][0], startsWith(
+            """
+                CREATE TABLE IF NOT EXISTS "doc"."tbl" (
+                   "id" INTEGER NOT NULL,
+                   "gen_col" INTEGER GENERATED ALWAYS AS 123 NOT NULL,
+                   "col1" TEXT GENERATED ALWAYS AS 'test' NOT NULL INDEX USING FULLTEXT WITH (
+                      analyzer = 'simple'
+                   ),
+                   PRIMARY KEY ("id"),
+                   CONSTRAINT id_check CHECK("id" > 0),
+                   CONSTRAINT test_check CHECK("col1" <> 'd')
+                )""".stripIndent()
+        ));
+
+        // test other options, which couldn't be tested in the first scenario:
+        // Primary key can be used here as we don't have not null
+        // and doc values flag can be disabled on not fulltext columns (otherwise it's ignored)
+        execute("ALTER TABLE tbl ADD COLUMN col2 varchar(100) " +
+            "primary key " +
+            "storage with (columnstore=false)"
+        );
+        execute("show create table tbl");
+        assertThat((String) response.rows()[0][0], startsWith(
+            """
+                CREATE TABLE IF NOT EXISTS "doc"."tbl" (
+                   "id" INTEGER NOT NULL,
+                   "gen_col" INTEGER GENERATED ALWAYS AS 123 NOT NULL,
+                   "col1" TEXT GENERATED ALWAYS AS 'test' NOT NULL INDEX USING FULLTEXT WITH (
+                      analyzer = 'simple'
+                   ),
+                   "col2" VARCHAR(100) NOT NULL STORAGE WITH (
+                      columnstore = false
+                   ),
+                   PRIMARY KEY ("id", "col2"),
+                   CONSTRAINT id_check CHECK("id" > 0),
+                   CONSTRAINT test_check CHECK("col1" <> 'd')
+                )""".stripIndent()
+        ));
+    }
+
+    @Test
+    public void test_add_geo_shape_column() throws Exception {
+        execute("CREATE TABLE tbl (id INTEGER)");
+
+        execute("ALTER TABLE tbl ADD COLUMN g geo_shape " +
+            "GENERATED ALWAYS AS 'POLYGON (( 5 5, 30 5, 30 30, 5 30, 5 5 ))' " +
+            "INDEX using QUADTREE with (precision='123m', distance_error_pct='0.123')"
+        );
+
+        execute("show create table tbl");
+        assertThat((String) response.rows()[0][0], startsWith(
+            """
+                CREATE TABLE IF NOT EXISTS "doc"."tbl" (
+                   "id" INTEGER,
+                   "g" GEO_SHAPE GENERATED ALWAYS AS _cast('POLYGON (( 5 5, 30 5, 30 30, 5 30, 5 5 ))', 'geo_shape') INDEX USING QUADTREE WITH (
+                      distance_error_pct = 0.123,
+                      precision = '123.0m'
+                   )
+                )""".stripIndent()
+        ));
+    }
+
+    @Test
+    public void test_add_column_not_null_constraint_added_to_a_nested_column() {
+        // non-existing object
+        execute("create table t (o object)");
+        execute("alter table t add column o2['a']['b'] text not null");
+        assertThrowsMatches(
+            () -> execute("insert into t (o2) values ({\"a\" = {\"b\" = null}})"),
+            isSQLError(
+                containsString("\"o2['a']['b']\" must not be null"),
+                INTERNAL_ERROR,
+                BAD_REQUEST,
+                4000
+            )
+        );
+
+        // existing object
+        execute("alter table t add column o['a']['b'] text not null");
+        assertThrowsMatches(
+            () -> execute("insert into t (o) values ({\"a\" = {\"b\" = null}})"),
+            isSQLError(
+                containsString("\"o['a']['b']\" must not be null"),
+                INTERNAL_ERROR,
+                BAD_REQUEST,
+                4000
+            )
+        );
+
+        // object with multiple children
+        execute("alter table t add column o3 object as (a object as (b text not null), c int not null)");
+        // one leaf of o3
+        assertThrowsMatches(
+            () -> execute("insert into t (o, o2) values ({\"a\" = {\"b\" = 'test'}}, {\"a\" = {\"b\" = 'test'}})"),
+            isSQLError(
+                containsString("\"o3['a']['b']\" must not be null"),
+                INTERNAL_ERROR,
+                BAD_REQUEST,
+                4000
+            )
+        );
+        // another leaf of o3
+        assertThrowsMatches(
+            () -> execute("insert into t (o, o2, o3) values ({\"a\" = {\"b\" = 'test'}}, {\"a\" = {\"b\" = 'test'}}, {\"a\" = {\"b\" = 'test'}, \"c\" = null})"),
+            isSQLError(
+                containsString("\"o3['c']\" must not be null"),
+                INTERNAL_ERROR,
+                BAD_REQUEST,
+                4000
+            )
+        );
+    }
+
+
 }

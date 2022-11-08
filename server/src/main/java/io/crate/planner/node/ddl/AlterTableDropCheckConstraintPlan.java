@@ -38,6 +38,10 @@ import io.crate.planner.operators.SubQueryResults;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.settings.Settings;
 
+import java.util.Map;
+
+import static io.crate.analyze.AnalyzedTableElements.toMapping;
+
 public class AlterTableDropCheckConstraintPlan implements Plan {
 
     private final AnalyzedAlterTableDropCheckConstraint dropCheckConstraint;
@@ -84,15 +88,17 @@ public class AlterTableDropCheckConstraintPlan implements Plan {
             .stream()
             .filter(c -> !dropCheckConstraint.name().equals(c.name()))
             .forEach(c -> tableElementsBound.addCheckConstraint(tableInfo.ident(), c));
+        AnalyzedTableElements.finalizeAndValidate(
+            tableInfo.ident(),
+            new AnalyzedTableElements<>(),
+            tableElementsBound
+        );
+        Map<String, Object> mapping = toMapping(tableElementsBound);
         return new BoundAddColumn(
             tableInfo,
             tableElementsBound,
             Settings.builder().build(),
-            AnalyzedTableElements.finalizeAndValidate(
-                tableInfo.ident(),
-                new AnalyzedTableElements<>(),
-                tableElementsBound
-            ),
+            mapping,
             false,
             false
         );

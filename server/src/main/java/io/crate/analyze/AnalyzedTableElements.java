@@ -36,6 +36,10 @@ import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
+import com.carrotsearch.hppc.IntArrayList;
+import io.crate.analyze.ddl.GeoSettingsApplier;
+import io.crate.sql.tree.GenericProperties;
+import io.crate.types.GeoShapeType;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.settings.Settings;
 
@@ -51,6 +55,8 @@ import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.GeneratedReference;
+import io.crate.metadata.GeoReference;
+import io.crate.metadata.IndexReference;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
@@ -109,7 +115,7 @@ public class AnalyzedTableElements<T> {
         this.copyToMap = copyToMap;
     }
 
-    static Map<String, Object> toMapping(AnalyzedTableElements<Object> elements) {
+    public static Map<String, Object> toMapping(AnalyzedTableElements<Object> elements) {
         final Map<String, Object> mapping = new HashMap<>();
         final Map<String, Object> meta = new HashMap<>();
         final Map<String, Object> properties = new HashMap<>(elements.columns.size());
@@ -200,8 +206,16 @@ public class AnalyzedTableElements<T> {
         if (partitionedBy == null) {
             partitionedBy = new ArrayList<>(partitionedByColumns.size());
             for (AnalyzedColumnDefinition<T> partitionedByColumn : partitionedByColumns) {
-                partitionedBy.add(List.of(
-                    partitionedByColumn.ident().fqn(), partitionedByColumn.typeNameForESMapping()));
+                partitionedBy.add(
+                    List.of(
+                        partitionedByColumn.ident().fqn(),
+                        AnalyzedColumnDefinition.typeNameForESMapping(
+                            partitionedByColumn.dataType(),
+                            partitionedByColumn.analyzer(),
+                            partitionedByColumn.isIndexColumn()
+                        )
+                    )
+                );
             }
         }
 
@@ -314,9 +328,9 @@ public class AnalyzedTableElements<T> {
         return builder.build();
     }
 
-    public static Map<String, Object> finalizeAndValidate(RelationName relationName,
-                                                          AnalyzedTableElements<Symbol> tableElementsWithExpressionSymbols,
-                                                          AnalyzedTableElements<Object> tableElementsEvaluated) {
+    public static void finalizeAndValidate(RelationName relationName,
+                                           AnalyzedTableElements<Symbol> tableElementsWithExpressionSymbols,
+                                           AnalyzedTableElements<Object> tableElementsEvaluated) {
         tableElementsEvaluated.expandColumnIdents();
         validateExpressions(tableElementsWithExpressionSymbols, tableElementsEvaluated);
         for (AnalyzedColumnDefinition<Object> column : tableElementsEvaluated.columns) {
@@ -325,7 +339,12 @@ public class AnalyzedTableElements<T> {
         }
         validateIndexDefinitions(relationName, tableElementsEvaluated);
         validatePrimaryKeys(relationName, tableElementsEvaluated);
-        return toMapping(tableElementsEvaluated);
+
+        // finalizeAndValidate used to compute mapping which implicitly validated storage settings.
+        // Since toMapping call is removed from finalizeAndValidate we are triggering this check explicitly
+        for (AnalyzedColumnDefinition<Object> column : tableElementsEvaluated.columns()) {
+            AnalyzedColumnDefinition.validateAndComputeDocValues(column);
+        }
     }
 
     private static void validateExpressions(AnalyzedTableElements<Symbol> tableElementsWithExpressionSymbols,
@@ -340,10 +359,14 @@ public class AnalyzedTableElements<T> {
 
     public TableReferenceResolver referenceResolver(RelationName relationName) {
         List<Reference> tableReferences = new ArrayList<>();
-        for (AnalyzedColumnDefinition<T> columnDefinition : columns) {
-            buildReference(relationName, columnDefinition, tableReferences);
-        }
+        collectReferences(relationName, tableReferences, new IntArrayList(), false);
         return new TableReferenceResolver(tableReferences, relationName);
+    }
+
+    public void collectReferences(RelationName relationName, List<Reference> target, IntArrayList pKeysIndices, boolean isAddColumn) {
+        for (AnalyzedColumnDefinition<T> columnDefinition : columns) {
+            buildReference(relationName, columnDefinition, target, pKeysIndices, isAddColumn);
+        }
     }
 
     private static void processExpressions(AnalyzedColumnDefinition<Symbol> columnDefinitionWithExpressionSymbols,
@@ -418,28 +441,73 @@ public class AnalyzedTableElements<T> {
         formattedExpressionConsumer.accept(formattedExpression);
     }
 
-    private static <T> void buildReference(RelationName relationName,
-                                           AnalyzedColumnDefinition<T> columnDefinition,
-                                           List<Reference> references) {
+    public static <T> void buildReference(RelationName relationName,
+                                          AnalyzedColumnDefinition<T> columnDefinition,
+                                          List<Reference> references,
+                                          IntArrayList pKeysIndices,
+                                          boolean isAddColumn) {
 
         DataType<?> type = columnDefinition.dataType() == null ? DataTypes.UNDEFINED : columnDefinition.dataType();
         DataType<?> realType = ArrayType.NAME.equals(columnDefinition.collectionType())
             ? new ArrayType<>(type)
             : type;
 
-        SimpleReference simpleRef = new SimpleReference(
-            new ReferenceIdent(relationName, columnDefinition.ident()),
-            RowGranularity.DOC,
-            realType,
-            columnDefinition.position,
-            null // not required in this context
-        );
-        Reference ref = columnDefinition.isGenerated()
-            ? new GeneratedReference(simpleRef, columnDefinition.formattedGeneratedExpression(), null)
-            : simpleRef;
+        Reference ref;
+        if (isAddColumn && type.id() == GeoShapeType.ID) {
+            Map<String, Object> geoMap = new HashMap<>();
+            if (columnDefinition.geoProperties() != null) {
+                // applySettings validates geo properties.
+                // If this method called from CreateTablePlan geoProperties are not yet resolved, they are still Literals. No need to validate, it will be done later.
+                // In case of ADD COLUMN we have to validate geo properties.
+                GeoSettingsApplier.applySettings(geoMap, (GenericProperties<Object>) columnDefinition.geoProperties(), columnDefinition.geoTree());
+            }
+            Float distError = (Float) geoMap.get("distance_error_pct");
+            ref = new GeoReference(
+                columnDefinition.position,
+                new ReferenceIdent(relationName, columnDefinition.ident()),
+                columnDefinition.hasNotNullConstraint(),
+                columnDefinition.geoTree(),
+                (String) geoMap.get("precision"),
+                (Integer) geoMap.get("tree_levels"),
+                distError != null ? distError.doubleValue() : null
+            );
+        } else if (isAddColumn && columnDefinition.analyzer() != null) {
+            // We are sending IndexReference since it's the only Reference implementation having 'analyzer'.
+            // However, IndexReference is dedicated to reflect index declaration like 'INDEX some_index using fulltext(some_col) with (analyzer = 'english')'
+            // Hence, we ignore copyTo which is irrelevant for ADD COLUMN.
+            // columnDefinition.isIndexColumn() cannot be used here, it's always false for ADD COLUMN.
+            ref = new IndexReference(
+                columnDefinition.position,
+                columnDefinition.hasNotNullConstraint(),
+                columnDefinition.docValues(),
+                new ReferenceIdent(relationName, columnDefinition.ident()),
+                columnDefinition.indexConstraint(),
+                List.of(), //copyTo is irrelevant for ADD COLUMN
+                columnDefinition.analyzer()
+            );
+        } else {
+            ref = new SimpleReference(
+                new ReferenceIdent(relationName, columnDefinition.ident()),
+                RowGranularity.DOC,
+                realType,
+                columnDefinition.objectType(),
+                columnDefinition.indexConstraint() != null ? columnDefinition.indexConstraint() : IndexType.PLAIN, // Use default value for none IndexReference to not break streaming
+                columnDefinition.hasNotNullConstraint(),
+                columnDefinition.docValues(),
+                columnDefinition.position,
+                null // not required in this context
+            );
+        }
+
+        ref = columnDefinition.isGenerated()
+            ? new GeneratedReference(ref, columnDefinition.formattedGeneratedExpression(), null)
+            : ref;
         references.add(ref);
+        if (columnDefinition.hasPrimaryKeyConstraint()) {
+            pKeysIndices.add(references.size() - 1);
+        }
         for (AnalyzedColumnDefinition<T> childDefinition : columnDefinition.children()) {
-            buildReference(relationName, childDefinition, references);
+            buildReference(relationName, childDefinition, references, pKeysIndices, isAddColumn);
         }
     }
 
@@ -611,7 +679,7 @@ public class AnalyzedTableElements<T> {
     }
 
     @VisibleForTesting
-    Map<String, String> getCheckConstraints() {
+    public Map<String, String> getCheckConstraints() {
         return Map.copyOf(checkConstraints);
     }
 

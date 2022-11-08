@@ -101,6 +101,18 @@ public class IndexReference extends SimpleReference {
         this.analyzer = analyzer;
     }
 
+    public IndexReference(int position,
+                          boolean nullable,
+                          boolean hasDocValues,
+                          ReferenceIdent ident,
+                          IndexType indexType,
+                          List<Reference> columns,
+                          @Nullable String analyzer) {
+        super(ident, RowGranularity.DOC, DataTypes.STRING, ColumnPolicy.DYNAMIC, indexType, nullable, hasDocValues, position, null);
+        this.columns = columns;
+        this.analyzer = analyzer;
+    }
+
     public List<Reference> columns() {
         return columns;
     }
