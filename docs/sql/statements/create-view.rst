@@ -21,6 +21,10 @@ Synopsis
 
     CREATE [ OR REPLACE ] VIEW view_ident AS query
 
+Or
+
+    CREATE [ OR REPLACE ] VIEW view_ident AS (query)
+
 
 Where ``query`` is a :ref:`SELECT <sql-select>` statement.
 
