@@ -24,7 +24,6 @@ package io.crate.execution.engine.collect.collectors;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertNull;
-import static org.mockito.Mockito.mock;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -66,7 +65,6 @@ import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.common.unit.Fuzziness;
 import org.elasticsearch.index.mapper.KeywordFieldMapper;
 import org.elasticsearch.index.mapper.NumberFieldMapper;
-import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.shard.ShardId;
 import org.hamcrest.Matchers;
 import org.junit.Before;
@@ -157,8 +155,7 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
         sortField.setMissingValue(missingValue);
         Sort sort = new Sort(sortField);
 
-        OptimizeQueryForSearchAfter queryForSearchAfter =
-            new OptimizeQueryForSearchAfter(orderBy, mock(QueryShardContext.class), name -> valueFieldType);
+        OptimizeQueryForSearchAfter queryForSearchAfter = new OptimizeQueryForSearchAfter(orderBy);
         Query nextPageQuery = queryForSearchAfter.apply(lastCollected);
         TopFieldDocs result = search(reader, nextPageQuery, sort);
         Long[] results = new Long[result.scoreDocs.length];
@@ -179,8 +176,7 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
         FieldDoc fieldDoc = new FieldDoc(1, 0, new Object[]{null});
         OrderBy orderBy = new OrderBy(Collections.singletonList(REFERENCE), new boolean[]{false}, new boolean[]{false});
 
-        OptimizeQueryForSearchAfter queryForSearchAfter = new OptimizeQueryForSearchAfter(
-            orderBy, mock(QueryShardContext.class), name -> valueFieldType);
+        OptimizeQueryForSearchAfter queryForSearchAfter = new OptimizeQueryForSearchAfter(orderBy);
 
         queryForSearchAfter.apply(fieldDoc);
     }
@@ -276,8 +272,7 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
 
         FieldDoc lastCollected = new FieldDoc(0, 0, new Object[]{2L});
 
-        OptimizeQueryForSearchAfter queryForSearchAfter = new OptimizeQueryForSearchAfter(
-            orderBy, mock(QueryShardContext.class), name -> valueFieldType);
+        OptimizeQueryForSearchAfter queryForSearchAfter = new OptimizeQueryForSearchAfter(orderBy);
         Query nextPageQuery = queryForSearchAfter.apply(lastCollected);
 
         // returns null which leads to reuse of old query without paging optimization
