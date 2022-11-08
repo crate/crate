@@ -28,12 +28,10 @@ import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.FieldDoc;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.Query;
-import org.elasticsearch.index.query.QueryShardContext;
 
 import io.crate.analyze.OrderBy;
 import io.crate.expression.reference.doc.lucene.NullSentinelValues;
 import io.crate.expression.symbol.Symbol;
-import io.crate.lucene.FieldTypeLookup;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.types.EqQuery;
@@ -43,16 +41,10 @@ public class OptimizeQueryForSearchAfter implements Function<FieldDoc, Query> {
 
     private final OrderBy orderBy;
     private final Object[] missingValues;
-    private final QueryShardContext queryShardContext;
-    private final FieldTypeLookup fieldTypeLookup;
 
-    public OptimizeQueryForSearchAfter(OrderBy orderBy,
-                                       QueryShardContext queryShardContext,
-                                       FieldTypeLookup fieldTypeLookup) {
+    public OptimizeQueryForSearchAfter(OrderBy orderBy) {
         this.orderBy = orderBy;
         missingValues = new Object[orderBy.orderBySymbols().size()];
-        this.queryShardContext = queryShardContext;
-        this.fieldTypeLookup = fieldTypeLookup;
         for (int i = 0; i < orderBy.orderBySymbols().size(); i++) {
             missingValues[i] = NullSentinelValues.nullSentinelForScoreDoc(orderBy, i);
         }

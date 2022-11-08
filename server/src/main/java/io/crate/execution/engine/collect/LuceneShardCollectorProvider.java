@@ -240,11 +240,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
                 sharedShardContext.indexShard().shardId(),
                 batchSize);
         }
-        OptimizeQueryForSearchAfter optimizeQueryForSearchAfter = new OptimizeQueryForSearchAfter(
-            collectPhase.orderBy(),
-            queryContext.queryShardContext(),
-            fieldTypeLookup
-        );
+        var optimizeQueryForSearchAfter = new OptimizeQueryForSearchAfter(collectPhase.orderBy());
         return new LuceneOrderedDocCollector(
             indexShard.shardId(),
             searcher.item(),
