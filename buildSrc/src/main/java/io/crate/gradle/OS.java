@@ -56,7 +56,7 @@ public final class OS {
     @SuppressWarnings("unused")
     public static OS current() {
         String arch = System.getProperty("os.arch", "");
-        if ("amd64".equals(arch)) {
+        if ("amd64".equals(arch) || "x86_64".equals(arch)) {
             arch = "x64";
         }
         String os = System.getProperty("os.name", "").toLowerCase(Locale.ROOT);
