@@ -55,6 +55,8 @@ import io.crate.sql.parser.antlr.v4.SqlBaseParser.DirectionContext;
 import io.crate.sql.parser.antlr.v4.SqlBaseParser.DiscardContext;
 import io.crate.sql.parser.antlr.v4.SqlBaseParser.FetchContext;
 import io.crate.sql.parser.antlr.v4.SqlBaseParser.IsolationLevelContext;
+import io.crate.sql.parser.antlr.v4.SqlBaseParser.QueryContext;
+import io.crate.sql.parser.antlr.v4.SqlBaseParser.QueryOptParensContext;
 import io.crate.sql.parser.antlr.v4.SqlBaseParser.SetTransactionContext;
 import io.crate.sql.parser.antlr.v4.SqlBaseParser.StatementsContext;
 import io.crate.sql.parser.antlr.v4.SqlBaseParser.TransactionModeContext;
@@ -473,9 +475,18 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     public Node visitCreateView(SqlBaseParser.CreateViewContext ctx) {
         return new CreateView(
             getQualifiedName(ctx.qname()),
-            (Query) visit(ctx.query()),
+            (Query) visit(ctx.queryOptParens()),
             ctx.REPLACE() != null
         );
+    }
+
+    @Override
+    public Node visitQueryOptParens(QueryOptParensContext ctx) {
+        QueryContext query = ctx.query();
+        if (query == null) {
+            return ctx.queryOptParens().accept(this);
+        }
+        return query.accept(this);
     }
 
     @Override
