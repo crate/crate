@@ -6,6 +6,7 @@
             "request": "launch",
             "name": "Debug CrateDB",
             "args": "-Cpath.home=${workspaceFolder}/sandbox/crate",
+            "cwd": "${workspaceFolder}/app",
             "vmArgs": "-Xms2G -Xmx2G",
             "mainClass": "io.crate.bootstrap.CrateDB",
             "projectName": "app",
@@ -17,7 +18,8 @@
             "name": "Attach to CrateDB",
             "hostName": "127.0.0.1",
             "port": 5005,
-            "projectName": "app"
+            "projectName": "app",
+            "cwd": "${workspaceFolder}/app"
         }
     ]
 }

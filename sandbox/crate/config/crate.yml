@@ -5,11 +5,11 @@ network.host: _local_
 
 ssl.psql.enabled: false
 ssl.http.enabled: false
-ssl.keystore_filepath: ./server/src/test/resources/keystore.pcks12
+ssl.keystore_filepath: ../server/src/test/resources/keystore.pcks12 # working dir is ${PROJEC_DIR}/app
 ssl.keystore_password: keystorePassword
 ssl.keystore_key_password: keystorePassword
 
-path.repo: ./sandbox/crate/repo
+path.repo: ../sandbox/crate/repo # working dir is ${PROJEC_DIR}/app
 
 http.cors.enabled: true
 http.cors.allow-origin: "*"
