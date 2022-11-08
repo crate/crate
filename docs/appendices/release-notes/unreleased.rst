@@ -62,6 +62,8 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Fixed an issue that prevented ``_id IN (SELECT ...)`` from matching records.
+
 - Fixed an issue that could lead to a ``class_cast_exception`` error when using
   ``ORDER BY`` on a column of type ``TEXT`` or ``VARCHAR``
 
