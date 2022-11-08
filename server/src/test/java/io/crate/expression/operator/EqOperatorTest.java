@@ -23,15 +23,20 @@ package io.crate.expression.operator;
 
 import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isLiteral;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import io.crate.testing.Asserts;
 import io.crate.testing.DataTypeTesting;
 import io.crate.testing.QueryTester;
 import io.crate.types.DataType;
+import io.crate.types.DataTypes;
+
+import org.apache.lucene.search.Query;
 import org.elasticsearch.Version;
 import org.junit.Test;
 
 import io.crate.expression.scalar.ScalarTestCase;
+import io.crate.metadata.doc.DocSysColumns;
 
 import java.util.List;
 
@@ -125,5 +130,11 @@ public class EqOperatorTest extends ScalarTestCase {
                 Asserts.assertThat(result.get(0)).asList().isEmpty();
             }
         }
+    }
+
+    @Test
+    public void test_terms_query_on__id_encodes_ids() throws Exception {
+        Query query = EqOperator.termsQuery(DocSysColumns.ID.name(), DataTypes.STRING, List.of("foo", "bar"));
+        assertThat(query.toString()).isEqualTo("_id:([7e 8a] [ff 62 61 72])");
     }
 }
