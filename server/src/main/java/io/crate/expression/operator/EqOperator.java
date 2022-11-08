@@ -168,6 +168,14 @@ public final class EqOperator extends Operator<Object> {
         if (nonNullValues.isEmpty()) {
             return null;
         }
+        if (column.equals(DocSysColumns.ID.name())) {
+            BytesRef[] bytesRefs = new BytesRef[nonNullValues.size()];
+            for (int i = 0; i < bytesRefs.length; i++) {
+                Object idObject = nonNullValues.get(i);
+                bytesRefs[i] = Uid.encodeId(idObject.toString());
+            }
+            return new TermInSetQuery(column, bytesRefs);
+        }
         return switch (type.id()) {
             case StringType.ID -> new TermInSetQuery(column, nonNullValues.stream().map(BytesRefs::toBytesRef).toList());
             case IntegerType.ID -> IntPoint.newSetQuery(column, (List<Integer>) nonNullValues);

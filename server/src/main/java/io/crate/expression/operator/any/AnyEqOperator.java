@@ -67,7 +67,7 @@ public final class AnyEqOperator extends AnyOperator {
             return Queries.newMatchNoDocsQuery("column does not exist in this index");
         }
         DataType<?> innerType = ArrayType.unnest(probe.valueType());
-        return EqOperator.termsQuery(columnName, (DataType) innerType, (List) values);
+        return EqOperator.termsQuery(columnName, innerType, values);
     }
 
     @Override
