@@ -127,3 +127,6 @@ Fixes
 - Fixed an issue that caused queries reading values of type ``BIT`` to return a
   wrong result if the query contains a ``WHERE`` clause ``pk_col = ?``
   condition.
+
+- Fixed an issue that prevented ``NOT NULL`` constraints on ``GEO_SHAPE``
+  columns from showing up in ``SHOW CREATE TABLE`` statements.

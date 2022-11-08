@@ -961,4 +961,21 @@ public class DDLIntegrationTest extends IntegTestCase {
                 """.stripIndent()
         ));
     }
+
+    @Test
+    public void test_geo_shape_can_be_not_null() {
+        execute("create table t (col geo_shape INDEX using QUADTREE with (precision='1m', distance_error_pct='0.25') NOT NULL)");
+        execute("show create table t");
+        assertThat((String) response.rows()[0][0], startsWith(
+            """
+                CREATE TABLE IF NOT EXISTS "doc"."t" (
+                   "col" GEO_SHAPE NOT NULL INDEX USING QUADTREE WITH (
+                      distance_error_pct = 0.25,
+                      precision = '1.0m'
+                   )
+                )
+                """.stripIndent()
+        ));
+
+    }
 }
