@@ -26,6 +26,7 @@ import java.util.Objects;
 
 import javax.annotation.Nullable;
 
+import io.crate.sql.tree.ColumnPolicy;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -49,11 +50,12 @@ public class GeoReference extends SimpleReference {
 
     public GeoReference(int position,
                         ReferenceIdent ident,
+                        boolean nullable,
                         @Nullable String tree,
                         @Nullable String precision,
                         @Nullable Integer treeLevels,
                         @Nullable Double distanceErrorPct) {
-        super(ident, RowGranularity.DOC, DataTypes.GEO_SHAPE, position, null);
+        super(ident, RowGranularity.DOC, DataTypes.GEO_SHAPE, ColumnPolicy.DYNAMIC, IndexType.PLAIN, nullable, false, position, null);
         this.geoTree = Objects.requireNonNullElse(tree, DEFAULT_TREE);
         this.precision = precision;
         this.treeLevels = treeLevels;
