@@ -92,6 +92,8 @@ public class AnalyzedColumnDefinition<T> {
 
     private boolean isPrimaryKey = false;
     private boolean isNotNull = false;
+    private boolean docValues;
+
 
     private List<AnalyzedColumnDefinition<T>> children = new ArrayList<>();
     private boolean isIndex = false;
@@ -234,6 +236,16 @@ public class AnalyzedColumnDefinition<T> {
         this.analyzer = analyzer;
     }
 
+    public String analyzer() {
+        if (analyzer == null) {
+            return null;
+        }
+        if (analyzer instanceof String str) {
+            return str;
+        }
+        throw new IllegalStateException("Trying to access not evaluated analyzer");
+    }
+
     void indexMethod(String indexMethod) {
         this.indexMethod = indexMethod;
     }
@@ -243,7 +255,7 @@ public class AnalyzedColumnDefinition<T> {
     }
 
     @Nullable
-    IndexType indexConstraint() {
+    public IndexType indexConstraint() {
         return indexType;
     }
 
@@ -282,6 +294,10 @@ public class AnalyzedColumnDefinition<T> {
         this.objectType = objectType;
     }
 
+    public ColumnPolicy objectType() {
+        return this.objectType;
+    }
+
     void collectionType(String type) {
         this.collectionType = type;
     }
@@ -292,6 +308,14 @@ public class AnalyzedColumnDefinition<T> {
 
     public boolean isIndexColumn() {
         return isIndex;
+    }
+
+    public String geoTree() {
+        return this.geoTree;
+    }
+
+    public GenericProperties<T> geoProperties() {
+        return this.geoProperties;
     }
 
     void setAsIndexColumn() {
@@ -318,29 +342,37 @@ public class AnalyzedColumnDefinition<T> {
         return analyzerSettings;
     }
 
-    private static void applyAndValidateStorageSettings(Map<String, Object> mapping,
-                                                        AnalyzedColumnDefinition<Object> definition) {
+    /**
+     * Validates and sets either specified or default docValues for the given column definition.
+     * If column definition represents an object with sub-column, computes docValues for all sub-columns.
+     */
+    public static void validateAndComputeDocValues(AnalyzedColumnDefinition<Object> definition) {
         if (definition.storageProperties == null) {
-            return;
-        }
-        Settings storageSettings = GenericPropertiesConverter.genericPropertiesToSettings(definition.storageProperties);
-        for (String property : storageSettings.names()) {
-            if (property.equals(COLUMN_STORE_PROPERTY)) {
-                DataType<?> dataType = definition.dataType();
-                boolean val = storageSettings.getAsBoolean(property, true);
-                if (val == false) {
-                    if (dataType.id() != DataTypes.STRING.id()) {
-                        throw new IllegalArgumentException(
-                            String.format(Locale.ENGLISH, "Invalid storage option \"columnstore\" for data type \"%s\"",
-                                          dataType.getName()));
+            // Take default if not specified
+            definition.docValues = definition.dataType.storageSupport().getComputedDocValuesDefault(definition.indexType);
+        } else {
+            Settings storageSettings = GenericPropertiesConverter.genericPropertiesToSettings(definition.storageProperties);
+            for (String property : storageSettings.names()) {
+                if (property.equals(COLUMN_STORE_PROPERTY)) {
+                    DataType<?> dataType = definition.dataType();
+                    boolean val = storageSettings.getAsBoolean(property, true);
+                    if (val == false) {
+                        if (dataType.id() != DataTypes.STRING.id()) {
+                            throw new IllegalArgumentException(
+                                String.format(Locale.ENGLISH, "Invalid storage option \"columnstore\" for data type \"%s\"",
+                                    dataType.getName()));
+                        }
+                        definition.docValues = false;
                     }
-
-                    mapping.put(DOC_VALUES, "false");
+                } else {
+                    throw new IllegalArgumentException(
+                        String.format(Locale.ENGLISH, "Invalid STORAGE WITH option `%s`", property));
                 }
-            } else {
-                throw new IllegalArgumentException(
-                    String.format(Locale.ENGLISH, "Invalid STORAGE WITH option `%s`", property));
             }
+        }
+        // Children is not nullable, empty by default
+        for (int i = 0; i < definition.children.size(); i++) {
+            validateAndComputeDocValues(definition.children.get(i));
         }
     }
 
@@ -417,8 +449,9 @@ public class AnalyzedColumnDefinition<T> {
 
     static Map<String, Object> toMapping(AnalyzedColumnDefinition<Object> definition) {
         Map<String, Object> mapping = new HashMap<>();
-        addTypeOptions(mapping, definition);
-        mapping.put("type", definition.typeNameForESMapping());
+        String analyzer = definition.analyzer();
+        addTypeOptions(mapping, definition.dataType, definition.geoProperties, definition.geoTree, analyzer);
+        mapping.put("type", AnalyzedColumnDefinition.typeNameForESMapping(definition.dataType, analyzer, definition.isIndex));
 
         assert definition.position != 0 : "position should not be 0";
         mapping.put("position", definition.position);
@@ -443,7 +476,11 @@ public class AnalyzedColumnDefinition<T> {
             objectMapping(mapping, definition);
         }
 
-        applyAndValidateStorageSettings(mapping, definition);
+        if (definition.docValues() != definition.dataType.storageSupport().getComputedDocValuesDefault(definition.indexType)) {
+            // definition.docValues falls back to default if not specified.
+            // If computed value is non-default it means doc values are supported but disabled.
+            mapping.put(DOC_VALUES, "false");
+        }
 
         if (definition.formattedDefaultExpression != null) {
             mapping.put("default_expr", definition.formattedDefaultExpression);
@@ -452,15 +489,19 @@ public class AnalyzedColumnDefinition<T> {
         return mapping;
     }
 
-    String typeNameForESMapping() {
+    public static String typeNameForESMapping(DataType dataType, @Nullable String analyzer, boolean isIndex) {
         if (StringType.ID == dataType.id()) {
             return analyzer == null && !isIndex ? "keyword" : "text";
         }
         return DataTypes.esMappingNameFrom(dataType.id());
     }
 
-    private static void addTypeOptions(Map<String, Object> mapping, AnalyzedColumnDefinition<Object> definition) {
-        switch (definition.dataType.id()) {
+    public static void addTypeOptions(Map<String, Object> mapping,
+                                      DataType dataType,
+                                      @Nullable GenericProperties geoProperties,
+                                      @Nullable String geoTree,
+                                      @Nullable String analyzer) {
+        switch (dataType.id()) {
             case TimestampType.ID_WITH_TZ:
                 /*
                  * We want 1000 not be be interpreted as year 1000AD but as 1970-01-01T00:00:01.000
@@ -473,28 +514,28 @@ public class AnalyzedColumnDefinition<T> {
                 mapping.put("ignore_timezone", true);
                 break;
             case GeoShapeType.ID:
-                if (definition.geoProperties != null) {
-                    GeoSettingsApplier.applySettings(mapping, definition.geoProperties, definition.geoTree);
+                if (geoProperties != null) {
+                    GeoSettingsApplier.applySettings(mapping, geoProperties, geoTree);
                 }
                 break;
 
             case StringType.ID:
-                if (definition.analyzer != null) {
-                    mapping.put("analyzer", DataTypes.STRING.sanitizeValue(definition.analyzer));
+                if (analyzer != null) {
+                    mapping.put("analyzer", analyzer);
                 }
-                var stringType = (StringType) definition.dataType;
+                var stringType = (StringType) dataType;
                 if (!stringType.unbound()) {
                     mapping.put("length_limit", stringType.lengthLimit());
                 }
                 break;
             case CharacterType.ID:
-                var type = (CharacterType) definition.dataType;
+                var type = (CharacterType) dataType;
                 mapping.put("length_limit", type.lengthLimit());
                 mapping.put("blank_padding", true);
                 break;
 
             case BitStringType.ID:
-                int length = ((BitStringType) definition.dataType).length();
+                int length = ((BitStringType) dataType).length();
                 mapping.put("length", length);
                 break;
 
@@ -630,5 +671,9 @@ public class AnalyzedColumnDefinition<T> {
 
     void setStorageProperties(GenericProperties<T> storageProperties) {
         this.storageProperties = storageProperties;
+    }
+
+    public boolean docValues() {
+        return docValues;
     }
 }

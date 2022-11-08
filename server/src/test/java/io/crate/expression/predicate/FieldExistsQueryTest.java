@@ -95,14 +95,10 @@ public class FieldExistsQueryTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_is_null_does_not_match_empty_arrays_with_index_and_column_store_off() throws Exception {
-        for (DataType<?> type : DataTypeTesting.ALL_STORED_TYPES_EXCEPT_ARRAYS) {
-            if (UNSUPPORTED_INDEX_TYPE_IDS.contains(type.id()) == false) {
-                String createStatement = "create table t_" +
-                    type.getName().replaceAll(" ", "_") +
-                    " (xs array(" + type.getName() + ") index off storage with (columnstore = false))";
-                assertMatches(createStatement, true, ARRAY_VALUES);
-            }
-        }
+        // Turning off columnstore is currently supported only for TEXT.
+        // We can enable this case for all types once https://github.com/crate/crate/issues/11652 is implemented.
+        String createStatement = "create table t_text (xs array(text) index off storage with (columnstore = false))";
+        assertMatches(createStatement, true, ARRAY_VALUES);
     }
 
     @Test
@@ -140,13 +136,9 @@ public class FieldExistsQueryTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_is_not_null_does_not_match_empty_arrays_with_index_and_column_store_off() throws Exception {
-        for (DataType<?> type : DataTypeTesting.ALL_STORED_TYPES_EXCEPT_ARRAYS) {
-            if (UNSUPPORTED_INDEX_TYPE_IDS.contains(type.id()) == false) {
-                String createStatement = "create table t_" +
-                    type.getName().replaceAll(" ", "_") +
-                    " (xs array(" + type.getName() + ") index off storage with (columnstore = false))";
-                assertMatches(createStatement, false, ARRAY_VALUES);
-            }
-        }
+        // Turning off columnstore is currently supported only for TEXT.
+        // We can enable this case for all types once https://github.com/crate/crate/issues/11652 is implemented.
+        String createStatement = "create table t_text (xs array(text) index off storage with (columnstore = false))";
+        assertMatches(createStatement, false, ARRAY_VALUES);
     }
 }
