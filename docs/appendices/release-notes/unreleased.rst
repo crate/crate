@@ -62,6 +62,9 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Fixed an issue that could lead to a ``class_cast_exception`` error when using
+  ``ORDER BY`` on a column of type ``TEXT`` or ``VARCHAR``
+
 - Changed the logic to resolve functions. Previously it would first look for
   built-ins for all schemas within the search path before looking up user
   defined functions. Now it will search for built-in and UDF per schema to

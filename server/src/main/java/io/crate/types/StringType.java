@@ -62,20 +62,20 @@ public class StringType extends DataType<String> implements Streamer<String> {
     public static final String T = "t";
     public static final String F = "f";
 
-    private static final StorageSupport<String> STORAGE = new StorageSupport<>(
+    private static final StorageSupport<Object> STORAGE = new StorageSupport<>(
         true,
         true,
-        new EqQuery<String>() {
+        new EqQuery<Object>() {
 
             @Override
-            public Query termQuery(String field, String value) {
+            public Query termQuery(String field, Object value) {
                 return new TermQuery(new Term(field, BytesRefs.toBytesRef(value)));
             }
 
             @Override
             public Query rangeQuery(String field,
-                                    String lowerTerm,
-                                    String upperTerm,
+                                    Object lowerTerm,
+                                    Object upperTerm,
                                     boolean includeLower,
                                     boolean includeUpper) {
                 return new TermRangeQuery(
@@ -334,7 +334,7 @@ public class StringType extends DataType<String> implements Streamer<String> {
     }
 
     @Override
-    public StorageSupport<String> storageSupport() {
+    public StorageSupport<Object> storageSupport() {
         return STORAGE;
     }
 
