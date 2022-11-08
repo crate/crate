@@ -379,7 +379,7 @@ public class ShowIntegrationTest extends IntegTestCase {
     @Test
     public void testShowSearchPath() {
         execute("show search_path");
-        assertThat(printedTable(response.rows()), is("pg_catalog, doc\n"));
+        assertThat(printedTable(response.rows()), is("doc\n"));
     }
 
     @UseHashJoins(1)
@@ -433,7 +433,7 @@ public class ShowIntegrationTest extends IntegTestCase {
             "optimizer_rewrite_group_by_keys_limit_to_limit_distinct| true| Indicates if the optimizer rule RewriteGroupByKeysLimitToLimitDistinct is activated.\n" +
             "optimizer_rewrite_insert_from_sub_query_to_insert_from_values| true| Indicates if the optimizer rule RewriteInsertFromSubQueryToInsertFromValues is activated.\n" +
             "optimizer_rewrite_to_query_then_fetch| true| Indicates if the optimizer rule RewriteToQueryThenFetch is activated.\n" +
-            "search_path| pg_catalog, doc| Sets the schema search order.\n" +
+            "search_path| doc| Sets the schema search order.\n" +
             "server_version| 11.0| Reports the emulated PostgreSQL version number\n" +
             "server_version_num| 110000| Reports the emulated PostgreSQL version number\n")
         );

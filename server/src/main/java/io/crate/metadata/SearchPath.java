@@ -21,18 +21,17 @@
 
 package io.crate.metadata;
 
-import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Writeable;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
-import java.util.Spliterator;
-import java.util.function.Consumer;
+
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Writeable;
+
+import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 
 /**
  * Writing fully qualified table names is usually tedious.
@@ -94,19 +93,22 @@ public final class SearchPath implements Iterable<String>, Writeable {
         }
     }
 
+    /**
+     * Path to show in `SHOW search_path`
+     *
+     * @return the search path excluding pg_catalog unless it was set explicitly
+     */
+    public Iterable<String> showPath() {
+        if (pgCatalogIsSetExplicitly) {
+            return searchPath;
+        } else {
+            return searchPath.subList(1, searchPath.size());
+        }
+    }
+
     @Override
     public Iterator<String> iterator() {
         return searchPath.iterator();
-    }
-
-    @Override
-    public void forEach(Consumer<? super String> action) {
-        searchPath.forEach(action);
-    }
-
-    @Override
-    public Spliterator<String> spliterator() {
-        return searchPath.spliterator();
     }
 
     @Override

@@ -54,9 +54,12 @@ None
 Changes
 =======
 
+- Changed the behavior of ``SHOW search_path`` to omit the implicit
+  ``pg_catalog`` schema, unless the user set it explicitly. This matches the
+  PostgreSQL behavior.
+
 - Optimized the evaluation of ``CASE`` expressions to prevent stack overflows
   for very large expressions.
-
 
 Fixes
 =====

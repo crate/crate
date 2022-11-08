@@ -3749,11 +3749,11 @@ unless ``missing_ok`` argument is provided and is true.
 Examples::
 
     cr> select current_setting('search_path') AS search_path;
-    +-----------------+
-    | search_path     |
-    +-----------------+
-    | pg_catalog, doc |
-    +-----------------+
+    +-------------+
+    | search_path |
+    +-------------+
+    | doc         |
+    +-------------+
     SELECT 1 row in set (... sec)
 
 ::
