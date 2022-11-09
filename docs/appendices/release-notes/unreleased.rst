@@ -53,6 +53,9 @@ None
 Changes
 =======
 
+- ``cancel`` messages sent from a client via the PostgreSQL wire protocol are
+  now internally forwarded to other nodes to support setups with load-balancers.
+
 - Extended the syntax for ``CREATE VIEW`` to allow parenthesis surrounding the
   query.
 

@@ -21,35 +21,21 @@
 
 package io.crate.protocols.postgres;
 
-import io.netty.buffer.ByteBuf;
+import static org.assertj.core.api.Assertions.assertThat;
 
-import java.io.IOException;
-import java.util.concurrent.ThreadLocalRandom;
-
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Writeable;
+import org.junit.Test;
 
-public record KeyData(int pid, int secretKey) implements Writeable {
+public class KeyDataTest {
 
-    static KeyData generate(int pid) {
-        int secretKey = ThreadLocalRandom.current().nextInt();
-        return new KeyData(pid, secretKey);
-    }
+    @Test
+    public void test_can_stream_keyData() throws Exception {
+        KeyData keyData = new KeyData(42, 32);
+        BytesStreamOutput out = new BytesStreamOutput();
+        keyData.writeTo(out);
 
-    static KeyData of(ByteBuf buffer) {
-        return new KeyData(buffer.readInt(), buffer.readInt());
-    }
-
-    public static KeyData of(StreamInput in) throws IOException {
-        int pid = in.readInt();
-        int secretKey = in.readInt();
-        return new KeyData(pid, secretKey);
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        out.writeInt(pid);
-        out.writeInt(secretKey);
+        StreamInput in = out.bytes().streamInput();
+        assertThat(KeyData.of(in)).isEqualTo(keyData);
     }
 }

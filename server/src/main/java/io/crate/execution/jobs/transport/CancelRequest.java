@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,37 +19,57 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.protocols.postgres;
-
-import io.netty.buffer.ByteBuf;
+package io.crate.execution.jobs.transport;
 
 import java.io.IOException;
-import java.util.concurrent.ThreadLocalRandom;
+import java.util.Objects;
 
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Writeable;
+import org.elasticsearch.transport.TransportRequest;
 
-public record KeyData(int pid, int secretKey) implements Writeable {
+import io.crate.protocols.postgres.KeyData;
 
-    static KeyData generate(int pid) {
-        int secretKey = ThreadLocalRandom.current().nextInt();
-        return new KeyData(pid, secretKey);
+public class CancelRequest extends TransportRequest {
+
+    private final KeyData keyData;
+
+    public CancelRequest(KeyData keyData) {
+        this.keyData = keyData;
     }
 
-    static KeyData of(ByteBuf buffer) {
-        return new KeyData(buffer.readInt(), buffer.readInt());
-    }
-
-    public static KeyData of(StreamInput in) throws IOException {
-        int pid = in.readInt();
-        int secretKey = in.readInt();
-        return new KeyData(pid, secretKey);
+    public CancelRequest(StreamInput in) throws IOException {
+        super(in);
+        keyData = KeyData.of(in);
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeInt(pid);
-        out.writeInt(secretKey);
+        super.writeTo(out);
+        keyData.writeTo(out);
+    }
+
+    public KeyData keyData() {
+        return keyData;
+    }
+
+    @Override
+    public int hashCode() {
+        return keyData.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        CancelRequest other = (CancelRequest) obj;
+        return Objects.equals(keyData, other.keyData);
     }
 }
