@@ -271,11 +271,11 @@ should be crossed out as well.
 - [x] bde92fc5fcc Remove Needless Context Switch From Snapshot Finalization (#56871) (#59443)
 - [x] 31be3a36452 More Efficient Snapshot State Handling (#56669) (#59430)
 - [ ] b1b7bf39122 Make data streams a basic licensed feature. (#59392)
-- [ ] bd01fd107ce Revert "Migrate CompletionFieldMapper to parametrized format (#59291)"
+- [s] bd01fd107ce Revert "Migrate CompletionFieldMapper to parametrized format (#59291)"
 - [x] 4e574a7136c Remove Dead Code from Closed Index Snapshot Logic (#56764) (#59398)
-- [ ] 19ba6c39d27 Migrate CompletionFieldMapper to parametrized format (#59291)
+- [s] 19ba6c39d27 Migrate CompletionFieldMapper to parametrized format (#59291)
 - [x] 08b54feaaf2 Remove Snapshot INIT Step (#55918) (#59374)
-- [ ] c810a4a12e8 Continue to accept unused 'universal' params in <8.0 indexes (#59381)
+- [s] c810a4a12e8 Continue to accept unused 'universal' params in <8.0 indexes (#59381)
 - [x] 483386136d9 Move all Snapshot Master Node Steps to SnapshotsService (#56365) (#59373)
 - [x] f4caadd239f MappedFieldType no longer requires equals/hashCode/clone (#59212)
 - [x] d56fc72ee5b Fix node health-check-related test failures (#59277)
