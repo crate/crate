@@ -258,7 +258,7 @@ should be crossed out as well.
 - [ ] 06d94cbb2ac Fix TODO about Spurious FAILED Snapshots (#58994) (#59576)
 - [ ] e1014038e90 Simplify Repository.finalizeSnapshot Signature (#58834) (#59574)
 - [ ] 16a47e0d089 Simplify SnapshotsInProgress Construction (#58893) (#59573)
-- [ ] 68a199f75fe Minor Cleanup Dead Code Snapshotting (#57716) (#59569)
+- [x] 68a199f75fe Minor Cleanup Dead Code Snapshotting (#57716) (#59569)
 - [x] d456f7870a7 Deduplicate Index Metadata in BlobStore (#50278) (#59514)
 - [ ] 408a07f96a6 Separate coordinating and primary bytes in stats (#59487)
 - [ ] 1a24916fef8 Enable replication retries on 7.9+ (#59546)
