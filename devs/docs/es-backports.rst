@@ -270,7 +270,7 @@ should be crossed out as well.
 - [x] 64c5f70a2d4 Remove Needless Context Switches on Loading RepositoryData (#56935) (#59452)
 - [x] bde92fc5fcc Remove Needless Context Switch From Snapshot Finalization (#56871) (#59443)
 - [x] 31be3a36452 More Efficient Snapshot State Handling (#56669) (#59430)
-- [ ] b1b7bf39122 Make data streams a basic licensed feature. (#59392)
+- [s] b1b7bf39122 Make data streams a basic licensed feature. (#59392)
 - [s] bd01fd107ce Revert "Migrate CompletionFieldMapper to parametrized format (#59291)"
 - [x] 4e574a7136c Remove Dead Code from Closed Index Snapshot Logic (#56764) (#59398)
 - [s] 19ba6c39d27 Migrate CompletionFieldMapper to parametrized format (#59291)
@@ -281,7 +281,7 @@ should be crossed out as well.
 - [x] d56fc72ee5b Fix node health-check-related test failures (#59277)
 - [ ] 67a27e2b9d4 Add declarative parameters to FieldMappers (#58663)
 - [x] 6a0f7411e25 Do not release safe commit with CancellableThreads (#59182)
-- [ ] 17bd5592537 Fix the timestamp field of a data stream to @timestamp (#59210)
+- [s] 17bd5592537 Fix the timestamp field of a data stream to @timestamp (#59210)
 - [x] 9268b257895 Add Check for Metadata Existence in BlobStoreRepository (#59141) (#59216)
 - [x] ef5c397c0f6 Sending operations concurrently in peer recovery (#58018)
 - [x] de6ac6aea6d Fix recovery stage transition with sync_id (#57754)
