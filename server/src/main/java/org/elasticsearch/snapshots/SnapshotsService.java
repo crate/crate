@@ -22,10 +22,12 @@ package org.elasticsearch.snapshots;
 import static java.util.Collections.unmodifiableList;
 import static org.elasticsearch.cluster.SnapshotsInProgress.completed;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -98,8 +100,6 @@ import org.elasticsearch.transport.TransportService;
 
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
-import java.io.IOException;
-import java.util.EnumSet;
 
 import io.crate.common.collections.Tuple;
 import io.crate.common.unit.TimeValue;
@@ -765,22 +765,23 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                 }
             }
             final ShardGenerations shardGenerations = buildGenerations(entry, metadata);
+            final SnapshotInfo snapshotInfo = new SnapshotInfo(snapshot.getSnapshotId(),
+                shardGenerations.indices().stream().map(IndexId::getName).collect(Collectors.toList()),
+                entry.startTime(), failure, threadPool.absoluteTimeInMillis(),
+                entry.partial() ? shardGenerations.totalShards() : entry.shards().size(), shardFailures,
+                entry.includeGlobalState());
             repositoriesService.repository(snapshot.getRepository()).finalizeSnapshot(
-                    snapshot.getSnapshotId(),
                     shardGenerations,
-                    entry.startTime(),
-                    failure,
-                    entry.partial() ? shardGenerations.totalShards() : entry.shards().size(),
-                    unmodifiableList(shardFailures),
                     entry.repositoryStateId(),
-                    entry.includeGlobalState(),
                     metadataForSnapshot(entry, metadata),
+                    snapshotInfo,
                     entry.version(),
                     state -> stateWithoutSnapshot(state, snapshot),
-                    ActionListener.wrap(result -> {
+                    ActionListener.wrap(newRepoData -> {
                         final List<ActionListener<Tuple<RepositoryData, SnapshotInfo>>> completionListeners =
                                 snapshotCompletionListeners.remove(snapshot);
                         if (completionListeners != null) {
+                            final Tuple<RepositoryData, SnapshotInfo> result = Tuple.tuple(newRepoData, snapshotInfo);
                             try {
                                 ActionListener.onResponse(completionListeners, result);
                             } catch (Exception e) {
@@ -788,7 +789,7 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                             }
                         }
                         endingSnapshots.remove(snapshot);
-                        LOGGER.info("snapshot [{}] completed with state [{}]", snapshot, result.v2().state());
+                        LOGGER.info("snapshot [{}] completed with state [{}]", snapshot, snapshotInfo.state());
                     }, e -> handleFinalizationFailure(e, entry)));
         } catch (Exception e) {
             handleFinalizationFailure(e, entry);

@@ -51,9 +51,6 @@ import org.elasticsearch.repositories.RepositoryData;
 import org.elasticsearch.repositories.ShardGenerations;
 import org.elasticsearch.snapshots.SnapshotId;
 import org.elasticsearch.snapshots.SnapshotInfo;
-import org.elasticsearch.snapshots.SnapshotShardFailure;
-
-import io.crate.common.collections.Tuple;
 
 public abstract class RestoreOnlyRepository implements Repository {
 
@@ -101,18 +98,13 @@ public abstract class RestoreOnlyRepository implements Repository {
     }
 
     @Override
-    public void finalizeSnapshot(SnapshotId snapshotId,
-                                 ShardGenerations shardGenerations,
-                                 long startTime,
-                                 String failure,
-                                 int totalShards,
-                                 List<SnapshotShardFailure> shardFailures,
-                                 long repositoryStateId,
-                                 boolean includeGlobalState,
-                                 Metadata clusterMetadata,
+    public void finalizeSnapshot(final ShardGenerations shardGenerations,
+                                 final long repositoryStateId,
+                                 final Metadata clusterMetadata,
+                                 SnapshotInfo snapshotInfo,
                                  Version repositoryMetaVersion,
                                  Function<ClusterState, ClusterState> stateTransformer,
-                                 ActionListener<Tuple<RepositoryData, SnapshotInfo>> listener) {
+                                 final ActionListener<RepositoryData> listener) {
         listener.onResponse(null);
     }
 
