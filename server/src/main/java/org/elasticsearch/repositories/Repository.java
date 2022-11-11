@@ -21,7 +21,6 @@ package org.elasticsearch.repositories;
 
 
 import java.util.Collection;
-import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -45,11 +44,9 @@ import org.elasticsearch.index.store.Store;
 import org.elasticsearch.indices.recovery.RecoveryState;
 import org.elasticsearch.snapshots.SnapshotId;
 import org.elasticsearch.snapshots.SnapshotInfo;
-import org.elasticsearch.snapshots.SnapshotShardFailure;
 
 import io.crate.action.FutureActionListener;
 import io.crate.analyze.repositories.TypeSettings;
-import io.crate.common.collections.Tuple;
 
 /**
  * An interface for interacting with a repository in snapshot and restore.
@@ -161,26 +158,18 @@ public interface Repository extends LifecycleComponent {
      * <p>
      * This method is called on master after all shards are snapshotted.
      *
-     * @param snapshotId            snapshot id
      * @param shardGenerations      updated shard generations
-     * @param startTime             start time of the snapshot
-     * @param failure               global failure reason or null
-     * @param totalShards           total number of shards
-     * @param shardFailures         list of shard failures
      * @param repositoryStateId     the unique id identifying the state of the repository when the snapshot began
-     * @param includeGlobalState    include cluster global state
      * @param clusterMetadata       cluster metadata
+     * @param snapshotInfo          SnapshotInfo instance to write for this snapshot
      * @param repositoryMetaVersion version of the updated repository metadata to write
      * @param stateTransformer      a function that filters the last cluster state update that the snapshot finalization will execute and
      *                              is used to remove any state tracked for the in-progress snapshot from the cluster state
-     * @param listener              listener to be invoked with the new {@link RepositoryData} and the snapshot's {@link SnapshotInfo}
-     *                              completion of the snapshot
+     * @param listener              listener to be invoked with the new {@link RepositoryData} after completing the snapshot
      */
-    void finalizeSnapshot(SnapshotId snapshotId, ShardGenerations shardGenerations, long startTime, String failure,
-                          int totalShards, List<SnapshotShardFailure> shardFailures, long repositoryStateId,
-                          boolean includeGlobalState, Metadata clusterMetadata,
-                          Version repositoryMetaVersion, Function<ClusterState, ClusterState> stateTransformer,
-                          ActionListener<Tuple<RepositoryData, SnapshotInfo>> listener);
+    void finalizeSnapshot(ShardGenerations shardGenerations, long repositoryStateId, Metadata clusterMetadata,
+                          SnapshotInfo snapshotInfo, Version repositoryMetaVersion, Function<ClusterState, ClusterState> stateTransformer,
+                          ActionListener<RepositoryData> listener);
 
     /**
      * Deletes snapshots

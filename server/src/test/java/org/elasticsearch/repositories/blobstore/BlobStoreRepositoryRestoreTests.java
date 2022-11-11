@@ -33,6 +33,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.tests.util.TestUtil;
@@ -67,7 +68,6 @@ import org.elasticsearch.snapshots.Snapshot;
 import org.elasticsearch.snapshots.SnapshotId;
 import org.elasticsearch.snapshots.SnapshotInfo;
 
-import io.crate.common.collections.Tuple;
 import io.crate.common.io.IOUtils;
 
 /**
@@ -180,11 +180,15 @@ public class BlobStoreRepositoryRestoreTests extends IndexShardTestCase {
             assertNotNull(shardGen);
             final Snapshot snapshotWithSameName = new Snapshot(repository.getMetadata().name(), new SnapshotId(
                 snapshot.getSnapshotId().getName(), "_uuid2"));
-            PlainActionFuture.<Tuple<RepositoryData, SnapshotInfo>, Exception>get(f ->
-                repository.finalizeSnapshot(snapshot.getSnapshotId(),
-                    ShardGenerations.builder().put(indexId, 0, shardGen).build(),
-                    0L, null, 1, Collections.emptyList(), -1L, false,
+            final ShardGenerations shardGenerations = ShardGenerations.builder().put(indexId, 0, shardGen).build();
+            PlainActionFuture.<RepositoryData, Exception>get(f ->
+                repository.finalizeSnapshot(
+                    shardGenerations,
+                    RepositoryData.EMPTY_REPO_GEN,
                     Metadata.builder().put(shard.indexSettings().getIndexMetadata(), false).build(),
+                    new SnapshotInfo(snapshot.getSnapshotId(), shardGenerations.indices().stream()
+                        .map(IndexId::getName).collect(Collectors.toList()), 0L, null, 1L, 6,
+                        Collections.emptyList(), true),
                     Version.CURRENT, Function.identity(), f));
             IndexShardSnapshotFailedException isfe = expectThrows(IndexShardSnapshotFailedException.class,
                                                                   () -> snapshotShard(shard, snapshotWithSameName, repository));

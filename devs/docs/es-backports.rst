@@ -256,7 +256,7 @@ should be crossed out as well.
 - [ ] 691759fb1fc Validate snapshot UUID during restore (#59601)
 - [ ] 2dd086445c3 Enable Fully Concurrent Snapshot Operations (#56911) (#59578)
 - [ ] 06d94cbb2ac Fix TODO about Spurious FAILED Snapshots (#58994) (#59576)
-- [ ] e1014038e90 Simplify Repository.finalizeSnapshot Signature (#58834) (#59574)
+- [x] e1014038e90 Simplify Repository.finalizeSnapshot Signature (#58834) (#59574)
 - [x] 16a47e0d089 Simplify SnapshotsInProgress Construction (#58893) (#59573)
 - [x] 68a199f75fe Minor Cleanup Dead Code Snapshotting (#57716) (#59569)
 - [x] d456f7870a7 Deduplicate Index Metadata in BlobStore (#50278) (#59514)

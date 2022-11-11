@@ -28,7 +28,6 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -66,12 +65,10 @@ import org.elasticsearch.repositories.RepositoryData;
 import org.elasticsearch.repositories.ShardGenerations;
 import org.elasticsearch.snapshots.SnapshotId;
 import org.elasticsearch.snapshots.SnapshotInfo;
-import org.elasticsearch.snapshots.SnapshotShardFailure;
 import org.elasticsearch.snapshots.SnapshotState;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.RemoteClusters;
 
-import io.crate.common.collections.Tuple;
 import io.crate.common.unit.TimeValue;
 import io.crate.exceptions.Exceptions;
 import io.crate.exceptions.SQLExceptions;
@@ -274,18 +271,13 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
     }
 
     @Override
-    public void finalizeSnapshot(SnapshotId snapshotId,
-                                 ShardGenerations shardGenerations,
-                                 long startTime,
-                                 String failure,
-                                 int totalShards,
-                                 List<SnapshotShardFailure> shardFailures,
-                                 long repositoryStateId,
-                                 boolean includeGlobalState,
-                                 Metadata clusterMetadata,
+    public void finalizeSnapshot(final ShardGenerations shardGenerations,
+                                 final long repositoryStateId,
+                                 final Metadata clusterMetadata,
+                                 SnapshotInfo snapshotInfo,
                                  Version repositoryMetaVersion,
                                  Function<ClusterState, ClusterState> stateTransformer,
-                                 ActionListener<Tuple<RepositoryData, SnapshotInfo>> listener) {
+                                 final ActionListener<RepositoryData> listener) {
         throw new UnsupportedOperationException("Operation not permitted");
     }
 
