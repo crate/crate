@@ -242,7 +242,7 @@ public class DocIndexMetadata {
                                  @Nullable Integer treeLevels,
                                  @Nullable Double distanceErrorPct,
                                  boolean nullable) {
-        GeoReference info = new GeoReference(
+        Reference info = new GeoReference(
             position,
             refIdent(column),
             nullable,
@@ -250,6 +250,13 @@ public class DocIndexMetadata {
             precision,
             treeLevels,
             distanceErrorPct);
+
+        String generatedExpression = generatedColumns.get(column.fqn());
+        if (generatedExpression != null) {
+            info = new GeneratedReference(info, generatedExpression, null);
+            generatedColumnReferencesBuilder.add((GeneratedReference) info);
+        }
+
         if (column.isTopLevel()) {
             columns.add(info);
         } else {
