@@ -261,9 +261,9 @@ public final class SnapshotInfo implements Comparable<SnapshotInfo>, ToXContent,
              startTime, endTime, totalShards, totalShards - shardFailures.size(), shardFailures, includeGlobalState);
     }
 
-    private SnapshotInfo(SnapshotId snapshotId, List<String> indices, SnapshotState state, String reason, Version version,
-                         long startTime, long endTime, int totalShards, int successfulShards, List<SnapshotShardFailure> shardFailures,
-                         Boolean includeGlobalState) {
+    SnapshotInfo(SnapshotId snapshotId, List<String> indices, SnapshotState state, String reason, Version version,
+                 long startTime, long endTime, int totalShards, int successfulShards, List<SnapshotShardFailure> shardFailures,
+                 Boolean includeGlobalState) {
         this.snapshotId = Objects.requireNonNull(snapshotId);
         this.indices = Collections.unmodifiableList(Objects.requireNonNull(indices));
         this.state = state;

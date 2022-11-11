@@ -233,27 +233,14 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                         }
                     }
                     if (missing.isEmpty() == false) {
-                        // TODO: We should just throw here instead of creating a FAILED and hence useless snapshot in the repository
-                        newEntry = new SnapshotsInProgress.Entry(
-                            new Snapshot(repositoryName, snapshotId),
-                            request.includeGlobalState(),
-                            false,
-                            State.FAILED,
-                            indexIds,
-                            List.of(request.templates()),
-                            threadPool.absoluteTimeInMillis(),
-                            repositoryData.getGenId(),
-                            shards,
-                            "Indices don't have primary shards " + missing,
-                            version);
+                        throw new SnapshotException(
+                                new Snapshot(repositoryName, snapshotId), "Indices don't have primary shards " + missing);
                     }
                 }
-                if (newEntry == null) {
-                    newEntry = new SnapshotsInProgress.Entry(
-                            new Snapshot(repositoryName, snapshotId), request.includeGlobalState(), request.partial(),
-                            State.STARTED, indexIds, List.of(request.templates()), threadPool.absoluteTimeInMillis(), repositoryData.getGenId(), shards,
-                            null, version);
-                }
+                newEntry = new SnapshotsInProgress.Entry(
+                    new Snapshot(repositoryName, snapshotId), request.includeGlobalState(), request.partial(),
+                    State.STARTED, indexIds, List.of(request.templates()), threadPool.absoluteTimeInMillis(),
+                    repositoryData.getGenId(), shards, null, version);
                 return ClusterState.builder(currentState).putCustom(SnapshotsInProgress.TYPE,
                         SnapshotsInProgress.of(Collections.singletonList(newEntry))).build();
             }
