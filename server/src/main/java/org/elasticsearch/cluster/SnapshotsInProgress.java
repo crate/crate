@@ -20,13 +20,10 @@
 package org.elasticsearch.cluster;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -101,7 +98,6 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
         private final ImmutableOpenMap<ShardId, ShardSnapshotStatus> shards;
         private final List<IndexId> indices;
         private final List<String> templates;
-        private final ImmutableOpenMap<String, List<ShardId>> waitingIndices;
         private final long startTime;
         private final long repositoryStateId;
         private final Version version;
@@ -118,14 +114,8 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
             this.indices = indices;
             this.templates = templates;
             this.startTime = startTime;
-            if (shards == null) {
-                this.shards = ImmutableOpenMap.of();
-                this.waitingIndices = ImmutableOpenMap.of();
-            } else {
-                this.shards = shards;
-                this.waitingIndices = findWaitingIndices(shards);
-                assert assertShardsConsistent(state, indices, shards);
-            }
+            this.shards = shards;
+            assert assertShardsConsistent(state, indices, shards);
             this.repositoryStateId = repositoryStateId;
             this.failure = failure;
             this.version = version;
@@ -215,10 +205,6 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
 
         public List<String> templates() {
             return templates;
-        }
-
-        public ImmutableOpenMap<String, List<ShardId>> waitingIndices() {
-            return waitingIndices;
         }
 
         public boolean includeGlobalState() {
@@ -329,23 +315,6 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
         @Override
         public boolean isFragment() {
             return false;
-        }
-
-        private ImmutableOpenMap<String, List<ShardId>> findWaitingIndices(ImmutableOpenMap<ShardId, ShardSnapshotStatus> shards) {
-            Map<String, List<ShardId>> waitingIndicesMap = new HashMap<>();
-            for (ObjectObjectCursor<ShardId, ShardSnapshotStatus> entry : shards) {
-                if (entry.value.state() == ShardState.WAITING) {
-                    waitingIndicesMap.computeIfAbsent(entry.key.getIndexName(), k -> new ArrayList<>()).add(entry.key);
-                }
-            }
-            if (waitingIndicesMap.isEmpty()) {
-                return ImmutableOpenMap.of();
-            }
-            ImmutableOpenMap.Builder<String, List<ShardId>> waitingIndicesBuilder = ImmutableOpenMap.builder();
-            for (Map.Entry<String, List<ShardId>> entry : waitingIndicesMap.entrySet()) {
-                waitingIndicesBuilder.put(entry.getKey(), Collections.unmodifiableList(entry.getValue()));
-            }
-            return waitingIndicesBuilder.build();
         }
     }
 
@@ -557,18 +526,14 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
             final boolean includeGlobalState = in.readBoolean();
             final boolean partial = in.readBoolean();
             final State state = State.fromValue(in.readByte());
-            int indices = in.readVInt();
-            List<IndexId> indexBuilder = new ArrayList<>();
-            for (int j = 0; j < indices; j++) {
-                indexBuilder.add(new IndexId(in.readString(), in.readString()));
-            }
+            final List<IndexId> indexBuilder = in.readList(IndexId::new);
             List<String> templates = List.of();
             if (in.getVersion().after(Version.V_4_5_1)) {
                 templates = List.of(in.readStringArray());
             }
             final long startTime = in.readLong();
-            ImmutableOpenMap.Builder<ShardId, ShardSnapshotStatus> builder = ImmutableOpenMap.builder();
             final int shards = in.readVInt();
+            ImmutableOpenMap.Builder<ShardId, ShardSnapshotStatus> builder = ImmutableOpenMap.builder(shards);
             for (int j = 0; j < shards; j++) {
                 ShardId shardId = new ShardId(in);
                 builder.put(shardId, new ShardSnapshotStatus(in));
