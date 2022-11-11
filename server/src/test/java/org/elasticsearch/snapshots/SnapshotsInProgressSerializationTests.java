@@ -87,7 +87,8 @@ public class SnapshotsInProgressSerializationTests extends AbstractDiffableWireS
             }
         }
         ImmutableOpenMap<ShardId, SnapshotsInProgress.ShardSnapshotStatus> shards = builder.build();
-        return new Entry(snapshot, includeGlobalState, partial, state, indices, templates, startTime, repositoryStateId, shards, VersionUtils.randomVersion(random()));
+        return new Entry(snapshot, includeGlobalState, partial, state, indices, templates, startTime, repositoryStateId, shards,
+            null, VersionUtils.randomVersion(random()));
     }
 
     @Override
