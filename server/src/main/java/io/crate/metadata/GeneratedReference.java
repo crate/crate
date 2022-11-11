@@ -110,6 +110,10 @@ public class GeneratedReference implements Reference {
         }
     }
 
+    public Reference reference() {
+        return this.ref;
+    }
+
     public String formattedGeneratedExpression() {
         return formattedGeneratedExpression;
     }

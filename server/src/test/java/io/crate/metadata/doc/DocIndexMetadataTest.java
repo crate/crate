@@ -37,6 +37,7 @@ import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -1677,5 +1678,14 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
         var column = docIndexMetadata.references().get(new ColumnIdent("col"));
         assertThat(column, is(not(nullValue())));
         assertThat(column.valueType(), is(StringType.of(10)));
+    }
+
+    @Test
+    public void test_geo_shape_column_has_generated_expression() throws Exception {
+        DocIndexMetadata md = getDocIndexMetadataFromStatement("create table t (g geo_shape generated always as 'POLYGON (( 5 5, 30 5, 30 30, 5 30, 5 5 ))')");
+        Reference reference = md.references().get(new ColumnIdent("g"));
+        assertThat(reference.valueType(), is(DataTypes.GEO_SHAPE));
+        GeneratedReference genRef = (GeneratedReference) reference;
+        assertThat(genRef.formattedGeneratedExpression()).isEqualTo("_cast('POLYGON (( 5 5, 30 5, 30 30, 5 30, 5 5 ))', 'geo_shape')");
     }
 }
