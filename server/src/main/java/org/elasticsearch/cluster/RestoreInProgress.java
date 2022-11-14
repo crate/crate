@@ -464,9 +464,6 @@ public class RestoreInProgress extends AbstractNamedDiffable<Custom> implements 
         this.entries = entriesBuilder.build();
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeVInt(entries.size());
@@ -489,14 +486,11 @@ public class RestoreInProgress extends AbstractNamedDiffable<Custom> implements 
         }
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, ToXContent.Params params) throws IOException {
         builder.startArray("snapshots");
         for (ObjectCursor<Entry> entry : entries.values()) {
-            toXContent(entry.value, builder, params);
+            toXContent(entry.value, builder);
         }
         builder.endArray();
         return builder;
@@ -507,9 +501,8 @@ public class RestoreInProgress extends AbstractNamedDiffable<Custom> implements 
      *
      * @param entry   restore operation metadata
      * @param builder XContent builder
-     * @param params  serialization parameters
      */
-    public void toXContent(Entry entry, XContentBuilder builder, ToXContent.Params params) throws IOException {
+    public void toXContent(Entry entry, XContentBuilder builder) throws IOException {
         builder.startObject();
         builder.field("snapshot", entry.snapshot().getSnapshotId().getName());
         builder.field("repository", entry.snapshot().getRepository());
