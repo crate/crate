@@ -67,3 +67,6 @@ Fixes
 
 - Fixed an issue that caused the generated expressions on columns of type
   ``GEO_SHAPE`` not being evaluated on writes and such being ignored.
+
+- Fixed an issue that could generate duplicate data on ``COPY FROM``  while
+  some internal retries were happening due to I/O errors e.g. socket timeouts.
