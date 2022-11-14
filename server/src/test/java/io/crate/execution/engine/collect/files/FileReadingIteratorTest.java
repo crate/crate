@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.net.SocketTimeoutException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -38,6 +39,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.function.Supplier;
 
 import org.elasticsearch.common.settings.Settings;
@@ -232,6 +234,76 @@ public class FileReadingIteratorTest extends ESTestCase {
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }
 
+    /**
+     * Validates a bug which was resulting in duplicate reads of the same line when consecutive retries happen.
+     * https://github.com/crate/crate/pull/13261
+     */
+    @Test
+    public void test_consecutive_retries_will_not_result_in_duplicate_reads() throws Exception {
+        ArrayList<String> fileUris = new ArrayList<>();
+
+        var tempFilePath1 = createTempFile("tempfile1", ".csv");
+        try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(tempFilePath1.toFile()),
+                                                                StandardCharsets.UTF_8)) {
+            writer.write("id\n");
+            writer.write("1\n2\n3\n4\n5\n");
+        }
+        fileUris.add(tempFilePath1.toUri().toString());
+
+        Reference raw = createReference("_raw", DataTypes.STRING);
+        InputFactory.Context<LineCollectorExpression<?>> ctx =
+            inputFactory.ctxForRefs(TXN_CTX, FileLineReferenceResolver::getImplementation);
+        List<Input<?>> inputs = Collections.singletonList(ctx.add(raw));
+
+
+        Supplier<BatchIterator<Row>> batchIteratorSupplier =
+            () -> new FileReadingIterator(
+                fileUris,
+                inputs,
+                ctx.expressions(),
+                null,
+                Map.of(LocalFsFileInputFactory.NAME, new LocalFsFileInputFactory()),
+                false,
+                1,
+                0,
+                List.of("id"),
+                new CopyFromParserProperties(true, true, ','),
+                CSV,
+                Settings.EMPTY
+            ) {
+                int retry = 0;
+
+                @Override
+                BufferedReader createBufferedReader(InputStream inputStream) throws IOException {
+                    return new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8)) {
+
+                        private int currentLineNumber = 0;
+
+                        @Override
+                        public String readLine() throws IOException {
+                            var line = super.readLine();
+                            if (new Random().nextBoolean()) {
+                                // current implementation does not handle SocketTimeoutException thrown when parsing header so skip it here as well.
+                                if (currentLineNumber++ > 0 && retry++ < MAX_SOCKET_TIMEOUT_RETRIES) {
+                                    throw new SocketTimeoutException("dummy");
+                                }
+                            }
+                            return line;
+                        }
+                    };
+                }
+            };
+
+        List<Object[]> expectedResult = Arrays.asList(
+            new Object[]{"{\"id\":\"1\"}"},
+            new Object[]{"{\"id\":\"2\"}"},
+            new Object[]{"{\"id\":\"3\"}"},
+            new Object[]{"{\"id\":\"4\"}"},
+            new Object[]{"{\"id\":\"5\"}"}
+        );
+        BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier);
+        tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
+    }
 
     private BatchIterator<Row> createBatchIterator(Collection<String> fileUris,
                                                    FileUriCollectPhase.InputFormat format) {
