@@ -27,6 +27,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.annotation.Nullable;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
@@ -37,6 +39,8 @@ import org.elasticsearch.transport.NodeDisconnectedException;
 
 import io.crate.analyze.Analyzer;
 import io.crate.execution.engine.collect.stats.JobsLogs;
+import io.crate.execution.jobs.transport.CancelRequest;
+import io.crate.execution.jobs.transport.TransportCancelAction;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.planner.DependencyCarrier;
@@ -53,6 +57,8 @@ public class Sessions {
         false,
         Setting.Property.NodeScope);
 
+    private static final Logger LOGGER = LogManager.getLogger(Sessions.class);
+
     private final NodeContext nodeCtx;
     private final Analyzer analyzer;
     private final Planner planner;
@@ -67,12 +73,12 @@ public class Sessions {
 
     @Inject
     public Sessions(NodeContext nodeCtx,
-                         Analyzer analyzer,
-                         Planner planner,
-                         Provider<DependencyCarrier> executorProvider,
-                         JobsLogs jobsLogs,
-                         Settings settings,
-                         ClusterService clusterService) {
+                    Analyzer analyzer,
+                    Planner planner,
+                    Provider<DependencyCarrier> executorProvider,
+                    JobsLogs jobsLogs,
+                    Settings settings,
+                    ClusterService clusterService) {
         this.nodeCtx = nodeCtx;
         this.analyzer = analyzer;
         this.planner = planner;
@@ -137,10 +143,29 @@ public class Sessions {
         return !disabled;
     }
 
-    public void cancel(KeyData keyData) {
+    /**
+     * @return true if a session matches the keyData, false otherwise.
+     */
+    public boolean cancelLocally(KeyData keyData) {
         Session session = sessions.get(keyData.pid());
         if (session != null && session.secret() == keyData.secretKey()) {
             session.cancelCurrentJob();
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    public void cancel(KeyData keyData) {
+        boolean cancelled = cancelLocally(keyData);
+        if (!cancelled) {
+            var client = executorProvider.get().client();
+            CancelRequest request = new CancelRequest(keyData);
+            client.execute(TransportCancelAction.ACTION, request).whenComplete((res, err) -> {
+                if (err != null) {
+                    LOGGER.error("Error during cancel broadcast", err);
+                }
+            });
         }
     }
 

@@ -195,7 +195,7 @@ public class PostgresWireProtocol {
 
     final PgDecoder decoder;
     final MessageHandler handler;
-    private final Sessions sqlOperations;
+    private final Sessions sessions;
     private final Function<CoordinatorSessionSettings, AccessControl> getAccessControl;
     private final Authentication authService;
     private final Consumer<ChannelPipeline> addTransportHandler;
@@ -206,12 +206,12 @@ public class PostgresWireProtocol {
     private AuthenticationContext authContext;
     private Properties properties;
 
-    PostgresWireProtocol(Sessions sqlOperations,
+    PostgresWireProtocol(Sessions sessions,
                          Function<CoordinatorSessionSettings, AccessControl> getAcessControl,
                          Consumer<ChannelPipeline> addTransportHandler,
                          Authentication authService,
                          Supplier<SslContext> getSslContext) {
-        this.sqlOperations = sqlOperations;
+        this.sessions = sessions;
         this.getAccessControl = getAcessControl;
         this.addTransportHandler = addTransportHandler;
         this.authService = authService;
@@ -433,7 +433,7 @@ public class PostgresWireProtocol {
         try {
             User authenticatedUser = authContext.authenticate();
             String database = properties.getProperty("database");
-            session = sqlOperations.createSession(database, authenticatedUser);
+            session = sessions.createSession(database, authenticatedUser);
             Messages.sendAuthenticationOK(channel)
                 .addListener(f -> sendParams(channel))
                 .addListener(f -> Messages.sendKeyData(channel, session.id(), session.secret()))
@@ -801,7 +801,7 @@ public class PostgresWireProtocol {
     private void handleCancelRequestBody(ByteBuf buffer, Channel channel) {
         var keyData = KeyData.of(buffer);
 
-        sqlOperations.cancel(keyData);
+        sessions.cancel(keyData);
 
         // Cancel request is sent by the client over a new connection.
         // This closes the new connection, not the one running the query.
