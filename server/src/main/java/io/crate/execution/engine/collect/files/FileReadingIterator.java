@@ -59,7 +59,8 @@ import io.crate.expression.InputRow;
 public class FileReadingIterator implements BatchIterator<Row> {
 
     private static final Logger LOGGER = LogManager.getLogger(FileReadingIterator.class);
-    private static final int MAX_SOCKET_TIMEOUT_RETRIES = 5;
+    @VisibleForTesting
+    static final int MAX_SOCKET_TIMEOUT_RETRIES = 5;
 
     public static BatchIterator<Row> newInstance(Collection<String> fileUris,
                                                  List<Input<?>> inputs,
@@ -261,7 +262,7 @@ public class FileReadingIterator implements BatchIterator<Row> {
                 LOGGER.error("Timeout during COPY FROM '" + uri.toString() + "' after " + retry + " retries", e);
                 throw e;
             } else {
-                long startLine = currentLineNumber + 1;
+                long startLine = retry == 0 ? currentLineNumber + 1 : startFrom;
                 closeCurrentReader();
                 initCurrentReader(currentInput, currentUri);
                 return getLine(currentReader, startLine, retry + 1);
