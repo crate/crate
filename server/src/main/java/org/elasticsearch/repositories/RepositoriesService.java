@@ -349,6 +349,7 @@ public class RepositoriesService implements ClusterStateApplier {
             }
             repositories = Collections.unmodifiableMap(builder);
         } catch (Exception ex) {
+            assert false : new AssertionError(ex);
             LOGGER.warn("failure updating cluster state ", ex);
         }
     }

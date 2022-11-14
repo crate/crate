@@ -303,8 +303,7 @@ task(runDebug, dependsOn: 'classes', type: JavaExec) {
     debug = true
     enableAssertions = true
     classpath = sourceSets.main.runtimeClasspath
-    systemProperties += ['es.path.home': "${rootDir}/sandbox/crate"]
-    systemProperties System.getProperties()
+    args = ["-Cpath.home=${rootDir}/sandbox/crate"]
 }
 
 task(run, dependsOn: 'classes', type: JavaExec) {
@@ -312,8 +311,7 @@ task(run, dependsOn: 'classes', type: JavaExec) {
     debug = false
     enableAssertions = true
     classpath = sourceSets.main.runtimeClasspath
-    systemProperties += ['es.path.home': "${rootDir}/sandbox/crate"]
-    systemProperties System.getProperties()
+    args = ["-Cpath.home=${rootDir}/sandbox/crate"]
 }
 
 task createCrateNodeScripts(type: CreateStartScripts) {

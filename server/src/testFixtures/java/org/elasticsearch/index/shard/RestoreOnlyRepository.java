@@ -23,7 +23,6 @@ package org.elasticsearch.index.shard;
 
 import static org.elasticsearch.repositories.RepositoryData.EMPTY_REPO_GEN;
 
-import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -46,6 +45,7 @@ import org.elasticsearch.index.snapshots.IndexShardSnapshotStatus;
 import org.elasticsearch.index.store.Store;
 import org.elasticsearch.indices.recovery.RecoveryState;
 import org.elasticsearch.repositories.IndexId;
+import org.elasticsearch.repositories.IndexMetaDataGenerations;
 import org.elasticsearch.repositories.Repository;
 import org.elasticsearch.repositories.RepositoryData;
 import org.elasticsearch.repositories.ShardGenerations;
@@ -79,25 +79,25 @@ public abstract class RestoreOnlyRepository implements Repository {
 
     }
 
-    @Override
-    public void getSnapshotIndexMetadata(SnapshotId snapshotId,
+    public void getSnapshotIndexMetadata(RepositoryData repositoryData,
+                                         SnapshotId snapshotId,
                                          IndexId indexId,
-                                         ActionListener<IndexMetadata> listener) throws IOException {
-
+                                         ActionListener<IndexMetadata> listener) {
     }
 
-    @Override
-    public void getSnapshotIndexMetadata(SnapshotId snapshotId,
+
+    public void getSnapshotIndexMetadata(RepositoryData repositoryData,
+                                         SnapshotId snapshotId,
                                          Collection<IndexId> indexIds,
                                          ActionListener<Collection<IndexMetadata>> listener) {
-
     }
 
     @Override
     public void getRepositoryData(ActionListener<RepositoryData> listener) {
         final IndexId indexId = new IndexId(indexName, "blah");
-            listener.onResponse(new RepositoryData(EMPTY_REPO_GEN, Map.of(), Map.of(), Map.of(),
-            Map.of(indexId, List.of()), ShardGenerations.EMPTY));
+        listener.onResponse(new RepositoryData(EMPTY_REPO_GEN, Map.of(), Map.of(), Map.of(),
+                                               Map.of(indexId, List.of()), ShardGenerations.EMPTY,
+                                               IndexMetaDataGenerations.EMPTY));
     }
 
     @Override
