@@ -1151,7 +1151,6 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
         };
     }
 
-
     /**
      * Determines the minimum {@link Version} that the snapshot repository must be compatible with from the current nodes in the cluster
      * and the contents of the repository. The minimum version is determined as the lowest version found across all snapshots in the
@@ -1268,53 +1267,6 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                 }
             }
         });
-    }
-
-    /**
-     * Check if any of the indices to be closed are currently being snapshotted. Fail as closing an index that is being
-     * snapshotted (with partial == false) makes the snapshot fail.
-     */
-    public static void checkIndexClosing(ClusterState currentState, Set<IndexMetadata> indices) {
-        Set<Index> indicesToFail = indicesToFailForCloseOrDeletion(currentState, indices);
-        if (indicesToFail != null) {
-            throw new SnapshotInProgressException("Cannot close indices that are being snapshotted: " + indicesToFail +
-                                                  ". Try again after snapshot finishes or cancel the currently running snapshot.");
-        }
-    }
-
-    private static Set<Index> indicesToFailForCloseOrDeletion(ClusterState currentState, Set<IndexMetadata> indices) {
-        SnapshotsInProgress snapshots = currentState.custom(SnapshotsInProgress.TYPE);
-        Set<Index> indicesToFail = null;
-        if (snapshots != null) {
-            for (final SnapshotsInProgress.Entry entry : snapshots.entries()) {
-                if (entry.partial() == false) {
-                    if (entry.state() == State.INIT) {
-                        for (IndexId index : entry.indices()) {
-                            IndexMetadata indexMetadata = currentState.metadata().index(index.getName());
-                            if (indexMetadata != null && indices.contains(indexMetadata)) {
-                                if (indicesToFail == null) {
-                                    indicesToFail = new HashSet<>();
-                                }
-                                indicesToFail.add(indexMetadata.getIndex());
-                            }
-                        }
-                    } else {
-                        for (ObjectObjectCursor<ShardId, SnapshotsInProgress.ShardSnapshotStatus> shard : entry.shards()) {
-                            if (!shard.value.state().completed()) {
-                                IndexMetadata indexMetadata = currentState.metadata().index(shard.key.getIndex());
-                                if (indexMetadata != null && indices.contains(indexMetadata)) {
-                                    if (indicesToFail == null) {
-                                        indicesToFail = new HashSet<>();
-                                    }
-                                    indicesToFail.add(shard.key.getIndex());
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        return indicesToFail;
     }
 
     /**
