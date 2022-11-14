@@ -38,6 +38,12 @@ defined by altering a table) from one set of nodes to another:
    Assign the table to a node whose *{attribute}* has **none** of the
    comma-separated values.
 
+.. NOTE::
+
+    These settings are not mutually exclusive. You can for instance have a
+    table with ``"routing.allocation.require.storage" = 'ssd'`` and 
+    ``"routing.allocation.exclude.datacenterzone" = 'zoneA'``.
+
 Special attributes
 ==================
 
