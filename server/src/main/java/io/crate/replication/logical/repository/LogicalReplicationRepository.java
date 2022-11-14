@@ -285,7 +285,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
     public void deleteSnapshots(Collection<SnapshotId> snapshotId,
                                long repositoryStateId,
                                Version repositoryMetaVersion,
-                               ActionListener<Void> listener) {
+                               ActionListener<RepositoryData> listener) {
         throw new UnsupportedOperationException("Operation not permitted");
     }
 

@@ -27,6 +27,8 @@
 
 <suppressions>
     <suppress files=".*[/\\]antlr[/\\].*" checks="."/>
+    <!-- Keep ES format to avoid conflicts when applying ES patches -->
+    <suppress files=".*[/\\]main[/\\]java[/\\]org[\\/]elasticsearch[/\\]snapshots[/\\]SnapshotsService.java" checks="."/>
     <suppress files=".*[/\\]test[/\\]java[/\\]org[\\/]elasticsearch[/\\].*java" checks="."/>
     <suppress files=".*[/\\]test[/\\]java[/\\]org[\\/]apache[/\\]lucene[/\\].*java" checks="."/>
     <suppress files=".*[/\\]testFixtures[/\\]java[/\\]org[\\/]elasticsearch[/\\].*java" checks="."/>

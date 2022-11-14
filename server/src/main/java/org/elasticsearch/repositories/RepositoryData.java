@@ -161,16 +161,6 @@ public final class RepositoryData {
     }
 
     /**
-     * Returns an immutable collection of all the snapshot ids in the repository, both active and
-     * incompatible snapshots.
-     */
-    public Collection<SnapshotId> getAllSnapshotIds() {
-        List<SnapshotId> allSnapshotIds = new ArrayList<>(snapshotIds.size());
-        allSnapshotIds.addAll(snapshotIds.values());
-        return Collections.unmodifiableList(allSnapshotIds);
-    }
-
-    /**
      * Returns the {@link SnapshotState} for the given snapshot.  Returns {@code null} if
      * there is no state for the snapshot.
      */
@@ -419,14 +409,18 @@ public final class RepositoryData {
     /**
      * Resolve the given index names to index ids, creating new index ids for
      * new indices in the repository.
+     *
+     * @param indicesToResolve names of indices to resolve
+     * @param inFlightIds      name to index mapping for currently in-flight snapshots not yet in the repository data to fall back to
      */
-    public List<IndexId> resolveNewIndices(final List<String> indicesToResolve) {
+    public List<IndexId> resolveNewIndices(List<String> indicesToResolve, Map<String, IndexId> inFlightIds) {
         List<IndexId> snapshotIndices = new ArrayList<>();
         for (String index : indicesToResolve) {
-            final IndexId indexId;
-            if (indices.containsKey(index)) {
-                indexId = indices.get(index);
-            } else {
+            IndexId indexId = indices.get(index);
+            if (indexId == null) {
+                indexId = inFlightIds.get(index);
+            }
+            if (indexId == null) {
                 indexId = new IndexId(index, UUIDs.randomBase64UUID());
             }
             snapshotIndices.add(indexId);
@@ -498,11 +492,8 @@ public final class RepositoryData {
             builder.field(MIN_VERSION, SnapshotsService.INDEX_GEN_IN_REPO_DATA_VERSION.toString());
             builder.field(INDEX_METADATA_IDENTIFIERS, indexMetaDataGenerations.identifiers);
         } else if (shouldWriteShardGens) {
-            // TODO: Apply 609b015e3c1 to resolve this
-            // TODO: write this field once 7.6 is able to read it and add tests to :qa:snapshot-repository-downgrade that make sure older
-            //       ES versions can't corrupt the repository by writing to it and all the snapshots in it are v7.6 or newer
             // Add min version field to make it impossible for older ES versions to deserialize this object
-            // builder.field(MIN_VERSION, SnapshotsService.SHARD_GEN_IN_REPO_DATA_VERSION.toString());
+            builder.field(MIN_VERSION, SnapshotsService.SHARD_GEN_IN_REPO_DATA_VERSION.toString());
         }
         builder.endObject();
         return builder;
