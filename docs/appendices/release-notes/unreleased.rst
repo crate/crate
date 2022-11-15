@@ -62,5 +62,8 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Fixed a race condition that could lead to a ``NullPointerException`` when
+  using ``IS NULL`` on an object that was just added to a table.
+
 - Fixed an issue that caused the generated expressions on columns of type
   ``GEO_SHAPE`` not being evaluated on writes and such being ignored.
