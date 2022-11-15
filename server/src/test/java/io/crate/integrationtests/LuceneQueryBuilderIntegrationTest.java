@@ -37,10 +37,14 @@ import org.elasticsearch.search.SearchModule;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
+import com.carrotsearch.randomizedtesting.annotations.Seed;
+
 import io.crate.testing.DataTypeTesting;
 import io.crate.types.DataType;
 
 @IntegTestCase.ClusterScope(scope = IntegTestCase.Scope.TEST)
+@Seed("7D3270BB542E42BF:D74A6C7F027CB2F6")
 public class LuceneQueryBuilderIntegrationTest extends IntegTestCase {
 
     private static final int NUMBER_OF_BOOLEAN_CLAUSES = 10_000;
@@ -312,6 +316,7 @@ public class LuceneQueryBuilderIntegrationTest extends IntegTestCase {
     }
 
     @Test
+    @Repeat(iterations = 100)
     public void testNullOperators() throws Exception {
         DataType<?> type = randomType();
         execute("create table t1 (c " + type.getName() + ") with (number_of_replicas = 0)");
