@@ -42,7 +42,8 @@ Unreleased Changes
 Breaking Changes
 ================
 
-None
+- Removed support for the ``CRATE_INCLUDE`` environment variable from the
+  ``bin/crate`` start script.
 
 Deprecations
 ============
