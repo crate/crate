@@ -161,18 +161,11 @@ launch_service()
     return $execval
 }
 
-args="$@"
-if test "${args#*"-Des."}" != "$args"; then
-    echo "Support for defining Crate specific settings with the -D option and the es prefix has been dropped."
-    echo "Please use the -C option to configure Crate.\n"
-    exit 1
-fi
-
 # Parse any command line options.
 while getopts "vdhp:D:X:C:" opt; do
     case $opt in
         v)
-            "$JAVA" $JAVA_OPTS $CRATE_JAVA_OPTS $es_parms -cp "$CRATE_CLASSPATH" $props \
+            "$JAVA" $JAVA_OPTS $CRATE_JAVA_OPTS -cp "$CRATE_CLASSPATH" $props \
                     org.elasticsearch.Version
             exit 0
         ;;
@@ -206,9 +199,6 @@ while getopts "vdhp:D:X:C:" opt; do
         ;;
         X)
             properties="$properties \"-X$OPTARG\""
-        ;;
-        --)
-            break
         ;;
         *)
             echo "Error parsing arguments!" >&2
