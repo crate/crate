@@ -76,4 +76,5 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
-None
+- Fixed an issue that caused the generated expressions on columns of type
+  ``GEO_SHAPE`` not being evaluated on writes and such being ignored.

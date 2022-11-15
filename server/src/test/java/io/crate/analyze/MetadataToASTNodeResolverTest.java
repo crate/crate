@@ -514,4 +514,17 @@ public class MetadataToASTNodeResolverTest extends CrateDummyClusterServiceUnitT
         CreateTable<?> node = MetadataToASTNodeResolver.resolveCreateTable(table);
         assertThat(SqlFormatter.formatSql(node), Matchers.containsString("\"xs\" BIT(8)"));
     }
+
+    @Test
+    public void test_generated_expression_on_geo_shape_in_show_create_table_output() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable("create table t (g geo_shape generated always as 'POLYGON (( 5 5, 30 5, 30 30, 5 30, 5 5 ))')")
+            .build();
+        DocTableInfo table = e.resolveTableInfo("t");
+        CreateTable<?> node = MetadataToASTNodeResolver.resolveCreateTable(table);
+        assertThat(
+            SqlFormatter.formatSql(node),
+            Matchers.containsString("\"g\" GEO_SHAPE GENERATED ALWAYS AS _cast('POLYGON (( 5 5, 30 5, 30 30, 5 30, 5 5 ))', 'geo_shape')")
+        );
+    }
 }
