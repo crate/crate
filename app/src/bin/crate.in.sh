@@ -1,3 +1,5 @@
+#!/bin/sh -e
+
 # Licensed to Crate.io GmbH ("Crate") under one or more contributor
 # license agreements.  See the NOTICE file distributed with this work for
 # additional information regarding copyright ownership.  Crate licenses
@@ -34,7 +36,7 @@ for libname in "$CRATE_HOME"/lib/*.jar; do
     fi
 done
 
-if [ "x$CRATE_MIN_MEM" = "x" ]; then
+if [ "$CRATE_MIN_MEM" = "" ]; then
     CRATE_MIN_MEM=256m
 fi
 if [ "x$CRATE_HEAP_SIZE" != "x" ]; then
@@ -74,7 +76,7 @@ JAVA_OPTS="$JAVA_OPTS -XX:+UseG1GC -XX:G1ReservePercent=25 -XX:InitiatingHeapOcc
 
 # GC logging options
 # Set CRATE_DISABLE_GC_LOGGING=1 to disable GC logging
-if [ "x$CRATE_DISABLE_GC_LOGGING" = "x" ]; then
+if [ "$CRATE_DISABLE_GC_LOGGING" = "" ]; then
   # GC log directory needs to be set explicitly by packages
   # GC logging requires 16x64mb = 1g of free disk space
   GC_LOG_DIR=${CRATE_GC_LOG_DIR:-"$CRATE_HOME/logs"};
@@ -82,7 +84,7 @@ if [ "x$CRATE_DISABLE_GC_LOGGING" = "x" ]; then
   GC_LOG_FILES=${CRATE_GC_LOG_FILES:-"16"}
 
   # Ensure that the directory for the log file exists: the JVM will not create it.
-  if (! test -d "$GC_LOG_DIR" || ! test -x "$GC_LOG_DIR"); then
+  if ! test -d "$GC_LOG_DIR" || ! test -x "$GC_LOG_DIR"; then
     cat >&2 << EOF
 ERROR: Garbage collection log directory '$GC_LOG_DIR' does not exist or is not accessible.
 EOF
@@ -95,6 +97,7 @@ EOF
   else
       JAVA=java
   fi
+  export JAVA
   JAVA_OPTS="$JAVA_OPTS -Xlog:gc*,gc+age=trace,safepoint:file=\"${LOGGC}\":utctime,pid,tags:filecount=${GC_LOG_FILES},filesize=${GC_LOG_SIZE}"
 fi
 
