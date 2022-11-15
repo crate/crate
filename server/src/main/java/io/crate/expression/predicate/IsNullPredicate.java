@@ -164,6 +164,9 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
                 for (var entry : objType.innerTypes().entrySet()) {
                     String childColumn = entry.getKey();
                     Reference childRef = context.getRef(ref.column().append(childColumn));
+                    if (childRef == null) {
+                        return null;
+                    }
                     Query refExistsQuery = refExistsQuery(childRef, context, true);
                     if (refExistsQuery == null) {
                         return null;
