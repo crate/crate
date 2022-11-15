@@ -75,31 +75,32 @@ SCRIPT="$0"
 
 # SCRIPT may be an arbitrarily deep series of symlinks. Loop until we have the concrete path.
 while [ -h "$SCRIPT" ] ; do
-  ls=`ls -ld "$SCRIPT"`
+  ls=$(ls -ld "$SCRIPT")
   # Drop everything prior to ->
-  link=`expr "$ls" : '.*-> \(.*\)$'`
+  link=$(expr "$ls" : '.*-> \(.*\)$')
   if expr "$link" : '/.*' > /dev/null; then
     SCRIPT="$link"
   else
-    SCRIPT=`dirname "$SCRIPT"`/"$link"
+    SCRIPT=$(dirname "$SCRIPT")/"$link"
   fi
 done
 
 # determine crate home
-CRATE_HOME=`dirname "$SCRIPT"`/..
+CRATE_HOME=$(dirname "$SCRIPT")/..
 
 # make CRATE_HOME absolute
-CRATE_HOME=`cd "$CRATE_HOME"; pwd`
+CRATE_HOME=$(cd "$CRATE_HOME"; pwd)
 
 # If an include wasn't specified in the environment, then search for one...
-if [ "x$CRATE_INCLUDE" = "x" ]; then
+if [ "$CRATE_INCLUDE" = "" ]; then
     # Locations (in order) to use when searching for an include file.
     for include in /usr/share/crate/crate.in.sh \
                    /usr/local/share/crate/crate.in.sh \
                    /opt/crate/crate.in.sh \
                    ~/.crate.in.sh \
-                   `dirname "$0"`/crate.in.sh; do
+                   $(dirname "$0")/crate.in.sh; do
         if [ -r "$include" ]; then
+            # shellcheck source=app/src/bin/crate.in.sh
             . "$include"
             break
         fi
@@ -121,10 +122,10 @@ if [ -z "$CRATE_CLASSPATH" ]; then
 fi
 
 # Special-case path variables.
-case `uname` in
+case $(uname) in
     CYGWIN*)
-        CRATE_CLASSPATH=`cygpath -p -w "$CRATE_CLASSPATH"`
-        CRATE_HOME=`cygpath -p -w "$CRATE_HOME"`
+      CRATE_CLASSPATH=$(cygpath -p -w "$CRATE_CLASSPATH")
+      CRATE_HOME=$(cygpath -p -w "$CRATE_HOME")
     ;;
 esac
 
@@ -145,7 +146,7 @@ launch_service()
         props="\"-Cpidfile=$pidpath\" $props"
     fi
 
-    if [ "x$daemonized" = "x" ]; then
+    if [ "$daemonized" = "" ]; then
         eval exec "\"$JAVA\"" $JAVA_OPTS $CRATE_JAVA_OPTS $javaProperties -cp "\"$CRATE_CLASSPATH\"" \
              io.crate.bootstrap.CrateDB $props
         execval=$?
@@ -154,7 +155,7 @@ launch_service()
         eval exec "\"$JAVA\"" $JAVA_OPTS $CRATE_JAVA_OPTS $javaProperties -cp "\"$CRATE_CLASSPATH\"" \
              io.crate.bootstrap.CrateDB $props -d <&- &
         execval=$?
-        [ ! -z "$pidpath" ] && printf '%d' $! > "$pidpath"
+        [ -n "$pidpath" ] && printf '%d' $! > "$pidpath"
     fi
 
     return $execval
@@ -184,7 +185,7 @@ while getopts "vdhp:D:X:C:" opt; do
         h)
             echo "CrateDB is a shared nothing, fully searchable document oriented cluster datastore."
             echo ""
-            echo "  Usage: $(basename $0) [OPTION]..."
+            echo "  Usage: $(basename "$0") [OPTION]..."
             echo "         starts a new CrateDB instance"
             echo ""
             echo "General options:"
