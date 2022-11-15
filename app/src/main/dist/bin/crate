@@ -21,8 +21,6 @@
 
 
 # OPTIONS:
-#   -d: start the daemon in the background
-#   -p <filename>: log the pid to a file (useful to kill it later)
 #   -v: print crate version to stdout
 #   -h: print usage information
 #   -D: set a java system property value
@@ -34,7 +32,6 @@
 # This script relies on few environment variables to determine startup
 # behavior, those variables are:
 #
-#   JAVA_OPTS    -- Additional arguments to the JVM for heap size, etc
 #   CRATE_JAVA_OPTS -- External Java Opts on top of the defaults set
 #
 # Optionally, exact memory values can be set using the following values, note,
@@ -189,49 +186,29 @@ esac
 
 launch_service()
 {
-    pidpath=$1
-    daemonized=$2
-    javaProperties=$3
+    javaProperties=$1
 
-    case "$4" in
+    case "$2" in
         *"-Cpath.home="*)
-            props="$4" ;;
+            props="$2" ;;
         *)
-            props="\"-Cpath.home=$CRATE_HOME\" $4";;
+            props="\"-Cpath.home=$CRATE_HOME\" $2";;
     esac
 
-    if [ "x$pidpath" != "x" ]; then
-        props="\"-Cpidfile=$pidpath\" $props"
-    fi
-
-    if [ "$daemonized" = "" ]; then
-        eval exec "\"$JAVA\"" $JAVA_OPTS $CRATE_JAVA_OPTS $javaProperties -cp "\"$CRATE_CLASSPATH\"" \
-             io.crate.bootstrap.CrateDB $props
-        execval=$?
-    else
-        # Startup Crate, background it, and write the pid.
-        eval exec "\"$JAVA\"" $JAVA_OPTS $CRATE_JAVA_OPTS $javaProperties -cp "\"$CRATE_CLASSPATH\"" \
-             io.crate.bootstrap.CrateDB $props -d <&- &
-        execval=$?
-        [ -n "$pidpath" ] && printf '%d' $! > "$pidpath"
-    fi
+    eval exec "\"$JAVA\"" $JAVA_OPTS $CRATE_JAVA_OPTS $javaProperties -cp "\"$CRATE_CLASSPATH\"" \
+          io.crate.bootstrap.CrateDB $props
+    execval=$?
 
     return $execval
 }
 
 # Parse any command line options.
-while getopts "vdhp:D:X:C:" opt; do
+while getopts "vh:D:X:C:" opt; do
     case $opt in
         v)
             "$JAVA" $JAVA_OPTS $CRATE_JAVA_OPTS -cp "$CRATE_CLASSPATH" $props \
                     org.elasticsearch.Version
             exit 0
-        ;;
-        p)
-            pidfile="$OPTARG"
-        ;;
-        d)
-            daemonized="yes"
         ;;
         h)
             echo "CrateDB is a shared nothing, fully searchable document oriented cluster datastore."
@@ -240,9 +217,7 @@ while getopts "vdhp:D:X:C:" opt; do
             echo "         starts a new CrateDB instance"
             echo ""
             echo "General options:"
-            echo "  -d            start the daemon in the background"
             echo "  -h            print usage information"
-            echo "  -p <pidfile>  log the pid to a file"
             echo "  -v            print version information"
             echo "  -C            set a CrateDB setting"
             echo "  -D            set a java system property value"
@@ -266,6 +241,6 @@ while getopts "vdhp:D:X:C:" opt; do
 done
 
 # Start up the service
-launch_service "$pidfile" "$daemonized" "$javaProperties" "$properties"
+launch_service "$javaProperties" "$properties"
 
 exit $?
