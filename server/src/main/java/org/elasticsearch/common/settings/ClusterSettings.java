@@ -94,6 +94,7 @@ import org.elasticsearch.node.Node;
 import org.elasticsearch.plugins.PluginsService;
 import org.elasticsearch.repositories.fs.FsRepository;
 import org.elasticsearch.search.SearchModule;
+import org.elasticsearch.snapshots.SnapshotsService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportSettings;
 
@@ -464,6 +465,7 @@ public final class ClusterSettings extends AbstractScopedSettings {
         LogicalReplicationSettings.REPLICATION_RECOVERY_CHUNK_SIZE,
         LogicalReplicationSettings.REPLICATION_RECOVERY_MAX_CONCURRENT_FILE_CHUNKS,
         LegacySettings.LEGACY_TABLE_FUNCTION_COLUMN_NAMING,
+        SnapshotsService.MAX_CONCURRENT_SNAPSHOT_OPERATIONS_SETTING,
         FsHealthService.ENABLED_SETTING,
         FsHealthService.REFRESH_INTERVAL_SETTING,
         FsHealthService.SLOW_PATH_LOGGING_THRESHOLD_SETTING

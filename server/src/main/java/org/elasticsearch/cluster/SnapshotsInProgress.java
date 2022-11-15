@@ -22,8 +22,10 @@ package org.elasticsearch.cluster;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -56,6 +58,7 @@ import io.crate.common.unit.TimeValue;
 public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implements Custom {
 
     public static final SnapshotsInProgress EMPTY = new SnapshotsInProgress(Collections.emptyList());
+
     private static final Version VERSION_IN_SNAPSHOT_VERSION = Version.V_5_1_0;
 
     public static final String TYPE = "snapshots";
@@ -90,7 +93,6 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
     }
 
     public static class Entry implements ToXContent, RepositoryOperation {
-
         private final State state;
         private final Snapshot snapshot;
         private final boolean includeGlobalState;
@@ -100,6 +102,7 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
         private final List<String> templates;
         private final long startTime;
         private final long repositoryStateId;
+        // see #useShardGenerations
         private final Version version;
         @Nullable private final String failure;
 
@@ -180,6 +183,39 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
 
         public Entry(Entry entry, ImmutableOpenMap<ShardId, ShardSnapshotStatus> shards) {
             this(entry, entry.state, shards, entry.failure);
+        }
+
+        public Entry withRepoGen(long newRepoGen) {
+            assert newRepoGen > repositoryStateId : "Updated repository generation [" + newRepoGen
+                    + "] must be higher than current generation [" + repositoryStateId + "]";
+            return new Entry(
+                snapshot,
+                includeGlobalState,
+                partial,
+                state,
+                indices,
+                templates,
+                startTime,
+                newRepoGen,
+                shards,
+                failure,
+                version);
+        }
+
+        public Entry withShards(ImmutableOpenMap<ShardId, ShardSnapshotStatus> shards) {
+            return new Entry(
+                snapshot,
+                includeGlobalState,
+                partial,
+                state,
+                indices,
+                templates,
+                startTime,
+                repositoryStateId,
+                shards,
+                failure,
+                version
+            );
         }
 
         @Override
@@ -334,7 +370,16 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
     }
 
     public static class ShardSnapshotStatus {
+
+        /**
+         * Shard snapshot status for shards that are waiting for another operation to finish before they can be assigned to a node.
+         */
+        public static final ShardSnapshotStatus UNASSIGNED_QUEUED =
+                new SnapshotsInProgress.ShardSnapshotStatus(null, ShardState.QUEUED, null);
+
         private final ShardState state;
+
+        @Nullable
         private final String nodeId;
         private final String reason;
 
@@ -345,17 +390,23 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
             this(nodeId, ShardState.INIT, generation);
         }
 
-        public ShardSnapshotStatus(String nodeId, ShardState state, String generation) {
+        public ShardSnapshotStatus(@Nullable String nodeId, ShardState state, @Nullable String generation) {
             this(nodeId, state, null, generation);
         }
 
-        public ShardSnapshotStatus(String nodeId, ShardState state, String reason, String generation) {
+        public ShardSnapshotStatus(@Nullable String nodeId, ShardState state, String reason, @Nullable String generation) {
             this.nodeId = nodeId;
             this.state = state;
             this.reason = reason;
+            this.generation = generation;
+            assert assertConsistent();
+        }
+
+        private boolean assertConsistent() {
             // If the state is failed we have to have a reason for this failure
             assert state.failed() == false || reason != null;
-            this.generation = generation;
+            assert (state != ShardState.INIT && state != ShardState.WAITING) || nodeId != null : "Null node id for state [" + state + "]";
+            return true;
         }
 
         public ShardSnapshotStatus(StreamInput in) throws IOException {
@@ -363,29 +414,37 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
             state = ShardState.fromValue(in.readByte());
             if (SnapshotsService.useShardGenerations(in.getVersion())) {
                 generation = in.readOptionalString();
-                assert generation != null || state != ShardState.SUCCESS : "Received null generation for shard state [" + state + "]";
             } else {
                 generation = null;
             }
             reason = in.readOptionalString();
-
         }
 
         public ShardState state() {
             return state;
         }
 
+        @Nullable
         public String nodeId() {
             return nodeId;
+        }
+
+        @Nullable
+        public String generation() {
+            return this.generation;
         }
 
         public String reason() {
             return reason;
         }
 
-        @Nullable
-        public String generation() {
-            return generation;
+        /**
+         * Checks if this shard snapshot is actively executing.
+         * A shard is defined as actively executing if it either is in a state that may write to the repository
+         * ({@link ShardState#INIT} or {@link ShardState#ABORTED}) or about to write to it in state {@link ShardState#WAITING}.
+         */
+        public boolean isActive() {
+            return state == ShardState.INIT || state == ShardState.ABORTED || state == ShardState.WAITING;
         }
 
         public void writeTo(StreamOutput out) throws IOException {
@@ -467,6 +526,19 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
 
     private final List<Entry> entries;
 
+    private static boolean assertConsistentEntries(List<Entry> entries) {
+        final Map<String, Set<ShardId>> assignedShardsByRepo = new HashMap<>();
+        for (Entry entry : entries) {
+            for (ObjectObjectCursor<ShardId, ShardSnapshotStatus> shard : entry.shards()) {
+                if (shard.value.isActive()) {
+                    assert assignedShardsByRepo.computeIfAbsent(entry.repository(), k -> new HashSet<>()).add(shard.key) :
+                            "Found duplicate shard assignments in " + entries;
+                }
+            }
+        }
+        return true;
+    }
+
     public static SnapshotsInProgress of(List<Entry> entries) {
         if (entries.isEmpty()) {
             return EMPTY;
@@ -476,6 +548,7 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
 
     private SnapshotsInProgress(List<Entry> entries) {
         this.entries = entries;
+        assert assertConsistentEntries(entries);
     }
 
     public List<Entry> entries() {
@@ -616,7 +689,14 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
         FAILED((byte) 3, true, true),
         ABORTED((byte) 4, false, true),
         MISSING((byte) 5, true, true),
-        WAITING((byte) 6, false, false);
+        /**
+         * Shard snapshot is waiting for the primary to snapshot to become available.
+         */
+        WAITING((byte) 6, false, false),
+        /**
+         * Shard snapshot is waiting for another shard snapshot for the same shard and to the same repository to finish.
+         */
+        QUEUED((byte) 7, false, false);
 
         private final byte value;
 
@@ -652,6 +732,8 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
                     return MISSING;
                 case 6:
                     return WAITING;
+                case 7:
+                    return QUEUED;
                 default:
                     throw new IllegalArgumentException("No shard snapshot state for value [" + value + "]");
             }

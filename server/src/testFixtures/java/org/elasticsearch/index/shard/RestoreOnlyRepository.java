@@ -112,7 +112,7 @@ public abstract class RestoreOnlyRepository implements Repository {
     public void deleteSnapshots(Collection<SnapshotId> snapshotIds,
                                long repositoryStateId,
                                Version repositoryMetaVersion,
-                               ActionListener<Void> listener) {
+                               ActionListener<RepositoryData> listener) {
 
     }
 
