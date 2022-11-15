@@ -30,6 +30,7 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -41,11 +42,11 @@ import org.elasticsearch.repositories.Repository;
 import org.elasticsearch.repositories.RepositoryData;
 import org.elasticsearch.repositories.blobstore.BlobStoreTestUtil;
 import org.elasticsearch.snapshots.mockstore.MockRepository;
+import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.After;
 
 import io.crate.common.unit.TimeValue;
-import org.elasticsearch.test.IntegTestCase;
 
 
 public abstract class AbstractSnapshotIntegTestCase extends IntegTestCase {
@@ -99,16 +100,19 @@ public abstract class AbstractSnapshotIntegTestCase extends IntegTestCase {
         skipRepoConsistencyCheckReason = reason;
     }
 
-    protected RepositoryData getRepositoryData(String repository) {
+    protected RepositoryData getRepositoryData(String repository) throws InterruptedException {
         return getRepositoryData(internalCluster().getMasterNodeInstance(RepositoriesService.class).repository(repository));
     }
 
-    protected RepositoryData getRepositoryData(Repository repository) {
+    protected RepositoryData getRepositoryData(Repository repository) throws InterruptedException {
         ThreadPool threadPool = internalCluster().getInstance(ThreadPool.class, internalCluster().getMasterName());
         final PlainActionFuture<RepositoryData> repositoryData = PlainActionFuture.newFuture();
+        final CountDownLatch latch = new CountDownLatch(1);
         threadPool.executor(ThreadPool.Names.SNAPSHOT).execute(() -> {
             repository.getRepositoryData(repositoryData);
+            latch.countDown();
         });
+        latch.await();
         return repositoryData.actionGet();
     }
 

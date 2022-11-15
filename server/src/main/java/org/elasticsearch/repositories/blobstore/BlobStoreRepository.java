@@ -2136,6 +2136,8 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
     public BlobStoreIndexShardSnapshot loadShardSnapshot(BlobContainer shardContainer, SnapshotId snapshotId) {
         try {
             return indexShardSnapshotFormat.read(shardContainer, snapshotId.getUUID());
+        } catch (NoSuchFileException ex) {
+            throw new SnapshotMissingException(metadata.name(), snapshotId, ex);
         } catch (IOException ex) {
             throw new SnapshotException(metadata.name(), snapshotId,
                 "failed to read shard snapshot file for [" + shardContainer.path() + ']', ex);
