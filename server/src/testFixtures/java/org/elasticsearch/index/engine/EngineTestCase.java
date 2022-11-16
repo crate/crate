@@ -109,7 +109,6 @@ import org.elasticsearch.index.mapper.IdFieldMapper;
 import org.elasticsearch.index.mapper.KeywordFieldMapper;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.mapper.Mapping;
-import org.elasticsearch.index.mapper.ParseContext;
 import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.index.mapper.SeqNoFieldMapper;
 import org.elasticsearch.index.mapper.SourceFieldMapper;
@@ -309,26 +308,26 @@ public abstract class EngineTestCase extends ESTestCase {
     }
 
 
-    protected static ParseContext.Document testDocumentWithTextField() {
+    protected static Document testDocumentWithTextField() {
         return testDocumentWithTextField("test");
     }
 
-    protected static ParseContext.Document testDocumentWithTextField(String value) {
-        ParseContext.Document document = testDocument();
+    protected static Document testDocumentWithTextField(String value) {
+        Document document = testDocument();
         document.add(new TextField("value", value, Field.Store.YES));
         return document;
     }
 
-    protected static ParseContext.Document testDocumentWithKeywordField(String value) {
-        ParseContext.Document document = testDocument();
+    protected static Document testDocumentWithKeywordField(String value) {
+        Document document = testDocument();
         var binaryValue = new BytesRef(value);
         document.add(new Field("value", binaryValue, KeywordFieldMapper.Defaults.FIELD_TYPE));
         document.add(new SortedSetDocValuesField("value", binaryValue));
         return document;
     }
 
-    protected static ParseContext.Document testDocument() {
-        return new ParseContext.Document();
+    protected static Document testDocument() {
+        return new Document();
     }
 
     public static ParsedDocument createParsedDoc(String id) {
@@ -341,11 +340,11 @@ public abstract class EngineTestCase extends ESTestCase {
     }
 
     protected static ParsedDocument testParsedDocument(
-        String id, ParseContext.Document document, BytesReference source, Mapping mappingUpdate) {
+        String id, Document document, BytesReference source, Mapping mappingUpdate) {
         return testParsedDocument(id, document, source, mappingUpdate, false);
     }
 
-    protected static ParsedDocument testParsedDocument(String id, ParseContext.Document document, BytesReference source, Mapping mappingUpdate,
+    protected static ParsedDocument testParsedDocument(String id, Document document, BytesReference source, Mapping mappingUpdate,
         boolean recoverySource) {
         Field uidField = new Field("_id", Uid.encodeId(id), IdFieldMapper.Defaults.FIELD_TYPE);
         Field versionField = new NumericDocValuesField("_version", 0);
@@ -372,7 +371,7 @@ public abstract class EngineTestCase extends ESTestCase {
         return new EngineConfig.TombstoneDocSupplier() {
             @Override
             public ParsedDocument newDeleteTombstoneDoc(String id) {
-                final ParseContext.Document doc = new ParseContext.Document();
+                final Document doc = new Document();
                 Field uidField = new Field(IdFieldMapper.NAME, Uid.encodeId(id), IdFieldMapper.Defaults.FIELD_TYPE);
                 doc.add(uidField);
                 Field versionField = new NumericDocValuesField(VersionFieldMapper.NAME, 0);
@@ -389,7 +388,7 @@ public abstract class EngineTestCase extends ESTestCase {
 
             @Override
             public ParsedDocument newNoopTombstoneDoc(String reason) {
-                final ParseContext.Document doc = new ParseContext.Document();
+                final Document doc = new Document();
                 SeqNoFieldMapper.SequenceIDFields seqID = SeqNoFieldMapper.SequenceIDFields.emptySeqID();
                 doc.add(seqID.seqNo);
                 doc.add(seqID.seqNoDocValue);

@@ -75,7 +75,7 @@ final class DocumentParser {
             context.version(),
             context.seqID(),
             context.sourceToParse().id(),
-            context.rootDoc(),
+            context.doc(),
             context.sourceToParse().source(),
             createDynamicUpdate(mapping, docMapper, context.getDynamicMappers())
         );
