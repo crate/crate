@@ -82,7 +82,7 @@ public class PartitionInfos implements Iterable<PartitionInfo> {
                     settings.getAsVersion(IndexMetadata.SETTING_VERSION_UPGRADED, null),
                     DocIndexMetadata.isClosed(indexMetadata, mappingMap, false),
                     valuesMap,
-                    indexMetadata.getSettings());
+                    settings);
         } catch (Exception e) {
             LOGGER.trace("error extracting partition infos from index " + indexMetadata, e);
             return null; // must filter on null
