@@ -223,10 +223,6 @@ public final class IndexSettings {
     public static final Setting<Integer> MAX_REFRESH_LISTENERS_PER_SHARD = Setting.intSetting("index.max_refresh_listeners", 1000, 0,
             Property.Dynamic, Property.IndexScope);
 
-    public static final String INDEX_MAPPING_SINGLE_TYPE_SETTING_KEY = "index.mapping.single_type";
-    private static final Setting<Boolean> INDEX_MAPPING_SINGLE_TYPE_SETTING =
-        Setting.boolSetting(INDEX_MAPPING_SINGLE_TYPE_SETTING_KEY, true, Property.IndexScope, Property.Final);
-
     /**
      * Determines a balance between file-based and operations-based peer recoveries. The number of operations that will be used in an
      * operations-based peer recovery is limited to this proportion of the total number of documents in the shard (including deleted
@@ -290,11 +286,6 @@ public final class IndexSettings {
     private volatile int maxRefreshListeners;
 
     /**
-     * Whether the index is required to have at most one type.
-     */
-    private final boolean singleType;
-
-    /**
      * Creates a new {@link IndexSettings} instance. The given node settings will be merged with the settings in the metadata
      * while index level settings will overwrite node settings.
      *
@@ -341,12 +332,6 @@ public final class IndexSettings {
         searchIdleAfter = scopedSettings.get(INDEX_SEARCH_IDLE_AFTER);
         setTranslogRetentionAge(scopedSettings.get(INDEX_TRANSLOG_RETENTION_AGE_SETTING));
         setTranslogRetentionSize(scopedSettings.get(INDEX_TRANSLOG_RETENTION_SIZE_SETTING));
-
-        singleType = INDEX_MAPPING_SINGLE_TYPE_SETTING.get(indexMetadata.getSettings()); // get this from metadata - it's not registered
-        if (singleType == false) {
-            throw new AssertionError(
-                index.toString() + "multiple types are only allowed on pre 6.x indices but version is: [" + version + "]");
-        }
 
         scopedSettings.addSettingsUpdateConsumer(MergePolicyConfig.INDEX_COMPOUND_FORMAT_SETTING, mergePolicyConfig::setNoCFSRatio);
         scopedSettings.addSettingsUpdateConsumer(MergePolicyConfig.INDEX_MERGE_POLICY_DELETES_PCT_ALLOWED_SETTING, mergePolicyConfig::setDeletesPctAllowed);
