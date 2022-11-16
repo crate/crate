@@ -34,32 +34,10 @@ public abstract class ParseContext {
     /** Fork of {@link org.apache.lucene.document.Document} with additional functionality. */
     public static class Document implements Iterable<IndexableField> {
 
-        private final Document parent;
-        private final String prefix;
         private final List<IndexableField> fields;
 
-        private Document(String path, Document parent) {
-            fields = new ArrayList<>();
-            this.prefix = path.isEmpty() ? "" : path + ".";
-            this.parent = parent;
-        }
-
         public Document() {
-            this("", null);
-        }
-
-        /**
-         * Return a prefix that all fields in this document should have.
-         */
-        public String getPrefix() {
-            return prefix;
-        }
-
-        /**
-         * Return the parent document, or null if this is the root document.
-         */
-        public Document getParent() {
-            return parent;
+            fields = new ArrayList<>();
         }
 
         @Override
@@ -73,7 +51,6 @@ public abstract class ParseContext {
 
         public void add(IndexableField field) {
             // either a meta fields or starts with the prefix
-            assert field.name().startsWith("_") || field.name().startsWith(prefix) : field.name() + " " + prefix;
             fields.add(field);
         }
 
@@ -325,18 +302,6 @@ public abstract class ParseContext {
 
     public boolean isWithinCopyTo() {
         return false;
-    }
-
-    /**
-     * Return a new context that has the provided document as the current document.
-     */
-    public final ParseContext switchDoc(final Document document) {
-        return new FilterParseContext(this) {
-            @Override
-            public Document doc() {
-                return document;
-            }
-        };
     }
 
     /**
