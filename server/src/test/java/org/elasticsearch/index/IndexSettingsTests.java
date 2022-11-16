@@ -590,21 +590,6 @@ public class IndexSettingsTests extends ESTestCase {
         assertThat(settings.get("index.refresh_interval"), is("2s"));
     }
 
-    public void testQueryDefaultField() {
-        IndexSettings index = newIndexSettings(
-            newIndexMeta("index", Settings.EMPTY), Settings.EMPTY
-        );
-        assertThat(index.getDefaultFields(), equalTo(Collections.singletonList("*")));
-        index = newIndexSettings(
-            newIndexMeta("index", Settings.EMPTY), Settings.builder().put("index.query.default_field", "body").build()
-        );
-        assertThat(index.getDefaultFields(), equalTo(Collections.singletonList("body")));
-        index.updateIndexMetadata(
-            newIndexMeta("index", Settings.builder().putList("index.query.default_field", "body", "title").build())
-        );
-        assertThat(index.getDefaultFields(), equalTo(Arrays.asList("body", "title")));
-    }
-
     @Test
     public void testUpdateSoftDeletesFails() {
         IndexScopedSettings settings = new IndexScopedSettings(Settings.EMPTY,
