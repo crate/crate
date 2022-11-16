@@ -312,6 +312,7 @@ task(run, dependsOn: 'classes', type: JavaExec) {
     enableAssertions = true
     classpath = sourceSets.main.runtimeClasspath
     args = ["-Cpath.home=${rootDir}/sandbox/crate"]
+    jvmArgs = ["--enable-preview"]
 }
 
 task createCrateNodeScripts(type: CreateStartScripts) {
