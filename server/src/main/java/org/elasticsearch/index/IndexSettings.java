@@ -65,8 +65,6 @@ public final class IndexSettings {
             Setting.listSetting(DEFAULT_FIELD_SETTING_KEY, Function.identity(), defValue, DataTypes.STRING_ARRAY, Property.Dynamic, Property.IndexScope);
     }
 
-    public static final Setting<Boolean> ALLOW_UNMAPPED =
-        Setting.boolSetting("index.query.parse.allow_unmapped_fields", true, Property.IndexScope);
     public static final Setting<TimeValue> INDEX_TRANSLOG_SYNC_INTERVAL_SETTING =
         Setting.timeSetting("index.translog.sync_interval", TimeValue.timeValueSeconds(5), TimeValue.timeValueMillis(100),
             Property.Dynamic, Property.IndexScope, Property.ReplicatedIndexScope);
@@ -267,7 +265,6 @@ public final class IndexSettings {
     private volatile Settings settings;
     private volatile IndexMetadata indexMetadata;
     private volatile List<String> defaultFields;
-    private final boolean defaultAllowUnmappedFields;
     private volatile Translog.Durability durability;
     private volatile TimeValue syncInterval;
     private volatile TimeValue refreshInterval;
@@ -325,13 +322,6 @@ public final class IndexSettings {
     }
 
     /**
-     * Returns <code>true</code> if queries should be lenient about unmapped fields. The default is <code>true</code>
-     */
-    public boolean isDefaultAllowUnmappedFields() {
-        return defaultAllowUnmappedFields;
-    }
-
-    /**
      * Creates a new {@link IndexSettings} instance. The given node settings will be merged with the settings in the metadata
      * while index level settings will overwrite node settings.
      *
@@ -359,8 +349,6 @@ public final class IndexSettings {
         nodeName = Node.NODE_NAME_SETTING.get(settings);
         this.indexMetadata = indexMetadata;
         numberOfShards = settings.getAsInt(IndexMetadata.SETTING_NUMBER_OF_SHARDS, null);
-
-        this.defaultAllowUnmappedFields = scopedSettings.get(ALLOW_UNMAPPED);
         this.durability = scopedSettings.get(INDEX_TRANSLOG_DURABILITY_SETTING);
         defaultFields = scopedSettings.get(DEFAULT_FIELD_SETTING);
         syncInterval = INDEX_TRANSLOG_SYNC_INTERVAL_SETTING.get(settings);

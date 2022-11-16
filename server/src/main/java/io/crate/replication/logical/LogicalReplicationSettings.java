@@ -124,7 +124,6 @@ public class LogicalReplicationSettings {
         IndexSettings.INDEX_WARMER_ENABLED_SETTING,
         IndexSettings.INDEX_REFRESH_INTERVAL_SETTING,
         IndexSettings.DEFAULT_FIELD_SETTING,
-        IndexSettings.ALLOW_UNMAPPED,
         IndexSettings.INDEX_SEARCH_IDLE_AFTER,
         IndexSettings.INDEX_SOFT_DELETES_RETENTION_OPERATIONS_SETTING,
         IndexSettings.INDEX_SOFT_DELETES_RETENTION_LEASE_PERIOD_SETTING,

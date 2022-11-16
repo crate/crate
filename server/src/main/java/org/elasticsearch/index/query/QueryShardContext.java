@@ -37,12 +37,9 @@ public class QueryShardContext {
     private final MapperService mapperService;
     private final Index fullyQualifiedIndex;
 
-    private boolean allowUnmappedFields;
-
     public QueryShardContext(IndexSettings indexSettings,
                              MapperService mapperService) {
         this.mapperService = mapperService;
-        this.allowUnmappedFields = indexSettings.isDefaultAllowUnmappedFields();
         this.fullyQualifiedIndex = indexSettings.getIndex();
     }
 
@@ -59,7 +56,7 @@ public class QueryShardContext {
     }
 
     public MappedFieldType fieldMapper(String name) {
-        return failIfFieldMappingNotFound(name, mapperService.fieldType(name));
+        return mapperService.fieldType(name);
     }
 
     public ObjectMapper getObjectMapper(String name) {
@@ -86,14 +83,6 @@ public class QueryShardContext {
             return fieldType.searchQuoteAnalyzer();
         }
         return getMapperService().searchQuoteAnalyzer();
-    }
-
-    private MappedFieldType failIfFieldMappingNotFound(String name, MappedFieldType fieldMapping) {
-        if (fieldMapping != null || allowUnmappedFields) {
-            return fieldMapping;
-        } else {
-            throw new QueryShardException(this, "No field mapping can be found for the field with name [{}]", name);
-        }
     }
 
     /**
