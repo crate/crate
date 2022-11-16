@@ -1458,20 +1458,42 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
             new Object[]{"foo", "shards", 1, "bar", "replicas", 2});
         refresh();
         execute("select settings['routing']['allocation'] from information_schema.table_partitions where table_name='attrs'");
-        HashMap<String, Object> routingAllocation = new HashMap<>() {{
-                put("enable", "all");
-                put("total_shards_per_node", 5);
-            }};
+        Map<String, Object> routingAllocation = Map.ofEntries(
+            Map.entry("enable", "all"),
+            Map.entry("total_shards_per_node", 5),
+            Map.entry("include", Map.of()),
+            Map.entry("require", Map.of()),
+            Map.entry("exclude", Map.of())
+        );
         assertEquals(routingAllocation, response.rows()[0][0]);
         assertEquals(routingAllocation, response.rows()[1][0]);
 
         execute("alter table attrs set (\"routing.allocation.total_shards_per_node\"=1)");
-        execute("select settings['routing']['allocation'] from information_schema.table_partitions where table_name='attrs'");
-        routingAllocation = new HashMap<>() {{
-                put("enable", "all");
-                put("total_shards_per_node", 1);
-            }};
+        execute("alter table attrs PARTITION (name = 'foo') set (\"routing.allocation.exclude.foo\" = 'dummy')");
+        execute("""
+            select
+                settings['routing']['allocation']
+            from
+                information_schema.table_partitions
+            where
+                table_name='attrs'
+            order by partition_ident
+            """);
+        routingAllocation = Map.ofEntries(
+            Map.entry("enable", "all"),
+            Map.entry("total_shards_per_node", 1),
+            Map.entry("include", Map.of()),
+            Map.entry("require", Map.of()),
+            Map.entry("exclude", Map.of())
+        );
         assertEquals(routingAllocation, response.rows()[0][0]);
+        routingAllocation = Map.ofEntries(
+            Map.entry("enable", "all"),
+            Map.entry("total_shards_per_node", 1),
+            Map.entry("include", Map.of()),
+            Map.entry("require", Map.of()),
+            Map.entry("exclude", Map.of("foo", "dummy"))
+        );
         assertEquals(routingAllocation, response.rows()[1][0]);
     }
 

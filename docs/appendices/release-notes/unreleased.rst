@@ -53,6 +53,9 @@ None
 Changes
 =======
 
+- Exposed the ``require``, ``include`` and ``exclude`` ``routing.allocation``
+  settings per partition within ``information_schema.table_partitions``.
+
 - ``cancel`` messages sent from a client via the PostgreSQL wire protocol are
   now internally forwarded to other nodes to support setups with load-balancers.
 
