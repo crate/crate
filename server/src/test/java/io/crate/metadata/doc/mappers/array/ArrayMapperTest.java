@@ -40,6 +40,7 @@ import java.util.stream.Stream;
 import org.apache.lucene.index.DocValuesType;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.util.BytesRef;
+import org.assertj.core.api.Assertions;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.compress.CompressedXContent;
@@ -147,10 +148,11 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
     }
 
     private static Set<String> uniqueValuesFromFields(ParseContext.Document fields, String fieldName) {
-        return Stream.of(fields.getFields(fieldName))
-                .map(IndexableField::binaryValue)
-                .map(BytesRef::utf8ToString)
-                .collect(Collectors.toSet());
+        return fields.getFields().stream()
+            .filter(f -> f.name().equals(fieldName))
+            .map(IndexableField::binaryValue)
+            .map(BytesRef::utf8ToString)
+            .collect(Collectors.toSet());
     }
 
     @Test
@@ -302,8 +304,12 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
         Mapping mappingUpdate = doc.dynamicMappingsUpdate();
         assertThat(mappingUpdate, notNullValue());
         mapper = mapper.merge(mappingUpdate);
-        String[] values = doc.doc().getValues("array_field.new");
-        assertThat(values, arrayContainingInAnyOrder(is("T"), is("1")));
+        List<String> values = doc.doc().getFields().stream()
+            .filter(f -> f.name().equals("array_field.new"))
+            .filter(f -> f.stringValue() != null)
+            .map(IndexableField::stringValue)
+            .toList();
+        Assertions.assertThat(values).contains("T", "1");
         String mappingSourceString = new CompressedXContent(mapper, XContentType.JSON, ToXContent.EMPTY_PARAMS).string();
         // column position calculation is carried out within clusterstate changes, so 'new' still has position = null
         assertThat(
@@ -477,12 +483,10 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
 
         List<String> copyValues = new ArrayList<>();
         Document document = doc.doc();
-        IndexableField[] fields = document.getFields("string_array_ft");
-        for (var field : fields) {
-            if (field.fieldType().docValuesType() == DocValuesType.SORTED_SET) {
-                copyValues.add(field.binaryValue().utf8ToString());
-            }
-        }
+        document.getFields().stream()
+            .filter(f -> f.name().equals("string_array_ft"))
+            .filter(f -> f.fieldType().docValuesType() == DocValuesType.SORTED_SET)
+            .forEach(f -> copyValues.add(f.binaryValue().utf8ToString()));
         assertThat(copyValues, containsInAnyOrder("foo", "bar"));
     }
 }
