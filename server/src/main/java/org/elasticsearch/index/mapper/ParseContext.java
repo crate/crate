@@ -20,58 +20,14 @@
 package org.elasticsearch.index.mapper;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
-
+import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
-import org.apache.lucene.index.IndexableField;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.index.IndexSettings;
 
 public abstract class ParseContext {
-
-    /** Fork of {@link org.apache.lucene.document.Document} with additional functionality. */
-    public static class Document implements Iterable<IndexableField> {
-
-        private final List<IndexableField> fields;
-
-        public Document() {
-            fields = new ArrayList<>();
-        }
-
-        @Override
-        public Iterator<IndexableField> iterator() {
-            return fields.iterator();
-        }
-
-        public List<IndexableField> getFields() {
-            return fields;
-        }
-
-        public void add(IndexableField field) {
-            // either a meta fields or starts with the prefix
-            fields.add(field);
-        }
-
-        public IndexableField getField(String name) {
-            for (IndexableField field : fields) {
-                if (field.name().equals(name)) {
-                    return field;
-                }
-            }
-            return null;
-        }
-
-        public String get(String name) {
-            for (IndexableField f : fields) {
-                if (f.name().equals(name) && f.stringValue() != null) {
-                    return f.stringValue();
-                }
-            }
-            return null;
-        }
-    }
 
     private static class FilterParseContext extends ParseContext {
 
@@ -109,11 +65,6 @@ public abstract class ParseContext {
         @Override
         public XContentParser parser() {
             return in.parser();
-        }
-
-        @Override
-        public Document rootDoc() {
-            return in.rootDoc();
         }
 
         @Override
@@ -231,11 +182,6 @@ public abstract class ParseContext {
         }
 
         @Override
-        public Document rootDoc() {
-            return document;
-        }
-
-        @Override
         public Document doc() {
             return this.document;
         }
@@ -323,8 +269,6 @@ public abstract class ParseContext {
     public abstract ContentPath path();
 
     public abstract XContentParser parser();
-
-    public abstract Document rootDoc();
 
     public abstract Document doc();
 

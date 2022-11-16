@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.lucene.document.Document;
 import org.apache.lucene.index.DocValuesType;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.util.BytesRef;
@@ -59,8 +60,6 @@ import org.elasticsearch.index.mapper.MapperParsingException;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.mapper.Mapping;
 import org.elasticsearch.index.mapper.ObjectArrayMapper;
-import org.elasticsearch.index.mapper.ParseContext;
-import org.elasticsearch.index.mapper.ParseContext.Document;
 import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.index.mapper.SourceToParse;
 import org.elasticsearch.indices.IndicesModule;
@@ -127,7 +126,7 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
         ParsedDocument doc = mapper.parse(sourceToParse);
         assertThat(doc.dynamicMappingsUpdate() == null, is(true));
 
-        ParseContext.Document fields = doc.doc();
+        Document fields = doc.doc();
         Set<String> values = uniqueValuesFromFields(fields, "array_field");
         assertThat(values, Matchers.containsInAnyOrder("a", "b", "c"));
         assertThat(
@@ -145,7 +144,7 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
                "}}"));
     }
 
-    private static Set<String> uniqueValuesFromFields(ParseContext.Document fields, String fieldName) {
+    private static Set<String> uniqueValuesFromFields(Document fields, String fieldName) {
         return fields.getFields().stream()
             .filter(f -> f.name().equals(fieldName))
             .map(IndexableField::binaryValue)

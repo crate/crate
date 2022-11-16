@@ -29,13 +29,13 @@ import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 
+import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.index.mapper.FieldNamesFieldMapper.FieldNamesFieldType;
-import org.elasticsearch.index.mapper.ParseContext.Document;
 
 public abstract class FieldMapper extends Mapper implements Cloneable {
 

@@ -82,6 +82,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+import org.apache.lucene.document.Document;
 import org.apache.lucene.index.CorruptIndexException;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.index.Term;
@@ -139,7 +140,6 @@ import org.elasticsearch.index.engine.ReadOnlyEngine;
 import org.elasticsearch.index.engine.Segment;
 import org.elasticsearch.index.mapper.IdFieldMapper;
 import org.elasticsearch.index.mapper.MapperParsingException;
-import org.elasticsearch.index.mapper.ParseContext;
 import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.index.mapper.SeqNoFieldMapper;
 import org.elasticsearch.index.mapper.SourceFieldMapper;
@@ -3651,7 +3651,7 @@ public class IndexShardTests extends IndexShardTestCase {
         IndexShard shard = newStartedShard();
         String id = randomRealisticUnicodeOfLengthBetween(1, 10);
         ParsedDocument deleteTombstone = shard.getEngine().config().getTombstoneDocSupplier().newDeleteTombstoneDoc(id);
-        ParseContext.Document deleteDoc = deleteTombstone.doc();
+        Document deleteDoc = deleteTombstone.doc();
         assertThat(
             deleteDoc.getFields().stream().map(IndexableField::name).collect(Collectors.toList()),
             containsInAnyOrder(
@@ -3668,7 +3668,7 @@ public class IndexShardTests extends IndexShardTestCase {
             .putMapping("default", "{ \"properties\": {}}").build());
         final String reason = randomUnicodeOfLength(200);
         ParsedDocument noopTombstone = shard.getEngine().config().getTombstoneDocSupplier().newNoopTombstoneDoc(reason);
-        ParseContext.Document noopDoc = noopTombstone.doc();
+        Document noopDoc = noopTombstone.doc();
         assertThat(
             noopDoc.getFields().stream().map(IndexableField::name).collect(Collectors.toList()),
             containsInAnyOrder(

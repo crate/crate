@@ -45,6 +45,8 @@ import java.util.stream.Stream;
 import javax.annotation.Nullable;
 
 import io.crate.common.unit.TimeValue;
+
+import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.document.LongPoint;
@@ -98,7 +100,6 @@ import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.fieldvisitor.IDVisitor;
 import org.elasticsearch.index.mapper.IdFieldMapper;
 import org.elasticsearch.index.mapper.MapperService;
-import org.elasticsearch.index.mapper.ParseContext;
 import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.index.mapper.SeqNoFieldMapper;
 import org.elasticsearch.index.mapper.SourceFieldMapper;
@@ -1145,12 +1146,12 @@ public class InternalEngine extends Engine {
         return mayHaveBeenIndexBefore;
     }
 
-    private void addDoc(ParseContext.Document doc, final IndexWriter indexWriter) throws IOException {
+    private void addDoc(Document doc, final IndexWriter indexWriter) throws IOException {
         indexWriter.addDocument(doc);
         numDocAppends.inc();
     }
 
-    private void addStaleDoc(ParseContext.Document doc, final IndexWriter indexWriter) throws IOException {
+    private void addStaleDoc(Document doc, final IndexWriter indexWriter) throws IOException {
         assert softDeleteEnabled : "Add history documents but soft-deletes is disabled";
         doc.add(softDeletesField);
         indexWriter.addDocument(doc);
@@ -1234,7 +1235,7 @@ public class InternalEngine extends Engine {
         return true;
     }
 
-    private void updateDoc(final Term uid, ParseContext.Document doc, final IndexWriter indexWriter) throws IOException {
+    private void updateDoc(final Term uid, Document doc, final IndexWriter indexWriter) throws IOException {
         if (softDeleteEnabled) {
             indexWriter.softUpdateDocument(uid, doc, softDeletesField);
         } else {
@@ -1405,7 +1406,7 @@ public class InternalEngine extends Engine {
                 final ParsedDocument tombstone = engineConfig.getTombstoneDocSupplier().newDeleteTombstoneDoc(delete.id());
                 tombstone.updateSeqID(delete.seqNo(), delete.primaryTerm());
                 tombstone.version().setLongValue(plan.versionOfDeletion);
-                final ParseContext.Document doc = tombstone.doc();
+                final Document doc = tombstone.doc();
                 assert doc.getField(SeqNoFieldMapper.TOMBSTONE_NAME) != null :
                     "Delete tombstone document but _tombstone field is not set [" + doc + " ]";
                 doc.add(softDeletesField);
@@ -1538,7 +1539,7 @@ public class InternalEngine extends Engine {
                         // A noop tombstone does not require a _version but it's added to have a fully dense docvalues for the version field.
                         // 1L is selected to optimize the compression because it might probably be the most common value in version field.
                         tombstone.version().setLongValue(1L);
-                        final ParseContext.Document doc = tombstone.doc();
+                        final Document doc = tombstone.doc();
                         assert doc.getField(SeqNoFieldMapper.TOMBSTONE_NAME) != null
                             : "Noop tombstone document but _tombstone field is not set [" + doc + " ]";
                         doc.add(softDeletesField);
