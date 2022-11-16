@@ -1079,14 +1079,14 @@ public class InternalEngine extends Engine {
         index.parsedDoc().version().setLongValue(plan.versionForIndexing);
         try {
             if (plan.addStaleOpToLucene) {
-                addStaleDocs(index.docs(), indexWriter);
+                addStaleDoc(index.document(), indexWriter);
             } else if (plan.useLuceneUpdateDocument) {
                 assert assertMaxSeqNoOfUpdatesIsAdvanced(index.uid(), index.seqNo(), true, true);
-                updateDocs(index.uid(), index.docs(), indexWriter);
+                updateDoc(index.uid(), index.document(), indexWriter);
             } else {
                 // document does not exists, we can optimize for create, but double check if assertions are running
                 assert assertDocDoesNotExist(index, canOptimizeAddDocument(index) == false);
-                addDocs(index.docs(), indexWriter);
+                addDoc(index.document(), indexWriter);
             }
             return new IndexResult(plan.versionForIndexing, index.primaryTerm(), index.seqNo(), plan.currentNotFoundOrDeleted);
         } catch (Exception ex) {
@@ -1145,25 +1145,15 @@ public class InternalEngine extends Engine {
         return mayHaveBeenIndexBefore;
     }
 
-    private void addDocs(final List<ParseContext.Document> docs, final IndexWriter indexWriter) throws IOException {
-        if (docs.size() > 1) {
-            indexWriter.addDocuments(docs);
-        } else {
-            indexWriter.addDocument(docs.get(0));
-        }
-        numDocAppends.inc(docs.size());
+    private void addDoc(ParseContext.Document doc, final IndexWriter indexWriter) throws IOException {
+        indexWriter.addDocument(doc);
+        numDocAppends.inc();
     }
 
-    private void addStaleDocs(final List<ParseContext.Document> docs, final IndexWriter indexWriter) throws IOException {
+    private void addStaleDoc(ParseContext.Document doc, final IndexWriter indexWriter) throws IOException {
         assert softDeleteEnabled : "Add history documents but soft-deletes is disabled";
-        for (ParseContext.Document doc : docs) {
-            doc.add(softDeletesField); // soft-deleted every document before adding to Lucene
-        }
-        if (docs.size() > 1) {
-            indexWriter.addDocuments(docs);
-        } else {
-            indexWriter.addDocument(docs.get(0));
-        }
+        doc.add(softDeletesField);
+        indexWriter.addDocument(doc);
     }
 
     protected static final class IndexingStrategy {
@@ -1244,21 +1234,13 @@ public class InternalEngine extends Engine {
         return true;
     }
 
-    private void updateDocs(final Term uid, final List<ParseContext.Document> docs, final IndexWriter indexWriter) throws IOException {
+    private void updateDoc(final Term uid, ParseContext.Document doc, final IndexWriter indexWriter) throws IOException {
         if (softDeleteEnabled) {
-            if (docs.size() > 1) {
-                indexWriter.softUpdateDocuments(uid, docs, softDeletesField);
-            } else {
-                indexWriter.softUpdateDocument(uid, docs.get(0), softDeletesField);
-            }
+            indexWriter.softUpdateDocument(uid, doc, softDeletesField);
         } else {
-            if (docs.size() > 1) {
-                indexWriter.updateDocuments(uid, docs);
-            } else {
-                indexWriter.updateDocument(uid, docs.get(0));
-            }
+            indexWriter.updateDocument(uid, doc);
         }
-        numDocUpdates.inc(docs.size());
+        numDocUpdates.inc();
     }
 
     @Override
@@ -1421,10 +1403,9 @@ public class InternalEngine extends Engine {
         try {
             if (softDeleteEnabled) {
                 final ParsedDocument tombstone = engineConfig.getTombstoneDocSupplier().newDeleteTombstoneDoc(delete.id());
-                assert tombstone.docs().size() == 1 : "Tombstone doc should have single doc [" + tombstone + "]";
                 tombstone.updateSeqID(delete.seqNo(), delete.primaryTerm());
                 tombstone.version().setLongValue(plan.versionOfDeletion);
-                final ParseContext.Document doc = tombstone.docs().get(0);
+                final ParseContext.Document doc = tombstone.doc();
                 assert doc.getField(SeqNoFieldMapper.TOMBSTONE_NAME) != null :
                     "Delete tombstone document but _tombstone field is not set [" + doc + " ]";
                 doc.add(softDeletesField);
@@ -1557,8 +1538,7 @@ public class InternalEngine extends Engine {
                         // A noop tombstone does not require a _version but it's added to have a fully dense docvalues for the version field.
                         // 1L is selected to optimize the compression because it might probably be the most common value in version field.
                         tombstone.version().setLongValue(1L);
-                        assert tombstone.docs().size() == 1 : "Tombstone should have a single doc [" + tombstone + "]";
-                        final ParseContext.Document doc = tombstone.docs().get(0);
+                        final ParseContext.Document doc = tombstone.doc();
                         assert doc.getField(SeqNoFieldMapper.TOMBSTONE_NAME) != null
                             : "Noop tombstone document but _tombstone field is not set [" + doc + " ]";
                         doc.add(softDeletesField);

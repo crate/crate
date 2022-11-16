@@ -206,7 +206,7 @@ public class DocumentMapper implements ToXContentFragment {
         final ParsedDocument parsedDoc = documentParser.parseDocument(sourceToParse, noopTombstoneMetadataFieldMappers).toTombstone();
         // Store the reason of a noop as a raw string in the _source field
         final BytesRef byteRef = new BytesRef(reason);
-        parsedDoc.rootDoc().add(new StoredField(SourceFieldMapper.NAME, byteRef.bytes, byteRef.offset, byteRef.length));
+        parsedDoc.doc().add(new StoredField(SourceFieldMapper.NAME, byteRef.bytes, byteRef.offset, byteRef.length));
         return parsedDoc;
     }
 

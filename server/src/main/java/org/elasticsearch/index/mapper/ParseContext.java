@@ -29,7 +29,7 @@ import org.apache.lucene.index.IndexableField;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.index.IndexSettings;
 
-public abstract class ParseContext implements Iterable<ParseContext.Document> {
+public abstract class ParseContext {
 
     /** Fork of {@link org.apache.lucene.document.Document} with additional functionality. */
     public static class Document implements Iterable<IndexableField> {
@@ -173,11 +173,6 @@ public abstract class ParseContext implements Iterable<ParseContext.Document> {
         }
 
         @Override
-        protected void addDoc(Document doc) {
-            in.addDoc(doc);
-        }
-
-        @Override
         public RootObjectMapper root() {
             return in.root();
         }
@@ -221,11 +216,6 @@ public abstract class ParseContext implements Iterable<ParseContext.Document> {
         public List<Mapper> getDynamicMappers() {
             return in.getDynamicMappers();
         }
-
-        @Override
-        public Iterator<Document> iterator() {
-            return in.iterator();
-        }
     }
 
     public static class InternalParseContext extends ParseContext {
@@ -238,9 +228,7 @@ public abstract class ParseContext implements Iterable<ParseContext.Document> {
 
         private final XContentParser parser;
 
-        private Document document;
-
-        private final List<Document> documents;
+        private final Document document;
 
         private final IndexSettings indexSettings;
 
@@ -252,16 +240,17 @@ public abstract class ParseContext implements Iterable<ParseContext.Document> {
 
         private final List<Mapper> dynamicMappers;
 
-        public InternalParseContext(IndexSettings indexSettings, DocumentMapperParser docMapperParser, DocumentMapper docMapper,
-                                    SourceToParse source, XContentParser parser) {
+        public InternalParseContext(IndexSettings indexSettings,
+                                    DocumentMapperParser docMapperParser,
+                                    DocumentMapper docMapper,
+                                    SourceToParse source,
+                                    XContentParser parser) {
             this.indexSettings = indexSettings;
             this.docMapper = docMapper;
             this.docMapperParser = docMapperParser;
             this.path = new ContentPath(0);
             this.parser = parser;
             this.document = new Document();
-            this.documents = new ArrayList<>();
-            this.documents.add(document);
             this.version = null;
             this.sourceToParse = source;
             this.dynamicMappers = new ArrayList<>();
@@ -294,21 +283,12 @@ public abstract class ParseContext implements Iterable<ParseContext.Document> {
 
         @Override
         public Document rootDoc() {
-            return documents.get(0);
-        }
-
-        List<Document> docs() {
-            return this.documents;
+            return document;
         }
 
         @Override
         public Document doc() {
             return this.document;
-        }
-
-        @Override
-        protected void addDoc(Document doc) {
-            this.documents.add(doc);
         }
 
         @Override
@@ -354,11 +334,6 @@ public abstract class ParseContext implements Iterable<ParseContext.Document> {
         @Override
         public List<Mapper> getDynamicMappers() {
             return dynamicMappers;
-        }
-
-        @Override
-        public Iterator<Document> iterator() {
-            return documents.iterator();
         }
     }
 
@@ -415,8 +390,6 @@ public abstract class ParseContext implements Iterable<ParseContext.Document> {
     public abstract Document rootDoc();
 
     public abstract Document doc();
-
-    protected abstract void addDoc(Document doc);
 
     public abstract RootObjectMapper root();
 
