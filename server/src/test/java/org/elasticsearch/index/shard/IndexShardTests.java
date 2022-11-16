@@ -31,7 +31,6 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.hasToString;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
@@ -3652,8 +3651,7 @@ public class IndexShardTests extends IndexShardTestCase {
         IndexShard shard = newStartedShard();
         String id = randomRealisticUnicodeOfLengthBetween(1, 10);
         ParsedDocument deleteTombstone = shard.getEngine().config().getTombstoneDocSupplier().newDeleteTombstoneDoc(id);
-        assertThat(deleteTombstone.docs(), hasSize(1));
-        ParseContext.Document deleteDoc = deleteTombstone.docs().get(0);
+        ParseContext.Document deleteDoc = deleteTombstone.doc();
         assertThat(
             deleteDoc.getFields().stream().map(IndexableField::name).collect(Collectors.toList()),
             containsInAnyOrder(
@@ -3670,8 +3668,7 @@ public class IndexShardTests extends IndexShardTestCase {
             .putMapping("default", "{ \"properties\": {}}").build());
         final String reason = randomUnicodeOfLength(200);
         ParsedDocument noopTombstone = shard.getEngine().config().getTombstoneDocSupplier().newNoopTombstoneDoc(reason);
-        assertThat(noopTombstone.docs(), hasSize(1));
-        ParseContext.Document noopDoc = noopTombstone.docs().get(0);
+        ParseContext.Document noopDoc = noopTombstone.doc();
         assertThat(
             noopDoc.getFields().stream().map(IndexableField::name).collect(Collectors.toList()),
             containsInAnyOrder(

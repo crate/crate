@@ -362,7 +362,7 @@ public abstract class EngineTestCase extends ESTestCase {
         } else {
             document.add(new StoredField(SourceFieldMapper.NAME, ref.bytes, ref.offset, ref.length));
         }
-        return new ParsedDocument(versionField, seqID, id, Arrays.asList(document), source, mappingUpdate);
+        return new ParsedDocument(versionField, seqID, id, document, source, mappingUpdate);
     }
 
     /**
@@ -384,7 +384,7 @@ public abstract class EngineTestCase extends ESTestCase {
                 seqID.tombstoneField.setLongValue(1);
                 doc.add(seqID.tombstoneField);
                 return new ParsedDocument(
-                    versionField, seqID, id, Collections.singletonList(doc), new BytesArray("{}"), null);
+                    versionField, seqID, id, doc, new BytesArray("{}"), null);
             }
 
             @Override
@@ -401,7 +401,7 @@ public abstract class EngineTestCase extends ESTestCase {
                 BytesRef byteRef = new BytesRef(reason);
                 doc.add(new StoredField(SourceFieldMapper.NAME, byteRef.bytes, byteRef.offset, byteRef.length));
                 return new ParsedDocument(
-                    versionField, seqID, null, Collections.singletonList(doc), null, null);
+                    versionField, seqID, null, doc, null, null);
             }
         };
     }
@@ -982,7 +982,7 @@ public abstract class EngineTestCase extends ESTestCase {
         final String lastFieldValue;
         if (lastOp instanceof Engine.Index) {
             Engine.Index index = (Engine.Index) lastOp;
-            lastFieldValue = index.docs().get(0).get("value");
+            lastFieldValue = index.document().get("value");
         } else {
             // delete
             lastFieldValue = null;

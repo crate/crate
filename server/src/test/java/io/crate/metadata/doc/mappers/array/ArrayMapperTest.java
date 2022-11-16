@@ -127,9 +127,8 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
         SourceToParse sourceToParse = new SourceToParse(INDEX, "abc", bytesReference, XContentType.JSON);
         ParsedDocument doc = mapper.parse(sourceToParse);
         assertThat(doc.dynamicMappingsUpdate() == null, is(true));
-        assertThat(doc.docs().size(), is(1));
 
-        ParseContext.Document fields = doc.docs().get(0);
+        ParseContext.Document fields = doc.doc();
         Set<String> values = uniqueValuesFromFields(fields, "array_field");
         assertThat(values, Matchers.containsInAnyOrder("a", "b", "c"));
         assertThat(
@@ -237,9 +236,8 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
         ParsedDocument doc = mapper.parse(sourceToParse);
         // @formatter: off
         assertThat(doc.dynamicMappingsUpdate(), nullValue());
-        assertThat(doc.docs().size(), is(1));
         assertThat(
-            uniqueValuesFromFields(doc.docs().get(0), "array_field.s"),
+            uniqueValuesFromFields(doc.doc(), "array_field.s"),
             containsInAnyOrder("a", "b", "c"));
         assertThat(mapper.mappers().getMapper("array_field.s"), instanceOf(KeywordFieldMapper.class));
         assertThat(
@@ -304,8 +302,7 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
         Mapping mappingUpdate = doc.dynamicMappingsUpdate();
         assertThat(mappingUpdate, notNullValue());
         mapper = mapper.merge(mappingUpdate);
-        assertThat(doc.docs().size(), is(1));
-        String[] values = doc.docs().get(0).getValues("array_field.new");
+        String[] values = doc.doc().getValues("array_field.new");
         assertThat(values, arrayContainingInAnyOrder(is("T"), is("1")));
         String mappingSourceString = new CompressedXContent(mapper, XContentType.JSON, ToXContent.EMPTY_PARAMS).string();
         // column position calculation is carried out within clusterstate changes, so 'new' still has position = null
@@ -374,8 +371,7 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
             .endObject());
         SourceToParse sourceToParse = new SourceToParse(INDEX, "abc", bytesReference, XContentType.JSON);
         ParsedDocument parsedDoc = mapper.parse(sourceToParse);
-        assertThat(parsedDoc.docs().size(), is(1));
-        assertThat(parsedDoc.docs().get(0).getField("array_field"), is(nullValue()));
+        assertThat(parsedDoc.doc().getField("array_field"), is(nullValue()));
     }
 
     @Test
@@ -404,8 +400,7 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
             .endObject());
         SourceToParse sourceToParse = new SourceToParse(INDEX, "abc", bytesReference, XContentType.JSON);
         ParsedDocument parsedDoc = mapper.parse(sourceToParse);
-        assertThat(parsedDoc.docs().size(), is(1));
-        assertThat(parsedDoc.docs().get(0).getField("array_field"), is(nullValue()));
+        assertThat(parsedDoc.doc().getField("array_field"), is(nullValue()));
 
 
     }
@@ -424,7 +419,7 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
             .endObject());
         SourceToParse sourceToParse = new SourceToParse(INDEX, "abc", bytesReference, XContentType.JSON);
         ParsedDocument doc = mapper.parse(sourceToParse);
-        assertThat(doc.docs().get(0).getField("new_array_field"), is(nullValue()));
+        assertThat(doc.doc().getField("new_array_field"), is(nullValue()));
         assertThat(mapper.mappers().getMapper("new_array_field"), is(nullValue()));
     }
 
@@ -442,7 +437,7 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
             .endObject());
         SourceToParse sourceToParse = new SourceToParse(INDEX, "abc", bytesReference, XContentType.JSON);
         ParsedDocument doc = mapper.parse(sourceToParse);
-        assertThat(doc.docs().get(0).getField("new_array_field"), is(nullValue()));
+        assertThat(doc.doc().getField("new_array_field"), is(nullValue()));
         assertThat(mapper.mappers().getMapper("new_array_field"), is(nullValue()));
     }
 
@@ -481,7 +476,7 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
         // @formatter:off
 
         List<String> copyValues = new ArrayList<>();
-        Document document = doc.docs().get(0);
+        Document document = doc.doc();
         IndexableField[] fields = document.getFields("string_array_ft");
         for (var field : fields) {
             if (field.fieldType().docValuesType() == DocValuesType.SORTED_SET) {

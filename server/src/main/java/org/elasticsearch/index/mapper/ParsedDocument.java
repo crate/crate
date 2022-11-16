@@ -23,8 +23,6 @@ import org.apache.lucene.document.Field;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.index.mapper.ParseContext.Document;
 
-import java.util.List;
-
 /**
  * The result of parsing a document.
  */
@@ -35,7 +33,7 @@ public class ParsedDocument {
     private final String id;
     private final SeqNoFieldMapper.SequenceIDFields seqID;
 
-    private final List<Document> documents;
+    private final Document document;
 
     private final BytesReference source;
 
@@ -44,13 +42,13 @@ public class ParsedDocument {
     public ParsedDocument(Field version,
                           SeqNoFieldMapper.SequenceIDFields seqID,
                           String id,
-                          List<Document> documents,
+                          Document document,
                           BytesReference source,
                           Mapping dynamicMappingsUpdate) {
         this.version = version;
         this.seqID = seqID;
         this.id = id;
-        this.documents = documents;
+        this.document = document;
         this.source = source;
         this.dynamicMappingsUpdate = dynamicMappingsUpdate;
     }
@@ -74,18 +72,13 @@ public class ParsedDocument {
      * Tombstone documents are stored in Lucene index to represent delete operations or Noops.
      */
     ParsedDocument toTombstone() {
-        assert docs().size() == 1 : "Tombstone should have a single doc [" + docs() + "]";
         this.seqID.tombstoneField.setLongValue(1);
-        rootDoc().add(this.seqID.tombstoneField);
+        doc().add(this.seqID.tombstoneField);
         return this;
     }
 
-    public Document rootDoc() {
-        return documents.get(documents.size() - 1);
-    }
-
-    public List<Document> docs() {
-        return this.documents;
+    public Document doc() {
+        return document;
     }
 
     public BytesReference source() {
@@ -102,7 +95,7 @@ public class ParsedDocument {
 
     @Override
     public String toString() {
-        return "Document id[" + id + "] doc [" + documents + ']';
+        return "Document id[" + id + "] doc [" + document + ']';
     }
 
 }

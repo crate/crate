@@ -33,6 +33,7 @@ import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.index.mapper.ParseContext.Document;
 
 /**
  * A mapper that indexes the field names of a document under <code>_field_names</code>. This mapper is typically useful in order
@@ -182,26 +183,25 @@ public class FieldNamesFieldMapper extends MetadataFieldMapper {
         if (fieldType().isEnabled() == false) {
             return;
         }
-        for (ParseContext.Document document : context) {
-            final List<String> paths = new ArrayList<>(document.getFields().size());
-            String previousPath = ""; // used as a sentinel - field names can't be empty
-            for (IndexableField field : document.getFields()) {
-                final String path = field.name();
-                if (path.equals(previousPath)) {
-                    // Sometimes mappers create multiple Lucene fields, eg. one for indexing,
-                    // one for doc values and one for storing. Deduplicating is not required
-                    // for correctness but this simple check helps save utf-8 conversions and
-                    // gives Lucene fewer values to deal with.
-                    continue;
-                }
-                paths.add(path);
-                previousPath = path;
+        Document document = context.doc();
+        final List<String> paths = new ArrayList<>(document.getFields().size());
+        String previousPath = ""; // used as a sentinel - field names can't be empty
+        for (IndexableField field : document.getFields()) {
+            final String path = field.name();
+            if (path.equals(previousPath)) {
+                // Sometimes mappers create multiple Lucene fields, eg. one for indexing,
+                // one for doc values and one for storing. Deduplicating is not required
+                // for correctness but this simple check helps save utf-8 conversions and
+                // gives Lucene fewer values to deal with.
+                continue;
             }
-            for (String path : paths) {
-                for (String fieldName : extractFieldNames(path)) {
-                    if (fieldType.indexOptions() != IndexOptions.NONE || fieldType.stored()) {
-                        document.add(new Field(fieldType().name(), fieldName, fieldType));
-                    }
+            paths.add(path);
+            previousPath = path;
+        }
+        for (String path : paths) {
+            for (String fieldName : extractFieldNames(path)) {
+                if (fieldType.indexOptions() != IndexOptions.NONE || fieldType.stored()) {
+                    document.add(new Field(fieldType().name(), fieldName, fieldType));
                 }
             }
         }
