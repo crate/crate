@@ -37,12 +37,9 @@ import io.crate.types.DataTypes;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.node.Node;
 
-import java.util.Collections;
-import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
 /**
  * This class encapsulates all index level settings and handles settings updates.
@@ -52,18 +49,6 @@ import java.util.function.Function;
  * be called for each settings update.
  */
 public final class IndexSettings {
-    public static final String DEFAULT_FIELD_SETTING_KEY = "index.query.default_field";
-    public static final Setting<List<String>> DEFAULT_FIELD_SETTING;
-
-    static {
-        Function<Settings, List<String>> defValue = settings -> {
-            final String defaultField = "*";
-            return Collections.singletonList(defaultField);
-        };
-
-        DEFAULT_FIELD_SETTING =
-            Setting.listSetting(DEFAULT_FIELD_SETTING_KEY, Function.identity(), defValue, DataTypes.STRING_ARRAY, Property.Dynamic, Property.IndexScope);
-    }
 
     public static final Setting<TimeValue> INDEX_TRANSLOG_SYNC_INTERVAL_SETTING =
         Setting.timeSetting("index.translog.sync_interval", TimeValue.timeValueSeconds(5), TimeValue.timeValueMillis(100),
@@ -264,7 +249,6 @@ public final class IndexSettings {
     // volatile fields are updated via #updateIndexMetadata(IndexMetadata) under lock
     private volatile Settings settings;
     private volatile IndexMetadata indexMetadata;
-    private volatile List<String> defaultFields;
     private volatile Translog.Durability durability;
     private volatile TimeValue syncInterval;
     private volatile TimeValue refreshInterval;
@@ -311,17 +295,6 @@ public final class IndexSettings {
     private final boolean singleType;
 
     /**
-     * Returns the default search fields for this index.
-     */
-    public List<String> getDefaultFields() {
-        return defaultFields;
-    }
-
-    private void setDefaultFields(List<String> defaultFields) {
-        this.defaultFields = defaultFields;
-    }
-
-    /**
      * Creates a new {@link IndexSettings} instance. The given node settings will be merged with the settings in the metadata
      * while index level settings will overwrite node settings.
      *
@@ -350,7 +323,6 @@ public final class IndexSettings {
         this.indexMetadata = indexMetadata;
         numberOfShards = settings.getAsInt(IndexMetadata.SETTING_NUMBER_OF_SHARDS, null);
         this.durability = scopedSettings.get(INDEX_TRANSLOG_DURABILITY_SETTING);
-        defaultFields = scopedSettings.get(DEFAULT_FIELD_SETTING);
         syncInterval = INDEX_TRANSLOG_SYNC_INTERVAL_SETTING.get(settings);
         refreshInterval = scopedSettings.get(INDEX_REFRESH_INTERVAL_SETTING);
         flushThresholdSize = scopedSettings.get(INDEX_TRANSLOG_FLUSH_THRESHOLD_SIZE_SETTING);
@@ -404,7 +376,6 @@ public final class IndexSettings {
         scopedSettings.addSettingsUpdateConsumer(INDEX_TRANSLOG_RETENTION_SIZE_SETTING, this::setTranslogRetentionSize);
         scopedSettings.addSettingsUpdateConsumer(INDEX_REFRESH_INTERVAL_SETTING, this::setRefreshInterval);
         scopedSettings.addSettingsUpdateConsumer(MAX_REFRESH_LISTENERS_PER_SHARD, this::setMaxRefreshListeners);
-        scopedSettings.addSettingsUpdateConsumer(DEFAULT_FIELD_SETTING, this::setDefaultFields);
         scopedSettings.addSettingsUpdateConsumer(INDEX_SEARCH_IDLE_AFTER, this::setSearchIdleAfter);
         scopedSettings.addSettingsUpdateConsumer(INDEX_SOFT_DELETES_RETENTION_OPERATIONS_SETTING, this::setSoftDeleteRetentionOperations);
         scopedSettings.addSettingsUpdateConsumer(INDEX_SOFT_DELETES_RETENTION_LEASE_PERIOD_SETTING, this::setRetentionLeaseMillis);
