@@ -46,7 +46,6 @@ public interface InsertSourceGen {
         })
     );
 
-
     default BytesReference generateSourceAndCheckConstraintsAsBytesReference(Object[] values) throws IOException {
         return BytesReference.bytes(XContentFactory.jsonBuilder().map(generateSourceAndCheckConstraints(values, List.of()), SOURCE_WRITERS));
     }

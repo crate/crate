@@ -48,7 +48,12 @@ import org.locationtech.spatial4j.shape.Point;
 
 import io.crate.Streamer;
 import io.crate.common.collections.Lists2;
+import io.crate.execution.dml.ArrayIndexer;
+import io.crate.execution.dml.ValueIndexer;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.protocols.postgres.parser.PgArrayParser;
 import io.crate.protocols.postgres.parser.PgArrayParsingException;
@@ -389,5 +394,12 @@ public class ArrayType<T> extends DataType<List<T>> {
     @Override
     public long ramBytesUsed() {
         return SHALLOW_SIZE + innerType.ramBytesUsed();
+    }
+
+    public ValueIndexer<List<T>> valueIndexer(RelationName table,
+                                              Reference ref,
+                                              Function<ColumnIdent, Reference> getRef) {
+        ValueIndexer<T> innerIndexer = innerType.valueIndexer(table, ref, getRef);
+        return new ArrayIndexer<>(innerIndexer);
     }
 }

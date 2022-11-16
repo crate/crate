@@ -38,9 +38,7 @@ public class IpType extends DataType<String> implements Streamer<String> {
     public static final int ID = 5;
     public static final IpType INSTANCE = new IpType();
     private static final StorageSupport<String> STORAGE = new StorageSupport<>(
-        true,
-        true,
-        new EqQuery<String>() {
+        true, true, null, new EqQuery<String>() {
 
             @Override
             public Query termQuery(String field, String value) {

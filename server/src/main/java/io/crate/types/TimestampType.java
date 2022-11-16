@@ -62,7 +62,7 @@ public final class TimestampType extends DataType<Long>
         TimestampType::parseTimestampIgnoreTimeZone,
         Precedence.TIMESTAMP);
 
-    private static final StorageSupport<Long> STORAGE = new StorageSupport<>(true, true, new LongEqQuery());
+    private static final StorageSupport<Long> STORAGE = new StorageSupport<>(true, true, null, new LongEqQuery());
 
     private final int id;
     private final String name;

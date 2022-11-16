@@ -42,7 +42,7 @@ public class UncheckedObjectType extends DataType<Map<Object, Object>> implement
     public static final int ID = 16;
 
     public static final String NAME = "unchecked_object";
-    private static final StorageSupport<Map<Object, Object>> STORAGE = new StorageSupport<>(false, false, null);
+    private static final StorageSupport<Map<Object, Object>> STORAGE = new StorageSupport<>(false, false, null, null);
 
     public static UncheckedObjectType untyped() {
         return new UncheckedObjectType();

@@ -27,6 +27,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
@@ -37,6 +38,10 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 
 import io.crate.Streamer;
+import io.crate.execution.dml.ValueIndexer;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.sql.tree.ColumnDefinition;
 import io.crate.sql.tree.ColumnPolicy;
@@ -224,6 +229,13 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
      **/
     @Nullable
     public StorageSupport<? super T> storageSupport() {
+        return null;
+    }
+
+    @Nullable
+    public ValueIndexer<T> valueIndexer(RelationName table,
+                                        Reference ref,
+                                        Function<ColumnIdent, Reference> getRef) {
         return null;
     }
 

@@ -157,6 +157,10 @@ public class ColumnIdent implements Comparable<ColumnIdent>, Accountable {
         return new ColumnIdent(parent.name, childPath);
     }
 
+    public ColumnIdent getChild(String name) {
+        return ColumnIdent.getChild(this, name);
+    }
+
     /**
      * Get the first non-map value from a map by traversing the name/path of the column
      */

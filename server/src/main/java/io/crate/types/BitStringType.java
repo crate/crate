@@ -56,9 +56,7 @@ public final class BitStringType extends DataType<BitString> implements Streamer
     private final int length;
 
     private static final StorageSupport<BitString> STORAGE = new StorageSupport<>(
-        true,
-        true,
-        new EqQuery<BitString>() {
+        true, true, null, new EqQuery<BitString>() {
 
             @Override
             public Query termQuery(String field, BitString value) {

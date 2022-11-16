@@ -34,6 +34,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
@@ -50,6 +51,11 @@ import io.crate.Streamer;
 import io.crate.common.collections.Lists2;
 import io.crate.common.collections.MapComparator;
 import io.crate.exceptions.ConversionException;
+import io.crate.execution.dml.ObjectIndexer;
+import io.crate.execution.dml.ValueIndexer;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.sql.tree.ColumnDefinition;
 import io.crate.sql.tree.ColumnPolicy;
@@ -62,7 +68,8 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
     public static final ObjectType UNTYPED = new ObjectType();
     public static final int ID = 12;
     public static final String NAME = "object";
-    private static final StorageSupport<Map<String, Object>> STORAGE = new StorageSupport<>(false, true, null);
+    private static final StorageSupport<Map<String, Object>> STORAGE =
+        new StorageSupport<>(false, true, null, null);
 
     public static class Builder {
 
@@ -366,5 +373,11 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
             bytes += childType.ramBytesUsed();
         }
         return bytes;
+    }
+
+    public ValueIndexer<Map<String, Object>> valueIndexer(RelationName table,
+                                                          Reference ref,
+                                                          Function<ColumnIdent, Reference> getRef) {
+        return new ObjectIndexer(table, ref, getRef);
     }
 }

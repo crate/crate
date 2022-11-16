@@ -34,7 +34,7 @@ public class ByteType extends DataType<Byte> implements Streamer<Byte>, FixedWid
     public static final ByteType INSTANCE = new ByteType();
     public static final int ID = 2;
     private static final StorageSupport<Number> STORAGE = new StorageSupport<>(
-        true, true, new IntEqQuery()
+        true, true, null, new IntEqQuery()
     );
 
     private ByteType() {

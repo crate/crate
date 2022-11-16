@@ -41,9 +41,7 @@ public class BooleanType extends DataType<Boolean> implements Streamer<Boolean>,
     public static final BooleanType INSTANCE = new BooleanType();
 
     private static final StorageSupport<Boolean> STORAGE = new StorageSupport<>(
-        true,
-        true,
-        new EqQuery<>() {
+        true, true, null, new EqQuery<>() {
 
             private static BytesRef indexedValue(Boolean value) {
                 if (value == null) {

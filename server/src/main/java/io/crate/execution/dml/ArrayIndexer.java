@@ -19,20 +19,34 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.types;
+package io.crate.execution.dml;
 
+import java.io.IOException;
+import java.util.List;
+import java.util.function.Consumer;
 
-import javax.annotation.Nullable;
+import org.apache.lucene.index.IndexableField;
+import org.elasticsearch.common.xcontent.XContentBuilder;
 
-import io.crate.execution.dml.ValueIndexer;
-import io.crate.metadata.IndexType;
+import io.crate.metadata.Reference;
 
-public record StorageSupport<T>(boolean docValuesDefault,
-                                boolean hasFieldNamesIndex,
-                                ValueIndexer<T> valueIndexer,
-                                @Nullable EqQuery<T> eqQuery) {
+public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
 
-    public boolean getComputedDocValuesDefault(@Nullable IndexType indexType) {
-        return docValuesDefault && indexType != IndexType.FULLTEXT;
+    private final ValueIndexer<T> innerIndexer;
+
+    public ArrayIndexer(ValueIndexer<T> innerIndexer) {
+        this.innerIndexer = innerIndexer;
+    }
+
+    @Override
+    public void indexValue(List<T> values,
+                           XContentBuilder xContentBuilder,
+                           Consumer<? super IndexableField> addField,
+                           Consumer<? super Reference> onDynamicColumn) throws IOException {
+        xContentBuilder.startArray();
+        for (T value : values) {
+            innerIndexer.indexValue(value, xContentBuilder, addField, onDynamicColumn);
+        }
+        xContentBuilder.endArray();
     }
 }

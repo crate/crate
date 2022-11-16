@@ -4911,12 +4911,7 @@ public class InternalEngineTests extends EngineTestCase {
             document.add(seqID.primaryTerm);
             final BytesReference source = new BytesArray(new byte[]{1});
             final ParsedDocument parsedDocument = new ParsedDocument(
-                versionField,
-                seqID,
-                id,
-                document,
-                source,
-                null);
+                versionField, seqID, id, document, source, null, List.of());
 
             final Engine.Index index = new Engine.Index(
                 new Term("_id", parsedDocument.id()),

@@ -41,9 +41,7 @@ public class DoubleType extends DataType<Double> implements FixedWidthType, Stre
     public static final int ID = 6;
     public static final int DOUBLE_SIZE = (int) RamUsageEstimator.shallowSizeOfInstance(Double.class);
     private static final StorageSupport<Double> STORAGE = new StorageSupport<>(
-        true,
-        true,
-        new EqQuery<Double>() {
+        true, true, null, new EqQuery<Double>() {
 
             @Override
             public Query termQuery(String field, Double value) {
