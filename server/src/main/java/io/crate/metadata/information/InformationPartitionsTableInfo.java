@@ -29,6 +29,7 @@ import static org.elasticsearch.index.MergeSchedulerConfig.MAX_MERGE_COUNT_SETTI
 import static org.elasticsearch.index.MergeSchedulerConfig.MAX_THREAD_COUNT_SETTING;
 import static org.elasticsearch.index.engine.EngineConfig.INDEX_CODEC_SETTING;
 
+import java.util.Map;
 import java.util.function.Function;
 
 import org.elasticsearch.Version;
@@ -39,12 +40,12 @@ import org.elasticsearch.cluster.routing.allocation.decider.EnableAllocationDeci
 import org.elasticsearch.cluster.routing.allocation.decider.ShardsLimitAllocationDecider;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.unit.ByteSizeValue;
-import io.crate.common.unit.TimeValue;
 import org.elasticsearch.index.IndexModule;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.translog.Translog;
 
+import io.crate.common.unit.TimeValue;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexMappings;
 import io.crate.metadata.PartitionInfo;
@@ -96,6 +97,9 @@ public class InformationPartitionsTableInfo {
                     .startObject("allocation")
                         .add("enable", STRING, fromSetting(EnableAllocationDecider.INDEX_ROUTING_ALLOCATION_ENABLE_SETTING, EnableAllocationDecider.Allocation::toString))
                         .add("total_shards_per_node", INTEGER, fromSetting(ShardsLimitAllocationDecider.INDEX_TOTAL_SHARDS_PER_NODE_SETTING))
+                        .addDynamicObject("require", STRING, fromSetting(IndexMetadata.INDEX_ROUTING_REQUIRE_GROUP_SETTING))
+                        .addDynamicObject("include", STRING, fromSetting(IndexMetadata.INDEX_ROUTING_INCLUDE_GROUP_SETTING))
+                        .addDynamicObject("exclude", STRING, fromSetting(IndexMetadata.INDEX_ROUTING_EXCLUDE_GROUP_SETTING))
                     .endObject()
                 .endObject()
 
@@ -137,6 +141,13 @@ public class InformationPartitionsTableInfo {
 
     private static Function<PartitionInfo, Long> fromByteSize(Setting<ByteSizeValue> byteSizeSetting) {
         return rel -> byteSizeSetting.get(rel.tableParameters()).getBytes();
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T> Function<PartitionInfo, Map<String, Object>> fromSetting(Setting.AffixSetting<T> setting) {
+        return rel -> {
+            return (Map<String, Object>) setting.getAsMap(rel.tableParameters());
+        };
     }
 
     private static <T> Function<PartitionInfo, T> fromSetting(Setting<T> setting) {
