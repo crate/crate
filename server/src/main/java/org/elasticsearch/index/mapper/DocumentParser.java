@@ -584,23 +584,7 @@ final class DocumentParser {
         if (!context.isWithinCopyTo() && copyToFields.isEmpty() == false) {
             context = context.createCopyToContext();
             for (String field : copyToFields) {
-                // In case of a hierarchy of nested documents, we need to figure out
-                // which document the field should go to
-                ParseContext.Document targetDoc = null;
-                for (ParseContext.Document doc = context.doc(); doc != null; doc = doc.getParent()) {
-                    if (field.startsWith(doc.getPrefix())) {
-                        targetDoc = doc;
-                        break;
-                    }
-                }
-                assert targetDoc != null;
-                final ParseContext copyToContext;
-                if (targetDoc == context.doc()) {
-                    copyToContext = context;
-                } else {
-                    copyToContext = context.switchDoc(targetDoc);
-                }
-                parseCopy(field, copyToContext);
+                parseCopy(field, context);
             }
         }
     }

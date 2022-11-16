@@ -21,7 +21,6 @@
 
 package io.crate.metadata.doc.mappers.array;
 
-import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.instanceOf;
@@ -35,7 +34,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.apache.lucene.index.DocValuesType;
 import org.apache.lucene.index.IndexableField;
