@@ -78,6 +78,7 @@ tasks.withType(JavaCompile) {
     sourceCompatibility = jdks.runtime.major()
     targetCompatibility = jdks.runtime.major()
 }
+
 tasks.withType(JavaExec) {
     if (System.getProperty('useSystemJdk') == null) {
         executable = jdks.runtime.getBinJavaPath()
@@ -130,6 +131,7 @@ tasks.withType(Test) {
         test.dependsOn jdks.runtime
         test.executable = jdks.runtime.getBinJavaPath()
     }
+    jvmArgs = ["--enable-preview"]
 
     // by default `-D` arguments are "caught" in the gradle process
     // and not passed-through to the test process.
