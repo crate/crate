@@ -42,7 +42,15 @@ Unreleased Changes
 Breaking Changes
 ================
 
-None
+- Removed support for the ``CRATE_INCLUDE`` environment variable from the
+  ``bin/crate`` start script.
+  Configuration of CrateDB should happen via the ``crate.yml``, the
+  ``CRATE_HEAP_SIZE`` environment variable and optionally ``CRATE_JAVA_OPTS``.
+
+- Removed support for the ``-d`` and ``-p`` options from the ``bin/crate`` start
+  script. It's recommended to run CrateDB either via a container runtime like
+  Docker, or via a service manager like ``systemd`` where these options are not
+  required.
 
 Deprecations
 ============
@@ -52,6 +60,9 @@ None
 
 Changes
 =======
+
+- Exposed the ``require``, ``include`` and ``exclude`` ``routing.allocation``
+  settings per partition within ``information_schema.table_partitions``.
 
 - ``cancel`` messages sent from a client via the PostgreSQL wire protocol are
   now internally forwarded to other nodes to support setups with load-balancers.

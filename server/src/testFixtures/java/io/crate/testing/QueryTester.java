@@ -148,7 +148,7 @@ public final class QueryTester implements AutoCloseable {
                 XContentType.JSON
             );
             ParsedDocument parsedDocument = mapper.parse(sourceToParse);
-            indexEnv.writer().addDocuments(parsedDocument.docs());
+            indexEnv.writer().addDocument(parsedDocument.doc());
         }
 
         private LuceneBatchIterator getIterator(ColumnIdent column, Query query) {

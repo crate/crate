@@ -24,6 +24,7 @@ package io.crate.execution;
 import io.crate.execution.ddl.TransportSchemaUpdateAction;
 import io.crate.execution.ddl.TransportSwapRelationsAction;
 import io.crate.execution.ddl.index.TransportSwapAndDropIndexNameAction;
+import io.crate.execution.ddl.tables.TransportAddColumnAction;
 import io.crate.execution.ddl.tables.TransportAlterTableAction;
 import io.crate.execution.ddl.tables.TransportCloseTable;
 import io.crate.execution.ddl.tables.TransportCreateTableAction;
@@ -66,6 +67,7 @@ public class TransportExecutorModule extends AbstractModule {
         bind(TransportSwapRelationsAction.class).asEagerSingleton();
         bind(TransportAlterTableAction.class).asEagerSingleton();
         bind(TransportDropConstraintAction.class).asEagerSingleton();
+        bind(TransportAddColumnAction.class).asEagerSingleton();
         bind(TransportAnalyzeAction.class).asEagerSingleton();
         bind(TransportSetLicenseAction.class).asEagerSingleton();
 

@@ -21,8 +21,6 @@
 
 
 # OPTIONS:
-#   -d: start the daemon in the background
-#   -p <filename>: log the pid to a file (useful to kill it later)
 #   -v: print crate version to stdout
 #   -h: print usage information
 #   -D: set a java system property value
@@ -34,80 +32,140 @@
 # This script relies on few environment variables to determine startup
 # behavior, those variables are:
 #
-#   JAVA_OPTS    -- Additional arguments to the JVM for heap size, etc
 #   CRATE_JAVA_OPTS -- External Java Opts on top of the defaults set
-#
 #
 # Optionally, exact memory values can be set using the following values, note,
 # they can still be set using the `CRATE_JAVA_OPTS`. Sample format include "512m", and "10g".
 #
 #   CRATE_HEAP_SIZE -- Sets both the minimum and maximum memory to allocate (recommended)
 #
-# As a convenience, a fragment of shell is sourced in order to set one or
-# more of these variables. This so-called `include' can be placed in a
-# number of locations and will be searched for in order. The lowest
-# priority search path is the same directory as the startup script, and
-# since this is the location of the sample in the project tree, it should
-# almost work Out Of The Box.
-#
-# Any serious use-case though will likely require customization of the
-# include. For production installations, it is recommended that you copy
-# the sample to one of /usr/share/crate/crate.in.sh,
-# /usr/local/share/crate/crate.in.sh, or
-# /opt/crate/crate.in.sh and make your modifications there.
-#
-# Another option is to specify the full path to the include file in the
-# environment. For example:
-#
-#   $ CRATE_INCLUDE=/path/to/in.sh crate -p /var/run/crate.pid
-#
-# Note: This is particularly handy for running multiple instances on a
-# single installation, or for quick tests.
-#
-# If you would rather configure startup entirely from the environment, you
-# can disable the include by exporting an empty CRATE_INCLUDE, or by
-# ensuring that no include files exist in the aforementioned search list.
-# Be aware that you will be entirely responsible for populating the needed
-# environment variables.
 
 CDPATH=""
 SCRIPT="$0"
 
 # SCRIPT may be an arbitrarily deep series of symlinks. Loop until we have the concrete path.
 while [ -h "$SCRIPT" ] ; do
-  ls=`ls -ld "$SCRIPT"`
+  ls=$(ls -ld "$SCRIPT")
   # Drop everything prior to ->
-  link=`expr "$ls" : '.*-> \(.*\)$'`
+  link=$(expr "$ls" : '.*-> \(.*\)$')
   if expr "$link" : '/.*' > /dev/null; then
     SCRIPT="$link"
   else
-    SCRIPT=`dirname "$SCRIPT"`/"$link"
+    SCRIPT=$(dirname "$SCRIPT")/"$link"
   fi
 done
 
 # determine crate home
-CRATE_HOME=`dirname "$SCRIPT"`/..
+CRATE_HOME=$(dirname "$SCRIPT")/..
 
 # make CRATE_HOME absolute
-CRATE_HOME=`cd "$CRATE_HOME"; pwd`
+CRATE_HOME=$(cd "$CRATE_HOME"; pwd)
 
-# If an include wasn't specified in the environment, then search for one...
-if [ "x$CRATE_INCLUDE" = "x" ]; then
-    # Locations (in order) to use when searching for an include file.
-    for include in /usr/share/crate/crate.in.sh \
-                   /usr/local/share/crate/crate.in.sh \
-                   /opt/crate/crate.in.sh \
-                   ~/.crate.in.sh \
-                   `dirname "$0"`/crate.in.sh; do
-        if [ -r "$include" ]; then
-            . "$include"
-            break
-        fi
-    done
-# ...otherwise, source the specified include.
-elif [ -r "$CRATE_INCLUDE" ]; then
-    . "$CRATE_INCLUDE"
+
+if [ "x$CRATE_CLASSPATH" != "x" ]; then
+    cat >&2 << EOF
+Error: Don't modify the classpath with CRATE_CLASSPATH.
+Add plugins and their dependencies into the plugins/ folder instead.
+EOF
+    exit 1
 fi
+
+for libname in "$CRATE_HOME"/lib/*.jar; do
+    if [ "x$CRATE_CLASSPATH" != "x" ]; then
+        CRATE_CLASSPATH="$CRATE_CLASSPATH:$libname"
+    else
+        CRATE_CLASSPATH="$libname"
+    fi
+done
+
+if [ "$CRATE_MIN_MEM" = "" ]; then
+    CRATE_MIN_MEM=256m
+fi
+if [ "x$CRATE_HEAP_SIZE" != "x" ]; then
+    CRATE_MIN_MEM=$CRATE_HEAP_SIZE
+    CRATE_MAX_MEM=$CRATE_HEAP_SIZE
+fi
+
+# min and max heap sizes should be set to the same value to avoid
+# stop-the-world GC pauses during resize, and so that we can lock the
+# heap in memory on startup to prevent any of it from being swapped
+# out.
+JAVA_OPTS="$JAVA_OPTS -Xms${CRATE_MIN_MEM}"
+if [ "x$CRATE_MAX_MEM" != "x" ]; then
+    JAVA_OPTS="$JAVA_OPTS -Xmx${CRATE_MAX_MEM}"
+fi
+
+# new generation
+if [ "x$CRATE_HEAP_NEWSIZE" != "x" ]; then
+    JAVA_OPTS="$JAVA_OPTS -Xmn${CRATE_HEAP_NEWSIZE}"
+fi
+
+# max direct memory
+if [ "x$CRATE_DIRECT_SIZE" != "x" ]; then
+    JAVA_OPTS="$JAVA_OPTS -XX:MaxDirectMemorySize=${CRATE_DIRECT_SIZE}"
+fi
+
+# set to headless, just in case
+JAVA_OPTS="$JAVA_OPTS -Djava.awt.headless=true"
+
+# Force the JVM to use IPv4 stack
+if [ "x$CRATE_USE_IPV4" != "x" ]; then
+  JAVA_OPTS="$JAVA_OPTS -Djava.net.preferIPv4Stack=true"
+fi
+
+## GC configuration
+JAVA_OPTS="$JAVA_OPTS -XX:+UseG1GC -XX:G1ReservePercent=25 -XX:InitiatingHeapOccupancyPercent=30"
+
+# GC logging options
+# Set CRATE_DISABLE_GC_LOGGING=1 to disable GC logging
+if [ "$CRATE_DISABLE_GC_LOGGING" = "" ]; then
+  # GC log directory needs to be set explicitly by packages
+  # GC logging requires 16x64mb = 1g of free disk space
+  GC_LOG_DIR=${CRATE_GC_LOG_DIR:-"$CRATE_HOME/logs"};
+  GC_LOG_SIZE=${CRATE_GC_LOG_SIZE:-"64m"}
+  GC_LOG_FILES=${CRATE_GC_LOG_FILES:-"16"}
+
+  # Ensure that the directory for the log file exists: the JVM will not create it.
+  if ! test -d "$GC_LOG_DIR" || ! test -x "$GC_LOG_DIR"; then
+    cat >&2 << EOF
+ERROR: Garbage collection log directory '$GC_LOG_DIR' does not exist or is not accessible.
+EOF
+    exit 1
+  fi
+  LOGGC="$GC_LOG_DIR/gc.log"
+
+  if [ -x "$JAVA_HOME/bin/java" ]; then
+      JAVA="$JAVA_HOME/bin/java"
+  else
+      JAVA=java
+  fi
+  export JAVA
+  JAVA_OPTS="$JAVA_OPTS -Xlog:gc*,gc+age=trace,safepoint:file=\"${LOGGC}\":utctime,pid,tags:filecount=${GC_LOG_FILES},filesize=${GC_LOG_SIZE}"
+fi
+
+# Disables explicit GC
+JAVA_OPTS="$JAVA_OPTS -XX:+DisableExplicitGC"
+
+# Ensure UTF-8 encoding by default (e.g. filenames)
+JAVA_OPTS="$JAVA_OPTS -Dfile.encoding=UTF-8"
+
+# Use our provided JNA always versus the system one
+JAVA_OPTS="$JAVA_OPTS -Djna.nosys=true"
+
+# log4j options
+JAVA_OPTS="$JAVA_OPTS -Dlog4j.shutdownHookEnabled=false -Dlog4j2.disable.jmx=true -Dlog4j.skipJansi=true"
+
+# Disable netty recycler
+JAVA_OPTS="$JAVA_OPTS -Dio.netty.recycler.maxCapacityPerThread=0"
+
+# Dump heap on OOM
+JAVA_OPTS="$JAVA_OPTS -XX:+HeapDumpOnOutOfMemoryError"
+if [ "x$CRATE_HEAP_DUMP_PATH" != "x" ]; then
+    JAVA_OPTS="$JAVA_OPTS -XX:HeapDumpPath=$CRATE_HEAP_DUMP_PATH"
+fi
+
+# See https://github.com/elastic/elasticsearch/issues/90526
+JAVA_OPTS="$JAVA_OPTS --enable-preview"
 
 if [ "$(uname -s)" = "Darwin" ]; then
     JAVA="$CRATE_HOME/jdk/Contents/Home/bin/java"
@@ -121,76 +179,47 @@ if [ -z "$CRATE_CLASSPATH" ]; then
 fi
 
 # Special-case path variables.
-case `uname` in
+case $(uname) in
     CYGWIN*)
-        CRATE_CLASSPATH=`cygpath -p -w "$CRATE_CLASSPATH"`
-        CRATE_HOME=`cygpath -p -w "$CRATE_HOME"`
+      CRATE_CLASSPATH=$(cygpath -p -w "$CRATE_CLASSPATH")
+      CRATE_HOME=$(cygpath -p -w "$CRATE_HOME")
     ;;
 esac
 
 launch_service()
 {
-    pidpath=$1
-    daemonized=$2
-    javaProperties=$3
+    javaProperties=$1
 
-    case "$4" in
+    case "$2" in
         *"-Cpath.home="*)
-            props="$4" ;;
+            props="$2" ;;
         *)
-            props="\"-Cpath.home=$CRATE_HOME\" $4";;
+            props="\"-Cpath.home=$CRATE_HOME\" $2";;
     esac
 
-    if [ "x$pidpath" != "x" ]; then
-        props="\"-Cpidfile=$pidpath\" $props"
-    fi
-
-    if [ "x$daemonized" = "x" ]; then
-        eval exec "\"$JAVA\"" $JAVA_OPTS $CRATE_JAVA_OPTS $javaProperties -cp "\"$CRATE_CLASSPATH\"" \
-             io.crate.bootstrap.CrateDB $props
-        execval=$?
-    else
-        # Startup Crate, background it, and write the pid.
-        eval exec "\"$JAVA\"" $JAVA_OPTS $CRATE_JAVA_OPTS $javaProperties -cp "\"$CRATE_CLASSPATH\"" \
-             io.crate.bootstrap.CrateDB $props -d <&- &
-        execval=$?
-        [ ! -z "$pidpath" ] && printf '%d' $! > "$pidpath"
-    fi
+    eval exec "\"$JAVA\"" $JAVA_OPTS $CRATE_JAVA_OPTS $javaProperties -cp "\"$CRATE_CLASSPATH\"" \
+          io.crate.bootstrap.CrateDB $props
+    execval=$?
 
     return $execval
 }
 
-args="$@"
-if test "${args#*"-Des."}" != "$args"; then
-    echo "Support for defining Crate specific settings with the -D option and the es prefix has been dropped."
-    echo "Please use the -C option to configure Crate.\n"
-    exit 1
-fi
-
 # Parse any command line options.
-while getopts "vdhp:D:X:C:" opt; do
+while getopts "vh:D:X:C:" opt; do
     case $opt in
         v)
-            "$JAVA" $JAVA_OPTS $CRATE_JAVA_OPTS $es_parms -cp "$CRATE_CLASSPATH" $props \
+            "$JAVA" $JAVA_OPTS $CRATE_JAVA_OPTS -cp "$CRATE_CLASSPATH" $props \
                     org.elasticsearch.Version
             exit 0
-        ;;
-        p)
-            pidfile="$OPTARG"
-        ;;
-        d)
-            daemonized="yes"
         ;;
         h)
             echo "CrateDB is a shared nothing, fully searchable document oriented cluster datastore."
             echo ""
-            echo "  Usage: $(basename $0) [OPTION]..."
+            echo "  Usage: $(basename "$0") [OPTION]..."
             echo "         starts a new CrateDB instance"
             echo ""
             echo "General options:"
-            echo "  -d            start the daemon in the background"
             echo "  -h            print usage information"
-            echo "  -p <pidfile>  log the pid to a file"
             echo "  -v            print version information"
             echo "  -C            set a CrateDB setting"
             echo "  -D            set a java system property value"
@@ -206,9 +235,6 @@ while getopts "vdhp:D:X:C:" opt; do
         X)
             properties="$properties \"-X$OPTARG\""
         ;;
-        --)
-            break
-        ;;
         *)
             echo "Error parsing arguments!" >&2
             exit 1
@@ -217,6 +243,6 @@ while getopts "vdhp:D:X:C:" opt; do
 done
 
 # Start up the service
-launch_service "$pidfile" "$daemonized" "$javaProperties" "$properties"
+launch_service "$javaProperties" "$properties"
 
 exit $?

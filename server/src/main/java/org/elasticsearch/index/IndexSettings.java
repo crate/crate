@@ -37,12 +37,9 @@ import io.crate.types.DataTypes;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.node.Node;
 
-import java.util.Collections;
-import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
 /**
  * This class encapsulates all index level settings and handles settings updates.
@@ -52,21 +49,7 @@ import java.util.function.Function;
  * be called for each settings update.
  */
 public final class IndexSettings {
-    public static final String DEFAULT_FIELD_SETTING_KEY = "index.query.default_field";
-    public static final Setting<List<String>> DEFAULT_FIELD_SETTING;
 
-    static {
-        Function<Settings, List<String>> defValue = settings -> {
-            final String defaultField = "*";
-            return Collections.singletonList(defaultField);
-        };
-
-        DEFAULT_FIELD_SETTING =
-            Setting.listSetting(DEFAULT_FIELD_SETTING_KEY, Function.identity(), defValue, DataTypes.STRING_ARRAY, Property.Dynamic, Property.IndexScope);
-    }
-
-    public static final Setting<Boolean> ALLOW_UNMAPPED =
-        Setting.boolSetting("index.query.parse.allow_unmapped_fields", true, Property.IndexScope);
     public static final Setting<TimeValue> INDEX_TRANSLOG_SYNC_INTERVAL_SETTING =
         Setting.timeSetting("index.translog.sync_interval", TimeValue.timeValueSeconds(5), TimeValue.timeValueMillis(100),
             Property.Dynamic, Property.IndexScope, Property.ReplicatedIndexScope);
@@ -240,10 +223,6 @@ public final class IndexSettings {
     public static final Setting<Integer> MAX_REFRESH_LISTENERS_PER_SHARD = Setting.intSetting("index.max_refresh_listeners", 1000, 0,
             Property.Dynamic, Property.IndexScope);
 
-    public static final String INDEX_MAPPING_SINGLE_TYPE_SETTING_KEY = "index.mapping.single_type";
-    private static final Setting<Boolean> INDEX_MAPPING_SINGLE_TYPE_SETTING =
-        Setting.boolSetting(INDEX_MAPPING_SINGLE_TYPE_SETTING_KEY, true, Property.IndexScope, Property.Final);
-
     /**
      * Determines a balance between file-based and operations-based peer recoveries. The number of operations that will be used in an
      * operations-based peer recovery is limited to this proportion of the total number of documents in the shard (including deleted
@@ -266,8 +245,6 @@ public final class IndexSettings {
     // volatile fields are updated via #updateIndexMetadata(IndexMetadata) under lock
     private volatile Settings settings;
     private volatile IndexMetadata indexMetadata;
-    private volatile List<String> defaultFields;
-    private final boolean defaultAllowUnmappedFields;
     private volatile Translog.Durability durability;
     private volatile TimeValue syncInterval;
     private volatile TimeValue refreshInterval;
@@ -309,29 +286,6 @@ public final class IndexSettings {
     private volatile int maxRefreshListeners;
 
     /**
-     * Whether the index is required to have at most one type.
-     */
-    private final boolean singleType;
-
-    /**
-     * Returns the default search fields for this index.
-     */
-    public List<String> getDefaultFields() {
-        return defaultFields;
-    }
-
-    private void setDefaultFields(List<String> defaultFields) {
-        this.defaultFields = defaultFields;
-    }
-
-    /**
-     * Returns <code>true</code> if queries should be lenient about unmapped fields. The default is <code>true</code>
-     */
-    public boolean isDefaultAllowUnmappedFields() {
-        return defaultAllowUnmappedFields;
-    }
-
-    /**
      * Creates a new {@link IndexSettings} instance. The given node settings will be merged with the settings in the metadata
      * while index level settings will overwrite node settings.
      *
@@ -359,10 +313,7 @@ public final class IndexSettings {
         nodeName = Node.NODE_NAME_SETTING.get(settings);
         this.indexMetadata = indexMetadata;
         numberOfShards = settings.getAsInt(IndexMetadata.SETTING_NUMBER_OF_SHARDS, null);
-
-        this.defaultAllowUnmappedFields = scopedSettings.get(ALLOW_UNMAPPED);
         this.durability = scopedSettings.get(INDEX_TRANSLOG_DURABILITY_SETTING);
-        defaultFields = scopedSettings.get(DEFAULT_FIELD_SETTING);
         syncInterval = INDEX_TRANSLOG_SYNC_INTERVAL_SETTING.get(settings);
         refreshInterval = scopedSettings.get(INDEX_REFRESH_INTERVAL_SETTING);
         flushThresholdSize = scopedSettings.get(INDEX_TRANSLOG_FLUSH_THRESHOLD_SIZE_SETTING);
@@ -381,12 +332,6 @@ public final class IndexSettings {
         searchIdleAfter = scopedSettings.get(INDEX_SEARCH_IDLE_AFTER);
         setTranslogRetentionAge(scopedSettings.get(INDEX_TRANSLOG_RETENTION_AGE_SETTING));
         setTranslogRetentionSize(scopedSettings.get(INDEX_TRANSLOG_RETENTION_SIZE_SETTING));
-
-        singleType = INDEX_MAPPING_SINGLE_TYPE_SETTING.get(indexMetadata.getSettings()); // get this from metadata - it's not registered
-        if (singleType == false) {
-            throw new AssertionError(
-                index.toString() + "multiple types are only allowed on pre 6.x indices but version is: [" + version + "]");
-        }
 
         scopedSettings.addSettingsUpdateConsumer(MergePolicyConfig.INDEX_COMPOUND_FORMAT_SETTING, mergePolicyConfig::setNoCFSRatio);
         scopedSettings.addSettingsUpdateConsumer(MergePolicyConfig.INDEX_MERGE_POLICY_DELETES_PCT_ALLOWED_SETTING, mergePolicyConfig::setDeletesPctAllowed);
@@ -416,7 +361,6 @@ public final class IndexSettings {
         scopedSettings.addSettingsUpdateConsumer(INDEX_TRANSLOG_RETENTION_SIZE_SETTING, this::setTranslogRetentionSize);
         scopedSettings.addSettingsUpdateConsumer(INDEX_REFRESH_INTERVAL_SETTING, this::setRefreshInterval);
         scopedSettings.addSettingsUpdateConsumer(MAX_REFRESH_LISTENERS_PER_SHARD, this::setMaxRefreshListeners);
-        scopedSettings.addSettingsUpdateConsumer(DEFAULT_FIELD_SETTING, this::setDefaultFields);
         scopedSettings.addSettingsUpdateConsumer(INDEX_SEARCH_IDLE_AFTER, this::setSearchIdleAfter);
         scopedSettings.addSettingsUpdateConsumer(INDEX_SOFT_DELETES_RETENTION_OPERATIONS_SETTING, this::setSoftDeleteRetentionOperations);
         scopedSettings.addSettingsUpdateConsumer(INDEX_SOFT_DELETES_RETENTION_LEASE_PERIOD_SETTING, this::setRetentionLeaseMillis);

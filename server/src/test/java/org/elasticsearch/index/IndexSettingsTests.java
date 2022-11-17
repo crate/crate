@@ -33,7 +33,6 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -588,21 +587,6 @@ public class IndexSettingsTests extends ESTestCase {
         assertThat(settings.get("archived.index.unknown"), is("foo"));
         assertThat(settings.get("index.version.created"), is(Integer.toString(Version.CURRENT.internalId)));
         assertThat(settings.get("index.refresh_interval"), is("2s"));
-    }
-
-    public void testQueryDefaultField() {
-        IndexSettings index = newIndexSettings(
-            newIndexMeta("index", Settings.EMPTY), Settings.EMPTY
-        );
-        assertThat(index.getDefaultFields(), equalTo(Collections.singletonList("*")));
-        index = newIndexSettings(
-            newIndexMeta("index", Settings.EMPTY), Settings.builder().put("index.query.default_field", "body").build()
-        );
-        assertThat(index.getDefaultFields(), equalTo(Collections.singletonList("body")));
-        index.updateIndexMetadata(
-            newIndexMeta("index", Settings.builder().putList("index.query.default_field", "body", "title").build())
-        );
-        assertThat(index.getDefaultFields(), equalTo(Arrays.asList("body", "title")));
     }
 
     @Test

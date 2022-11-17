@@ -1200,8 +1200,8 @@ public abstract class Engine implements Closeable {
             return TYPE.INDEX;
         }
 
-        public List<Document> docs() {
-            return this.doc.docs();
+        public Document document() {
+            return this.doc.doc();
         }
 
         public BytesReference source() {
