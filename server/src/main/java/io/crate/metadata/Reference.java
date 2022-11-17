@@ -22,6 +22,9 @@
 package io.crate.metadata;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 
 import javax.annotation.Nullable;
 
@@ -63,5 +66,28 @@ public interface Reference extends Symbol {
     @SuppressWarnings("unchecked")
     static <T extends Reference> T fromStream(StreamInput in) throws IOException {
         return (T) SymbolType.VALUES.get(in.readVInt()).newInstance(in);
+    }
+
+    /**
+     * Builds a hierarchy for an object column(s) out of the flat structure.
+     *
+     * @param references must contain all path members of each leaf node
+     * to make sure that leaf references are reachable from the root.
+     *
+     * @return tree represented by sort of "adjacency list".
+     * We identify references by FQN and store tree as a map(ident -> list(reference)).
+     * NULL node is a root which is an entry point for any traversing method utilizing the tree.
+     */
+    static HashMap<ColumnIdent, List<Reference>> buildTree(List<Reference> references) {
+        HashMap<ColumnIdent, List<Reference>> tree = new HashMap<>();
+        for (Reference treeNode: references) {
+            // To build an "adjacency list" we add each edge only once, thus we add only direct neighbor node (parent).
+            // I.e if a leaf node C has path A-B we add only (B,C) edge when handling node C.
+            // Edge (A,B) will be added later when processing node B:
+            // we have a requirement to contain all path nodes in the flat list, so it's guaranteed that we will process B at some point and add (B,A).
+            List<Reference> siblings = tree.computeIfAbsent(treeNode.column().getParent(), k -> new ArrayList<>()); // When parent is null we are adding a root.
+            siblings.add(treeNode); // Every node is added only once, no duplicates in the list.
+        }
+        return tree;
     }
 }

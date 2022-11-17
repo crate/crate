@@ -31,6 +31,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 
+import com.carrotsearch.hppc.IntArrayList;
+import io.crate.execution.ddl.tables.AddColumnRequest;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.settings.Settings;
 
 import io.crate.analyze.AnalyzedAlterTableAddColumn;
@@ -59,6 +62,8 @@ import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.CheckConstraint;
 import io.crate.types.ObjectType;
 
+import static io.crate.analyze.AnalyzedTableElements.toMapping;
+
 public class AlterTableAddColumnPlan implements Plan {
 
     private final AnalyzedAlterTableAddColumn alterTable;
@@ -78,25 +83,62 @@ public class AlterTableAddColumnPlan implements Plan {
                               RowConsumer consumer,
                               Row params,
                               SubQueryResults subQueryResults) throws Exception {
-        BoundAddColumn stmt = bind(
-            alterTable,
-            plannerContext.transactionContext(),
-            dependencies.nodeContext(),
-            params,
-            subQueryResults,
-            dependencies.fulltextAnalyzerResolver());
+        if (plannerContext.clusterState().getNodes().getMinNodeVersion().onOrAfter(Version.V_5_2_0)) {
+            AnalyzedTableElements<Object> tableElements = validate(
+                alterTable,
+                plannerContext.transactionContext(),
+                dependencies.nodeContext(),
+                params,
+                subQueryResults
+            );
 
-        dependencies.alterTableOperation().executeAlterTableAddColumn(stmt)
-            .whenComplete(new OneRowActionListener<>(consumer, rCount -> new Row1(rCount == null ? -1 : rCount)));
+            AnalyzedTableElements.validateAndBuildSettings(tableElements, dependencies.fulltextAnalyzerResolver());
+
+            AnalyzedTableElements.finalizeAndValidate(
+                alterTable.tableInfo().ident(),
+                alterTable.analyzedTableElementsWithExpressions(),
+                tableElements
+            );
+
+            List<Reference> references = new ArrayList<>();
+            IntArrayList pKeysIndices = new IntArrayList();
+            tableElements.collectReferences(alterTable.tableInfo().ident(), references, pKeysIndices, true);
+
+            var addColumnRequest = new AddColumnRequest(
+                alterTable.tableInfo().ident(),
+                references,
+                tableElements.getCheckConstraints(),
+                pKeysIndices
+            );
+
+            dependencies.alterTableOperation().executeAlterTableAddColumn(addColumnRequest)
+                .whenComplete(new OneRowActionListener<>(consumer, rCount -> new Row1(rCount == null ? -1 : rCount)));
+
+        } else {
+            // TODO: This plan and related code has to be removed after 5.2
+            BoundAddColumn stmt = bind(
+                alterTable,
+                plannerContext.transactionContext(),
+                dependencies.nodeContext(),
+                params,
+                subQueryResults,
+                dependencies.fulltextAnalyzerResolver()
+            );
+
+            dependencies.alterTableOperation().executeAlterTableAddColumn(stmt)
+                .whenComplete(new OneRowActionListener<>(consumer, rCount -> new Row1(rCount == null ? -1 : rCount)));
+        }
     }
 
-    @VisibleForTesting
-    public static BoundAddColumn bind(AnalyzedAlterTableAddColumn alterTable,
-                                      CoordinatorTxnCtx txnCtx,
-                                      NodeContext nodeCtx,
-                                      Row params,
-                                      SubQueryResults subQueryResults,
-                                      FulltextAnalyzerResolver fulltextAnalyzerResolver) {
+    /**
+     * Common validation required for pre-5.2.0 plan and post-5.2.0 plan.
+     * Resolves generated and default expressions as well.
+     */
+    static AnalyzedTableElements<Object> validate(AnalyzedAlterTableAddColumn alterTable,
+                                                  CoordinatorTxnCtx txnCtx,
+                                                  NodeContext nodeCtx,
+                                                  Row params,
+                                                  SubQueryResults subQueryResults) {
         Function<? super Symbol, Object> eval = x -> SymbolEvaluator.evaluate(
             txnCtx,
             nodeCtx,
@@ -110,33 +152,52 @@ public class AlterTableAddColumnPlan implements Plan {
         for (AnalyzedColumnDefinition<Object> column : tableElements.columns()) {
             ensureColumnLeafsAreNew(column, tableInfo);
         }
-        addExistingPrimaryKeys(tableInfo, tableElements);
+
         ensureNoIndexDefinitions(tableElements.columns());
+        return tableElements;
+    }
+
+    @VisibleForTesting
+    public static BoundAddColumn bind(AnalyzedAlterTableAddColumn alterTable,
+                                      CoordinatorTxnCtx txnCtx,
+                                      NodeContext nodeCtx,
+                                      Row params,
+                                      SubQueryResults subQueryResults,
+                                      FulltextAnalyzerResolver fulltextAnalyzerResolver) {
+
+
+        AnalyzedTableElements<Object> tableElements = validate(alterTable, txnCtx, nodeCtx, params, subQueryResults);
+        DocTableInfo tableInfo = alterTable.tableInfo();
+
+        addExistingPrimaryKeys(tableInfo, tableElements);
+
         addExistingCheckConstraints(tableInfo, tableElements);
-        // validate table elements
-        AnalyzedTableElements<Symbol> tableElementsUnboundWithExpressions = alterTable.analyzedTableElementsWithExpressions();
+
         Settings tableSettings = AnalyzedTableElements.validateAndBuildSettings(
             tableElements, fulltextAnalyzerResolver);
-        Map<String, Object> mapping = AnalyzedTableElements.finalizeAndValidate(
+
+        AnalyzedTableElements.finalizeAndValidate(
             tableInfo.ident(),
-            tableElementsUnboundWithExpressions,
+            alterTable.analyzedTableElementsWithExpressions(),
             tableElements
         );
 
-        int numCurrentPks = tableInfo.primaryKey().size();
-        if (tableInfo.primaryKey().contains(DocSysColumns.ID)) {
+        Map<String, Object> mapping = toMapping(tableElements);
+
+        int numCurrentPks = alterTable.tableInfo().primaryKey().size();
+        if (alterTable.tableInfo().primaryKey().contains(DocSysColumns.ID)) {
             numCurrentPks -= 1;
         }
 
         boolean hasNewPrimaryKeys = AnalyzedTableElements.primaryKeys(tableElements).size() > numCurrentPks;
-        boolean hasGeneratedColumns = tableElementsUnboundWithExpressions.hasGeneratedColumns();
+
         return new BoundAddColumn(
             tableInfo,
             tableElements,
             tableSettings,
             mapping,
             hasNewPrimaryKeys,
-            hasGeneratedColumns
+            alterTable.analyzedTableElementsWithExpressions().hasGeneratedColumns()
         );
     }
 

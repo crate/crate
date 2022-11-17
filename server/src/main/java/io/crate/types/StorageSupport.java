@@ -30,7 +30,7 @@ public record StorageSupport<T>(boolean docValuesDefault,
                                 boolean hasFieldNamesIndex,
                                 @Nullable EqQuery<T> eqQuery) {
 
-    public boolean getComputedDocValuesDefault(IndexType indexType) {
+    public boolean getComputedDocValuesDefault(@Nullable IndexType indexType) {
         return docValuesDefault && indexType != IndexType.FULLTEXT;
     }
 }
