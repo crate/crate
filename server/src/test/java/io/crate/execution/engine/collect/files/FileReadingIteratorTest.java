@@ -39,7 +39,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.function.Supplier;
 
 import org.elasticsearch.common.settings.Settings;
@@ -282,11 +281,9 @@ public class FileReadingIteratorTest extends ESTestCase {
                         @Override
                         public String readLine() throws IOException {
                             var line = super.readLine();
-                            if (new Random().nextBoolean()) {
-                                // current implementation does not handle SocketTimeoutException thrown when parsing header so skip it here as well.
-                                if (currentLineNumber++ > 0 && retry++ < MAX_SOCKET_TIMEOUT_RETRIES) {
-                                    throw new SocketTimeoutException("dummy");
-                                }
+                            // current implementation does not handle SocketTimeoutException thrown when parsing header so skip it here as well.
+                            if (currentLineNumber++ > 0 && retry++ < MAX_SOCKET_TIMEOUT_RETRIES) {
+                                throw new SocketTimeoutException("dummy");
                             }
                             return line;
                         }
