@@ -41,6 +41,7 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 
 import io.crate.common.collections.Lists2;
+import io.crate.types.BitStringType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ParameterTypeSignature;
@@ -78,7 +79,8 @@ public class SignatureBinder {
     private static final Set<String> ALLOW_BASENAME_MATCH = Set.of(
         DataTypes.NUMERIC.getName(),
         DataTypes.STRING.getName(),
-        DataTypes.CHARACTER.getName()
+        DataTypes.CHARACTER.getName(),
+        BitStringType.NAME
     );
 
     public SignatureBinder(Signature declaredSignature, CoercionType coercionType) {
