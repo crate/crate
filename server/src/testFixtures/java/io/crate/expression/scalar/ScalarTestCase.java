@@ -180,6 +180,10 @@ public abstract class ScalarTestCase extends CrateDummyClusterServiceUnitTest {
         assertEvaluate(functionExpression, s -> assertThat(s).isEqualTo(expectedValue), literals);
     }
 
+    public void assertEvaluate(String functionExpression, Object expectedValue, String errorMessage, Literal<?>... literals) {
+        assertEvaluate(functionExpression, s -> assertThat(s).withFailMessage(errorMessage).isEqualTo(expectedValue), literals);
+    }
+
     /**
      * Same as {@link #assertEvaluate(String, Object, Literal[])}, but expecting a null value.
      * It's needed, because if the above method is called with <code>null</code>, i.e.:
