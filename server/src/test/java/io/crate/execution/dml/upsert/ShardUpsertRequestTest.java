@@ -21,8 +21,7 @@
 
 package io.crate.execution.dml.upsert;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.UUID;
@@ -114,7 +113,7 @@ public class ShardUpsertRequestTest extends ESTestCase {
         StreamInput in = out.bytes().streamInput();
         ShardUpsertRequest request2 = new ShardUpsertRequest(in);
 
-        assertThat(request, equalTo(request2));
+        assertThat(request).isEqualTo(request2);
     }
 
     @Test
@@ -166,6 +165,43 @@ public class ShardUpsertRequestTest extends ESTestCase {
         StreamInput in = out.bytes().streamInput();
         ShardUpsertRequest request2 = new ShardUpsertRequest(in);
 
-        assertThat(request, equalTo(request2));
+        assertThat(request).isEqualTo(request2);
+    }
+
+    @Test
+    public void test_values_are_not_streamed_to_replica() throws Exception {
+        ShardUpsertRequest request = new ShardUpsertRequest.Builder(
+            new SessionSettings("dummyUser", SearchPath.createSearchPathFrom("dummySchema")),
+            TimeValue.timeValueSeconds(30),
+            DuplicateKeyAction.UPDATE_OR_FAIL,
+            false,
+            new String[]{"id", "name"},
+            new SimpleReference[]{ID_REF, NAME_REF},
+            null,
+            UUID.randomUUID(),
+            false
+        ).newRequest(new ShardId("test", UUIDs.randomBase64UUID(), 1));
+        request.add(
+            1,
+            ShardUpsertRequest.Item.forInsert(
+                "99",
+                List.of("1"),
+                Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
+                new Object[]{99, "Marvin"},
+                new Symbol[]{Literal.of("dummy")}
+            )
+        );
+        request.moveToReplicaStage();
+
+        BytesStreamOutput out = new BytesStreamOutput();
+        request.writeTo(out);
+        StreamInput in = out.bytes().streamInput();
+        ShardUpsertRequest replicaRequest = new ShardUpsertRequest(in);
+
+        var item = replicaRequest.items().get(0);
+
+        assertThat(item.pkValues()).isEqualTo(List.of());
+        assertThat(item.insertValues()).isNull();
+        assertThat(item.updateAssignments()).isNull();
     }
 }

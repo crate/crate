@@ -22,9 +22,7 @@
 package io.crate.execution.dml.upsert;
 
 import static io.crate.testing.TestingHelpers.createNodeContext;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -75,6 +73,8 @@ import io.crate.execution.ddl.SchemaUpdateClient;
 import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.dml.upsert.ShardUpsertRequest.DuplicateKeyAction;
 import io.crate.execution.jobs.TasksService;
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
@@ -200,7 +200,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         TransportWriteAction.WritePrimaryResult<ShardUpsertRequest, ShardResponse> result =
             transportShardUpsertAction.processRequestItems(indexShard, request, new AtomicBoolean(false));
 
-        assertThat(result.finalResponseIfSuccessful.failure(), instanceOf(VersionConflictEngineException.class));
+        assertThat(result.finalResponseIfSuccessful.failure()).isInstanceOf(VersionConflictEngineException.class);
     }
 
     @Test
@@ -223,9 +223,9 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             transportShardUpsertAction.processRequestItems(indexShard, request, new AtomicBoolean(false));
 
         ShardResponse response = result.finalResponseIfSuccessful;
-        assertThat(response.failures().size(), is(1));
-        assertThat(response.failures().get(0).message(),
-            is("[1]: version conflict, document with id: 1 already exists in 'characters'"));
+        assertThat(response.failures().size()).isEqualTo(1);
+        assertThat(response.failures().get(0).message())
+            .isEqualTo("[1]: version conflict, document with id: 1 already exists in 'characters'");
     }
 
     @Test
@@ -268,7 +268,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         TransportWriteAction.WritePrimaryResult<ShardUpsertRequest, ShardResponse> result =
             transportShardUpsertAction.processRequestItems(indexShard, request, new AtomicBoolean(true));
 
-        assertThat(result.finalResponseIfSuccessful.failure(), instanceOf(InterruptedException.class));
+        assertThat(result.finalResponseIfSuccessful.failure()).isInstanceOf(InterruptedException.class);
     }
 
     @Test
@@ -288,10 +288,42 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         request.add(1, ShardUpsertRequest.Item.forInsert("1", List.of(), Translog.UNSET_AUTO_GENERATED_TIMESTAMP, new Object[]{1}, null));
 
         reset(indexShard);
+        request.moveToReplicaStage();
 
         // would fail with NPE if not skipped
         transportShardUpsertAction.processRequestItemsOnReplica(indexShard, request);
         verify(indexShard, times(0)).applyIndexOperationOnReplica(
             anyLong(), anyLong(), anyLong(), anyLong(), anyBoolean(), any(SourceToParse.class));
+    }
+
+    @Test
+    public void test_request_moves_to_replica_stage_after_finished_on_primary() throws Exception {
+        ShardId shardId = new ShardId(TABLE_IDENT.indexNameOrAlias(), charactersIndexUUID, 0);
+        ShardUpsertRequest request = new ShardUpsertRequest.Builder(
+            DUMMY_SESSION_INFO,
+            TimeValue.timeValueSeconds(30),
+            DuplicateKeyAction.UPDATE_OR_FAIL,
+            false,
+            new String[]{"id"},
+            new SimpleReference[]{ID_REF},
+            null,
+            UUID.randomUUID(),
+            false
+        ).newRequest(shardId);
+        request.add(
+            1,
+            ShardUpsertRequest.Item.forInsert(
+                "1",
+                List.of("1"),
+                Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
+                new Object[]{1},
+                new Symbol[]{Literal.of("2")}
+            )
+        );
+
+        TransportWriteAction.WritePrimaryResult<ShardUpsertRequest, ShardResponse> result =
+            transportShardUpsertAction.processRequestItems(indexShard, request, new AtomicBoolean(false));
+
+        assertThat(result.replicaRequest().stage()).isEqualTo(ShardUpsertRequest.Stage.REPLICA);
     }
 }

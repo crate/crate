@@ -40,6 +40,7 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.translog.Translog;
 
 import io.crate.Streamer;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.unit.TimeValue;
 import io.crate.execution.dml.ShardRequest;
 import io.crate.expression.symbol.Symbol;
@@ -53,6 +54,11 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
         UPDATE_OR_FAIL,
         OVERWRITE,
         IGNORE
+    }
+
+    enum Stage {
+        PRIMARY,
+        REPLICA
     }
 
     private final DuplicateKeyAction duplicateKeyAction;
@@ -79,6 +85,12 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
     @Nullable
     private Symbol[] returnValues;
 
+    /**
+     * Defines the current stage of the request, used to decide what values are required to write on the output stream.
+     * As the source is generated on the primary shard, values used for the source generation aren't required on
+     * the replica shard and would only increase the request size.
+     */
+    private Stage stage;
 
     public ShardUpsertRequest(
         ShardId shardId,
@@ -99,6 +111,7 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
         this.updateColumns = updateColumns;
         this.insertColumns = insertColumns;
         this.returnValues = returnValues;
+        this.stage = Stage.PRIMARY;
     }
 
     public ShardUpsertRequest(StreamInput in) throws IOException {
@@ -143,13 +156,16 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
         } else {
             isRetry = false;
         }
+        if (in.getVersion().onOrAfter(Version.V_5_2_0)) {
+            stage = Stage.values()[in.readVInt()];
+        }
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
         // Stream References
-        if (updateColumns != null) {
+        if (updateColumns != null && stage == Stage.PRIMARY) {
             out.writeVInt(updateColumns.length);
             for (String column : updateColumns) {
                 out.writeString(column);
@@ -158,7 +174,7 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
             out.writeVInt(0);
         }
         Streamer[] insertValuesStreamer = null;
-        if (insertColumns != null) {
+        if (insertColumns != null && stage == Stage.PRIMARY) {
             out.writeVInt(insertColumns.length);
             for (Reference reference : insertColumns) {
                 Reference.toStream(reference, out);
@@ -176,10 +192,10 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
 
         out.writeVInt(items.size());
         for (Item item : items) {
-            item.writeTo(out, insertValuesStreamer);
+            item.writeTo(out, stage, insertValuesStreamer);
         }
         if (out.getVersion().onOrAfter(Version.V_4_2_0)) {
-            if (returnValues != null) {
+            if (returnValues != null && stage == Stage.PRIMARY) {
                 out.writeVInt(returnValues.length);
                 for (Symbol returnValue : returnValues) {
                     Symbols.toStream(returnValue, out);
@@ -190,6 +206,9 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
         }
         if (out.getVersion().onOrAfter(Version.V_4_8_0)) {
             out.writeBoolean(isRetry);
+        }
+        if (out.getVersion().onOrAfter(Version.V_5_2_0)) {
+            out.writeVInt(stage.ordinal());
         }
     }
 
@@ -232,6 +251,15 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
 
     public DuplicateKeyAction duplicateKeyAction() {
         return duplicateKeyAction;
+    }
+
+    public void moveToReplicaStage() {
+        stage = Stage.REPLICA;
+    }
+
+    @VisibleForTesting
+    ShardUpsertRequest.Stage stage() {
+        return stage;
     }
 
     @Override
@@ -415,9 +443,9 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
             }
         }
 
-        public void writeTo(StreamOutput out, @Nullable Streamer[] insertValueStreamers) throws IOException {
+        public void writeTo(StreamOutput out, Stage stage, @Nullable Streamer[] insertValueStreamers) throws IOException {
             super.writeTo(out);
-            if (updateAssignments != null) {
+            if (updateAssignments != null && stage == Stage.PRIMARY) {
                 out.writeBoolean(true);
                 out.writeVInt(updateAssignments.length);
                 for (Symbol updateAssignment : updateAssignments) {
@@ -427,7 +455,7 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
                 out.writeBoolean(false);
             }
             // Stream References
-            if (insertValues != null) {
+            if (insertValues != null && stage == Stage.PRIMARY) {
                 assert insertValueStreamers != null : "streamers are required to stream insert values";
                 out.writeVInt(insertValues.length);
                 for (int i = 0; i < insertValues.length; i++) {
@@ -442,7 +470,11 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
                 out.writeBytesReference(source);
             }
             if (streamPkValues(out.getVersion())) {
-                out.writeStringCollection(pkValues);
+                if (stage == Stage.PRIMARY) {
+                    out.writeStringCollection(pkValues);
+                } else {
+                    out.writeStringCollection(List.of());
+                }
             }
             if (out.getVersion().onOrAfter(Version.V_5_0_0)) {
                 out.writeLong(autoGeneratedTimestamp);

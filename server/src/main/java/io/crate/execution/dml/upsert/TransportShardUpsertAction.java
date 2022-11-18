@@ -199,6 +199,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                         (e instanceof VersionConflictEngineException)));
             }
         }
+        request.moveToReplicaStage();
         return new WritePrimaryResult<>(request, shardResponse, translogLocation, null, indexShard);
     }
 
@@ -212,6 +213,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
 
     @Override
     protected WriteReplicaResult<ShardUpsertRequest> processRequestItemsOnReplica(IndexShard indexShard, ShardUpsertRequest request) throws IOException {
+        assert request.stage() == ShardUpsertRequest.Stage.REPLICA : "Expecting request to be on REPLICA stage";
         Translog.Location location = null;
         for (ShardUpsertRequest.Item item : request.items()) {
             if (item.source() == null) {

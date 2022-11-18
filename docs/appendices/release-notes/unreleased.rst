@@ -95,3 +95,6 @@ Fixes
 
 - Fixed an issue that could generate duplicate data on ``COPY FROM``  while
   some internal retries were happening due to I/O errors e.g. socket timeouts.
+
+- Fixed an issue which could lead to a replica shard being marked as failed due
+  to a upsert request containing large update assignment expressions.
