@@ -1070,6 +1070,11 @@ public class TestStatementBuilder {
     }
 
     @Test
+    public void test_bitwise_expression() {
+        printStatement("select 1 | 2 & 3 # 4");
+    }
+
+    @Test
     public void testIntervalLiteral() {
         printStatement("select interval '1' HOUR");
     }

@@ -17,6 +17,7 @@ and :ref:`operators <gloss-operator>`.
   scalar-functions
   aggregation
   arithmetic
+  bit-operators
   table-functions
   comparison-operators
   array-comparisons

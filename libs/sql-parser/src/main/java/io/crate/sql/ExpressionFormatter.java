@@ -31,6 +31,7 @@ import io.crate.sql.tree.ArraySubQueryExpression;
 import io.crate.sql.tree.AstVisitor;
 import io.crate.sql.tree.BetweenPredicate;
 import io.crate.sql.tree.BitString;
+import io.crate.sql.tree.BitwiseExpression;
 import io.crate.sql.tree.BooleanLiteral;
 import io.crate.sql.tree.Cast;
 import io.crate.sql.tree.CollectionColumnType;
@@ -443,6 +444,16 @@ public final class ExpressionFormatter {
         protected String visitLogicalBinaryExpression(LogicalBinaryExpression node, @Nullable List<Expression> parameters) {
             return formatBinaryExpression(
                 node.getType().toString(),
+                node.getLeft(),
+                node.getRight(),
+                parameters
+            );
+        }
+
+        @Override
+        protected String visitBitwiseExpression(BitwiseExpression node, @Nullable List<Expression> parameters) {
+            return formatBinaryExpression(
+                node.getType().getValue(),
                 node.getLeft(),
                 node.getRight(),
                 parameters

@@ -85,6 +85,7 @@ import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.BeginStatement;
 import io.crate.sql.tree.BetweenPredicate;
 import io.crate.sql.tree.BitString;
+import io.crate.sql.tree.BitwiseExpression;
 import io.crate.sql.tree.BooleanLiteral;
 import io.crate.sql.tree.Cast;
 import io.crate.sql.tree.CharFilters;
@@ -1765,6 +1766,14 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     }
 
     @Override
+    public Node visitBitwiseBinary(SqlBaseParser.BitwiseBinaryContext context) {
+        return new BitwiseExpression(
+            getBitwiseOperator(context.operator),
+            (Expression) visit(context.left),
+            (Expression) visit(context.right));
+    }
+
+    @Override
     public Node visitConcatenation(SqlBaseParser.ConcatenationContext context) {
         return new FunctionCall(
             QualifiedName.of("concat"), List.of(
@@ -2331,6 +2340,19 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
                 return LogicalBinaryExpression.Type.AND;
             case SqlBaseLexer.OR:
                 return LogicalBinaryExpression.Type.OR;
+            default:
+                throw new IllegalArgumentException("Unsupported operator: " + token.getText());
+        }
+    }
+
+    private static BitwiseExpression.Type getBitwiseOperator(Token token) {
+        switch (token.getType()) {
+            case SqlBaseLexer.BITWISE_AND:
+                return BitwiseExpression.Type.AND;
+            case SqlBaseLexer.BITWISE_OR:
+                return BitwiseExpression.Type.OR;
+            case SqlBaseLexer.BITWISE_XOR:
+                return BitwiseExpression.Type.XOR;
             default:
                 throw new IllegalArgumentException("Unsupported operator: " + token.getText());
         }
