@@ -44,6 +44,10 @@ public abstract class AstVisitor<R, C> {
         return visitExpression(node, context);
     }
 
+    protected R visitBitwiseExpression(BitwiseExpression node, C context) {
+        return visitExpression(node, context);
+    }
+
     protected R visitBetweenPredicate(BetweenPredicate node, C context) {
         return visitExpression(node, context);
     }
