@@ -19,8 +19,9 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-grammar SqlBase;
+parser grammar SqlBaseParser;
 
+options { tokenVocab=SqlBaseLexer; } // use tokens from SqlBaseLexer.g4
 
 statements
     : statement (SEMICOLON statement)* SEMICOLON? EOF
@@ -36,15 +37,15 @@ singleExpression
 
 statement
     : query                                                                          #default
-    | BEGIN (WORK | TRANSACTION)? (transactionMode (','? transactionMode)*)?         #begin
-    | START TRANSACTION (transactionMode (','? transactionMode)*)?                   #startTransaction
+    | BEGIN (WORK | TRANSACTION)? (transactionMode (COMMA? transactionMode)*)?       #begin
+    | START TRANSACTION (transactionMode (COMMA? transactionMode)*)?                 #startTransaction
     | COMMIT (WORK | TRANSACTION)?                                                   #commit
     | END (WORK | TRANSACTION)?                                                      #commit
     | EXPLAIN (ANALYZE)? statement                                                   #explain
     | OPTIMIZE TABLE tableWithPartitions withProperties?                             #optimize
     | REFRESH TABLE tableWithPartitions                                              #refreshTable
     | UPDATE aliasedRelation
-        SET assignment (',' assignment)*
+        SET assignment (COMMA assignment)*
         where?
         returning?                                                                   #update
     | DELETE FROM aliasedRelation where?                                             #delete
@@ -56,27 +57,28 @@ statement
         (LIKE pattern=stringLiteral | where)?                                        #showColumns
     | SHOW (qname | ALL)                                                             #showSessionParameter
     | alterStmt                                                                      #alter
-    | RESET GLOBAL primaryExpression (',' primaryExpression)*                        #resetGlobal
+    | RESET GLOBAL primaryExpression (COMMA primaryExpression)*                      #resetGlobal
     | SET (SESSION CHARACTERISTICS AS)? TRANSACTION
-        transactionMode (',' transactionMode)*                                       #setTransaction
+        transactionMode (COMMA transactionMode)*                                     #setTransaction
     | SET (SESSION | LOCAL)? SESSION AUTHORIZATION
         (DEFAULT | username=stringLiteralOrIdentifier)                               #setSessionAuthorization
     | RESET SESSION AUTHORIZATION                                                    #resetSessionAuthorization
     | SET (SESSION | LOCAL)? qname
-        (EQ | TO) (DEFAULT | setExpr (',' setExpr)*)                                 #set
+        (EQ | TO) (DEFAULT | setExpr (COMMA setExpr)*)                               #set
     | SET GLOBAL (PERSISTENT | TRANSIENT)?
-        setGlobalAssignment (',' setGlobalAssignment)*                               #setGlobal
+        setGlobalAssignment (COMMA setGlobalAssignment)*                             #setGlobal
     | SET LICENSE stringLiteral                                                      #setLicense
     | SET TIME ZONE (LOCAL | DEFAULT | stringLiteral)                                #setTimeZone
     | KILL (ALL | jobId=parameterOrString)                                           #kill
-    | INSERT INTO table ('(' ident (',' ident)* ')')? insertSource
-        onConflict?
-        returning?                                                                   #insert
+    | INSERT INTO table
+        (OPEN_ROUND_BRACKET ident (COMMA ident)* CLOSE_ROUND_BRACKET)?
+        insertSource onConflict? returning?                                          #insert
     | RESTORE SNAPSHOT qname
         (ALL | METADATA | TABLE tableWithPartitions | metatypes=idents)
         withProperties?                                                              #restore
-    | COPY tableWithPartition ('(' ident (',' ident)* ')')?
-         FROM path=expr withProperties? (RETURN SUMMARY)?                            #copyFrom
+    | COPY tableWithPartition
+        (OPEN_ROUND_BRACKET ident (COMMA ident)* CLOSE_ROUND_BRACKET)?
+        FROM path=expr withProperties? (RETURN SUMMARY)?                             #copyFrom
     | COPY tableWithPartition columns? where?
         TO DIRECTORY? path=expr withProperties?                                      #copyTo
     | dropStmt                                                                       #drop
@@ -103,7 +105,8 @@ dropStmt
     | DROP REPOSITORY ident                                                          #dropRepository
     | DROP SNAPSHOT qname                                                            #dropSnapshot
     | DROP FUNCTION (IF EXISTS)? name=qname
-        '(' (functionArgument (',' functionArgument)*)? ')'                          #dropFunction
+        OPEN_ROUND_BRACKET (functionArgument (COMMA functionArgument)*)?
+        CLOSE_ROUND_BRACKET                                                          #dropFunction
     | DROP USER (IF EXISTS)? name=ident                                              #dropUser
     | DROP VIEW (IF EXISTS)? names=qnames                                            #dropView
     | DROP ANALYZER name=ident                                                       #dropAnalyzer
@@ -115,9 +118,11 @@ alterStmt
     : ALTER TABLE alterTableDefinition ADD COLUMN? addColumnDefinition               #addColumn
     | ALTER TABLE alterTableDefinition DROP CONSTRAINT ident                         #dropCheckConstraint
     | ALTER TABLE alterTableDefinition
-        (SET '(' genericProperties ')' | RESET ('(' ident (',' ident)* ')')?)        #alterTableProperties
+        (SET OPEN_ROUND_BRACKET genericProperties CLOSE_ROUND_BRACKET
+        | RESET (OPEN_ROUND_BRACKET ident (COMMA ident)* CLOSE_ROUND_BRACKET)?)      #alterTableProperties
     | ALTER BLOB TABLE alterTableDefinition
-        (SET '(' genericProperties ')' | RESET ('(' ident (',' ident)* ')')?)        #alterBlobTableProperties
+        (SET OPEN_ROUND_BRACKET genericProperties CLOSE_ROUND_BRACKET
+        | RESET (OPEN_ROUND_BRACKET ident (COMMA ident)* CLOSE_ROUND_BRACKET)?)      #alterBlobTableProperties
     | ALTER (BLOB)? TABLE alterTableDefinition (OPEN | CLOSE)                        #alterTableOpenClose
     | ALTER (BLOB)? TABLE alterTableDefinition RENAME TO qname                       #alterTableRename
     | ALTER (BLOB)? TABLE alterTableDefinition REROUTE rerouteOption                 #alterTableReroute
@@ -125,9 +130,10 @@ alterStmt
     | ALTER CLUSTER SWAP TABLE source=qname TO target=qname withProperties?          #alterClusterSwapTable
     | ALTER CLUSTER DECOMMISSION node=expr                                           #alterClusterDecommissionNode
     | ALTER CLUSTER GC DANGLING ARTIFACTS                                            #alterClusterGCDanglingArtifacts
-    | ALTER USER name=ident SET '(' genericProperties ')'                            #alterUser
+    | ALTER USER name=ident
+        SET OPEN_ROUND_BRACKET genericProperties CLOSE_ROUND_BRACKET                 #alterUser
     | ALTER PUBLICATION name=ident
-              ((ADD | SET | DROP) TABLE qname '*'?  (',' qname '*'? )*)              #alterPublication
+        ((ADD | SET | DROP) TABLE qname '*'?  (COMMA qname '*'? )*)                  #alterPublication
     | ALTER SUBSCRIPTION name=ident alterSubscriptionMode                            #alterSubscription
     ;
 
@@ -144,7 +150,7 @@ query
 
 queryNoWith
     : queryTerm
-      (ORDER BY sortItem (',' sortItem)*)?
+      (ORDER BY sortItem (COMMA sortItem)*)?
       (limitClause? offsetClause? | offsetClause? limitClause?)
     ;
 
@@ -173,18 +179,18 @@ sortItem
     ;
 
 querySpec
-    : SELECT setQuant? selectItem (',' selectItem)*
-      (FROM relation (',' relation)*)?
+    : SELECT setQuant? selectItem (COMMA selectItem)*
+      (FROM relation (COMMA relation)*)?
       where?
-      (GROUP BY expr (',' expr)*)?
+      (GROUP BY expr (COMMA expr)*)?
       (HAVING having=booleanExpression)?
-      (WINDOW windows+=namedWindow (',' windows+=namedWindow)*)?                     #defaultQuerySpec
-    | VALUES values (',' values)*                                                    #valuesRelation
+      (WINDOW windows+=namedWindow (COMMA windows+=namedWindow)*)?                   #defaultQuerySpec
+    | VALUES values (COMMA values)*                                                  #valuesRelation
     ;
 
 selectItem
     : expr (AS? ident)?                                                              #selectSingle
-    | qname '.' ASTERISK                                                             #selectAll
+    | qname DOT ASTERISK                                                             #selectAll
     | ASTERISK                                                                       #selectAll
     ;
 
@@ -193,11 +199,11 @@ where
     ;
 
 returning
-    : RETURNING selectItem (',' selectItem)*
+    : RETURNING selectItem (COMMA selectItem)*
     ;
 
 filter
-    : FILTER '(' where ')'
+    : FILTER OPEN_ROUND_BRACKET where CLOSE_ROUND_BRACKET
     ;
 
 relation
@@ -218,7 +224,7 @@ joinType
 
 joinCriteria
     : ON booleanExpression
-    | USING '(' ident (',' ident)* ')'
+    | USING OPEN_ROUND_BRACKET ident (COMMA ident)* CLOSE_ROUND_BRACKET
     ;
 
 aliasedRelation
@@ -227,29 +233,30 @@ aliasedRelation
 
 relationPrimary
     : table                                                                          #tableRelation
-    | '(' query ')'                                                                  #subqueryRelation
-    | '(' relation ')'                                                               #parenthesizedRelation
+    | OPEN_ROUND_BRACKET query CLOSE_ROUND_BRACKET                                   #subqueryRelation
+    | OPEN_ROUND_BRACKET relation CLOSE_ROUND_BRACKET                                #parenthesizedRelation
     ;
 
 tableWithPartition
-    : qname ( PARTITION '(' assignment ( ',' assignment )* ')')?
+    : qname ( PARTITION OPEN_ROUND_BRACKET assignment ( COMMA assignment )* CLOSE_ROUND_BRACKET)?
     ;
 
 table
     : qname                                                                          #tableName
-    | qname '(' valueExpression? (',' valueExpression)* ')'                          #tableFunction
+    | qname OPEN_ROUND_BRACKET
+        valueExpression? (COMMA valueExpression)* CLOSE_ROUND_BRACKET                #tableFunction
     ;
 
 aliasedColumns
-    : '(' ident (',' ident)* ')'
+    : OPEN_ROUND_BRACKET ident (COMMA ident)* CLOSE_ROUND_BRACKET
     ;
 
 with
-    : WITH namedQuery (',' namedQuery)*
+    : WITH namedQuery (COMMA namedQuery)*
     ;
 
 namedQuery
-    : name=ident (aliasedColumns)? AS '(' query ')'
+    : name=ident (aliasedColumns)? AS OPEN_ROUND_BRACKET query CLOSE_ROUND_BRACKET
     ;
 
 expr
@@ -261,7 +268,8 @@ booleanExpression
     | NOT booleanExpression                                                          #logicalNot
     | left=booleanExpression operator=AND right=booleanExpression                    #logicalBinary
     | left=booleanExpression operator=OR right=booleanExpression                     #logicalBinary
-    | MATCH '(' matchPredicateIdents ',' term=primaryExpression ')'
+    | MATCH OPEN_ROUND_BRACKET matchPredicateIdents
+        COMMA term=primaryExpression CLOSE_ROUND_BRACKET
         (USING matchType=ident withProperties?)?                                     #match
     ;
 
@@ -273,10 +281,11 @@ predicate[ParserRuleContext value]
     : cmpOp right=valueExpression                                                    #comparison
     | cmpOp setCmpQuantifier primaryExpression                                       #quantifiedComparison
     | NOT? BETWEEN lower=valueExpression AND upper=valueExpression                   #between
-    | NOT? IN '(' expr (',' expr)* ')'                                               #inList
+    | NOT? IN OPEN_ROUND_BRACKET expr (COMMA expr)* CLOSE_ROUND_BRACKET              #inList
     | NOT? IN subqueryExpression                                                     #inSubquery
     | NOT? (LIKE | ILIKE) pattern=valueExpression (ESCAPE escape=valueExpression)?   #like
-    | NOT? (LIKE | ILIKE) quant=setCmpQuantifier '(' v=valueExpression')'
+    | NOT? (LIKE | ILIKE) quant=setCmpQuantifier
+        OPEN_ROUND_BRACKET v=valueExpression CLOSE_ROUND_BRACKET
         (ESCAPE escape=valueExpression)?                                             #arrayLike
     | IS NOT? NULL                                                                   #nullPredicate
     | IS NOT? DISTINCT FROM right=valueExpression                                    #distinctFrom
@@ -297,53 +306,62 @@ valueExpression
 primaryExpression
     : parameterOrLiteral                                                             #defaultParamOrLiteral
     | explicitFunction                                                               #explicitFunctionDefault
-    | qname '(' ASTERISK ')' filter? over?                                           #functionCall
+    | qname OPEN_ROUND_BRACKET ASTERISK CLOSE_ROUND_BRACKET filter? over?            #functionCall
     | ident                                                                          #columnReference
-    | qname '(' (setQuant? expr (',' expr)*)? ')' filter?
+    | qname OPEN_ROUND_BRACKET (setQuant? expr (COMMA expr)*)? CLOSE_ROUND_BRACKET filter?
         ((IGNORE|RESPECT) NULLS)? over?                                              #functionCall
     | subqueryExpression                                                             #subqueryExpressionDefault
-    | '(' base=primaryExpression ')' '.' fieldName=ident                             #recordSubscript
-    | '(' expr ')'                                                                   #nestedExpression
+    | OPEN_ROUND_BRACKET base=primaryExpression CLOSE_ROUND_BRACKET
+        DOT fieldName=ident                                                          #recordSubscript
+    | OPEN_ROUND_BRACKET expr CLOSE_ROUND_BRACKET                                    #nestedExpression
     // This is an extension to ANSI SQL, which considers EXISTS to be a <boolean expression>
-    | EXISTS '(' query ')'                                                           #exists
-    | value=primaryExpression '[' index=valueExpression ']'                          #subscript
-    | base=primaryExpression '[' (from=valueExpression)? ':'
-                                 (to=valueExpression)? ']'                           #arraySlice
-    | ident ('.' ident)*                                                             #dereference
+    | EXISTS OPEN_ROUND_BRACKET query CLOSE_ROUND_BRACKET                            #exists
+    | value=primaryExpression
+        OPEN_SQUARE_BRACKET index=valueExpression CLOSE_SQUARE_BRACKET               #subscript
+    | base=primaryExpression
+        OPEN_SQUARE_BRACKET (from=valueExpression)? COLON
+        (to=valueExpression)? CLOSE_SQUARE_BRACKET                                   #arraySlice
+    | ident (DOT ident)*                                                             #dereference
     | primaryExpression CAST_OPERATOR dataType                                       #doubleColonCast
     | timestamp=primaryExpression AT TIME ZONE zone=primaryExpression                #atTimezone
-    | 'ARRAY'? '[]'                                                                  #emptyArray
+    | 'ARRAY'? EMPTY_SQUARE_BRACKET                                                  #emptyArray
     ;
 
 explicitFunction
     : name=CURRENT_DATE                                                              #specialDateTimeFunction
-    | name=CURRENT_TIME ('(' precision=integerLiteral')')?                           #specialDateTimeFunction
-    | name=CURRENT_TIMESTAMP ('(' precision=integerLiteral')')?                      #specialDateTimeFunction
+    | name=CURRENT_TIME
+        (OPEN_ROUND_BRACKET precision=integerLiteral CLOSE_ROUND_BRACKET)?           #specialDateTimeFunction
+    | name=CURRENT_TIMESTAMP
+        (OPEN_ROUND_BRACKET precision=integerLiteral CLOSE_ROUND_BRACKET)?           #specialDateTimeFunction
     | CURRENT_SCHEMA                                                                 #currentSchema
     | (CURRENT_USER | USER)                                                          #currentUser
     | SESSION_USER                                                                   #sessionUser
-    | LEFT '(' strOrColName=expr ',' len=expr ')'                                    #left
-    | RIGHT '(' strOrColName=expr ',' len=expr ')'                                   #right
-    | SUBSTRING '(' expr FROM expr (FOR expr)? ')'                                   #substring
-    | TRIM '(' ((trimMode=(LEADING | TRAILING | BOTH))?
-                (charsToTrim=expr)? FROM)? target=expr ')'                           #trim
-    | EXTRACT '(' stringLiteralOrIdentifier FROM expr ')'                            #extract
-    | CAST '(' expr AS dataType ')'                                                  #cast
-    | TRY_CAST '(' expr AS dataType ')'                                              #cast
+    | LEFT OPEN_ROUND_BRACKET strOrColName=expr COMMA len=expr CLOSE_ROUND_BRACKET   #left
+    | RIGHT OPEN_ROUND_BRACKET strOrColName=expr COMMA len=expr CLOSE_ROUND_BRACKET  #right
+    | SUBSTRING OPEN_ROUND_BRACKET expr FROM expr (FOR expr)? CLOSE_ROUND_BRACKET    #substring
+    | TRIM OPEN_ROUND_BRACKET ((trimMode=(LEADING | TRAILING | BOTH))?
+                (charsToTrim=expr)? FROM)? target=expr CLOSE_ROUND_BRACKET           #trim
+    | EXTRACT OPEN_ROUND_BRACKET stringLiteralOrIdentifier FROM
+        expr CLOSE_ROUND_BRACKET                                                     #extract
+    | CAST OPEN_ROUND_BRACKET expr AS dataType CLOSE_ROUND_BRACKET                   #cast
+    | TRY_CAST OPEN_ROUND_BRACKET expr AS dataType CLOSE_ROUND_BRACKET               #cast
     | CASE operand=expr whenClause+ (ELSE elseExpr=expr)? END                        #simpleCase
     | CASE whenClause+ (ELSE elseExpr=expr)? END                                     #searchedCase
-    | IF '('condition=expr ',' trueValue=expr (',' falseValue=expr)? ')'             #ifCase
+    | IF OPEN_ROUND_BRACKET condition=expr COMMA trueValue=expr
+        (COMMA falseValue=expr)? CLOSE_ROUND_BRACKET                                 #ifCase
     | ARRAY subqueryExpression                                                       #arraySubquery
     ;
 
 subqueryExpression
-    : '(' query ')'
+    : OPEN_ROUND_BRACKET query CLOSE_ROUND_BRACKET
     ;
 
 parameterOrLiteral
-    : parameterOrSimpleLiteral                            #simpleLiteral
-    | ARRAY? '[' (expr (',' expr)*)? ']'                  #arrayLiteral
-    | '{' (objectKeyValue (',' objectKeyValue)*)? '}'     #objectLiteral
+    : parameterOrSimpleLiteral                                                       #simpleLiteral
+    | ARRAY? OPEN_SQUARE_BRACKET (expr (COMMA expr)*)?
+        CLOSE_SQUARE_BRACKET                                                         #arrayLiteral
+    | OPEN_CURLY_BRACKET (objectKeyValue (COMMA objectKeyValue)*)?
+        CLOSE_CURLY_BRACKET                                                          #objectLiteral
     ;
 
 parameterOrSimpleLiteral
@@ -374,8 +392,8 @@ parameterOrString
     ;
 
 parameterExpr
-    : '$' integerLiteral                                                             #positionalParameter
-    | '?'                                                                            #parameterPlaceholder
+    : DOLLAR integerLiteral                                                          #positionalParameter
+    | QUESTION                                                                       #parameterPlaceholder
     ;
 
 nullLiteral
@@ -395,7 +413,7 @@ bitString
     ;
 
 subscriptSafe
-    : value=subscriptSafe '[' index=valueExpression']'
+    : value=subscriptSafe OPEN_SQUARE_BRACKET index=valueExpression CLOSE_SQUARE_BRACKET
     | qname
     ;
 
@@ -421,12 +439,12 @@ over
 
 windowDefinition
     : windowRef=ident
-    | '('
+    | OPEN_ROUND_BRACKET
         (windowRef=ident)?
-        (PARTITION BY partition+=expr (',' partition+=expr)*)?
-        (ORDER BY sortItem (',' sortItem)*)?
+        (PARTITION BY partition+=expr (COMMA partition+=expr)*)?
+        (ORDER BY sortItem (COMMA sortItem)*)?
         windowFrame?
-      ')'
+      CLOSE_ROUND_BRACKET
     ;
 
 windowFrame
@@ -444,15 +462,15 @@ frameBound
     ;
 
 qnames
-    : qname (',' qname)*
+    : qname (COMMA qname)*
     ;
 
 qname
-    : ident ('.' ident)*
+    : ident (DOT ident)*
     ;
 
 idents
-    : ident (',' ident)*
+    : ident (COMMA ident)*
     ;
 
 ident
@@ -514,24 +532,24 @@ objectKeyValue
 
 insertSource
    : query
-   | '(' query ')'
+   | OPEN_ROUND_BRACKET query CLOSE_ROUND_BRACKET
    ;
 
 onConflict
    : ON CONFLICT conflictTarget? DO NOTHING
-   | ON CONFLICT conflictTarget DO UPDATE SET assignment (',' assignment)*
+   | ON CONFLICT conflictTarget DO UPDATE SET assignment (COMMA assignment)*
    ;
 
 conflictTarget
-   : '(' subscriptSafe (',' subscriptSafe)* ')'
+   : OPEN_ROUND_BRACKET subscriptSafe (COMMA subscriptSafe)* CLOSE_ROUND_BRACKET
    ;
 
 values
-    : '(' expr (',' expr)* ')'
+    : OPEN_ROUND_BRACKET expr (COMMA expr)* CLOSE_ROUND_BRACKET
     ;
 
 columns
-    : '(' primaryExpression (',' primaryExpression)* ')'
+    : OPEN_ROUND_BRACKET primaryExpression (COMMA primaryExpression)* CLOSE_ROUND_BRACKET
     ;
 
 assignment
@@ -540,23 +558,25 @@ assignment
 
 createStmt
     : CREATE TABLE (IF NOT EXISTS)? table
-        '(' tableElement (',' tableElement)* ')'
+        OPEN_ROUND_BRACKET tableElement (COMMA tableElement)* CLOSE_ROUND_BRACKET
          partitionedByOrClusteredInto withProperties?                                #createTable
     | CREATE TABLE table AS insertSource                                             #createTableAs
     | CREATE BLOB TABLE table numShards=blobClusteredInto? withProperties?           #createBlobTable
     | CREATE REPOSITORY name=ident TYPE type=ident withProperties?                   #createRepository
     | CREATE SNAPSHOT qname (ALL | TABLE tableWithPartitions) withProperties?        #createSnapshot
     | CREATE ANALYZER name=ident (EXTENDS extendedName=ident)?
-        WITH? '(' analyzerElement ( ',' analyzerElement )* ')'                       #createAnalyzer
+        WITH? OPEN_ROUND_BRACKET analyzerElement
+        ( COMMA analyzerElement )* CLOSE_ROUND_BRACKET                               #createAnalyzer
     | CREATE (OR REPLACE)? FUNCTION name=qname
-        '(' (functionArgument (',' functionArgument)*)? ')'
+        OPEN_ROUND_BRACKET (functionArgument (COMMA functionArgument)*)?
+        CLOSE_ROUND_BRACKET
         RETURNS returnType=dataType
         LANGUAGE language=parameterOrIdent
         AS body=parameterOrString                                                    #createFunction
     | CREATE USER name=ident withProperties?                                         #createUser
     | CREATE ( OR REPLACE )? VIEW name=qname AS queryOptParens                       #createView
     | CREATE PUBLICATION name=ident
-        (FOR ALL TABLES | FOR TABLE qname '*'?  (',' qname '*'? )*)?                 #createPublication
+        (FOR ALL TABLES | FOR TABLE qname '*'?  (COMMA qname '*'? )*)?               #createPublication
     | CREATE SUBSCRIPTION name=ident CONNECTION conninfo=expr
           PUBLICATION publications=idents
           withProperties?                                                            #createSubscription
@@ -587,7 +607,7 @@ partitionedBy
     ;
 
 clusteredBy
-    : CLUSTERED (BY '(' routing=primaryExpression ')')?
+    : CLUSTERED (BY OPEN_ROUND_BRACKET routing=primaryExpression CLOSE_ROUND_BRACKET)?
         (INTO numShards=parameterOrInteger SHARDS)?
     ;
 
@@ -619,9 +639,9 @@ rerouteOption
 
 dataType
     : baseDataType
-        ('(' integerLiteral (',' integerLiteral )* ')')?    #maybeParametrizedDataType
+        (OPEN_ROUND_BRACKET integerLiteral (COMMA integerLiteral )* CLOSE_ROUND_BRACKET)?    #maybeParametrizedDataType
     | objectTypeDefinition                                  #objectDataType
-    | ARRAY '(' dataType ')'                                #arrayDataType
+    | ARRAY OPEN_ROUND_BRACKET dataType CLOSE_ROUND_BRACKET                                #arrayDataType
     | dataType '[]'                                         #arrayDataType
     ;
 
@@ -640,8 +660,8 @@ definedDataType
     ;
 
 objectTypeDefinition
-    : OBJECT ('(' type=(DYNAMIC | STRICT | IGNORED) ')')?
-        (AS '(' columnDefinition ( ',' columnDefinition )* ')')?
+    : OBJECT (OPEN_ROUND_BRACKET type=(DYNAMIC | STRICT | IGNORED) CLOSE_ROUND_BRACKET)?
+        (AS OPEN_ROUND_BRACKET columnDefinition ( COMMA columnDefinition )* CLOSE_ROUND_BRACKET)?
     ;
 
 columnConstraint
@@ -654,15 +674,16 @@ columnConstraint
     ;
 
 checkConstraint
-    : (CONSTRAINT name=ident)? CHECK '(' expression=booleanExpression ')'
+    : (CONSTRAINT name=ident)? CHECK
+        OPEN_ROUND_BRACKET expression=booleanExpression CLOSE_ROUND_BRACKET
     ;
 
 withProperties
-    : WITH '(' genericProperties ')'                                                 #withGenericProperties
+    : WITH OPEN_ROUND_BRACKET genericProperties CLOSE_ROUND_BRACKET                  #withGenericProperties
     ;
 
 genericProperties
-    : genericProperty (',' genericProperty)*
+    : genericProperty (COMMA genericProperty)*
     ;
 
 genericProperty
@@ -671,7 +692,8 @@ genericProperty
 
 matchPredicateIdents
     : matchPred=matchPredicateIdent
-    | '(' matchPredicateIdent (',' matchPredicateIdent)* ')'
+    | OPEN_ROUND_BRACKET matchPredicateIdent (COMMA matchPredicateIdent)*
+        CLOSE_ROUND_BRACKET
     ;
 
 matchPredicateIdent
@@ -690,11 +712,13 @@ tokenizer
     ;
 
 tokenFilters
-    : TOKEN_FILTERS '(' namedProperties (',' namedProperties )* ')'
+    : TOKEN_FILTERS OPEN_ROUND_BRACKET namedProperties (COMMA namedProperties )*
+        CLOSE_ROUND_BRACKET
     ;
 
 charFilters
-    : CHAR_FILTERS '(' namedProperties (',' namedProperties )* ')'
+    : CHAR_FILTERS OPEN_ROUND_BRACKET namedProperties (COMMA namedProperties )*
+        CLOSE_ROUND_BRACKET
     ;
 
 namedProperties
@@ -702,7 +726,7 @@ namedProperties
     ;
 
 tableWithPartitions
-    : tableWithPartition (',' tableWithPartition)*
+    : tableWithPartition (COMMA tableWithPartition)*
     ;
 
 setGlobalAssignment
@@ -784,383 +808,4 @@ nonReserved
     | DISCARD | PLANS | SEQUENCES | TEMPORARY | TEMP | METADATA
     | PUBLICATION | SUBSCRIPTION | ENABLE | DISABLE | CONNECTION | DECLARE | CURSOR | HOLD | FORWARD | BACKWARD
     | RELATIVE | PRIOR | ASENSITIVE | INSENSITIVE | BINARY | NO | SCROLL | ABSOLUTE
-    ;
-
-AUTHORIZATION: 'AUTHORIZATION';
-SELECT: 'SELECT';
-FROM: 'FROM';
-TO: 'TO';
-AS: 'AS';
-AT: 'AT';
-ALL: 'ALL';
-ANY: 'ANY';
-SOME: 'SOME';
-DEALLOCATE: 'DEALLOCATE';
-DIRECTORY: 'DIRECTORY';
-DISTINCT: 'DISTINCT';
-WHERE: 'WHERE';
-GROUP: 'GROUP';
-BY: 'BY';
-ORDER: 'ORDER';
-HAVING: 'HAVING';
-LIMIT: 'LIMIT';
-OFFSET: 'OFFSET';
-OR: 'OR';
-AND: 'AND';
-IN: 'IN';
-NOT: 'NOT';
-EXISTS: 'EXISTS';
-BETWEEN: 'BETWEEN';
-LIKE: 'LIKE';
-ILIKE: 'ILIKE';
-IS: 'IS';
-NULL: 'NULL';
-TRUE: 'TRUE';
-FALSE: 'FALSE';
-IGNORE: 'IGNORE';
-RESPECT: 'RESPECT';
-NULLS: 'NULLS';
-FETCH: 'FETCH';
-FIRST: 'FIRST';
-LAST: 'LAST';
-NEXT: 'NEXT';
-ESCAPE: 'ESCAPE';
-ASC: 'ASC';
-DESC: 'DESC';
-SUBSTRING: 'SUBSTRING';
-TRIM: 'TRIM';
-LEADING: 'LEADING';
-TRAILING: 'TRAILING';
-BOTH: 'BOTH';
-FOR: 'FOR';
-TIME: 'TIME';
-ZONE: 'ZONE';
-YEAR: 'YEAR';
-MONTH: 'MONTH';
-DAY: 'DAY';
-HOUR: 'HOUR';
-MINUTE: 'MINUTE';
-SECOND: 'SECOND';
-CURRENT_DATE: 'CURRENT_DATE';
-CURRENT_TIME: 'CURRENT_TIME';
-CURRENT_TIMESTAMP: 'CURRENT_TIMESTAMP';
-CURRENT_SCHEMA: 'CURRENT_SCHEMA';
-CURRENT_USER: 'CURRENT_USER';
-SESSION_USER: 'SESSION_USER';
-EXTRACT: 'EXTRACT';
-CASE: 'CASE';
-WHEN: 'WHEN';
-THEN: 'THEN';
-ELSE: 'ELSE';
-END: 'END';
-IF: 'IF';
-INTERVAL: 'INTERVAL';
-JOIN: 'JOIN';
-CROSS: 'CROSS';
-OUTER: 'OUTER';
-INNER: 'INNER';
-LEFT: 'LEFT';
-RIGHT: 'RIGHT';
-FULL: 'FULL';
-NATURAL: 'NATURAL';
-USING: 'USING';
-ON: 'ON';
-OVER: 'OVER';
-WINDOW: 'WINDOW';
-PARTITION: 'PARTITION';
-PROMOTE: 'PROMOTE';
-RANGE: 'RANGE';
-ROWS: 'ROWS';
-UNBOUNDED: 'UNBOUNDED';
-PRECEDING: 'PRECEDING';
-FOLLOWING: 'FOLLOWING';
-CURRENT: 'CURRENT';
-ROW: 'ROW';
-WITH: 'WITH';
-WITHOUT: 'WITHOUT';
-RECURSIVE: 'RECURSIVE';
-CREATE: 'CREATE';
-BLOB: 'BLOB';
-TABLE: 'TABLE';
-SWAP: 'SWAP';
-GC: 'GC';
-DANGLING: 'DANGLING';
-ARTIFACTS: 'ARTIFACTS';
-DECOMMISSION: 'DECOMMISSION';
-CLUSTER: 'CLUSTER';
-REPOSITORY: 'REPOSITORY';
-SNAPSHOT: 'SNAPSHOT';
-ALTER: 'ALTER';
-KILL: 'KILL';
-ONLY: 'ONLY';
-
-ADD: 'ADD';
-COLUMN: 'COLUMN';
-
-OPEN: 'OPEN';
-CLOSE: 'CLOSE';
-
-RENAME: 'RENAME';
-
-REROUTE: 'REROUTE';
-MOVE: 'MOVE';
-SHARD: 'SHARD';
-ALLOCATE: 'ALLOCATE';
-REPLICA: 'REPLICA';
-CANCEL: 'CANCEL';
-RETRY: 'RETRY';
-FAILED: 'FAILED';
-
-BOOLEAN: 'BOOLEAN';
-BYTE: 'BYTE';
-SHORT: 'SHORT';
-INTEGER: 'INTEGER';
-INT: 'INT';
-LONG: 'LONG';
-FLOAT: 'FLOAT';
-DOUBLE: 'DOUBLE';
-PRECISION: 'PRECISION';
-TIMESTAMP: 'TIMESTAMP';
-IP: 'IP';
-CHARACTER: 'CHARACTER';
-CHAR_SPECIAL: '"CHAR"';
-VARYING: 'VARYING';
-OBJECT: 'OBJECT';
-STRING_TYPE: 'STRING';
-GEO_POINT: 'GEO_POINT';
-GEO_SHAPE: 'GEO_SHAPE';
-GLOBAL : 'GLOBAL';
-SESSION : 'SESSION';
-LOCAL : 'LOCAL';
-LICENSE : 'LICENSE';
-
-BEGIN: 'BEGIN';
-START: 'START';
-COMMIT: 'COMMIT';
-WORK: 'WORK';
-TRANSACTION: 'TRANSACTION';
-TRANSACTION_ISOLATION: 'TRANSACTION_ISOLATION';
-CHARACTERISTICS: 'CHARACTERISTICS';
-ISOLATION: 'ISOLATION';
-LEVEL: 'LEVEL';
-SERIALIZABLE: 'SERIALIZABLE';
-REPEATABLE: 'REPEATABLE';
-COMMITTED: 'COMMITTED';
-UNCOMMITTED: 'UNCOMMITTED';
-READ: 'READ';
-WRITE: 'WRITE';
-DEFERRABLE: 'DEFERRABLE';
-
-RETURNS: 'RETURNS';
-CALLED: 'CALLED';
-REPLACE: 'REPLACE';
-FUNCTION: 'FUNCTION';
-LANGUAGE: 'LANGUAGE';
-INPUT: 'INPUT';
-
-ANALYZE: 'ANALYZE';
-DISCARD: 'DISCARD';
-PLANS: 'PLANS';
-SEQUENCES: 'SEQUENCES';
-TEMPORARY: 'TEMPORARY';
-TEMP: 'TEMP';
-CONSTRAINT: 'CONSTRAINT';
-CHECK: 'CHECK';
-DESCRIBE: 'DESCRIBE';
-EXPLAIN: 'EXPLAIN';
-FORMAT: 'FORMAT';
-TYPE: 'TYPE';
-TEXT: 'TEXT';
-GRAPHVIZ: 'GRAPHVIZ';
-LOGICAL: 'LOGICAL';
-DISTRIBUTED: 'DISTRIBUTED';
-CAST: 'CAST';
-TRY_CAST: 'TRY_CAST';
-SHOW: 'SHOW';
-TABLES: 'TABLES';
-SCHEMAS: 'SCHEMAS';
-CATALOGS: 'CATALOGS';
-COLUMNS: 'COLUMNS';
-PARTITIONS: 'PARTITIONS';
-FUNCTIONS: 'FUNCTIONS';
-MATERIALIZED: 'MATERIALIZED';
-VIEW: 'VIEW';
-OPTIMIZE: 'OPTIMIZE';
-REFRESH: 'REFRESH';
-RESTORE: 'RESTORE';
-DROP: 'DROP';
-ALIAS: 'ALIAS';
-UNION: 'UNION';
-EXCEPT: 'EXCEPT';
-INTERSECT: 'INTERSECT';
-SYSTEM: 'SYSTEM';
-BERNOULLI: 'BERNOULLI';
-TABLESAMPLE: 'TABLESAMPLE';
-STRATIFY: 'STRATIFY';
-INSERT: 'INSERT';
-INTO: 'INTO';
-VALUES: 'VALUES';
-DELETE: 'DELETE';
-UPDATE: 'UPDATE';
-KEY: 'KEY';
-DUPLICATE: 'DUPLICATE';
-CONFLICT: 'CONFLICT';
-DO: 'DO';
-NOTHING: 'NOTHING';
-SET: 'SET';
-RESET: 'RESET';
-DEFAULT: 'DEFAULT';
-COPY: 'COPY';
-CLUSTERED: 'CLUSTERED';
-SHARDS: 'SHARDS';
-PRIMARY_KEY: 'PRIMARY KEY';
-OFF: 'OFF';
-FULLTEXT: 'FULLTEXT';
-FILTER: 'FILTER';
-PLAIN: 'PLAIN';
-INDEX: 'INDEX';
-STORAGE: 'STORAGE';
-RETURNING: 'RETURNING';
-
-DYNAMIC: 'DYNAMIC';
-STRICT: 'STRICT';
-IGNORED: 'IGNORED';
-
-ARRAY: 'ARRAY';
-
-ANALYZER: 'ANALYZER';
-EXTENDS: 'EXTENDS';
-TOKENIZER: 'TOKENIZER';
-TOKEN_FILTERS: 'TOKEN_FILTERS';
-CHAR_FILTERS: 'CHAR_FILTERS';
-
-PARTITIONED: 'PARTITIONED';
-PREPARE: 'PREPARE';
-
-TRANSIENT: 'TRANSIENT';
-PERSISTENT: 'PERSISTENT';
-
-MATCH: 'MATCH';
-
-GENERATED: 'GENERATED';
-ALWAYS: 'ALWAYS';
-
-USER: 'USER';
-GRANT: 'GRANT';
-DENY: 'DENY';
-REVOKE: 'REVOKE';
-PRIVILEGES: 'PRIVILEGES';
-SCHEMA: 'SCHEMA';
-
-RETURN: 'RETURN';
-SUMMARY: 'SUMMARY';
-
-METADATA: 'METADATA';
-
-PUBLICATION: 'PUBLICATION';
-SUBSCRIPTION: 'SUBSCRIPTION';
-CONNECTION: 'CONNECTION';
-ENABLE: 'ENABLE';
-DISABLE: 'DISABLE';
-
-DECLARE: 'DECLARE';
-CURSOR: 'CURSOR';
-ASENSITIVE: 'ASENSITIVE';
-INSENSITIVE: 'INSENSITIVE';
-BINARY: 'BINARY';
-NO: 'NO';
-SCROLL: 'SCROLL';
-HOLD: 'HOLD';
-ABSOLUTE: 'ABSOLUTE';
-FORWARD: 'FORWARD';
-BACKWARD: 'BACKWARD';
-RELATIVE: 'RELATIVE';
-PRIOR: 'PRIOR';
-
-EQ  : '=';
-NEQ : '<>' | '!=';
-LT  : '<';
-LTE : '<=';
-GT  : '>';
-GTE : '>=';
-LLT  : '<<';
-REGEX_MATCH: '~';
-REGEX_NO_MATCH: '!~';
-REGEX_MATCH_CI: '~*';
-REGEX_NO_MATCH_CI: '!~*';
-
-PLUS: '+';
-MINUS: '-';
-ASTERISK: '*';
-SLASH: '/';
-PERCENT: '%';
-CONCAT: '||';
-CAST_OPERATOR: '::';
-SEMICOLON: ';';
-BITWISE_AND: '&';
-BITWISE_OR: '|';
-BITWISE_XOR: '#';
-
-STRING
-    : '\'' ( ~'\'' | '\'\'' )* '\''
-    ;
-
-ESCAPED_STRING
-    : 'E' '\'' ( ~'\'' | '\'\'' | '\\\'' )* '\''
-    ;
-
-BIT_STRING
-    : 'B' '\'' ([0-1])* '\''
-    ;
-
-
-INTEGER_VALUE
-    : DIGIT+
-    ;
-
-DECIMAL_VALUE
-    : DIGIT+ '.' DIGIT*
-    | '.' DIGIT+
-    | DIGIT+ ('.' DIGIT*)? EXPONENT
-    | '.' DIGIT+ EXPONENT
-    ;
-
-IDENTIFIER
-    : (LETTER | '_') (LETTER | DIGIT | '_' | '@')*
-    ;
-
-DIGIT_IDENTIFIER
-    : DIGIT (LETTER | DIGIT | '_' | '@')+
-    ;
-
-QUOTED_IDENTIFIER
-    : '"' ( ~'"' | '""' )* '"'
-    ;
-
-BACKQUOTED_IDENTIFIER
-    : '`' ( ~'`' | '``' )* '`'
-    ;
-
-fragment EXPONENT
-    : 'E' [+-]? DIGIT+
-    ;
-
-fragment DIGIT
-    : [0-9]
-    ;
-
-fragment LETTER
-    : [A-Za-z]
-    ;
-
-COMMENT
-    : ('--' ~[\r\n]* '\r'? '\n'? | '/*' .*? '*/') -> channel(HIDDEN)
-    ;
-
-WS
-    : [ \r\n\t]+ -> channel(HIDDEN)
-    ;
-
-UNRECOGNIZED
-    : .
     ;
