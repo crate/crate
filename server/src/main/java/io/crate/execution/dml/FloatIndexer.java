@@ -25,42 +25,44 @@ import java.io.IOException;
 import java.util.function.Consumer;
 
 import org.apache.lucene.document.FieldType;
-import org.apache.lucene.document.IntPoint;
+import org.apache.lucene.document.FloatPoint;
 import org.apache.lucene.document.SortedNumericDocValuesField;
 import org.apache.lucene.document.StoredField;
 import org.apache.lucene.index.IndexableField;
+import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 
 import io.crate.metadata.Reference;
 
-public class IntIndexer implements ValueIndexer<Integer> {
+public class FloatIndexer implements ValueIndexer<Float> {
 
+    private final FieldType fieldType;
     private final String name;
     private final Reference ref;
-    private final FieldType fieldType;
 
-    public IntIndexer(Reference ref, FieldType fieldType) {
+    public FloatIndexer(Reference ref, FieldType fieldType) {
         this.ref = ref;
         this.name = ref.column().fqn();
         this.fieldType = fieldType;
     }
 
     @Override
-    public void indexValue(Integer value,
-                           XContentBuilder xContentBuilder,
+    public void indexValue(Float value,
+                           XContentBuilder xcontentBuilder,
                            Consumer<? super IndexableField> addField,
                            Consumer<? super Reference> onDynamicColumn) throws IOException {
-        xContentBuilder.value(value);
+        xcontentBuilder.value(value);
         if (value == null) {
             return;
         }
-        int intValue = value.intValue();
-        addField.accept(new IntPoint(name, intValue));
+        float floatValue = value.floatValue();
+        addField.accept(new FloatPoint(name, floatValue));
         if (ref.hasDocValues()) {
-            addField.accept(new SortedNumericDocValuesField(name, intValue));
+            int intVal = NumericUtils.floatToSortableInt(floatValue);
+            addField.accept(new SortedNumericDocValuesField(name, intVal));
         }
         if (fieldType.stored()) {
-            addField.accept(new StoredField(name, intValue));
+            addField.accept(new StoredField(name, floatValue));
         }
     }
 }

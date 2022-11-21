@@ -36,6 +36,7 @@ import java.util.function.Supplier;
 import javax.annotation.Nullable;
 
 import org.apache.lucene.util.RamUsageEstimator;
+import org.apache.lucene.document.FieldType;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -398,8 +399,9 @@ public class ArrayType<T> extends DataType<List<T>> {
 
     public ValueIndexer<List<T>> valueIndexer(RelationName table,
                                               Reference ref,
+                                              Function<ColumnIdent, FieldType> getFieldType,
                                               Function<ColumnIdent, Reference> getRef) {
-        ValueIndexer<T> innerIndexer = innerType.valueIndexer(table, ref, getRef);
+        ValueIndexer<T> innerIndexer = innerType.valueIndexer(table, ref, getFieldType, getRef);
         return new ArrayIndexer<>(innerIndexer);
     }
 }

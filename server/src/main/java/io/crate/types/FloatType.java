@@ -22,7 +22,13 @@
 package io.crate.types;
 
 import io.crate.Streamer;
+import io.crate.execution.dml.FloatIndexer;
+import io.crate.execution.dml.ValueIndexer;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
 
+import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.FloatPoint;
 import org.apache.lucene.document.SortedNumericDocValuesField;
 import org.apache.lucene.search.IndexOrDocValuesQuery;
@@ -34,6 +40,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.util.function.Function;
 
 public class FloatType extends DataType<Float> implements Streamer<Float>, FixedWidthType {
 
@@ -173,5 +180,13 @@ public class FloatType extends DataType<Float> implements Streamer<Float>, Fixed
     @Override
     public long valueBytes(Float value) {
         return FLOAT_SIZE;
+    }
+
+    @Override
+    public ValueIndexer<Float> valueIndexer(RelationName table,
+                                            Reference ref,
+                                            Function<ColumnIdent, FieldType> getFieldType,
+                                            Function<ColumnIdent, Reference> getRef) {
+        return new FloatIndexer(ref, getFieldType.apply(ref.column()));
     }
 }

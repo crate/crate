@@ -24,43 +24,46 @@ package io.crate.execution.dml;
 import java.io.IOException;
 import java.util.function.Consumer;
 
+import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
-import org.apache.lucene.document.IntPoint;
-import org.apache.lucene.document.SortedNumericDocValuesField;
-import org.apache.lucene.document.StoredField;
+import org.apache.lucene.document.SortedSetDocValuesField;
+import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 
 import io.crate.metadata.Reference;
 
-public class IntIndexer implements ValueIndexer<Integer> {
+public class StringIndexer implements ValueIndexer<String> {
 
-    private final String name;
     private final Reference ref;
     private final FieldType fieldType;
 
-    public IntIndexer(Reference ref, FieldType fieldType) {
+    public StringIndexer(Reference ref, FieldType fieldType) {
         this.ref = ref;
-        this.name = ref.column().fqn();
         this.fieldType = fieldType;
     }
 
     @Override
-    public void indexValue(Integer value,
-                           XContentBuilder xContentBuilder,
+    public void indexValue(String value,
+                           XContentBuilder xcontentBuilder,
                            Consumer<? super IndexableField> addField,
                            Consumer<? super Reference> onDynamicColumn) throws IOException {
-        xContentBuilder.value(value);
+        xcontentBuilder.value(value);
         if (value == null) {
             return;
         }
-        int intValue = value.intValue();
-        addField.accept(new IntPoint(name, intValue));
-        if (ref.hasDocValues()) {
-            addField.accept(new SortedNumericDocValuesField(name, intValue));
+        String name = ref.column().fqn();
+        BytesRef binaryValue = new BytesRef(value);
+        if (fieldType.indexOptions() != IndexOptions.NONE || fieldType.stored()) {
+            Field field = new Field(name, binaryValue, fieldType);
+            addField.accept(field);
+            //if (fieldType().hasDocValues() == false && fieldType.omitNorms()) {
+            //    createFieldNamesField(context, onField);
+            //}
         }
-        if (fieldType.stored()) {
-            addField.accept(new StoredField(name, intValue));
+        if (ref.hasDocValues()) {
+            addField.accept(new SortedSetDocValuesField(name, binaryValue));
         }
     }
 }

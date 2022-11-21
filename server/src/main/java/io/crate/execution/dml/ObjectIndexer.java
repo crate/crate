@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.IndexableField;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 
@@ -51,12 +52,16 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
     private final Function<ColumnIdent, Reference> getRef;
     private final RelationName table;
     private final Reference ref;
+    private final Function<ColumnIdent, FieldType> getFieldType;
 
+    @SuppressWarnings("unchecked")
     public ObjectIndexer(RelationName table,
                          Reference ref,
+                         Function<ColumnIdent, FieldType> getFieldType,
                          Function<ColumnIdent, Reference> getRef) {
         this.table = table;
         this.ref = ref;
+        this.getFieldType = getFieldType;
         this.getRef = getRef;
         this.column = ref.column();
         this.objectType = (ObjectType) ref.valueType();
@@ -66,7 +71,7 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
             DataType<?> value = entry.getValue();
             ColumnIdent child = ColumnIdent.getChild(column, innerName);
             Reference childRef = getRef.apply(child);
-            ValueIndexer<?> valueIndexer = value.valueIndexer(table, childRef, getRef);
+            ValueIndexer<?> valueIndexer = value.valueIndexer(table, childRef, getFieldType, getRef);
             if (valueIndexer != null) {
                 innerIndexers.put(entry.getKey(), (ValueIndexer<Object>) valueIndexer);
             }
@@ -74,6 +79,7 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public void indexValue(Map<String, Object> value,
                            XContentBuilder xContentBuilder,
                            Consumer<? super IndexableField> addField,
@@ -105,7 +111,7 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
                     defaultExpression
                 );
                 onDynamicColumn.accept(newColumn);
-                valueIndexer = (ValueIndexer<Object>) type.valueIndexer(table, newColumn, getRef);
+                valueIndexer = (ValueIndexer<Object>) type.valueIndexer(table, newColumn, getFieldType, getRef);
                 innerIndexers.put(key, valueIndexer);
             }
 

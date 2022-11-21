@@ -40,6 +40,7 @@ import java.util.function.Supplier;
 import javax.annotation.Nullable;
 
 import org.apache.lucene.util.RamUsageEstimator;
+import org.apache.lucene.document.FieldType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
@@ -377,7 +378,8 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
 
     public ValueIndexer<Map<String, Object>> valueIndexer(RelationName table,
                                                           Reference ref,
+                                                          Function<ColumnIdent, FieldType> getFieldType,
                                                           Function<ColumnIdent, Reference> getRef) {
-        return new ObjectIndexer(table, ref, getRef);
+        return new ObjectIndexer(table, ref, getFieldType, getRef);
     }
 }

@@ -72,6 +72,8 @@ import org.junit.Test;
 import io.crate.common.unit.TimeValue;
 import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.execution.ddl.SchemaUpdateClient;
+import io.crate.execution.ddl.tables.TransportAddColumnAction;
+import io.crate.execution.dml.Indexer;
 import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.dml.upsert.ShardUpsertRequest.DuplicateKeyAction;
 import io.crate.execution.jobs.TasksService;
@@ -118,12 +120,13 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
                                                  ShardStateAction shardStateAction,
                                                  NodeContext nodeCtx,
                                                  Schemas schemas) {
-            super(Settings.EMPTY, threadPool, clusterService, transportService, schemaUpdateClient,
+            super(Settings.EMPTY, threadPool, clusterService, transportService, schemaUpdateClient, mock(TransportAddColumnAction.class),
                 tasksService, indicesService, shardStateAction, nodeCtx, schemas);
         }
 
         @Override
-        protected IndexItemResponse insert(ShardUpsertRequest request,
+        protected IndexItemResponse insert(Indexer indexer,
+                                           ShardUpsertRequest request,
                                            ShardUpsertRequest.Item item,
                                            IndexShard indexShard,
                                            boolean isRetry,

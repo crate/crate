@@ -27,10 +27,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.List;
 import java.util.Map;
 
+import org.elasticsearch.index.mapper.NumberFieldMapper;
 import org.elasticsearch.index.mapper.ParsedDocument;
 import org.junit.Test;
 
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -47,12 +49,18 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             .build();
         DocTableInfo table = executor.resolveTableInfo("tbl");
         Reference o = table.getReference(new ColumnIdent("o"));
-        Indexer indexer = new Indexer(table, List.of(o));
+        Indexer indexer = new Indexer(
+            table,
+            new CoordinatorTxnCtx(executor.getSessionSettings()),
+            executor.nodeCtx,
+            column -> NumberFieldMapper.FIELD_TYPE,
+            List.of(o)
+        );
 
         Map<String, Object> value = Map.of("x", 10, "y", 20);
-        ParsedDocument parsedDoc = indexer.index(new Object[] { value });
+        ParsedDocument parsedDoc = indexer.index("id1", new Object[] { value });
         assertThat(parsedDoc.doc().getFields())
-            .hasSize(8);
+            .hasSize(10);
 
         assertThat(parsedDoc.newColumns())
             .hasSize(1);
@@ -61,11 +69,6 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             "{\"o\":{\"x\":10,\"y\":20}}",
             "{\"o\":{\"y\":20,\"x\":10}}"
         );
-
-        // TODO:
-        //  - defaults
-        //  - generated columns
-        //  - constraint checks
     }
 
     @Test
@@ -75,12 +78,18 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             .build();
         DocTableInfo table = executor.resolveTableInfo("tbl");
         Reference o = table.getReference(new ColumnIdent("o"));
-        Indexer indexer = new Indexer(table, List.of(o));
+        Indexer indexer = new Indexer(
+            table,
+            new CoordinatorTxnCtx(executor.getSessionSettings()),
+            executor.nodeCtx,
+            column -> NumberFieldMapper.FIELD_TYPE,
+            List.of(o)
+        );
 
         Map<String, Object> value = Map.of("x", 10, "obj", Map.of("y", 20));
-        ParsedDocument parsedDoc = indexer.index(new Object[] { value });
+        ParsedDocument parsedDoc = indexer.index("id1", new Object[] { value });
         assertThat(parsedDoc.doc().getFields())
-            .hasSize(8);
+            .hasSize(10);
 
         assertThat(parsedDoc.newColumns())
             .satisfiesExactly(
@@ -96,12 +105,18 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             .build();
         DocTableInfo table = executor.resolveTableInfo("tbl");
         Reference o = table.getReference(new ColumnIdent("o"));
-        Indexer indexer = new Indexer(table, List.of(o));
+        Indexer indexer = new Indexer(
+            table,
+            new CoordinatorTxnCtx(executor.getSessionSettings()),
+            executor.nodeCtx,
+            column -> NumberFieldMapper.FIELD_TYPE,
+            List.of(o)
+        );
 
         Map<String, Object> value = Map.of("x", 10, "xs", List.of(2, 3, 4));
-        ParsedDocument parsedDoc = indexer.index(new Object[] { value });
+        ParsedDocument parsedDoc = indexer.index("id1", new Object[] { value });
         assertThat(parsedDoc.doc().getFields())
-            .hasSize(12);
+            .hasSize(14);
 
         assertThat(parsedDoc.newColumns())
             .satisfiesExactly(
@@ -111,6 +126,105 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(parsedDoc.source().utf8ToString()).isIn(
             "{\"o\":{\"x\":10,\"xs\":[2,3,4]}}",
             "{\"o\":{\"xs\":[2,3,4],\"x\":10}}"
+        );
+    }
+
+    @Test
+    public void test_adds_default_values() throws Exception {
+        SQLExecutor executor = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (x int, y int default 0)")
+            .build();
+        CoordinatorTxnCtx txnCtx = new CoordinatorTxnCtx(executor.getSessionSettings());
+        DocTableInfo table = executor.resolveTableInfo("tbl");
+        Reference x = table.getReference(new ColumnIdent("x"));
+        Reference y = table.getReference(new ColumnIdent("y"));
+        var indexer = new Indexer(
+            table,
+            txnCtx,
+            executor.nodeCtx,
+            column -> NumberFieldMapper.FIELD_TYPE,
+            List.of(y)
+        );
+        var parsedDoc = indexer.index("id1", new Object[] { null });
+        assertThat(parsedDoc.source().utf8ToString()).isEqualTo(
+            "{\"y\":0}"
+        );
+        assertThat(parsedDoc.doc().getFields())
+            .hasSize(8);
+
+        indexer = new Indexer(
+            table,
+            txnCtx,
+            executor.nodeCtx,
+            column -> NumberFieldMapper.FIELD_TYPE,
+            List.of(x)
+        );
+        parsedDoc = indexer.index("id1", 10);
+        assertThat(parsedDoc.source().utf8ToString()).isEqualTo(
+            "{\"x\":10,\"y\":0}"
+        );
+        assertThat(parsedDoc.doc().getFields())
+            .hasSize(10);
+    }
+
+    @Test
+    public void test_adds_generated_column() throws Exception {
+        SQLExecutor executor = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (x int, y int as x + 2)")
+            .build();
+        DocTableInfo table = executor.resolveTableInfo("tbl");
+        Reference x = table.getReference(new ColumnIdent("x"));
+        Indexer indexer = new Indexer(
+            table,
+            new CoordinatorTxnCtx(executor.getSessionSettings()),
+            executor.nodeCtx,
+            column -> NumberFieldMapper.FIELD_TYPE,
+            List.of(x)
+        );
+        var parsedDoc = indexer.index("id1", 1);
+        assertThat(parsedDoc.source().utf8ToString()).isEqualTo(
+            "{\"x\":1,\"y\":3}"
+        );
+    }
+
+    @Test
+    public void test_generated_partitioned_column_is_not_indexed_or_included_in_source() throws Exception {
+        SQLExecutor executor = SQLExecutor.builder(clusterService)
+            .addPartitionedTable("create table tbl (x int, p int as x + 2) partitioned by (p)")
+            .build();
+        DocTableInfo table = executor.resolveTableInfo("tbl");
+        Reference x = table.getReference(new ColumnIdent("x"));
+        Indexer indexer = new Indexer(
+            table,
+            new CoordinatorTxnCtx(executor.getSessionSettings()),
+            executor.nodeCtx,
+            column -> NumberFieldMapper.FIELD_TYPE,
+            List.of(x)
+        );
+        var parsedDoc = indexer.index("id1", 1);
+        assertThat(parsedDoc.source().utf8ToString()).isEqualTo(
+            "{\"x\":1}"
+        );
+    }
+
+    @Test
+    public void test_default_and_generated_column_within_object() throws Exception {
+        SQLExecutor executor = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (o object as (x int default 0, y int as o['x'] + 2, z int))")
+            .build();
+        DocTableInfo table = executor.resolveTableInfo("tbl");
+        Reference o = table.getReference(new ColumnIdent("o"));
+        Indexer indexer = new Indexer(
+            table,
+            new CoordinatorTxnCtx(executor.getSessionSettings()),
+            executor.nodeCtx,
+            column -> NumberFieldMapper.FIELD_TYPE,
+            List.of(o)
+        );
+
+        var parsedDoc = indexer.index("id1", Map.of("z", 20));
+        assertThat(parsedDoc.source().utf8ToString()).isEqualTo(
+            "{\"o\":{\"x\":0,\"y\":2,\"z\":20}}"
         );
     }
 }
