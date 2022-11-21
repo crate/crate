@@ -185,7 +185,7 @@ public class TestSqlParser {
         assertThatThrownBy(
             () -> SqlParser.createExpression(""))
             .isExactlyInstanceOf(ParsingException.class)
-            .hasMessageStartingWith("line 1:1: mismatched input '<EOF>' expecting {'(', '[', '[]', '{',");
+            .hasMessageStartingWith("line 1:1: mismatched input '<EOF>' expecting {");
     }
 
     @Test

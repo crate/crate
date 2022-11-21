@@ -40,9 +40,9 @@ import org.antlr.v4.runtime.misc.Pair;
 import org.antlr.v4.runtime.misc.ParseCancellationException;
 import org.antlr.v4.runtime.tree.TerminalNodeImpl;
 
-import io.crate.sql.parser.antlr.v4.SqlBaseBaseListener;
 import io.crate.sql.parser.antlr.v4.SqlBaseLexer;
 import io.crate.sql.parser.antlr.v4.SqlBaseParser;
+import io.crate.sql.parser.antlr.v4.SqlBaseParserBaseListener;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.MultiStatement;
 import io.crate.sql.tree.Node;
@@ -128,7 +128,7 @@ public class SqlParser {
         }
     }
 
-    private class PostProcessor extends SqlBaseBaseListener {
+    private class PostProcessor extends SqlBaseParserBaseListener {
         @Override
         public void exitUnquotedIdentifier(SqlBaseParser.UnquotedIdentifierContext context) {
             String identifier = context.IDENTIFIER().getText();

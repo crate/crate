@@ -43,7 +43,6 @@ import org.antlr.v4.runtime.tree.TerminalNode;
 
 import io.crate.common.collections.Lists2;
 import io.crate.sql.ExpressionFormatter;
-import io.crate.sql.parser.antlr.v4.SqlBaseBaseVisitor;
 import io.crate.sql.parser.antlr.v4.SqlBaseLexer;
 import io.crate.sql.parser.antlr.v4.SqlBaseParser;
 import io.crate.sql.parser.antlr.v4.SqlBaseParser.BitStringContext;
@@ -60,6 +59,7 @@ import io.crate.sql.parser.antlr.v4.SqlBaseParser.QueryOptParensContext;
 import io.crate.sql.parser.antlr.v4.SqlBaseParser.SetTransactionContext;
 import io.crate.sql.parser.antlr.v4.SqlBaseParser.StatementsContext;
 import io.crate.sql.parser.antlr.v4.SqlBaseParser.TransactionModeContext;
+import io.crate.sql.parser.antlr.v4.SqlBaseParserBaseVisitor;
 import io.crate.sql.tree.AddColumnDefinition;
 import io.crate.sql.tree.AliasedRelation;
 import io.crate.sql.tree.AllColumns;
@@ -239,7 +239,7 @@ import io.crate.sql.tree.WindowFrame;
 import io.crate.sql.tree.With;
 import io.crate.sql.tree.WithQuery;
 
-class AstBuilder extends SqlBaseBaseVisitor<Node> {
+class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
 
     private int parameterPosition = 1;
     private static final String CLUSTER = "CLUSTER";
