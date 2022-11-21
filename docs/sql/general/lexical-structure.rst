@@ -28,6 +28,26 @@ String literals are defined as an arbitrary sequence of characters that are
 delimited with single quotes ``'`` as defined in ANSI SQL, for example
 ``'This is a string'``.
 
+In addition, CrateDB supports dollar quoted strings to help avoid escaping
+single quotes within single quoted strings.
+For example, ``'I''m a string'`` can be re-written as
+``$<tag>$I'm a string$<tag>$``, where the matching pair of ``<tag>`` can be
+zero or more characters in length.
+
+::
+
+    cr> select 'I''m a string' = $tag1$I'm a string$tag1$;
+    +------+
+    | true |
+    +------+
+    | TRUE |
+    +------+
+    SELECT 1 row in set (... sec)
+
+.. NOTE::
+
+    Nested dollar quoted strings are currently not supported.
+
 
 Escape strings
 --------------
@@ -311,3 +331,4 @@ Example::
   SELECT *
     FROM information_schema.tables
     WHERE table_schema = 'doc'; -- query information schema for doc tables
+

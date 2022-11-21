@@ -21,6 +21,19 @@
 
 lexer grammar SqlBaseLexer;
 
+options {
+   superClass = AbstractSqlBaseLexer;
+}
+
+/*
+ * Antlr does not generate an import statement for SqlBaseLexer to be able to extend AbstractSqlBaseLexer.
+ * seems like a known issue? https://github.com/antlr/antlr4/issues/3124
+ * The workaround is found from: https://github.com/tunnelvisionlabs/antlr4ts/issues/483
+ */
+@lexer::header {
+import io.crate.sql.AbstractSqlBaseLexer;
+}
+
 AUTHORIZATION: 'AUTHORIZATION';
 SELECT: 'SELECT';
 FROM: 'FROM';
@@ -388,6 +401,15 @@ BACKQUOTED_IDENTIFIER
     : '`' ( ~'`' | '``' )* '`'
     ;
 
+BEGIN_DOLLAR_QUOTED_STRING
+   : '$' TAG? '$'
+   {pushTag();} -> pushMode (DollarQuotedStringMode)
+   ;
+
+fragment TAG
+    : IDENTIFIER
+    ;
+
 fragment EXPONENT
     : 'E' [+-]? DIGIT+
     ;
@@ -411,3 +433,18 @@ WS
 UNRECOGNIZED
     : .
     ;
+
+mode DollarQuotedStringMode;
+DOLLAR_QUOTED_STRING_BODY
+   : ~ '$'+
+   // | '$'([0-9])+
+   // this alternative improves the efficiency of handling $ characters within a dollar-quoted string which are
+   // not part of the ending tag.
+   | '$' ~ '$'*
+   ;
+
+END_DOLLAR_QUOTED_STRING
+   : ('$' TAG? '$')
+   {isTag()}?
+   {popTag();} -> popMode
+   ;

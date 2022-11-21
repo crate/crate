@@ -89,6 +89,9 @@ Changes
 - Updated to Admin UI 1.24.0, which added Italian translations, and updated some
   dependency packages across the board.
 
+- Added support for dollar quoted strings,
+  see :ref:`String Literal <string_literal>` for further details.
+
 Fixes
 =====
 
