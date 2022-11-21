@@ -57,6 +57,7 @@ import java.net.InetSocketAddress;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -72,7 +73,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.BooleanSupplier;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
@@ -94,10 +98,12 @@ import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateAction;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
 import org.elasticsearch.action.support.ActiveShardCount;
+import org.elasticsearch.action.support.PlainActionFuture;
 import org.elasticsearch.client.AdminClient;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterModule;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.ClusterStateObserver;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -142,6 +148,7 @@ import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.indices.IndicesQueryCache;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.indices.store.IndicesStore;
+import org.elasticsearch.node.NodeClosedException;
 import org.elasticsearch.node.NodeMocksPlugin;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.tasks.TaskId;
@@ -623,6 +630,22 @@ public abstract class IntegTestCase extends ESTestCase {
     }
 
     /**
+     * Creates a disruption that isolates the current master node from all other nodes in the cluster.
+     *
+     * @param disruptionType type of disruption to create
+     * @return disruption
+     */
+    protected static NetworkDisruption isolateMasterDisruption(NetworkDisruption.NetworkLinkDisruptionType disruptionType) {
+        final String masterNode = internalCluster().getMasterName();
+        return new NetworkDisruption(
+            new NetworkDisruption.TwoPartitions(
+                Collections.singleton(masterNode),
+                Arrays.stream(internalCluster().getNodeNames()).filter(name -> name.equals(masterNode) == false)
+                    .collect(Collectors.toSet())), disruptionType);
+    }
+
+
+    /**
      * Returns a settings object used in {@link #createIndex(String...)} and friends.
      * This method can be overwritten by subclasses to set defaults for the indices that are created by the test.
      * By default it returns a settings object that sets a random number of shards. Number of shards and replicas
@@ -654,6 +677,19 @@ public abstract class IntegTestCase extends ESTestCase {
         return builder.build();
     }
 
+    protected static Settings.Builder indexSettingsNoReplicas(int shards) {
+        return Settings.builder().put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, shards)
+            .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 0);
+    }
+
+    /**
+     * Creates an index and asserts that the indices are acknowledged. If the index
+     * already exists this method will fail.
+     */
+    public final void createIndex(String name, Settings indexSettings) {
+        assertAcked(FutureUtils.get(client().admin().indices().create(new CreateIndexRequest(name, indexSettings))));
+    }
+
     /**
      * Creates one or more indices and asserts that the indices are acknowledged. If one of the indices
      * already exists this method will fail and wipe all the indices created so far.
@@ -663,7 +699,7 @@ public abstract class IntegTestCase extends ESTestCase {
         for (String name : names) {
             boolean success = false;
             try {
-                assertAcked(FutureUtils.get(client().admin().indices().create(new CreateIndexRequest(name, indexSettings()))));
+                createIndex(name, indexSettings());
                 created.add(name);
                 success = true;
             } finally {
@@ -2183,5 +2219,30 @@ public abstract class IntegTestCase extends ESTestCase {
         ClusterService clusterService = internalCluster().getInstance(ClusterService.class);
         IndexMetadata indexMetadata = clusterService.state().metadata().index(index);
         return new Index(index, indexMetadata.getIndexUUID());
+    }
+
+    protected void awaitClusterState(String viaNode, Predicate<ClusterState> statePredicate) throws Exception {
+        final ClusterService clusterService = internalCluster().getInstance(ClusterService.class, viaNode);
+        final ClusterStateObserver observer = new ClusterStateObserver(clusterService, logger);
+        if (statePredicate.test(observer.setAndGetObservedState()) == false) {
+            final PlainActionFuture<Void> future = PlainActionFuture.newFuture();
+            observer.waitForNextChange(new ClusterStateObserver.Listener() {
+                @Override
+                public void onNewClusterState(ClusterState state) {
+                    future.onResponse(null);
+                }
+
+                @Override
+                public void onClusterServiceClose() {
+                    future.onFailure(new NodeClosedException(clusterService.localNode()));
+                }
+
+                @Override
+                public void onTimeout(TimeValue timeout) {
+                    future.onFailure(new TimeoutException());
+                }
+            }, statePredicate);
+            future.get(30L, TimeUnit.SECONDS);
+        }
     }
 }

@@ -21,6 +21,8 @@ package org.elasticsearch.snapshots.mockstore;
 
 import com.carrotsearch.randomizedtesting.RandomizedContext;
 import io.crate.analyze.repositories.TypeSettings;
+import io.crate.exceptions.Exceptions;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.index.CorruptIndexException;

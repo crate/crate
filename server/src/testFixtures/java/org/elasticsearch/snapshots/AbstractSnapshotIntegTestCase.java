@@ -35,6 +35,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.elasticsearch.action.support.PlainActionFuture;
+import org.elasticsearch.cluster.SnapshotDeletionsInProgress;
+import org.elasticsearch.cluster.SnapshotsInProgress;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.repositories.RepositoriesService;
@@ -181,6 +183,12 @@ public abstract class AbstractSnapshotIntegTestCase extends IntegTestCase {
         return masterName;
     }
 
+    public static void blockMasterFromDeletingIndexNFile(String repositoryName) {
+        final String masterName = internalCluster().getMasterName();
+        ((MockRepository)internalCluster().getInstance(RepositoriesService.class, masterName)
+            .repository(repositoryName)).setBlockOnDeleteIndexFile();
+    }
+
     public static String blockNodeWithIndex(final String repositoryName, final String indexName) {
         for(String node : internalCluster().nodesInclude(indexName)) {
             ((MockRepository)internalCluster().getInstance(RepositoriesService.class, node).repository(repositoryName))
@@ -189,6 +197,16 @@ public abstract class AbstractSnapshotIntegTestCase extends IntegTestCase {
         }
         fail("No nodes for the index " + indexName + " found");
         return null;
+    }
+
+    public static void blockNodeOnAnyFiles(String repository, String nodeName) {
+        ((MockRepository) internalCluster().getInstance(RepositoriesService.class, nodeName)
+            .repository(repository)).setBlockOnAnyFiles(true);
+    }
+
+    public static void blockDataNode(String repository, String nodeName) {
+        ((MockRepository) internalCluster().getInstance(RepositoriesService.class, nodeName)
+            .repository(repository)).blockOnDataFiles(true);
     }
 
     public static void blockAllDataNodes(String repository) {
@@ -219,5 +237,11 @@ public abstract class AbstractSnapshotIntegTestCase extends IntegTestCase {
 
     public static void unblockNode(final String repository, final String node) {
         ((MockRepository)internalCluster().getInstance(RepositoriesService.class, node).repository(repository)).unblock();
+    }
+
+    protected void awaitNoMoreRunningOperations(String viaNode) throws Exception {
+        logger.info("--> verify no more operations in the cluster state");
+        awaitClusterState(viaNode, state -> state.custom(SnapshotsInProgress.TYPE, SnapshotsInProgress.EMPTY).entries().isEmpty() &&
+            state.custom(SnapshotDeletionsInProgress.TYPE, SnapshotDeletionsInProgress.EMPTY).hasDeletionsInProgress() == false);
     }
 }
