@@ -107,6 +107,7 @@ public class SqlParser {
 
             parser.removeErrorListeners();
             parser.addErrorListener(ERROR_LISTENER);
+            parser.setErrorHandler(new ExceptionErrorStrategy());
 
             ParserRuleContext tree;
             try {

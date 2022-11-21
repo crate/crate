@@ -133,15 +133,15 @@ alterStmt
     | ALTER USER name=ident
         SET OPEN_ROUND_BRACKET genericProperties CLOSE_ROUND_BRACKET                 #alterUser
     | ALTER PUBLICATION name=ident
-        ((ADD | SET | DROP) TABLE qname '*'?  (COMMA qname '*'? )*)                  #alterPublication
+        ((ADD | SET | DROP) TABLE qname ASTERISK?  (COMMA qname ASTERISK? )*)        #alterPublication
     | ALTER SUBSCRIPTION name=ident alterSubscriptionMode                            #alterSubscription
     ;
 
 
 queryOptParens
-    : '(' query ')'
+    : OPEN_ROUND_BRACKET query CLOSE_ROUND_BRACKET
     | query
-    | '(' queryOptParens ')'
+    | OPEN_ROUND_BRACKET queryOptParens CLOSE_ROUND_BRACKET
     ;
 
 query
@@ -324,7 +324,7 @@ primaryExpression
     | ident (DOT ident)*                                                             #dereference
     | primaryExpression CAST_OPERATOR dataType                                       #doubleColonCast
     | timestamp=primaryExpression AT TIME ZONE zone=primaryExpression                #atTimezone
-    | 'ARRAY'? EMPTY_SQUARE_BRACKET                                                  #emptyArray
+    | ARRAY? EMPTY_SQUARE_BRACKET                                                  #emptyArray
     ;
 
 explicitFunction
@@ -404,8 +404,13 @@ escapedCharsStringLiteral
     : ESCAPED_STRING
     ;
 
+dollarQuotedStringLiteral
+    : BEGIN_DOLLAR_QUOTED_STRING DOLLAR_QUOTED_STRING_BODY* END_DOLLAR_QUOTED_STRING
+    ;
+
 stringLiteral
     : STRING
+    | dollarQuotedStringLiteral
     ;
 
 bitString
@@ -576,7 +581,7 @@ createStmt
     | CREATE USER name=ident withProperties?                                         #createUser
     | CREATE ( OR REPLACE )? VIEW name=qname AS queryOptParens                       #createView
     | CREATE PUBLICATION name=ident
-        (FOR ALL TABLES | FOR TABLE qname '*'?  (COMMA qname '*'? )*)?               #createPublication
+        (FOR ALL TABLES | FOR TABLE qname ASTERISK?  (COMMA qname ASTERISK? )*)?     #createPublication
     | CREATE SUBSCRIPTION name=ident CONNECTION conninfo=expr
           PUBLICATION publications=idents
           withProperties?                                                            #createSubscription
@@ -639,10 +644,10 @@ rerouteOption
 
 dataType
     : baseDataType
-        (OPEN_ROUND_BRACKET integerLiteral (COMMA integerLiteral )* CLOSE_ROUND_BRACKET)?    #maybeParametrizedDataType
-    | objectTypeDefinition                                  #objectDataType
+        (OPEN_ROUND_BRACKET integerLiteral (COMMA integerLiteral )* CLOSE_ROUND_BRACKET)?  #maybeParametrizedDataType
+    | objectTypeDefinition                                                                 #objectDataType
     | ARRAY OPEN_ROUND_BRACKET dataType CLOSE_ROUND_BRACKET                                #arrayDataType
-    | dataType '[]'                                         #arrayDataType
+    | dataType EMPTY_SQUARE_BRACKET                                                        #arrayDataType
     ;
 
 baseDataType

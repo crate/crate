@@ -39,6 +39,7 @@ import javax.annotation.Nullable;
 
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
+import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
 import io.crate.common.collections.Lists2;
@@ -2035,7 +2036,15 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
 
     @Override
     public Node visitStringLiteral(SqlBaseParser.StringLiteralContext context) {
-        return new StringLiteral(unquote(context.STRING().getText()));
+        if (context.STRING() != null) {
+            return new StringLiteral(unquote(context.STRING().getText()));
+        }
+        return visitDollarQuotedStringLiteral(context.dollarQuotedStringLiteral());
+    }
+
+    @Override
+    public Node visitDollarQuotedStringLiteral(SqlBaseParser.DollarQuotedStringLiteralContext ctx) {
+        return new StringLiteral(ctx.DOLLAR_QUOTED_STRING_BODY().stream().map(ParseTree::getText).collect(Collectors.joining()));
     }
 
     @Override
