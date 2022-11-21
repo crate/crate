@@ -67,7 +67,7 @@ public class WindowAgg extends ForwardingLogicalPlan {
     private final List<Symbol> outputs;
 
     @VisibleForTesting
-    public static LogicalPlan create(LogicalPlan source, List<WindowFunction> windowFunctions) {
+    public static LogicalPlan create(LogicalPlan source, List<WindowFunction> windowFunctions, LogicalPlanIdAllocator idAllocator) {
         if (windowFunctions.isEmpty()) {
             return source;
         }
@@ -88,15 +88,15 @@ public class WindowAgg extends ForwardingLogicalPlan {
             WindowDefinition windowDefinition = entry.getKey();
             OrderBy orderBy = windowDefinition.orderBy();
             if (orderBy == null || lastWindowAgg.outputs().containsAll(orderBy.orderBySymbols())) {
-                lastWindowAgg = new WindowAgg(lastWindowAgg, windowDefinition, functions, lastWindowAgg.outputs());
+                lastWindowAgg = new WindowAgg(lastWindowAgg, windowDefinition, functions, lastWindowAgg.outputs(), idAllocator.nextId());
             } else {
                 // ``WindowProjector.createUpdateProbeValueFunction` expects that all OrderBY symbols are `InputColumn`
                 // Here we have a case where there is a function or something in the orderBy expression that is *not*
                 // already provided by the source.
                 // -> Inject `eval` so that the `orderBy` of the window-function will turn into a `InputColumn`
                 Eval eval = new Eval(
-                    lastWindowAgg, Lists2.concatUnique(lastWindowAgg.outputs(), orderBy.orderBySymbols()));
-                lastWindowAgg = new WindowAgg(eval, windowDefinition, functions, eval.outputs());
+                    lastWindowAgg, Lists2.concatUnique(lastWindowAgg.outputs(), orderBy.orderBySymbols()), idAllocator.nextId());
+                lastWindowAgg = new WindowAgg(eval, windowDefinition, functions, eval.outputs(), idAllocator.nextId());
             }
         }
         return lastWindowAgg;
@@ -105,8 +105,10 @@ public class WindowAgg extends ForwardingLogicalPlan {
     private WindowAgg(LogicalPlan source,
                       WindowDefinition windowDefinition,
                       List<WindowFunction> windowFunctions,
-                      List<Symbol> standalone) {
-        super(source);
+                      List<Symbol> standalone,
+                      LogicalPlanId id
+    ) {
+        super(source, id);
         this.outputs = Lists2.concat(standalone, windowFunctions);
         this.windowDefinition = windowDefinition;
         this.windowFunctions = windowFunctions;
@@ -131,7 +133,7 @@ public class WindowAgg extends ForwardingLogicalPlan {
         if (newWindowFunctions.isEmpty()) {
             return newSource;
         } else {
-            return new WindowAgg(newSource, windowDefinition, List.copyOf(newWindowFunctions), newSource.outputs());
+            return new WindowAgg(newSource, windowDefinition, List.copyOf(newWindowFunctions), newSource.outputs(), id);
         }
     }
 
@@ -246,7 +248,7 @@ public class WindowAgg extends ForwardingLogicalPlan {
 
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
-        return new WindowAgg(Lists2.getOnlyElement(sources), windowDefinition, windowFunctions, standalone);
+        return new WindowAgg(Lists2.getOnlyElement(sources), windowDefinition, windowFunctions, standalone, id);
     }
 
     @Override

@@ -165,7 +165,8 @@ public final class CopyToPlan implements Plan {
             boundedCopyTo.outputs(),
             boundedCopyTo.whereClause(),
             tableStats,
-            context.params()
+            context.params(),
+            context.transactionContext().idAllocator().nextId()
         );
         LogicalPlan source = optimizeCollect(context, tableStats, collect);
         ExecutionPlan executionPlan = source.build(

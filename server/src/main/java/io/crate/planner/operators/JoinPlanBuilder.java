@@ -69,10 +69,11 @@ public class JoinPlanBuilder {
                                      List<JoinPair> joinPairs,
                                      SubQueries subQueries,
                                      Function<AnalyzedRelation, LogicalPlan> plan,
-                                     boolean hashJoinEnabled) {
+                                     boolean hashJoinEnabled,
+                                     LogicalPlanIdAllocator logicalPlanIdAllocator) {
         if (from.size() == 1) {
-            LogicalPlan source = subQueries.applyCorrelatedJoin(plan.apply(from.get(0)));
-            return Filter.create(source, whereClause);
+            LogicalPlan source = subQueries.applyCorrelatedJoin(plan.apply(from.get(0)), logicalPlanIdAllocator);
+            return Filter.create(source, whereClause, logicalPlanIdAllocator.nextId());
         }
         Map<Set<RelationName>, Symbol> queryParts = QuerySplitter.split(whereClause);
         List<JoinPair> allJoinPairs = JoinOperations.convertImplicitJoinConditionsToJoinPairs(joinPairs, queryParts);
@@ -131,9 +132,10 @@ public class JoinPlanBuilder {
                 lhs,
                 subQueries,
                 query,
-                hashJoinEnabled);
+                hashJoinEnabled,
+                logicalPlanIdAllocator);
         } else {
-            lhsPlan = subQueries.applyCorrelatedJoin(lhsPlan);
+            lhsPlan = subQueries.applyCorrelatedJoin(lhsPlan, logicalPlanIdAllocator);
             joinPlan = createJoinPlan(
                 lhsPlan,
                 rhsPlan,
@@ -141,10 +143,11 @@ public class JoinPlanBuilder {
                 joinCondition,
                 lhs,
                 query,
-                hashJoinEnabled);
+                hashJoinEnabled,
+                logicalPlanIdAllocator);
         }
 
-        joinPlan = Filter.create(joinPlan, query);
+        joinPlan = Filter.create(joinPlan, query, logicalPlanIdAllocator.nextId());
         while (it.hasNext()) {
             AnalyzedRelation nextRel = sources.get(it.next());
             joinPlan = joinWithNext(
@@ -155,12 +158,13 @@ public class JoinPlanBuilder {
                 joinPairsByRelations,
                 queryParts,
                 lhs,
-                hashJoinEnabled
+                hashJoinEnabled,
+                logicalPlanIdAllocator
             );
             joinNames.add(nextRel.relationName());
         }
         if (!queryParts.isEmpty()) {
-            joinPlan = Filter.create(joinPlan, AndOperator.join(queryParts.values()));
+            joinPlan = Filter.create(joinPlan, AndOperator.join(queryParts.values()), logicalPlanIdAllocator.nextId());
             queryParts.clear();
         }
         assert joinPairsByRelations.isEmpty() : "Must've applied all joinPairs";
@@ -197,7 +201,8 @@ public class JoinPlanBuilder {
         AnalyzedRelation lhs,
         SubQueries subQueries,
         Symbol query,
-        boolean hashJoinEnabled
+        boolean hashJoinEnabled,
+        LogicalPlanIdAllocator logicalPlanIdAllocator
     ) {
         var validJoinConditions = new ArrayList<Symbol>();
         var joinConditionsForFilters = new ArrayList<Symbol>();
@@ -217,10 +222,11 @@ public class JoinPlanBuilder {
             AndOperator.join(validJoinConditions),
             lhs,
             query,
-            hashJoinEnabled);
+            hashJoinEnabled,
+            logicalPlanIdAllocator);
 
-        joinPlan = subQueries.applyCorrelatedJoin(joinPlan);
-        joinPlan = Filter.create(joinPlan, AndOperator.join(joinConditionsForFilters));;
+        joinPlan = subQueries.applyCorrelatedJoin(joinPlan, logicalPlanIdAllocator);
+        joinPlan = Filter.create(joinPlan, AndOperator.join(joinConditionsForFilters), logicalPlanIdAllocator.nextId());;
 
         return joinPlan;
     }
@@ -246,12 +252,14 @@ public class JoinPlanBuilder {
                                               Symbol joinCondition,
                                               AnalyzedRelation lhs,
                                               Symbol query,
-                                              boolean hashJoinEnabled) {
+                                              boolean hashJoinEnabled,
+                                              LogicalPlanIdAllocator logicalPlanIdAllocator) {
         if (hashJoinEnabled && isHashJoinPossible(joinType, joinCondition)) {
             return new HashJoin(
                 lhsPlan,
                 rhsPlan,
-                joinCondition
+                joinCondition,
+                logicalPlanIdAllocator.nextId()
             );
         } else {
             return new NestedLoopJoin(
@@ -261,7 +269,8 @@ public class JoinPlanBuilder {
                 joinCondition,
                 !query.symbolType().isValueSymbol(),
                 lhs,
-                false);
+                false,
+                logicalPlanIdAllocator.nextId());
         }
     }
 
@@ -283,7 +292,8 @@ public class JoinPlanBuilder {
                                             Map<Set<RelationName>, JoinPair> joinPairs,
                                             Map<Set<RelationName>, Symbol> queryParts,
                                             AnalyzedRelation leftRelation,
-                                            boolean hashJoinEnabled) {
+                                            boolean hashJoinEnabled,
+                                            LogicalPlanIdAllocator logicalPlanIdAllocator) {
         RelationName nextName = nextRel.relationName();
 
         JoinPair joinPair = removeMatch(joinPairs, joinNames, nextName);
@@ -312,8 +322,10 @@ public class JoinPlanBuilder {
                 condition,
                 leftRelation,
                 query,
-                hashJoinEnabled),
-            query
+                hashJoinEnabled,
+                logicalPlanIdAllocator),
+            query,
+            logicalPlanIdAllocator.nextId()
         );
     }
 

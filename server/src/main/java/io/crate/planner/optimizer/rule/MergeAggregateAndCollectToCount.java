@@ -70,9 +70,9 @@ public final class MergeAggregateAndCollectToCount implements Rule<HashAggregate
             return new Count(
                 countAggregate,
                 collect.relation(),
-                collect.where().add(countAggregate.filter()));
+                collect.where().add(countAggregate.filter()), txnCtx.idAllocator().nextId());
         } else {
-            return new Count(countAggregate, collect.relation(), collect.where());
+            return new Count(countAggregate, collect.relation(), collect.where(), txnCtx.idAllocator().nextId());
         }
     }
 }

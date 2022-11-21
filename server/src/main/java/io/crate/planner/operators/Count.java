@@ -65,11 +65,14 @@ public class Count implements LogicalPlan {
     final AbstractTableRelation<?> tableRelation;
     final WhereClause where;
     private final List<Symbol> outputs;
+    private final LogicalPlanId id;
 
-    public Count(Function countFunction, AbstractTableRelation<?> tableRelation, WhereClause where) {
+
+    public Count(Function countFunction, AbstractTableRelation<?> tableRelation, WhereClause where, LogicalPlanId id) {
         this.outputs = List.of(countFunction);
         this.tableRelation = tableRelation;
         this.where = where;
+        this.id = id;
     }
 
     @Override
@@ -123,6 +126,11 @@ public class Count implements LogicalPlan {
             null
         );
         return new CountPlan(countPhase, mergePhase);
+    }
+
+    @Override
+    public LogicalPlanId id() {
+        return id;
     }
 
     @Override

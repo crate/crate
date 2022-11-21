@@ -116,9 +116,9 @@ public final class MoveFilterBeneathGroupBy implements Rule<Filter> {
          * Filter (x = 10)
          */
         LogicalPlan newGroupBy = groupBy.replaceSources(
-            List.of(new Filter(groupBy.source(), AndOperator.join(withoutAggregates))));
-
-        return new Filter(newGroupBy, AndOperator.join(withAggregates));
+            List.of(new Filter(groupBy.source(), AndOperator.join(withoutAggregates), txnCtx.idAllocator().nextId()))
+        );
+        return new Filter(newGroupBy, AndOperator.join(withAggregates), filter.id());
     }
 
 }

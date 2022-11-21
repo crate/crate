@@ -55,11 +55,16 @@ public class Insert implements LogicalPlan {
     @Nullable
     private final EvalProjection applyCasts;
     final LogicalPlan source;
+    private final LogicalPlanId id;
 
-    public Insert(LogicalPlan source, ColumnIndexWriterProjection writeToTable, @Nullable EvalProjection applyCasts) {
+    public Insert(LogicalPlan source,
+                  ColumnIndexWriterProjection writeToTable,
+                  @Nullable EvalProjection applyCasts,
+                  LogicalPlanId id) {
         this.source = source;
         this.writeToTable = writeToTable;
         this.applyCasts = applyCasts;
+        this.id = id;
     }
 
     @Override
@@ -132,7 +137,7 @@ public class Insert implements LogicalPlan {
 
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
-        return new Insert(Lists2.getOnlyElement(sources), writeToTable, applyCasts);
+        return new Insert(Lists2.getOnlyElement(sources), writeToTable, applyCasts, id);
     }
 
     @Override
@@ -147,6 +152,11 @@ public class Insert implements LogicalPlan {
     @Override
     public Map<LogicalPlan, SelectSymbol> dependencies() {
         return source.dependencies();
+    }
+
+    @Override
+    public LogicalPlanId id() {
+        return id;
     }
 
     @Override

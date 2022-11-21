@@ -56,15 +56,17 @@ public final class TableFunction implements LogicalPlan {
     private final TableFunctionRelation relation;
     private final List<Symbol> toCollect;
     final WhereClause where;
+    private final LogicalPlanId id;
 
-    public static LogicalPlan create(TableFunctionRelation relation, List<Symbol> toCollect, WhereClause where) {
-        return new TableFunction(relation, toCollect, where);
+    public static LogicalPlan create(TableFunctionRelation relation, List<Symbol> toCollect, WhereClause where, LogicalPlanId id) {
+        return new TableFunction(relation, toCollect, where, id);
     }
 
-    public TableFunction(TableFunctionRelation relation, List<Symbol> toCollect, WhereClause where) {
+    public TableFunction(TableFunctionRelation relation, List<Symbol> toCollect, WhereClause where, LogicalPlanId id) {
         this.relation = relation;
         this.toCollect = toCollect;
         this.where = where;
+        this.id = id;
     }
 
     public TableFunctionRelation relation() {
@@ -145,7 +147,7 @@ public final class TableFunction implements LogicalPlan {
         if (outputsToKeep.containsAll(toCollect)) {
             return this;
         }
-        return new TableFunction(relation, List.copyOf(outputsToKeep), where);
+        return new TableFunction(relation, List.copyOf(outputsToKeep), where, id);
     }
 
     @Override
@@ -156,6 +158,11 @@ public final class TableFunction implements LogicalPlan {
     @Override
     public long numExpectedRows() {
         return -1;
+    }
+
+    @Override
+    public LogicalPlanId id() {
+        return id;
     }
 
     @Override

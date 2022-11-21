@@ -74,13 +74,15 @@ public class Union implements LogicalPlan {
     final LogicalPlan lhs;
     final LogicalPlan rhs;
     private final Map<LogicalPlan, SelectSymbol> dependencies;
+    private final LogicalPlanId id;
 
 
-    public Union(LogicalPlan lhs, LogicalPlan rhs, List<Symbol> outputs) {
+    public Union(LogicalPlan lhs, LogicalPlan rhs, List<Symbol> outputs, LogicalPlanId id) {
         this.lhs = lhs;
         this.rhs = rhs;
         this.outputs = outputs;
         this.dependencies = Maps.concat(lhs.dependencies(), rhs.dependencies());
+        this.id = id;
     }
 
     @Override
@@ -203,7 +205,7 @@ public class Union implements LogicalPlan {
 
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
-        return new Union(sources.get(0), sources.get(1), outputs);
+        return new Union(sources.get(0), sources.get(1), outputs, id);
     }
 
     @Override
@@ -229,7 +231,12 @@ public class Union implements LogicalPlan {
         if (newLhs == lhs && newRhs == rhs) {
             return this;
         }
-        return new Union(newLhs, newRhs, newOutputs);
+        return new Union(newLhs, newRhs, newOutputs, id);
+    }
+
+    @Override
+    public LogicalPlanId id() {
+        return id;
     }
 
     @Override

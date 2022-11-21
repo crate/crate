@@ -72,8 +72,8 @@ public final class Rename extends ForwardingLogicalPlan implements FieldResolver
     private final FieldResolver fieldResolver;
     final RelationName name;
 
-    public Rename(List<Symbol> outputs, RelationName name, FieldResolver fieldResolver, LogicalPlan source) {
-        super(source);
+    public Rename(List<Symbol> outputs, RelationName name, FieldResolver fieldResolver, LogicalPlan source, LogicalPlanId id) {
+        super(source, id);
         this.outputs = outputs;
         this.name = name;
         this.fieldResolver = fieldResolver;
@@ -126,7 +126,8 @@ public final class Rename extends ForwardingLogicalPlan implements FieldResolver
             newOutputs,
             name,
             fieldResolver,
-            newSource
+            newSource,
+            id
         );
     }
 
@@ -178,7 +179,7 @@ public final class Rename extends ForwardingLogicalPlan implements FieldResolver
             );
             replacedOutputs.put(parentSymbolForKey, convertChildrenToScopedSymbols.apply(value));
         }
-        Rename newRename = new Rename(newOutputs, name, fieldResolver, newSource);
+        Rename newRename = new Rename(newOutputs, name, fieldResolver, newSource, id);
         return new FetchRewrite(replacedOutputs, newRename);
     }
 
@@ -199,7 +200,7 @@ public final class Rename extends ForwardingLogicalPlan implements FieldResolver
 
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
-        return new Rename(outputs, name, fieldResolver, Lists2.getOnlyElement(sources));
+        return new Rename(outputs, name, fieldResolver, Lists2.getOnlyElement(sources), id);
     }
 
     @Override

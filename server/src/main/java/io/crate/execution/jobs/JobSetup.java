@@ -91,6 +91,7 @@ import io.crate.metadata.settings.SessionSettings;
 import io.crate.metadata.table.Operation;
 import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.node.StreamerVisitor;
+import io.crate.planner.operators.LogicalPlanIdAllocator;
 import io.crate.planner.operators.PKAndVersion;
 import io.crate.types.DataTypes;
 import org.apache.logging.log4j.LogManager;

@@ -42,8 +42,8 @@ import io.crate.planner.PlannerContext;
  */
 public class RootRelationBoundary extends ForwardingLogicalPlan {
 
-    public RootRelationBoundary(LogicalPlan source) {
-        super(source);
+    public RootRelationBoundary(LogicalPlan source, LogicalPlanId id) {
+        super(source, id);
     }
 
     @Override
@@ -73,7 +73,7 @@ public class RootRelationBoundary extends ForwardingLogicalPlan {
 
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
-        return new RootRelationBoundary(Lists2.getOnlyElement(sources));
+        return new RootRelationBoundary(Lists2.getOnlyElement(sources), id);
     }
 
     @Override

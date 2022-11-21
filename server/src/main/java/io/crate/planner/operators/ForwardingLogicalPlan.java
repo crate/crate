@@ -36,10 +36,12 @@ public abstract class ForwardingLogicalPlan implements LogicalPlan {
 
     private final List<LogicalPlan> sources;
     final LogicalPlan source;
+    protected final LogicalPlanId id;
 
-    public ForwardingLogicalPlan(LogicalPlan source) {
+    public ForwardingLogicalPlan(LogicalPlan source, LogicalPlanId id) {
         this.source = source;
         this.sources = List.of(source);
+        this.id = id;
     }
 
     public LogicalPlan source() {
@@ -53,6 +55,11 @@ public abstract class ForwardingLogicalPlan implements LogicalPlan {
             return this;
         }
         return replaceSources(List.of(newSource));
+    }
+
+    @Override
+    public LogicalPlanId id() {
+        return id;
     }
 
     @Override

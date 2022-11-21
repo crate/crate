@@ -82,6 +82,7 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
+import io.crate.planner.operators.LogicalPlanIdAllocator;
 
 /**
  * Realizes Upserts of tables which either results in an Insert or an Update.

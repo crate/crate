@@ -86,16 +86,19 @@ public final class Fetch extends ForwardingLogicalPlan {
     private final List<Reference> fetchRefs;
     private final Map<RelationName, FetchSource> fetchSourceByRelation;
     private final Map<Symbol, Symbol> replacedOutputs;
+    private final LogicalPlanId id;
 
     public Fetch(Map<Symbol, Symbol> replacedOutputs,
                  List<Reference> fetchRefs,
                  Map<RelationName, FetchSource> fetchSourceByRelation,
-                 LogicalPlan source) {
-        super(source);
+                 LogicalPlan source,
+                 LogicalPlanId id) {
+        super(source, id);
         this.outputs = List.copyOf(replacedOutputs.keySet());
         this.replacedOutputs = replacedOutputs;
         this.fetchRefs = fetchRefs;
         this.fetchSourceByRelation = fetchSourceByRelation;
+        this.id = id;
     }
 
     @Override
@@ -173,7 +176,12 @@ public final class Fetch extends ForwardingLogicalPlan {
 
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
-        return new Fetch(replacedOutputs, fetchRefs, fetchSourceByRelation, Lists2.getOnlyElement(sources));
+        return new Fetch(replacedOutputs, fetchRefs, fetchSourceByRelation, Lists2.getOnlyElement(sources), id);
+    }
+
+    @Override
+    public LogicalPlanId id() {
+        return id;
     }
 
     @Override

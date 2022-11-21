@@ -118,6 +118,7 @@ import io.crate.planner.node.management.ExplainPlan;
 import io.crate.planner.node.management.KillPlan;
 import io.crate.planner.node.management.RerouteRetryFailedPlan;
 import io.crate.planner.node.management.ShowCreateTablePlan;
+import io.crate.planner.operators.LogicalPlanIdAllocator;
 import io.crate.planner.operators.LogicalPlanner;
 import io.crate.planner.statement.CopyFromPlan;
 import io.crate.planner.statement.CopyToPlan;
@@ -180,7 +181,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
                    SessionSettingRegistry sessionSettingRegistry) {
         this.clusterService = clusterService;
         this.tableStats = tableStats;
-        this.logicalPlanner = new LogicalPlanner(nodeCtx, tableStats, () -> clusterService.state().nodes().getMinNodeVersion());
+        this.logicalPlanner = new LogicalPlanner(nodeCtx, tableStats, () -> clusterService.state().nodes().getMinNodeVersion(), new LogicalPlanIdAllocator());
         this.numberOfShards = numberOfShards;
         this.tableCreator = tableCreator;
         this.schemas = schemas;

@@ -46,20 +46,24 @@ import io.crate.planner.PlannerContext;
 public class MultiPhase extends ForwardingLogicalPlan {
 
     private final Map<LogicalPlan, SelectSymbol> subQueries;
+    private final LogicalPlanId id;
 
-    public static LogicalPlan createIfNeeded(Map<LogicalPlan, SelectSymbol> uncorrelatedSubQueries, LogicalPlan source) {
+    public static LogicalPlan createIfNeeded(Map<LogicalPlan, SelectSymbol> uncorrelatedSubQueries,
+                                             LogicalPlan source,
+                                             LogicalPlanId id) {
         if (uncorrelatedSubQueries.isEmpty()) {
             return source;
         } else {
-            return new MultiPhase(source, uncorrelatedSubQueries);
+            return new MultiPhase(source, uncorrelatedSubQueries, id);
         }
     }
 
-    private MultiPhase(LogicalPlan source, Map<LogicalPlan, SelectSymbol> subQueries) {
-        super(source);
+    private MultiPhase(LogicalPlan source, Map<LogicalPlan, SelectSymbol> subQueries, LogicalPlanId id) {
+        super(source, id);
         HashMap<LogicalPlan, SelectSymbol> allSubQueries = new HashMap<>(source.dependencies());
         allSubQueries.putAll(subQueries);
         this.subQueries = Collections.unmodifiableMap(allSubQueries);
+        this.id = id;
     }
 
     @Override
@@ -79,7 +83,7 @@ public class MultiPhase extends ForwardingLogicalPlan {
 
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
-        return new MultiPhase(Lists2.getOnlyElement(sources), subQueries);
+        return new MultiPhase(Lists2.getOnlyElement(sources), subQueries, id);
     }
 
     @Override
@@ -90,6 +94,10 @@ public class MultiPhase extends ForwardingLogicalPlan {
     @Override
     public <C, R> R accept(LogicalPlanVisitor<C, R> visitor, C context) {
         return visitor.visitMultiPhase(this, context);
+    }
+
+    public LogicalPlanId id() {
+        return id;
     }
 
     @Override

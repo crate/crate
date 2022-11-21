@@ -47,6 +47,7 @@ public class MergeFiltersTest extends CrateDummyClusterServiceUnitTest {
 
     private SqlExpressions e;
     private AbstractTableRelation<?> tr1;
+    private CoordinatorTxnCtx txnCtx = CoordinatorTxnCtx.systemTransactionContext();
 
     @Before
     public void setUp() throws Exception {
@@ -58,9 +59,9 @@ public class MergeFiltersTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testMergeFiltersMatchesOnAFilterWithAnotherFilterAsChild() {
-        Collect source = new Collect(tr1, Collections.emptyList(), WhereClause.MATCH_ALL, 100, 10);
-        Filter sourceFilter = new Filter(source, e.asSymbol("x > 10"));
-        Filter parentFilter = new Filter(sourceFilter, e.asSymbol("y > 10"));
+        Collect source = new Collect(tr1, Collections.emptyList(), WhereClause.MATCH_ALL, 100, 10, txnCtx.idAllocator().nextId());
+        Filter sourceFilter = new Filter(source, e.asSymbol("x > 10"), txnCtx.idAllocator().nextId());
+        Filter parentFilter = new Filter(sourceFilter, e.asSymbol("y > 10"), txnCtx.idAllocator().nextId());
 
         MergeFilters mergeFilters = new MergeFilters();
         Match<Filter> match = mergeFilters.pattern().accept(parentFilter, Captures.empty());

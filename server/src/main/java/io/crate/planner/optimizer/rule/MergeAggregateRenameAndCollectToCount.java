@@ -86,9 +86,11 @@ public class MergeAggregateRenameAndCollectToCount implements Rule<HashAggregate
             return new Count(
                 countAggregate,
                 collect.relation(),
-                collect.where().add(mappedFilter));
+                collect.where().add(mappedFilter),
+                txnCtx.idAllocator().nextId()
+                );
         } else {
-            return new Count(countAggregate, collect.relation(), collect.where());
+            return new Count(countAggregate, collect.relation(), collect.where(), txnCtx.idAllocator().nextId());
         }
     }
 }

@@ -70,14 +70,18 @@ public class CorrelatedJoin implements LogicalPlan {
 
     private final List<Symbol> outputs;
     private final SelectSymbol selectSymbol;
+    private final LogicalPlanId id;
+
 
     public CorrelatedJoin(LogicalPlan inputPlan,
                           SelectSymbol selectSymbol,
-                          LogicalPlan subQueryPlan) {
+                          LogicalPlan subQueryPlan,
+                          LogicalPlanId id) {
         this.inputPlan = inputPlan;
         this.subQueryPlan = subQueryPlan;
         this.selectSymbol = selectSymbol;
         this.outputs = Lists2.concat(inputPlan.outputs(), selectSymbol);
+        this.id = id;
     }
 
     @Override
@@ -138,6 +142,11 @@ public class CorrelatedJoin implements LogicalPlan {
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
         return this;
+    }
+
+    @Override
+    public LogicalPlanId id() {
+        return id;
     }
 
     @Override

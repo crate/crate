@@ -32,6 +32,7 @@ import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.planner.operators.CorrelatedJoin;
 import io.crate.planner.operators.LogicalPlan;
+import io.crate.planner.operators.LogicalPlanIdAllocator;
 
 public class SubqueryPlanner {
 
@@ -43,14 +44,15 @@ public class SubqueryPlanner {
 
     public record SubQueries(Map<LogicalPlan, SelectSymbol> uncorrelated, Map<SelectSymbol, LogicalPlan> correlated) {
 
-        public LogicalPlan applyCorrelatedJoin(LogicalPlan source) {
+        public LogicalPlan applyCorrelatedJoin(LogicalPlan source, LogicalPlanIdAllocator idAllocator) {
             for (var entry : correlated.entrySet()) {
                 LogicalPlan plannedSubQuery = entry.getValue();
                 SelectSymbol subQuery = entry.getKey();
                 source = new CorrelatedJoin(
                     source,
                     subQuery,
-                    plannedSubQuery
+                    plannedSubQuery,
+                    idAllocator.nextId()
                 );
             }
             return source;

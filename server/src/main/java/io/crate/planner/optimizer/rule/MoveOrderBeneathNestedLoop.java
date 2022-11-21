@@ -106,7 +106,8 @@ public final class MoveOrderBeneathNestedLoop implements Rule<Order> {
                     nestedLoop.topMostLeftRelation(),
                     true,
                     nestedLoop.isRewriteFilterOnOuterJoinToInnerJoinDone(),
-                    false
+                    false,
+                    nestedLoop.id()
                 );
             }
         }

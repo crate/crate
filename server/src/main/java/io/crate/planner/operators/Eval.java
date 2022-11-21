@@ -57,17 +57,19 @@ import io.crate.statistics.TableStats;
 public final class Eval extends ForwardingLogicalPlan {
 
     private final List<Symbol> outputs;
+    private final LogicalPlanId id;
 
-    public static LogicalPlan create(LogicalPlan source, List<Symbol> outputs) {
+    public static LogicalPlan create(LogicalPlan source, List<Symbol> outputs, LogicalPlanId id) {
         if (source.outputs().equals(outputs)) {
             return source;
         }
-        return new Eval(source, outputs);
+        return new Eval(source, outputs, id);
     }
 
-    Eval(LogicalPlan source, List<Symbol> outputs) {
-        super(source);
+    Eval(LogicalPlan source, List<Symbol> outputs, LogicalPlanId id) {
+        super(source, id);
         this.outputs = outputs;
+        this.id = id;
     }
 
     @Override
@@ -96,7 +98,7 @@ public final class Eval extends ForwardingLogicalPlan {
 
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
-        return new Eval(Lists2.getOnlyElement(sources), outputs);
+        return new Eval(Lists2.getOnlyElement(sources), outputs, id);
     }
 
     @Override
@@ -105,7 +107,7 @@ public final class Eval extends ForwardingLogicalPlan {
         if (source == newSource) {
             return this;
         }
-        return new Eval(newSource, List.copyOf(outputsToKeep));
+        return new Eval(newSource, List.copyOf(outputsToKeep), id);
     }
 
     @Nullable
@@ -128,7 +130,7 @@ public final class Eval extends ForwardingLogicalPlan {
             newReplacedOutputs.put(output, mapToFetchStubs.apply(output));
             SymbolVisitors.intersection(output, newSource.outputs(), newOutputs::add);
         }
-        return new FetchRewrite(newReplacedOutputs, Eval.create(newSource, newOutputs));
+        return new FetchRewrite(newReplacedOutputs, Eval.create(newSource, newOutputs, id));
     }
 
     private ExecutionPlan addEvalProjection(PlannerContext plannerContext,
@@ -154,6 +156,11 @@ public final class Eval extends ForwardingLogicalPlan {
             newOrderBy
         );
         return executionPlan;
+    }
+
+    @Override
+    public LogicalPlanId id() {
+        return id;
     }
 
     @Override

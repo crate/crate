@@ -38,6 +38,7 @@ import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.table.TableInfo;
+import io.crate.planner.operators.LogicalPlanIdAllocator;
 import io.crate.protocols.postgres.TransactionState;
 
 public class PlannerContext {
@@ -85,7 +86,8 @@ public class PlannerContext {
                           int fetchSize,
                           @Nullable Row params,
                           Cursors cursors,
-                          TransactionState transactionState) {
+                          TransactionState transactionState
+                          ) {
         this.routingProvider = routingProvider;
         this.nodeCtx = nodeCtx;
         this.params = params;
@@ -162,4 +164,5 @@ public class PlannerContext {
     public TransactionState transactionState() {
         return transactionState;
     }
+
 }

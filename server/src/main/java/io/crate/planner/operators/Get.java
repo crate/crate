@@ -75,17 +75,20 @@ public class Get implements LogicalPlan {
     final Symbol query;
     final long estimatedSizePerRow;
     private final List<Symbol> outputs;
+    private final LogicalPlanId id;
 
     public Get(DocTableRelation table,
                DocKeys docKeys,
                Symbol query,
                List<Symbol> outputs,
-               long estimatedSizePerRow) {
+               long estimatedSizePerRow,
+               LogicalPlanId id) {
         this.tableRelation = table;
         this.docKeys = docKeys;
         this.query = query;
         this.estimatedSizePerRow = estimatedSizePerRow;
         this.outputs = outputs;
+        this.id = id;
     }
 
     @Override
@@ -250,7 +253,7 @@ public class Get implements LogicalPlan {
             }
         }
         if (excludedAny) {
-            return new Get(tableRelation, docKeys, query, newOutputs, estimatedSizePerRow);
+            return new Get(tableRelation, docKeys, query, newOutputs, estimatedSizePerRow, id);
         }
         return this;
     }
@@ -268,6 +271,11 @@ public class Get implements LogicalPlan {
     @Override
     public long numExpectedRows() {
         return docKeys.size();
+    }
+
+    @Override
+    public LogicalPlanId id() {
+        return id;
     }
 
     @Override

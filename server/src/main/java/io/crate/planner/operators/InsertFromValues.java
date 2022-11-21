@@ -118,11 +118,14 @@ public class InsertFromValues implements LogicalPlan {
 
     private final TableFunctionRelation tableFunctionRelation;
     private final ColumnIndexWriterProjection writerProjection;
+    private final LogicalPlanId id;
 
     InsertFromValues(TableFunctionRelation tableFunctionRelation,
-                     ColumnIndexWriterProjection writerProjection) {
+                     ColumnIndexWriterProjection writerProjection,
+                     LogicalPlanId id) {
         this.tableFunctionRelation = tableFunctionRelation;
         this.writerProjection = writerProjection;
+        this.id = id;
     }
 
     @Override
@@ -821,6 +824,11 @@ public class InsertFromValues implements LogicalPlan {
     @Override
     public List<Symbol> outputs() {
         return List.of();
+    }
+
+    @Override
+    public LogicalPlanId id() {
+        return id;
     }
 
     @Override

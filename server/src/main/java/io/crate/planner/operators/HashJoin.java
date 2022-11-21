@@ -67,14 +67,17 @@ public class HashJoin implements LogicalPlan {
     private final List<Symbol> outputs;
     final LogicalPlan rhs;
     final LogicalPlan lhs;
+    private final LogicalPlanId id;
 
     public HashJoin(LogicalPlan lhs,
                     LogicalPlan rhs,
-                    Symbol joinCondition) {
+                    Symbol joinCondition,
+                    LogicalPlanId id) {
         this.outputs = Lists2.concat(lhs.outputs(), rhs.outputs());
         this.lhs = lhs;
         this.rhs = rhs;
         this.joinCondition = joinCondition;
+        this.id = id;
     }
 
     public JoinType joinType() {
@@ -254,7 +257,8 @@ public class HashJoin implements LogicalPlan {
         return new HashJoin(
             sources.get(0),
             sources.get(1),
-            joinCondition
+            joinCondition,
+            id
         );
     }
 
@@ -276,7 +280,8 @@ public class HashJoin implements LogicalPlan {
         return new HashJoin(
             newLhs,
             newRhs,
-            joinCondition
+            joinCondition,
+            id
         );
     }
 
@@ -304,7 +309,8 @@ public class HashJoin implements LogicalPlan {
             new HashJoin(
                 lhsFetchRewrite == null ? lhs : lhsFetchRewrite.newPlan(),
                 rhsFetchRewrite == null ? rhs : rhsFetchRewrite.newPlan(),
-                joinCondition
+                joinCondition,
+                id
             )
         );
     }
@@ -327,6 +333,11 @@ public class HashJoin implements LogicalPlan {
     @Override
     public <C, R> R accept(LogicalPlanVisitor<C, R> visitor, C context) {
         return visitor.visitHashJoin(this, context);
+    }
+
+    @Override
+    public LogicalPlanId id() {
+        return id;
     }
 
     @Override

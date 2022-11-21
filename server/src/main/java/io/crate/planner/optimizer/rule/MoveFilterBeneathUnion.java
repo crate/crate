@@ -80,6 +80,6 @@ public final class MoveFilterBeneathUnion implements Rule<Filter> {
             }
             return newSource.outputs().get(idx);
         });
-        return new Filter(newSource, newQuery);
+        return new Filter(newSource, newQuery, filter.id());
     }
 }

@@ -22,26 +22,32 @@
 package io.crate.metadata;
 
 import io.crate.metadata.settings.SessionSettings;
+import io.crate.planner.operators.LogicalPlanIdAllocator;
 
 import java.time.Instant;
 
 public interface TransactionContext {
 
     static TransactionContext of(SessionSettings sessionSettings) {
-        return new StaticTransactionContext(sessionSettings);
+        return new StaticTransactionContext(sessionSettings, new LogicalPlanIdAllocator());
     }
 
     Instant currentInstant();
 
     SessionSettings sessionSettings();
 
+    LogicalPlanIdAllocator idAllocator();
+
     class StaticTransactionContext implements TransactionContext {
 
         private final SessionSettings sessionSettings;
         private Instant currentInstant;
+        private final LogicalPlanIdAllocator idAllocator;
 
-        StaticTransactionContext(SessionSettings sessionSettings) {
+
+        StaticTransactionContext(SessionSettings sessionSettings, LogicalPlanIdAllocator idAllocator) {
             this.sessionSettings = sessionSettings;
+            this.idAllocator = idAllocator;
         }
 
         @Override
@@ -56,5 +62,11 @@ public interface TransactionContext {
         public SessionSettings sessionSettings() {
             return sessionSettings;
         }
+
+        @Override
+        public LogicalPlanIdAllocator idAllocator() {
+            return idAllocator;
+        }
+
     }
 }

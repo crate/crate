@@ -115,6 +115,8 @@ public interface LogicalPlan extends Plan {
 
     LogicalPlan replaceSources(List<LogicalPlan> sources);
 
+    LogicalPlanId id();
+
     /**
      * Request an operator to return a new version of itself with all outputs removed except the ones contained in `outputsToKeep`.
      * <p>

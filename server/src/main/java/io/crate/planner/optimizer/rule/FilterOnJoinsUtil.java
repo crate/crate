@@ -28,6 +28,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RelationName;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.LogicalPlan;
+import io.crate.planner.operators.LogicalPlanIdAllocator;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -39,15 +40,15 @@ final class FilterOnJoinsUtil {
     private FilterOnJoinsUtil() {
     }
 
-    static LogicalPlan getNewSource(@Nullable Symbol splitQuery, LogicalPlan source) {
-        return splitQuery == null ? source : new Filter(source, splitQuery);
+    static LogicalPlan getNewSource(@Nullable Symbol splitQuery, LogicalPlan source, LogicalPlanIdAllocator idAllocator) {
+        return splitQuery == null ? source : new Filter(source, splitQuery, idAllocator.nextId());
     }
 
-    static LogicalPlan moveQueryBelowJoin(Symbol query, LogicalPlan join) {
+    static LogicalPlan moveQueryBelowJoin(Symbol query, LogicalPlan join, LogicalPlanIdAllocator idAllocator) {
         if (!WhereClause.canMatch(query)) {
             return join.replaceSources(List.of(
-                getNewSource(query, join.sources().get(0)),
-                getNewSource(query, join.sources().get(1))
+                getNewSource(query, join.sources().get(0), idAllocator),
+                getNewSource(query, join.sources().get(1), idAllocator)
             ));
         }
         Map<Set<RelationName>, Symbol> splitQuery = QuerySplitter.split(query);
@@ -62,15 +63,15 @@ final class FilterOnJoinsUtil {
         Set<RelationName> rightName = rhs.getRelationNames();
         Symbol queryForLhs = splitQuery.remove(leftName);
         Symbol queryForRhs = splitQuery.remove(rightName);
-        LogicalPlan newLhs = getNewSource(queryForLhs, lhs);
-        LogicalPlan newRhs = getNewSource(queryForRhs, rhs);
+        LogicalPlan newLhs = getNewSource(queryForLhs, lhs, idAllocator);
+        LogicalPlan newRhs = getNewSource(queryForRhs, rhs, idAllocator);
         LogicalPlan newJoin = join.replaceSources(List.of(newLhs, newRhs));
         if (splitQuery.isEmpty()) {
             return newJoin;
         } else if (initialParts == splitQuery.size()) {
             return null;
         } else {
-            return new Filter(newJoin, AndOperator.join(splitQuery.values()));
+            return new Filter(newJoin, AndOperator.join(splitQuery.values()), idAllocator.nextId());
         }
     }
 }

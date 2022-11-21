@@ -85,7 +85,8 @@ public final class OptimizeCollectWhereClauseAccess implements Rule<Collect> {
                 docKeys.get(),
                 detailedQuery.query(),
                 collect.outputs(),
-                tableStats.estimatedSizePerRow(relation.relationName())
+                tableStats.estimatedSizePerRow(relation.relationName()),
+                collect.id()
             );
         } else if (!detailedQuery.clusteredBy().isEmpty() && collect.detailedQuery() == null) {
             return new Collect(collect, detailedQuery);

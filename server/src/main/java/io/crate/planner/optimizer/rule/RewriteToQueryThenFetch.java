@@ -42,6 +42,7 @@ import io.crate.planner.operators.Fetch;
 import io.crate.planner.operators.FetchRewrite;
 import io.crate.planner.operators.Limit;
 import io.crate.planner.operators.LogicalPlan;
+import io.crate.planner.operators.LogicalPlanIdAllocator;
 import io.crate.planner.operators.Order;
 import io.crate.planner.operators.Rename;
 import io.crate.planner.optimizer.Rule;
@@ -92,24 +93,25 @@ public final class RewriteToQueryThenFetch implements Rule<Limit> {
             fetchRewrite.replacedOutputs(),
             fetchRefs,
             fetchSourceByRelation,
-            limit.replaceSources(List.of(fetchRewrite.newPlan()))
+            limit.replaceSources(List.of(fetchRewrite.newPlan())),
+            limit.id()
         );
     }
 
 
-    public static LogicalPlan tryRewrite(AnalyzedRelation relation, LogicalPlan plan, TableStats tableStats) {
+    public static LogicalPlan tryRewrite(AnalyzedRelation relation, LogicalPlan plan, TableStats tableStats, LogicalPlanIdAllocator idAllocator) {
         Match<?> match = ORDER_COLLECT.accept(plan, Captures.empty());
         if (match.isPresent()) {
-            return doRewrite(relation, plan, tableStats);
+            return doRewrite(relation, plan, tableStats, idAllocator);
         }
         match = RENAME_ORDER_COLLECT.accept(plan, Captures.empty());
         if (match.isPresent()) {
-            return doRewrite(relation, plan, tableStats);
+            return doRewrite(relation, plan, tableStats, idAllocator);
         }
         return plan;
     }
 
-    private static LogicalPlan doRewrite(AnalyzedRelation relation, LogicalPlan plan, TableStats tableStats) {
+    private static LogicalPlan doRewrite(AnalyzedRelation relation, LogicalPlan plan, TableStats tableStats, LogicalPlanIdAllocator idAllocator) {
         FetchRewrite fetchRewrite = plan.rewriteToFetch(tableStats, List.of());
         if (fetchRewrite == null) {
             return plan;
@@ -120,9 +122,9 @@ public final class RewriteToQueryThenFetch implements Rule<Limit> {
             fetchRewrite.replacedOutputs(),
             fetchRefs,
             fetchSourceByRelation,
-            fetchRewrite.newPlan()
-
+            fetchRewrite.newPlan(),
+            plan.id()
         );
-        return Eval.create(fetch, relation.outputs());
+        return Eval.create(fetch, relation.outputs(), idAllocator.nextId());
     }
 }

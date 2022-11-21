@@ -56,19 +56,21 @@ public class Limit extends ForwardingLogicalPlan {
     final Symbol limit;
     final Symbol offset;
 
-    static LogicalPlan create(LogicalPlan source, @Nullable Symbol limit, @Nullable Symbol offset) {
+    static LogicalPlan create(LogicalPlan source, @Nullable Symbol limit, @Nullable Symbol offset, LogicalPlanId id) {
         if (limit == null && offset == null) {
             return source;
         } else {
             return new Limit(
                 source,
                 Objects.requireNonNullElse(limit, Literal.of(-1L)),
-                Objects.requireNonNullElse(offset, Literal.of(0)));
+                Objects.requireNonNullElse(offset, Literal.of(0)),
+                id
+            );
         }
     }
 
-    public Limit(LogicalPlan source, Symbol limit, Symbol offset) {
-        super(source);
+    public Limit(LogicalPlan source, Symbol limit, Symbol offset, LogicalPlanId id) {
+        super(source, id);
         this.limit = limit;
         this.offset = offset;
     }
@@ -134,7 +136,7 @@ public class Limit extends ForwardingLogicalPlan {
 
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
-        return new Limit(Lists2.getOnlyElement(sources), limit, offset);
+        return new Limit(Lists2.getOnlyElement(sources), limit, offset, id);
     }
 
     @Override

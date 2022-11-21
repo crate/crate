@@ -173,7 +173,8 @@ public final class RewriteGroupByKeysLimitToLimitDistinct implements Rule<Limit>
             groupBy.source(),
             limit.limit(),
             limit.offset(),
-            groupBy.outputs()
+            groupBy.outputs(),
+            groupBy.id()
         );
     }
 

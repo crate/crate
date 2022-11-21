@@ -30,12 +30,13 @@ import org.junit.Test;
 import io.crate.expression.symbol.Literal;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.LogicalPlan;
+import io.crate.planner.operators.LogicalPlanIdAllocator;
 
 public class CapturePatternTest {
-
+    static LogicalPlanIdAllocator logicalPlanIdAllocator = new LogicalPlanIdAllocator();
     @Test
     public void testCapturePatternAddsToCaptureOnMatch() {
-        Filter filter = new Filter(mock(LogicalPlan.class), Literal.BOOLEAN_TRUE);
+        Filter filter = new Filter(mock(LogicalPlan.class), Literal.BOOLEAN_TRUE, logicalPlanIdAllocator.nextId());
 
         Capture<Filter> captureFilter = new Capture<>();
         Pattern<Filter> filterPattern = Pattern.typeOf(Filter.class).capturedAs(captureFilter);

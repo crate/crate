@@ -55,6 +55,8 @@ import io.crate.testing.SQLExecutor;
 
 public class LimitTest extends CrateDummyClusterServiceUnitTest {
 
+    private static LogicalPlanIdAllocator logicalPlanIdAllocator = new LogicalPlanIdAllocator();
+
     @Test
     public void testLimitOnLimitOperator() throws Exception {
         SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
@@ -69,13 +71,16 @@ public class LimitTest extends CrateDummyClusterServiceUnitTest {
                     queriedDocTable.outputs(),
                     new WhereClause(queriedDocTable.where()),
                     new TableStats(),
-                    null
+                    null,
+                    logicalPlanIdAllocator.nextId()
                 ),
                 Literal.of(10L),
-                Literal.of(5L)
+                Literal.of(5L),
+                logicalPlanIdAllocator.nextId()
             ),
             Literal.of(20L),
-            Literal.of(7L)
+            Literal.of(7L),
+            logicalPlanIdAllocator.nextId()
         );
         Assert.assertThat(plan, isPlan(
             "Limit[20::bigint;7::bigint]\n" +

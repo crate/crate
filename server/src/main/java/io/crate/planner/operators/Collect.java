@@ -98,18 +98,22 @@ public class Collect implements LogicalPlan {
     WhereClause mutableBoundWhere;
     DetailedQuery detailedQuery;
 
+    private final LogicalPlanId id;
+
     public static Collect create(AbstractTableRelation<?> relation,
                                  List<Symbol> toCollect,
                                  WhereClause where,
                                  TableStats tableStats,
-                                 Row params) {
+                                 Row params,
+                                 LogicalPlanId id) {
         Stats stats = tableStats.getStats(relation.tableInfo().ident());
         return new Collect(
             relation,
             toCollect,
             where,
             SelectivityFunctions.estimateNumRows(stats, where.queryOrFallback(), params),
-            stats.estimateSizeForColumns(toCollect)
+            stats.estimateSizeForColumns(toCollect),
+            id
         );
     }
 
@@ -126,13 +130,15 @@ public class Collect implements LogicalPlan {
         this.immutableWhere = collect.immutableWhere;
         this.tableInfo = collect.relation.tableInfo();
         this.detailedQuery = detailedQuery;
+        this.id = collect.id;
     }
 
     public Collect(AbstractTableRelation<?> relation,
                    List<Symbol> outputs,
                    WhereClause where,
                    long numExpectedRows,
-                   long estimatedRowSize) {
+                   long estimatedRowSize,
+                   LogicalPlanId id) {
         this.outputs = outputs;
         this.baseTables = List.of(relation);
         this.numExpectedRows = numExpectedRows;
@@ -144,6 +150,7 @@ public class Collect implements LogicalPlan {
         this.immutableWhere = where;
         this.mutableBoundWhere = where;
         this.tableInfo = relation.tableInfo();
+        this.id = id;
     }
 
     @Override
@@ -352,6 +359,11 @@ public class Collect implements LogicalPlan {
     }
 
     @Override
+    public LogicalPlanId id() {
+        return id;
+    }
+
+    @Override
     public LogicalPlan pruneOutputsExcept(TableStats tableStats, Collection<Symbol> outputsToKeep) {
         ArrayList<Symbol> newOutputs = new ArrayList<>();
         for (Symbol output : outputs) {
@@ -368,7 +380,8 @@ public class Collect implements LogicalPlan {
             newOutputs,
             immutableWhere,
             numExpectedRows,
-            stats.estimateSizeForColumns(newOutputs)
+            stats.estimateSizeForColumns(newOutputs),
+            id
         );
     }
 
@@ -414,7 +427,8 @@ public class Collect implements LogicalPlan {
                 newOutputs,
                 immutableWhere,
                 numExpectedRows,
-                stats.estimateSizeForColumns(newOutputs)
+                stats.estimateSizeForColumns(newOutputs),
+                id
             )
         );
     }

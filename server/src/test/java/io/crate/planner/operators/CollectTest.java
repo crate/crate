@@ -38,6 +38,7 @@ import io.crate.data.Row;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
@@ -47,6 +48,8 @@ import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
 
 public class CollectTest extends CrateDummyClusterServiceUnitTest {
+
+    private CoordinatorTxnCtx txnCtx = CoordinatorTxnCtx.systemTransactionContext();
 
     @Test
     public void test_prune_output_of_collect_updates_estimated_row_size() throws Exception {
@@ -60,7 +63,8 @@ public class CollectTest extends CrateDummyClusterServiceUnitTest {
             List.of(x, e.asSymbol("y")),
             WhereClause.MATCH_ALL,
             tableStats,
-            Row.EMPTY
+            Row.EMPTY,
+            txnCtx.idAllocator().nextId()
         );
         assertThat(collect.estimatedRowSize(), is(DataTypes.INTEGER.fixedSize() * 2L));
         LogicalPlan prunedCollect = collect.pruneOutputsExcept(tableStats, List.of(x));
@@ -79,7 +83,8 @@ public class CollectTest extends CrateDummyClusterServiceUnitTest {
         LogicalPlanner logicalPlanner = new LogicalPlanner(
             e.nodeCtx,
             tableStats,
-            () -> clusterService.state().nodes().getMinNodeVersion()
+            () -> clusterService.state().nodes().getMinNodeVersion(),
+            txnCtx.idAllocator()
         );
         LogicalPlan operator = logicalPlanner.plan(analyzedRelation, plannerCtx);
         ExecutionPlan build = operator.build(

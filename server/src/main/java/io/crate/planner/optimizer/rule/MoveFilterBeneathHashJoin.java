@@ -59,6 +59,6 @@ public final class MoveFilterBeneathHashJoin implements Rule<Filter> {
                              TransactionContext txnCtx,
                              NodeContext nodeCtx) {
         HashJoin hashJoin = captures.get(joinCapture);
-        return moveQueryBelowJoin(filter.query(), hashJoin);
+        return moveQueryBelowJoin(filter.query(), hashJoin, txnCtx.idAllocator());
     }
 }

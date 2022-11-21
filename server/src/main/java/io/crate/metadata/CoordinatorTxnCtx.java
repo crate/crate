@@ -25,6 +25,7 @@ import java.time.Instant;
 import java.util.Objects;
 
 import io.crate.metadata.settings.CoordinatorSessionSettings;
+import io.crate.planner.operators.LogicalPlanIdAllocator;
 
 /**
  * TransactionContext is a context that is used to keep state which is valid during a transaction.
@@ -36,6 +37,7 @@ public final class CoordinatorTxnCtx implements TransactionContext {
 
     private final CoordinatorSessionSettings sessionSettings;
     private Instant currentInstant;
+    private LogicalPlanIdAllocator idAllocator = new LogicalPlanIdAllocator();
 
     public static CoordinatorTxnCtx systemTransactionContext() {
         return new CoordinatorTxnCtx(CoordinatorSessionSettings.systemDefaults());
@@ -60,5 +62,10 @@ public final class CoordinatorTxnCtx implements TransactionContext {
     @Override
     public CoordinatorSessionSettings sessionSettings() {
         return sessionSettings;
+    }
+
+    @Override
+    public LogicalPlanIdAllocator idAllocator() {
+        return idAllocator;
     }
 }

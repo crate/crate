@@ -63,7 +63,8 @@ public class MoveFilterBeneathRename implements Rule<Filter> {
         Rename rename = captures.get(renameCapture);
         Filter newFilter = new Filter(
             rename.source(),
-            FieldReplacer.replaceFields(plan.query(), rename::resolveField)
+            FieldReplacer.replaceFields(plan.query(), rename::resolveField),
+            plan.id()
         );
         return rename.replaceSources(List.of(newFilter));
     }

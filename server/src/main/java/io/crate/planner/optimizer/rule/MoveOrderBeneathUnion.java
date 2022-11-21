@@ -77,6 +77,6 @@ public final class MoveOrderBeneathUnion implements Rule<Order> {
                     "The ORDER BY expression " + s + " must be part of the child union: " + sourceOutputs);
             }
             return child.outputs().get(idx);
-        }));
+        }), order.id());
     }
 }

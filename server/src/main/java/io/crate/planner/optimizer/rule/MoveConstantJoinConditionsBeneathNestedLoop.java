@@ -88,7 +88,8 @@ public class MoveConstantJoinConditionsBeneathNestedLoop implements Rule<NestedL
                 nl.topMostLeftRelation(),
                 nl.orderByWasPushedDown(),
                 nl.isRewriteFilterOnOuterJoinToInnerJoinDone(),
-                true // Mark joinConditionOptimised = true
+                true, // Mark joinConditionOptimised = true
+                nl.id()
             );
         } else {
             // Push constant join condition down to source
@@ -96,12 +97,13 @@ public class MoveConstantJoinConditionsBeneathNestedLoop implements Rule<NestedL
             var rhs = nl.rhs();
             var queryForLhs = constantConditions.remove(lhs.getRelationNames());
             var queryForRhs = constantConditions.remove(rhs.getRelationNames());
-            var newLhs = getNewSource(queryForLhs, lhs);
-            var newRhs = getNewSource(queryForRhs, rhs);
+            var newLhs = getNewSource(queryForLhs, lhs, txnCtx.idAllocator());
+            var newRhs = getNewSource(queryForRhs, rhs, txnCtx.idAllocator());
             return new HashJoin(
                 newLhs,
                 newRhs,
-                AndOperator.join(nonConstantConditions)
+                AndOperator.join(nonConstantConditions),
+                nl.id()
             );
         }
     }

@@ -56,16 +56,16 @@ public class Order extends ForwardingLogicalPlan {
     final OrderBy orderBy;
     private final List<Symbol> outputs;
 
-    static LogicalPlan create(LogicalPlan source, @Nullable OrderBy orderBy) {
+    static LogicalPlan create(LogicalPlan source, @Nullable OrderBy orderBy, LogicalPlanId id) {
         if (orderBy == null) {
             return source;
         } else {
-            return new Order(source, orderBy);
+            return new Order(source, orderBy, id);
         }
     }
 
-    public Order(LogicalPlan source, OrderBy orderBy) {
-        super(source);
+    public Order(LogicalPlan source, OrderBy orderBy, LogicalPlanId id) {
+        super(source, id);
         this.outputs = Lists2.concatUnique(source.outputs(), orderBy.orderBySymbols());
         this.orderBy = orderBy;
     }
@@ -100,7 +100,7 @@ public class Order extends ForwardingLogicalPlan {
             return null;
         }
         LogicalPlan newSource = fetchRewrite.newPlan();
-        Order newOrderBy = new Order(newSource, orderBy);
+        Order newOrderBy = new Order(newSource, orderBy, id);
         Map<Symbol, Symbol> replacedOutputs = fetchRewrite.replacedOutputs();
         if (newOrderBy.outputs.size() > newSource.outputs().size()) {
             // This is the case if the `orderBy` contains computations on top of the source outputs.
@@ -181,7 +181,7 @@ public class Order extends ForwardingLogicalPlan {
 
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
-        return new Order(Lists2.getOnlyElement(sources), orderBy);
+        return new Order(Lists2.getOnlyElement(sources), orderBy, id);
     }
 
     @Override
