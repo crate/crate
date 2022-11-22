@@ -22,6 +22,7 @@
 
 package org.elasticsearch.cluster.coordination;
 
+import static org.elasticsearch.gateway.DanglingIndicesState.AUTO_IMPORT_DANGLING_INDICES_SETTING;
 import static org.elasticsearch.indices.recovery.RecoverySettings.INDICES_RECOVERY_MAX_BYTES_PER_SEC_SETTING;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
@@ -49,6 +50,7 @@ import org.elasticsearch.env.Environment;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.env.NodeMetadata;
 import org.elasticsearch.env.TestEnvironment;
+import org.elasticsearch.gateway.GatewayMetaState;
 import org.elasticsearch.gateway.PersistedClusterStateService;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.node.Node;
@@ -329,11 +331,15 @@ public class UnsafeBootstrapAndDetachCommandIT extends IntegTestCase {
     public void testAllMasterEligibleNodesFailedDanglingIndexImport() throws Exception {
         internalCluster().setBootstrapMasterNodeIndex(0);
 
+        Settings settings = Settings.builder()
+            .put(AUTO_IMPORT_DANGLING_INDICES_SETTING.getKey(), true)
+            .build();
+
         logger.info("--> start mixed data and master-eligible node and bootstrap cluster");
-        String masterNode = internalCluster().startNode(); // node ordinal 0
+        String masterNode = internalCluster().startNode(settings); // node ordinal 0
 
         logger.info("--> start data-only node and ensure 2 nodes stable cluster");
-        String dataNode = internalCluster().startDataOnlyNode(); // node ordinal 1
+        String dataNode = internalCluster().startDataOnlyNode(settings); // node ordinal 1
         ensureStableCluster(2);
 
         execute("create table doc.test(x int)");
@@ -353,10 +359,18 @@ public class UnsafeBootstrapAndDetachCommandIT extends IntegTestCase {
         assertThat(response.rows()[0][0], is(1L));
 
         logger.info("--> stop data-only node and detach it from the old cluster");
-        Settings dataNodeDataPathSettings = internalCluster().dataPathSettings(dataNode);
+        Settings dataNodeDataPathSettings = Settings.builder()
+            .put(internalCluster().dataPathSettings(dataNode))
+            .put(AUTO_IMPORT_DANGLING_INDICES_SETTING.getKey(), true)
+            .build();
+        assertBusy(() -> internalCluster().getInstance(GatewayMetaState.class, dataNode).allPendingAsyncStatesWritten());
         internalCluster().stopRandomNode(TestCluster.nameFilter(dataNode));
         final Environment environment = TestEnvironment.newEnvironment(
-            Settings.builder().put(internalCluster().getDefaultSettings()).put(dataNodeDataPathSettings).build());
+            Settings.builder()
+                .put(internalCluster().getDefaultSettings())
+                .put(dataNodeDataPathSettings)
+                .put(AUTO_IMPORT_DANGLING_INDICES_SETTING.getKey(), true)
+                .build());
         detachCluster(environment, false);
 
         logger.info("--> stop master-eligible node, clear its data and start it again - new cluster should form");
