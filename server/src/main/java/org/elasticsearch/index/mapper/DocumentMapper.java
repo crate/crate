@@ -44,6 +44,8 @@ import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.mapper.MetadataFieldMapper.TypeParser;
 
+import io.crate.metadata.doc.DocSysColumns;
+
 
 public class DocumentMapper implements ToXContentFragment {
 
@@ -152,12 +154,12 @@ public class DocumentMapper implements ToXContentFragment {
             throw new ElasticsearchGenerationException("failed to serialize source for type [" + type + "]", e);
         }
 
-        final Collection<String> deleteTombstoneMetadataFields = Arrays.asList(VersionFieldMapper.NAME, IdFieldMapper.NAME,
+        final Collection<String> deleteTombstoneMetadataFields = Arrays.asList(DocSysColumns.VERSION.name(), IdFieldMapper.NAME,
             SeqNoFieldMapper.NAME, SeqNoFieldMapper.PRIMARY_TERM_NAME, SeqNoFieldMapper.TOMBSTONE_NAME);
         this.deleteTombstoneMetadataFieldMappers = Stream.of(mapping.metadataMappers)
             .filter(field -> deleteTombstoneMetadataFields.contains(field.name())).toArray(MetadataFieldMapper[]::new);
         final Collection<String> noopTombstoneMetadataFields = Arrays.asList(
-            VersionFieldMapper.NAME, SeqNoFieldMapper.NAME, SeqNoFieldMapper.PRIMARY_TERM_NAME, SeqNoFieldMapper.TOMBSTONE_NAME);
+            DocSysColumns.VERSION.name(), SeqNoFieldMapper.NAME, SeqNoFieldMapper.PRIMARY_TERM_NAME, SeqNoFieldMapper.TOMBSTONE_NAME);
         this.noopTombstoneMetadataFieldMappers = Stream.of(mapping.metadataMappers)
             .filter(field -> noopTombstoneMetadataFields.contains(field.name())).toArray(MetadataFieldMapper[]::new);
     }

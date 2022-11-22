@@ -113,7 +113,6 @@ import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.index.mapper.SeqNoFieldMapper;
 import org.elasticsearch.index.mapper.SourceFieldMapper;
 import org.elasticsearch.index.mapper.Uid;
-import org.elasticsearch.index.mapper.VersionFieldMapper;
 import org.elasticsearch.index.seqno.LocalCheckpointTracker;
 import org.elasticsearch.index.seqno.ReplicationTracker;
 import org.elasticsearch.index.seqno.RetentionLeases;
@@ -133,6 +132,7 @@ import org.junit.Before;
 
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
+import io.crate.metadata.doc.DocSysColumns;
 
 public abstract class EngineTestCase extends ESTestCase {
 
@@ -374,7 +374,7 @@ public abstract class EngineTestCase extends ESTestCase {
                 final Document doc = new Document();
                 Field uidField = new Field(IdFieldMapper.NAME, Uid.encodeId(id), IdFieldMapper.Defaults.FIELD_TYPE);
                 doc.add(uidField);
-                Field versionField = new NumericDocValuesField(VersionFieldMapper.NAME, 0);
+                Field versionField = new NumericDocValuesField(DocSysColumns.VERSION.name(), 0);
                 doc.add(versionField);
                 SeqNoFieldMapper.SequenceIDFields seqID = SeqNoFieldMapper.SequenceIDFields.emptySeqID();
                 doc.add(seqID.seqNo);
@@ -395,7 +395,7 @@ public abstract class EngineTestCase extends ESTestCase {
                 doc.add(seqID.primaryTerm);
                 seqID.tombstoneField.setLongValue(1);
                 doc.add(seqID.tombstoneField);
-                Field versionField = new NumericDocValuesField(VersionFieldMapper.NAME, 0);
+                Field versionField = new NumericDocValuesField(DocSysColumns.VERSION.name(), 0);
                 doc.add(versionField);
                 BytesRef byteRef = new BytesRef(reason);
                 doc.add(new StoredField(SourceFieldMapper.NAME, byteRef.bytes, byteRef.offset, byteRef.length));
@@ -1125,7 +1125,7 @@ public abstract class EngineTestCase extends ESTestCase {
                 LeafReader reader = leafContext.reader();
                 NumericDocValues seqNoDocValues = reader.getNumericDocValues(SeqNoFieldMapper.NAME);
                 NumericDocValues primaryTermDocValues = reader.getNumericDocValues(SeqNoFieldMapper.PRIMARY_TERM_NAME);
-                NumericDocValues versionDocValues = reader.getNumericDocValues(VersionFieldMapper.NAME);
+                NumericDocValues versionDocValues = reader.getNumericDocValues(DocSysColumns.VERSION.name());
                 Bits liveDocs = reader.getLiveDocs();
                 for (int i = 0; i < reader.maxDoc(); i++) {
                     if (liveDocs == null || liveDocs.get(i)) {

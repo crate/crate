@@ -145,7 +145,6 @@ import org.elasticsearch.index.mapper.SeqNoFieldMapper;
 import org.elasticsearch.index.mapper.SourceFieldMapper;
 import org.elasticsearch.index.mapper.SourceToParse;
 import org.elasticsearch.index.mapper.Uid;
-import org.elasticsearch.index.mapper.VersionFieldMapper;
 import org.elasticsearch.index.seqno.ReplicationTracker;
 import org.elasticsearch.index.seqno.RetentionLease;
 import org.elasticsearch.index.seqno.RetentionLeaseSyncer;
@@ -177,6 +176,7 @@ import org.junit.Test;
 import io.crate.Constants;
 import io.crate.common.collections.Tuple;
 import io.crate.common.unit.TimeValue;
+import io.crate.metadata.doc.DocSysColumns;
 
 /**
  * Simple unit-test IndexShard related operations.
@@ -3656,7 +3656,7 @@ public class IndexShardTests extends IndexShardTestCase {
             deleteDoc.getFields().stream().map(IndexableField::name).collect(Collectors.toList()),
             containsInAnyOrder(
                 IdFieldMapper.NAME,
-                VersionFieldMapper.NAME,
+                DocSysColumns.VERSION.name(),
                 SeqNoFieldMapper.NAME,
                 SeqNoFieldMapper.NAME,
                 SeqNoFieldMapper.PRIMARY_TERM_NAME,
@@ -3672,7 +3672,7 @@ public class IndexShardTests extends IndexShardTestCase {
         assertThat(
             noopDoc.getFields().stream().map(IndexableField::name).collect(Collectors.toList()),
             containsInAnyOrder(
-                VersionFieldMapper.NAME,
+                DocSysColumns.VERSION.name(),
                 SourceFieldMapper.NAME,
                 SeqNoFieldMapper.TOMBSTONE_NAME,
                 SeqNoFieldMapper.NAME,

@@ -183,7 +183,6 @@ import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.index.mapper.SeqNoFieldMapper;
 import org.elasticsearch.index.mapper.SourceFieldMapper;
 import org.elasticsearch.index.mapper.Uid;
-import org.elasticsearch.index.mapper.VersionFieldMapper;
 import org.elasticsearch.index.seqno.LocalCheckpointTracker;
 import org.elasticsearch.index.seqno.ReplicationTracker;
 import org.elasticsearch.index.seqno.RetentionLease;
@@ -211,6 +210,7 @@ import com.carrotsearch.randomizedtesting.generators.RandomNumbers;
 import io.crate.common.collections.Tuple;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
+import io.crate.metadata.doc.DocSysColumns;
 
 public class InternalEngineTests extends EngineTestCase {
 
@@ -1494,7 +1494,7 @@ public class InternalEngineTests extends EngineTestCase {
                                                                                                                            MatchAllDocsQuery::new, new PrunePostingsMergePolicy(indexWriterConfig.getMergePolicy(), "_id"))))) {
                 org.apache.lucene.document.Document doc = new org.apache.lucene.document.Document();
                 doc.add(new Field(IdFieldMapper.NAME, "1", IdFieldMapper.Defaults.FIELD_TYPE));
-                doc.add(new NumericDocValuesField(VersionFieldMapper.NAME, -1));
+                doc.add(new NumericDocValuesField(DocSysColumns.VERSION.name(), -1));
                 doc.add(new NumericDocValuesField(SeqNoFieldMapper.NAME, 1));
                 doc.add(new NumericDocValuesField(SeqNoFieldMapper.PRIMARY_TERM_NAME, 1));
                 writer.addDocument(doc);

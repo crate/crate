@@ -32,8 +32,9 @@ import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.common.lucene.uid.VersionsAndSeqNoResolver.DocIdAndSeqNo;
 import org.elasticsearch.common.lucene.uid.VersionsAndSeqNoResolver.DocIdAndVersion;
 import org.elasticsearch.index.mapper.SeqNoFieldMapper;
-import org.elasticsearch.index.mapper.VersionFieldMapper;
 import org.elasticsearch.index.seqno.SequenceNumbers;
+
+import io.crate.metadata.doc.DocSysColumns;
 
 import java.io.IOException;
 
@@ -82,8 +83,8 @@ final class PerThreadIDVersionAndSeqNoLookup {
         } else {
             termsEnum = terms.iterator();
         }
-        if (reader.getNumericDocValues(VersionFieldMapper.NAME) == null) {
-            throw new IllegalArgumentException("reader misses the [" + VersionFieldMapper.NAME + "] field; _uid terms [" + terms + "]");
+        if (reader.getNumericDocValues(DocSysColumns.VERSION.name()) == null) {
+            throw new IllegalArgumentException("reader misses the [" + DocSysColumns.VERSION.name() + "] field; _uid terms [" + terms + "]");
         }
         Object readerKey = null;
         assert (readerKey = reader.getCoreCacheHelper().getKey()) != null;
@@ -112,7 +113,7 @@ final class PerThreadIDVersionAndSeqNoLookup {
                 seqNo = SequenceNumbers.UNASSIGNED_SEQ_NO;
                 term = 0;
             }
-            final long version = readNumericDocValues(context.reader(), VersionFieldMapper.NAME, docID);
+            final long version = readNumericDocValues(context.reader(), DocSysColumns.VERSION.name(), docID);
             return new DocIdAndVersion(docID, version, seqNo, term, context.reader(), context.docBase);
         } else {
             return null;
