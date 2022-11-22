@@ -28,7 +28,6 @@ import java.util.RandomAccess;
 import java.util.function.BiConsumer;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
-import java.util.function.ToLongFunction;
 
 import javax.annotation.Nullable;
 
@@ -62,17 +61,14 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
     private final Predicate<ShardedRequests> hasSourceFailure;
     private final Input<String> sourceUriInput;
     private final Input<Long> lineNumberInput;
-    private final ToLongFunction<Row> estimateRowSize;
 
     public GroupRowsByShard(ClusterService clusterService,
                             RowShardResolver rowShardResolver,
-                            ToLongFunction<Row> estimateRowSize,
                             Supplier<String> indexNameResolver,
                             List<? extends CollectExpression<Row, ?>> expressions,
                             ItemFactory<TItem> itemFactory,
                             boolean autoCreateIndices,
                             UpsertResultContext upsertContext) {
-        this.estimateRowSize = estimateRowSize;
         assert expressions instanceof RandomAccess
             : "expressions should be a RandomAccess list for zero allocation iterations";
 
@@ -91,14 +87,12 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
 
     public GroupRowsByShard(ClusterService clusterService,
                             RowShardResolver rowShardResolver,
-                            ToLongFunction<Row> estimateRowSize,
                             Supplier<String> indexNameResolver,
                             List<? extends CollectExpression<Row, ?>> expressions,
                             ItemFactory<TItem> itemFactory,
                             boolean autoCreateIndices) {
         this(clusterService,
              rowShardResolver,
-             estimateRowSize,
              indexNameResolver,
              expressions,
              itemFactory,
@@ -131,11 +125,10 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
 
             RowSourceInfo rowSourceInfo = RowSourceInfo.emptyMarkerOrNewInstance(sourceUri, lineNumber);
             ShardLocation shardLocation = getShardLocation(indexName, id, routing);
-            long sizeEstimate = estimateRowSize.applyAsLong(row);
             if (shardLocation == null) {
-                shardedRequests.add(item, sizeEstimate, indexName, routing, rowSourceInfo);
+                shardedRequests.add(item, indexName, routing, rowSourceInfo);
             } else {
-                shardedRequests.add(item, sizeEstimate, shardLocation, rowSourceInfo);
+                shardedRequests.add(item, shardLocation, rowSourceInfo);
             }
         } catch (CircuitBreakingException e) {
             throw e;
@@ -192,7 +185,7 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
                 if (shardLocation == null) {
                     throw new IllegalStateException("shardLocation not resolvable after createIndices");
                 }
-                requests.add(itemAndRoutingAndSourceInfo.item, 0, shardLocation, itemAndRoutingAndSourceInfo.rowSourceInfo);
+                requests.add(itemAndRoutingAndSourceInfo.item, shardLocation, itemAndRoutingAndSourceInfo.rowSourceInfo);
                 it.remove();
             }
             if (items.isEmpty()) {

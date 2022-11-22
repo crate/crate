@@ -69,7 +69,6 @@ import io.crate.analyze.SymbolEvaluator;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.TableFunctionRelation;
 import io.crate.breaker.RamAccounting;
-import io.crate.breaker.TypeGuessEstimateRowSize;
 import io.crate.concurrent.limits.ConcurrencyLimit;
 import io.crate.data.CollectionBucket;
 import io.crate.data.InMemoryBatchIterator;
@@ -483,7 +482,6 @@ public class InsertFromValues implements LogicalPlan {
         return new GroupRowsByShard<>(
             clusterService,
             rowShardResolver,
-            new TypeGuessEstimateRowSize(),
             indexNameResolver,
             collectContext.expressions(),
             itemFactory,
@@ -620,7 +618,7 @@ public class InsertFromValues implements LogicalPlan {
                         throw e;
                     }
                 }
-                shardedRequests.add(itemAndRoutingAndSourceInfo.item(), 0, shardLocation, null);
+                shardedRequests.add(itemAndRoutingAndSourceInfo.item(), shardLocation, null);
                 requestItemsIterator.remove();
             }
             if (requestItems.isEmpty()) {

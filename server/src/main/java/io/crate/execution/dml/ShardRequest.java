@@ -21,6 +21,8 @@
 
 package io.crate.execution.dml;
 
+import org.apache.lucene.util.Accountable;
+import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.action.support.replication.ReplicationRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -38,7 +40,10 @@ import java.util.Objects;
 import java.util.UUID;
 
 public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends ShardRequest.Item>
-    extends ReplicationRequest<T> implements Iterable<I> {
+    extends ReplicationRequest<T>
+    implements Iterable<I>, Accountable {
+
+    private static final long SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(ShardRequest.class);
 
     private UUID jobId;
     protected List<I> items;
@@ -114,7 +119,16 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
                '}';
     }
 
-    public abstract static class Item implements Writeable {
+    @Override
+    public long ramBytesUsed() {
+        long bytes = SHALLOW_SIZE;
+        for (var item : items) {
+            bytes += item.ramBytesUsed();
+        }
+        return bytes;
+    }
+
+    public abstract static class Item implements Writeable, Accountable {
 
         protected final String id;
         protected long version = Versions.MATCH_ANY;
@@ -133,6 +147,15 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
             location = in.readInt();
             seqNo = in.readLong();
             primaryTerm = in.readLong();
+        }
+
+        @Override
+        public long ramBytesUsed() {
+            return RamUsageEstimator.sizeOf(id)
+                + Long.BYTES    // version
+                + Integer.BYTES // location
+                + Long.BYTES    // seqNo
+                + Long.BYTES;   // primaryTerm
         }
 
         public String id() {
