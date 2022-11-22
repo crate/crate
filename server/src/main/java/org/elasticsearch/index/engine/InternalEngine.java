@@ -45,6 +45,7 @@ import java.util.stream.Stream;
 import javax.annotation.Nullable;
 
 import io.crate.common.unit.TimeValue;
+import io.crate.metadata.doc.DocSysColumns;
 
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
@@ -101,7 +102,6 @@ import org.elasticsearch.index.fieldvisitor.IDVisitor;
 import org.elasticsearch.index.mapper.IdFieldMapper;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.mapper.ParsedDocument;
-import org.elasticsearch.index.mapper.SeqNoFieldMapper;
 import org.elasticsearch.index.mapper.SourceFieldMapper;
 import org.elasticsearch.index.mapper.Uid;
 import org.elasticsearch.index.merge.OnGoingMerge;
@@ -1407,7 +1407,7 @@ public class InternalEngine extends Engine {
                 tombstone.updateSeqID(delete.seqNo(), delete.primaryTerm());
                 tombstone.version().setLongValue(plan.versionOfDeletion);
                 final Document doc = tombstone.doc();
-                assert doc.getField(SeqNoFieldMapper.TOMBSTONE_NAME) != null :
+                assert doc.getField(DocSysColumns.Names.TOMBSTONE) != null :
                     "Delete tombstone document but _tombstone field is not set [" + doc + " ]";
                 doc.add(softDeletesField);
                 if (plan.addStaleOpToLucene || plan.currentlyDeleted) {
@@ -1540,7 +1540,7 @@ public class InternalEngine extends Engine {
                         // 1L is selected to optimize the compression because it might probably be the most common value in version field.
                         tombstone.version().setLongValue(1L);
                         final Document doc = tombstone.doc();
-                        assert doc.getField(SeqNoFieldMapper.TOMBSTONE_NAME) != null
+                        assert doc.getField(DocSysColumns.Names.TOMBSTONE) != null
                             : "Noop tombstone document but _tombstone field is not set [" + doc + " ]";
                         doc.add(softDeletesField);
                         indexWriter.addDocument(doc);
@@ -2768,9 +2768,9 @@ public class InternalEngine extends Engine {
         searcher.setQueryCache(null);
         final Query query = new BooleanQuery.Builder()
             .add(LongPoint.newRangeQuery(
-                    SeqNoFieldMapper.NAME, getPersistedLocalCheckpoint() + 1, Long.MAX_VALUE), BooleanClause.Occur.MUST)
+                    DocSysColumns.Names.SEQ_NO, getPersistedLocalCheckpoint() + 1, Long.MAX_VALUE), BooleanClause.Occur.MUST)
             // exclude non-root nested documents
-            .add(new DocValuesFieldExistsQuery(SeqNoFieldMapper.PRIMARY_TERM_NAME), BooleanClause.Occur.MUST)
+            .add(new DocValuesFieldExistsQuery(DocSysColumns.Names.PRIMARY_TERM), BooleanClause.Occur.MUST)
             .build();
         final Weight weight = searcher.createWeight(searcher.rewrite(query), ScoreMode.COMPLETE_NO_SCORES, 1.0f);
         for (LeafReaderContext leaf : directoryReader.leaves()) {

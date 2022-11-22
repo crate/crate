@@ -23,7 +23,6 @@ package org.elasticsearch.index.engine;
 
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.NumericDocValues;
-import org.elasticsearch.index.mapper.SeqNoFieldMapper;
 import org.elasticsearch.index.mapper.SourceFieldMapper;
 
 import io.crate.metadata.doc.DocSysColumns;
@@ -40,10 +39,10 @@ final class CombinedDocValues {
 
     CombinedDocValues(LeafReader leafReader) throws IOException {
         this.versionDV = Objects.requireNonNull(leafReader.getNumericDocValues(DocSysColumns.VERSION.name()), "VersionDV is missing");
-        this.seqNoDV = Objects.requireNonNull(leafReader.getNumericDocValues(SeqNoFieldMapper.NAME), "SeqNoDV is missing");
+        this.seqNoDV = Objects.requireNonNull(leafReader.getNumericDocValues(DocSysColumns.Names.SEQ_NO), "SeqNoDV is missing");
         this.primaryTermDV = Objects.requireNonNull(
-            leafReader.getNumericDocValues(SeqNoFieldMapper.PRIMARY_TERM_NAME), "PrimaryTermDV is missing");
-        this.tombstoneDV = leafReader.getNumericDocValues(SeqNoFieldMapper.TOMBSTONE_NAME);
+            leafReader.getNumericDocValues(DocSysColumns.Names.PRIMARY_TERM), "PrimaryTermDV is missing");
+        this.tombstoneDV = leafReader.getNumericDocValues(DocSysColumns.Names.TOMBSTONE);
         this.recoverySource = leafReader.getNumericDocValues(SourceFieldMapper.RECOVERY_SOURCE_NAME);
     }
 
@@ -59,8 +58,8 @@ final class CombinedDocValues {
     long docSeqNo(int segmentDocId) throws IOException {
         assert seqNoDV.docID() < segmentDocId;
         if (seqNoDV.advanceExact(segmentDocId) == false) {
-            assert false : "DocValues for field [" + SeqNoFieldMapper.NAME + "] is not found";
-            throw new IllegalStateException("DocValues for field [" + SeqNoFieldMapper.NAME + "] is not found");
+            assert false : "DocValues for field [" + DocSysColumns.Names.SEQ_NO + "] is not found";
+            throw new IllegalStateException("DocValues for field [" + DocSysColumns.Names.SEQ_NO + "] is not found");
         }
         return seqNoDV.longValue();
     }
@@ -69,8 +68,8 @@ final class CombinedDocValues {
         // We exclude non-root nested documents when querying changes, every returned document must have primary term.
         assert primaryTermDV.docID() < segmentDocId;
         if (primaryTermDV.advanceExact(segmentDocId) == false) {
-            assert false : "DocValues for field [" + SeqNoFieldMapper.PRIMARY_TERM_NAME + "] is not found";
-            throw new IllegalStateException("DocValues for field [" + SeqNoFieldMapper.PRIMARY_TERM_NAME + "] is not found");
+            assert false : "DocValues for field [" + DocSysColumns.Names.PRIMARY_TERM + "] is not found";
+            throw new IllegalStateException("DocValues for field [" + DocSysColumns.Names.PRIMARY_TERM + "] is not found");
         }
         return primaryTermDV.longValue();
     }

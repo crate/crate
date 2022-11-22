@@ -141,7 +141,6 @@ import org.elasticsearch.index.engine.Segment;
 import org.elasticsearch.index.mapper.IdFieldMapper;
 import org.elasticsearch.index.mapper.MapperParsingException;
 import org.elasticsearch.index.mapper.ParsedDocument;
-import org.elasticsearch.index.mapper.SeqNoFieldMapper;
 import org.elasticsearch.index.mapper.SourceFieldMapper;
 import org.elasticsearch.index.mapper.SourceToParse;
 import org.elasticsearch.index.mapper.Uid;
@@ -3657,12 +3656,12 @@ public class IndexShardTests extends IndexShardTestCase {
             containsInAnyOrder(
                 IdFieldMapper.NAME,
                 DocSysColumns.VERSION.name(),
-                SeqNoFieldMapper.NAME,
-                SeqNoFieldMapper.NAME,
-                SeqNoFieldMapper.PRIMARY_TERM_NAME,
-                SeqNoFieldMapper.TOMBSTONE_NAME));
+                DocSysColumns.Names.SEQ_NO,
+                DocSysColumns.Names.SEQ_NO,
+                DocSysColumns.Names.PRIMARY_TERM,
+                DocSysColumns.Names.TOMBSTONE));
         assertThat(deleteDoc.getField(IdFieldMapper.NAME).binaryValue(), equalTo(Uid.encodeId(id)));
-        assertThat(deleteDoc.getField(SeqNoFieldMapper.TOMBSTONE_NAME).numericValue().longValue(), equalTo(1L));
+        assertThat(deleteDoc.getField(DocSysColumns.Names.TOMBSTONE).numericValue().longValue(), equalTo(1L));
 
         updateMappings(shard, IndexMetadata.builder(shard.indexSettings.getIndexMetadata())
             .putMapping("default", "{ \"properties\": {}}").build());
@@ -3674,11 +3673,11 @@ public class IndexShardTests extends IndexShardTestCase {
             containsInAnyOrder(
                 DocSysColumns.VERSION.name(),
                 SourceFieldMapper.NAME,
-                SeqNoFieldMapper.TOMBSTONE_NAME,
-                SeqNoFieldMapper.NAME,
-                SeqNoFieldMapper.NAME,
-                SeqNoFieldMapper.PRIMARY_TERM_NAME));
-        assertThat(noopDoc.getField(SeqNoFieldMapper.TOMBSTONE_NAME).numericValue().longValue(), equalTo(1L));
+                DocSysColumns.Names.TOMBSTONE,
+                DocSysColumns.Names.SEQ_NO,
+                DocSysColumns.Names.SEQ_NO,
+                DocSysColumns.Names.PRIMARY_TERM));
+        assertThat(noopDoc.getField(DocSysColumns.Names.TOMBSTONE).numericValue().longValue(), equalTo(1L));
         assertThat(noopDoc.getField(SourceFieldMapper.NAME).binaryValue(), equalTo(new BytesRef(reason)));
 
         closeShards(shard);

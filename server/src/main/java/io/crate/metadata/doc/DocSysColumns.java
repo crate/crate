@@ -50,6 +50,7 @@ public class DocSysColumns {
         public static final String RAW = "_raw";
         public static final String SEQ_NO = "_seq_no";
         public static final String PRIMARY_TERM = "_primary_term";
+        public static final String TOMBSTONE = "_tombstone";
 
         /**
          * Column that contains the lucene docId + a readerId.

@@ -31,7 +31,6 @@ import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.common.lucene.uid.VersionsAndSeqNoResolver.DocIdAndSeqNo;
 import org.elasticsearch.common.lucene.uid.VersionsAndSeqNoResolver.DocIdAndVersion;
-import org.elasticsearch.index.mapper.SeqNoFieldMapper;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 
 import io.crate.metadata.doc.DocSysColumns;
@@ -72,7 +71,7 @@ final class PerThreadIDVersionAndSeqNoLookup {
         if (terms == null) {
             // If a segment contains only no-ops, it does not have _uid but has both _soft_deletes and _tombstone fields.
             final NumericDocValues softDeletesDV = reader.getNumericDocValues(Lucene.SOFT_DELETES_FIELD);
-            final NumericDocValues tombstoneDV = reader.getNumericDocValues(SeqNoFieldMapper.TOMBSTONE_NAME);
+            final NumericDocValues tombstoneDV = reader.getNumericDocValues(DocSysColumns.Names.TOMBSTONE);
             // this is a special case when we pruned away all IDs in a segment since all docs are deleted.
             final boolean allDocsDeleted = (softDeletesDV != null && reader.numDocs() == 0);
             if ((softDeletesDV == null || tombstoneDV == null) && allDocsDeleted == false) {
@@ -107,8 +106,8 @@ final class PerThreadIDVersionAndSeqNoLookup {
             final long seqNo;
             final long term;
             if (loadSeqNo) {
-                seqNo = readNumericDocValues(context.reader(), SeqNoFieldMapper.NAME, docID);
-                term = readNumericDocValues(context.reader(), SeqNoFieldMapper.PRIMARY_TERM_NAME, docID);
+                seqNo = readNumericDocValues(context.reader(), DocSysColumns.Names.SEQ_NO, docID);
+                term = readNumericDocValues(context.reader(), DocSysColumns.Names.PRIMARY_TERM, docID);
             } else {
                 seqNo = SequenceNumbers.UNASSIGNED_SEQ_NO;
                 term = 0;
@@ -158,7 +157,7 @@ final class PerThreadIDVersionAndSeqNoLookup {
             "context's reader is not the same as the reader class was initialized on.";
         final int docID = getDocID(id, context);
         if (docID != DocIdSetIterator.NO_MORE_DOCS) {
-            final long seqNo = readNumericDocValues(context.reader(), SeqNoFieldMapper.NAME, docID);
+            final long seqNo = readNumericDocValues(context.reader(), DocSysColumns.Names.SEQ_NO, docID);
             return new DocIdAndSeqNo(docID, seqNo, context);
         } else {
             return null;

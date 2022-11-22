@@ -31,7 +31,7 @@ public class ParsedDocument {
     private final Field version;
 
     private final String id;
-    private final SeqNoFieldMapper.SequenceIDFields seqID;
+    private final SequenceIDFields seqID;
 
     private final Document document;
 
@@ -40,7 +40,7 @@ public class ParsedDocument {
     private final Mapping dynamicMappingsUpdate;
 
     public ParsedDocument(Field version,
-                          SeqNoFieldMapper.SequenceIDFields seqID,
+                          SequenceIDFields seqID,
                           String id,
                           Document document,
                           BytesReference source,

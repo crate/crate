@@ -23,7 +23,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.lucene.document.Document;
-import org.apache.lucene.document.Field;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.index.IndexSettings;
 
@@ -88,16 +87,6 @@ public abstract class ParseContext {
         }
 
         @Override
-        public SeqNoFieldMapper.SequenceIDFields seqID() {
-            return in.seqID();
-        }
-
-        @Override
-        public void seqID(SeqNoFieldMapper.SequenceIDFields seqID) {
-            in.seqID(seqID);
-        }
-
-        @Override
         public void addDynamicMapper(Mapper update) {
             in.addDynamicMapper(update);
         }
@@ -124,10 +113,6 @@ public abstract class ParseContext {
 
         private final SourceToParse sourceToParse;
 
-        private Field version;
-
-        private SeqNoFieldMapper.SequenceIDFields seqID;
-
         private final List<Mapper> dynamicMappers;
 
         public InternalParseContext(IndexSettings indexSettings,
@@ -141,7 +126,6 @@ public abstract class ParseContext {
             this.path = new ContentPath(0);
             this.parser = parser;
             this.document = new Document();
-            this.version = null;
             this.sourceToParse = source;
             this.dynamicMappers = new ArrayList<>();
         }
@@ -189,16 +173,6 @@ public abstract class ParseContext {
         @Override
         public MapperService mapperService() {
             return docMapperParser.mapperService;
-        }
-
-        @Override
-        public SeqNoFieldMapper.SequenceIDFields seqID() {
-            return this.seqID;
-        }
-
-        @Override
-        public void seqID(SeqNoFieldMapper.SequenceIDFields seqID) {
-            this.seqID = seqID;
         }
 
         @Override
@@ -257,10 +231,6 @@ public abstract class ParseContext {
     public abstract DocumentMapper docMapper();
 
     public abstract MapperService mapperService();
-
-    public abstract SeqNoFieldMapper.SequenceIDFields seqID();
-
-    public abstract void seqID(SeqNoFieldMapper.SequenceIDFields seqID);
 
     /**
      * Add a new mapper dynamically created while parsing.

@@ -78,9 +78,14 @@ final class DocumentParser {
         Document doc = context.doc();
         Field version = new NumericDocValuesField(DocSysColumns.VERSION.name(), -1L);
         doc.add(version);
+
+        SequenceIDFields seqID = SequenceIDFields.emptySeqID();
+        doc.add(seqID.seqNo);
+        doc.add(seqID.seqNoDocValue);
+        doc.add(seqID.primaryTerm);
         return new ParsedDocument(
             version,
-            context.seqID(),
+            seqID,
             context.sourceToParse().id(),
             context.doc(),
             context.sourceToParse().source(),
