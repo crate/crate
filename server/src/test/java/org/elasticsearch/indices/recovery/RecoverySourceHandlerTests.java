@@ -104,7 +104,7 @@ import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.engine.RecoveryEngineException;
 import org.elasticsearch.index.mapper.IdFieldMapper;
 import org.elasticsearch.index.mapper.ParsedDocument;
-import org.elasticsearch.index.mapper.SeqNoFieldMapper;
+import org.elasticsearch.index.mapper.SequenceIDFields;
 import org.elasticsearch.index.mapper.Uid;
 import org.elasticsearch.index.seqno.ReplicationTracker;
 import org.elasticsearch.index.seqno.RetentionLease;
@@ -401,7 +401,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
         document.add(new TextField("test", "test", Field.Store.YES));
         final Field idField = new Field("_id", Uid.encodeId(id), IdFieldMapper.Defaults.FIELD_TYPE);
         final Field versionField = new NumericDocValuesField("_version", Versions.MATCH_ANY);
-        final SeqNoFieldMapper.SequenceIDFields seqID = SeqNoFieldMapper.SequenceIDFields.emptySeqID();
+        final SequenceIDFields seqID = SequenceIDFields.emptySeqID();
         document.add(idField);
         document.add(versionField);
         document.add(seqID.seqNo);

@@ -180,7 +180,7 @@ import org.elasticsearch.index.fieldvisitor.FieldsVisitor;
 import org.elasticsearch.index.mapper.IdFieldMapper;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.mapper.ParsedDocument;
-import org.elasticsearch.index.mapper.SeqNoFieldMapper;
+import org.elasticsearch.index.mapper.SequenceIDFields;
 import org.elasticsearch.index.mapper.SourceFieldMapper;
 import org.elasticsearch.index.mapper.Uid;
 import org.elasticsearch.index.seqno.LocalCheckpointTracker;
@@ -1495,8 +1495,8 @@ public class InternalEngineTests extends EngineTestCase {
                 org.apache.lucene.document.Document doc = new org.apache.lucene.document.Document();
                 doc.add(new Field(IdFieldMapper.NAME, "1", IdFieldMapper.Defaults.FIELD_TYPE));
                 doc.add(new NumericDocValuesField(DocSysColumns.VERSION.name(), -1));
-                doc.add(new NumericDocValuesField(SeqNoFieldMapper.NAME, 1));
-                doc.add(new NumericDocValuesField(SeqNoFieldMapper.PRIMARY_TERM_NAME, 1));
+                doc.add(new NumericDocValuesField(DocSysColumns.Names.SEQ_NO, 1));
+                doc.add(new NumericDocValuesField(DocSysColumns.Names.PRIMARY_TERM, 1));
                 writer.addDocument(doc);
                 writer.flush();
                 writer.softUpdateDocument(new Term(IdFieldMapper.NAME, "1"), doc, new NumericDocValuesField(Lucene.SOFT_DELETES_FIELD, 1));
@@ -2703,7 +2703,7 @@ public class InternalEngineTests extends EngineTestCase {
     }
 
     private static Long getHighestSeqNo(final IndexReader reader) throws IOException {
-        final String fieldName = SeqNoFieldMapper.NAME;
+        final String fieldName = DocSysColumns.Names.SEQ_NO;
         long size = PointValues.size(reader, fieldName);
         if (size == 0) {
             return null;
@@ -2723,7 +2723,7 @@ public class InternalEngineTests extends EngineTestCase {
 
         for (int i = 0; i < leaves.size(); i++) {
             final LeafReader leaf = leaves.get(i).reader();
-            final NumericDocValues values = leaf.getNumericDocValues(SeqNoFieldMapper.NAME);
+            final NumericDocValues values = leaf.getNumericDocValues(DocSysColumns.Names.SEQ_NO);
             if (values == null) {
                 continue;
             }
@@ -4651,7 +4651,7 @@ public class InternalEngineTests extends EngineTestCase {
                 seqNo = UNASSIGNED_SEQ_NO;
             } else {
                 seqNo = docIdAndSeqNo.seqNo;
-                NumericDocValues primaryTerms = docIdAndSeqNo.context.reader().getNumericDocValues(SeqNoFieldMapper.PRIMARY_TERM_NAME);
+                NumericDocValues primaryTerms = docIdAndSeqNo.context.reader().getNumericDocValues(DocSysColumns.Names.PRIMARY_TERM);
                 if (primaryTerms == null || primaryTerms.advanceExact(docIdAndSeqNo.docId) == false) {
                     throw new AssertionError("document does not have primary term [" + docIdAndSeqNo.docId + "]");
                 }
@@ -4899,7 +4899,7 @@ public class InternalEngineTests extends EngineTestCase {
             final String id = "id";
             final Field uidField = new Field("_id", id, IdFieldMapper.Defaults.FIELD_TYPE);
             final Field versionField = new NumericDocValuesField("_version", 0);
-            final SeqNoFieldMapper.SequenceIDFields seqID = SeqNoFieldMapper.SequenceIDFields.emptySeqID();
+            final SequenceIDFields seqID = SequenceIDFields.emptySeqID();
             final Document document = new Document();
             document.add(uidField);
             document.add(versionField);
@@ -5489,7 +5489,7 @@ public class InternalEngineTests extends EngineTestCase {
             assertThat(commits.get(0).getUserData().get(SequenceNumbers.MAX_SEQ_NO), equalTo(Long.toString(safeMaxSeqNo)));
             try (IndexReader reader = DirectoryReader.open(commits.get(0))) {
                 for (LeafReaderContext context: reader.leaves()) {
-                    final NumericDocValues values = context.reader().getNumericDocValues(SeqNoFieldMapper.NAME);
+                    final NumericDocValues values = context.reader().getNumericDocValues(DocSysColumns.Names.SEQ_NO);
                     if (values != null) {
                         for (int docID = 0; docID < context.reader().maxDoc(); docID++) {
                             if (values.advanceExact(docID) == false) {

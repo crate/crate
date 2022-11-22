@@ -37,10 +37,11 @@ import org.apache.lucene.util.ArrayUtil;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.lucene.Lucene;
 import io.crate.common.io.IOUtils;
+import io.crate.metadata.doc.DocSysColumns;
+
 import org.elasticsearch.index.fieldvisitor.FieldsVisitor;
 import org.elasticsearch.index.mapper.IdFieldMapper;
 import org.elasticsearch.index.mapper.MapperService;
-import org.elasticsearch.index.mapper.SeqNoFieldMapper;
 import org.elasticsearch.index.mapper.SourceFieldMapper;
 import org.elasticsearch.index.mapper.Uid;
 import org.elasticsearch.index.translog.Translog;
@@ -216,11 +217,11 @@ final class LuceneChangesSnapshot implements Translog.Snapshot {
 
     private TopDocs searchOperations(ScoreDoc after) throws IOException {
         final Query rangeQuery = new BooleanQuery.Builder()
-            .add(LongPoint.newRangeQuery(SeqNoFieldMapper.NAME, Math.max(fromSeqNo, lastSeenSeqNo), toSeqNo), BooleanClause.Occur.MUST)
+            .add(LongPoint.newRangeQuery(DocSysColumns.Names.SEQ_NO, Math.max(fromSeqNo, lastSeenSeqNo), toSeqNo), BooleanClause.Occur.MUST)
             // exclude non-root nested documents
-            .add(new DocValuesFieldExistsQuery(SeqNoFieldMapper.PRIMARY_TERM_NAME), BooleanClause.Occur.MUST)
+            .add(new DocValuesFieldExistsQuery(DocSysColumns.Names.PRIMARY_TERM), BooleanClause.Occur.MUST)
             .build();
-        final Sort sortedBySeqNo = new Sort(new SortField(SeqNoFieldMapper.NAME, SortField.Type.LONG));
+        final Sort sortedBySeqNo = new Sort(new SortField(DocSysColumns.Names.SEQ_NO, SortField.Type.LONG));
         return indexSearcher.searchAfter(after, rangeQuery, searchBatchSize, sortedBySeqNo);
     }
 
