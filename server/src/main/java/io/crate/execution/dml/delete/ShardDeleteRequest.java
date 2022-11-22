@@ -22,6 +22,8 @@
 package io.crate.execution.dml.delete;
 
 import io.crate.execution.dml.ShardRequest;
+
+import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.index.shard.ShardId;
@@ -76,6 +78,8 @@ public class ShardDeleteRequest extends ShardRequest<ShardDeleteRequest, ShardDe
     }
 
     public static class Item extends ShardRequest.Item {
+
+        public static final long SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(Item.class);
 
         protected Item(StreamInput in) throws IOException {
             super(in);

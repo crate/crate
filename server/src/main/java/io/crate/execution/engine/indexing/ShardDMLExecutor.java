@@ -43,10 +43,10 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.shard.ShardNotFoundException;
 
-import io.crate.action.FutureActionListener;
 import io.crate.concurrent.limits.ConcurrencyLimit;
 import io.crate.data.BatchIterator;
 import io.crate.data.BatchIterators;
@@ -80,9 +80,11 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
     private final Function<String, TItem> itemFactory;
     private final BiConsumer<TReq, ActionListener<ShardResponse>> operation;
     private final Collector<ShardResponse, TAcc, TResult> collector;
+    private final String localNode;
+    private final CircuitBreaker queryCircuitBreaker;
+    private final ClusterService clusterService;
     private int numItems = -1;
 
-    private ClusterService clusterService;
 
     public ShardDMLExecutor(UUID jobId,
                             int bulkSize,
@@ -90,12 +92,15 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
                             Executor executor,
                             CollectExpression<Row, ?> uidExpression,
                             ClusterService clusterService,
+                            CircuitBreaker queryCircuitBreaker,
                             NodeLimits nodeLimits,
                             Supplier<TReq> requestFactory,
                             Function<String, TItem> itemFactory,
                             BiConsumer<TReq, ActionListener<ShardResponse>> transportAction,
                             Collector<ShardResponse, TAcc, TResult> collector
                             ) {
+        this.queryCircuitBreaker = queryCircuitBreaker;
+        this.localNode = clusterService.state().getNodes().getLocalNodeId();
         this.jobId = jobId;
         this.bulkSize = bulkSize;
         this.scheduler = scheduler;
@@ -112,7 +117,9 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
     private void addRowToRequest(TReq req, Row row) {
         numItems++;
         uidExpression.setNextRow(row);
-        req.add(numItems, itemFactory.apply((String) uidExpression.value()));
+        TItem item = itemFactory.apply((String) uidExpression.value());
+        queryCircuitBreaker.addWithoutBreaking(item.ramBytesUsed());
+        req.add(numItems, item);
     }
 
     @Nullable
@@ -134,19 +141,40 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
     private CompletableFuture<TAcc> executeBatch(TReq request) {
         ConcurrencyLimit nodeLimit = nodeLimits.get(resolveNodeId(request));
         long startTime = nodeLimit.startSample();
-        FutureActionListener<ShardResponse, TAcc> listener = new FutureActionListener<>((a) -> {
-            nodeLimit.onSample(startTime, false);
-            TAcc acc = collector.supplier().get();
-            collector.accumulator().accept(acc, a);
-            return acc;
-        });
+        CompletableFuture<TAcc> future = new CompletableFuture<>();
+        var listener = new ActionListener<ShardResponse>() {
+
+            @Override
+            public void onResponse(ShardResponse response) {
+                nodeLimit.onSample(startTime, false);
+                for (var item : request.items()) {
+                    queryCircuitBreaker.addWithoutBreaking(- item.ramBytesUsed());
+                }
+                TAcc acc = collector.supplier().get();
+                try {
+                    collector.accumulator().accept(acc, response);
+                    future.complete(acc);
+                } catch (Throwable t) {
+                    future.completeExceptionally(t);
+                }
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                nodeLimit.onSample(startTime, true);
+                for (var item : request.items()) {
+                    queryCircuitBreaker.addWithoutBreaking(- item.ramBytesUsed());
+                }
+                future.completeExceptionally(e);
+            }
+        };
         operation.accept(request, withRetry(request, nodeLimit, listener));
-        return listener;
+        return future;
     }
 
     private RetryListener<ShardResponse> withRetry(TReq request,
                                                    ConcurrencyLimit nodeLimit,
-                                                   FutureActionListener<ShardResponse, TAcc> listener) {
+                                                   ActionListener<ShardResponse> listener) {
         return new RetryListener<>(
             scheduler,
             l -> operation.accept(request, l),
@@ -157,8 +185,15 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
 
     @Override
     public CompletableFuture<TResult> apply(BatchIterator<Row> batchIterator) {
-        BatchIterator<TReq> reqBatchIterator =
-            BatchIterators.partition(batchIterator, bulkSize, requestFactory, this::addRowToRequest, r -> false);
+        ConcurrencyLimit nodeLimit = nodeLimits.get(localNode);
+        var isUsedBytesOverThreshold = new IsUsedBytesOverThreshold(queryCircuitBreaker, nodeLimit);
+        BatchIterator<TReq> reqBatchIterator = BatchIterators.partition(
+            batchIterator,
+            bulkSize,
+            requestFactory,
+            this::addRowToRequest,
+            isUsedBytesOverThreshold
+        );
         // If the source batch iterator does not involve IO, mostly in-memory structures are used which we want to free
         // as soon as possible. We do not want to throttle based on the targets node counter in such cases.
         Predicate<TReq> shouldPause = ignored -> true;
