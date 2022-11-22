@@ -63,6 +63,8 @@ public final class CopyStatementSettings {
         true,
         Setting.Property.Dynamic);
 
+    public static final Setting<Long> SKIP_NUM_LINES = Setting.longSetting("skip", 0, 0, Setting.Property.Dynamic);
+
     public static final Setting<Character> CSV_COLUMN_SEPARATOR = new Setting<>(
         "delimiter",
         String.valueOf(CsvSchema.DEFAULT_COLUMN_SEPARATOR),
