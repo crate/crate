@@ -25,7 +25,8 @@ import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.NumericDocValues;
 import org.elasticsearch.index.mapper.SeqNoFieldMapper;
 import org.elasticsearch.index.mapper.SourceFieldMapper;
-import org.elasticsearch.index.mapper.VersionFieldMapper;
+
+import io.crate.metadata.doc.DocSysColumns;
 
 import java.io.IOException;
 import java.util.Objects;
@@ -38,7 +39,7 @@ final class CombinedDocValues {
     private final NumericDocValues recoverySource;
 
     CombinedDocValues(LeafReader leafReader) throws IOException {
-        this.versionDV = Objects.requireNonNull(leafReader.getNumericDocValues(VersionFieldMapper.NAME), "VersionDV is missing");
+        this.versionDV = Objects.requireNonNull(leafReader.getNumericDocValues(DocSysColumns.VERSION.name()), "VersionDV is missing");
         this.seqNoDV = Objects.requireNonNull(leafReader.getNumericDocValues(SeqNoFieldMapper.NAME), "SeqNoDV is missing");
         this.primaryTermDV = Objects.requireNonNull(
             leafReader.getNumericDocValues(SeqNoFieldMapper.PRIMARY_TERM_NAME), "PrimaryTermDV is missing");
@@ -49,8 +50,8 @@ final class CombinedDocValues {
     long docVersion(int segmentDocId) throws IOException {
         assert versionDV.docID() < segmentDocId;
         if (versionDV.advanceExact(segmentDocId) == false) {
-            assert false : "DocValues for field [" + VersionFieldMapper.NAME + "] is not found";
-            throw new IllegalStateException("DocValues for field [" + VersionFieldMapper.NAME + "] is not found");
+            assert false : "DocValues for field [" + DocSysColumns.VERSION.name() + "] is not found";
+            throw new IllegalStateException("DocValues for field [" + DocSysColumns.VERSION.name() + "] is not found");
         }
         return versionDV.longValue();
     }

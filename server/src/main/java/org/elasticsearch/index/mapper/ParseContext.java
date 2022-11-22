@@ -88,16 +88,6 @@ public abstract class ParseContext {
         }
 
         @Override
-        public Field version() {
-            return in.version();
-        }
-
-        @Override
-        public void version(Field version) {
-            in.version(version);
-        }
-
-        @Override
         public SeqNoFieldMapper.SequenceIDFields seqID() {
             return in.seqID();
         }
@@ -202,16 +192,6 @@ public abstract class ParseContext {
         }
 
         @Override
-        public Field version() {
-            return this.version;
-        }
-
-        @Override
-        public void version(Field version) {
-            this.version = version;
-        }
-
-        @Override
         public SeqNoFieldMapper.SequenceIDFields seqID() {
             return this.seqID;
         }
@@ -277,10 +257,6 @@ public abstract class ParseContext {
     public abstract DocumentMapper docMapper();
 
     public abstract MapperService mapperService();
-
-    public abstract Field version();
-
-    public abstract void version(Field version);
 
     public abstract SeqNoFieldMapper.SequenceIDFields seqID();
 
