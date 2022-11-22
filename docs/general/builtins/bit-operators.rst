@@ -20,11 +20,21 @@ Operator  Description
 Here's an example that uses all of the available bit operators::
 
     cr> select 1 & 2 | 3 # 4 AS n;
-    +-----+
-    |   n |
-    +-----+
-    |   7 |
-    +-----+
+    +---+
+    | n |
+    +---+
+    | 7 |
+    +---+
+    SELECT 1 row in set (... sec)
+
+And an example with bit strings::
+
+    cr> select B'101' # B'011' AS n;
+    +--------+
+    | n      |
+    +--------+
+    | B'110' |
+    +--------+
     SELECT 1 row in set (... sec)
 
 When applied to numeric operands, bit operators always return the data type
