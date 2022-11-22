@@ -236,7 +236,7 @@ should be crossed out as well.
 - [ ] 2b70758a052 Correct type parametrization in geo mappers. (#59583)
 - [ ] cc7093645cc Cleanup some Serialization Code around Snapshots (#59532) (#59606)
 - [ ] b8d73a1e7ee Default gateway.auto_import_dangling_indices to false (#59302)
-- [ ] 691759fb1fc Validate snapshot UUID during restore (#59601)
+- [s] 691759fb1fc Validate snapshot UUID during restore (#59601)
 - [ ] 2dd086445c3 Enable Fully Concurrent Snapshot Operations (#56911) (#59578)
 - [x] 06d94cbb2ac Fix TODO about Spurious FAILED Snapshots (#58994) (#59576)
 - [x] e1014038e90 Simplify Repository.finalizeSnapshot Signature (#58834) (#59574)
