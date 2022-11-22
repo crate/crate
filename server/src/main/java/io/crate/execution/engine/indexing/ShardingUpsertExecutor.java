@@ -35,7 +35,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
-import java.util.function.ToLongFunction;
 
 import javax.annotation.Nullable;
 
@@ -57,7 +56,6 @@ import org.elasticsearch.index.shard.ShardId;
 
 import io.crate.breaker.BlockBasedRamAccounting;
 import io.crate.breaker.RamAccounting;
-import io.crate.breaker.TypeGuessEstimateRowSize;
 import io.crate.common.unit.TimeValue;
 import io.crate.concurrent.limits.ConcurrencyLimit;
 import io.crate.data.BatchIterator;
@@ -82,8 +80,8 @@ public class ShardingUpsertExecutor
         Property.Exposed
     );
 
-    private static final Logger LOGGER = LogManager.getLogger(ShardingUpsertExecutor.class);
-    private static final double BREAKER_LIMIT_PERCENTAGE = 0.50d;
+    static final Logger LOGGER = LogManager.getLogger(ShardingUpsertExecutor.class);
+    static final double BREAKER_LIMIT_PERCENTAGE = 0.50d;
 
     private final GroupRowsByShard<ShardUpsertRequest, ShardUpsertRequest.Item> grouper;
     private final NodeLimits nodeLimits;
@@ -135,12 +133,10 @@ public class ShardingUpsertExecutor
         this.requestExecutor = (req, resp) -> elasticsearchClient.execute(ShardUpsertAction.INSTANCE, req)
             .whenComplete(resp);
         this.elasticsearchClient = elasticsearchClient;
-        ToLongFunction<Row> estimateRowSize = new TypeGuessEstimateRowSize();
         this.ramAccounting = new BlockBasedRamAccounting(ramAccounting::addBytes, (int) ByteSizeUnit.MB.toBytes(2));
         this.grouper = new GroupRowsByShard<>(
             clusterService,
             rowShardResolver,
-            estimateRowSize,
             indexNameResolver,
             expressions,
             itemFactory,
@@ -371,40 +367,6 @@ public class ShardingUpsertExecutor
             if (failure instanceof InterruptedException) {
                 interrupt.set(failure);
             }
-        }
-    }
-
-    private static class IsUsedBytesOverThreshold implements Predicate<ShardedRequests<?, ?>> {
-
-        private static final long MIN_ACCEPTABLE_BYTES = ByteSizeUnit.KB.toBytes(64);
-
-        private final CircuitBreaker queryCircuitBreaker;
-        private final ConcurrencyLimit nodeLimit;
-
-        public IsUsedBytesOverThreshold(CircuitBreaker queryCircuitBreaker, ConcurrencyLimit nodeLimit) {
-            this.queryCircuitBreaker = queryCircuitBreaker;
-            this.nodeLimit = nodeLimit;
-        }
-
-        @Override
-        public final boolean test(ShardedRequests<?, ?> shardedRequests) {
-            long localJobs = Math.max(1, nodeLimit.numInflight());
-            double memoryRatio = 1.0 / localJobs;
-            long maxUsableByShardRequests = Math.max(
-                (long) (queryCircuitBreaker.getFree() * BREAKER_LIMIT_PERCENTAGE * memoryRatio), MIN_ACCEPTABLE_BYTES);
-            long usedMemoryEstimate = shardedRequests.ramBytesUsed();
-            boolean requestsTooBig = usedMemoryEstimate > maxUsableByShardRequests;
-            if (requestsTooBig && LOGGER.isDebugEnabled()) {
-                LOGGER.debug(
-                    "Creating smaller bulk requests because shardedRequests is using too much memory. "
-                        + "ramBytesUsed={} itemsByShard={} itemSize={} maxBytesUsableByShardedRequests={}",
-                    shardedRequests.ramBytesUsed(),
-                    shardedRequests.itemsByShard().size(),
-                    shardedRequests.ramBytesUsed() / Math.max(shardedRequests.itemsByShard().size(), 1),
-                    maxUsableByShardRequests
-                );
-            }
-            return requestsTooBig;
         }
     }
 }
