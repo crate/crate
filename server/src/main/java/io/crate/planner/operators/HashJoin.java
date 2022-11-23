@@ -122,9 +122,11 @@ public class HashJoin implements LogicalPlan {
         LogicalPlan leftLogicalPlan = lhs;
         LogicalPlan rightLogicalPlan = rhs;
 
+        long lhsNumExpectedRows = lhs.numExpectedRows() < 0 ? 0 : lhs.numExpectedRows();
+        long rhsNumExpectedRows = rhs.numExpectedRows() < 0 ? 0 : rhs.numExpectedRows();
         // We move smaller table to the right side since benchmarking
         // revealed that this improves performance in most cases.
-        if (lhs.numExpectedRows() < rhs.numExpectedRows()) {
+        if (lhsNumExpectedRows < rhsNumExpectedRows) {
             leftLogicalPlan = rhs;
             rightLogicalPlan = lhs;
 

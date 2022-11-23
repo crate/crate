@@ -149,6 +149,45 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void test_nestedloop_tables_are_not_switched_when_stats_are_negative() {
+        txnCtx.sessionSettings().setHashJoinEnabled(false);
+        QueriedSelectRelation mss = e.analyze("select * from users, locations where users.id = locations.id");
+
+        TableStats tableStats = new TableStats();
+        Map<RelationName, Stats> rowCountByTable = new HashMap<>();
+        rowCountByTable.put(USER_TABLE_IDENT, new Stats(-1, 0, Map.of()));
+        rowCountByTable.put(TEST_DOC_LOCATIONS_TABLE_IDENT, new Stats(0, 0, Map.of()));
+        tableStats.updateTableStats(rowCountByTable);
+
+        Join nl = plan(mss, tableStats);
+        assertThat(((Reference) ((Collect) nl.left()).collectPhase().toCollect().get(0)).ident().tableIdent().name(), is("users"));
+        assertThat(((Reference) ((Collect) nl.right()).collectPhase().toCollect().get(0)).ident().tableIdent().name(), is("locations"));
+    }
+
+    @Test
+    public void test_hashjoin_tables_are_not_switched_when_stats_are_negative() {
+        QueriedSelectRelation mss = e.analyze("select users.name, locations.id " +
+                                              "from users " +
+                                              "join locations on users.id = locations.id");
+
+        TableStats tableStats = new TableStats();
+        Map<RelationName, Stats> rowCountByTable = new HashMap<>();
+        rowCountByTable.put(USER_TABLE_IDENT, new Stats(-1, 0, Map.of()));
+        rowCountByTable.put(TEST_DOC_LOCATIONS_TABLE_IDENT, new Stats(0, 0, Map.of()));
+        tableStats.updateTableStats(rowCountByTable);
+
+        LogicalPlan operator = createLogicalPlan(mss, tableStats);
+        assertThat(operator, instanceOf(HashJoin.class));
+        assertThat("Smaller table must be on the right-hand-side",
+                   ((HashJoin) operator).rhs().getRelationNames(),
+                   contains(TEST_DOC_LOCATIONS_TABLE_IDENT));
+
+        Join join = buildJoin(operator);
+        assertThat(((Reference) ((Collect) join.left()).collectPhase().toCollect().get(0)).ident().tableIdent().name(), is("users"));
+        assertThat(((Reference) ((Collect) join.right()).collectPhase().toCollect().get(0)).ident().tableIdent().name(), is("locations"));
+    }
+
+    @Test
     public void testNestedLoop_TablesAreSwitchedIfBlockJoinAndRightIsSmallerThanLeft() throws IOException {
         // blockNL is only possible on single node clusters
         e = SQLExecutor.builder(clusterService)

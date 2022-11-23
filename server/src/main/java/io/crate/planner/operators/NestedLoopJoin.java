@@ -199,9 +199,11 @@ public class NestedLoopJoin implements LogicalPlan {
         boolean blockNlPossible = !isDistributed && isBlockNlPossible(left, right);
 
         JoinType joinType = this.joinType;
+        long lhsNumExpectedRows = lhs.numExpectedRows() < 0 ? 0 : lhs.numExpectedRows();
+        long rhsNumExpectedRows = rhs.numExpectedRows() < 0 ? 0 : rhs.numExpectedRows();
         if (!orderByWasPushedDown && joinType.supportsInversion() &&
-            (isDistributed && lhs.numExpectedRows() < rhs.numExpectedRows() && orderByFromLeft == null) ||
-            (blockNlPossible && lhs.numExpectedRows() > rhs.numExpectedRows())) {
+            (isDistributed && lhsNumExpectedRows < rhsNumExpectedRows && orderByFromLeft == null) ||
+            (blockNlPossible && lhsNumExpectedRows > rhsNumExpectedRows)) {
             // 1) The right side is always broadcast-ed, so for performance reasons we switch the tables so that
             //    the right table is the smaller (numOfRows). If left relation has a pushed-down OrderBy that needs
             //    to be preserved, then the switch is not possible.
