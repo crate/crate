@@ -122,11 +122,10 @@ public class HashJoin implements LogicalPlan {
         LogicalPlan leftLogicalPlan = lhs;
         LogicalPlan rightLogicalPlan = rhs;
 
-        long lhsNumExpectedRows = lhs.numExpectedRows() < 0 ? 0 : lhs.numExpectedRows();
-        long rhsNumExpectedRows = rhs.numExpectedRows() < 0 ? 0 : rhs.numExpectedRows();
         // We move smaller table to the right side since benchmarking
         // revealed that this improves performance in most cases.
-        if (lhsNumExpectedRows < rhsNumExpectedRows) {
+        boolean expectedRowsAvailable = lhs.numExpectedRows() != -1 && rhs.numExpectedRows() != -1;
+        if (expectedRowsAvailable && lhs.numExpectedRows() < rhs.numExpectedRows()) {
             leftLogicalPlan = rhs;
             rightLogicalPlan = lhs;
 
@@ -313,6 +312,9 @@ public class HashJoin implements LogicalPlan {
 
     @Override
     public long numExpectedRows() {
+        if (lhs.numExpectedRows() == -1 || rhs.numExpectedRows() == -1) {
+            return -1;
+        }
         // We don't have any cardinality estimates, so just take the bigger table
         return Math.max(lhs.numExpectedRows(), rhs.numExpectedRows());
     }
