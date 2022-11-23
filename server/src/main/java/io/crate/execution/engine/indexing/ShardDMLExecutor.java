@@ -192,26 +192,19 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
         return nodeId;
     }
 
-    private static <A> A processResponse(ShardResponse shardResponse, Function<ShardResponse, A> f) {
+    private static void maybeRaiseFailure(ShardResponse shardResponse) {
         Exception failure = shardResponse.failure();
         if (failure != null) {
             throw Exceptions.toRuntimeException(failure);
         }
-        return f.apply(shardResponse);
-    }
-
-    private static Long toRowCount(ShardResponse shardResponse) {
-        return Long.valueOf(processResponse(shardResponse, ShardResponse::successRowCount));
-    }
-
-    private static List<Object[]> toResultRows(ShardResponse shardResponse) {
-        List<Object[]> result = processResponse(shardResponse, ShardResponse::getResultRows);
-        return result == null ? List.of() : result;
     }
 
     public static final Collector<ShardResponse, long[], Iterable<Row>> ROW_COUNT_COLLECTOR = Collector.of(
         () -> new long[]{0L},
-        (acc, response) -> acc[0] += toRowCount(response),
+        (acc, response) -> {
+            maybeRaiseFailure(response);
+            acc[0] += response.successRowCount();
+        },
         (acc, response) -> {
             acc[0] += response[0];
             return acc;
@@ -221,7 +214,13 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
 
     public static final Collector<ShardResponse, List<Object[]>, Iterable<Row>> RESULT_ROW_COLLECTOR = Collector.of(
         ArrayList::new,
-        (acc, response) -> acc.addAll(toResultRows(response)),
+        (acc, response) -> {
+            maybeRaiseFailure(response);
+            List<Object[]> rows = response.getResultRows();
+            if (rows != null) {
+                acc.addAll(rows);
+            }
+        },
         (acc, response) -> {
             acc.addAll(response);
             return acc;
