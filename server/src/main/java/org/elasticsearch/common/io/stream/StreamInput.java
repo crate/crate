@@ -73,6 +73,7 @@ import org.elasticsearch.Version;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.geo.GeoPoint;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.joda.time.DateTime;
@@ -621,6 +622,29 @@ public abstract class StreamInput extends InputStream {
     }
 
     @SuppressWarnings({"unchecked"})
+    /**
+     * Read {@link ImmutableOpenMap} using given key and value readers.
+     *
+     * @param keyReader   key reader
+     * @param valueReader value reader
+     */
+    public <K, V> ImmutableOpenMap<K, V> readImmutableMap(Writeable.Reader<K> keyReader, Writeable.Reader<V> valueReader)
+            throws IOException {
+        final int size = readVInt();
+        if (size == 0) {
+            return ImmutableOpenMap.of();
+        }
+        final ImmutableOpenMap.Builder<K,V> builder = ImmutableOpenMap.builder(size);
+        for (int i = 0; i < size; i++) {
+            builder.put(keyReader.read(this), valueReader.read(this));
+        }
+        return builder.build();
+    }
+
+    /**
+     * Reads a value of unspecified type. If a collection is read then the collection will be mutable if it contains any entry but might
+     * be immutable if it is empty.
+     */
     @Nullable
     public Object readGenericValue() throws IOException {
         byte type = readByte();
@@ -1058,6 +1082,17 @@ public abstract class StreamInput extends InputStream {
             list.add(reader.read(this));
         }
         return list;
+    }
+
+    /**
+     * Reads a list of strings. The list is expected to have been written using {@link StreamOutput#writeStringCollection(Collection)}.
+     * If the returned list contains any entries it will be mutable. If it is empty it might be immutable.
+     *
+     * @return the list of strings
+     * @throws IOException if an I/O exception occurs reading the list
+     */
+    public List<String> readStringList() throws IOException {
+        return readList(StreamInput::readString);
     }
 
     /**
