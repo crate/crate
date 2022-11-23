@@ -77,12 +77,12 @@ When comparing dates, `ISO date formats`_ can be used::
     <sql-operator-invocation>` in any context. For example::
 
         cr> SELECT 1 < 10 as my_column;
-        +--------------+
-        | my_column    |
-        +--------------+
-        | true         |
-        +--------------+
-        SELECT 1 rows in set (... sec)
+        +-----------+
+        | my_column |
+        +-----------+
+        | TRUE      |
+        +-----------+
+        SELECT 1 row in set (... sec)
 
 .. _comparison-operators-where:
 
