@@ -77,3 +77,6 @@ Fixes
 - Fixed an issue that caused ``routing.allocation.*.{attribute}``
   settings to be ignored when executing ``ALTER TABLE SET`` on a partitioned
   table.
+
+- Fixed an issue that caused the setting, ``number_of_replicas`` to be ignored
+  when executing ``ALTER TABLE SET`` on a partitioned table.
