@@ -40,7 +40,9 @@ public interface Recycler<T> {
         void recycle(T value);
 
         /** Destroy the data. This operation allows the data structure to release any internal resources before GC. */
-        void destroy(T value);
+        default void destroy(T value) {
+            // by default we simply drop the object for GC.
+        }
     }
 
     interface V<T> extends Releasable {
