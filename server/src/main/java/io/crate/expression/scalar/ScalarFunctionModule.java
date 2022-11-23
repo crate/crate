@@ -39,6 +39,7 @@ import io.crate.expression.scalar.arithmetic.RoundFunction;
 import io.crate.expression.scalar.arithmetic.SquareRootFunction;
 import io.crate.expression.scalar.arithmetic.TrigonometricFunctions;
 import io.crate.expression.scalar.arithmetic.TruncFunction;
+import io.crate.expression.scalar.bitwise.BitwiseFunctions;
 import io.crate.expression.scalar.cast.ExplicitCastFunction;
 import io.crate.expression.scalar.cast.ImplicitCastFunction;
 import io.crate.expression.scalar.cast.TryCastFunction;
@@ -109,6 +110,7 @@ public class ScalarFunctionModule extends AbstractFunctionModule<FunctionImpleme
         RegexpReplaceFunction.register(this);
 
         ArithmeticFunctions.register(this);
+        BitwiseFunctions.register(this);
         IntervalTimestampArithmeticScalar.register(this);
         IntervalArithmeticScalar.register(this);
 

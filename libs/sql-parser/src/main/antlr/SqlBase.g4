@@ -288,6 +288,8 @@ valueExpression
     | left=valueExpression operator=(ASTERISK | SLASH | PERCENT)
         right=valueExpression                                                        #arithmeticBinary
     | left=valueExpression operator=(PLUS | MINUS) right=valueExpression             #arithmeticBinary
+    | left=valueExpression operator=(BITWISE_AND | BITWISE_OR | BITWISE_XOR)
+        right=valueExpression                                                        #bitwiseBinary
     | left=valueExpression CONCAT right=valueExpression                              #concatenation
     | dataType stringLiteral                                                         #fromStringLiteralCast
     ;
@@ -1095,6 +1097,9 @@ PERCENT: '%';
 CONCAT: '||';
 CAST_OPERATOR: '::';
 SEMICOLON: ';';
+BITWISE_AND: '&';
+BITWISE_OR: '|';
+BITWISE_XOR: '#';
 
 STRING
     : '\'' ( ~'\'' | '\'\'' )* '\''

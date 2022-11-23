@@ -26,20 +26,18 @@ import static io.crate.execution.dsl.phases.FileUriCollectPhase.InputFormat.JSON
 import static io.crate.testing.TestingHelpers.createReference;
 
 import java.io.BufferedReader;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
 import java.net.SocketTimeoutException;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.function.Supplier;
 
 import org.elasticsearch.common.settings.Settings;
@@ -80,13 +78,11 @@ public class FileReadingIteratorTest extends ESTestCase {
 
     @Test
     public void testIteratorContract_givenJSONInputFormat_AndNoRelevantFileExtension_thenWritesAsMap() throws Exception {
-        var tempFilePath = createTempFile("tempfile", ".any-suffix");
-        var tmpFile = tempFilePath.toFile();
-        try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(tmpFile), StandardCharsets.UTF_8)) {
-            writer.write("{\"name\": \"Arthur\", \"id\": 4, \"details\": {\"age\": 38}}\n");
-            writer.write("{\"id\": 5, \"name\": \"Trillian\", \"details\": {\"age\": 33}}\n");
-        }
-        var fileUri = tempFilePath.toUri().toString();
+        Path tempFile = createTempFile("tempfile", ".any-suffix");
+        Files.write(tempFile, List.of(
+            "{\"name\": \"Arthur\", \"id\": 4, \"details\": {\"age\": 38}}",
+            "{\"id\": 5, \"name\": \"Trillian\", \"details\": {\"age\": 33}}"));
+        var fileUri = tempFile.toUri().toString();
 
         Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> createBatchIterator(
             Collections.singletonList(fileUri), JSON
@@ -101,14 +97,9 @@ public class FileReadingIteratorTest extends ESTestCase {
 
     @Test
     public void testIteratorContract_givenCSVInputFormat__AndNoRelevantFileExtension_thenWritesAsMap() throws Exception {
-        var tempFilePath = createTempFile("tempfile", ".any-suffix");
-        var tmpFile = tempFilePath.toFile();
-        try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(tmpFile), StandardCharsets.UTF_8)) {
-            writer.write("name,id,age\n");
-            writer.write("Arthur,4,38\n");
-            writer.write("Trillian,5,33\n");
-        }
-        var fileUri = tempFilePath.toUri().toString();
+        Path tempFile = createTempFile("tempfile", ".any-suffix");
+        Files.write(tempFile, List.of("name,id,age", "Arthur,4,38", "Trillian,5,33"));
+        var fileUri = tempFile.toUri().toString();
 
         Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> createBatchIterator(
             Collections.singletonList(fileUri), CSV
@@ -123,13 +114,11 @@ public class FileReadingIteratorTest extends ESTestCase {
 
     @Test
     public void testIteratorContract_givenDefaultJsonInputFormat_AndJSONExtension_thenWritesAsMap() throws Exception {
-        var tempFilePath = createTempFile("tempfile", ".json");
-        var tmpFile = tempFilePath.toFile();
-        try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(tmpFile), StandardCharsets.UTF_8)) {
-            writer.write("{\"name\": \"Arthur\", \"id\": 4, \"details\": {\"age\": 38}}\n");
-            writer.write("{\"id\": 5, \"name\": \"Trillian\", \"details\": {\"age\": 33}}\n");
-        }
-        var fileUri = tempFilePath.toUri().toString();
+        Path tempFile = createTempFile("tempfile", ".json");
+        Files.write(tempFile, List.of(
+            "{\"name\": \"Arthur\", \"id\": 4, \"details\": {\"age\": 38}}",
+            "{\"id\": 5, \"name\": \"Trillian\", \"details\": {\"age\": 33}}"));
+        var fileUri = tempFile.toUri().toString();
 
         Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> createBatchIterator(
             Collections.singletonList(fileUri), JSON
@@ -144,14 +133,9 @@ public class FileReadingIteratorTest extends ESTestCase {
 
     @Test
     public void testIteratorContract_givenDefaultJsonInputFormat_AndCSVExtension_thenWritesAsMap() throws Exception {
-        var tempFilePath = createTempFile("tempfile", ".csv");
-        var tmpFile = tempFilePath.toFile();
-        try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(tmpFile), StandardCharsets.UTF_8)) {
-            writer.write("name,id,age\n");
-            writer.write("Arthur,4,38\n");
-            writer.write("Trillian,5,33\n");
-        }
-        var fileUri = tempFilePath.toUri().toString();
+        Path tempFile = createTempFile("tempfile", ".csv");
+        Files.write(tempFile, List.of("name,id,age", "Arthur,4,38", "Trillian,5,33"));
+        var fileUri = tempFile.toUri().toString();
 
         Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> createBatchIterator(
             Collections.singletonList(fileUri), JSON
@@ -169,22 +153,14 @@ public class FileReadingIteratorTest extends ESTestCase {
      */
     @Test
     public void test_iterator_closes_current_reader_on_io_error() throws Exception {
-        ArrayList<String> fileUris = new ArrayList<>();
-
-        var tempFilePath1 = createTempFile("tempfile1", ".csv");
-        try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(tempFilePath1.toFile()), StandardCharsets.UTF_8)) {
-            writer.write("name,id,age\n");
-            writer.write("Arthur,4,38\n");
-            writer.write("Douglas,6,42\n");     // <--- reader will fail on this line, so it is not part of the expected results
-        }
-        fileUris.add(tempFilePath1.toUri().toString());
-
-        var tempFilePath2 = createTempFile("tempfile2", ".csv");
-        try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(tempFilePath2.toFile()), StandardCharsets.UTF_8)) {
-            writer.write("name,id,age\n");
-            writer.write("Trillian,5,33\n");
-        }
-        fileUris.add(tempFilePath2.toUri().toString());
+        Path tempFile1 = createTempFile("tempfile1", ".csv");
+        Files.write(tempFile1, List.of("name,id,age",
+                                       "Arthur,4,38",
+                                       "Douglas,6,42"  // <--- reader will fail on this line, so it is not part of the expected results
+        ));
+        Path tempFile2 = createTempFile("tempfile2", ".csv");
+        Files.write(tempFile2, List.of("name,id,age", "Trillian,5,33"));
+        List<String> fileUris = List.of(tempFile1.toUri().toString(), tempFile2.toUri().toString());
 
         Reference raw = createReference("_raw", DataTypes.STRING);
         InputFactory.Context<LineCollectorExpression<?>> ctx =
@@ -240,15 +216,9 @@ public class FileReadingIteratorTest extends ESTestCase {
      */
     @Test
     public void test_consecutive_retries_will_not_result_in_duplicate_reads() throws Exception {
-        ArrayList<String> fileUris = new ArrayList<>();
-
-        var tempFilePath1 = createTempFile("tempfile1", ".csv");
-        try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(tempFilePath1.toFile()),
-                                                                StandardCharsets.UTF_8)) {
-            writer.write("id\n");
-            writer.write("1\n2\n3\n4\n5\n");
-        }
-        fileUris.add(tempFilePath1.toUri().toString());
+        Path tempFile = createTempFile("tempfile1", ".csv");
+        Files.write(tempFile, List.of("id", "1", "2", "3", "4", "5"));
+        List<String> fileUris = List.of(tempFile.toUri().toString());
 
         Reference raw = createReference("_raw", DataTypes.STRING);
         InputFactory.Context<LineCollectorExpression<?>> ctx =
@@ -267,7 +237,7 @@ public class FileReadingIteratorTest extends ESTestCase {
                 1,
                 0,
                 List.of("id"),
-                new CopyFromParserProperties(true, true, ','),
+                new CopyFromParserProperties(true, true, ',', 0),
                 CSV,
                 Settings.EMPTY
             ) {
@@ -282,11 +252,9 @@ public class FileReadingIteratorTest extends ESTestCase {
                         @Override
                         public String readLine() throws IOException {
                             var line = super.readLine();
-                            if (new Random().nextBoolean()) {
-                                // current implementation does not handle SocketTimeoutException thrown when parsing header so skip it here as well.
-                                if (currentLineNumber++ > 0 && retry++ < MAX_SOCKET_TIMEOUT_RETRIES) {
-                                    throw new SocketTimeoutException("dummy");
-                                }
+                            // current implementation does not handle SocketTimeoutException thrown when parsing header so skip it here as well.
+                            if (currentLineNumber++ > 0 && retry++ < MAX_SOCKET_TIMEOUT_RETRIES) {
+                                throw new SocketTimeoutException("dummy");
                             }
                             return line;
                         }
@@ -296,6 +264,65 @@ public class FileReadingIteratorTest extends ESTestCase {
 
         List<Object[]> expectedResult = Arrays.asList(
             new Object[]{"{\"id\":\"1\"}"},
+            new Object[]{"{\"id\":\"2\"}"},
+            new Object[]{"{\"id\":\"3\"}"},
+            new Object[]{"{\"id\":\"4\"}"},
+            new Object[]{"{\"id\":\"5\"}"}
+        );
+        BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier);
+        tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
+    }
+
+    @Test
+    public void test_skipping_csv_headers_and_rows_combined_with_retry_logic() throws Exception {
+        final int skipNumLines = 2;
+        Path tempFile = createTempFile("tempfile1", ".csv");
+        Files.write(tempFile, List.of("id", "1", "2", "3", "4", "5"));
+        List<String> fileUris = List.of(tempFile.toUri().toString());
+
+
+        Reference raw = createReference("_raw", DataTypes.STRING);
+        InputFactory.Context<LineCollectorExpression<?>> ctx =
+            inputFactory.ctxForRefs(TXN_CTX, FileLineReferenceResolver::getImplementation);
+        List<Input<?>> inputs = Collections.singletonList(ctx.add(raw));
+
+
+        Supplier<BatchIterator<Row>> batchIteratorSupplier =
+            () -> new FileReadingIterator(
+                fileUris,
+                inputs,
+                ctx.expressions(),
+                null,
+                Map.of(LocalFsFileInputFactory.NAME, new LocalFsFileInputFactory()),
+                false,
+                1,
+                0,
+                List.of("id"),
+                new CopyFromParserProperties(true, false, ',', skipNumLines),
+                CSV,
+                Settings.EMPTY
+            ) {
+                int retry = 0;
+
+                @Override
+                BufferedReader createBufferedReader(InputStream inputStream) throws IOException {
+                    return new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8)) {
+
+                        private int currentLineNumber = 0;
+
+                        @Override
+                        public String readLine() throws IOException {
+                            var line = super.readLine();
+                            if (currentLineNumber++ >= skipNumLines && retry++ < MAX_SOCKET_TIMEOUT_RETRIES) {
+                                throw new SocketTimeoutException("dummy");
+                            }
+                            return line;
+                        }
+                    };
+                }
+            };
+
+        List<Object[]> expectedResult = Arrays.asList(
             new Object[]{"{\"id\":\"2\"}"},
             new Object[]{"{\"id\":\"3\"}"},
             new Object[]{"{\"id\":\"4\"}"},

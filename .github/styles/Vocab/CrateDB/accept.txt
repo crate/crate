@@ -5,6 +5,8 @@ attrdef
 bigint
 bigram
 bigrams
+bitwise
+Bitwise
 boolean
 Boolean
 cartesian

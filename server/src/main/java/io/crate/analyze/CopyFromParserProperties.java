@@ -33,6 +33,7 @@ import java.io.IOException;
 import java.util.Objects;
 
 import static io.crate.analyze.CopyStatementSettings.CSV_COLUMN_SEPARATOR;
+import static io.crate.analyze.CopyStatementSettings.SKIP_NUM_LINES;
 import static io.crate.analyze.CopyStatementSettings.EMPTY_STRING_AS_NULL;
 import static io.crate.analyze.CopyStatementSettings.INPUT_HEADER_SETTINGS;
 
@@ -44,23 +45,27 @@ public class CopyFromParserProperties implements Writeable {
     private final boolean emptyStringAsNull;
     private final char columnSeparator;
     private final boolean fileHeader;
+    private final long skipNumLines;
 
 
     public static CopyFromParserProperties of(Settings settings) {
         return new CopyFromParserProperties(
             EMPTY_STRING_AS_NULL.get(settings),
             INPUT_HEADER_SETTINGS.get(settings),
-            CSV_COLUMN_SEPARATOR.get(settings)
+            CSV_COLUMN_SEPARATOR.get(settings),
+            SKIP_NUM_LINES.get(settings)
         );
     }
 
     @VisibleForTesting
     public CopyFromParserProperties(boolean emptyStringAsNull,
                                     boolean fileHeader,
-                                    char columnSeparator) {
+                                    char columnSeparator,
+                                    long skipNumLines) {
         this.emptyStringAsNull = emptyStringAsNull;
         this.fileHeader = fileHeader;
         this.columnSeparator = columnSeparator;
+        this.skipNumLines = skipNumLines;
     }
 
     public CopyFromParserProperties(StreamInput in) throws IOException {
@@ -71,6 +76,11 @@ public class CopyFromParserProperties implements Writeable {
             fileHeader = true;
         }
         columnSeparator = (char) in.readByte();
+        if (in.getVersion().onOrAfter(Version.V_5_2_0)) {
+            skipNumLines = in.readLong();
+        } else {
+            skipNumLines = 0L;
+        }
     }
 
     public boolean emptyStringAsNull() {
@@ -85,6 +95,10 @@ public class CopyFromParserProperties implements Writeable {
         return columnSeparator;
     }
 
+    public long skipNumLines() {
+        return skipNumLines;
+    }
+
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeBoolean(emptyStringAsNull);
@@ -92,6 +106,9 @@ public class CopyFromParserProperties implements Writeable {
             out.writeBoolean(fileHeader);
         }
         out.writeByte((byte) columnSeparator);
+        if (out.getVersion().onOrAfter(Version.V_5_2_0)) {
+            out.writeLong(skipNumLines);
+        }
     }
 
     @Override
@@ -105,12 +122,13 @@ public class CopyFromParserProperties implements Writeable {
         CopyFromParserProperties that = (CopyFromParserProperties) o;
         return emptyStringAsNull == that.emptyStringAsNull &&
                fileHeader == that.fileHeader &&
-               columnSeparator == that.columnSeparator;
+               columnSeparator == that.columnSeparator &&
+               skipNumLines == that.skipNumLines;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(emptyStringAsNull, fileHeader, columnSeparator);
+        return Objects.hash(emptyStringAsNull, fileHeader, columnSeparator, skipNumLines);
     }
 
     @Override
@@ -119,6 +137,7 @@ public class CopyFromParserProperties implements Writeable {
                "emptyStringAsNull=" + emptyStringAsNull +
                ", fileHeader=" + fileHeader +
                ", columnSeparator=" + columnSeparator +
+               ", skipNumLines=" + skipNumLines +
                '}';
     }
 }

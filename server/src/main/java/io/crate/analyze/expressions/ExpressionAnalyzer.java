@@ -115,6 +115,7 @@ import io.crate.sql.tree.ArraySubQueryExpression;
 import io.crate.sql.tree.AstVisitor;
 import io.crate.sql.tree.BetweenPredicate;
 import io.crate.sql.tree.BitString;
+import io.crate.sql.tree.BitwiseExpression;
 import io.crate.sql.tree.BooleanLiteral;
 import io.crate.sql.tree.Cast;
 import io.crate.sql.tree.ComparisonExpression;
@@ -868,6 +869,17 @@ public class ExpressionAnalyzer {
 
         @Override
         protected Symbol visitArithmeticExpression(ArithmeticExpression node, ExpressionAnalysisContext context) {
+            Symbol left = node.getLeft().accept(this, context);
+            Symbol right = node.getRight().accept(this, context);
+
+            return allocateFunction(
+                node.getType().name().toLowerCase(Locale.ENGLISH),
+                List.of(left, right),
+                context);
+        }
+
+        @Override
+        protected Symbol visitBitwiseExpression(BitwiseExpression node, ExpressionAnalysisContext context) {
             Symbol left = node.getLeft().accept(this, context);
             Symbol right = node.getRight().accept(this, context);
 

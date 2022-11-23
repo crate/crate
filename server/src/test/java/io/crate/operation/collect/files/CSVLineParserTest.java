@@ -113,7 +113,7 @@ public class CSVLineParserTest {
     public void parse_givenEscapedComma_thenParsesLineCorrectly() throws IOException {
         String header = "Code,\"Coun, try\"\n";
         csvParser = new CSVLineParser(
-            new CopyFromParserProperties(true, true, CsvSchema.DEFAULT_COLUMN_SEPARATOR),
+            new CopyFromParserProperties(true, true, CsvSchema.DEFAULT_COLUMN_SEPARATOR, 0),
             List.of("Code", "Coun, try", "City"));
         csvParser.parseHeader(header);
         result = csvParser.parse("GER,Germany\n", 0);
@@ -125,7 +125,7 @@ public class CSVLineParserTest {
     public void test_quoted_and_unquoted_empty_string_converted_to_null_empty_string_as_null_is_set() throws IOException {
         String header = "Code,Country,City\n";
         csvParser = new CSVLineParser(
-            new CopyFromParserProperties(true, true, CsvSchema.DEFAULT_COLUMN_SEPARATOR),
+            new CopyFromParserProperties(true, true, CsvSchema.DEFAULT_COLUMN_SEPARATOR, 0),
                                           List.of("Code", "Country", "City"));
         csvParser.parseHeader(header);
         result = csvParser.parse("GER,,\"\"\n", 0);
@@ -140,7 +140,7 @@ public class CSVLineParserTest {
     public void test_parse_csv_with_configured_delimiter_parses_lines_correctly() throws IOException {
         String header = "Code|Country|City\n";
         csvParser = new CSVLineParser(
-            new CopyFromParserProperties(true, true, '|'),
+            new CopyFromParserProperties(true, true, '|', 0),
                                           List.of("Code", "Country", "City"));
         csvParser.parseHeader(header);
         result = csvParser.parse("GER|Germany|Berlin\n", 0);
@@ -200,7 +200,7 @@ public class CSVLineParserTest {
     public void parse_targetColumnsMoreThanCsvHeader_thenKeepOnlyTargetValues() throws IOException {
         String header = "Code,Country\n";
         csvParser = new CSVLineParser(
-            new CopyFromParserProperties(true, true,CsvSchema.DEFAULT_COLUMN_SEPARATOR),
+            new CopyFromParserProperties(true, true,CsvSchema.DEFAULT_COLUMN_SEPARATOR, 0),
             List.of("Code", "Country", "City"));
 
         csvParser.parseHeader(header);
@@ -213,7 +213,7 @@ public class CSVLineParserTest {
     public void parse_targetColumnsLessThanCsvHeader_thenDropExtraCsvValues() throws IOException {
         String header = "Code,Country,City\n";
         csvParser = new CSVLineParser(
-            new CopyFromParserProperties(true, true,CsvSchema.DEFAULT_COLUMN_SEPARATOR),
+            new CopyFromParserProperties(true, true,CsvSchema.DEFAULT_COLUMN_SEPARATOR, 0),
                                           List.of("Code", "Country"));
         csvParser.parseHeader(header);
         result = csvParser.parse("GER,Germany,Berlin\n", 0);
@@ -224,7 +224,7 @@ public class CSVLineParserTest {
     @Test
     public void parse_targetColumnsSameCsvValuesNoHeader_thenParseAsIs() throws IOException {
         csvParser = new CSVLineParser(
-            new CopyFromParserProperties(true, false, CsvSchema.DEFAULT_COLUMN_SEPARATOR),
+            new CopyFromParserProperties(true, false, CsvSchema.DEFAULT_COLUMN_SEPARATOR, 0),
             List.of("Code", "Country", "City"));
         csvParser.parseWithoutHeader("GER,Germany,Berlin\n", 0);
     }
@@ -232,7 +232,7 @@ public class CSVLineParserTest {
     @Test(expected = IllegalArgumentException.class)
     public void parse_targetColumnsMoreThanCsvValuesNoHeader_thenThrowException() throws IOException {
         csvParser = new CSVLineParser(
-            new CopyFromParserProperties(true, false, CsvSchema.DEFAULT_COLUMN_SEPARATOR),
+            new CopyFromParserProperties(true, false, CsvSchema.DEFAULT_COLUMN_SEPARATOR, 0),
             List.of("Code", "Country", "City"));
         csvParser.parseWithoutHeader("GER,Germany\n", 0);
     }
@@ -240,7 +240,7 @@ public class CSVLineParserTest {
     @Test
     public void parse_targetColumnsLessThanCsvValuesNoHeader_thenDropExtraCsvValues() throws IOException {
         csvParser = new CSVLineParser(
-            new CopyFromParserProperties(true, false, CsvSchema.DEFAULT_COLUMN_SEPARATOR),
+            new CopyFromParserProperties(true, false, CsvSchema.DEFAULT_COLUMN_SEPARATOR, 0),
             List.of("Code", "Country"));
         result = csvParser.parseWithoutHeader("GER,Germany,Berlin\n", 0);
         assertThat(new String(result, StandardCharsets.UTF_8), is("{\"Code\":\"GER\",\"Country\":\"Germany\"}"));
@@ -250,7 +250,7 @@ public class CSVLineParserTest {
     public void parse_targetColumnsNotInOrder_thenParseWithOrder() throws IOException {
         String header = "Code,Country,City\n";
         csvParser = new CSVLineParser(
-            new CopyFromParserProperties(true, true, CsvSchema.DEFAULT_COLUMN_SEPARATOR),
+            new CopyFromParserProperties(true, true, CsvSchema.DEFAULT_COLUMN_SEPARATOR, 0),
             List.of("City", "Code"));
         csvParser.parseHeader(header);
         result = csvParser.parse("GER,Germany,Berlin\n", 0);
@@ -261,7 +261,7 @@ public class CSVLineParserTest {
     public void parse_targetColumnsEmpty_thenParseFromHeader() throws IOException {
         String header = "Code,Country,City\n";
         csvParser = new CSVLineParser(
-            new CopyFromParserProperties(true, true, CsvSchema.DEFAULT_COLUMN_SEPARATOR),
+            new CopyFromParserProperties(true, true, CsvSchema.DEFAULT_COLUMN_SEPARATOR, 0),
             List.of());
         csvParser.parseHeader(header);
         result = csvParser.parse("GER,Germany,Berlin\n", 0);
