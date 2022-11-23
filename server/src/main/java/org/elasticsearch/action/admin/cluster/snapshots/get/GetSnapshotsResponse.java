@@ -28,7 +28,6 @@ import org.elasticsearch.snapshots.SnapshotInfo;
 import org.elasticsearch.transport.TransportResponse;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -44,6 +43,10 @@ public class GetSnapshotsResponse extends TransportResponse implements ToXConten
         this.snapshots = Collections.unmodifiableList(snapshots);
     }
 
+    GetSnapshotsResponse(StreamInput in) throws IOException {
+        snapshots = Collections.unmodifiableList(in.readList(SnapshotInfo::new));
+    }
+
     /**
      * Returns the list of snapshots
      *
@@ -53,21 +56,9 @@ public class GetSnapshotsResponse extends TransportResponse implements ToXConten
         return snapshots;
     }
 
-    public GetSnapshotsResponse(StreamInput in) throws IOException {
-        int size = in.readVInt();
-        List<SnapshotInfo> builder = new ArrayList<>(size);
-        for (int i = 0; i < size; i++) {
-            builder.add(new SnapshotInfo(in));
-        }
-        snapshots = Collections.unmodifiableList(builder);
-    }
-
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeVInt(snapshots.size());
-        for (SnapshotInfo snapshotInfo : snapshots) {
-            snapshotInfo.writeTo(out);
-        }
+        out.writeList(snapshots);
     }
 
     @Override

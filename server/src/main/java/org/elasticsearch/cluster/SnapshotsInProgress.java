@@ -20,7 +20,6 @@
 package org.elasticsearch.cluster;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -38,6 +37,7 @@ import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.index.shard.ShardId;
@@ -92,7 +92,7 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
         return builder.append("]").toString();
     }
 
-    public static class Entry implements ToXContent, RepositoryOperation {
+    public static class Entry implements Writeable, ToXContent, RepositoryOperation {
         private final State state;
         private final Snapshot snapshot;
         private final boolean includeGlobalState;
@@ -122,6 +122,33 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
             this.repositoryStateId = repositoryStateId;
             this.failure = failure;
             this.version = version;
+        }
+
+        private Entry(StreamInput in) throws IOException {
+            snapshot = new Snapshot(in);
+            includeGlobalState = in.readBoolean();
+            partial = in.readBoolean();
+            state = State.fromValue(in.readByte());
+            indices = in.readList(IndexId::new);
+            if (in.getVersion().after(Version.V_4_5_1)) {
+                templates = List.of(in.readStringArray());
+            } else {
+                templates = List.of();
+            }
+            startTime = in.readLong();
+            shards = in.readImmutableMap(ShardId::new, ShardSnapshotStatus::new);
+            repositoryStateId = in.readLong();
+            failure = in.readOptionalString();
+            if (in.getVersion().onOrAfter(VERSION_IN_SNAPSHOT_VERSION)) {
+                version = Version.readVersion(in);
+            } else if (in.getVersion().onOrAfter(SnapshotsService.SHARD_GEN_IN_REPO_DATA_VERSION)) {
+                // If an older master informs us that shard generations are supported we use the minimum shard generation compatible
+                // version. If shard generations are not supported yet we use a placeholder for a version that does not use shard
+                // generations.
+                version = in.readBoolean() ? SnapshotsService.SHARD_GEN_IN_REPO_DATA_VERSION : SnapshotsService.OLD_SNAPSHOT_FORMAT;
+            } else {
+                version = SnapshotsService.OLD_SNAPSHOT_FORMAT;
+            }
         }
 
         private static boolean assertShardsConsistent(State state, List<IndexId> indices,
@@ -349,6 +376,27 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
         }
 
         @Override
+        public void writeTo(StreamOutput out) throws IOException {
+            snapshot.writeTo(out);
+            out.writeBoolean(includeGlobalState);
+            out.writeBoolean(partial);
+            out.writeByte(state.value());
+            out.writeList(indices);
+            if (out.getVersion().after(Version.V_4_5_1)) {
+                out.writeStringArray(templates.toArray(new String[0]));
+            }
+            out.writeLong(startTime);
+            out.writeMap(shards);
+            out.writeLong(repositoryStateId);
+            out.writeOptionalString(failure);
+            if (out.getVersion().onOrAfter(VERSION_IN_SNAPSHOT_VERSION)) {
+                Version.writeVersion(version, out);
+            } else if (out.getVersion().onOrAfter(SnapshotsService.SHARD_GEN_IN_REPO_DATA_VERSION)) {
+                out.writeBoolean(SnapshotsService.useShardGenerations(version));
+            }
+        }
+
+        @Override
         public boolean isFragment() {
             return false;
         }
@@ -369,7 +417,7 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
         return true;
     }
 
-    public static class ShardSnapshotStatus {
+    public static class ShardSnapshotStatus implements Writeable {
 
         /**
          * Shard snapshot status for shards that are waiting for another operation to finish before they can be assigned to a node.
@@ -447,6 +495,7 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
             return state == ShardState.INIT || state == ShardState.ABORTED || state == ShardState.WAITING;
         }
 
+        @Override
         public void writeTo(StreamOutput out) throws IOException {
             out.writeOptionalString(nodeId);
             out.writeByte(state.value);
@@ -580,81 +629,12 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
     }
 
     public SnapshotsInProgress(StreamInput in) throws IOException {
-        Entry[] entries = new Entry[in.readVInt()];
-        for (int i = 0; i < entries.length; i++) {
-            final Snapshot snapshot = new Snapshot(in);
-            final boolean includeGlobalState = in.readBoolean();
-            final boolean partial = in.readBoolean();
-            final State state = State.fromValue(in.readByte());
-            final List<IndexId> indexBuilder = in.readList(IndexId::new);
-            List<String> templates = List.of();
-            if (in.getVersion().after(Version.V_4_5_1)) {
-                templates = List.of(in.readStringArray());
-            }
-            final long startTime = in.readLong();
-            final int shards = in.readVInt();
-            ImmutableOpenMap.Builder<ShardId, ShardSnapshotStatus> builder = ImmutableOpenMap.builder(shards);
-            for (int j = 0; j < shards; j++) {
-                ShardId shardId = new ShardId(in);
-                builder.put(shardId, new ShardSnapshotStatus(in));
-            }
-            final long repositoryStateId = in.readLong();
-            final String failure = in.readOptionalString();
-            final Version version;
-            if (in.getVersion().onOrAfter(VERSION_IN_SNAPSHOT_VERSION)) {
-                version = Version.readVersion(in);
-            } else if (in.getVersion().onOrAfter(SnapshotsService.SHARD_GEN_IN_REPO_DATA_VERSION)) {
-                // If an older master informs us that shard generations are supported we use the minimum shard generation compatible
-                // version. If shard generations are not supported yet we use a placeholder for a version that does not use shard
-                // generations.
-                version = in.readBoolean() ? SnapshotsService.SHARD_GEN_IN_REPO_DATA_VERSION : SnapshotsService.OLD_SNAPSHOT_FORMAT;
-            } else {
-                version = SnapshotsService.OLD_SNAPSHOT_FORMAT;
-            }
-            entries[i] = new Entry(snapshot,
-                includeGlobalState,
-                partial,
-                state,
-                Collections.unmodifiableList(indexBuilder),
-                templates,
-                startTime,
-                repositoryStateId,
-                builder.build(),
-                failure,
-                version);
-        }
-        this.entries = Arrays.asList(entries);
+        this.entries = in.readList(SnapshotsInProgress.Entry::new);
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeVInt(entries.size());
-        for (Entry entry : entries) {
-            entry.snapshot().writeTo(out);
-            out.writeBoolean(entry.includeGlobalState());
-            out.writeBoolean(entry.partial());
-            out.writeByte(entry.state().value());
-            out.writeVInt(entry.indices().size());
-            for (IndexId index : entry.indices()) {
-                index.writeTo(out);
-            }
-            if (out.getVersion().after(Version.V_4_5_1)) {
-                out.writeStringArray(entry.templates.toArray(new String[0]));
-            }
-            out.writeLong(entry.startTime());
-            out.writeVInt(entry.shards().size());
-            for (ObjectObjectCursor<ShardId, ShardSnapshotStatus> shardEntry : entry.shards()) {
-                shardEntry.key.writeTo(out);
-                shardEntry.value.writeTo(out);
-            }
-            out.writeLong(entry.repositoryStateId);
-            out.writeOptionalString(entry.failure);
-            if (out.getVersion().onOrAfter(VERSION_IN_SNAPSHOT_VERSION)) {
-                Version.writeVersion(entry.version, out);
-            } else if (out.getVersion().onOrAfter(SnapshotsService.SHARD_GEN_IN_REPO_DATA_VERSION)) {
-                out.writeBoolean(SnapshotsService.useShardGenerations(entry.version));
-            }
-        }
+        out.writeList(entries);
     }
 
     private static final String REPOSITORY = "repository";
