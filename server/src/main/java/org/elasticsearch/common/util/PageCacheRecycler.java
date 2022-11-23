@@ -20,7 +20,6 @@
 package org.elasticsearch.common.util;
 
 import org.apache.lucene.util.RamUsageEstimator;
-import org.elasticsearch.common.recycler.AbstractRecyclerC;
 import org.elasticsearch.common.recycler.Recycler;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
@@ -100,7 +99,7 @@ public class PageCacheRecycler {
         final int maxPageCount = (int) Math.min(Integer.MAX_VALUE, limit / PAGE_SIZE_IN_BYTES);
 
         final int maxBytePageCount = (int) (bytesWeight * maxPageCount / totalWeight);
-        bytePage = build(type, maxBytePageCount, availableProcessors, new AbstractRecyclerC<byte[]>() {
+        bytePage = build(type, maxBytePageCount, availableProcessors, new Recycler.C<byte[]>() {
 
             @Override
             public byte[] newInstance() {
@@ -114,7 +113,7 @@ public class PageCacheRecycler {
         });
 
         final int maxIntPageCount = (int) (intsWeight * maxPageCount / totalWeight);
-        intPage = build(type, maxIntPageCount, availableProcessors, new AbstractRecyclerC<int[]>() {
+        intPage = build(type, maxIntPageCount, availableProcessors, new Recycler.C<int[]>() {
 
             @Override
             public int[] newInstance() {
@@ -128,7 +127,7 @@ public class PageCacheRecycler {
         });
 
         final int maxLongPageCount = (int) (longsWeight * maxPageCount / totalWeight);
-        longPage = build(type, maxLongPageCount, availableProcessors, new AbstractRecyclerC<long[]>() {
+        longPage = build(type, maxLongPageCount, availableProcessors, new Recycler.C<long[]>() {
 
             @Override
             public long[] newInstance() {
@@ -142,7 +141,7 @@ public class PageCacheRecycler {
         });
 
         final int maxObjectPageCount = (int) (objectsWeight * maxPageCount / totalWeight);
-        objectPage = build(type, maxObjectPageCount, availableProcessors, new AbstractRecyclerC<Object[]>() {
+        objectPage = build(type, maxObjectPageCount, availableProcessors, new Recycler.C<Object[]>() {
 
             @Override
             public Object[] newInstance() {
