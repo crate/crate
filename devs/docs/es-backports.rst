@@ -229,7 +229,7 @@ should be crossed out as well.
 - [ ] cefaa17c52c Simplify CheckSumBlobStoreFormat and make it more Reusable (#59888) (#59950)
 - [ ] 5b92596fad5 Cleanup and Optimize Multiple Serialization Spots (#59626) (#59936)
 - [s] 8647872a1e5 Simplify structure for parsing points. (#59938)
-- [ ] 65f6fb8e94f Shortcut mapping update if the incoming mapping version is the same as the current mapping version (#59517) (#59772)
+- [x] 65f6fb8e94f Shortcut mapping update if the incoming mapping version is the same as the current mapping version (#59517) (#59772)
 - [s] 343053c0a7f Fix compilation in Eclipse (backport #59675)
 - [s] 27067de6991 Make MappedFieldType#meta final (#59383)
 - [x] b599f7a9c07 Fix estimate size of translog operations (#59206)
