@@ -94,7 +94,7 @@ Fixes
 .. an automated mergify backport.
 
 - Fixed inefficient join optimizations on hash and nested-loop joins when
-  table statistics were giving misleading indications.
+  table statistics aren't available.
 
 - Fixed a race condition that could lead to a ``NullPointerException`` when
   using ``IS NULL`` on an object that was just added to a table.
