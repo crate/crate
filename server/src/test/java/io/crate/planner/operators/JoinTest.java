@@ -149,7 +149,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void test_nestedloop_tables_are_not_switched_when_stats_are_negative() {
+    public void test_nestedloop_tables_are_not_switched_when_expected_numbers_of_rows_are_negative() {
         txnCtx.sessionSettings().setHashJoinEnabled(false);
         QueriedSelectRelation mss = e.analyze("select * from users left join locations on users.id = locations.id");
 
@@ -168,7 +168,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void test_hashjoin_tables_are_not_switched_when_stats_are_negative() {
+    public void test_hashjoin_tables_are_not_switched_when_expected_numbers_of_rows_are_negative() {
         QueriedSelectRelation mss = e.analyze("select users.name, locations.id " +
                                               "from users " +
                                               "join locations on users.id = locations.id");
