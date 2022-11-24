@@ -21,13 +21,17 @@
 
 package io.crate.planner;
 
+import static io.crate.analyze.TableDefinitions.TEST_DOC_LOCATIONS_TABLE_IDENT;
+import static io.crate.analyze.TableDefinitions.USER_TABLE_IDENT;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.hamcrest.Matchers;
 import org.junit.Before;
@@ -38,8 +42,15 @@ import com.carrotsearch.randomizedtesting.RandomizedTest;
 import io.crate.analyze.TableDefinitions;
 import io.crate.execution.dsl.projection.EvalProjection;
 import io.crate.execution.dsl.projection.LimitAndOffsetProjection;
+import io.crate.metadata.RelationName;
 import io.crate.planner.node.dql.Collect;
+import io.crate.planner.operators.LogicalPlan;
+import io.crate.planner.operators.LogicalPlanner;
 import io.crate.planner.operators.LogicalPlannerTest;
+import io.crate.planner.operators.RootRelationBoundary;
+import io.crate.planner.operators.Union;
+import io.crate.statistics.Stats;
+import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
@@ -192,6 +203,38 @@ public class UnionPlannerTest extends CrateDummyClusterServiceUnitTest {
             instanceOf(EvalProjection.class), // returns NULL
             instanceOf(EvalProjection.class)  // casts NULL to long to match `id`
         ));
+    }
+
+    @Test
+    public void test_union_estimated_rows_not_available() {
+        String stmt = "select id from users union all select id from locations";
+        TableStats tableStats = new TableStats();
+        Map<RelationName, Stats> rowCountByTable = new HashMap<>();
+        rowCountByTable.put(USER_TABLE_IDENT, new Stats(-1, 0, Map.of()));
+        rowCountByTable.put(TEST_DOC_LOCATIONS_TABLE_IDENT, new Stats(1, 0, Map.of()));
+        tableStats.updateTableStats(rowCountByTable);
+
+        var plan = createLogicalPlan(stmt, tableStats);
+        var union = (Union) plan.sources().get(0);
+        assertThat(union.numExpectedRows(), is(-1L));
+
+        rowCountByTable.put(USER_TABLE_IDENT, new Stats(1, 0, Map.of()));
+        rowCountByTable.put(TEST_DOC_LOCATIONS_TABLE_IDENT, new Stats(-1, 0, Map.of()));
+        tableStats.updateTableStats(rowCountByTable);
+
+        plan = createLogicalPlan(stmt, tableStats);
+        union = (Union) plan.sources().get(0);
+        assertThat(union.numExpectedRows(), is(-1L));
+    }
+
+    private LogicalPlan createLogicalPlan(String stmt, TableStats tableStats) {
+        PlannerContext context = e.getPlannerContext(clusterService.state());
+        LogicalPlanner logicalPlanner = new LogicalPlanner(
+            e.nodeCtx,
+            tableStats,
+            () -> clusterService.state().nodes().getMinNodeVersion()
+        );
+        return logicalPlanner.plan(e.analyze(stmt), context);
     }
 
 }

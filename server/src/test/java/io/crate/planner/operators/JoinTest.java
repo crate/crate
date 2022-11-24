@@ -22,6 +22,7 @@
 package io.crate.planner.operators;
 
 import static io.crate.analyze.TableDefinitions.TEST_DOC_LOCATIONS_TABLE_DEFINITION;
+import static io.crate.analyze.TableDefinitions.TEST_DOC_LOCATIONS_TABLE_IDENT;
 import static io.crate.analyze.TableDefinitions.USER_TABLE_DEFINITION;
 import static io.crate.analyze.TableDefinitions.USER_TABLE_IDENT;
 import static io.crate.planner.operators.LogicalPlannerTest.isPlan;
@@ -74,8 +75,6 @@ import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
 
 public class JoinTest extends CrateDummyClusterServiceUnitTest {
-
-    private static final RelationName TEST_DOC_LOCATIONS_TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "locations");
 
     private SQLExecutor e;
     private ProjectionBuilder projectionBuilder;
