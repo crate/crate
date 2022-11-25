@@ -36,8 +36,8 @@ Arguments
 ``REROUTE RETRY FAILED``
 ------------------------
 
-The index setting :ref:`routing.allocation.max_retries
-<sql-create-table-routing-allocation-max-retries>` indicates the maximum of
+The index setting :ref:`allocation.max_retries
+<sql-create-table-allocation-max-retries>` indicates the maximum of
 attempts to :ref:`allocate a shard <gloss-shard-allocation>` on a node. If this
 limit is reached it leaves the shard unallocated.
 
