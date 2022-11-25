@@ -45,6 +45,7 @@ import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsCluster
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlocks;
+import org.elasticsearch.cluster.metadata.AutoExpandReplicas;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
@@ -132,15 +133,14 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
                     Index[] concreteIndices = resolveIndices(currentState, request.tableIdent().indexNameOrAlias());
 
                     // These settings only apply for already existing partitions
-                    List<String> supportedSettings = TableParameters.PARTITIONED_TABLE_PARAMETER_INFO_FOR_TEMPLATE_UPDATE
+                    List<Setting> supportedSettings = TableParameters.PARTITIONED_TABLE_PARAMETER_INFO_FOR_TEMPLATE_UPDATE
                         .supportedSettings()
                         .values()
                         .stream()
-                        .map(Setting::getKey)
                         .collect(Collectors.toList());
 
                     // auto_expand_replicas must be explicitly added as it is hidden under NumberOfReplicasSetting
-                    supportedSettings.add(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS);
+                    supportedSettings.add(AutoExpandReplicas.SETTING);
 
                     currentState = updateSettings(currentState, filterSettings(request.settings(), supportedSettings), concreteIndices);
                     currentState = updateMapping(currentState, request, concreteIndices);
@@ -515,12 +515,21 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
         }
     }
 
-    private Settings filterSettings(Settings settings, List<String> settingsFilter) {
+    @VisibleForTesting
+    static Settings filterSettings(Settings settings, List<Setting> settingsFilter) {
         Settings.Builder settingsBuilder = Settings.builder();
-        for (String settingName : settingsFilter) {
-            String setting = settings.get(settingName);
-            if (setting != null) {
-                settingsBuilder.put(settingName, setting);
+        for (Setting setting : settingsFilter) {
+            if (setting.isGroupSetting()) {
+                String prefix = setting.getKey(); // getKey() returns prefix for a group setting
+                var settingsGroup = settings.getByPrefix(prefix);
+                for (String name : settingsGroup.keySet()) {
+                    settingsBuilder.put(prefix + name, settingsGroup.get(name)); // No dot added as prefix already has dot at the end.
+                }
+            } else {
+                String value = settings.get(setting.getKey());
+                if (value != null) {
+                    settingsBuilder.put(setting.getKey(), value);
+                }
             }
         }
         return settingsBuilder.build();

@@ -21,6 +21,9 @@
 
 package io.crate.metadata.cluster;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
+import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_ROUTING_EXCLUDE_GROUP_PREFIX;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_CREATION_DATE;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_SHARDS;
 import static org.elasticsearch.common.settings.AbstractScopedSettings.ARCHIVED_SETTINGS_PREFIX;
@@ -36,12 +39,16 @@ import static org.mockito.Mockito.when;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
+import io.crate.analyze.TableParameters;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.IndexScopedSettings;
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
@@ -91,6 +98,23 @@ public class AlterTableClusterStateExecutorTest {
             .put(SETTING_NUMBER_OF_SHARDS, 4);
         Settings preparedSettings = AlterTableClusterStateExecutor.markArchivedSettings(builder.build());
         assertThat(preparedSettings.keySet(), containsInAnyOrder(SETTING_NUMBER_OF_SHARDS, ARCHIVED_SETTINGS_PREFIX + "*"));
+    }
+
+    @Test
+    public void test_group_settings_are_not_filtered_out() throws IOException {
+        String fullName = INDEX_ROUTING_EXCLUDE_GROUP_PREFIX + "." + "_name";
+        Settings settingToFilter = Settings.builder()
+            .put(fullName , "node1").build();
+
+        List<Setting> supportedSettings = TableParameters.PARTITIONED_TABLE_PARAMETER_INFO_FOR_TEMPLATE_UPDATE
+            .supportedSettings()
+            .values()
+            .stream()
+            .collect(Collectors.toList());
+
+        Settings filteredSettings = AlterTableClusterStateExecutor.filterSettings(settingToFilter, supportedSettings);
+        assertThat(filteredSettings.isEmpty()).isFalse();
+        assertThat(filteredSettings.get(fullName)).isEqualTo("node1");
     }
 
     @Test
