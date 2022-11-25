@@ -380,7 +380,7 @@ public class Setting<T> implements ToXContentObject {
      * The key, see {@link #getKey()}, in contrast to non-group settings is a prefix like {@code cluster.store.} that matches all settings
      * with this prefix.
      */
-    boolean isGroupSetting() {
+    public boolean isGroupSetting() {
         return false;
     }
 
@@ -758,7 +758,7 @@ public class Setting<T> implements ToXContentObject {
             this.dependencies = Set.of(dependencies);
         }
 
-        boolean isGroupSetting() {
+        public boolean isGroupSetting() {
             return true;
         }
 
