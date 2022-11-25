@@ -239,6 +239,9 @@ public class Union implements LogicalPlan {
 
     @Override
     public long numExpectedRows() {
+        if (lhs.numExpectedRows() == -1 || rhs.numExpectedRows() == -1) {
+            return -1;
+        }
         return lhs.numExpectedRows() + rhs.numExpectedRows();
     }
 

@@ -93,6 +93,9 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Fixed inefficient join optimizations on hash and nested-loop joins when
+  table statistics aren't available.
+
 - Fixed a race condition that could lead to a ``NullPointerException`` when
   using ``IS NULL`` on an object that was just added to a table.
 

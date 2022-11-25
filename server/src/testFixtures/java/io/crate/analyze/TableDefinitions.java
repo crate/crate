@@ -130,6 +130,8 @@ public final class TableDefinitions {
         "  ))" +
         ")";
 
+    public static final RelationName TEST_DOC_LOCATIONS_TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "locations");
+
     public static final String TEST_DOC_LOCATIONS_TABLE_DEFINITION =
         "create table doc.locations (" +
         "  id bigint," +

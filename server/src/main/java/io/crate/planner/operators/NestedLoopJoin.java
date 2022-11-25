@@ -199,7 +199,8 @@ public class NestedLoopJoin implements LogicalPlan {
         boolean blockNlPossible = !isDistributed && isBlockNlPossible(left, right);
 
         JoinType joinType = this.joinType;
-        if (!orderByWasPushedDown && joinType.supportsInversion() &&
+        boolean expectedRowsAvailable = lhs.numExpectedRows() != -1 && rhs.numExpectedRows() != -1;
+        if (expectedRowsAvailable && !orderByWasPushedDown && joinType.supportsInversion() &&
             (isDistributed && lhs.numExpectedRows() < rhs.numExpectedRows() && orderByFromLeft == null) ||
             (blockNlPossible && lhs.numExpectedRows() > rhs.numExpectedRows())) {
             // 1) The right side is always broadcast-ed, so for performance reasons we switch the tables so that
@@ -214,6 +215,7 @@ public class NestedLoopJoin implements LogicalPlan {
             rightLogicalPlan = lhs;
             joinType = joinType.invert();
         }
+
         Tuple<Collection<String>, List<MergePhase>> joinExecutionNodesAndMergePhases =
             configureExecution(left, right, plannerContext, isDistributed);
 
@@ -402,6 +404,9 @@ public class NestedLoopJoin implements LogicalPlan {
 
     @Override
     public long numExpectedRows() {
+        if (lhs.numExpectedRows() == -1 || rhs.numExpectedRows() == -1) {
+            return -1;
+        }
         if (joinType == JoinType.CROSS) {
             return lhs.numExpectedRows() * rhs.numExpectedRows();
         } else {
