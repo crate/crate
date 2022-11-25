@@ -104,3 +104,7 @@ Fixes
 
 - Fixed an issue that could generate duplicate data on ``COPY FROM``  while
   some internal retries were happening due to I/O errors e.g. socket timeouts.
+
+- Fixed an issue that caused ``routing.allocation.*.{attribute}``
+  settings to be ignored when executing ``ALTER TABLE SET`` on a partitioned
+  table.
