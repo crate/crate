@@ -760,9 +760,9 @@ Can be set to:
   No shard allocation allowed.
 
 
-.. _sql-create-table-routing-allocation-max-retries:
+.. _sql-create-table-allocation-max-retries:
 
-``routing.allocation.max_retries``
+``allocation.max_retries``
 ----------------------------------
 
 Defines the number of attempts to :ref:`allocate <gloss-shard-allocation>` a
