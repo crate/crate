@@ -20,8 +20,7 @@ package org.elasticsearch.snapshots;
 
 import static java.util.Collections.unmodifiableMap;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.elasticsearch.repositories.blobstore.BlobStoreRepository.SNAPSHOT_CODEC;
-import static org.elasticsearch.repositories.blobstore.BlobStoreRepository.SNAPSHOT_NAME_FORMAT;
+import static org.elasticsearch.repositories.blobstore.BlobStoreRepository.INDEX_SHARD_SNAPSHOT_FORMAT;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -36,7 +35,6 @@ import org.elasticsearch.action.admin.cluster.snapshots.get.GetSnapshotsRequest;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.snapshots.IndexShardSnapshotStatus;
 import org.elasticsearch.index.snapshots.blobstore.BlobStoreIndexShardSnapshot;
@@ -44,7 +42,6 @@ import org.elasticsearch.repositories.IndexId;
 import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.repositories.RepositoryData;
 import org.elasticsearch.repositories.blobstore.BlobStoreRepository;
-import org.elasticsearch.repositories.blobstore.ChecksumBlobStoreFormat;
 import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.ClassRule;
@@ -60,18 +57,6 @@ import io.crate.testing.UseRandomizedSchema;
 @IntegTestCase.ClusterScope(scope = IntegTestCase.Scope.TEST, numDataNodes = 0)
 @ThreadLeakGroup
 public class BlobStoreIncrementalityIT extends AbstractSnapshotIntegTestCase {
-
-    /**
-     * Original defined at BlobStoreRepository, but removed as not used.
-     * Used by {@link #assertTwoIdenticalShardSnapshots(String, String, String, String)}
-     */
-    private static final ChecksumBlobStoreFormat<BlobStoreIndexShardSnapshot> INDEX_SHARD_SNAPSHOT_FORMAT =
-        new ChecksumBlobStoreFormat<>(
-            SNAPSHOT_CODEC, SNAPSHOT_NAME_FORMAT,
-            BlobStoreIndexShardSnapshot::fromXContent,
-            NamedXContentRegistry.EMPTY,
-            false
-        );
 
     @ClassRule
     public static final TemporaryFolder TEMP_FOLDER = new TemporaryFolder();
@@ -400,7 +385,7 @@ public class BlobStoreIncrementalityIT extends AbstractSnapshotIntegTestCase {
      * functionality is not exposed/used.
      * See https://github.com/elastic/elasticsearch/blob/6492b9c9aa1cfb044952aaa194c08825fb63e2f4/server/src/main/java/org/elasticsearch/repositories/blobstore/BlobStoreRepository.java#L2252
      */
-    private static IndexShardSnapshotStatus getShardSnapshotStatus(BlobStoreRepository repository,
+    private IndexShardSnapshotStatus getShardSnapshotStatus(BlobStoreRepository repository,
                                                             SnapshotId snapshotId,
                                                             IndexId indexId,
                                                             ShardId shardId) throws IOException {
@@ -408,7 +393,7 @@ public class BlobStoreIncrementalityIT extends AbstractSnapshotIntegTestCase {
         var shardContainer = repository.blobStore()
             .blobContainer(indicesPath.add(indexId.getId()).add(Integer.toString(shardId.getId())));
 
-        BlobStoreIndexShardSnapshot snapshot = INDEX_SHARD_SNAPSHOT_FORMAT.read(shardContainer, snapshotId.getUUID());
+        BlobStoreIndexShardSnapshot snapshot = INDEX_SHARD_SNAPSHOT_FORMAT.read(shardContainer, snapshotId.getUUID(), xContentRegistry());
         return IndexShardSnapshotStatus.newDone(snapshot.startTime(), snapshot.time(),
             snapshot.incrementalFileCount(), snapshot.totalFileCount(),
             snapshot.incrementalSize(), snapshot.totalSize(), null); // Not adding a real generation here as it doesn't matter to callers
