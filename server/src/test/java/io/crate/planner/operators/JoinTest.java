@@ -166,6 +166,32 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void test_nestedloop_tables_are_not_switched_when_rhs_expected_numbers_of_rows_are_negative_on_a_single_node() throws IOException {
+        resetClusterService();
+        e = SQLExecutor.builder(clusterService, 1, Randomness.get(), List.of())
+            .addTable(USER_TABLE_DEFINITION)
+            .addTable(TEST_DOC_LOCATIONS_TABLE_DEFINITION)
+            .build();
+        plannerCtx = e.getPlannerContext(clusterService.state());
+
+        txnCtx.sessionSettings().setHashJoinEnabled(false);
+        QueriedSelectRelation mss = e.analyze("select * from users left join locations on users.id = locations.id");
+
+        TableStats tableStats = new TableStats();
+        Map<RelationName, Stats> rowCountByTable = new HashMap<>();
+        rowCountByTable.put(USER_TABLE_IDENT, new Stats(0, 0, Map.of()));
+        rowCountByTable.put(TEST_DOC_LOCATIONS_TABLE_IDENT, new Stats(-1, 0, Map.of()));
+        tableStats.updateTableStats(rowCountByTable);
+
+        LogicalPlan operator = createLogicalPlan(mss, tableStats);
+        assertThat(operator, instanceOf(NestedLoopJoin.class));
+
+        Join nl = plan(mss, tableStats);
+        assertThat(((Reference) ((Collect) nl.left()).collectPhase().toCollect().get(0)).ident().tableIdent().name(), is("users"));
+        assertThat(((Reference) ((Collect) nl.right()).collectPhase().toCollect().get(0)).ident().tableIdent().name(), is("locations"));
+    }
+
+    @Test
     public void test_hashjoin_tables_are_not_switched_when_expected_numbers_of_rows_are_negative() {
         QueriedSelectRelation mss = e.analyze("select users.name, locations.id " +
                                               "from users " +
