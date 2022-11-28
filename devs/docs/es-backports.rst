@@ -227,7 +227,7 @@ should be crossed out as well.
 - [ ] 19fe3e511fc Deprecate camel case date format backport(#59555) (#59948)
 - [ ] e37bfe8a5f0 Stop Checking if Segment Data Blob Exists before Write (#59905) (#59971)
 - [ ] cefaa17c52c Simplify CheckSumBlobStoreFormat and make it more Reusable (#59888) (#59950)
-- [ ] 5b92596fad5 Cleanup and Optimize Multiple Serialization Spots (#59626) (#59936)
+- [x] 5b92596fad5 Cleanup and Optimize Multiple Serialization Spots (#59626) (#59936)
 - [s] 8647872a1e5 Simplify structure for parsing points. (#59938)
 - [x] 65f6fb8e94f Shortcut mapping update if the incoming mapping version is the same as the current mapping version (#59517) (#59772)
 - [s] 343053c0a7f Fix compilation in Eclipse (backport #59675)
