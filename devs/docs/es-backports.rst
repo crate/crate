@@ -224,7 +224,7 @@ should be crossed out as well.
 - [ ] ebb66778158 Formalize and Streamline Buffer Sizes used by Repositories (#59771) (#60051)
 - [ ] c06c9fb9666 Fix BwC Snapshot INIT Path (#60006)
 - [s] a0ad1a196b2 Wrap up building parametrized TypeParsers (#59977)
-- [ ] 19fe3e511fc Deprecate camel case date format backport(#59555) (#59948)
+- [s] 19fe3e511fc Deprecate camel case date format backport(#59555) (#59948)
 - [x] e37bfe8a5f0 Stop Checking if Segment Data Blob Exists before Write (#59905) (#59971)
 - [x] cefaa17c52c Simplify CheckSumBlobStoreFormat and make it more Reusable (#59888) (#59950)
 - [x] 5b92596fad5 Cleanup and Optimize Multiple Serialization Spots (#59626) (#59936)
