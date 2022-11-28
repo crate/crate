@@ -19,17 +19,16 @@
 
 package org.elasticsearch.action.admin.cluster.tasks;
 
+import java.io.IOException;
+import java.util.Iterator;
+import java.util.List;
+
 import org.elasticsearch.cluster.service.PendingClusterTask;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.xcontent.ToXContentObject;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.transport.TransportResponse;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
 
 public class PendingClusterTasksResponse extends TransportResponse implements Iterable<PendingClusterTask>, ToXContentObject {
 
@@ -97,19 +96,12 @@ public class PendingClusterTasksResponse extends TransportResponse implements It
     }
 
     public PendingClusterTasksResponse(StreamInput in) throws IOException {
-        int size = in.readVInt();
-        pendingTasks = new ArrayList<>(size);
-        for (int i = 0; i < size; i++) {
-            pendingTasks.add(new PendingClusterTask(in));
-        }
+        pendingTasks = in.readList(PendingClusterTask::new);
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeVInt(pendingTasks.size());
-        for (PendingClusterTask task : pendingTasks) {
-            task.writeTo(out);
-        }
+        out.writeList(pendingTasks);
     }
 
 }
