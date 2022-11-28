@@ -25,6 +25,7 @@ import io.crate.exceptions.JobKilledException;
 import io.crate.execution.ddl.SchemaUpdateClient;
 import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.dml.TransportShardAction;
+import io.crate.execution.dml.delete.ShardDeleteRequest.Item;
 import io.crate.execution.jobs.TasksService;
 import org.elasticsearch.action.support.TransportActions;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
@@ -43,6 +44,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static io.crate.exceptions.Exceptions.userFriendlyMessageInclNested;
@@ -80,7 +82,10 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
         ShardResponse shardResponse = new ShardResponse();
         Translog.Location translogLocation = null;
         boolean debugEnabled = logger.isDebugEnabled();
-        for (ShardDeleteRequest.Item item : request.items()) {
+
+        Iterator<Item> items = request.readItems(ShardDeleteRequest.Item::new);
+        while (items.hasNext()) {
+            var item = items.next();
             int location = item.location();
             if (killed.get()) {
                 // set failure on response, mark current item and skip all next items.
@@ -145,7 +150,9 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
     @Override
     protected WriteReplicaResult<ShardDeleteRequest> processRequestItemsOnReplica(IndexShard indexShard, ShardDeleteRequest request) throws IOException {
         Translog.Location translogLocation = null;
-        for (ShardDeleteRequest.Item item : request.items()) {
+        Iterator<Item> items = request.readItems(ShardDeleteRequest.Item::new);
+        while (items.hasNext()) {
+            var item = items.next();
             int location = item.location();
             if (request.skipFromLocation() == location) {
                 // skipping this and all next items, the primary did not processed them (mostly due to a kill request)

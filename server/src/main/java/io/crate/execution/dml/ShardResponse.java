@@ -37,6 +37,7 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.Iterator;
 import java.util.List;
 
 public class ShardResponse extends ReplicationResponse implements WriteResponse {
@@ -292,8 +293,9 @@ public class ShardResponse extends ReplicationResponse implements WriteResponse 
             return successfulWrites.cardinality();
         }
 
-        public void markAsFailed(List<ShardUpsertRequest.Item> items) {
-            for (ShardUpsertRequest.Item item : items) {
+        public void markAsFailed(Iterator<ShardUpsertRequest.Item> items) {
+            while (items.hasNext()) {
+                var item = items.next();
                 failureLocations.set(item.location());
             }
         }

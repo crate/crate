@@ -63,6 +63,7 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.io.stream.NotSerializableExceptionWrapper;
 import org.elasticsearch.index.IndexNotFoundException;
 
+import io.crate.Streamer;
 import io.crate.action.FutureActionListener;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.SymbolEvaluator;
@@ -85,6 +86,7 @@ import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.dml.upsert.InsertSourceFromCells;
 import io.crate.execution.dml.upsert.ShardUpsertAction;
 import io.crate.execution.dml.upsert.ShardUpsertRequest;
+import io.crate.execution.dml.upsert.ShardUpsertRequest.Item;
 import io.crate.execution.dsl.projection.ColumnIndexWriterProjection;
 import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
@@ -102,6 +104,7 @@ import io.crate.expression.InputRow;
 import io.crate.expression.symbol.Assignments;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
@@ -675,7 +678,9 @@ public class InsertFromValues implements LogicalPlan {
                 lastFailure.set(e);
                 if (!IndexParts.isPartitioned(request.index())) {
                     synchronized (compressedResult) {
-                        compressedResult.markAsFailed(request.items());
+                        Streamer<?>[] insertValueStreamer = Symbols.streamerArray(request.insertColumns());
+                        Iterator<Item> items = request.readItems(in -> new Item(in, insertValueStreamer));
+                        compressedResult.markAsFailed(items);
                     }
                 }
                 countdown.accept(request);
@@ -706,7 +711,9 @@ public class InsertFromValues implements LogicalPlan {
                     Throwable t = SQLExceptions.unwrap(e);
                     if (!partitionWasDeleted(t, request.index())) {
                         synchronized (compressedResult) {
-                            compressedResult.markAsFailed(request.items());
+                            Streamer<?>[] insertValueStreamers = Symbols.streamerArray(request.insertColumns());
+                            Iterator<Item> items = request.readItems(in -> new Item(in, insertValueStreamers));
+                            compressedResult.markAsFailed(items);
                         }
                     }
                     lastFailure.set(t);

@@ -22,7 +22,6 @@
 package io.crate.execution.dml.upsert;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -124,11 +123,13 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
         validation = in.readBoolean();
 
         sessionSettings = new SessionSettings(in);
-        int numItems = in.readVInt();
-        items = new ArrayList<>(numItems);
-        for (int i = 0; i < numItems; i++) {
-            items.add(new Item(in, insertValuesStreamer));
-        }
+        numItems = in.readVInt();
+        items = in.readBytesReference();
+        // TODO: BWC
+        //items = new ArrayList<>(numItems);
+        //for (int i = 0; i < numItems; i++) {
+        //    items.add(new Item(in, insertValuesStreamer));
+        //}
         if (in.getVersion().onOrAfter(Version.V_4_2_0)) {
             int returnValuesSize = in.readVInt();
             if (returnValuesSize > 0) {
@@ -174,10 +175,12 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
 
         sessionSettings.writeTo(out);
 
-        out.writeVInt(items.size());
-        for (Item item : items) {
-            item.writeTo(out, insertValuesStreamer);
-        }
+        out.writeVInt(numItems);
+        out.writeBytesReference(itemsStream.bytes());
+        // TODO: bwc
+        // for (Item item : items) {
+        //     item.writeTo(out, insertValuesStreamer);
+        // }
         if (out.getVersion().onOrAfter(Version.V_4_2_0)) {
             if (returnValues != null) {
                 out.writeVInt(returnValues.length);

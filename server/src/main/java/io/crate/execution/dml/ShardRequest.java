@@ -21,7 +21,16 @@
 
 package io.crate.execution.dml;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.util.Iterator;
+import java.util.NoSuchElementException;
+import java.util.Objects;
+import java.util.UUID;
+
 import org.elasticsearch.action.support.replication.ReplicationRequest;
+import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
@@ -29,19 +38,14 @@ import org.elasticsearch.common.lucene.uid.Versions;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.ShardId;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Objects;
-import java.util.UUID;
-
 public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends ShardRequest.Item>
-    extends ReplicationRequest<T> implements Iterable<I> {
+    extends ReplicationRequest<T> {
 
     private UUID jobId;
-    protected List<I> items;
+
+    protected int numItems = 0;
+    protected BytesReference items;
+    protected BytesStreamOutput itemsStream;
 
     public ShardRequest() {
     }
@@ -50,21 +54,52 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
         setShardId(shardId);
         this.jobId = jobId;
         this.index = shardId.getIndexName();
-        items = new ArrayList<>();
+        itemsStream = new BytesStreamOutput();
     }
 
-    public void add(int location, I item) {
+    public int add(int location, I item) {
         item.location(location);
-        items.add(item);
+        try {
+            item.writeTo(itemsStream);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+        numItems++;
+        return itemsStream.bytes().length();
     }
 
-    public List<I> items() {
-        return items;
-    }
+    public Iterator<I> readItems(Writeable.Reader<I> readItem) {
+        final StreamInput streamInput;
+        assert items != null : "Cannot read items if `items` is null";
+        try {
+            streamInput = items == null
+                ? itemsStream.bytes().streamInput()
+                : items.streamInput();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+        return new Iterator<>() {
 
-    @Override
-    public Iterator<I> iterator() {
-        return Collections.unmodifiableCollection(items).iterator();
+            int index = 0;
+
+            @Override
+            public boolean hasNext() {
+                return index < numItems;
+            }
+
+            @Override
+            public I next() {
+                if (!hasNext()) {
+                    throw new NoSuchElementException();
+                }
+                index++;
+                try {
+                    return readItem.read(streamInput);
+                } catch (IOException e) {
+                    throw new UncheckedIOException(e);
+                }
+            }
+        };
     }
 
     public UUID jobId() {
@@ -93,12 +128,12 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
         }
         ShardRequest<?, ?> that = (ShardRequest<?, ?>) o;
         return Objects.equals(jobId, that.jobId) &&
-               Objects.equals(items, that.items);
+               Objects.equals(itemsStream, that.itemsStream);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(jobId, items);
+        return Objects.hash(jobId, itemsStream);
     }
 
     /**

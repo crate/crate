@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
@@ -62,6 +63,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 import io.crate.Constants;
+import io.crate.Streamer;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.exceptions.Exceptions;
 import io.crate.exceptions.SQLExceptions;
@@ -73,6 +75,7 @@ import io.crate.execution.engine.collect.PKLookupOperation;
 import io.crate.execution.jobs.TasksService;
 import io.crate.expression.reference.Doc;
 import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.NodeContext;
@@ -149,7 +152,12 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             : new ReturnValueGen(txnCtx, nodeCtx, tableInfo, request.returnValues());
 
         Translog.Location translogLocation = null;
-        for (ShardUpsertRequest.Item item : request.items()) {
+        Streamer<?>[] streamerArray = Symbols.streamerArray(insertColumns);
+        Iterator<ShardUpsertRequest.Item> items = request.readItems(
+            in -> new ShardUpsertRequest.Item(in, streamerArray)
+        );
+        while (items.hasNext()) {
+            var item = items.next();
             int location = item.location();
             if (killed.get()) {
                 // set failure on response and skip all next items.
@@ -213,7 +221,12 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
     @Override
     protected WriteReplicaResult<ShardUpsertRequest> processRequestItemsOnReplica(IndexShard indexShard, ShardUpsertRequest request) throws IOException {
         Translog.Location location = null;
-        for (ShardUpsertRequest.Item item : request.items()) {
+        Streamer<?>[] streamerArray = Symbols.streamerArray(request.insertColumns());
+        Iterator<ShardUpsertRequest.Item> items = request.readItems(
+            in -> new ShardUpsertRequest.Item(in, streamerArray)
+        );
+        while (items.hasNext()) {
+            var item = items.next();
             if (item.source() == null) {
                 if (logger.isTraceEnabled()) {
                     logger.trace("[{} (R)] Document with id {}, has no source, primary operation must have failed",
