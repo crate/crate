@@ -194,26 +194,29 @@ public class NestedLoopJoin implements LogicalPlan {
 
         LogicalPlan leftLogicalPlan = lhs;
         LogicalPlan rightLogicalPlan = rhs;
-        isDistributed = isDistributed &&
-                        (!left.resultDescription().nodeIds().isEmpty() && !right.resultDescription().nodeIds().isEmpty());
-        boolean blockNlPossible = !isDistributed && isBlockNlPossible(left, right);
-
         JoinType joinType = this.joinType;
         boolean expectedRowsAvailable = lhs.numExpectedRows() != -1 && rhs.numExpectedRows() != -1;
-        if (expectedRowsAvailable && !orderByWasPushedDown && joinType.supportsInversion() &&
-            (isDistributed && lhs.numExpectedRows() < rhs.numExpectedRows() && orderByFromLeft == null) ||
-            (blockNlPossible && lhs.numExpectedRows() > rhs.numExpectedRows())) {
-            // 1) The right side is always broadcast-ed, so for performance reasons we switch the tables so that
-            //    the right table is the smaller (numOfRows). If left relation has a pushed-down OrderBy that needs
-            //    to be preserved, then the switch is not possible.
-            // 2) For block nested loop, the left side should always be smaller. Benchmarks have shown that the
-            //    performance decreases if the left side is much larger and no limit is applied.
-            ExecutionPlan tmpExecutionPlan = left;
-            left = right;
-            right = tmpExecutionPlan;
-            leftLogicalPlan = rhs;
-            rightLogicalPlan = lhs;
-            joinType = joinType.invert();
+        boolean blockNlPossible = !isDistributed && isBlockNlPossible(left, right);
+
+        if (expectedRowsAvailable) {
+            isDistributed = isDistributed &&
+                            (!left.resultDescription().nodeIds().isEmpty() &&
+                             !right.resultDescription().nodeIds().isEmpty());
+            if (!orderByWasPushedDown && joinType.supportsInversion() &&
+                (isDistributed && lhs.numExpectedRows() < rhs.numExpectedRows() && orderByFromLeft == null) ||
+                (blockNlPossible && lhs.numExpectedRows() > rhs.numExpectedRows())) {
+                // 1) The right side is always broadcast-ed, so for performance reasons we switch the tables so that
+                //    the right table is the smaller (numOfRows). If left relation has a pushed-down OrderBy that needs
+                //    to be preserved, then the switch is not possible.
+                // 2) For block nested loop, the left side should always be smaller. Benchmarks have shown that the
+                //    performance decreases if the left side is much larger and no limit is applied.
+                ExecutionPlan tmpExecutionPlan = left;
+                left = right;
+                right = tmpExecutionPlan;
+                leftLogicalPlan = rhs;
+                rightLogicalPlan = lhs;
+                joinType = joinType.invert();
+            }
         }
 
         Tuple<Collection<String>, List<MergePhase>> joinExecutionNodesAndMergePhases =
