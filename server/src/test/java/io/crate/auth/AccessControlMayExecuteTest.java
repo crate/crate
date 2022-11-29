@@ -48,18 +48,25 @@ import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Answers;
 
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.TableDefinitions;
+import io.crate.data.Row;
 import io.crate.exceptions.UnauthorizedException;
 import io.crate.execution.engine.collect.sources.SysTableRegistry;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.cluster.DDLClusterStateService;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
+import io.crate.planner.DependencyCarrier;
+import io.crate.planner.Plan;
+import io.crate.planner.operators.SubQueryResults;
+import io.crate.protocols.postgres.TransactionState;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
+import io.crate.testing.TestingRowConsumer;
 import io.crate.user.Privilege;
 import io.crate.user.User;
 import io.crate.user.UserLookupService;
@@ -137,6 +144,18 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
             .addView(new RelationName("doc", "v1"), "select * from users")
             .setUserManager(userManager)
             .build();
+    }
+
+    private TestingRowConsumer executePlan(Plan plan) {
+        TestingRowConsumer consumer = new TestingRowConsumer(true);
+        plan.execute(
+            mock(DependencyCarrier.class, Answers.RETURNS_MOCKS),
+            e.getPlannerContext(clusterService.state()),
+            consumer,
+            Row.EMPTY,
+            SubQueryResults.EMPTY
+        );
+        return consumer;
     }
 
     private void analyze(String stmt) {
@@ -700,4 +719,27 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
         analyze("ANALYZE", user);
         assertAskedForCluster(Privilege.Type.AL);
     }
+
+    @Test
+    public void test_declare_cursor_for_non_super_users() {
+        analyze("DECLARE this_cursor NO SCROLL CURSOR FOR SELECT * FROM sys.summits;", user);
+        assertAskedForTable(Privilege.Type.DQL, "sys.summits");
+    }
+
+    @Test
+    public void test_fetch_from_cursor_is_allowed_if_user_could_declare_it() throws Exception {
+        Plan plan = e.plan("declare c1 no scroll cursor for select 1");
+        e.transactionState = TransactionState.IN_TRANSACTION;
+        executePlan(plan);
+        analyze("fetch from c1");
+    }
+
+    @Test
+    public void test_close_cursor_is_allowed_if_user_could_declare_it() throws Exception {
+        Plan plan = e.plan("declare c1 no scroll cursor for select 1");
+        e.transactionState = TransactionState.IN_TRANSACTION;
+        executePlan(plan);
+        analyze("close c1");
+    }
+
 }
