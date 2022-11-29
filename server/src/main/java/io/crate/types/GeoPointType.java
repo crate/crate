@@ -191,6 +191,11 @@ public class GeoPointType extends DataType<Point> implements Streamer<Point>, Fi
     }
 
     @Override
+    public long valueBytes(Point value) {
+        return 40;
+    }
+
+    @Override
     public boolean isConvertableTo(DataType<?> other, boolean explicitCast) {
         if (other.id() == id()
             || other instanceof ArrayType && ((ArrayType<?>) other).innerType().equals(DataTypes.DOUBLE)) {

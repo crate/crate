@@ -30,7 +30,7 @@ import java.util.Locale;
 
 import static io.crate.types.TimeTZParser.formatTime;
 import static io.crate.types.TimeTZParser.parse;
-import static io.crate.types.TimeTZType.TYPE_LEN;
+import static io.crate.types.TimeTZType.TYPE_SIZE;
 
 
 final class TimeTZType extends PGType<TimeTZ> {
@@ -42,7 +42,7 @@ final class TimeTZType extends PGType<TimeTZ> {
 
 
     TimeTZType() {
-        super(OID, TYPE_LEN, TYPE_MOD, OID_TYPE_NAME);
+        super(OID, TYPE_SIZE, TYPE_MOD, OID_TYPE_NAME);
     }
 
     @Override
@@ -62,18 +62,18 @@ final class TimeTZType extends PGType<TimeTZ> {
 
     @Override
     public int writeAsBinary(ByteBuf buffer, @Nonnull TimeTZ value) {
-        buffer.writeInt(TYPE_LEN);
+        buffer.writeInt(TYPE_SIZE);
         buffer.writeLong(value.getMicrosFromMidnight());
         buffer.writeInt(value.getSecondsFromUTC());
-        return INT32_BYTE_SIZE + TYPE_LEN;
+        return INT32_BYTE_SIZE + TYPE_SIZE;
     }
 
     @Override
     public TimeTZ readBinaryValue(ByteBuf buffer, int valueLength) {
-        assert valueLength == TYPE_LEN : String.format(
+        assert valueLength == TYPE_SIZE : String.format(
             Locale.ENGLISH,
             "valueLength must be %d because timetz is a 12 byte structure. Actual length: %d",
-            TYPE_LEN, valueLength);
+            TYPE_SIZE, valueLength);
         return new TimeTZ(buffer.readLong(), buffer.readInt());
     }
 

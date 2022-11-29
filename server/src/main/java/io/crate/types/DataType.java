@@ -234,4 +234,9 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
     public Integer characterMaximumLength() {
         return null;
     }
+
+    /**
+     * Return the number of bytes used to represent the value
+     */
+    public abstract long valueBytes(@Nullable T value);
 }

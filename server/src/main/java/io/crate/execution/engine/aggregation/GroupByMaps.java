@@ -21,11 +21,17 @@
 
 package io.crate.execution.engine.aggregation;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.BiConsumer;
+import java.util.function.Supplier;
+
+import org.apache.lucene.util.RamUsageEstimator;
+
 import io.crate.breaker.RamAccounting;
-import io.crate.breaker.SizeEstimator;
 import io.crate.types.ByteType;
 import io.crate.types.DataType;
-import io.crate.types.DataTypes;
 import io.crate.types.IntegerType;
 import io.crate.types.LongType;
 import io.crate.types.ShortType;
@@ -34,40 +40,29 @@ import io.netty.util.collection.ByteObjectHashMap;
 import io.netty.util.collection.IntObjectHashMap;
 import io.netty.util.collection.LongObjectHashMap;
 import io.netty.util.collection.ShortObjectHashMap;
-import org.apache.lucene.util.RamUsageEstimator;
-
-import javax.annotation.Nullable;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.function.BiConsumer;
-import java.util.function.Supplier;
 
 public final class GroupByMaps {
 
-    private static final Map<DataType<?>, Integer> ENTRY_OVERHEAD_PER_TYPE = Map.ofEntries(
-        Map.entry(DataTypes.BYTE, 6),
-        Map.entry(DataTypes.SHORT, 6),
-        Map.entry(DataTypes.INTEGER, 8),
-        Map.entry(DataTypes.LONG, 12)
-    );
-
-    public static <K, V> BiConsumer<Map<K, V>, K> accountForNewEntry(RamAccounting ramAccounting,
-                                                                     SizeEstimator<K> sizeEstimator,
-                                                                     @Nullable DataType<K> type) {
-        Integer entryOverHead = type == null ? null : ENTRY_OVERHEAD_PER_TYPE.get(type);
-        if (entryOverHead == null) {
-            return (map, k) -> ramAccounting.addBytes(RamUsageEstimator.alignObjectSize(sizeEstimator.estimateSize(k) + 36));
-        } else {
-            return (map, k) -> {
-                int mapSize = map.size();
-                // If mapSize is a power of 2 then the map is going to grow by doubling its size.
-                if (mapSize >= 4 && (mapSize & (mapSize - 1)) == 0) {
-                    ramAccounting.addBytes(mapSize * (long) entryOverHead);
-                }
-            };
-        }
+    public static <K, V> BiConsumer<Map<K, V>, K> accountForNewEntry(RamAccounting ramAccounting, DataType<K> type) {
+        return (map, k) -> ramAccounting.addBytes(RamUsageEstimator.alignObjectSize(type.valueBytes(k) + 36));
     }
 
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public static <K, V> BiConsumer<Map<K, V>, K> accountForNewEntry(RamAccounting ramAccounting,
+                                                                     List<? extends DataType> types) {
+        return (map, k) -> {
+            assert k instanceof List : "keys must be a list if there are multiple key types";
+            long size = 0;
+            for (int i = 0; i < types.size(); i++) {
+                DataType dataType = types.get(i);
+                Object value = ((List) k).get(i);
+                size += dataType.valueBytes(value);
+            }
+            ramAccounting.addBytes(RamUsageEstimator.alignObjectSize(size + 36));
+        };
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public static <K, V> Supplier<Map<K, V>> mapForType(DataType<K> type) {
         switch (type.id()) {
             case ByteType.ID:

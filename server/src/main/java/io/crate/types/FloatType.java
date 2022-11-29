@@ -39,7 +39,7 @@ public class FloatType extends DataType<Float> implements Streamer<Float>, Fixed
 
     public static final FloatType INSTANCE = new FloatType();
     public static final int ID = 7;
-    private static final int FLOAT_SIZE = (int) RamUsageEstimator.shallowSizeOfInstance(Float.class);
+    public static final int FLOAT_SIZE = (int) RamUsageEstimator.shallowSizeOfInstance(Float.class);
     private static final StorageSupport<Float> STORAGE = new StorageSupport<>(
         true,
         true,
@@ -167,5 +167,10 @@ public class FloatType extends DataType<Float> implements Streamer<Float>, Fixed
     @Override
     public StorageSupport<Float> storageSupport() {
         return STORAGE;
+    }
+
+    @Override
+    public long valueBytes(Float value) {
+        return FLOAT_SIZE;
     }
 }

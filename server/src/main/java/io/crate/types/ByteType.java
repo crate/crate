@@ -120,6 +120,11 @@ public class ByteType extends DataType<Byte> implements Streamer<Byte>, FixedWid
     }
 
     @Override
+    public long valueBytes(Byte value) {
+        return 16;
+    }
+
+    @Override
     public StorageSupport<Number> storageSupport() {
         return STORAGE;
     }

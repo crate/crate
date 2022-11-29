@@ -21,8 +21,11 @@
 
 package io.crate.types;
 
-import io.crate.Streamer;
-import io.crate.geo.GeoJSONUtils;
+import java.io.IOException;
+import java.util.Locale;
+import java.util.Map;
+
+import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.lucene.BytesRefs;
@@ -31,9 +34,8 @@ import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
 import org.locationtech.spatial4j.shape.Point;
 import org.locationtech.spatial4j.shape.Shape;
 
-import java.io.IOException;
-import java.util.Locale;
-import java.util.Map;
+import io.crate.Streamer;
+import io.crate.geo.GeoJSONUtils;
 
 public class GeoShapeType extends DataType<Map<String, Object>> implements Streamer<Map<String, Object>> {
 
@@ -128,5 +130,13 @@ public class GeoShapeType extends DataType<Map<String, Object>> implements Strea
     @Override
     public StorageSupport<Map<String, Object>> storageSupport() {
         return STORAGE;
+    }
+
+    @Override
+    public long valueBytes(Map<String, Object> value) {
+        if (value == null) {
+            return RamUsageEstimator.NUM_BYTES_OBJECT_HEADER;
+        }
+        return RamUsageEstimator.sizeOfMap(value);
     }
 }

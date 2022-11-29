@@ -88,4 +88,9 @@ public class NumericAverageStateType extends DataType<NumericAverageState> imple
         NumericType.INSTANCE.writeValueTo(out, v.sum.value()); // NumericType.INSTANCE writes unscaled value
         out.writeVLong(v.count);
     }
+
+    @Override
+    public long valueBytes(NumericAverageState value) {
+        throw new UnsupportedOperationException("valueSize is not implemented on NumericAverageStateType");
+    }
 }

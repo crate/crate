@@ -214,4 +214,9 @@ public final class TimestampType extends DataType<Long>
     public StorageSupport<Long> storageSupport() {
         return STORAGE;
     }
+
+    @Override
+    public long valueBytes(Long value) {
+        return LongType.LONG_SIZE;
+    }
 }

@@ -122,5 +122,10 @@ public class ShortType extends DataType<Short> implements Streamer<Short>, Fixed
     public StorageSupport<Number> storageSupport() {
         return STORAGE;
     }
+
+    @Override
+    public long valueBytes(Short value) {
+        return SHORT_SIZE;
+    }
 }
 

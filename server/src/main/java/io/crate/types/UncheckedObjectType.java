@@ -23,6 +23,8 @@ package io.crate.types;
 
 import io.crate.Streamer;
 import io.crate.common.collections.MapComparator;
+
+import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -118,5 +120,13 @@ public class UncheckedObjectType extends DataType<Map<Object, Object>> implement
     @Override
     public StorageSupport<Map<Object, Object>> storageSupport() {
         return STORAGE;
+    }
+
+    @Override
+    public long valueBytes(Map<Object, Object> value) {
+        if (value == null) {
+            return RamUsageEstimator.NUM_BYTES_OBJECT_HEADER;
+        }
+        return RamUsageEstimator.sizeOfMap(value);
     }
 }

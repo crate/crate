@@ -23,6 +23,8 @@ package io.crate.types;
 
 import io.crate.Streamer;
 import io.crate.common.annotations.VisibleForTesting;
+
+import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -265,5 +267,13 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
     @Override
     public int hashCode() {
         return Objects.hash(super.hashCode(), scale, precision);
+    }
+
+    @Override
+    public long valueBytes(BigDecimal value) {
+        if (value == null) {
+            return RamUsageEstimator.NUM_BYTES_OBJECT_HEADER;
+        }
+        return size(value);
     }
 }

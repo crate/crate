@@ -21,27 +21,35 @@
 
 package io.crate;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 
+import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.test.ESTestCase;
 import org.hamcrest.Matchers;
 import org.junit.Test;
+import org.locationtech.spatial4j.shape.Point;
 
+import io.crate.data.RowN;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
+import io.crate.types.Regproc;
+import io.crate.types.RowType;
+import io.crate.types.UndefinedType;
 
 public class DataTypeTest extends ESTestCase {
 
@@ -204,5 +212,67 @@ public class DataTypeTest extends ESTestCase {
             .setInnerType("obj",
                           ObjectType.builder().setInnerType("b", DataTypes.INTEGER).build()).build();
         assertThat(DataTypes.isCompatibleType(obj3, obj4), is(true));
+    }
+
+    @Test
+    public void test_string_value_size() throws Exception {
+        assertThat(DataTypes.STRING.valueBytes(null)).isEqualTo(0L);
+        assertThat(DataTypes.STRING.valueBytes("hello")).isEqualTo(56L);
+    }
+
+    @Test
+    public void test_byte_value_size() throws Exception {
+        assertThat(DataTypes.BYTE.valueBytes(null)).isEqualTo(16L);
+        assertThat(DataTypes.BYTE.valueBytes(Byte.valueOf("100"))).isEqualTo(16L);
+    }
+
+    @Test
+    public void test_geopoint_value_size() throws Exception {
+        assertThat(DataTypes.GEO_POINT.valueBytes(null)).isEqualTo(DataTypes.GEO_POINT.fixedSize());
+        Point value = DataTypes.GEO_POINT.implicitCast(new Double[]{1.0d, 2.0d});
+        assertThat(DataTypes.GEO_POINT.valueBytes(value)).isEqualTo(40L);
+    }
+
+    @Test
+    public void test_undefined_type_estimate_size_for_null_value() {
+        assertThat(DataTypes.UNDEFINED.valueBytes(null)).isEqualTo(RamUsageEstimator.NUM_BYTES_OBJECT_REF);
+    }
+
+    @Test
+    public void test_undefined_type_estimate_size_for_string_value() {
+        assertThat(DataTypes.UNDEFINED.valueBytes("")).isEqualTo(RamUsageEstimator.sizeOfObject(""));
+    }
+
+    @Test
+    public void test_undefined_array_type_estimate_size_for_null_value() {
+        var type = new ArrayType<>(DataTypes.UNDEFINED);
+        assertThat(type.valueBytes(null)).isEqualTo(RamUsageEstimator.NUM_BYTES_OBJECT_HEADER);
+    }
+
+    @Test
+    public void test_undefined_array_type_estimate_size_for_object() {
+        UndefinedType undefined = DataTypes.UNDEFINED;
+        var type = new ArrayType<>(undefined);
+        assertThat(type.valueBytes(List.of("", ""))).isEqualTo(
+            undefined.valueBytes("") + undefined.valueBytes("") + RamUsageEstimator.NUM_BYTES_OBJECT_HEADER);
+    }
+
+    @Test
+    public void test_regproc_type_estimate_size_for_value() {
+        assertThat(DataTypes.REGPROC.valueBytes(null)).isEqualTo(RamUsageEstimator.NUM_BYTES_OBJECT_HEADER);
+        assertThat(DataTypes.REGPROC.valueBytes(Regproc.of("test"))).isEqualTo(64L);
+    }
+
+    @Test
+    public void test_numeric_type_estimate_size_for_value() {
+        assertThat(DataTypes.NUMERIC.valueBytes(null)).isEqualTo(RamUsageEstimator.NUM_BYTES_OBJECT_HEADER);
+        assertThat(DataTypes.NUMERIC.valueBytes(BigDecimal.valueOf(1))).isEqualTo(37L);
+        assertThat(DataTypes.NUMERIC.valueBytes(BigDecimal.valueOf(Long.MAX_VALUE))).isEqualTo(44L);
+    }
+
+    @Test
+    public void test_estimate_size_of_record() throws Exception {
+        var type = new RowType(List.of(DataTypes.LONG, DataTypes.INTEGER));
+        assertThat(type.valueBytes(new RowN(20L, 10))).isEqualTo(40L);
     }
 }

@@ -39,7 +39,7 @@ public class DoubleType extends DataType<Double> implements FixedWidthType, Stre
 
     public static final DoubleType INSTANCE = new DoubleType();
     public static final int ID = 6;
-    private static final int DOUBLE_SIZE = (int) RamUsageEstimator.shallowSizeOfInstance(Double.class);
+    public static final int DOUBLE_SIZE = (int) RamUsageEstimator.shallowSizeOfInstance(Double.class);
     private static final StorageSupport<Double> STORAGE = new StorageSupport<>(
         true,
         true,
@@ -165,5 +165,10 @@ public class DoubleType extends DataType<Double> implements FixedWidthType, Stre
     @Override
     public StorageSupport<Double> storageSupport() {
         return STORAGE;
+    }
+
+    @Override
+    public long valueBytes(Double value) {
+        return DOUBLE_SIZE;
     }
 }
