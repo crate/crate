@@ -32,7 +32,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
@@ -154,9 +153,6 @@ public class MetadataCreateIndexService {
      */
     public static void validateIndexName(String index, ClusterState state) {
         validateIndexOrAliasName(index, InvalidIndexNameException::new);
-        if (!index.toLowerCase(Locale.ROOT).equals(index)) {
-            throw new InvalidIndexNameException(index, "must be lowercase");
-        }
         if (state.routingTable().hasIndex(index)) {
             throw new ResourceAlreadyExistsException(state.routingTable().index(index).getIndex());
         }

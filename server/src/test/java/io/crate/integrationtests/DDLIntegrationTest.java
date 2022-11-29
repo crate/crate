@@ -861,13 +861,6 @@ public class DDLIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    public void testCreateTableWithIllegalCustomSchemaCheckedByES() throws Exception {
-        assertThrowsMatches(() -> execute("create table \"AAA\".t (name string) with (number_of_replicas=0)"),
-                     isSQLError(is("Relation name \"AAA.t\" is invalid."), INTERNAL_ERROR, BAD_REQUEST, 4002));
-
-    }
-
-    @Test
     public void testDropTableWithCustomSchema() throws Exception {
         execute("create table a.t (name string) with (number_of_replicas=0)");
         ensureYellow();
