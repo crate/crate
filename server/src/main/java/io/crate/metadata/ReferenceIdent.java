@@ -21,6 +21,8 @@
 
 package io.crate.metadata;
 
+import org.apache.lucene.util.Accountable;
+import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -30,7 +32,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 
-public class ReferenceIdent {
+public final class ReferenceIdent implements Accountable {
+
+    private static final long SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(ReferenceIdent.class);
 
     private final RelationName relationName;
     private final ColumnIdent columnIdent;
@@ -87,5 +91,12 @@ public class ReferenceIdent {
     public void writeTo(StreamOutput out) throws IOException {
         columnIdent.writeTo(out);
         relationName.writeTo(out);
+    }
+
+    @Override
+    public long ramBytesUsed() {
+        return SHALLOW_SIZE
+            + relationName.ramBytesUsed()
+            + columnIdent.ramBytesUsed();
     }
 }

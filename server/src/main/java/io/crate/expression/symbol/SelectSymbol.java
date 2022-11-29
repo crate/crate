@@ -23,6 +23,7 @@ package io.crate.expression.symbol;
 
 import java.io.IOException;
 
+import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import io.crate.analyze.relations.AnalyzedRelation;
@@ -34,6 +35,8 @@ import io.crate.types.DataType;
  * Symbol representing a sub-query
  */
 public class SelectSymbol implements Symbol {
+
+    private static final long SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(SelectSymbol.class);
 
     private final AnalyzedRelation relation;
     private final ArrayType<?> dataType;
@@ -111,5 +114,12 @@ public class SelectSymbol implements Symbol {
 
     public ResultType getResultType() {
         return resultType;
+    }
+
+    @Override
+    public long ramBytesUsed() {
+        // Missing the size of the relation, but SelectSymbol isn't used inplaces
+        // where we batch a large amount of symbols, so this should be good enough.
+        return SHALLOW_SIZE + dataType.ramBytesUsed();
     }
 }

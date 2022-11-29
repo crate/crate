@@ -30,6 +30,7 @@ import java.util.Objects;
 
 import javax.annotation.Nullable;
 
+import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -67,6 +68,8 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
 public class Function implements Symbol, Cloneable {
+
+    private static final long SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(Function.class);
 
     private static final Map<String, String> ARITHMETIC_OPERATOR_MAPPING = Map.ofEntries(
         Map.entry(ArithmeticFunctions.Names.ADD, "+"),
@@ -173,6 +176,15 @@ public class Function implements Symbol, Cloneable {
             newDataType,
             null
         );
+    }
+
+    @Override
+    public long ramBytesUsed() {
+        return SHALLOW_SIZE
+            + arguments.stream().mapToLong(Symbol::ramBytesUsed).sum()
+            + returnType.ramBytesUsed()
+            + (filter == null ? 0 : filter.ramBytesUsed())
+            + signature.ramBytesUsed();
     }
 
     @Override

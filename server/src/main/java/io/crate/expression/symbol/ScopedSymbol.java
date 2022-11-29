@@ -131,4 +131,9 @@ public final class ScopedSymbol implements Symbol {
         result = 31 * result + dataType.hashCode();
         return result;
     }
+
+    @Override
+    public long ramBytesUsed() {
+        return dataType.ramBytesUsed();
+    }
 }
