@@ -28,6 +28,7 @@ import java.util.Objects;
 
 import javax.annotation.Nullable;
 
+import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -43,8 +44,11 @@ import io.crate.types.DataType;
 
 public class GeneratedReference implements Reference {
 
+    private static final long SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(GeneratedReference.class);
+
     private final Reference ref;
     private final String formattedGeneratedExpression;
+    @Nullable
     private Symbol generatedExpression;
     private List<Reference> referencedReferences = List.of();
 
@@ -226,5 +230,14 @@ public class GeneratedReference implements Reference {
             formattedGeneratedExpression,
             generatedExpression
         );
+    }
+
+    @Override
+    public long ramBytesUsed() {
+        return SHALLOW_SIZE
+            + ref.ramBytesUsed()
+            + RamUsageEstimator.sizeOf(formattedGeneratedExpression)
+            + (generatedExpression == null ? 0 : generatedExpression.ramBytesUsed())
+            + referencedReferences.stream().mapToLong(Reference::ramBytesUsed).sum();
     }
 }

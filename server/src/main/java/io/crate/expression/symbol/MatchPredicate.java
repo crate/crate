@@ -25,6 +25,8 @@ import io.crate.expression.symbol.format.Style;
 import io.crate.types.BooleanType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
+
+import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
@@ -88,6 +90,19 @@ public class MatchPredicate implements Symbol {
     @Override
     public String toString() {
         return toString(Style.UNQUALIFIED);
+    }
+
+    @Override
+    public long ramBytesUsed() {
+        long bytes = 0L;
+        for (var entry : identBoostMap.entrySet()) {
+            bytes += entry.getKey().ramBytesUsed();
+            bytes += entry.getValue().ramBytesUsed();
+        }
+        return bytes
+            + queryTerm.ramBytesUsed()
+            + RamUsageEstimator.sizeOf(matchType)
+            + options.ramBytesUsed();
     }
 
     @Override

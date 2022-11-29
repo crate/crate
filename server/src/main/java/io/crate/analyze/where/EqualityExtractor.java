@@ -322,6 +322,11 @@ public class EqualityExtractor {
             }
             return sb.toString();
         }
+
+        @Override
+        public long ramBytesUsed() {
+            return origin.ramBytesUsed();
+        }
     }
 
     static class ProxyInjectingVisitor extends SymbolVisitor<ProxyInjectingVisitor.Context, Symbol> {

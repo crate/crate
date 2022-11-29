@@ -30,9 +30,10 @@ import io.crate.types.DataTypes;
 
 import java.util.Objects;
 
+import org.apache.lucene.util.Accountable;
 import org.elasticsearch.common.io.stream.Writeable;
 
-public interface Symbol extends Writeable {
+public interface Symbol extends Writeable, Accountable {
 
     public static boolean isLiteral(Symbol symbol, DataType<?> expectedType) {
         return symbol.symbolType() == SymbolType.LITERAL && symbol.valueType().equals(expectedType);
