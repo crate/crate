@@ -34,8 +34,6 @@ import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 
 import io.crate.breaker.RamAccounting;
-import io.crate.breaker.SizeEstimator;
-import io.crate.breaker.SizeEstimatorFactory;
 import io.crate.common.MutableDouble;
 import io.crate.common.MutableFloat;
 import io.crate.common.MutableLong;
@@ -204,11 +202,12 @@ public abstract class MinimumAggregation extends AggregationFunction<Comparable,
 
     private static class VariableMinimumAggregation extends MinimumAggregation {
 
-        private final SizeEstimator<Object> estimator;
+        private final DataType<Object> partialType;
 
+        @SuppressWarnings("unchecked")
         VariableMinimumAggregation(Signature signature, Signature boundSignature) {
             super(signature, boundSignature);
-            estimator = SizeEstimatorFactory.create(partialType());
+            this.partialType = (DataType<Object>) partialType();
         }
 
         @Nullable
@@ -224,7 +223,7 @@ public abstract class MinimumAggregation extends AggregationFunction<Comparable,
         public Comparable reduce(RamAccounting ramAccounting, Comparable state1, Comparable state2) {
             if (state1 == null) {
                 if (state2 != null) {
-                    ramAccounting.addBytes(estimator.estimateSize(state2));
+                    ramAccounting.addBytes(partialType.valueBytes(state2));
                 }
                 return state2;
             }
@@ -232,7 +231,8 @@ public abstract class MinimumAggregation extends AggregationFunction<Comparable,
                 return state1;
             }
             if (state1.compareTo(state2) > 0) {
-                ramAccounting.addBytes(estimator.estimateSizeDelta(state1, state2));
+                long delta = partialType.valueBytes(state1) - partialType.valueBytes(state2);
+                ramAccounting.addBytes(delta);
                 return state2;
             }
             return state1;

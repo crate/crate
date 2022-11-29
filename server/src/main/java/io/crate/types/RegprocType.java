@@ -22,6 +22,8 @@
 package io.crate.types;
 
 import io.crate.Streamer;
+
+import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -102,5 +104,13 @@ public class RegprocType extends DataType<Regproc> implements Streamer<Regproc> 
     public void writeValueTo(StreamOutput out, Regproc v) throws IOException {
         out.writeInt(v.oid());
         out.writeString(v.name());
+    }
+
+    @Override
+    public long valueBytes(Regproc value) {
+        if (value == null) {
+            return RamUsageEstimator.NUM_BYTES_OBJECT_HEADER;
+        }
+        return RamUsageEstimator.sizeOf(value.name()) + IntegerType.INTEGER_SIZE;
     }
 }

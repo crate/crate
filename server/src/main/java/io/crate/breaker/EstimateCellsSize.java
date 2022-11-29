@@ -21,30 +21,30 @@
 
 package io.crate.breaker;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.function.ToLongFunction;
 
-import io.crate.common.collections.Lists2;
 import io.crate.types.DataType;
 
 public final class EstimateCellsSize implements ToLongFunction<Object[]> {
 
-    private final List<SizeEstimator<Object>> estimators;
+    private final List<? extends DataType<?>> columnTypes;
 
-    public EstimateCellsSize(Collection<? extends DataType<?>> columnTypes) {
-        this.estimators = Lists2.map(columnTypes, SizeEstimatorFactory::create);
+    public EstimateCellsSize(List<? extends DataType<?>> columnTypes) {
+        this.columnTypes = columnTypes;
     }
 
+    @SuppressWarnings({"unchecked", "rawtypes"})
     @Override
     public long applyAsLong(Object[] cells) {
-        assert estimators.size() == cells.length
+        assert columnTypes.size() == cells.length
             : "Size of incoming cells must match number of estimators. "
                 + "Cells=" + cells.length
-                + " estimators=" + estimators.size();
+                + " estimators=" + columnTypes.size();
         long size = 0;
         for (int i = 0; i < cells.length; i++) {
-            size += estimators.get(i).estimateSize(cells[i]);
+            DataType dataType = columnTypes.get(i);
+            size += dataType.valueBytes(cells[i]);
         }
         return size;
     }

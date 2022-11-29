@@ -30,6 +30,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.function.ToLongFunction;
 
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -50,9 +51,6 @@ import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.NameFieldProvider;
 import io.crate.analyze.relations.TableRelation;
-import io.crate.breaker.JobContextLogSizeEstimator;
-import io.crate.breaker.OperationContextLogSizeEstimator;
-import io.crate.breaker.SizeEstimator;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.BlockingEvictingQueue;
 import io.crate.common.unit.TimeValue;
@@ -120,9 +118,6 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
 
     public static final Setting<TimeValue> STATS_OPERATIONS_LOG_EXPIRATION_SETTING = Setting.timeSetting(
         "stats.operations_log_expiration", TimeValue.timeValueSeconds(0L), Property.NodeScope, Property.Dynamic, Property.Exposed);
-
-    private static final JobContextLogSizeEstimator JOB_CONTEXT_LOG_ESTIMATOR = new JobContextLogSizeEstimator();
-    private static final OperationContextLogSizeEstimator OPERATION_CONTEXT_LOG_SIZE_ESTIMATOR = new OperationContextLogSizeEstimator();
 
     private final ScheduledExecutorService scheduler;
     private final CircuitBreakerService breakerService;
@@ -246,7 +241,7 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
     @VisibleForTesting
     void updateJobSink(int size, TimeValue expiration) {
         LogSink<JobContextLog> sink = createSink(
-            size, expiration, JOB_CONTEXT_LOG_ESTIMATOR, HierarchyCircuitBreakerService.JOBS_LOG);
+            size, expiration, JobContextLog::ramBytesUsed, HierarchyCircuitBreakerService.JOBS_LOG);
         LogSink<JobContextLog> newSink = sink.equals(NoopLogSink.instance()) ? sink : new FilteredLogSink<>(
             memoryFilter,
             persistFilter,
@@ -276,7 +271,7 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
         return Long.min(Long.max(1_000L, expiration.getMillis() / 10), 86_400_000L);
     }
 
-    private <E extends ContextLog> LogSink<E> createSink(int size, TimeValue expiration, SizeEstimator<E> sizeEstimator, String breaker) {
+    private <E extends ContextLog> LogSink<E> createSink(int size, TimeValue expiration, ToLongFunction<E> getElementSize, String breaker) {
         Queue<E> q;
         long expirationMillis = expiration.getMillis();
         final Runnable onClose;
@@ -300,7 +295,7 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
             };
         }
 
-        RamAccountingQueue<E> accountingQueue = new RamAccountingQueue<>(q, breakerService.getBreaker(breaker), sizeEstimator);
+        RamAccountingQueue<E> accountingQueue = new RamAccountingQueue<>(q, breakerService.getBreaker(breaker), getElementSize);
         return new QueueSink<>(accountingQueue, () -> {
             accountingQueue.release();
             onClose.run();
@@ -321,7 +316,7 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
         LogSink<OperationContextLog> newSink = createSink(
             size,
             expiration,
-            OPERATION_CONTEXT_LOG_SIZE_ESTIMATOR,
+            OperationContextLog::ramBytesUsed,
             HierarchyCircuitBreakerService.OPERATIONS_LOG);
         jobsLogs.updateOperationsLog(newSink);
     }

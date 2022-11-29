@@ -45,6 +45,8 @@ import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.locationtech.spatial4j.shape.Point;
 
+import com.carrotsearch.hppc.RamUsageEstimator;
+
 import io.crate.Streamer;
 import io.crate.common.collections.Lists2;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -364,5 +366,20 @@ public class ArrayType<T> extends DataType<List<T>> {
     @Override
     public StorageSupport storageSupport() {
         return innerType.storageSupport();
+    }
+
+    @Override
+    public long valueBytes(List<T> values) {
+        if (values == null) {
+            return RamUsageEstimator.NUM_BYTES_OBJECT_HEADER;
+        }
+        if (innerType instanceof FixedWidthType fixedWidthType) {
+            return fixedWidthType.fixedSize() * values.size();
+        }
+        long bytes = RamUsageEstimator.NUM_BYTES_OBJECT_HEADER;
+        for (var value : values) {
+            bytes += innerType.valueBytes(value);
+        }
+        return bytes;
     }
 }

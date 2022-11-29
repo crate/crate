@@ -41,7 +41,7 @@ public class DateType extends DataType<Long>
 
     public static final int ID = 24;
     public static final DateType INSTANCE = new DateType();
-    public static final int DATE_SIZE = (int) RamUsageEstimator.shallowSizeOfInstance(Long.class);
+    public static final int TYPE_SIZE = (int) RamUsageEstimator.shallowSizeOfInstance(Long.class);
 
     @Override
     public int id() {
@@ -128,6 +128,11 @@ public class DateType extends DataType<Long>
 
     @Override
     public int fixedSize() {
-        return DATE_SIZE;
+        return TYPE_SIZE;
+    }
+
+    @Override
+    public long valueBytes(Long value) {
+        return TYPE_SIZE;
     }
 }

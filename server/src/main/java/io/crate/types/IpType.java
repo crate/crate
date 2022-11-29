@@ -25,6 +25,7 @@ import io.crate.Streamer;
 
 import org.apache.lucene.document.InetAddressPoint;
 import org.apache.lucene.search.Query;
+import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.network.InetAddresses;
@@ -155,5 +156,10 @@ public class IpType extends DataType<String> implements Streamer<String> {
     @Override
     public StorageSupport<String> storageSupport() {
         return STORAGE;
+    }
+
+    @Override
+    public long valueBytes(String value) {
+        return RamUsageEstimator.sizeOf(value);
     }
 }

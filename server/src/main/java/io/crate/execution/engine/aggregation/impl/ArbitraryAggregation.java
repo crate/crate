@@ -35,8 +35,6 @@ import org.elasticsearch.index.fielddata.FieldData;
 import org.elasticsearch.index.fielddata.SortedBinaryDocValues;
 
 import io.crate.breaker.RamAccounting;
-import io.crate.breaker.SizeEstimator;
-import io.crate.breaker.SizeEstimatorFactory;
 import io.crate.common.MutableObject;
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
@@ -76,12 +74,12 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
 
     private final Signature signature;
     private final Signature boundSignature;
-    private final SizeEstimator<Object> partialEstimator;
+    private final DataType<Object> partialType;
 
     ArbitraryAggregation(Signature signature, Signature boundSignature) {
         this.signature = signature;
         this.boundSignature = boundSignature;
-        partialEstimator = SizeEstimatorFactory.create(partialType());
+        this.partialType = (DataType<Object>) boundSignature.getReturnType().createType();
     }
 
     @Override
@@ -96,7 +94,7 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
 
     @Override
     public DataType<?> partialType() {
-        return boundSignature.getReturnType().createType();
+        return partialType;
     }
 
     @Nullable
@@ -121,7 +119,7 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
         if (state1 == null) {
             if (state2 != null) {
                 // this case happens only once per aggregation so ram usage is only estimated once
-                ramAccounting.addBytes(partialEstimator.estimateSize(state2));
+                ramAccounting.addBytes(partialType.valueBytes(state2));
             }
             return state2;
         }
@@ -152,25 +150,17 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
             case TimestampType.ID_WITHOUT_TZ:
                 return new LongArbitraryDocValueAggregator(
                     arg.column().fqn(),
-                    dataType,
-                    partialEstimator
+                    dataType
                 );
             case FloatType.ID:
-                return new FloatArbitraryDocValueAggregator(
-                    arg.column().fqn(),
-                    partialEstimator
-                );
+                return new FloatArbitraryDocValueAggregator(arg.column().fqn());
             case DoubleType.ID:
-                return new DoubleArbitraryDocValueAggregator(
-                    arg.column().fqn(),
-                    partialEstimator
-                );
+                return new DoubleArbitraryDocValueAggregator(arg.column().fqn());
             case IpType.ID:
             case StringType.ID:
                 return new ArbitraryBinaryDocValueAggregator(
                     arg.column().fqn(),
-                    dataType,
-                    partialEstimator
+                    dataType
                 );
             default:
                 return null;
@@ -179,15 +169,11 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
 
     private static class LongArbitraryDocValueAggregator extends ArbitraryNumericDocValueAggregator {
 
-        private final DataType<?> dataType;
-        private final SizeEstimator<Object> sizeEstimator;
+        private final DataType dataType;
 
-        public LongArbitraryDocValueAggregator(String columnName,
-                                               DataType<?> dataType,
-                                               SizeEstimator<Object> sizeEstimator) {
+        public LongArbitraryDocValueAggregator(String columnName, DataType<?> dataType) {
             super(columnName);
             this.dataType = dataType;
-            this.sizeEstimator = sizeEstimator;
         }
 
         @Override
@@ -195,7 +181,7 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
                 if (!state.hasValue()) {
                     var value = dataType.sanitizeValue(values.nextValue());
-                    ramAccounting.addBytes(sizeEstimator.estimateSize(value));
+                    ramAccounting.addBytes(dataType.valueBytes(value));
                     state.setValue(value);
                 }
             }
@@ -204,12 +190,8 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
 
     private static class FloatArbitraryDocValueAggregator extends ArbitraryNumericDocValueAggregator {
 
-        private final SizeEstimator<Object> sizeEstimator;
-
-        public FloatArbitraryDocValueAggregator(String columnName,
-                                                SizeEstimator<Object> sizeEstimator) {
+        public FloatArbitraryDocValueAggregator(String columnName) {
             super(columnName);
-            this.sizeEstimator = sizeEstimator;
         }
 
         @Override
@@ -217,7 +199,7 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
                 if (!state.hasValue()) {
                     var value = NumericUtils.sortableIntToFloat((int) values.nextValue());
-                    ramAccounting.addBytes(sizeEstimator.estimateSize(value));
+                    ramAccounting.addBytes(FloatType.FLOAT_SIZE);
                     state.setValue(value);
                 }
             }
@@ -226,12 +208,8 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
 
     private static class DoubleArbitraryDocValueAggregator extends ArbitraryNumericDocValueAggregator {
 
-        private final SizeEstimator<Object> sizeEstimator;
-
-        public DoubleArbitraryDocValueAggregator(String columnName,
-                                                 SizeEstimator<Object> sizeEstimator) {
+        public DoubleArbitraryDocValueAggregator(String columnName) {
             super(columnName);
-            this.sizeEstimator = sizeEstimator;
         }
 
         @Override
@@ -239,7 +217,7 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
                 if (!state.hasValue()) {
                     var value = NumericUtils.sortableLongToDouble(values.nextValue());
-                    ramAccounting.addBytes(sizeEstimator.estimateSize(value));
+                    ramAccounting.addBytes(DoubleType.DOUBLE_SIZE);
                     state.setValue(value);
                 }
             }
@@ -280,17 +258,13 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
     private static class ArbitraryBinaryDocValueAggregator implements DocValueAggregator<MutableObject> {
 
         private final String columnName;
-        private final DataType<?> dataType;
-        private final SizeEstimator<Object> sizeEstimator;
+        private final DataType dataType;
 
         private SortedBinaryDocValues values;
 
-        public ArbitraryBinaryDocValueAggregator(String columnName,
-                                                 DataType<?> dataType,
-                                                 SizeEstimator<Object> sizeEstimator) {
+        public ArbitraryBinaryDocValueAggregator(String columnName, DataType<?> dataType) {
             this.columnName = columnName;
             this.dataType = dataType;
-            this.sizeEstimator = sizeEstimator;
         }
 
         @Override
@@ -308,7 +282,7 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
                 if (!state.hasValue()) {
                     var value = dataType.sanitizeValue(values.nextValue().utf8ToString());
-                    ramAccounting.addBytes(sizeEstimator.estimateSize(value));
+                    ramAccounting.addBytes(dataType.valueBytes(value));
                     state.setValue(value);
                 }
             }

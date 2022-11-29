@@ -36,15 +36,12 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 
-import javax.annotation.Nullable;
-
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.breaker.SizeEstimator;
 import io.crate.common.collections.BlockingEvictingQueue;
 import io.crate.common.unit.TimeValue;
 import io.crate.expression.reference.sys.job.ContextLog;
@@ -56,8 +53,6 @@ import io.crate.user.User;
 
 public class RamAccountingQueueSinkTest extends ESTestCase {
 
-    private static final NoopLogEstimator NOOP_ESTIMATOR = new NoopLogEstimator();
-
     private ScheduledExecutorService scheduler;
     private QueueSink logSink;
 
@@ -68,13 +63,6 @@ public class RamAccountingQueueSinkTest extends ESTestCase {
         @Override
         public long ended() {
             return 0;
-        }
-    }
-
-    private static class NoopLogEstimator extends SizeEstimator<NoopLog> {
-        @Override
-        public long estimateSize(@Nullable NoopLog value) {
-            return 0L;
         }
     }
 
@@ -101,7 +89,7 @@ public class RamAccountingQueueSinkTest extends ESTestCase {
     @Test
     public void testFixedSizeRamAccountingQueueSink() throws Exception {
         BlockingEvictingQueue<NoopLog> q = new BlockingEvictingQueue<>(15_000);
-        RamAccountingQueue<NoopLog> ramAccountingQueue = new RamAccountingQueue<>(q, breaker(), NOOP_ESTIMATOR);
+        RamAccountingQueue<NoopLog> ramAccountingQueue = new RamAccountingQueue<>(q, breaker(), x -> 0);
         logSink = new QueueSink<>(ramAccountingQueue, ramAccountingQueue::release);
 
         int THREADS = 50;
@@ -155,7 +143,7 @@ public class RamAccountingQueueSinkTest extends ESTestCase {
     @Test
     public void testTimedRamAccountingQueueSink() throws Exception {
         ConcurrentLinkedQueue<NoopLog> q = new ConcurrentLinkedQueue<>();
-        RamAccountingQueue<NoopLog> ramAccountingQueue = new RamAccountingQueue<>(q, breaker(), NOOP_ESTIMATOR);
+        RamAccountingQueue<NoopLog> ramAccountingQueue = new RamAccountingQueue<>(q, breaker(), x -> 0);
         TimeValue timeValue = TimeValue.timeValueSeconds(1L);
         ScheduledFuture<?> task = TimeBasedQEviction.scheduleTruncate(1000L, 1000L, q, scheduler, timeValue);
         logSink = new QueueSink<>(ramAccountingQueue, () -> {

@@ -75,4 +75,9 @@ public class NotSupportedType extends DataType<Void> {
     public int compareTo(DataType<?> o) {
         return 0;
     }
+
+    @Override
+    public long valueBytes(Void value) {
+        return 0;
+    }
 }

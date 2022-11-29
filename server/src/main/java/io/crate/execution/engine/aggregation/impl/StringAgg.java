@@ -23,13 +23,14 @@ package io.crate.execution.engine.aggregation.impl;
 
 import io.crate.Streamer;
 import io.crate.breaker.RamAccounting;
-import io.crate.breaker.StringSizeEstimator;
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+
+import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -133,6 +134,11 @@ public final class StringAgg extends AggregationFunction<StringAgg.StringAggStat
         public void writeValueTo(StreamOutput out, StringAggState val) throws IOException {
             val.writeTo(out);
         }
+
+        @Override
+        public long valueBytes(StringAggState value) {
+            throw new UnsupportedOperationException("valueSize is not implemented for StringAggStateType");
+        }
     }
 
     private final Signature signature;
@@ -160,13 +166,13 @@ public final class StringAgg extends AggregationFunction<StringAgg.StringAggStat
         if (expression == null) {
             return state;
         }
-        ramAccounting.addBytes(LIST_ENTRY_OVERHEAD + StringSizeEstimator.estimate(expression));
+        ramAccounting.addBytes(LIST_ENTRY_OVERHEAD + RamUsageEstimator.sizeOf(expression));
         String delimiter = (String) args[1].value();
         if (delimiter != null) {
             if (state.firstDelimiter == null && state.values.isEmpty()) {
                 state.firstDelimiter = delimiter;
             } else {
-                ramAccounting.addBytes(LIST_ENTRY_OVERHEAD + StringSizeEstimator.estimate(delimiter));
+                ramAccounting.addBytes(LIST_ENTRY_OVERHEAD + RamUsageEstimator.sizeOf(delimiter));
                 state.values.add(delimiter);
             }
         }
@@ -191,7 +197,7 @@ public final class StringAgg extends AggregationFunction<StringAgg.StringAggStat
 
         int indexOfExpression = previousAggState.values.indexOf(expression);
         if (indexOfExpression > -1) {
-            ramAccounting.addBytes(-LIST_ENTRY_OVERHEAD + StringSizeEstimator.estimate(expression));
+            ramAccounting.addBytes(-LIST_ENTRY_OVERHEAD + RamUsageEstimator.sizeOf(expression));
             if (delimiter != null) {
                 String elementNextToExpression = previousAggState.values.get(indexOfExpression + 1);
                 if (elementNextToExpression.equalsIgnoreCase(delimiter)) {

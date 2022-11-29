@@ -25,9 +25,13 @@ import io.crate.common.annotations.VisibleForTesting;
 import io.crate.planner.operators.StatementClassifier;
 
 import javax.annotation.Nullable;
+
+import org.apache.lucene.util.Accountable;
+import org.apache.lucene.util.RamUsageEstimator;
+
 import java.util.UUID;
 
-public class JobContextLog implements ContextLog {
+public class JobContextLog implements ContextLog, Accountable {
 
     private final JobContext jobContext;
 
@@ -79,5 +83,20 @@ public class JobContextLog implements ContextLog {
     @Nullable
     public String errorMessage() {
         return errorMessage;
+    }
+
+    @Override
+    public long ramBytesUsed() {
+        long size = 0L;
+
+        // JobContextLog
+        size += 32L; // 24 bytes (ref+headers) + 8 bytes (ended)
+        size += errorMessage == null ? 0 : errorMessage.length();
+
+        // JobContext
+        size += 52L; // 24 bytes (ref+headers) + 4 bytes (id) + 8 bytes (started) + 16 bytes (uuid)
+        size += jobContext.stmt().length();
+
+        return RamUsageEstimator.alignObjectSize(size);
     }
 }

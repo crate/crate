@@ -29,13 +29,15 @@ import java.util.Map;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.junit.Test;
 
+import io.crate.types.ObjectType;
+
 public class MapSizeEstimatorTest {
 
     @Test
     public void test_map_size_estimate_depends_on_actual_instance_size() {
-        Map<String, Integer> map = Map.of("x", 10, "y", 20);
+        Map<String, Object> map = Map.of("x", 10, "y", 20);
         assertThat(
-            MapSizeEstimator.INSTANCE.estimateSize(map),
+            ObjectType.UNTYPED.valueBytes(map),
             is(RamUsageEstimator.sizeOfMap(map))
         );
     }

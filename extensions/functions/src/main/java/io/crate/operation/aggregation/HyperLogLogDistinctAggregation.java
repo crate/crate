@@ -445,6 +445,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
             return (HyperLogLogDistinctAggregation.HllState) value;
         }
 
+
         @Override
         public int compare(HyperLogLogDistinctAggregation.HllState val1, HyperLogLogDistinctAggregation.HllState val2) {
             if (val1 == null) {
@@ -462,6 +463,11 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
         @Override
         public void writeValueTo(StreamOutput out, HllState v) throws IOException {
             v.writeTo(out);
+        }
+
+        @Override
+        public long valueBytes(HllState value) {
+            throw new UnsupportedOperationException("valueSize is not implemented for HLLStateType");
         }
     }
 

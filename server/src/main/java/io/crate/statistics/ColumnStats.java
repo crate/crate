@@ -22,8 +22,6 @@
 package io.crate.statistics;
 
 import io.crate.Streamer;
-import io.crate.breaker.SizeEstimator;
-import io.crate.breaker.SizeEstimatorFactory;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.FixedWidthType;
@@ -185,7 +183,6 @@ public final class ColumnStats<T> implements Writeable {
             return new ColumnStats<>(nullFraction, averageWidth, approxDistinct, type, MostCommonValues.EMPTY, List.of());
         }
         boolean isVariableLength = !(type instanceof FixedWidthType);
-        SizeEstimator<T> sizeEstimator = SizeEstimatorFactory.create(type);
         int mcvTarget = Math.min(MostCommonValues.MCV_TARGET, samples.size());
         MostCommonValues.MVCCandidate[] mostCommonValueCandidates = initMCVItems(mcvTarget);
         long totalSampleValueSizeInBytes = 0;
@@ -196,7 +193,7 @@ public final class ColumnStats<T> implements Writeable {
         for (int i = 0; i < samples.size(); i++) {
             T currentValue = samples.get(i);
             if (isVariableLength) {
-                totalSampleValueSizeInBytes += sizeEstimator.estimateSize(currentValue);
+                totalSampleValueSizeInBytes += type.valueBytes(currentValue);
             }
             if (i == 0) {
                 continue;
