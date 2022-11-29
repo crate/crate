@@ -48,6 +48,7 @@ import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
+import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.util.BigArrays;
@@ -59,7 +60,6 @@ import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 
 import io.crate.breaker.RamAccounting;
-import io.crate.breaker.StringSizeEstimator;
 import io.crate.data.BatchIterator;
 import io.crate.data.CollectingBatchIterator;
 import io.crate.data.Row;
@@ -92,6 +92,8 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.types.DataTypes;
 
 final class GroupByOptimizedIterator {
+
+    private static final long BYTES_REF_SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(BytesRef.class);
 
     /**
      * This was chosen after benchmarking different ratios with this optimization always enabled:
@@ -340,7 +342,7 @@ final class GroupByOptimizedIterator {
                     BytesRef sharedKey = values.lookupOrd(ord);
                     Object[] prevStates = statesByKey.get(sharedKey);
                     if (prevStates == null) {
-                        ramAccounting.addBytes(StringSizeEstimator.estimateSize(sharedKey) + HASH_MAP_ENTRY_OVERHEAD);
+                        ramAccounting.addBytes(BYTES_REF_SHALLOW_SIZE + sharedKey.length + HASH_MAP_ENTRY_OVERHEAD);
                         statesByKey.put(BytesRef.deepCopyOf(sharedKey), states);
                     } else {
                         for (int i = 0; i < aggregations.size(); i++) {

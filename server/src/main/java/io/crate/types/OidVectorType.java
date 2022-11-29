@@ -23,6 +23,8 @@ package io.crate.types;
 
 import java.util.List;
 
+import org.apache.lucene.util.RamUsageEstimator;
+
 import io.crate.Streamer;
 
 public class OidVectorType extends DataType<List<Integer>> {
@@ -63,5 +65,13 @@ public class OidVectorType extends DataType<List<Integer>> {
     @Override
     public List<Integer> sanitizeValue(Object value) {
         return (List<Integer>) value;
+    }
+
+    @Override
+    public long valueBytes(List<Integer> value) {
+        if (value == null) {
+            return RamUsageEstimator.NUM_BYTES_OBJECT_HEADER;
+        }
+        return value.size() * IntegerType.INTEGER_SIZE;
     }
 }

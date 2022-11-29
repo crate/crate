@@ -38,6 +38,7 @@ import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
+import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
@@ -345,5 +346,13 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
     @Override
     public StorageSupport storageSupport() {
         return STORAGE;
+    }
+
+    @Override
+    public long valueBytes(Map<String, Object> value) {
+        if (value == null) {
+            return RamUsageEstimator.NUM_BYTES_OBJECT_HEADER;
+        }
+        return RamUsageEstimator.sizeOfMap(value);
     }
 }

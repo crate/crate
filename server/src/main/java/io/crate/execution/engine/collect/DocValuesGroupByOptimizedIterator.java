@@ -50,9 +50,7 @@ import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 
-import io.crate.breaker.MultiSizeEstimator;
 import io.crate.breaker.RamAccounting;
-import io.crate.breaker.SizeEstimatorFactory;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists2;
 import io.crate.data.BatchIterator;
@@ -83,6 +81,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.types.DataType;
 
 final class DocValuesGroupByOptimizedIterator {
 
@@ -195,6 +194,7 @@ final class DocValuesGroupByOptimizedIterator {
                                                Version minNodeVersion,
                                                Query query,
                                                CollectorContext collectorContext) {
+            DataType<Object> valueType = (DataType<Object>) keyReference.valueType();
             return GroupByIterator.getIterator(
                 aggregators,
                 indexSearcher,
@@ -202,11 +202,7 @@ final class DocValuesGroupByOptimizedIterator {
                 ramAccounting,
                 memoryManager,
                 minNodeVersion,
-                GroupByMaps.accountForNewEntry(
-                    ramAccounting,
-                    SizeEstimatorFactory.create(keyReference.valueType()),
-                    null
-                ),
+                GroupByMaps.accountForNewEntry(ramAccounting, valueType),
                 (expressions) -> expressions.get(0).value(),
                 (key, cells) -> cells[0] = key,
                 query,
@@ -233,10 +229,7 @@ final class DocValuesGroupByOptimizedIterator {
                 minNodeVersion,
                 GroupByMaps.accountForNewEntry(
                     ramAccounting,
-                    new MultiSizeEstimator(
-                        Lists2.map(keyColumnRefs, Reference::valueType)
-                    ),
-                    null
+                    Lists2.map(keyColumnRefs, Reference::valueType)
                 ),
                 (expressions) -> {
                     ArrayList<Object> key = new ArrayList<>(keyColumnRefs.size());

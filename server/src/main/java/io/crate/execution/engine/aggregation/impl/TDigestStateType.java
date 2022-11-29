@@ -75,4 +75,9 @@ class TDigestStateType extends DataType<TDigestState> implements Streamer<TDiges
     public int compare(TDigestState val1, TDigestState val2) {
         return 0;
     }
+
+    @Override
+    public long valueBytes(TDigestState value) {
+        throw new UnsupportedOperationException("valueSize is not implemented for TDigestStateType");
+    }
 }

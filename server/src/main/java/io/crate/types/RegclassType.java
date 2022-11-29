@@ -23,6 +23,7 @@ package io.crate.types;
 
 import java.io.IOException;
 
+import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -123,5 +124,13 @@ public final class RegclassType extends DataType<Regclass> implements Streamer<R
             }
         }
         throw new ClassCastException("Can't cast '" + value + "' to " + getName());
+    }
+
+    @Override
+    public long valueBytes(Regclass value) {
+        if (value == null) {
+            return RamUsageEstimator.NUM_BYTES_OBJECT_HEADER;
+        }
+        return RamUsageEstimator.sizeOf(value.name()) + RamUsageEstimator.sizeOf(value.oid());
     }
 }

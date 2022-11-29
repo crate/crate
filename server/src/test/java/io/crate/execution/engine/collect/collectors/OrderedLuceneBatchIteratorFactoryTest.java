@@ -76,7 +76,7 @@ import io.crate.types.LongType;
 public class OrderedLuceneBatchIteratorFactoryTest extends ESTestCase {
 
     private static final RowAccountingWithEstimators ROW_ACCOUNTING = new RowAccountingWithEstimators(
-        Collections.singleton(LongType.INSTANCE),
+        List.of(LongType.INSTANCE),
         RamAccounting.NO_ACCOUNTING
     );
 

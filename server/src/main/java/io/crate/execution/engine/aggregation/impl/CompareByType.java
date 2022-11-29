@@ -100,4 +100,9 @@ public class CompareByType extends DataType<CompareBy> implements Streamer<Compa
         ((Streamer) retValType.streamer()).writeValueTo(out, v.resultValue);
         ((Streamer) cmpType.streamer()).writeValueTo(out, v.cmpValue);
     }
+
+    @Override
+    public long valueBytes(CompareBy value) {
+        throw new UnsupportedOperationException("valueSize is not implemented for CompareByType");
+    }
 }

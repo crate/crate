@@ -23,7 +23,6 @@ package io.crate.execution.engine.collect.stats;
 
 import io.crate.breaker.ConcurrentRamAccounting;
 import io.crate.breaker.RamAccounting;
-import io.crate.breaker.SizeEstimator;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.UUIDs;
@@ -33,6 +32,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.Queue;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.ToLongFunction;
 
 public final class RamAccountingQueue<T> implements Queue<T> {
 
@@ -40,14 +40,14 @@ public final class RamAccountingQueue<T> implements Queue<T> {
 
     private final Queue<T> delegate;
     private final RamAccounting ramAccounting;
-    private final SizeEstimator<T> sizeEstimator;
+    private final ToLongFunction<T> getElementSize;
     private final CircuitBreaker breaker;
     private final AtomicBoolean exceeded;
 
-    public RamAccountingQueue(Queue<T> delegate, CircuitBreaker breaker, SizeEstimator<T> sizeEstimator) {
+    public RamAccountingQueue(Queue<T> delegate, CircuitBreaker breaker, ToLongFunction<T> getElementSize) {
         this.delegate = delegate;
         this.breaker = breaker;
-        this.sizeEstimator = sizeEstimator;
+        this.getElementSize = getElementSize;
         // create a non-breaking (thread-safe) instance as this component will check the breaker limits by itself
         this.ramAccounting = new ConcurrentRamAccounting(
             breaker::addWithoutBreaking,
@@ -127,13 +127,14 @@ public final class RamAccountingQueue<T> implements Queue<T> {
 
     @Override
     public boolean offer(T o) {
-        ramAccounting.addBytes(sizeEstimator.estimateSize(o));
+        long elementSize = getElementSize.applyAsLong(o);
+        ramAccounting.addBytes(elementSize);
         if (exceededBreaker() && exceeded.compareAndSet(false, true)) {
             if (LOGGER.isWarnEnabled()) {
                 LOGGER.warn("Memory limit for breaker [{}] was exceeded. Queue [{}] is cleared.", breaker.getName(), contextId());
             }
             release();
-            ramAccounting.addBytes(sizeEstimator.estimateSize(o));
+            ramAccounting.addBytes(elementSize);
             exceeded.set(false);
         }
         return delegate.offer(o);
