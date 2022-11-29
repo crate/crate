@@ -24,6 +24,7 @@ package io.crate.expression.symbol;
 import java.io.IOException;
 import java.util.List;
 
+import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import io.crate.expression.symbol.format.Style;
@@ -95,5 +96,12 @@ public final class FetchMarker implements Symbol {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         fetchId.writeTo(out);
+    }
+
+    @Override
+    public long ramBytesUsed() {
+        return fetchId.ramBytesUsed()
+            + RamUsageEstimator.sizeOf(relationName.schema())
+            + RamUsageEstimator.sizeOf(relationName.name());
     }
 }

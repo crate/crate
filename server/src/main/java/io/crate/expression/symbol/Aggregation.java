@@ -29,6 +29,7 @@ import java.util.Objects;
 
 import javax.annotation.Nullable;
 
+import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -39,6 +40,8 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
 public class Aggregation implements Symbol {
+
+    private static final long SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(Aggregation.class);
 
     private final Signature signature;
     private final DataType<?> boundSignatureReturnType;
@@ -183,5 +186,15 @@ public class Aggregation implements Symbol {
         }
         sb.append(")");
         return sb.toString();
+    }
+
+    @Override
+    public long ramBytesUsed() {
+        return SHALLOW_SIZE
+            + signature.ramBytesUsed()
+            + boundSignatureReturnType.ramBytesUsed()
+            + inputs.stream().mapToLong(Symbol::ramBytesUsed).sum()
+            + valueType.ramBytesUsed()
+            + filter.ramBytesUsed();
     }
 }

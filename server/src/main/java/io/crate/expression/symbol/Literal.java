@@ -27,6 +27,8 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
+
+import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.joda.time.Period;
@@ -44,6 +46,8 @@ import java.util.Objects;
 
 
 public class Literal<T> implements Symbol, Input<T>, Comparable<Literal<T>> {
+
+    private static final long SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(Literal.class);
 
     private final T value;
     private final DataType<T> type;
@@ -149,6 +153,11 @@ public class Literal<T> implements Symbol, Input<T>, Comparable<Literal<T>> {
     @Override
     public <C, R> R accept(SymbolVisitor<C, R> visitor, C context) {
         return visitor.visitLiteral(this, context);
+    }
+
+    @Override
+    public long ramBytesUsed() {
+        return SHALLOW_SIZE + type.ramBytesUsed() + type.valueBytes(value);
     }
 
     @Override

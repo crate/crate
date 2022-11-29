@@ -31,6 +31,8 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
+import org.apache.lucene.util.Accountable;
+import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
@@ -44,7 +46,9 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.TypeSignature;
 
-public final class Signature implements Writeable {
+public final class Signature implements Writeable, Accountable {
+
+    private static final long SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(Signature.class);
 
     /**
      * See {@link #aggregate(FunctionName, TypeSignature...)}
@@ -318,6 +322,14 @@ public final class Signature implements Writeable {
         int enumElements = in.readVInt();
         features = Collections.unmodifiableSet(EnumSets.unpackFromInt(enumElements, Scalar.Feature.class));
         bindingInfo = null;
+    }
+
+    @Override
+    public long ramBytesUsed() {
+        return SHALLOW_SIZE
+            + name.ramBytesUsed()
+            + argumentTypes.stream().mapToLong(TypeSignature::ramBytesUsed).sum()
+            + returnType.ramBytesUsed();
     }
 
     public Signature withTypeVariableConstraints(TypeVariableConstraint... typeVariableConstraints) {

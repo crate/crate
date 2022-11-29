@@ -34,6 +34,8 @@ import java.util.regex.Pattern;
 
 import javax.annotation.Nullable;
 
+import org.apache.lucene.util.Accountable;
+import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -44,8 +46,9 @@ import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.sql.Identifiers;
 import io.crate.sql.tree.QualifiedName;
 
-public class ColumnIdent implements Comparable<ColumnIdent> {
+public class ColumnIdent implements Comparable<ColumnIdent>, Accountable {
 
+    private static final long SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(ColumnIdent.class);
     private static final Pattern UNDERSCORE_PATTERN = Pattern.compile("^_([a-z][_a-z]*)*[a-z]$");
     private static final Pattern SUBSCRIPT_PATTERN = Pattern.compile("^\\w+(\\[[^\\]]+\\])+");
 
@@ -433,5 +436,12 @@ public class ColumnIdent implements Comparable<ColumnIdent> {
         } else {
             return new ColumnIdent(name, Lists2.concat(path, childName));
         }
+    }
+
+    @Override
+    public long ramBytesUsed() {
+        return SHALLOW_SIZE
+            + RamUsageEstimator.sizeOf(name)
+            + path.stream().mapToLong(RamUsageEstimator::sizeOf).sum();
     }
 }
