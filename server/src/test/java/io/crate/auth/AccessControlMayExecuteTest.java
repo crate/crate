@@ -700,4 +700,10 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
         analyze("ANALYZE", user);
         assertAskedForCluster(Privilege.Type.AL);
     }
+
+    @Test
+    public void test_declare_cursor_for_non_super_users() {
+        analyze("DECLARE this_cursor NO SCROLL CURSOR FOR SELECT * FROM sys.summits;", user);
+        assertAskedForTable(Privilege.Type.DQL, "sys.summits");
+    }
 }

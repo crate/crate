@@ -46,6 +46,7 @@ import io.crate.analyze.AnalyzedCreateTable;
 import io.crate.analyze.AnalyzedCreateTableAs;
 import io.crate.analyze.AnalyzedCreateUser;
 import io.crate.analyze.AnalyzedDeallocate;
+import io.crate.analyze.AnalyzedDeclare;
 import io.crate.analyze.AnalyzedDeleteStatement;
 import io.crate.analyze.AnalyzedDiscard;
 import io.crate.analyze.AnalyzedDropFunction;
@@ -261,6 +262,12 @@ public final class AccessControlImpl implements AccessControl {
         @Override
         protected Void visitAnalyzedStatement(AnalyzedStatement analyzedStatement, User user) {
             throwRequiresSuperUserPermission(user.name());
+            return null;
+        }
+
+        @Override
+        public Void visitDeclare(AnalyzedDeclare declare, User user) {
+            declare.query().accept(this, user);
             return null;
         }
 
