@@ -104,6 +104,10 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Fixed privileges for :ref:`DECLARE <sql-declare>` for cursors to make it
+  accessible for non-super-users. All users can declare cursors as long as they
+  have the required permissions for the query used within ``DECLARE``.
+
 - Added dynamic bulk sizing for update by query or delete by query operations to
   reduce memory pressure and fix out of memory errors when running update
   statements with large assignment expressions.

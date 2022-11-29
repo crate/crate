@@ -34,6 +34,7 @@ import io.crate.analyze.AnalyzedAlterTableRename;
 import io.crate.analyze.AnalyzedAlterUser;
 import io.crate.analyze.AnalyzedAnalyze;
 import io.crate.analyze.AnalyzedBegin;
+import io.crate.analyze.AnalyzedClose;
 import io.crate.analyze.AnalyzedCommit;
 import io.crate.analyze.AnalyzedCopyFrom;
 import io.crate.analyze.AnalyzedCopyTo;
@@ -46,6 +47,7 @@ import io.crate.analyze.AnalyzedCreateTable;
 import io.crate.analyze.AnalyzedCreateTableAs;
 import io.crate.analyze.AnalyzedCreateUser;
 import io.crate.analyze.AnalyzedDeallocate;
+import io.crate.analyze.AnalyzedDeclare;
 import io.crate.analyze.AnalyzedDeleteStatement;
 import io.crate.analyze.AnalyzedDiscard;
 import io.crate.analyze.AnalyzedDropFunction;
@@ -54,6 +56,7 @@ import io.crate.analyze.AnalyzedDropSnapshot;
 import io.crate.analyze.AnalyzedDropTable;
 import io.crate.analyze.AnalyzedDropUser;
 import io.crate.analyze.AnalyzedDropView;
+import io.crate.analyze.AnalyzedFetch;
 import io.crate.analyze.AnalyzedGCDanglingArtifacts;
 import io.crate.analyze.AnalyzedInsertStatement;
 import io.crate.analyze.AnalyzedKill;
@@ -261,6 +264,25 @@ public final class AccessControlImpl implements AccessControl {
         @Override
         protected Void visitAnalyzedStatement(AnalyzedStatement analyzedStatement, User user) {
             throwRequiresSuperUserPermission(user.name());
+            return null;
+        }
+
+        @Override
+        public Void visitDeclare(AnalyzedDeclare declare, User user) {
+            declare.query().accept(this, user);
+            return null;
+        }
+
+        @Override
+        public Void visitFetch(AnalyzedFetch fetch, User user) {
+            // We always allow to fetch. The privileges are checked through `Declare` when the user creates the cursor.
+            return null;
+        }
+
+        @Override
+        public Void visitClose(AnalyzedClose close, User user) {
+            // We always allow to close a cursor. The privileges are checked through `Declare` when the user creates
+            // the cursor.
             return null;
         }
 
