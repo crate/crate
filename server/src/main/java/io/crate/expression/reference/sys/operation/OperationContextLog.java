@@ -24,9 +24,13 @@ package io.crate.expression.reference.sys.operation;
 import io.crate.expression.reference.sys.job.ContextLog;
 
 import javax.annotation.Nullable;
+
+import org.apache.lucene.util.Accountable;
+import org.apache.lucene.util.RamUsageEstimator;
+
 import java.util.UUID;
 
-public class OperationContextLog implements ContextLog {
+public class OperationContextLog implements ContextLog, Accountable {
 
     @Nullable
     private final String errorMessage;
@@ -76,6 +80,21 @@ public class OperationContextLog implements ContextLog {
     @Nullable
     public String errorMessage() {
         return errorMessage;
+    }
+
+    @Override
+    public long ramBytesUsed() {
+        long size = 0L;
+
+        // OperationContextLog
+        size += 32L; // 24 bytes (ref+headers) + 8 bytes (ended)
+        size += errorMessage == null ? 0 : errorMessage.length();  // error message
+
+        // OperationContext
+        size += 60L; // 24 bytes (headers) + 4 bytes (id) + 16 bytes (uuid) + 8 bytes (started) + 8 bytes (usedBytes)
+        size += name.length();
+
+        return RamUsageEstimator.alignObjectSize(size);
     }
 
     @Override

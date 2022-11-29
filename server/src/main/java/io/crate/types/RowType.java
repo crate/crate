@@ -24,6 +24,8 @@ package io.crate.types;
 import io.crate.Streamer;
 import io.crate.data.Row;
 import io.crate.data.RowN;
+
+import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -187,5 +189,20 @@ public final class RowType extends DataType<Row> implements Streamer<Row> {
     @Override
     public List<DataType<?>> getTypeParameters() {
         return fieldTypes;
+    }
+
+    @Override
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public long valueBytes(Row value) {
+        if (value == null) {
+            return RamUsageEstimator.NUM_BYTES_OBJECT_HEADER;
+        }
+        long size = 0L;
+        for (int i = 0; i < value.numColumns(); i++) {
+            Object object = value.get(i);
+            DataType dataType = fieldTypes.get(i);
+            size += dataType.valueBytes(object);
+        }
+        return size;
     }
 }

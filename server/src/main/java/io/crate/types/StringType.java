@@ -39,6 +39,7 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TermRangeQuery;
 import org.apache.lucene.util.BytesRef;
+import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -345,5 +346,10 @@ public class StringType extends DataType<String> implements Streamer<String> {
         } else {
             return lengthLimit();
         }
+    }
+
+    @Override
+    public long valueBytes(String value) {
+        return RamUsageEstimator.sizeOf(value);
     }
 }

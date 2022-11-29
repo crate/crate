@@ -26,7 +26,6 @@ import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 import static io.crate.types.TypeSignature.parseTypeSignature;
 import static io.crate.window.NthValueFunctions.LAST_VALUE_NAME;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
@@ -69,7 +68,7 @@ import io.crate.types.DataTypes;
 public class RowsBatchIteratorBenchmark {
 
     private final RowCellsAccountingWithEstimators rowAccounting = new RowCellsAccountingWithEstimators(
-        Collections.singleton(DataTypes.INTEGER), RamAccounting.NO_ACCOUNTING, 0);
+        List.of(DataTypes.INTEGER), RamAccounting.NO_ACCOUNTING, 0);
 
     private List<Row> rows;
 

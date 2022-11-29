@@ -93,11 +93,11 @@ public class CollectSetAggregationTest extends AggregationTestCase {
         AggregationFunction aggregationFunction = impl.optimizeForExecutionAsWindowFunction();
 
         Object state = aggregationFunction.newState(RAM_ACCOUNTING, Version.CURRENT, Version.CURRENT, memoryManager);
-        state = aggregationFunction.iterate(RAM_ACCOUNTING, memoryManager, state, Literal.of(10));
-        state = aggregationFunction.iterate(RAM_ACCOUNTING, memoryManager, state, Literal.of(10));
+        state = aggregationFunction.iterate(RAM_ACCOUNTING, memoryManager, state, Literal.of(10L));
+        state = aggregationFunction.iterate(RAM_ACCOUNTING, memoryManager, state, Literal.of(10L));
 
-        aggregationFunction.removeFromAggregatedState(RAM_ACCOUNTING, state, new Input[] { Literal.of(10) });
-        aggregationFunction.removeFromAggregatedState(RAM_ACCOUNTING, state, new Input[] { Literal.of(10) });
+        aggregationFunction.removeFromAggregatedState(RAM_ACCOUNTING, state, new Input[] { Literal.of(10L) });
+        aggregationFunction.removeFromAggregatedState(RAM_ACCOUNTING, state, new Input[] { Literal.of(10L) });
 
         Object values = aggregationFunction.terminatePartial(RAM_ACCOUNTING, state);
         assertThat((List<Object>) values, Matchers.empty());

@@ -135,7 +135,7 @@ public class SortingLimitAndOffsetProjectorTest extends ESTestCase {
         );
         RowCellsAccountingWithEstimators rowAccounting =
             new RowCellsAccountingWithEstimators(
-                List.of(DataTypes.LONG, DataTypes.BOOLEAN),
+                List.of(DataTypes.INTEGER, DataTypes.BOOLEAN),
                 ConcurrentRamAccounting.forCircuitBreaker("testContext", circuitBreaker),
                 0);
 

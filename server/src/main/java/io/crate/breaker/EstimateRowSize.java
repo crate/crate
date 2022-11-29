@@ -21,8 +21,7 @@
 
 package io.crate.breaker;
 
-import java.util.ArrayList;
-import java.util.Collection;
+import java.util.List;
 import java.util.Locale;
 import java.util.function.ToLongFunction;
 
@@ -31,22 +30,22 @@ import io.crate.types.DataType;
 
 public final class EstimateRowSize implements ToLongFunction<Row> {
 
-    private final ArrayList<SizeEstimator<Object>> estimators;
+    @SuppressWarnings("rawtypes")
+    private final List<? extends DataType> columnTypes;
 
-    public EstimateRowSize(Collection<? extends DataType> columnTypes) {
-        this.estimators = new ArrayList<>(columnTypes.size());
-        for (DataType<?> columnType : columnTypes) {
-            estimators.add(SizeEstimatorFactory.create(columnType));
-        }
+    @SuppressWarnings("rawtypes")
+    public EstimateRowSize(List<? extends DataType> columnTypes) {
+        this.columnTypes = columnTypes;
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public long applyAsLong(Row row) {
-        assert row.numColumns() == estimators.size()
-            : String.format(Locale.ENGLISH, "row.numColumns=%d estimators.size=%d - the number must match. ", row.numColumns(), estimators.size());
+        assert row.numColumns() == columnTypes.size()
+            : String.format(Locale.ENGLISH, "row.numColumns=%d estimators.size=%d - the number must match. ", row.numColumns(), columnTypes.size());
         long size = 0;
         for (int i = 0; i < row.numColumns(); i++) {
-            size += estimators.get(i).estimateSize(row.get(i));
+            size += columnTypes.get(i).valueBytes(row.get(i));
         }
         return size;
     }
