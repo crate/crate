@@ -171,6 +171,11 @@ public class BooleanType extends DataType<Boolean> implements Streamer<Boolean>,
     }
 
     @Override
+    public long valueBytes(Boolean value) {
+        return 8;
+    }
+
+    @Override
     public StorageSupport<Boolean> storageSupport() {
         return STORAGE;
     }

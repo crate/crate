@@ -34,7 +34,7 @@ import static io.crate.types.TimeTZParser.exceptionForInvalidLiteral;
 public final class TimeTZType extends DataType<TimeTZ> implements FixedWidthType, Streamer<TimeTZ> {
 
     public static final int ID = 20;
-    public static final int TYPE_LEN = 12;
+    public static final int TYPE_SIZE = 12;
     public static final String NAME = "time with time zone";
     public static final TimeTZType INSTANCE = new TimeTZType();
 
@@ -83,7 +83,7 @@ public final class TimeTZType extends DataType<TimeTZ> implements FixedWidthType
 
     @Override
     public int fixedSize() {
-        return TYPE_LEN;
+        return TYPE_SIZE;
     }
 
     @Override
@@ -122,5 +122,10 @@ public final class TimeTZType extends DataType<TimeTZ> implements FixedWidthType
             Locale.ENGLISH,
             "%s cannot be used in insert statements",
             TimeTZType.class.getSimpleName()));
+    }
+
+    @Override
+    public long valueBytes(TimeTZ value) {
+        return TYPE_SIZE;
     }
 }

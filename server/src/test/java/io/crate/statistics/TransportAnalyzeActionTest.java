@@ -30,7 +30,6 @@ import java.util.List;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
-import io.crate.breaker.SizeEstimatorFactory;
 import io.crate.data.Row1;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
@@ -38,6 +37,7 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.SimpleReference;
+import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 
 
@@ -48,11 +48,12 @@ public class TransportAnalyzeActionTest extends ESTestCase {
         var rows = new ArrayList<String>();
         rows.add(null);
 
+        ArrayType<String> type = DataTypes.STRING_ARRAY;
         var samples = new Samples(
             List.of(new Row1(rows), new Row1(rows)),
-            List.of(DataTypes.STRING_ARRAY.streamer()),
+            List.of(type.streamer()),
             2,
-            SizeEstimatorFactory.create(DataTypes.STRING_ARRAY).estimateSize(rows)
+            type.valueBytes(rows)
         );
         var references = List.<Reference>of(
             new SimpleReference(

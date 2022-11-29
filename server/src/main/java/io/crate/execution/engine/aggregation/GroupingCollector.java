@@ -21,9 +21,7 @@
 
 package io.crate.execution.engine.aggregation;
 
-import io.crate.breaker.MultiSizeEstimator;
 import io.crate.breaker.RamAccounting;
-import io.crate.breaker.SizeEstimatorFactory;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.RowN;
@@ -93,11 +91,7 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
             minNodeVersion,
             (key, cells) -> cells[0] = key,
             1,
-            GroupByMaps.accountForNewEntry(
-                ramAccounting,
-                SizeEstimatorFactory.create(keyType),
-                keyType
-            ),
+            GroupByMaps.accountForNewEntry(ramAccounting, keyType),
             row -> keyInput.value(),
             indexVersionCreated,
             GroupByMaps.mapForType(keyType)
@@ -126,11 +120,7 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
             minNodeVersion,
             GroupingCollector::applyKeysToCells,
             keyInputs.size(),
-            GroupByMaps.accountForNewEntry(
-                ramAccountingContext,
-                new MultiSizeEstimator(keyTypes),
-                null
-            ),
+            GroupByMaps.accountForNewEntry(ramAccountingContext, keyTypes),
             row -> evalKeyInputs(keyInputs),
             indexVersionCreated,
             HashMap::new

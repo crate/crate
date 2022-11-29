@@ -45,7 +45,7 @@ import java.util.UUID;
  */
 public class MergePhase extends AbstractProjectionsPhase implements UpstreamPhase {
 
-    private final Collection<? extends DataType<?>> inputTypes;
+    private final List<? extends DataType<?>> inputTypes;
     private final int numUpstreams;
     /** The number of different inputs, e.g. Union has inputs from two Collect phases */
     private final int numInputs;
@@ -79,7 +79,7 @@ public class MergePhase extends AbstractProjectionsPhase implements UpstreamPhas
                       int numUpstreams,
                       int numInputs,
                       Collection<String> executionNodes,
-                      Collection<? extends DataType<?>> inputTypes,
+                      List<? extends DataType<?>> inputTypes,
                       List<Projection> projections,
                       DistributionInfo distributionInfo,
                       @Nullable PositionalOrderBy positionalOrderBy) {
@@ -129,7 +129,7 @@ public class MergePhase extends AbstractProjectionsPhase implements UpstreamPhas
         return numInputs;
     }
 
-    public Collection<? extends DataType<?>> inputTypes() {
+    public List<? extends DataType<?>> inputTypes() {
         return inputTypes;
     }
 

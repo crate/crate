@@ -22,8 +22,6 @@
 package io.crate.execution.engine.aggregation.impl;
 
 import io.crate.breaker.RamAccounting;
-import io.crate.breaker.SizeEstimator;
-import io.crate.breaker.SizeEstimatorFactory;
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.memory.MemoryManager;
@@ -69,12 +67,11 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
     private final Signature signature;
     private final Signature boundSignature;
     private final DataType<?> partialReturnType;
-    private final SizeEstimator<Object> innerTypeEstimator;
+    private final DataType<Object> elementType;
 
+    @SuppressWarnings("unchecked")
     private CollectSetAggregation(Signature signature, Signature boundSignature) {
-        this.innerTypeEstimator = SizeEstimatorFactory.create(
-            ((ArrayType<?>) boundSignature.getReturnType().createType()).innerType()
-        );
+        this.elementType = (DataType<Object>) ((ArrayType<?>) boundSignature.getReturnType().createType()).innerType();
         this.signature = signature;
         this.boundSignature = boundSignature;
         this.partialReturnType = UncheckedObjectType.INSTANCE;
@@ -107,7 +104,7 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
         if (state.put(value, PRESENT) == null) {
             ramAccounting.addBytes(
                 // values size + 32 bytes for entry, 4 bytes for increased capacity
-                RamUsageEstimator.alignObjectSize(innerTypeEstimator.estimateSize(value) + 36L)
+                RamUsageEstimator.alignObjectSize(elementType.valueBytes(value) + 36L)
             );
         }
         return state;
@@ -136,7 +133,7 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
             if (state1.put(newValue, PRESENT) == null) {
                 ramAccounting.addBytes(
                     // value size + 32 bytes for entry + 4 bytes for increased capacity
-                    RamUsageEstimator.alignObjectSize(innerTypeEstimator.estimateSize(newValue) + 36L)
+                    RamUsageEstimator.alignObjectSize(elementType.valueBytes(newValue) + 36L)
                 );
             }
         }
@@ -167,16 +164,14 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
      */
     private static class RemovableCumulativeCollectSet extends AggregationFunction<Map<Object, Long>, List<Object>> {
 
-        private final SizeEstimator<Object> innerTypeEstimator;
-
         private final Signature signature;
         private final Signature boundSignature;
         private final DataType<?> partialType;
+        private final DataType<Object> elementType;
 
+        @SuppressWarnings("unchecked")
         RemovableCumulativeCollectSet(Signature signature, Signature boundSignature) {
-            this.innerTypeEstimator = SizeEstimatorFactory.create(
-                ((ArrayType<?>) boundSignature.getReturnType().createType()).innerType()
-            );
+            this.elementType = (DataType<Object>) ((ArrayType<?>) boundSignature.getReturnType().createType()).innerType();
             this.signature = signature;
             this.boundSignature = boundSignature;
             this.partialType = UncheckedObjectType.INSTANCE;
@@ -200,7 +195,7 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
             if (value == null) {
                 return state;
             }
-            upsertOccurrenceForValue(state, value, 1, ramAccounting, innerTypeEstimator);
+            upsertOccurrenceForValue(state, value, 1, ramAccounting, elementType);
             return state;
         }
 
@@ -208,13 +203,13 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
                                                      final Object value,
                                                      final long occurrenceIncrement,
                                                      final RamAccounting ramAccountingContext,
-                                                     final SizeEstimator<Object> innerTypeEstimator) {
+                                                     final DataType<Object> elementType) {
             state.compute(value, (k, v) -> {
                 if (v == null) {
                     ramAccountingContext.addBytes(
                         // values size + 32 bytes for entry, 4 bytes for increased capacity, 8 bytes for the new array
                         // instance and 4 for the occurrence count we store
-                        RamUsageEstimator.alignObjectSize(innerTypeEstimator.estimateSize(value) + 48L)
+                        RamUsageEstimator.alignObjectSize(elementType.valueBytes(value) + 48L)
                     );
                     return occurrenceIncrement;
                 } else {
@@ -245,7 +240,7 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
                 ramAccounting.addBytes(
                     // we initially accounted for values size + 32 bytes for entry, 4 bytes for increased capacity
                     // and 12 bytes for the array container and the int value it stored
-                    - RamUsageEstimator.alignObjectSize(innerTypeEstimator.estimateSize(value) + 48L)
+                    - RamUsageEstimator.alignObjectSize(elementType.valueBytes(value) + 48L)
                 );
             } else {
                 previousAggState.put(value, numTimesValueSeen - 1);
@@ -263,7 +258,7 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
                     state2Entry.getKey(),
                     state2Entry.getValue(),
                     ramAccounting,
-                    innerTypeEstimator
+                    elementType
                 );
             }
             return state1;

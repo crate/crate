@@ -41,7 +41,7 @@ public class HashJoinPhase extends JoinPhase {
     private final List<Symbol> leftJoinConditionInputs;
     private final List<Symbol> rightJoinConditionInputs;
 
-    private final Collection<DataType<?>> leftOutputTypes;
+    private final List<DataType<?>> leftOutputTypes;
     private final long estimatedRowSizeForLeft;
     private final long numberOfRowsForLeft;
 
@@ -57,7 +57,7 @@ public class HashJoinPhase extends JoinPhase {
                          @Nullable Symbol joinCondition,
                          List<Symbol> leftJoinConditionInputs,
                          List<Symbol> rightJoinConditionInputs,
-                         Collection<DataType<?>> leftOutputTypes,
+                         List<DataType<?>> leftOutputTypes,
                          long estimatedRowSizeForLeft,
                          long numberOfRowsForLeft) {
         super(
@@ -121,7 +121,7 @@ public class HashJoinPhase extends JoinPhase {
         return rightJoinConditionInputs;
     }
 
-    public Collection<DataType<?>> leftOutputTypes() {
+    public List<DataType<?>> leftOutputTypes() {
         return leftOutputTypes;
     }
 

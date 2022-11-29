@@ -21,22 +21,21 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
+import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
+import static io.crate.types.TypeSignature.parseTypeSignature;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.common.breaker.CircuitBreakingException;
+
 import io.crate.breaker.RamAccounting;
-import io.crate.breaker.SizeEstimator;
-import io.crate.breaker.SizeEstimatorFactory;
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.breaker.CircuitBreakingException;
-
-import java.util.ArrayList;
-import java.util.List;
-
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-import static io.crate.types.TypeSignature.parseTypeSignature;
 
 public final class ArrayAgg extends AggregationFunction<List<Object>, List<Object>> {
 
@@ -55,12 +54,13 @@ public final class ArrayAgg extends AggregationFunction<List<Object>, List<Objec
 
     private final Signature signature;
     private final Signature boundSignature;
-    private final SizeEstimator<Object> sizeEstimator;
+    private final DataType<Object> elementType;
 
+    @SuppressWarnings("unchecked")
     public ArrayAgg(Signature signature, Signature boundSignature) {
         this.signature = signature;
         this.boundSignature = boundSignature;
-        this.sizeEstimator = SizeEstimatorFactory.create(boundSignature.getArgumentDataTypes().get(0));
+        this.elementType = (DataType<Object>) boundSignature.getArgumentDataTypes().get(0);
     }
 
     @Override
@@ -87,7 +87,7 @@ public final class ArrayAgg extends AggregationFunction<List<Object>, List<Objec
                                 List<Object> state,
                                 Input... args) throws CircuitBreakingException {
         var value = args[0].value();
-        ramAccounting.addBytes(sizeEstimator.estimateSize(value));
+        ramAccounting.addBytes(elementType.valueBytes(value));
         state.add(value);
         return state;
     }

@@ -208,6 +208,11 @@ public class GeometricMeanAggregation extends AggregationFunction<GeometricMeanA
         public void writeValueTo(StreamOutput out, GeometricMeanState v) throws IOException {
             v.writeTo(out);
         }
+
+        @Override
+        public long valueBytes(GeometricMeanState value) {
+            throw new UnsupportedOperationException("valueSize is not implemented for GeometricMeanStateType");
+        }
     }
 
     private final Signature signature;

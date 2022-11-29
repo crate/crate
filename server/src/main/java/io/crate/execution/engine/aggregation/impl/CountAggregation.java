@@ -225,6 +225,11 @@ public class CountAggregation extends AggregationFunction<MutableLong, Long> {
         public int fixedSize() {
             return DataTypes.LONG.fixedSize();
         }
+
+        @Override
+        public long valueBytes(MutableLong value) {
+            return DataTypes.LONG.fixedSize();
+        }
     }
 
     @Override
