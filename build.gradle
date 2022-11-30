@@ -19,8 +19,6 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-import com.github.jk1.license.filter.LicenseBundleNormalizer
-import com.github.jk1.license.render.InventoryMarkdownReportRenderer
 import io.crate.gradle.TestLogger
 
 buildscript {
@@ -30,10 +28,6 @@ buildscript {
     dependencies {
         classpath 'de.thetaphi:forbiddenapis:3.4'
     }
-}
-
-plugins {
-    id 'com.github.jk1.dependency-license-report' version '2.1'
 }
 
 def download(File downloadDir, String url, String name) {
@@ -277,34 +271,6 @@ idea {
             }
         }
     }
-}
-
-task generateLicenseNotes() {
-    // Generate report about the licenses of the dependencies.
-    // This task is an improved variant of the vanilla "generateLicenseReport".
-    //
-    // For invoking it, run::
-    //
-    //     ./gradlew generateLicenseNotes
-    //
-    // https://github.com/jk1/Gradle-License-Report
-
-    licenseReport {
-        outputDir = "${project.rootDir}/buildSrc/build/reports/licenses"
-        renderers = [new InventoryMarkdownReportRenderer("3RD-PARTY-NOTICES.md")]
-        filters = [new LicenseBundleNormalizer()]
-        excludeGroups = ["org.openjdk.jmh"]
-    }
-
-    task createReport(type: Copy) {
-
-        dependsOn "generateLicenseReport"
-
-        from "${project.rootDir}/buildSrc/build/reports/licenses/3RD-PARTY-NOTICES.md"
-        into "${project.rootDir}"
-    }
-
-    dependsOn "createReport"
 }
 
 wrapper {
