@@ -131,6 +131,11 @@ public class StandardDeviationAggregation extends AggregationFunction<StandardDe
         public void writeValueTo(StreamOutput out, StandardDeviation v) throws IOException {
             v.writeTo(out);
         }
+
+        @Override
+        public long valueBytes(StandardDeviation value) {
+            return fixedSize();
+        }
     }
 
     private final Signature signature;

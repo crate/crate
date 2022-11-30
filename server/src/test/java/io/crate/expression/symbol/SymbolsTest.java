@@ -21,10 +21,7 @@
 
 package io.crate.expression.symbol;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 
@@ -32,7 +29,10 @@ import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
 
-public class SymbolsTest {
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
+
+public class SymbolsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testNullableSerializationOfNull() throws IOException {
@@ -42,7 +42,7 @@ public class SymbolsTest {
         StreamInput input = output.bytes().streamInput();
         Symbol symbol = Symbols.nullableFromStream(input);
 
-        assertThat(symbol, is(nullValue()));
+        assertThat(symbol).isNull();
     }
 
     @Test
@@ -54,8 +54,17 @@ public class SymbolsTest {
         StreamInput inputStream = output.bytes().streamInput();
         Symbol deserialisedSymbol = Symbols.nullableFromStream(inputStream);
 
-        assertThat(inputSymbol, is(equalTo(deserialisedSymbol)));
-        assertThat(inputSymbol.hashCode(), is(deserialisedSymbol.hashCode()));
+        assertThat(inputSymbol).isEqualTo(deserialisedSymbol);
+        assertThat(inputSymbol.hashCode()).isEqualTo(deserialisedSymbol.hashCode());
     }
 
+
+    @Test
+    public void test_symbols_are_accountable() throws Exception {
+        var e = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (x int)")
+            .build();
+        Symbol symbol = e.asSymbol("x + 10 > 100");
+        assertThat(symbol.ramBytesUsed()).isEqualTo(920L);
+    }
 }

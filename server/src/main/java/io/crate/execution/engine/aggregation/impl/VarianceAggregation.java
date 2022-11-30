@@ -131,6 +131,11 @@ public class VarianceAggregation extends AggregationFunction<Variance, Double> {
         public int fixedSize() {
             return 56;
         }
+
+        @Override
+        public long valueBytes(Variance value) {
+            return fixedSize();
+        }
     }
 
     private final Signature signature;

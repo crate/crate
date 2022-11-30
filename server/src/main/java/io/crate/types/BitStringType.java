@@ -210,6 +210,11 @@ public final class BitStringType extends DataType<BitString> implements Streamer
     }
 
     @Override
+    public long valueBytes(BitString value) {
+        return (long) Math.floor(length / 8.0);
+    }
+
+    @Override
     public int hashCode() {
         final int prime = 31;
         int result = super.hashCode();

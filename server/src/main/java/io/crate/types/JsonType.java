@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Map;
 
+import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -95,5 +96,10 @@ public final class JsonType extends DataType<String> implements Streamer<String>
             }
         }
         return (String) value;
+    }
+
+    @Override
+    public long valueBytes(String value) {
+        return RamUsageEstimator.sizeOf(value);
     }
 }

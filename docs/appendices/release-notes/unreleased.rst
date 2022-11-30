@@ -86,6 +86,9 @@ Changes
   <sql-copy-from-skip>` for :ref:`COPY FROM <sql-copy-from>` which allows
   skipping rows from the beginning while copying data.
 
+- Updated to Admin UI 1.24.0, which added Italian translations, and updated some
+  dependency packages across the board.
+
 Fixes
 =====
 

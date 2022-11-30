@@ -35,6 +35,7 @@ import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
+import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -61,6 +62,8 @@ import io.crate.sql.tree.Expression;
  * A type which contains a collection of elements of another type.
  */
 public class ArrayType<T> extends DataType<List<T>> {
+
+    private static final long SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(ArrayType.class);
 
     public static final String NAME = "array";
     public static final int ID = 100;
@@ -335,8 +338,9 @@ public class ArrayType<T> extends DataType<List<T>> {
             }
             size--;
             ArrayList<T> values = new ArrayList<>(size);
+            Streamer<T> streamer = innerType.streamer();
             for (int i = 0; i < size; i++) {
-                values.add(innerType.streamer().readValueFrom(in));
+                values.add(streamer.readValueFrom(in));
             }
             return values;
         }
@@ -349,8 +353,9 @@ public class ArrayType<T> extends DataType<List<T>> {
                 return;
             }
             out.writeVInt(values.size() + 1);
+            Streamer<T> streamer = innerType.streamer();
             for (T value : values) {
-                innerType.streamer().writeValueTo(out, value);
+                streamer.writeValueTo(out, value);
             }
         }
     }
@@ -364,5 +369,25 @@ public class ArrayType<T> extends DataType<List<T>> {
     @Override
     public StorageSupport storageSupport() {
         return innerType.storageSupport();
+    }
+
+    @Override
+    public long valueBytes(List<T> values) {
+        if (values == null) {
+            return RamUsageEstimator.NUM_BYTES_OBJECT_HEADER;
+        }
+        if (innerType instanceof FixedWidthType fixedWidthType) {
+            return fixedWidthType.fixedSize() * values.size();
+        }
+        long bytes = RamUsageEstimator.NUM_BYTES_OBJECT_HEADER;
+        for (var value : values) {
+            bytes += innerType.valueBytes(value);
+        }
+        return bytes;
+    }
+
+    @Override
+    public long ramBytesUsed() {
+        return SHALLOW_SIZE + innerType.ramBytesUsed();
     }
 }

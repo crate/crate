@@ -146,4 +146,9 @@ public class IntervalType extends DataType<Period> implements FixedWidthType, St
     public int fixedSize() {
         return 32;
     }
+
+    @Override
+    public long valueBytes(Period value) {
+        return 32;
+    }
 }

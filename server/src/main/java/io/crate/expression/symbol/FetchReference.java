@@ -85,4 +85,9 @@ public class FetchReference implements Symbol {
             + ref.toString(style)
             + ')';
     }
+
+    @Override
+    public long ramBytesUsed() {
+        return fetchId.ramBytesUsed() + ref.ramBytesUsed();
+    }
 }

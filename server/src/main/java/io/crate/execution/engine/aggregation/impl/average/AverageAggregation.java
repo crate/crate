@@ -212,6 +212,11 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
         public int fixedSize() {
             return AVERAGE_STATE_SIZE;
         }
+
+        @Override
+        public long valueBytes(AverageState value) {
+            return fixedSize();
+        }
     }
 
     private final Signature signature;

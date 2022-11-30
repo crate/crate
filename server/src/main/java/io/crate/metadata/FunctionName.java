@@ -28,11 +28,14 @@ import javax.annotation.Nullable;
 
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
+
+import org.apache.lucene.util.Accountable;
+import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 
-public final class FunctionName implements Writeable {
+public final class FunctionName implements Writeable, Accountable {
 
     @Nullable
     private final String schema;
@@ -50,6 +53,12 @@ public final class FunctionName implements Writeable {
     public FunctionName(StreamInput in) throws IOException {
         schema = in.readOptionalString();
         name = in.readString();
+    }
+
+    @Override
+    public long ramBytesUsed() {
+        return (schema == null ? 0 : RamUsageEstimator.sizeOf(schema))
+            + RamUsageEstimator.sizeOf(name);
     }
 
     @Nullable

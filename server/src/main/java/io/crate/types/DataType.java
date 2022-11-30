@@ -30,6 +30,7 @@ import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
+import org.apache.lucene.util.Accountable;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 
@@ -40,7 +41,7 @@ import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.ColumnType;
 import io.crate.sql.tree.Expression;
 
-public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable, Comparator<T> {
+public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable, Comparator<T>, Accountable {
 
     /**
      * Type precedence ids which help to decide when a type can be cast
@@ -233,5 +234,16 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
 
     public Integer characterMaximumLength() {
         return null;
+    }
+
+    /**
+     * Return the number of bytes used to represent the value
+     */
+    public abstract long valueBytes(@Nullable T value);
+
+    @Override
+    public long ramBytesUsed() {
+        // Most DataType's are singleton instances
+        return 0L;
     }
 }

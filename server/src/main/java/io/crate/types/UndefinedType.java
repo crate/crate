@@ -22,6 +22,8 @@
 package io.crate.types;
 
 import io.crate.Streamer;
+
+import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -83,5 +85,13 @@ public class UndefinedType extends DataType<Object> implements Streamer<Object> 
     @Override
     public void writeValueTo(StreamOutput out, Object v) throws IOException {
         out.writeGenericValue(v);
+    }
+
+    @Override
+    public long valueBytes(Object value) {
+        if (value == null) {
+            return RamUsageEstimator.NUM_BYTES_OBJECT_REF;
+        }
+        return RamUsageEstimator.sizeOfObject(value);
     }
 }

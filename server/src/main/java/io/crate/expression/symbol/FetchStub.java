@@ -84,4 +84,9 @@ public final class FetchStub implements Symbol {
         throw new UnsupportedEncodingException(
             "Cannot stream FetchStub. This is a planning symbol and not suitable for the execution layer");
     }
+
+    @Override
+    public long ramBytesUsed() {
+        return ref.ramBytesUsed() + fetchMarker.ramBytesUsed();
+    }
 }

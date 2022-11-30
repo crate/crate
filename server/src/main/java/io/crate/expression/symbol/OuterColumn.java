@@ -93,4 +93,9 @@ public final class OuterColumn implements Symbol {
     public String toString(Style style) {
         return symbol.toString(style);
     }
+
+    @Override
+    public long ramBytesUsed() {
+        return symbol.ramBytesUsed();
+    }
 }
