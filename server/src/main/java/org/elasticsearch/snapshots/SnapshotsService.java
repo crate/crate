@@ -500,20 +500,6 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
         assert assertNoDanglingSnapshots(event.state());
     }
 
-    /**
-     * Cleanup all snapshots found in the given cluster state that have no more work left:
-     * 1. Completed snapshots
-     * 2. Snapshots in state INIT that a previous master of an older version failed to start
-     * 3. Snapshots in any other state that have all their shard tasks completed
-     */
-    private void endCompletedSnapshots(ClusterState state) {
-        SnapshotsInProgress snapshotsInProgress = state.custom(SnapshotsInProgress.TYPE);
-        assert snapshotsInProgress != null;
-        snapshotsInProgress.entries().stream().filter(
-                entry -> entry.state().completed() || entry.state() == State.INIT || completed(entry.shards().values())
-        ).forEach(entry -> endSnapshot(entry, state.metadata(), null));
-    }
-
     private boolean assertConsistentWithClusterState(ClusterState state) {
         final SnapshotsInProgress snapshotsInProgress = state.custom(SnapshotsInProgress.TYPE, SnapshotsInProgress.EMPTY);
         if (snapshotsInProgress.entries().isEmpty() == false) {

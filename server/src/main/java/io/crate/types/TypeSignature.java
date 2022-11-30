@@ -22,6 +22,8 @@
 package io.crate.types;
 
 
+import org.apache.lucene.util.Accountable;
+import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
@@ -34,7 +36,7 @@ import java.util.Objects;
 
 import io.crate.signatures.TypeSignatureParser;
 
-public class TypeSignature implements Writeable {
+public class TypeSignature implements Writeable, Accountable {
 
     /**
      * Creates a type signature out of the given signature string.
@@ -91,6 +93,12 @@ public class TypeSignature implements Writeable {
         for (int i = 0; i < numParams; i++) {
             parameters.add(fromStream(in));
         }
+    }
+
+    @Override
+    public long ramBytesUsed() {
+        return RamUsageEstimator.sizeOf(baseTypeName)
+            + parameters.stream().mapToLong(TypeSignature::ramBytesUsed).sum();
     }
 
     public String getBaseTypeName() {

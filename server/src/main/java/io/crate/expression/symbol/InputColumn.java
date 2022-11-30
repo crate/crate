@@ -24,6 +24,8 @@ package io.crate.expression.symbol;
 import io.crate.expression.symbol.format.Style;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.IntegerType;
+
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -136,4 +138,8 @@ public class InputColumn implements Symbol, Comparable<InputColumn> {
         return index;
     }
 
+    @Override
+    public long ramBytesUsed() {
+        return IntegerType.INTEGER_SIZE + dataType.ramBytesUsed();
+    }
 }

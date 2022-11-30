@@ -25,6 +25,7 @@ import io.crate.expression.scalar.cast.CastMode;
 import io.crate.expression.symbol.format.Style;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.IntegerType;
 import io.crate.types.UndefinedType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -104,5 +105,10 @@ public class ParameterSymbol implements Symbol {
 
     public int index() {
         return index;
+    }
+
+    @Override
+    public long ramBytesUsed() {
+        return IntegerType.INTEGER_SIZE + internalType.ramBytesUsed();
     }
 }

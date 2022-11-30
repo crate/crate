@@ -355,4 +355,16 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
         }
         return RamUsageEstimator.sizeOfMap(value);
     }
+
+    @Override
+    public long ramBytesUsed() {
+        long bytes = RamUsageEstimator.NUM_BYTES_OBJECT_HEADER; // innerTypes field
+        for (var entry : innerTypes.entrySet()) {
+            String childName = entry.getKey();
+            DataType<?> childType = entry.getValue();
+            bytes += RamUsageEstimator.sizeOf(childName);
+            bytes += childType.ramBytesUsed();
+        }
+        return bytes;
+    }
 }
