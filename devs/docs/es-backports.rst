@@ -219,7 +219,7 @@ should be crossed out as well.
 - [x] 9450ea08b4d Log and track open/close of transport connections (#60297)
 - [ ] d39622e17ec Stop Serializing RepositoryData Twice when Writing (#60107) (#60269)
 - [ ] a55c869aab3 Properly document keepalive and other tcp options (#60216)
-- [ ] cb4c21fa7bd [DOCS] Fix typo in adapt auto expand replica comments (#60187) (#60239)
+- [x] cb4c21fa7bd [DOCS] Fix typo in adapt auto expand replica comments (#60187) (#60239)
 - [x] bf7e53a91e1 Remove node-level canAllocate override (#59389)
 - [x] ebb66778158 Formalize and Streamline Buffer Sizes used by Repositories (#59771) (#60051)
 - [ ] c06c9fb9666 Fix BwC Snapshot INIT Path (#60006)
