@@ -41,7 +41,6 @@ import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.io.Streams;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.ToXContentFragment;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -152,7 +151,7 @@ public class BlobStoreFormatIT extends AbstractSnapshotIntegTestCase {
     }
 
     protected BlobStore createTestBlobStore() throws IOException {
-        return new FsBlobStore(Settings.EMPTY, randomRepoPath());
+        return new FsBlobStore(randomIntBetween(1, 8) * 1024, createTempDir(), false);
     }
 
     protected void randomCorruption(BlobContainer blobContainer, String blobName) throws IOException {
