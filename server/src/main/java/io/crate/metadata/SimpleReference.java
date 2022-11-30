@@ -26,6 +26,7 @@ import java.util.Objects;
 
 import javax.annotation.Nullable;
 
+import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -40,6 +41,8 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
 public class SimpleReference implements Reference {
+
+    private static final long SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(SimpleReference.class);
 
     protected DataType<?> type;
 
@@ -266,5 +269,13 @@ public class SimpleReference implements Reference {
         if (hasDefaultExpression) {
             Symbols.toStream(defaultExpression, out);
         }
+    }
+
+    @Override
+    public long ramBytesUsed() {
+        return SHALLOW_SIZE
+            + type.ramBytesUsed()
+            + ident.ramBytesUsed()
+            + (defaultExpression == null ? 0 : defaultExpression.ramBytesUsed());
     }
 }

@@ -23,12 +23,16 @@ package io.crate.expression.symbol;
 
 import io.crate.expression.symbol.format.Style;
 import io.crate.types.DataType;
+
+import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
 public final class AliasSymbol implements Symbol {
+
+    private static final long SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(AliasSymbol.class);
 
     private final String alias;
     private final Symbol symbol;
@@ -80,6 +84,13 @@ public final class AliasSymbol implements Symbol {
     @Override
     public String toString(Style style) {
         return symbol.toString(style) + " AS " + alias;
+    }
+
+    @Override
+    public long ramBytesUsed() {
+        return SHALLOW_SIZE
+            + symbol.ramBytesUsed()
+            + RamUsageEstimator.sizeOf(alias);
     }
 
     @Override

@@ -30,6 +30,8 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
+import org.apache.lucene.util.Accountable;
+import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -44,9 +46,10 @@ import io.crate.sql.Identifiers;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.Table;
 
-public final class RelationName implements Writeable {
+public final class RelationName implements Writeable, Accountable {
 
     private static final Set<String> INVALID_NAME_CHARACTERS = Set.of(".");
+    private static final long SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(RelationName.class);
 
     @Nullable
     private final String schema;
@@ -225,5 +228,12 @@ public final class RelationName implements Writeable {
         int result = schema != null ? schema.hashCode() : 0;
         result = 31 * result + name.hashCode();
         return result;
+    }
+
+    @Override
+    public long ramBytesUsed() {
+        return SHALLOW_SIZE
+            + RamUsageEstimator.sizeOf(schema)
+            + RamUsageEstimator.sizeOf(name);
     }
 }
