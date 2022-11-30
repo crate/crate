@@ -221,7 +221,7 @@ should be crossed out as well.
 - [ ] a55c869aab3 Properly document keepalive and other tcp options (#60216)
 - [ ] cb4c21fa7bd [DOCS] Fix typo in adapt auto expand replica comments (#60187) (#60239)
 - [ ] bf7e53a91e1 Remove node-level canAllocate override (#59389)
-- [ ] ebb66778158 Formalize and Streamline Buffer Sizes used by Repositories (#59771) (#60051)
+- [x] ebb66778158 Formalize and Streamline Buffer Sizes used by Repositories (#59771) (#60051)
 - [ ] c06c9fb9666 Fix BwC Snapshot INIT Path (#60006)
 - [s] a0ad1a196b2 Wrap up building parametrized TypeParsers (#59977)
 - [s] 19fe3e511fc Deprecate camel case date format backport(#59555) (#59948)
