@@ -203,6 +203,7 @@ public final class UpdateAnalyzer {
 
         @Override
         protected Void visitSubscriptExpression(SubscriptExpression node, Boolean childOfSubscript) {
+            ensureNoArrayElementUpdate(node.base());
             node.index().accept(this, true);
             return super.visitSubscriptExpression(node, childOfSubscript);
         }
