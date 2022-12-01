@@ -83,12 +83,7 @@ public final class IndexGraveyard implements Metadata.Custom {
     }
 
     public IndexGraveyard(final StreamInput in) throws IOException {
-        final int queueSize = in.readVInt();
-        List<Tombstone> tombstones = new ArrayList<>(queueSize);
-        for (int i = 0; i < queueSize; i++) {
-            tombstones.add(new Tombstone(in));
-        }
-        this.tombstones = Collections.unmodifiableList(tombstones);
+        this.tombstones = Collections.unmodifiableList(in.readList(Tombstone::new));
     }
 
     @Override
@@ -155,10 +150,7 @@ public final class IndexGraveyard implements Metadata.Custom {
 
     @Override
     public void writeTo(final StreamOutput out) throws IOException {
-        out.writeVInt(tombstones.size());
-        for (Tombstone tombstone : tombstones) {
-            tombstone.writeTo(out);
-        }
+        out.writeList(tombstones);
     }
 
     @Override
