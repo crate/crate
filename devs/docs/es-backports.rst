@@ -214,7 +214,7 @@ should be crossed out as well.
 - [ ] a2c49a4f02d Reduce Heap Use during Shard Snapshot (#60370) (#60440)
 - [ ] 8429b4ace88 Fix Queued Snapshot Deletes After Finalization Failure (#60285) (#60379)
 - [ ] 1f6a3765e46 Fix NPE in SnapshotsInProgress Constructor (#60355)
-- [ ] 753fd4f6bc3 Cleanup and optimize More Serialization Spots (#59959) (#60331)
+- [x] 753fd4f6bc3 Cleanup and optimize More Serialization Spots (#59959) (#60331)
 - [s] c7bfb5de41b Add search `fields` parameter to support high-level field retrieval. (#60258)
 - [x] 9450ea08b4d Log and track open/close of transport connections (#60297)
 - [x] d39622e17ec Stop Serializing RepositoryData Twice when Writing (#60107) (#60269)
