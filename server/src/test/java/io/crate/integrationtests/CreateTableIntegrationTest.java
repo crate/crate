@@ -29,6 +29,7 @@ import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.startsWith;
 
 import java.util.concurrent.ExecutorService;
@@ -215,5 +216,59 @@ public class CreateTableIntegrationTest extends IntegTestCase {
 
         execute("select * from t");
         assertThat(response.cols()).isEqualTo(new String[] {"ta", "tb", "tc", "ti", "tm", "tn"});
+    }
+
+    @Test
+    public void test_system_schemas_are_case_insensitive() {
+        assertThatThrownBy(
+        () -> execute("""
+                    create table "Information_schema".t (a int);
+                    """)
+        ).hasMessageContaining("Cannot create relation in read-only schema: Information_schema");
+
+        assertThatThrownBy(
+            () -> execute("""
+                    create table "Pg_catalog".t (a int);
+                    """)
+        ).hasMessageContaining("Cannot create relation in read-only schema: Pg_catalog");
+
+        // doc.t == "Doc".t
+        execute("create table doc.t (a int)");
+        assertThatThrownBy(
+            () -> execute(
+                """
+                    create table "Doc".t (a int)
+                    """)
+        ).hasMessageContaining("Relation 't' already exists");
+    }
+
+    @Test
+    public void test_custom_schemas_are_case_sensitive() {
+        execute("""
+                    create table a.t (a int);
+                    """);
+        execute("""
+                    create table "A".t (b int);
+                    """);
+        execute("""
+                    select * from "a".t, "A".t
+                    """);
+        assertThat(response.cols()).isEqualTo(new String[]{"a", "b"});
+    }
+
+    @Test
+    public void test_case_sensitivity_with_similar_schema_names() {
+        execute("""
+                    create table "Aa".t (a int);
+                    """);
+        execute("""
+                    create table "aA".t (a int);
+                    """);
+        execute("""
+                    create table "AA".t (a int);
+                    """);
+        assertThatThrownBy(
+            () -> execute("select * from aa.t")
+        ).hasMessageContaining("ERROR: Schema 'aa' unknown. Maybe you meant one of: \"Aa\", \"aA\", \"AA\"");
     }
 }
