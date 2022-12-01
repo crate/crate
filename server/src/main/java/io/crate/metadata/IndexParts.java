@@ -141,7 +141,7 @@ public class IndexParts {
     public static String toIndexName(String schema, String table, @Nullable String partitionIdent) {
         StringBuilder stringBuilder = new StringBuilder();
         final boolean isPartitioned = partitionIdent != null;
-        if (!schema.equalsIgnoreCase(Schemas.DOC_SCHEMA_NAME)) {
+        if (!schema.equals(Schemas.DOC_SCHEMA_NAME)) {
             stringBuilder.append(schema).append(".");
         }
         if (isPartitioned) {

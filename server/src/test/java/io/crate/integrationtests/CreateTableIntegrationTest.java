@@ -219,27 +219,21 @@ public class CreateTableIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    public void test_system_schemas_are_case_insensitive() {
-        assertThatThrownBy(
-        () -> execute("""
+    public void test_system_schemas_are_case_sensitive() {
+        execute("""
                     create table "Information_schema".t (a int);
-                    """)
-        ).hasMessageContaining("Cannot create relation in read-only schema: Information_schema");
-
-        assertThatThrownBy(
-            () -> execute("""
-                    create table "Pg_catalog".t (a int);
-                    """)
-        ).hasMessageContaining("Cannot create relation in read-only schema: Pg_catalog");
-
-        // doc.t == "Doc".t
-        execute("create table doc.t (a int)");
-        assertThatThrownBy(
-            () -> execute(
-                """
-                    create table "Doc".t (a int)
-                    """)
-        ).hasMessageContaining("Relation 't' already exists");
+                    """);
+        execute("""
+                    create table "Pg_catalog".t (b int);
+                    """);
+        execute("create table doc.t (c int)");
+        execute("""
+                    create table "Doc".t (d int)
+                    """);
+        execute("""
+                    select * from "Information_schema".t, "Pg_catalog".t, "doc".t, "Doc".t
+                    """);
+        assertThat(response.cols()).isEqualTo(new String[]{"a", "b", "c", "d"});
     }
 
     @Test
@@ -269,6 +263,6 @@ public class CreateTableIntegrationTest extends IntegTestCase {
                     """);
         assertThatThrownBy(
             () -> execute("select * from aa.t")
-        ).hasMessageContaining("ERROR: Schema 'aa' unknown. Maybe you meant one of: \"Aa\", \"aA\", \"AA\"");
+        ).hasMessageContaining("Schema 'aa' unknown. Maybe you meant one of: \"Aa\", \"aA\", \"AA\"");
     }
 }

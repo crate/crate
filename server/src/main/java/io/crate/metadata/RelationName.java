@@ -77,7 +77,7 @@ public final class RelationName implements Writeable, Accountable {
             throw new IllegalArgumentException("Invalid tableName \"" + table.getName() + "\"");
         }
         if (tableNameParts.size() == 2) {
-            if (!tableNameParts.get(0).equalsIgnoreCase(BlobSchemaInfo.NAME)) {
+            if (!tableNameParts.get(0).equals(BlobSchemaInfo.NAME)) {
                 throw new IllegalArgumentException(
                     "The Schema \"" + tableNameParts.get(0) + "\" isn't valid in a [CREATE | ALTER] BLOB TABLE clause");
             }
@@ -150,9 +150,9 @@ public final class RelationName implements Writeable, Accountable {
             throw new IllegalStateException(
                 "indexNameOrAlias can only be generated from a RelationName that is fully qualified.");
         }
-        if (schema.equalsIgnoreCase(Schemas.DOC_SCHEMA_NAME)) {
+        if (schema.equals(Schemas.DOC_SCHEMA_NAME)) {
             return name;
-        } else if (schema.equalsIgnoreCase(BlobSchemaInfo.NAME)) {
+        } else if (schema.equals(BlobSchemaInfo.NAME)) {
             return BlobIndex.fullIndexName(name);
         }
         return fqn();
