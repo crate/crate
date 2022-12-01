@@ -217,7 +217,7 @@ should be crossed out as well.
 - [ ] 753fd4f6bc3 Cleanup and optimize More Serialization Spots (#59959) (#60331)
 - [s] c7bfb5de41b Add search `fields` parameter to support high-level field retrieval. (#60258)
 - [x] 9450ea08b4d Log and track open/close of transport connections (#60297)
-- [ ] d39622e17ec Stop Serializing RepositoryData Twice when Writing (#60107) (#60269)
+- [x] d39622e17ec Stop Serializing RepositoryData Twice when Writing (#60107) (#60269)
 - [x] a55c869aab3 Properly document keepalive and other tcp options (#60216)
 - [x] cb4c21fa7bd [DOCS] Fix typo in adapt auto expand replica comments (#60187) (#60239)
 - [x] bf7e53a91e1 Remove node-level canAllocate override (#59389)
