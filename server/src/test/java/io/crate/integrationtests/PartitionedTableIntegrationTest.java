@@ -2409,4 +2409,18 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute(selectCheckConstraintStmt);
         assertThat(response.rows()).isEmpty();
     }
+
+    /**
+     * This testcase tracks a bug: https://github.com/crate/crate/issues/13295
+     * In short, number_of_replicas has two names 1) 'number_of_replicas' and 2) 'index.number_of_replicas'
+     * One is for table parameter and the other is for index metadata. The bug was caused by the two being mixed up.
+     */
+    @Test
+    public void test_set_number_of_replicas_on_partitioned_table() {
+        execute("CREATE TABLE p_t (val int) PARTITIONED BY(val)");
+        execute("INSERT INTO p_t VALUES (1),(2)");
+        execute("ALTER TABLE p_t SET (\"number_of_replicas\" = '3')");
+        execute("select number_of_replicas from information_schema.table_partitions");
+        assertThat(printedTable(response.rows())).isEqualTo("3\n3\n");
+    }
 }
