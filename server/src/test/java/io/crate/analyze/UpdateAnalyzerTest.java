@@ -28,6 +28,7 @@ import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
 import static io.crate.testing.Asserts.toCondition;
 import static java.util.Collections.singletonList;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
@@ -379,6 +380,14 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Updating a single element of an array is not supported");
         analyze("update users set friends[1] = 2");
+    }
+
+    @Test
+    public void test_update_array_of_objects_by_elements() {
+        assertThatThrownBy(
+            () -> analyze("update users set friends[1]['val1']['val2'] = true"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Updating a single element of an array is not supported");
     }
 
     @Test
