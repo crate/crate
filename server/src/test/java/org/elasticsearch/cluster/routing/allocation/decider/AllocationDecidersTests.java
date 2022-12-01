@@ -81,11 +81,6 @@ public class AllocationDecidersTests extends ESTestCase {
             }
 
             @Override
-            public Decision canAllocate(RoutingNode node, RoutingAllocation allocation) {
-                return Decision.YES;
-            }
-
-            @Override
             public Decision shouldAutoExpandToNode(IndexMetadata indexMetadata, DiscoveryNode node, RoutingAllocation allocation) {
                 return Decision.YES;
             }
@@ -111,7 +106,6 @@ public class AllocationDecidersTests extends ESTestCase {
         verify(deciders.canAllocate(shardRouting, routingNode, allocation), matcher);
         verify(deciders.canAllocate(idx, routingNode, allocation), matcher);
         verify(deciders.canAllocate(shardRouting, allocation), matcher);
-        verify(deciders.canAllocate(routingNode, allocation), matcher);
         verify(deciders.canRebalance(shardRouting, allocation), matcher);
         verify(deciders.canRebalance(allocation), matcher);
         verify(deciders.canRemain(shardRouting, routingNode, allocation), matcher);
