@@ -104,6 +104,10 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Added dynamic bulk sizing for update by query or delete by query operations to
+  reduce memory pressure and fix out of memory errors when running update
+  statements with large assignment expressions.
+
 - Fixed inefficient join optimizations on hash and nested-loop joins when
   table statistics aren't available.
 

@@ -21,21 +21,21 @@
 
 package io.crate.execution.engine.indexing;
 
-import io.crate.breaker.RamAccounting;
-import io.crate.execution.dml.ShardRequest;
-
-import org.apache.lucene.util.Accountable;
-import org.elasticsearch.common.lease.Releasable;
-import org.elasticsearch.index.shard.ShardId;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
+import org.apache.lucene.util.Accountable;
+import org.elasticsearch.common.lease.Releasable;
+import org.elasticsearch.index.shard.ShardId;
+
+import io.crate.breaker.RamAccounting;
+import io.crate.execution.dml.ShardRequest;
+
 public final class ShardedRequests<TReq extends ShardRequest<TReq, TItem>, TItem extends ShardRequest.Item>
-    implements Accountable, Releasable {
+    implements Releasable, Accountable {
 
     final Map<String, List<ItemAndRoutingAndSourceInfo<TItem>>> itemsByMissingIndex = new HashMap<>();
     final Map<String, List<ReadFailureAndLineNumber>> itemsWithFailureBySourceUri = new HashMap<>();
@@ -60,14 +60,16 @@ public final class ShardedRequests<TReq extends ShardRequest<TReq, TItem>, TItem
     /**
      * @param itemSizeInBytes an estimate of how many bytes the item occupies in memory
      */
-    public void add(TItem item, long itemSizeInBytes, String indexName, String routing, RowSourceInfo rowSourceInfo) {
+    public void add(TItem item, String indexName, String routing, RowSourceInfo rowSourceInfo) {
+        long itemSizeInBytes = item.ramBytesUsed();
         ramAccounting.addBytes(itemSizeInBytes);
         usedMemoryEstimate += itemSizeInBytes;
         List<ItemAndRoutingAndSourceInfo<TItem>> items = itemsByMissingIndex.computeIfAbsent(indexName, k -> new ArrayList<>());
         items.add(new ItemAndRoutingAndSourceInfo<>(item, routing, rowSourceInfo));
     }
 
-    public void add(TItem item, long itemSizeInBytes, ShardLocation shardLocation, RowSourceInfo rowSourceInfo) {
+    public void add(TItem item, ShardLocation shardLocation, RowSourceInfo rowSourceInfo) {
+        long itemSizeInBytes = item.ramBytesUsed();
         ramAccounting.addBytes(itemSizeInBytes);
         usedMemoryEstimate += itemSizeInBytes;
         TReq req = itemsByShard.get(shardLocation);
@@ -80,6 +82,11 @@ public final class ShardedRequests<TReq extends ShardRequest<TReq, TItem>, TItem
         rowSourceInfos.add(rowSourceInfo);
     }
 
+    @Override
+    public long ramBytesUsed() {
+        return usedMemoryEstimate;
+    }
+
     void addFailedItem(String sourceUri, String readFailure, Long lineNumber) {
         List<ReadFailureAndLineNumber> itemsWithFailure = itemsWithFailureBySourceUri.computeIfAbsent(
             sourceUri, k -> new ArrayList<>());
@@ -89,11 +96,6 @@ public final class ShardedRequests<TReq extends ShardRequest<TReq, TItem>, TItem
     void addFailedUri(String sourceUri, String uriReadFailure) {
         assert sourceUrisWithFailure.get(sourceUri) == null : "A failure was already stored for this URI, should happen only once";
         sourceUrisWithFailure.put(sourceUri, uriReadFailure);
-    }
-
-    @Override
-    public long ramBytesUsed() {
-        return usedMemoryEstimate;
     }
 
     public Map<String, List<ItemAndRoutingAndSourceInfo<TItem>>> itemsByMissingIndex() {
@@ -138,5 +140,14 @@ public final class ShardedRequests<TReq extends ShardRequest<TReq, TItem>, TItem
     public void close() {
         ramAccounting.addBytes(-usedMemoryEstimate);
         usedMemoryEstimate = 0L;
+    }
+
+    @Override
+    public String toString() {
+        return "ShardedRequests{"
+            + "numShards=" + itemsByShard.size()
+            + ", bytesUsed=" + usedMemoryEstimate
+            + ", sizePerShard=" + usedMemoryEstimate / Math.max(1, itemsByShard.size())
+            + "}";
     }
 }

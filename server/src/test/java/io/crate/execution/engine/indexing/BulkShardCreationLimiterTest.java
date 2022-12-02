@@ -47,7 +47,7 @@ public class BulkShardCreationLimiterTest extends ESTestCase {
     );
 
     static {
-        SHARED_REQUESTS.add(new DummyRequestItem("1"), 10, "dummy", null, RowSourceInfo.EMPTY_INSTANCE);
+        SHARED_REQUESTS.add(new DummyRequestItem("1"), "dummy", null, RowSourceInfo.EMPTY_INSTANCE);
     }
 
     @Test
