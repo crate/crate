@@ -94,6 +94,11 @@ public class SessionSettings implements Writeable {
         return null;
     }
 
+    public String dateStyle() {
+        // Only available on coordinator.
+        return null;
+    }
+
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeString(userName);

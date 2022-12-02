@@ -73,6 +73,37 @@ public class SessionSettingRegistryTest {
         assertBooleanNonEmptySetting(sessionSettings::errorOnUnknownObjectKey, setting, true);
     }
 
+    @Test
+    public void test_search_path_session_setting() {
+        SessionSetting<?> setting = new SessionSettingRegistry(Set.of(new LoadedRules())).settings().get("search_path");
+        assertThat(setting.defaultValue(),is("pg_catalog, doc"));
+        setting.apply(sessionSettings, generateInput("a_schema"), eval);
+        assertThat(setting.getValue(sessionSettings),is("pg_catalog, a_schema"));
+        setting.apply(sessionSettings, generateInput("a_schema,  pg_catalog ,b_schema", " c_schema "), eval);
+        assertThat(setting.getValue(sessionSettings),is("a_schema, pg_catalog, b_schema, c_schema"));
+    }
+
+    @Test
+    public void test_date_style_session_setting() {
+        SessionSetting<?> setting = new SessionSettingRegistry(Set.of(new LoadedRules())).settings().get(SessionSettingRegistry.DATE_STYLE.name());
+        assertThat(setting.defaultValue(),is("ISO"));
+        setting.apply(sessionSettings, generateInput("iso"), eval);
+        assertThat(sessionSettings.dateStyle(), is("ISO"));
+        setting.apply(sessionSettings, generateInput("MDY"), eval);
+        assertThat(sessionSettings.dateStyle(), is("ISO"));
+        setting.apply(sessionSettings, generateInput("ISO, MDY"), eval);
+        assertThat(sessionSettings.dateStyle(), is("ISO"));
+        assertThrows(IllegalArgumentException.class,
+                     () -> setting.apply(sessionSettings, generateInput("ISO, YDM"), eval),
+                     "Invalid value for parameter \"datestyle\": \"YDM\". Valid values include: [\"ISO\"].");
+        assertThrows(IllegalArgumentException.class,
+                     () -> setting.apply(sessionSettings, generateInput("German,ISO"), eval),
+                     "Invalid value for parameter \"datestyle\": \"GERMAN\". Valid values include: [\"ISO\"].");
+        assertThrows(IllegalArgumentException.class,
+                     () -> setting.apply(sessionSettings, generateInput("SQL, MDY"), eval),
+                     "Invalid value for parameter \"datestyle\": \"SQL\". Valid values include: [\"ISO\"].");
+    }
+
     private void assertBooleanNonEmptySetting(Supplier<Boolean> contextBooleanSupplier,
                                               SessionSetting<?> sessionSetting,
                                               boolean defaultValue) {
