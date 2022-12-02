@@ -207,7 +207,7 @@ should be crossed out as well.
 - [x] 212ce22d155 Optimize CS Persistence Stream Use (#60643) (#60647)
 - [x] 3409e019d23 Ignore shutdown when retrying recoveries (#60586)
 - [s] 2cde43b799d Allows nanosecond resolution in search_after (backport of #60328) (#60426)
-- [ ] d2ddf8cd6a1 Improve deserialization failure logging (#60577)
+- [x] d2ddf8cd6a1 Improve deserialization failure logging (#60577)
 - [ ] 3270cb3088c More Efficient Writes for Snapshot Shard Generations (#60458) (#60575)
 - [s] 204efe9387c Add Repository Setting to Disable Writing index.latest (#60448) (#60576)
 - [s] 8ac81a3447d Remove IndexFieldData#clear since it is unused. (#60475)
