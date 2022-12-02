@@ -211,7 +211,7 @@ should be crossed out as well.
 - [ ] 3270cb3088c More Efficient Writes for Snapshot Shard Generations (#60458) (#60575)
 - [ ] 204efe9387c Add Repository Setting to Disable Writing index.latest (#60448) (#60576)
 - [s] 8ac81a3447d Remove IndexFieldData#clear since it is unused. (#60475)
-- [ ] a2c49a4f02d Reduce Heap Use during Shard Snapshot (#60370) (#60440)
+- [x] a2c49a4f02d Reduce Heap Use during Shard Snapshot (#60370) (#60440)
 - [ ] 8429b4ace88 Fix Queued Snapshot Deletes After Finalization Failure (#60285) (#60379)
 - [s] 1f6a3765e46 Fix NPE in SnapshotsInProgress Constructor (#60355)
 - [x] 753fd4f6bc3 Cleanup and optimize More Serialization Spots (#59959) (#60331)
