@@ -209,7 +209,7 @@ should be crossed out as well.
 - [s] 2cde43b799d Allows nanosecond resolution in search_after (backport of #60328) (#60426)
 - [ ] d2ddf8cd6a1 Improve deserialization failure logging (#60577)
 - [ ] 3270cb3088c More Efficient Writes for Snapshot Shard Generations (#60458) (#60575)
-- [ ] 204efe9387c Add Repository Setting to Disable Writing index.latest (#60448) (#60576)
+- [s] 204efe9387c Add Repository Setting to Disable Writing index.latest (#60448) (#60576)
 - [s] 8ac81a3447d Remove IndexFieldData#clear since it is unused. (#60475)
 - [x] a2c49a4f02d Reduce Heap Use during Shard Snapshot (#60370) (#60440)
 - [ ] 8429b4ace88 Fix Queued Snapshot Deletes After Finalization Failure (#60285) (#60379)
