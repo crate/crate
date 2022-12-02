@@ -21,6 +21,8 @@
 
 package io.crate.metadata.settings;
 
+import static io.crate.analyze.TableParameters.stripIndexPrefix;
+
 import io.crate.analyze.NumberOfReplicas;
 import io.crate.types.DataTypes;
 
@@ -31,11 +33,9 @@ import org.elasticsearch.common.settings.Settings;
 
 import java.util.function.Function;
 
-import static io.crate.analyze.TableParameters.stripIndexPrefix;
-
 public class NumberOfReplicasSetting extends Setting<Settings> {
 
-    private static final String NAME = stripIndexPrefix(IndexMetadata.SETTING_NUMBER_OF_REPLICAS);
+    public static final String NAME = IndexMetadata.SETTING_NUMBER_OF_REPLICAS;
 
     private static final Settings DEFAULT = Settings.builder()
         .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 0)
@@ -56,7 +56,7 @@ public class NumberOfReplicasSetting extends Setting<Settings> {
 
         NumberOfReplicas numberOfReplicas;
         try {
-            Integer numReplicas = parseInt(val, 0, NAME);
+            Integer numReplicas = parseInt(val, 0, stripIndexPrefix(NAME));
             numberOfReplicas = new NumberOfReplicas(numReplicas);
         } catch (NumberFormatException e) {
             numberOfReplicas = new NumberOfReplicas(val);
