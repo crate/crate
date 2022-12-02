@@ -89,6 +89,9 @@ Changes
 - Updated to Admin UI 1.24.0, which added Italian translations, and updated some
   dependency packages across the board.
 
+- Added support for dollar quoted strings,
+  see :ref:`String Literal <string_literal>` for further details.
+
 Fixes
 =====
 
@@ -115,3 +118,6 @@ Fixes
 - Fixed an issue that caused ``routing.allocation.*.{attribute}``
   settings to be ignored when executing ``ALTER TABLE SET`` on a partitioned
   table.
+
+- Fixed an issue that caused the setting, ``number_of_replicas`` to be ignored
+  when executing ``ALTER TABLE SET`` on a partitioned table.
