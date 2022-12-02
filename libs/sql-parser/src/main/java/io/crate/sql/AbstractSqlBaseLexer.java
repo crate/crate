@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,18 +19,30 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate;
+package io.crate.sql;
 
-public class Constants {
+import java.util.ArrayDeque;
+import java.util.Deque;
 
-    public static final String DB_NAME = "crate";
+import org.antlr.v4.runtime.CharStream;
+import org.antlr.v4.runtime.Lexer;
 
-    public static final String ISSUE_URL = "https://github.com/crate/crate/issues/new/choose";
+public abstract class AbstractSqlBaseLexer extends Lexer {
+    protected final Deque<String> tags = new ArrayDeque<>();
 
-    // Mapping Type that contains table definitions
-    public static final String DEFAULT_MAPPING_TYPE = "default";
+    public AbstractSqlBaseLexer(CharStream input) {
+        super(input);
+    }
 
-    public static final String DEFAULT_DATE_STYLE = "ISO";
+    public void pushTag() {
+        tags.push(getText());
+    }
 
-    public static final int MAX_SHARD_MISSING_RETRIES = 3;
+    public boolean isTag() {
+        return getText().equals(tags.peek());
+    }
+
+    public void popTag() {
+        tags.pop();
+    }
 }

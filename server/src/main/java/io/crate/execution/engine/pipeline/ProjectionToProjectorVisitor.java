@@ -572,6 +572,7 @@ public class ProjectionToProjectorVisitor
             threadPool.executor(ThreadPool.Names.SEARCH),
             resolveUidCollectExpression(context.txnCtx, projection.uidSymbol()),
             clusterService,
+            circuitBreakerService.getBreaker(HierarchyCircuitBreakerService.QUERY),
             nodeJobsCounter,
             () -> builder.newRequest(shardId),
             id -> {
@@ -600,6 +601,7 @@ public class ProjectionToProjectorVisitor
             threadPool.executor(ThreadPool.Names.SEARCH),
             resolveUidCollectExpression(context.txnCtx, projection.uidSymbol()),
             clusterService,
+            circuitBreakerService.getBreaker(HierarchyCircuitBreakerService.QUERY),
             nodeJobsCounter,
             () -> new ShardDeleteRequest(shardId, context.jobId).timeout(reqTimeout),
             ShardDeleteRequest.Item::new,

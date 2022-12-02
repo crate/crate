@@ -89,12 +89,24 @@ Changes
 - Updated to Admin UI 1.24.0, which added Italian translations, and updated some
   dependency packages across the board.
 
+- Added support for dollar quoted strings,
+  see :ref:`String Literal <string_literal>` for further details.
+
+- Added a :ref:`datestyle <conf-session-datestyle>` session setting that shows 
+  the display format for date and time values. Only the ``ISO`` style is 
+  supported. Optionally provided pattern conventions for the order of date 
+  parts (Day, Month, Year) are ignored.
+
 Fixes
 =====
 
 .. If you add an entry here, the fix needs to be backported to the latest
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
+
+- Added dynamic bulk sizing for update by query or delete by query operations to
+  reduce memory pressure and fix out of memory errors when running update
+  statements with large assignment expressions.
 
 - Fixed inefficient join optimizations on hash and nested-loop joins when
   table statistics aren't available.

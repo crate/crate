@@ -152,6 +152,7 @@ public class PgCatalogITest extends IntegTestCase {
         String printedTable = printedTable(response.rows());
         assertThat(printedTable.split("\\n"), Matchers.arrayContaining(
             "application_name| NULL| Optional application name. Can be set by a client to identify the application which created the connection| NULL| NULL",
+            "datestyle| ISO| Display format for date and time values.| NULL| NULL",
             "enable_hashjoin| false| Considers using the Hash Join instead of the Nested Loop Join implementation.| NULL| NULL",
             "error_on_unknown_object_key| true| Raises or suppresses ObjectKeyUnknownException when querying nonexistent keys to dynamic objects.| NULL| NULL",
             "max_index_keys| 32| Shows the maximum number of index keys.| NULL| NULL",

@@ -98,10 +98,13 @@ Read-only node
   If set to ``true``, the node will only allow SQL statements which are
   resulting in read operations.
 
+Networking
+==========
+
 .. _conf_hosts:
 
 Hosts
-=====
+-----
 
 .. _network.host:
 
@@ -148,7 +151,7 @@ Hosts
 .. _conf_ports:
 
 Ports
-=====
+-----
 
 .. _http.port:
 
@@ -204,6 +207,96 @@ Ports
   bound to. It defaults to ``5432-5532``. Always the first free port in this
   range is used. If this is set to an integer value it is considered as an
   explicit single port.
+
+Advanced TCP settings
+---------------------
+
+Any interface that uses TCP (Postgres wire, HTTP & Transport protocols) shares
+the following settings:
+
+.. _network.tcp.no_delay:
+
+**network.tcp.no_delay**
+  | *Default:* ``true``
+  | *Runtime:* ``no``
+
+  Enable or disable the `Nagle's algorithm`_ for buffering TCP packets.
+  Buffering is disabled by default.
+
+.. _network.tcp.keep_alive:
+
+**network.tcp.keep_alive**
+  | *Default:* ``true``
+  | *Runtime:* ``no``
+
+  Configures the ``SO_KEEPALIVE`` option for sockets, which determines
+  whether they send TCP keepalive probes.
+
+.. _network.tcp.reuse_address:
+
+**network.tcp.reuse_address**
+  | *Default:* ``true`` on non-windows machines and ``false`` otherwise
+  | *Runtime:* ``no``
+
+   Configures the ``SO_REUSEADDRS`` option for sockets, which determines
+   whether they should reuse the address.
+
+.. _network.tcp.send_buffer_size:
+
+**network.tcp.send_buffer_size**
+  | *Default:* ``-1``
+  | *Runtime:* ``no``
+
+  The size of the TCP send buffer (`SO_SNDBUF`_ socket option).
+  By default not explicitly set.
+
+.. _network.tcp.receive_buffer_size:
+
+**network.tcp.receive_buffer_size**
+  | *Default:* ``-1``
+  | *Runtime:* ``no``
+
+  The size of the TCP receive buffer  (`SO_RCVBUF`_ socket option).
+  By default not explicitly set.
+
+.. NOTE::
+
+    Each setting in this section has its counterpart for HTTP and transport.
+    To provide a protocol specific setting, remove ``network`` prefix and use
+    either ``http`` or ``transport`` instead. For example, no_delay can be
+    configured as ``http.tcp.no_delay`` and ``transport.tcp.no_delay``. Please
+    note, that PG interface takes its settings from transport.
+
+Transport settings
+------------------
+
+.. _transport.connect_timeout:
+
+**transport.connect_timeout**
+  | *Default:* ``30s``
+  | *Runtime:* ``no``
+
+  The connect timeout for initiating a new connection.
+
+.. _transport.compress:
+
+**transport.compress**
+  | *Default:* ``false``
+  | *Runtime:* ``no``
+
+  Set to `true` to enable compression (DEFLATE) between all nodes.
+
+.. _transport.ping_schedule:
+
+**transport.ping_schedule**
+  | *Default:* ``-1``
+  | *Runtime:* ``no``
+
+  Schedule a regular application-level ping message to ensure that transport
+  connections between nodes are kept alive. Defaults to `-1` (disabled). It is
+  preferable to correctly configure TCP keep-alives instead of using this
+  feature, because TCP keep-alives apply to all kinds of long-lived connections
+  and not just to transport connections.
 
 Paths
 =====
@@ -806,3 +899,6 @@ Custom attributes are not validated by CrateDB, unlike core node attributes.
 
 
 .. _plugins: https://github.com/crate/crate/blob/master/devs/docs/plugins.rst
+.. _Nagle's algorithm: https://en.wikipedia.org/wiki/Nagle%27s_algorithm
+.. _SO_RCVBUF: https://docs.oracle.com/javase/7/docs/api/java/net/StandardSocketOptions.html#SO_RCVBUF
+.. _SO_SNDBUF: https://docs.oracle.com/javase/7/docs/api/java/net/StandardSocketOptions.html#SO_SNDBUF
