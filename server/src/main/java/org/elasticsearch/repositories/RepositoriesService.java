@@ -202,7 +202,6 @@ public class RepositoriesService implements ClusterStateApplier {
 
                 @Override
                 public ClusterState execute(ClusterState currentState) {
-                    ensureRepositoryNotInUse(currentState, request.name());
                     Metadata metadata = currentState.metadata();
                     Metadata.Builder mdBuilder = Metadata.builder(currentState.metadata());
                     RepositoriesMetadata repositories = metadata.custom(RepositoriesMetadata.TYPE);
@@ -211,6 +210,7 @@ public class RepositoriesService implements ClusterStateApplier {
                         boolean changed = false;
                         for (RepositoryMetadata repositoryMetadata : repositories.repositories()) {
                             if (Regex.simpleMatch(request.name(), repositoryMetadata.name())) {
+                                ensureRepositoryNotInUse(currentState, request.name());
                                 LOGGER.info("delete repository [{}]", repositoryMetadata.name());
                                 changed = true;
                             } else {
@@ -482,7 +482,7 @@ public class RepositoriesService implements ClusterStateApplier {
 
     private void ensureRepositoryNotInUse(ClusterState clusterState, String repository) {
         if (isRepositoryInUse(clusterState, repository)) {
-            throw new IllegalStateException("trying to modify or unregister repository that is currently used ");
+            throw new IllegalStateException("trying to modify or unregister repository that is currently used");
         }
     }
 
