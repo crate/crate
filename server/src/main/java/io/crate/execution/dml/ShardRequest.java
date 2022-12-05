@@ -45,17 +45,14 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
 
     private static final long SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(ShardRequest.class);
 
-    private UUID jobId;
+    private final UUID jobId;
     protected List<I> items;
-
-    public ShardRequest() {
-    }
 
     public ShardRequest(ShardId shardId, UUID jobId) {
         setShardId(shardId);
         this.jobId = jobId;
         this.index = shardId.getIndexName();
-        items = new ArrayList<>();
+        this.items = new ArrayList<>();
     }
 
     public void add(int location, I item) {
