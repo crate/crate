@@ -52,6 +52,33 @@ Breaking Changes
   Docker, or via a service manager like ``systemd`` where these options are not
   required.
 
+- Subtraction of timestamps was returning their difference in milliseconds, but
+  with result type ``TIMESTAMP`` which was wrong and led to issues with several
+  PostgreSQL compliant clients. Instead of just fixing the result type, and
+  change it to ``LONG``, the subtraction of timestamps was changed to return an
+  ``INTERVAL`` and be compliant with PostgreSQL behaviour.
+
+  Before::
+
+    SELECT '2022-12-05T11:22:33.123456789'::timestamp - '2022-11-21T10:11:22.0012334'::timestamp;
+    +-----------------------+
+    | 1213871122::timestamp |
+    +-----------------------+
+    |            1213871122 |
+    +-----------------------+
+
+
+  After::
+
+    SELECT '2022-12-05T11:22:33.123456789'::timestamp - '2022-11-21T10:11:22.0012334'::timestamp;
+    +------------------------------+
+    | 'PT337H11M11.122S'::interval |
+    +------------------------------+
+    | 337:11:11.122                |
+    +------------------------------+
+
+
+
 Deprecations
 ============
 

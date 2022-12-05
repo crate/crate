@@ -198,7 +198,7 @@ public class ViewsITest extends IntegTestCase {
     public void test_where_clause_on_view_normalized_on_coordinator_node() {
         execute("create table test (x timestamp, y int)");
         execute("create view v_test as select * from test");
-        execute("select * from v_test where x > current_timestamp - 1000 * 60 * 60 * 24");
+        execute("select * from v_test where x > current_timestamp - INTERVAL '24' HOUR");
     }
 
 
