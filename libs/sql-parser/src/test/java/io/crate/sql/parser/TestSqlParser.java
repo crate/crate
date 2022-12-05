@@ -39,6 +39,7 @@ import java.util.Optional;
 import org.junit.Test;
 
 import io.crate.common.collections.Lists2;
+import io.crate.sql.tree.ArrayLiteral;
 import io.crate.sql.tree.Cast;
 import io.crate.sql.tree.ColumnType;
 import io.crate.sql.tree.CreateTable;
@@ -185,7 +186,7 @@ public class TestSqlParser {
         assertThatThrownBy(
             () -> SqlParser.createExpression(""))
             .isExactlyInstanceOf(ParsingException.class)
-            .hasMessageStartingWith("line 1:1: mismatched input '<EOF>' expecting {'(', '[', '[]', '{',");
+            .hasMessageStartingWith("line 1:1: mismatched input '<EOF>' expecting {");
     }
 
     @Test
@@ -509,6 +510,67 @@ public class TestSqlParser {
         Cast cast = (Cast) SqlParser.createExpression("1::\"char\"");
         assertThat(cast.getType().getClass()).isEqualTo(ColumnType.class);
         assertThat(cast.getType().name()).isEqualTo("\"char\"");
+    }
+
+    @Test
+    public void test_dollar_quoted_strings_with_valid_tags() {
+        assertThat(((StringLiteral) SqlParser.createExpression("$$$$")).getValue()).isEmpty();
+        assertThat(((StringLiteral) SqlParser.createExpression("$a$ a$a $a$")).getValue()).isEqualTo(" a$a ");
+        assertThat(((StringLiteral) SqlParser.createExpression("$a$$a$")).getValue()).isEmpty();
+        assertThat(((StringLiteral) SqlParser.createExpression("$_$$_$")).getValue()).isEmpty();
+        assertThat(((StringLiteral) SqlParser.createExpression("$_$string, content,\n!@#$_$")).getValue()).isEqualTo("string, content,\n!@#");
+    }
+
+    @Test
+    public void test_comma_separated_dollar_quoted_strings() {
+        // tests that '$$a$$, $$b$$' is not interpreted as 'a$$, $$b'
+        var arrayLiteral = (ArrayLiteral) SqlParser.createExpression("[$$a$$, $$b,$$, $a$abc$a$]");
+        var actual = arrayLiteral.values().stream().map(expr -> (StringLiteral) expr).map(StringLiteral::getValue).toList();
+        assertThat(actual).isEqualTo(List.of("a", "b,", "abc"));
+    }
+
+    @Test
+    public void test_dollar_quoted_positional_parameters() {
+        assertThat(((StringLiteral) SqlParser.createExpression("$$$1$$")).getValue()).isEqualTo("$1");
+        assertThat(((StringLiteral) SqlParser.createExpression("$$$1$2$3$$")).getValue()).isEqualTo("$1$2$3");
+    }
+
+    @Test
+    public void test_dollar_quoted_strings_with_invalid_tags() {
+        assertThatThrownBy(
+            () -> SqlParser.createExpression("$a$a$a$a$")) // tokenize as $a$ | a | $a$ then the next 'a' is mismatched
+            .isInstanceOf(ParsingException.class)
+            .hasMessageStartingWith("line 1:8: mismatched input 'a' expecting {");
+        assertThatThrownBy(
+            () -> SqlParser.createExpression("$$$$$$"))
+            .isInstanceOf(ParsingException.class)
+            .hasMessageStartingWith("line 1:5: extraneous input '$$' expecting <EOF>");
+        assertThatThrownBy(
+            () -> SqlParser.createExpression("$1$$1$")) // $1$ is an invalid tag
+            .isInstanceOf(ParsingException.class)
+            .hasMessageStartingWith("line 1:3: mismatched input '$$' expecting {<EOF>, ");
+        assertThatThrownBy(
+            () -> SqlParser.createExpression("$a$$b$"))
+            .isInstanceOf(ParsingException.class)
+            .hasMessageStartingWith("line 1:7: extraneous input '<EOF>' expecting {$<tag>$<quoted string>$<tag>$, closing $<tag>$ for quoted string}");
+    }
+
+    @Test
+    public void test_create_function_with_dollar_quoted_strings() {
+        var createFunction = SqlParser.createStatement(
+            """
+                CREATE FUNCTION isbn_to_title(text) RETURNS text LANGUAGE sql
+                AS $$SELECT title from books where isbn = $1$$;
+                """
+        );
+        var expected = SqlParser.createStatement(
+            """
+                CREATE FUNCTION isbn_to_title(text) RETURNS text LANGUAGE sql
+                AS 'SELECT title from books where isbn = $1';
+                """
+        );
+        // CreateFunction.equals() does not compare the definitions
+        assertThat(createFunction.toString()).isEqualTo(expected.toString());
     }
 
     private static void assertStatement(String query, Statement expected) {

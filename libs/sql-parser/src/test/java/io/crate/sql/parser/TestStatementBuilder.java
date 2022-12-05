@@ -349,7 +349,7 @@ public class TestStatementBuilder {
         assertThatThrownBy(
             () -> printStatement("ALTER CLUSTER DECOMMISSION'"))
             .isExactlyInstanceOf(ParsingException.class)
-            .hasMessageStartingWith("line 1:27: mismatched input ''' expecting {'(', '[', '[]', '{', '$', '?', ");
+            .hasMessageStartingWith("line 1:27: mismatched input ''' expecting {");
     }
 
     @Test
@@ -1472,7 +1472,7 @@ public class TestStatementBuilder {
         assertThatThrownBy(
             () -> SqlParser.createExpression("match ([1]['1']['2'], 'abc')"))
             .isExactlyInstanceOf(ParsingException.class)
-            .hasMessageStartingWith("line 1:8: mismatched input '[' expecting {'('");
+            .hasMessageStartingWith("line 1:8: mismatched input '[' expecting {");
     }
 
     @Test

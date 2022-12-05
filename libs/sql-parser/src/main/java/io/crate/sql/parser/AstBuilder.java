@@ -39,11 +39,11 @@ import javax.annotation.Nullable;
 
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
+import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
 import io.crate.common.collections.Lists2;
 import io.crate.sql.ExpressionFormatter;
-import io.crate.sql.parser.antlr.v4.SqlBaseBaseVisitor;
 import io.crate.sql.parser.antlr.v4.SqlBaseLexer;
 import io.crate.sql.parser.antlr.v4.SqlBaseParser;
 import io.crate.sql.parser.antlr.v4.SqlBaseParser.BitStringContext;
@@ -60,6 +60,7 @@ import io.crate.sql.parser.antlr.v4.SqlBaseParser.QueryOptParensContext;
 import io.crate.sql.parser.antlr.v4.SqlBaseParser.SetTransactionContext;
 import io.crate.sql.parser.antlr.v4.SqlBaseParser.StatementsContext;
 import io.crate.sql.parser.antlr.v4.SqlBaseParser.TransactionModeContext;
+import io.crate.sql.parser.antlr.v4.SqlBaseParserBaseVisitor;
 import io.crate.sql.tree.AddColumnDefinition;
 import io.crate.sql.tree.AliasedRelation;
 import io.crate.sql.tree.AllColumns;
@@ -239,7 +240,7 @@ import io.crate.sql.tree.WindowFrame;
 import io.crate.sql.tree.With;
 import io.crate.sql.tree.WithQuery;
 
-class AstBuilder extends SqlBaseBaseVisitor<Node> {
+class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
 
     private int parameterPosition = 1;
     private static final String CLUSTER = "CLUSTER";
@@ -2035,7 +2036,15 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     @Override
     public Node visitStringLiteral(SqlBaseParser.StringLiteralContext context) {
-        return new StringLiteral(unquote(context.STRING().getText()));
+        if (context.STRING() != null) {
+            return new StringLiteral(unquote(context.STRING().getText()));
+        }
+        return visitDollarQuotedStringLiteral(context.dollarQuotedStringLiteral());
+    }
+
+    @Override
+    public Node visitDollarQuotedStringLiteral(SqlBaseParser.DollarQuotedStringLiteralContext ctx) {
+        return new StringLiteral(ctx.DOLLAR_QUOTED_STRING_BODY().stream().map(ParseTree::getText).collect(Collectors.joining()));
     }
 
     @Override

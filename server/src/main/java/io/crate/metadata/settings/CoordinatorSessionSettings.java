@@ -21,6 +21,8 @@
 
 package io.crate.metadata.settings;
 
+import static io.crate.Constants.DEFAULT_DATE_STYLE;
+
 import java.util.HashSet;
 import java.util.Set;
 
@@ -42,6 +44,7 @@ public class CoordinatorSessionSettings extends SessionSettings {
     private User sessionUser;
     private Set<Class<? extends Rule<?>>> excludedOptimizerRules;
     private String applicationName;
+    private String dateStyle;
 
     public CoordinatorSessionSettings(User authenticatedUser, String ... searchPath) {
         this(authenticatedUser, authenticatedUser, SearchPath.createSearchPathFrom(searchPath), true, Set.of(), true);
@@ -61,6 +64,7 @@ public class CoordinatorSessionSettings extends SessionSettings {
         this.authenticatedUser = authenticatedUser;
         this.sessionUser = sessionUser;
         this.excludedOptimizerRules = new HashSet<>(excludedOptimizerRules);
+        this.dateStyle = DEFAULT_DATE_STYLE;
     }
 
     public User sessionUser() {
@@ -107,5 +111,14 @@ public class CoordinatorSessionSettings extends SessionSettings {
     @Override
     public String applicationName() {
         return this.applicationName;
+    }
+
+    public void setDateStyle(String dateStyle) {
+        this.dateStyle = dateStyle;
+    }
+
+    @Override
+    public String dateStyle() {
+        return this.dateStyle;
     }
 }

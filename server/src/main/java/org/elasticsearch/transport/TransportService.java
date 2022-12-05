@@ -520,9 +520,38 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
                                                                 final String action,
                                                                 final TransportRequest request,
                                                                 final TransportRequestOptions options,
-                                                                TransportResponseHandler<T> handler) {
+                                                                final TransportResponseHandler<T> handler) {
         try {
-            sendRequestInternal(connection, action, request, options, handler);
+
+            final TransportResponseHandler<T> delegate = new TransportResponseHandler<T>() {
+                @Override
+                public T read(StreamInput in) throws IOException {
+                    return handler.read(in);
+                }
+
+                @Override
+                public void handleResponse(T response) {
+                    handler.handleResponse(response);
+
+                }
+
+                @Override
+                public void handleException(TransportException exp) {
+                    handler.handleException(exp);
+                }
+
+                @Override
+                public String executor() {
+                    return handler.executor();
+                }
+
+                @Override
+                public String toString() {
+                    return getClass().getName() + "/[" + action + "]:" + handler.toString();
+                }
+            };
+
+            sendRequestInternal(connection, action, request, options, delegate);
         } catch (final Exception ex) {
             // the caller might not handle this so we invoke the handler
             final TransportException te;

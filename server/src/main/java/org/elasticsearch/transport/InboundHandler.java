@@ -193,7 +193,7 @@ public class InboundHandler {
             response = handler.read(stream);
         } catch (Exception e) {
             handleException(handler, new TransportSerializationException(
-                "Failed to deserialize response from handler [" + handler.getClass().getName() + "]", e));
+                    "Failed to deserialize response from handler [" + handler + "]", e));
             return;
         }
         threadPool.executor(handler.executor()).execute(new AbstractRunnable() {
@@ -219,7 +219,8 @@ public class InboundHandler {
         try {
             error = stream.readException();
         } catch (Exception e) {
-            error = new TransportSerializationException("Failed to deserialize exception response from stream", e);
+            error = new TransportSerializationException(
+                    "Failed to deserialize exception response from stream for handler [" + handler + "]", e);
         }
         handleException(handler, error);
     }
