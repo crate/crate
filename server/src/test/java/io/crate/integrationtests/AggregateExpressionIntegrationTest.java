@@ -30,6 +30,7 @@ import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseJdbc;
 
 public class AggregateExpressionIntegrationTest extends IntegTestCase {
 
@@ -66,6 +67,24 @@ public class AggregateExpressionIntegrationTest extends IntegTestCase {
         execute("select min_by(name, x) from tbl");
         assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo(
             "foo\n"
+        );
+    }
+
+    @Test
+    @UseJdbc(0) // Deterministic output format of INTERVAL
+    public void test_sum_interval() {
+        execute(
+            """
+                SELECT SUM(col1) FROM (SELECT
+                unnest(
+                [
+                    INTERVAL '6 years 5 mons' YEAR TO MONTH,
+                    INTERVAL '4 days 3 hours' DAY TO HOUR,
+                    INTERVAL '45.123']) AS col1) AS t
+            """);
+        assertThat(
+            TestingHelpers.printedTable(response.rows()),
+            is("P6Y5M4DT3H45.123S\n")
         );
     }
 

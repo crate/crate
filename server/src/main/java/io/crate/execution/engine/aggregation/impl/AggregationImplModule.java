@@ -37,6 +37,7 @@ public class AggregationImplModule extends AbstractFunctionModule<AggregationFun
         ArbitraryAggregation.register(this);
         CmpByAggregation.register(this);
 
+        IntervalSumAggregation.register(this);
         SumAggregation.register(this);
         NumericSumAggregation.register(this);
 

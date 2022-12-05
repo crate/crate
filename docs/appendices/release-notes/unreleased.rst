@@ -60,6 +60,10 @@ None
 
 Changes
 =======
+- Added support for ``SUM()`` aggregations on ``INTERVAL`` type. e.g.::
+
+    SELECT SUM(tsEnd - tsStart) FROM test
+
 
 - Exposed the ``require``, ``include`` and ``exclude`` ``routing.allocation``
   settings per partition within ``information_schema.table_partitions``.

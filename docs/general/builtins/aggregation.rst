@@ -695,8 +695,9 @@ in this implementation:
 ---------------
 
 Returns the sum of a set of numeric input values that are not ``NULL``.
-Depending on the argument type a suitable return type is chosen. For ``real``
-and ``double precison`` argument types the return type is equal to the argument
+Depending on the argument type a suitable return type is chosen. For
+``interval`` argument types the return type is ``interval``. For ``real`` and
+``double precision`` argument types the return type is equal to the argument
 type. For ``byte``, ``smallint``, ``integer`` and ``bigint`` the return type
 changes to ``bigint``. If the range of ``bigint`` values (-2^64 to 2^64-1) gets
 exceeded an ``ArithmeticException`` will be raised.
