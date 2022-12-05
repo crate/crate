@@ -21,6 +21,7 @@
 
 package io.crate.expression.scalar;
 
+import org.joda.time.Period;
 import org.junit.Test;
 
 import io.crate.exceptions.ConversionException;
@@ -49,11 +50,6 @@ public class TypeInferenceTest extends ScalarTestCase {
         assertEvaluate("coalesce(null, 1::integer, '1')", 1);
         assertEvaluate("coalesce(null, 1::integer)", 1);
         assertEvaluateNull("coalesce(null)");
-    }
-
-    @Test
-    public void testTimestampCalculationsWithNumerics() throws Exception {
-        assertEvaluate("current_timestamp between current_timestamp - 10 and current_timestamp + 10", true);
     }
 
     @Test
@@ -96,7 +92,7 @@ public class TypeInferenceTest extends ScalarTestCase {
      */
     @Test
     public void testTimestampOperations() {
-        assertEvaluate("3::timestamp with time zone - 1", 2L);
+        assertEvaluate("3::timestamp with time zone - 1", Period.millis(2));
         assertEvaluate("3000::timestamp with time zone / 1000", 3L);
         assertEvaluate("3000::timestamp with time zone/ 1000.0", 3.0);
     }
