@@ -47,6 +47,8 @@ import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.shard.ShardNotFoundException;
 
+import io.crate.breaker.ConcurrentRamAccounting;
+import io.crate.breaker.RamAccounting;
 import io.crate.concurrent.limits.ConcurrencyLimit;
 import io.crate.data.BatchIterator;
 import io.crate.data.BatchIterators;
@@ -84,6 +86,7 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
     private final CircuitBreaker queryCircuitBreaker;
     private final ClusterService clusterService;
     private int numItems = -1;
+    private final RamAccounting ramAccounting;
 
 
     public ShardDMLExecutor(UUID jobId,
@@ -100,6 +103,10 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
                             Collector<ShardResponse, TAcc, TResult> collector
                             ) {
         this.queryCircuitBreaker = queryCircuitBreaker;
+        this.ramAccounting = ConcurrentRamAccounting.forCircuitBreaker(
+            "shard-dml-executor",
+            queryCircuitBreaker
+        );
         this.localNode = clusterService.state().getNodes().getLocalNodeId();
         this.jobId = jobId;
         this.bulkSize = bulkSize;
@@ -118,7 +125,7 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
         numItems++;
         uidExpression.setNextRow(row);
         TItem item = itemFactory.apply((String) uidExpression.value());
-        queryCircuitBreaker.addWithoutBreaking(item.ramBytesUsed());
+        ramAccounting.addBytes(item.ramBytesUsed());
         req.add(numItems, item);
     }
 
@@ -148,7 +155,7 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
             public void onResponse(ShardResponse response) {
                 nodeLimit.onSample(startTime, false);
                 for (var item : request.items()) {
-                    queryCircuitBreaker.addWithoutBreaking(- item.ramBytesUsed());
+                    ramAccounting.addBytes(- item.ramBytesUsed());
                 }
                 TAcc acc = collector.supplier().get();
                 try {
@@ -163,7 +170,7 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
             public void onFailure(Exception e) {
                 nodeLimit.onSample(startTime, true);
                 for (var item : request.items()) {
-                    queryCircuitBreaker.addWithoutBreaking(- item.ramBytesUsed());
+                    ramAccounting.addBytes(- item.ramBytesUsed());
                 }
                 future.completeExceptionally(e);
             }
@@ -213,7 +220,10 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
             null,
             req -> nodeLimits.get(resolveNodeId(req)).getLastRtt(TimeUnit.MILLISECONDS)
         ).consumeIteratorAndExecute()
-            .thenApply(collector.finisher());
+            .thenApply(collector.finisher())
+            .whenComplete((result, err) -> {
+                ramAccounting.release();
+            });
     }
 
     @Nullable
