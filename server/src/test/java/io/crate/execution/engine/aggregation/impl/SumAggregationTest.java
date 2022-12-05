@@ -29,6 +29,7 @@ import java.math.BigDecimal;
 import java.util.List;
 
 import org.elasticsearch.Version;
+import org.joda.time.Period;
 import org.junit.Test;
 
 import io.crate.execution.engine.aggregation.AggregationFunction;
@@ -164,6 +165,29 @@ public class SumAggregationTest extends AggregationTestCase {
         Object result = executeAggregation(DataTypes.BYTE, DataTypes.LONG, new Object[][]{{(byte) 7}, {(byte) 3}});
 
         assertEquals(10L, result);
+    }
+
+    @Test
+    public void testInterval() {
+        assertEquals(
+            Period.days(8).withHours(19).withMinutes(22).withSeconds(13).withMillis(667),
+            execPartialAggregationWithoutDocValues(
+                (IntervalSumAggregation) nodeCtx.functions().getQualified(
+                    Signature.aggregate(
+                        IntervalSumAggregation.NAME,
+                        DataTypes.INTERVAL.getTypeSignature(),
+                        DataTypes.INTERVAL.getTypeSignature()),
+                    List.of(DataTypes.INTERVAL),
+                    DataTypes.INTERVAL
+                ),
+                new Object[][]{
+                    {Period.days(6).withHours(12).withSeconds(10)},
+                    {Period.hours(3).withMinutes(2).withMillis(123)},
+                    {Period.minutes(20).withSeconds(3).withMillis(321)},
+                    {Period.days(2).withHours(4).withMillis(223)}},
+                true,
+                Version.CURRENT
+            ));
     }
 
     @Test
