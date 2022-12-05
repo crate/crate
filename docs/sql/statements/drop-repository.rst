@@ -51,4 +51,5 @@ Parameters
 ==========
 
 :repository_name:
-  The name of the repository to de-register.
+  The name of the repository to de-register. Wildcard (*) patterns are
+  supported.

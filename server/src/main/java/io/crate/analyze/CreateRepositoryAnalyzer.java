@@ -47,7 +47,7 @@ class CreateRepositoryAnalyzer {
                                             ParamTypeHints paramTypeHints,
                                             CoordinatorTxnCtx txnCtx) {
         String repositoryName = createRepository.repository();
-        if (repositoryService.getRepository(repositoryName) != null) {
+        if (repositoryService.getRepository(repositoryName, false) != null) {
             throw new RepositoryAlreadyExistsException(repositoryName);
         }
 

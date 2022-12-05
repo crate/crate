@@ -42,7 +42,7 @@ class DropSnapshotAnalyzer {
             throw new IllegalArgumentException("Snapshot name not supported, only <repository>.<snapshot> works.");
         }
         String repositoryName = parts.get(0);
-        repositoryService.failIfRepositoryDoesNotExist(repositoryName);
+        repositoryService.failIfRepositoryDoesNotExist(repositoryName, true);
 
         return new AnalyzedDropSnapshot(repositoryName, parts.get(1));
     }

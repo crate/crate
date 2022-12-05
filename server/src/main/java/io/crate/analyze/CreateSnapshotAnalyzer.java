@@ -87,6 +87,6 @@ class CreateSnapshotAnalyzer {
                 String.format(Locale.ENGLISH, "Invalid repository name '%s'", name)
             );
         }
-        repositoryService.failIfRepositoryDoesNotExist(name.toString());
+        repositoryService.failIfRepositoryDoesNotExist(name.toString(), false);
     }
 }

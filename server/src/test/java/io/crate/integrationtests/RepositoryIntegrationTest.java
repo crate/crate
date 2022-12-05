@@ -31,6 +31,7 @@ import static org.junit.Assert.assertThat;
 import java.io.File;
 import java.util.HashMap;
 
+import io.crate.testing.TestingHelpers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.ClassRule;
@@ -62,6 +63,26 @@ public class RepositoryIntegrationTest extends IntegTestCase {
         waitNoPendingTasksOnAll();
         execute("select * from sys.repositories where name = ? ", new Object[]{"existing_repo"});
         assertThat(response.rowCount(), is(0L));
+    }
+
+    @Test
+    public void test_drop_repositories_by_wildcard_drops_all_matching_repos() throws Exception {
+        String[] names = new String[]{"repo_wild_end",  "wild_begin_repo",  "wild_repo_middle", "not_matching"};
+
+        for (int i = 0; i < names.length; i++) {
+            execute("CREATE REPOSITORY " +names[i] + " TYPE \"fs\" with (location=?, compress=True)",
+                new Object[]{
+                    TEMPORARY_FOLDER.newFolder().getAbsolutePath()
+                });
+        }
+        waitNoPendingTasksOnAll();
+        execute("DROP REPOSITORY \"*repo*\"");
+        assertThat(response.rowCount(), is(1L));
+
+        waitNoPendingTasksOnAll();
+        execute("select name from sys.repositories");
+        assertThat(response.rowCount(), is(1L));
+        assertThat(TestingHelpers.printedTable(response.rows()), is("not_matching\n"));
     }
 
     @Test

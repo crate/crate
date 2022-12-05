@@ -37,6 +37,7 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.CreationException;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.regex.Regex;
 import org.elasticsearch.repositories.RepositoryException;
 
 import javax.annotation.Nullable;
@@ -61,16 +62,25 @@ public class RepositoryService {
     }
 
     @Nullable
-    public RepositoryMetadata getRepository(String repositoryName) {
+    public RepositoryMetadata getRepository(String repositoryName, boolean hasWildcard) {
         RepositoriesMetadata repositories = clusterService.state().metadata().custom(RepositoriesMetadata.TYPE);
         if (repositories != null) {
-            return repositories.repository(repositoryName);
+            if (hasWildcard) {
+                for (RepositoryMetadata repositoryMetadata : repositories.repositories()) {
+                    if (Regex.simpleMatch(repositoryName, repositoryMetadata.name())) {
+                        return repositoryMetadata;
+                    }
+                }
+                return null;
+            } else {
+                return repositories.repository(repositoryName);
+           }
         }
         return null;
     }
 
-    public void failIfRepositoryDoesNotExist(String repositoryName) {
-        if (getRepository(repositoryName) == null) {
+    public void failIfRepositoryDoesNotExist(String repositoryName, boolean hasWildcard) {
+        if (getRepository(repositoryName, hasWildcard) == null) {
             throw new RepositoryUnknownException(repositoryName);
         }
     }
@@ -97,8 +107,11 @@ public class RepositoryService {
             });
     }
 
+    /**
+     * @param repoName doesn't contain wildcards since this method is used only in CREATE REPOSITORY which doesn't support wildcards.
+     */
     private CompletableFuture<Long> dropIfExists(String repoName) {
-        RepositoryMetadata repository = getRepository(repoName);
+        RepositoryMetadata repository = getRepository(repoName, false);
         if (repository == null) {
             return CompletableFuture.completedFuture(1L);
         }

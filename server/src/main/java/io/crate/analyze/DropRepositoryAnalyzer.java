@@ -34,7 +34,7 @@ class DropRepositoryAnalyzer {
 
     public AnalyzedDropRepository analyze(DropRepository dropRepository) {
         String name = dropRepository.name();
-        repositoryService.failIfRepositoryDoesNotExist(name);
+        repositoryService.failIfRepositoryDoesNotExist(name, true);
         return new AnalyzedDropRepository(name);
     }
 }
