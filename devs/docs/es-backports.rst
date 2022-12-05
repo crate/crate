@@ -190,7 +190,7 @@ should be crossed out as well.
 - [x] b21cb7f4666 Reduce allocations when persisting cluster state (#61159)
 - [x] c6276ae1771 Fail invalid incremental cluster state writes (#61030)
 - [ ] 25404cbe3d0 Provide option to allow writes when master is down (#60605)
-- [ ] 6644f2283d2 Do not access snapshot repo on dedicated voting-only master node (#61016)
+- [x] 6644f2283d2 Do not access snapshot repo on dedicated voting-only master node (#61016)
 - [ ] af519be9cbd Ensure repo not in use for wildcard repo deletes (#60947)
 - [ ] 32423a486d6 Simplify and Speed up some Compression Usage (#60953) (#61008)
 - [s] 2fa6448a15b System index reads in separate threadpool (#60927)

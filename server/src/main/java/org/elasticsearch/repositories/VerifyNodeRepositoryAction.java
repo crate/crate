@@ -76,7 +76,9 @@ public class VerifyNodeRepositoryAction {
             if (readOnly && node.getVersion().before(Version.V_4_2_0)) {
                 continue;
             }
-            nodes.add(node);
+            if (RepositoriesService.isDedicatedVotingOnlyNode(node.getRoles()) == false) {
+                nodes.add(node);
+            }
         }
         final CopyOnWriteArrayList<VerificationFailure> errors = new CopyOnWriteArrayList<>();
         final AtomicInteger counter = new AtomicInteger(nodes.size());

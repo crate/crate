@@ -26,6 +26,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import org.apache.logging.log4j.LogManager;
@@ -47,6 +48,7 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.RepositoriesMetadata;
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.node.DiscoveryNodeRole;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.regex.Regex;
 import org.elasticsearch.common.settings.Settings;
@@ -83,7 +85,9 @@ public class RepositoriesService implements ClusterStateApplier {
         // Doesn't make sense to maintain repositories on non-master and non-data nodes
         // Nothing happens there anyway
         if (DiscoveryNode.isDataNode(settings) || DiscoveryNode.isMasterEligibleNode(settings)) {
-            clusterService.addHighPriorityApplier(this);
+            if (isDedicatedVotingOnlyNode(DiscoveryNode.getRolesFromSettings(settings)) == false) {
+                clusterService.addHighPriorityApplier(this);
+            }
         }
         this.verifyAction = new VerifyNodeRepositoryAction(transportService, clusterService, this);
     }
@@ -274,6 +278,10 @@ public class RepositoriesService implements ClusterStateApplier {
         });
     }
 
+    static boolean isDedicatedVotingOnlyNode(Set<DiscoveryNodeRole> roles) {
+        return roles.contains(DiscoveryNodeRole.MASTER_ROLE) && roles.contains(DiscoveryNodeRole.DATA_ROLE) == false &&
+            roles.stream().anyMatch(role -> role.roleName().equals("voting_only"));
+    }
 
     /**
      * Checks if new repositories appeared in or disappeared from cluster metadata and updates current list of
