@@ -201,7 +201,7 @@ should be crossed out as well.
 - [x] 1f49e0b9d01 Fix testRerouteOccursOnDiskPassingHighWatermark (#60869)
 - [ ] 2f76c48ea71 Propagate forceExecution when acquiring permit (#60634)
 - [ ] b4044004aa4 Add recovery state tracking for Searchable Snapshots (#60751)
-- [ ] ebfb93ff264 Improve some BytesStreamOutput Usage (#60730) (#60736)
+- [x] ebfb93ff264 Improve some BytesStreamOutput Usage (#60730) (#60736)
 - [s] 9f6f66f1567 Fail searchable snapshot shards on invalid license (#60722)
 - [s] b3ae5d26bd1 Move mapper validation to the mappers themselves (#60072) (#60649)
 - [x] 212ce22d155 Optimize CS Persistence Stream Use (#60643) (#60647)
