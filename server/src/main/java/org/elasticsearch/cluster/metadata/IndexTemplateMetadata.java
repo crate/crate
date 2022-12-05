@@ -26,7 +26,6 @@ import org.elasticsearch.cluster.AbstractDiffable;
 import org.elasticsearch.cluster.Diff;
 import javax.annotation.Nullable;
 import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import io.crate.common.collections.MapBuilder;
 import org.elasticsearch.common.compress.CompressedXContent;
@@ -343,8 +342,7 @@ public class IndexTemplateMetadata extends AbstractDiffable<IndexTemplateMetadat
             if (params.paramAsBoolean("reduce_mappings", false)) {
                 builder.startObject("mappings");
                 for (ObjectObjectCursor<String, CompressedXContent> cursor : indexTemplateMetadata.mappings()) {
-                    byte[] mappingSource = cursor.value.uncompressed();
-                    Map<String, Object> mapping = XContentHelper.convertToMap(new BytesArray(mappingSource), true).map();
+                    Map<String, Object> mapping = XContentHelper.convertToMap(cursor.value.uncompressed(), true).map();
                     if (mapping.size() == 1 && mapping.containsKey(cursor.key)) {
                         // the type name is the root value, reduce it
                         mapping = (Map<String, Object>) mapping.get(cursor.key);
@@ -356,8 +354,7 @@ public class IndexTemplateMetadata extends AbstractDiffable<IndexTemplateMetadat
             } else {
                 builder.startArray("mappings");
                 for (ObjectObjectCursor<String, CompressedXContent> cursor : indexTemplateMetadata.mappings()) {
-                    byte[] data = cursor.value.uncompressed();
-                    builder.map(XContentHelper.convertToMap(new BytesArray(data), true).map());
+                    builder.map(XContentHelper.convertToMap(cursor.value.uncompressed(), true).map());
                 }
                 builder.endArray();
             }
