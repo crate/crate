@@ -21,11 +21,8 @@ package org.elasticsearch.common.compress;
 
 import javax.annotation.Nullable;
 import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentType;
-import io.crate.common.io.Streams;
 
 import java.io.IOException;
 import java.util.Objects;
@@ -71,14 +68,7 @@ public class CompressorFactory {
      */
     public static BytesReference uncompressIfNeeded(BytesReference bytes) throws IOException {
         Compressor compressor = compressor(Objects.requireNonNull(bytes, "the BytesReference must not be null"));
-        BytesReference uncompressed;
-        if (compressor != null) {
-            uncompressed = uncompress(bytes, compressor);
-        } else {
-            uncompressed = bytes;
-        }
-
-        return uncompressed;
+        return compressor == null ? bytes : compressor.uncompress(bytes);
     }
 
     /** Decompress the provided {@link BytesReference}. */
@@ -87,14 +77,6 @@ public class CompressorFactory {
         if (compressor == null) {
             throw new NotCompressedException();
         }
-        return uncompress(bytes, compressor);
-    }
-
-    private static BytesReference uncompress(BytesReference bytes, Compressor compressor) throws IOException {
-        StreamInput compressed = compressor.streamInput(bytes.streamInput());
-        BytesStreamOutput bStream = new BytesStreamOutput();
-        Streams.copy(compressed, bStream);
-        compressed.close();
-        return bStream.bytes();
+        return compressor.uncompress(bytes);
     }
 }

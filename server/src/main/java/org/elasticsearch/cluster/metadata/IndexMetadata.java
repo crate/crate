@@ -35,7 +35,6 @@ import org.elasticsearch.cluster.block.ClusterBlock;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.node.DiscoveryNodeFilters;
 import org.elasticsearch.cluster.routing.allocation.IndexMetadataUpdater;
-import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.collect.ImmutableOpenIntMap;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.compress.CompressedXContent;
@@ -1135,7 +1134,7 @@ public class IndexMetadata implements Diffable<IndexMetadata>, ToXContentFragmen
                 if (binary) {
                     builder.value(mmd.source().compressed());
                 } else {
-                    builder.map(XContentHelper.convertToMap(new BytesArray(mmd.source().uncompressed()), true).map());
+                    builder.map(XContentHelper.convertToMap(mmd.source().uncompressed(), true).map());
                 }
             }
             builder.endArray();

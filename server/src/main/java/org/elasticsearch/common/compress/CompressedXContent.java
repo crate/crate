@@ -19,7 +19,6 @@
 
 package org.elasticsearch.common.compress;
 
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.Streams;
@@ -95,13 +94,9 @@ public final class CompressedXContent {
         if (compressor != null) {
             // already compressed...
             this.bytes = BytesReference.toBytes(data);
-            this.crc32 = crc32(new BytesArray(uncompressed()));
+            this.crc32 = crc32(uncompressed());
         } else {
-            BytesStreamOutput out = new BytesStreamOutput();
-            try (OutputStream compressedOutput = CompressorFactory.COMPRESSOR.streamOutput(out)) {
-                data.writeTo(compressedOutput);
-            }
-            this.bytes = BytesReference.toBytes(out.bytes());
+            this.bytes = BytesReference.toBytes(CompressorFactory.COMPRESSOR.compress(data));
             this.crc32 = crc32(data);
         }
         assertConsistent();
@@ -109,7 +104,7 @@ public final class CompressedXContent {
 
     private void assertConsistent() {
         assert CompressorFactory.compressor(new BytesArray(bytes)) != null;
-        assert this.crc32 == crc32(new BytesArray(uncompressed()));
+        assert this.crc32 == crc32(uncompressed());
     }
 
     public CompressedXContent(byte[] data) throws IOException {
@@ -131,16 +126,16 @@ public final class CompressedXContent {
     }
 
     /** Return the uncompressed bytes. */
-    public byte[] uncompressed() {
+    public BytesReference uncompressed() {
         try {
-            return BytesReference.toBytes(CompressorFactory.uncompress(new BytesArray(bytes)));
+            return CompressorFactory.uncompress(new BytesArray(bytes));
         } catch (IOException e) {
             throw new IllegalStateException("Cannot decompress compressed string", e);
         }
     }
 
     public String string() {
-        return new BytesRef(uncompressed()).utf8ToString();
+        return uncompressed().utf8ToString();
     }
 
     public static CompressedXContent readCompressedString(StreamInput in) throws IOException {
@@ -168,7 +163,7 @@ public final class CompressedXContent {
             return false;
         }
 
-        return Arrays.equals(uncompressed(), that.uncompressed());
+        return uncompressed().equals(that.uncompressed());
     }
 
     @Override

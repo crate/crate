@@ -20,6 +20,7 @@
 package org.elasticsearch.common.compress;
 
 import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.InputStreamStreamInput;
 import org.elasticsearch.common.io.stream.OutputStreamStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -36,6 +37,7 @@ import java.util.zip.Deflater;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.Inflater;
 import java.util.zip.InflaterInputStream;
+import java.util.zip.InflaterOutputStream;
 
 /**
  * {@link Compressor} implementation based on the DEFLATE compression algorithm.
@@ -128,5 +130,42 @@ public class DeflateCompressor implements Compressor {
                 }
             }
         };
+    }
+
+    // Reusable Inflater reference. Note: This is not used for the decompressing stream wrapper because we don't have strong guarantees
+    // about the scope in which the stream wrapper is used.
+    private static final ThreadLocal<Inflater> INFLATER_REF = ThreadLocal.withInitial(() -> new Inflater(true));
+
+    private static final ThreadLocal<BytesStreamOutput> BAOS = ThreadLocal.withInitial(BytesStreamOutput::new);
+
+    @Override
+    public BytesReference uncompress(BytesReference bytesReference) throws IOException {
+        final BytesStreamOutput buffer = BAOS.get();
+        final Inflater inflater = INFLATER_REF.get();
+        inflater.reset();
+        try (InflaterOutputStream ios = new InflaterOutputStream(buffer, inflater)) {
+            bytesReference.slice(HEADER.length, bytesReference.length() - HEADER.length).writeTo(ios);
+        }
+        final BytesReference res = buffer.copyBytes();
+        buffer.reset();
+        return res;
+    }
+
+    // Reusable Deflater reference. Note: This is not used for the compressing stream wrapper because we don't have strong guarantees
+    // about the scope in which the stream wrapper is used.
+    private static final ThreadLocal<Deflater> DEFLATER_REF = ThreadLocal.withInitial(() -> new Deflater(LEVEL, true));
+
+    @Override
+    public BytesReference compress(BytesReference bytesReference) throws IOException {
+        final BytesStreamOutput buffer = BAOS.get();
+        final Deflater deflater = DEFLATER_REF.get();
+        deflater.reset();
+        buffer.write(HEADER);
+        try (DeflaterOutputStream dos = new DeflaterOutputStream(buffer, deflater, true)) {
+            bytesReference.writeTo(dos);
+        }
+        final BytesReference res = buffer.copyBytes();
+        buffer.reset();
+        return res;
     }
 }

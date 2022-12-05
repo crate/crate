@@ -192,7 +192,7 @@ should be crossed out as well.
 - [ ] 25404cbe3d0 Provide option to allow writes when master is down (#60605)
 - [x] 6644f2283d2 Do not access snapshot repo on dedicated voting-only master node (#61016)
 - [x] af519be9cbd Ensure repo not in use for wildcard repo deletes (#60947)
-- [ ] 32423a486d6 Simplify and Speed up some Compression Usage (#60953) (#61008)
+- [x] 32423a486d6 Simplify and Speed up some Compression Usage (#60953) (#61008)
 - [s] 2fa6448a15b System index reads in separate threadpool (#60927)
 - [s] a93be8d5771 Handle nested arrays in field retrieval. (#60981)
 - [s] 3e2dfc6eac0 Remove GCS Bucket Exists Check (#60899) (#60914)
