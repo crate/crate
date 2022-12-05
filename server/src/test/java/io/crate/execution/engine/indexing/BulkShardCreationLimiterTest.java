@@ -21,33 +21,29 @@
 
 package io.crate.execution.engine.indexing;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.util.UUID;
 
 import org.elasticsearch.test.ESTestCase;
+import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.breaker.RamAccounting;
-import io.crate.execution.dml.ShardRequest;
+import io.crate.execution.dml.delete.ShardDeleteRequest;
 
 public class BulkShardCreationLimiterTest extends ESTestCase {
 
-    private static class DummyShardRequest extends ShardRequest<DummyShardRequest, DummyRequestItem> {
-    }
+    private ShardedRequests<ShardDeleteRequest, ShardDeleteRequest.Item> shardedRequests;
 
-    private static class DummyRequestItem extends ShardRequest.Item {
-        DummyRequestItem(String id) {
-            super(id);
-        }
-    }
-
-    private static final ShardedRequests<DummyShardRequest, DummyRequestItem> SHARED_REQUESTS = new ShardedRequests<>(
-        (s) -> new DummyShardRequest(),
-        RamAccounting.NO_ACCOUNTING
-    );
-
-    static {
-        SHARED_REQUESTS.add(new DummyRequestItem("1"), "dummy", null, RowSourceInfo.EMPTY_INSTANCE);
+    @Before
+    public void setup() {
+        UUID jobId = UUID.randomUUID();
+        shardedRequests = new ShardedRequests<>(
+            shardId -> new ShardDeleteRequest(shardId, jobId),
+            RamAccounting.NO_ACCOUNTING
+        );
+        shardedRequests.add(new ShardDeleteRequest.Item("id1"), "dummy", null, RowSourceInfo.EMPTY_INSTANCE);
     }
 
     @Test
@@ -57,7 +53,7 @@ public class BulkShardCreationLimiterTest extends ESTestCase {
         BulkShardCreationLimiter bulkShardCreationLimiter =
             new BulkShardCreationLimiter(numberOfShards, numberOfReplicas, 1);
 
-        assertThat(bulkShardCreationLimiter.test(SHARED_REQUESTS), is(true));
+        assertThat(bulkShardCreationLimiter.test(shardedRequests)).isTrue();
     }
 
     @Test
@@ -67,7 +63,7 @@ public class BulkShardCreationLimiterTest extends ESTestCase {
         BulkShardCreationLimiter bulkShardCreationLimiter =
             new BulkShardCreationLimiter(numberOfShards, numberOfReplicas, 1);
 
-        assertThat(bulkShardCreationLimiter.test(SHARED_REQUESTS), is(false));
+        assertThat(bulkShardCreationLimiter.test(shardedRequests)).isFalse();
     }
 
     @Test
@@ -77,6 +73,6 @@ public class BulkShardCreationLimiterTest extends ESTestCase {
         BulkShardCreationLimiter bulkShardCreationLimiter =
             new BulkShardCreationLimiter(numberOfShards, numberOfReplicas, 2);
 
-        assertThat(bulkShardCreationLimiter.test(SHARED_REQUESTS), is(false));
+        assertThat(bulkShardCreationLimiter.test(shardedRequests)).isFalse();
     }
 }
