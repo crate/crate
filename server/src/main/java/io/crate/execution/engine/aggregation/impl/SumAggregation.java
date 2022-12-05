@@ -141,7 +141,7 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
     public T iterate(RamAccounting ramAccounting,
                      MemoryManager memoryManager,
                      T state,
-                     Input[] args) throws CircuitBreakingException {
+                     Input<?>[] args) throws CircuitBreakingException {
         return reduce(ramAccounting, state, returnType.sanitizeValue(args[0].value()));
     }
 
@@ -182,7 +182,7 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
     }
 
     @Override
-    public T removeFromAggregatedState(RamAccounting ramAccounting, T previousAggState, Input[] stateToRemove) {
+    public T removeFromAggregatedState(RamAccounting ramAccounting, T previousAggState, Input<?>[] stateToRemove) {
         return subtraction.apply(previousAggState, returnType.sanitizeValue(stateToRemove[0].value()));
     }
 

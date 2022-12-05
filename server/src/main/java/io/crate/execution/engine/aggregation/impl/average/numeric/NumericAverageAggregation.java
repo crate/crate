@@ -116,7 +116,7 @@ public class NumericAverageAggregation extends AggregationFunction<NumericAverag
     public NumericAverageState iterate(RamAccounting ramAccounting,
                               MemoryManager memoryManager,
                               NumericAverageState state,
-                              Input[] args) throws CircuitBreakingException {
+                              Input<?>[]args) throws CircuitBreakingException {
         if (state != null) {
             BigDecimal value = returnType.implicitCast(args[0].value());
             if (value != null) {
@@ -175,7 +175,7 @@ public class NumericAverageAggregation extends AggregationFunction<NumericAverag
     @Override
     public NumericAverageState removeFromAggregatedState(RamAccounting ramAccounting,
                                                          NumericAverageState previousAggState,
-                                                         Input[] stateToRemove) {
+                                                         Input<?>[]stateToRemove) {
         if (previousAggState != null) {
             BigDecimal value = returnType.implicitCast(stateToRemove[0].value());
             if (value != null) {

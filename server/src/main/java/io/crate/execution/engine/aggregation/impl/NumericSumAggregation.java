@@ -106,7 +106,7 @@ public class NumericSumAggregation extends AggregationFunction<BigDecimal, BigDe
     public BigDecimal iterate(RamAccounting ramAccounting,
                               MemoryManager memoryManager,
                               BigDecimal state,
-                              Input[] args) throws CircuitBreakingException {
+                              Input<?>[]args) throws CircuitBreakingException {
         BigDecimal value = returnType.implicitCast(args[0].value());
         if (value != null) {
             if (state != null) {
@@ -164,7 +164,7 @@ public class NumericSumAggregation extends AggregationFunction<BigDecimal, BigDe
     @Override
     public BigDecimal removeFromAggregatedState(RamAccounting ramAccounting,
                                                 BigDecimal previousAggState,
-                                                Input[] stateToRemove) {
+                                                Input<?>[]stateToRemove) {
         BigDecimal value = returnType.implicitCast(stateToRemove[0].value());
         if (value != null) {
             if (previousAggState != null) {

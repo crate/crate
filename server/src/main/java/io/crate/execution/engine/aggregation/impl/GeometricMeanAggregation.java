@@ -239,7 +239,7 @@ public class GeometricMeanAggregation extends AggregationFunction<GeometricMeanA
     public GeometricMeanState iterate(RamAccounting ramAccounting,
                                       MemoryManager memoryManager,
                                       GeometricMeanState state,
-                                      Input... args) throws CircuitBreakingException {
+                                      Input<?>... args) throws CircuitBreakingException {
         if (state != null) {
             Number value = (Number) args[0].value();
             if (value != null) {
@@ -274,7 +274,7 @@ public class GeometricMeanAggregation extends AggregationFunction<GeometricMeanA
     @Override
     public GeometricMeanState removeFromAggregatedState(RamAccounting ramAccounting,
                                                         GeometricMeanState previousAggState,
-                                                        Input[] stateToRemove) {
+                                                        Input<?>[]stateToRemove) {
         if (previousAggState != null) {
             Number value = (Number) stateToRemove[0].value();
             if (value != null) {

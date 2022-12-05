@@ -162,7 +162,7 @@ public final class StringAgg extends AggregationFunction<StringAgg.StringAggStat
     public StringAggState iterate(RamAccounting ramAccounting,
                                   MemoryManager memoryManager,
                                   StringAggState state,
-                                  Input... args) throws CircuitBreakingException {
+                                  Input<?>... args) throws CircuitBreakingException {
         String expression = (String) args[0].value();
         if (expression == null) {
             return state;
@@ -189,7 +189,7 @@ public final class StringAgg extends AggregationFunction<StringAgg.StringAggStat
     @Override
     public StringAggState removeFromAggregatedState(RamAccounting ramAccounting,
                                                     StringAggState previousAggState,
-                                                    Input[] stateToRemove) {
+                                                    Input<?>[]stateToRemove) {
         String expression = (String) stateToRemove[0].value();
         if (expression == null) {
             return previousAggState;

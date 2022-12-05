@@ -72,7 +72,7 @@ public abstract class AggregationFunction<TPartial, TFinal> implements FunctionI
     public abstract TPartial iterate(RamAccounting ramAccounting,
                                      MemoryManager memoryManager,
                                      TPartial state,
-                                     Input... args)
+                                     Input<?>... args)
         throws CircuitBreakingException;
 
     /**
@@ -113,7 +113,7 @@ public abstract class AggregationFunction<TPartial, TFinal> implements FunctionI
 
     public TPartial removeFromAggregatedState(RamAccounting ramAccounting,
                                               TPartial previousAggState,
-                                              Input[] stateToRemove) {
+                                              Input<?>[] stateToRemove) {
         throw new UnsupportedOperationException("Cannot remove state from the aggregated state as the function is " +
                                                 "not removable cumulative");
     }

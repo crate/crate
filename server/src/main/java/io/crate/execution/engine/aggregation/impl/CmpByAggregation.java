@@ -207,7 +207,7 @@ public final class CmpByAggregation extends AggregationFunction<CmpByAggregation
     public CompareBy iterate(RamAccounting ramAccounting,
                              MemoryManager memoryManager,
                              CompareBy state,
-                             Input... args) throws CircuitBreakingException {
+                             Input<?>... args) throws CircuitBreakingException {
         Object cmpVal = args[1].value();
 
         if (cmpVal instanceof Comparable comparable) {
