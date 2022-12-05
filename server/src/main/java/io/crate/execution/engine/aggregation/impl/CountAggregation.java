@@ -112,7 +112,7 @@ public class CountAggregation extends AggregationFunction<MutableLong, Long> {
     public MutableLong iterate(RamAccounting ramAccounting,
                                MemoryManager memoryManager,
                                MutableLong state,
-                               Input... args) {
+                               Input<?>... args) {
         if (!hasArgs || args[0].value() != null) {
             return state.add(1L);
         }
@@ -242,7 +242,7 @@ public class CountAggregation extends AggregationFunction<MutableLong, Long> {
     @Override
     public MutableLong removeFromAggregatedState(RamAccounting ramAccounting,
                                                  MutableLong previousAggState,
-                                                 Input[] stateToRemove) {
+                                                 Input<?>[]stateToRemove) {
         if (!hasArgs || stateToRemove[0].value() != null) {
             return previousAggState.sub(1L);
         }

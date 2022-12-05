@@ -86,7 +86,7 @@ public final class ArrayAgg extends AggregationFunction<List<Object>, List<Objec
     public List<Object> iterate(RamAccounting ramAccounting,
                                 MemoryManager memoryManager,
                                 List<Object> state,
-                                Input... args) throws CircuitBreakingException {
+                                Input<?>... args) throws CircuitBreakingException {
         var value = args[0].value();
         ramAccounting.addBytes(elementType.valueBytes(value));
         state.add(value);

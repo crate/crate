@@ -332,7 +332,7 @@ public abstract class MaximumAggregation extends AggregationFunction<Comparable,
     public Comparable iterate(RamAccounting ramAccounting,
                               MemoryManager memoryManager,
                               Comparable state,
-                              Input... args) throws CircuitBreakingException {
+                              Input<?>... args) throws CircuitBreakingException {
         Object value = args[0].value();
         return reduce(ramAccounting, state, (Comparable) value);
     }

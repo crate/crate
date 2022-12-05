@@ -101,7 +101,7 @@ class PercentileAggregation extends AggregationFunction<TDigestState, Object> {
     public TDigestState iterate(RamAccounting ramAccounting,
                                 MemoryManager memoryManager,
                                 TDigestState state,
-                                Input... args) throws CircuitBreakingException {
+                                Input<?>... args) throws CircuitBreakingException {
         if (state.isEmpty()) {
             Object fractionValue = args[1].value();
             initState(state, fractionValue, ramAccounting);

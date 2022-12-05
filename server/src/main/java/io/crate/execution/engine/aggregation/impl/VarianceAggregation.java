@@ -160,7 +160,7 @@ public class VarianceAggregation extends AggregationFunction<Variance, Double> {
     public Variance iterate(RamAccounting ramAccounting,
                             MemoryManager memoryManager,
                             Variance state,
-                            Input... args) throws CircuitBreakingException {
+                            Input<?>... args) throws CircuitBreakingException {
         if (state != null) {
             Number value = (Number) args[0].value();
             if (value != null) {
@@ -190,7 +190,7 @@ public class VarianceAggregation extends AggregationFunction<Variance, Double> {
     @Override
     public Variance removeFromAggregatedState(RamAccounting ramAccounting,
                                               Variance previousAggState,
-                                              Input[] stateToRemove) {
+                                              Input<?>[]stateToRemove) {
         if (previousAggState != null) {
             Number value = (Number) stateToRemove[0].value();
             if (value != null) {

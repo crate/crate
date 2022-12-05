@@ -337,7 +337,7 @@ public abstract class MinimumAggregation extends AggregationFunction<Comparable,
     public Comparable iterate(RamAccounting ramAccounting,
                               MemoryManager memoryManager,
                               Comparable state,
-                              Input... args) throws CircuitBreakingException {
+                              Input<?>... args) throws CircuitBreakingException {
         return reduce(ramAccounting, state, (Comparable) args[0].value());
     }
 }

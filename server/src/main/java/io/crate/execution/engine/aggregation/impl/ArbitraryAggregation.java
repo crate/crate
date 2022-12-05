@@ -112,7 +112,7 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
     public Object iterate(RamAccounting ramAccounting,
                           MemoryManager memoryManager,
                           Object state,
-                          Input... args) {
+                          Input<?>... args) {
         return reduce(ramAccounting, state, args[0].value());
     }
 

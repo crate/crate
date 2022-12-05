@@ -97,7 +97,7 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
     public Map<Object, Object> iterate(RamAccounting ramAccounting,
                                        MemoryManager memoryManager,
                                        Map<Object, Object> state,
-                                       Input... args) throws CircuitBreakingException {
+                                       Input<?>... args) throws CircuitBreakingException {
         Object value = args[0].value();
         if (value == null) {
             return state;
@@ -191,7 +191,7 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
         @Override
         public Map<Object, Long> iterate(RamAccounting ramAccounting,
                                          MemoryManager memoryManager, Map<Object, Long> state,
-                                         Input... args) throws CircuitBreakingException {
+                                         Input<?>... args) throws CircuitBreakingException {
             Object value = args[0].value();
             if (value == null) {
                 return state;
@@ -227,7 +227,7 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
         @Override
         public Map<Object, Long> removeFromAggregatedState(RamAccounting ramAccounting,
                                                            Map<Object, Long> previousAggState,
-                                                           Input[] stateToRemove) {
+                                                           Input<?>[]stateToRemove) {
             Object value = stateToRemove[0].value();
             if (value == null) {
                 return previousAggState;

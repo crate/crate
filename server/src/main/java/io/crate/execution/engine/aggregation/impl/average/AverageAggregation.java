@@ -233,7 +233,7 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
     public AverageState iterate(RamAccounting ramAccounting,
                                 MemoryManager memoryManager,
                                 AverageState state,
-                                Input... args) {
+                                Input<?>... args) {
         if (state != null) {
             Number value = (Number) args[0].value();
             if (value != null) {
@@ -251,7 +251,7 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
     @Override
     public AverageState removeFromAggregatedState(RamAccounting ramAccounting,
                                                   AverageState previousAggState,
-                                                  Input[] stateToRemove) {
+                                                  Input<?>[]stateToRemove) {
         if (previousAggState != null) {
             Number value = (Number) stateToRemove[0].value();
             if (value != null) {
