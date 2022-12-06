@@ -28,7 +28,6 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -287,12 +286,6 @@ public class MetadataIndexTemplateService {
         if (request.name.contains("#")) {
             validationErrors.add("name must not contain a '#'");
         }
-        if (request.name.startsWith("_")) {
-            validationErrors.add("name must not start with '_'");
-        }
-        if (!request.name.toLowerCase(Locale.ROOT).equals(request.name)) {
-            validationErrors.add("name must be lower cased");
-        }
         for (String indexPattern : request.indexPatterns) {
             if (indexPattern.contains(" ")) {
                 validationErrors.add("template must not contain a space");
@@ -302,9 +295,6 @@ public class MetadataIndexTemplateService {
             }
             if (indexPattern.contains("#")) {
                 validationErrors.add("template must not contain a '#'");
-            }
-            if (indexPattern.startsWith("_")) {
-                validationErrors.add("template must not start with '_'");
             }
             if (!Strings.validFileNameExcludingAstrix(indexPattern)) {
                 validationErrors.add("template must not contain the following characters " + Strings.INVALID_FILENAME_CHARS);

@@ -39,7 +39,6 @@ import org.elasticsearch.common.util.CollectionUtils;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.indices.IndexClosedException;
-import org.elasticsearch.indices.InvalidIndexNameException;
 
 import io.crate.common.collections.Tuple;
 
@@ -457,7 +456,6 @@ public class IndexNameExpressionResolver {
                 if (Strings.isEmpty(expression)) {
                     throw indexNotFoundException(expression);
                 }
-                validateAliasOrIndex(expression);
                 if (aliasOrIndexExists(options, metadata, expression)) {
                     if (result != null) {
                         result.add(expression);
@@ -509,16 +507,6 @@ public class IndexNameExpressionResolver {
                 }
             }
             return result;
-        }
-
-        private static void validateAliasOrIndex(String expression) {
-            // Expressions can not start with an underscore. This is reserved for APIs. If the check gets here, the API
-            // does not exist and the path is interpreted as an expression. If the expression begins with an underscore,
-            // throw a specific error that is different from the [[IndexNotFoundException]], which is typically thrown
-            // if the expression can't be found.
-            if (expression.charAt(0) == '_') {
-                throw new InvalidIndexNameException(expression, "must not start with '_'.");
-            }
         }
 
         private static boolean aliasOrIndexExists(IndicesOptions options, Metadata metadata, String expression) {

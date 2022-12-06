@@ -159,10 +159,10 @@ public final class RelationName implements Writeable, Accountable {
     }
 
     public void ensureValidForRelationCreation() throws InvalidSchemaNameException, InvalidRelationName {
-        if (!isValidRelationOrSchemaName(schema)) {
+        if (!isValidSchemaName(schema)) {
             throw new InvalidSchemaNameException(schema);
         }
-        if (!isValidRelationOrSchemaName(name)) {
+        if (!isValidRelationName(name)) {
             throw new InvalidRelationName(this);
         }
         if (Schemas.READ_ONLY_SYSTEM_SCHEMAS.contains(schema)) {
@@ -179,14 +179,20 @@ public final class RelationName implements Writeable, Accountable {
         }
     }
 
-    private static boolean isValidRelationOrSchemaName(String name) {
+    private static boolean isValidRelationName(String name) {
         for (String illegalCharacter : INVALID_NAME_CHARACTERS) {
             if (name.contains(illegalCharacter) || name.length() == 0) {
                 return false;
             }
         }
-        if (name.startsWith("_")) {
-            return false;
+        return !name.startsWith("_");
+    }
+
+    private static boolean isValidSchemaName(String name) {
+        for (String illegalCharacter : INVALID_NAME_CHARACTERS) {
+            if (name.contains(illegalCharacter) || name.length() == 0) {
+                return false;
+            }
         }
         return true;
     }
