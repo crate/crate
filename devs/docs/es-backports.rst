@@ -184,7 +184,7 @@ should be crossed out as well.
 - [s] f3b6d49ae1e Migrate server mapper tests to new MapperTestCase (#61378) (#61490)
 - [s] 078e8717eea Stop opening PING conns to remote clusters (#61408)
 - [s] 997c73ec177 Correct how field retrieval handles multifields and copy_to. (#61391)
-- [ ] 08dbd6d9893 Optimize a few Spots on IO Loop (#60865) (#61380)
+- [x] 08dbd6d9893 Optimize a few Spots on IO Loop (#60865) (#61380)
 - [s] b1aa0d8731e Fix fieldnames field type for pre-6.1 indexes (#61322)
 - [x] 98213df9462 Report more details of unobtainable ShardLock (#61255)
 - [x] b21cb7f4666 Reduce allocations when persisting cluster state (#61159)
