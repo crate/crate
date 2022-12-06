@@ -135,6 +135,8 @@ public abstract class TransportReplicationAction<
     private volatile TimeValue initialRetryBackoffBound;
     private volatile TimeValue retryTimeout;
 
+    protected final boolean forceExecutionOnPrimary;
+
     protected TransportReplicationAction(Settings settings,
                                          String actionName,
                                          TransportService transportService,
@@ -175,6 +177,7 @@ public abstract class TransportReplicationAction<
 
         this.initialRetryBackoffBound = REPLICATION_INITIAL_RETRY_BACKOFF_BOUND.get(settings);
         this.retryTimeout = REPLICATION_RETRY_TIMEOUT.get(settings);
+        this.forceExecutionOnPrimary = forceExecutionOnPrimary;
         transportService.registerRequestHandler(actionName, ThreadPool.Names.SAME, reader, this::handleOperationRequest);
         transportService.registerRequestHandler(
             transportPrimaryAction,
@@ -863,7 +866,7 @@ public abstract class TransportReplicationAction<
     protected void acquirePrimaryOperationPermit(final IndexShard primary,
                                                  final Request request,
                                                  final ActionListener<Releasable> onAcquired) {
-        primary.acquirePrimaryOperationPermit(onAcquired, executor, request);
+        primary.acquirePrimaryOperationPermit(onAcquired, executor, request, forceExecutionOnPrimary);
     }
 
     /**
