@@ -45,7 +45,7 @@ import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.execution.engine.aggregation.impl.AggregationImplModule;
 import io.crate.execution.engine.aggregation.impl.SumAggregation;
-import io.crate.execution.engine.collect.InputCollectExpression;
+import io.crate.execution.engine.collect.RowCollectExpression;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.Literal;
 import io.crate.memory.OnHeapMemoryManager;
@@ -65,7 +65,7 @@ public class AggregateCollectorBenchmark {
 
     @Setup
     public void setup() {
-        InputCollectExpression inExpr0 = new InputCollectExpression(0);
+        RowCollectExpression inExpr0 = new RowCollectExpression(0);
         Functions functions = new ModulesBuilder()
             .add(new AggregationImplModule())
             .createInjector()

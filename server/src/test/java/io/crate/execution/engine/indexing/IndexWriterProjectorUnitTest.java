@@ -50,7 +50,7 @@ import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.execution.engine.collect.CollectExpression;
-import io.crate.execution.engine.collect.InputCollectExpression;
+import io.crate.execution.engine.collect.RowCollectExpression;
 import io.crate.execution.jobs.NodeLimits;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
@@ -95,7 +95,7 @@ public class IndexWriterProjectorUnitTest extends CrateDummyClusterServiceUnitTe
 
     @Test
     public void testNullPKValue() throws Throwable {
-        InputCollectExpression sourceInput = new InputCollectExpression(0);
+        RowCollectExpression sourceInput = new RowCollectExpression(0);
         List<CollectExpression<Row, ?>> collectExpressions = Collections.<CollectExpression<Row, ?>>singletonList(sourceInput);
 
         IndexWriterProjector indexWriter = new IndexWriterProjector(

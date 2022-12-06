@@ -35,7 +35,7 @@ import io.crate.data.Row;
 import io.crate.execution.engine.aggregation.AggregationContext;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.collect.CollectExpression;
-import io.crate.execution.engine.collect.InputCollectExpression;
+import io.crate.execution.engine.collect.RowCollectExpression;
 import io.crate.expression.reference.GatheringRefResolver;
 import io.crate.expression.reference.ReferenceResolver;
 import io.crate.expression.symbol.Aggregation;
@@ -167,7 +167,7 @@ public class InputFactory {
     private static class InputColumnVisitor extends BaseImplementationSymbolVisitor<Void> {
 
         private final List<CollectExpression<Row, ?>> expressions;
-        private final IntObjectMap<InputCollectExpression> inputCollectExpressions = new IntObjectHashMap<>();
+        private final IntObjectMap<RowCollectExpression> inputCollectExpressions = new IntObjectHashMap<>();
 
         InputColumnVisitor(TransactionContext txnCtx, NodeContext nodeCtx, List<CollectExpression<Row, ?>> expressions) {
             super(txnCtx, nodeCtx);
@@ -177,9 +177,9 @@ public class InputFactory {
         @Override
         public Input<?> visitInputColumn(InputColumn inputColumn, Void context) {
             int index = inputColumn.index();
-            InputCollectExpression inputCollectExpression = inputCollectExpressions.get(index);
+            RowCollectExpression inputCollectExpression = inputCollectExpressions.get(index);
             if (inputCollectExpression == null) {
-                inputCollectExpression = new InputCollectExpression(index);
+                inputCollectExpression = new RowCollectExpression(index);
                 inputCollectExpressions.put(index, inputCollectExpression);
                 expressions.add(inputCollectExpression);
             }

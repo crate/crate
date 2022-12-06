@@ -47,7 +47,7 @@ import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.execution.engine.collect.CollectExpression;
-import io.crate.execution.engine.collect.InputCollectExpression;
+import io.crate.execution.engine.collect.RowCollectExpression;
 
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
@@ -55,7 +55,7 @@ import io.crate.execution.engine.collect.InputCollectExpression;
 public class SortingLimitAndOffsetCollectorBenchmark {
 
     private static final Comparator<Object[]> COMPARATOR = (o1, o2) -> Integer.compare((int) o2[0], (int) o1[0]);
-    private static final InputCollectExpression INPUT = new InputCollectExpression(0);
+    private static final RowCollectExpression INPUT = new RowCollectExpression(0);
     private static final List<Input<?>> INPUTS = List.of(INPUT);
     private static final Iterable<CollectExpression<Row, ?>> COLLECT_EXPRESSIONS = List.of(INPUT);
 

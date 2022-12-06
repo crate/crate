@@ -68,7 +68,7 @@ import io.crate.data.Row1;
 import io.crate.execution.engine.aggregation.impl.AggregationImplModule;
 import io.crate.execution.engine.aggregation.impl.SumAggregation;
 import io.crate.execution.engine.collect.CollectExpression;
-import io.crate.execution.engine.collect.InputCollectExpression;
+import io.crate.execution.engine.collect.RowCollectExpression;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
@@ -128,7 +128,7 @@ public class GroupingLongCollectorBenchmark {
     }
 
     private static GroupingCollector createGroupBySumCollector(AggregationFunction sumAgg, MemoryManager memoryManager) {
-        InputCollectExpression keyInput = new InputCollectExpression(0);
+        RowCollectExpression keyInput = new RowCollectExpression(0);
         List<Input<?>> keyInputs = Arrays.<Input<?>>asList(keyInput);
         CollectExpression[] collectExpressions = new CollectExpression[]{keyInput};
 

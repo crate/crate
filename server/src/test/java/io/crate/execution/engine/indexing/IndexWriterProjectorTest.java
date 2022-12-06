@@ -49,7 +49,7 @@ import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.execution.engine.collect.CollectExpression;
-import io.crate.execution.engine.collect.InputCollectExpression;
+import io.crate.execution.engine.collect.RowCollectExpression;
 import io.crate.execution.engine.pipeline.TableSettingsResolver;
 import io.crate.execution.jobs.NodeLimits;
 import io.crate.expression.symbol.InputColumn;
@@ -77,7 +77,7 @@ public class IndexWriterProjectorTest extends IntegTestCase {
         execute("create table bulk_import (id int primary key, name string) with (number_of_replicas=0)");
         ensureGreen();
 
-        InputCollectExpression sourceInput = new InputCollectExpression(1);
+        RowCollectExpression sourceInput = new RowCollectExpression(1);
         List<CollectExpression<Row, ?>> collectExpressions = Collections.<CollectExpression<Row, ?>>singletonList(sourceInput);
 
         RelationName bulkImportIdent = new RelationName(sqlExecutor.getCurrentSchema(), "bulk_import");

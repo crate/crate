@@ -51,7 +51,7 @@ import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.engine.aggregation.AggregationFunction;
-import io.crate.execution.engine.collect.InputCollectExpression;
+import io.crate.execution.engine.collect.RowCollectExpression;
 import io.crate.expression.ExpressionsInput;
 import io.crate.expression.InputFactory;
 import io.crate.expression.reference.ReferenceResolver;
@@ -120,8 +120,8 @@ public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServic
         assertThat(normalizedFunctionSymbol).isExactlyInstanceOf(io.crate.expression.symbol.WindowFunction.class);
 
         var windowFunctionSymbol = (io.crate.expression.symbol.WindowFunction) normalizedFunctionSymbol;
-        ReferenceResolver<InputCollectExpression> referenceResolver =
-            r -> new InputCollectExpression(rowsColumnDescription.indexOf(r.column()));
+        ReferenceResolver<RowCollectExpression> referenceResolver =
+            r -> new RowCollectExpression(rowsColumnDescription.indexOf(r.column()));
 
         var sourceSymbols = Lists2.map(rowsColumnDescription, x -> sqlExpressions.normalize(sqlExpressions.asSymbol(x.sqlFqn())));
         ensureInputRowsHaveCorrectType(sourceSymbols, inputRows);

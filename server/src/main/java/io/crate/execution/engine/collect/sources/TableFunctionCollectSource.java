@@ -37,7 +37,7 @@ import io.crate.data.SentinelRow;
 import io.crate.execution.dsl.phases.CollectPhase;
 import io.crate.execution.dsl.phases.TableFunctionCollectPhase;
 import io.crate.execution.engine.collect.CollectTask;
-import io.crate.execution.engine.collect.InputCollectExpression;
+import io.crate.execution.engine.collect.RowCollectExpression;
 import io.crate.execution.engine.collect.ValueAndInputRow;
 import io.crate.expression.InputCondition;
 import io.crate.expression.InputFactory;
@@ -74,13 +74,13 @@ public class TableFunctionCollectSource implements CollectSource {
 
         List<Input<?>> topLevelInputs = new ArrayList<>(phase.toCollect().size());
         List<String> columns = rowType.fieldNames();
-        InputFactory.Context<InputCollectExpression> ctx = inputFactory.ctxForRefs(
+        InputFactory.Context<RowCollectExpression> ctx = inputFactory.ctxForRefs(
             txnCtx,
             ref -> {
                 for (int i = 0; i < columns.size(); i++) {
                     String column = columns.get(i);
                     if (ref.column().isTopLevel() && ref.column().name().equals(column)) {
-                        return new InputCollectExpression(i);
+                        return new RowCollectExpression(i);
                     }
                 }
                 throw new IllegalStateException(

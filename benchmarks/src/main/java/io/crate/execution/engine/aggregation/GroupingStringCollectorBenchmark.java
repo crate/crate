@@ -31,7 +31,7 @@ import io.crate.data.Row1;
 import io.crate.execution.engine.aggregation.impl.AggregationImplModule;
 import io.crate.execution.engine.aggregation.impl.MinimumAggregation;
 import io.crate.execution.engine.collect.CollectExpression;
-import io.crate.execution.engine.collect.InputCollectExpression;
+import io.crate.execution.engine.collect.RowCollectExpression;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.Literal;
 import io.crate.memory.OnHeapMemoryManager;
@@ -86,7 +86,7 @@ public class GroupingStringCollectorBenchmark {
     }
 
     private GroupingCollector createGroupByMinBytesRefCollector(Functions functions) {
-        InputCollectExpression keyInput = new InputCollectExpression(0);
+        RowCollectExpression keyInput = new RowCollectExpression(0);
         List<Input<?>> keyInputs = Collections.singletonList(keyInput);
         CollectExpression[] collectExpressions = new CollectExpression[]{keyInput};
 

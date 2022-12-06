@@ -34,7 +34,7 @@ import io.crate.data.BiArrayRow;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.execution.engine.collect.CollectExpression;
-import io.crate.execution.engine.collect.InputCollectExpression;
+import io.crate.execution.engine.collect.RowCollectExpression;
 import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.InputFactory;
 import io.crate.expression.InputFactory.Context;
@@ -206,7 +206,7 @@ public final class InsertSourceFromCells implements InsertSourceGen {
         public CollectExpression<Row, ?> getImplementation(Reference ref) {
             int idx = targets.indexOf(ref);
             if (idx >= 0) {
-                return new InputCollectExpression(idx);
+                return new RowCollectExpression(idx);
             } else {
                 int rootIdx = columns.indexOf(ref.column().getRoot());
                 if (rootIdx < 0) {

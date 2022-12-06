@@ -53,7 +53,7 @@ import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowN;
 import io.crate.data.SkippingBatchIterator;
-import io.crate.execution.engine.collect.InputCollectExpression;
+import io.crate.execution.engine.collect.RowCollectExpression;
 import io.crate.execution.engine.join.HashInnerJoinBatchIterator;
 import io.crate.execution.engine.window.WindowFunction;
 import io.crate.execution.engine.window.WindowFunctionBatchIterator;
@@ -193,7 +193,7 @@ public class RowsBatchIteratorBenchmark {
 
     @Benchmark
     public void measureConsumeWindowBatchIterator(Blackhole blackhole) throws Exception {
-        InputCollectExpression input = new InputCollectExpression(0);
+        RowCollectExpression input = new RowCollectExpression(0);
         BatchIterator<Row> batchIterator = WindowFunctionBatchIterator.of(
             new InMemoryBatchIterator<>(rows, SENTINEL, false),
             new NoRowAccounting<>(),

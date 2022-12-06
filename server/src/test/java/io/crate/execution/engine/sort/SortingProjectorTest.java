@@ -43,7 +43,7 @@ import io.crate.data.Bucket;
 import io.crate.data.Projector;
 import io.crate.data.Row;
 import io.crate.execution.engine.collect.CollectExpression;
-import io.crate.execution.engine.collect.InputCollectExpression;
+import io.crate.execution.engine.collect.RowCollectExpression;
 import io.crate.expression.symbol.Literal;
 import io.crate.testing.TestingBatchIterators;
 import io.crate.testing.TestingRowConsumer;
@@ -54,7 +54,7 @@ public class SortingProjectorTest extends ESTestCase {
     private TestingRowConsumer consumer = new TestingRowConsumer();
 
     private SortingProjector createProjector(RowAccounting<Object[]> rowAccounting, int numOutputs, int offset) {
-        InputCollectExpression input = new InputCollectExpression(0);
+        RowCollectExpression input = new RowCollectExpression(0);
         return new SortingProjector(
             rowAccounting,
             List.of(input, Literal.of(true)),

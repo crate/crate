@@ -24,6 +24,9 @@ package io.crate.execution.engine.collect;
 
 import io.crate.data.Input;
 
+/**
+ * An {@link Input} where the result value is set as side effect of {@link #setNextRow(Object)}
+ **/
 public interface CollectExpression<TRow, TReturnValue> extends Input<TReturnValue> {
 
     void setNextRow(TRow row);

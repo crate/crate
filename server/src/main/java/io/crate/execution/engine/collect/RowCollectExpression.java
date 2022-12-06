@@ -23,20 +23,23 @@ package io.crate.execution.engine.collect;
 
 import io.crate.data.Row;
 
-public class InputCollectExpression implements CollectExpression<Row, Object> {
+/**
+ * CollectExpression to retrieve values from a {@link Row} at a given index
+ */
+public final class RowCollectExpression implements CollectExpression<Row, Object> {
 
-    private final int position;
+    private final int index;
     private Object value;
 
-    public InputCollectExpression(int position) {
-        this.position = position;
+    public RowCollectExpression(int index) {
+        this.index = index;
     }
 
     @Override
     public void setNextRow(Row row) {
-        assert row.numColumns() > position
-            : "Wanted to retrieve value for column at position=" + position + " from row=" + row + " but row has only " + row.numColumns() + " columns";
-        value = row.get(position);
+        assert row.numColumns() > index
+            : "Wanted to retrieve value for column at position=" + index + " from row=" + row + " but row has only " + row.numColumns() + " columns";
+        value = row.get(index);
     }
 
     @Override
@@ -49,9 +52,9 @@ public class InputCollectExpression implements CollectExpression<Row, Object> {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        InputCollectExpression that = (InputCollectExpression) o;
+        RowCollectExpression that = (RowCollectExpression) o;
 
-        if (position != that.position) return false;
+        if (index != that.index) return false;
         if (value != null ? !value.equals(that.value) : that.value != null) return false;
 
         return true;
@@ -59,13 +62,13 @@ public class InputCollectExpression implements CollectExpression<Row, Object> {
 
     @Override
     public int hashCode() {
-        int result = position;
+        int result = index;
         result = 31 * result + (value != null ? value.hashCode() : 0);
         return result;
     }
 
     @Override
     public String toString() {
-        return "Input{pos=" + position + '}';
+        return "RowCollectExpression{idx=" + index + '}';
     }
 }
