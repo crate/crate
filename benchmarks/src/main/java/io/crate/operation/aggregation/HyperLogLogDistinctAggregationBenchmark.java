@@ -28,7 +28,7 @@ import io.crate.data.Row1;
 import io.crate.execution.engine.aggregation.AggregateCollector;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.aggregation.impl.HyperLogLogPlusPlus;
-import io.crate.execution.engine.collect.InputCollectExpression;
+import io.crate.execution.engine.collect.RowCollectExpression;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.Literal;
 import io.crate.memory.OffHeapMemoryManager;
@@ -79,7 +79,7 @@ public class HyperLogLogDistinctAggregationBenchmark {
     @Setup
     public void setUp() throws Exception {
         hash = new MurmurHash3.Hash128();
-        final InputCollectExpression inExpr0 = new InputCollectExpression(0);
+        final RowCollectExpression inExpr0 = new RowCollectExpression(0);
         Functions functions = new ModulesBuilder()
             .add(new ExtraFunctionsModule())
             .createInjector().getInstance(Functions.class);

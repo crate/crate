@@ -45,7 +45,7 @@ import io.crate.data.Input;
 import io.crate.data.Projector;
 import io.crate.data.Row;
 import io.crate.execution.engine.collect.CollectExpression;
-import io.crate.execution.engine.collect.InputCollectExpression;
+import io.crate.execution.engine.collect.RowCollectExpression;
 import io.crate.execution.engine.pipeline.LimitAndOffset;
 import io.crate.expression.symbol.Literal;
 import io.crate.testing.TestingBatchIterators;
@@ -54,7 +54,7 @@ import io.crate.types.DataTypes;
 
 public class SortingLimitAndOffsetProjectorTest extends ESTestCase {
 
-    private static final InputCollectExpression INPUT = new InputCollectExpression(0);
+    private static final RowCollectExpression INPUT = new RowCollectExpression(0);
     private static final Literal<Boolean> TRUE_LITERAL = Literal.of(true);
     private static final List<Input<?>> INPUT_LITERAL_LIST = List.of(INPUT, TRUE_LITERAL);
     private static final List<CollectExpression<Row, ?>> COLLECT_EXPRESSIONS = List.of(INPUT);

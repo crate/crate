@@ -100,7 +100,7 @@ import io.crate.execution.dsl.projection.AggregationProjection;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.collect.CollectTask;
 import io.crate.execution.engine.collect.DocValuesAggregates;
-import io.crate.execution.engine.collect.InputCollectExpression;
+import io.crate.execution.engine.collect.RowCollectExpression;
 import io.crate.execution.engine.collect.MapSideDataCollectOperation;
 import io.crate.execution.jobs.SharedShardContexts;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
@@ -260,15 +260,15 @@ public abstract class AggregationTestCase extends ESTestCase {
                                                             boolean randomExtraStates,
                                                             Version minNodeVersion) {
         var argumentsSize = function.signature().getArgumentTypes().size();
-        InputCollectExpression[] inputs = new InputCollectExpression[argumentsSize];
+        RowCollectExpression[] inputs = new RowCollectExpression[argumentsSize];
         for (int i = 0; i < argumentsSize; i++) {
-            inputs[i] = new InputCollectExpression(i);
+            inputs[i] = new RowCollectExpression(i);
         }
 
         ArrayList<Object> states = new ArrayList<>();
         states.add(function.newState(RAM_ACCOUNTING, Version.CURRENT, minNodeVersion, memoryManager));
         for (Row row : new ArrayBucket(data)) {
-            for (InputCollectExpression input : inputs) {
+            for (RowCollectExpression input : inputs) {
                 input.setNextRow(row);
             }
             if (randomExtraStates && randomIntBetween(1, 4) == 1) {

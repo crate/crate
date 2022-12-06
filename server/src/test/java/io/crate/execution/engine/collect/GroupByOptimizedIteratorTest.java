@@ -73,7 +73,7 @@ public class GroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTe
     private IndexSearcher indexSearcher;
     private ArrayList<Object[]> expectedResult;
     private String columnName;
-    private InputCollectExpression inExpr;
+    private RowCollectExpression inExpr;
     private List<AggregationContext> aggregationContexts;
 
     @Before
@@ -92,7 +92,7 @@ public class GroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTe
         iw.commit();
         indexSearcher = new IndexSearcher(DirectoryReader.open(iw));
 
-        inExpr = new InputCollectExpression(0);
+        inExpr = new RowCollectExpression(0);
         CountAggregation aggregation = (CountAggregation) nodeCtx.functions().getQualified(
             CountAggregation.COUNT_STAR_SIGNATURE,
             Collections.emptyList(),
