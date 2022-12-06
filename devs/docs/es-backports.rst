@@ -182,7 +182,7 @@ should be crossed out as well.
 - [ ] f22ddf822e2 Some Optimizations around BytesArray (#61183) (#61511)
 - [ ] 806dfcfcf7d Speed up Compression Logic by Pooling Resources (#61358) (#61495)
 - [ ] f3b6d49ae1e Migrate server mapper tests to new MapperTestCase (#61378) (#61490)
-- [ ] 078e8717eea Stop opening PING conns to remote clusters (#61408)
+- [s] 078e8717eea Stop opening PING conns to remote clusters (#61408)
 - [ ] 997c73ec177 Correct how field retrieval handles multifields and copy_to. (#61391)
 - [ ] 08dbd6d9893 Optimize a few Spots on IO Loop (#60865) (#61380)
 - [ ] b1aa0d8731e Fix fieldnames field type for pre-6.1 indexes (#61322)
