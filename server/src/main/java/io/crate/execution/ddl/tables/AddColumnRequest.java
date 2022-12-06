@@ -21,28 +21,29 @@
 
 package io.crate.execution.ddl.tables;
 
-import com.carrotsearch.hppc.IntArrayList;
-import io.crate.metadata.Reference;
-import io.crate.metadata.RelationName;
-import io.crate.sql.tree.CheckColumnConstraint;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Nonnull;
+
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Writeable;
 
-import javax.annotation.Nonnull;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
+import com.carrotsearch.hppc.IntArrayList;
+
+import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
 
 public class AddColumnRequest extends AcknowledgedRequest<AddColumnRequest> {
 
     private final RelationName relationName;
-    private final List<Reference> refs = new ArrayList<>();
-    private final IntArrayList pKeyIndices = new IntArrayList();
-    private final List<StreamableCheckConstraint> checkConstraints = new ArrayList<>();
+    private final List<Reference> colsToAdd;
+    private final IntArrayList pKeyIndices;
+    private final Map<String, String> checkConstraints;
 
     /**
      * @param checkConstraints must be accumulated map of all columns' constraints in case of adding multiple columns.
@@ -53,31 +54,32 @@ public class AddColumnRequest extends AcknowledgedRequest<AddColumnRequest> {
                             @Nonnull Map<String, String> checkConstraints,
                             @Nonnull IntArrayList pKeyIndices) {
         this.relationName = relationName;
-        this.refs.addAll(colsToAdd);
-
-        this.checkConstraints.addAll(checkConstraints.entrySet()
-            .stream()
-            .map(nameExprEntry -> new StreamableCheckConstraint(nameExprEntry.getKey(), nameExprEntry.getValue()))
-            .collect(Collectors.toList()));
-        this.pKeyIndices.addAll(pKeyIndices);
+        this.colsToAdd = colsToAdd;
+        this.checkConstraints = checkConstraints;
+        this.pKeyIndices = pKeyIndices;
     }
 
     public AddColumnRequest(StreamInput in) throws IOException {
         super(in);
         relationName = new RelationName(in);
 
-        int count = in.readVInt();
-        for (int i = 0; i < count; i++) {
-            checkConstraints.add(StreamableCheckConstraint.readFrom(in));
+        int numConstraints = in.readVInt();
+        checkConstraints = new HashMap<>();
+        for (int i = 0; i < numConstraints; i++) {
+            String name = in.readString();
+            String expression = in.readString();
+            checkConstraints.put(name, expression);
         }
 
-        count = in.readVInt();
-        for (int i = 0; i < count; i++) {
-            refs.add(Reference.fromStream(in));
+        int numColumns = in.readVInt();
+        colsToAdd = new ArrayList<>(numColumns);
+        for (int i = 0; i < numColumns; i++) {
+            colsToAdd.add(Reference.fromStream(in));
         }
 
-        count = in.readVInt();
-        for (int i = 0; i < count; i++) {
+        int numPKIndices = in.readVInt();
+        pKeyIndices = new IntArrayList(numPKIndices);
+        for (int i = 0; i < numPKIndices; i++) {
             pKeyIndices.add(in.readVInt());
         }
     }
@@ -88,13 +90,14 @@ public class AddColumnRequest extends AcknowledgedRequest<AddColumnRequest> {
         relationName.writeTo(out);
 
         out.writeVInt(checkConstraints.size());
-        for (int i = 0; i < checkConstraints.size(); i++) {
-            checkConstraints.get(i).writeTo(out);
+        for (var entry : checkConstraints.entrySet()) {
+            out.writeString(entry.getKey());
+            out.writeString(entry.getValue());
         }
 
-        out.writeVInt(refs.size());
-        for (int i = 0; i < refs.size(); i++) {
-            Reference.toStream(refs.get(i), out);
+        out.writeVInt(colsToAdd.size());
+        for (int i = 0; i < colsToAdd.size(); i++) {
+            Reference.toStream(colsToAdd.get(i), out);
         }
 
         out.writeVInt(pKeyIndices.size());
@@ -110,37 +113,17 @@ public class AddColumnRequest extends AcknowledgedRequest<AddColumnRequest> {
     }
 
     @Nonnull
-    public List<StreamableCheckConstraint> checkConstraints() {
+    public Map<String, String> checkConstraints() {
         return this.checkConstraints;
     }
 
     @Nonnull
     public List<Reference> references() {
-        return this.refs;
+        return this.colsToAdd;
     }
 
     @Nonnull
     public IntArrayList pKeyIndices() {
         return this.pKeyIndices;
-    }
-
-    /**
-     * Streamable version of the {@link CheckColumnConstraint}.
-     * We don't need to stream columnName as it's already contained in expression itself
-     * and we add (check name -> expression) pair directly to the mapping.
-     */
-    public record StreamableCheckConstraint(String name, String expression) implements Writeable {
-
-        public static StreamableCheckConstraint readFrom(StreamInput in) throws IOException {
-            var name = in.readString();
-            var expr = in.readString();
-            return new StreamableCheckConstraint(name, expr);
-        }
-
-        @Override
-        public void writeTo(StreamOutput out) throws IOException {
-            out.writeString(name);
-            out.writeString(expression);
-        }
     }
 }

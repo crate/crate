@@ -109,7 +109,7 @@ public class TransportAddColumnAction extends AbstractDDLTransportAction<AddColu
                 Metadata.Builder metadataBuilder = Metadata.builder(currentState.metadata());
 
                 HashMap<ColumnIdent, List<Reference>> tree = buildTree(request.references());
-                Map<String, Map> propertiesMap = buildMapping(null, tree);
+                Map<String, Map<String, Object>> propertiesMap = buildMapping(null, tree);
                 assert propertiesMap != null : "ADD COLUMN mapping can not be null"; // Only intermediate result can be null.
 
                 String templateName = PartitionName.templateName(request.relationName().schema(), request.relationName().name());
@@ -144,7 +144,7 @@ public class TransportAddColumnAction extends AbstractDDLTransportAction<AddColu
     private ClusterState updateMapping(ClusterState currentState,
                                        Metadata.Builder metadataBuilder,
                                        AddColumnRequest request,
-                                       Map<String, Map> propertiesMap) throws IOException {
+                                       Map<String, Map<String, Object>> propertiesMap) throws IOException {
         Index[] concreteIndices = resolveIndices(currentState, request.relationName().indexNameOrAlias());
 
         for (Index index : concreteIndices) {
@@ -169,7 +169,7 @@ public class TransportAddColumnAction extends AbstractDDLTransportAction<AddColu
 
     private static void mergeDeltaIntoExistingMapping(Map<String, Object> existingMapping,
                                                       AddColumnRequest request,
-                                                      Map<String, Map> propertiesMap) {
+                                                      Map<String, Map<String, Object>> propertiesMap) {
 
         Map<String, Object> meta = (Map<String, Object>) existingMapping.get("_meta");
         if (meta == null) {
@@ -194,7 +194,7 @@ public class TransportAddColumnAction extends AbstractDDLTransportAction<AddColu
     private static void mergeConstraints(Map<String, Object> meta,
                                          List<Reference> references,
                                          IntArrayList pKeyIndices,
-                                         List<AddColumnRequest.StreamableCheckConstraint> checkConstraints) {
+                                         Map<String, String> checkConstraints) {
 
         // CHECK
         if (checkConstraints.isEmpty() == false) {
@@ -203,8 +203,10 @@ public class TransportAddColumnAction extends AbstractDDLTransportAction<AddColu
                 existingCheckConstraints = new HashMap<>();
                 meta.put("check_constraints", existingCheckConstraints);
             }
-            for (AddColumnRequest.StreamableCheckConstraint checkConstraint: checkConstraints) {
-                existingCheckConstraints.put(checkConstraint.name(), checkConstraint.expression());
+            for (var entry : checkConstraints.entrySet()) {
+                String name = entry.getKey();
+                String expression = entry.getValue();
+                existingCheckConstraints.put(name, expression);
             }
         }
 
@@ -272,12 +274,12 @@ public class TransportAddColumnAction extends AbstractDDLTransportAction<AddColu
 
      */
     @Nullable
-    private Map<String, Map> buildMapping(@Nullable ColumnIdent currentNode, HashMap<ColumnIdent, List<Reference>> tree) {
+    private Map<String, Map<String, Object>> buildMapping(@Nullable ColumnIdent currentNode, HashMap<ColumnIdent, List<Reference>> tree) {
         List<Reference> children = tree.get(currentNode);
         if (children == null) {
             return null;
         }
-        HashMap<String, Map> allColumnsMap = new HashMap<>();
+        HashMap<String, Map<String, Object>> allColumnsMap = new HashMap<>();
         for (Reference child: children) {
             allColumnsMap.put(child.column().leafName(), addColumnProperties(child, tree));
         }
@@ -357,7 +359,7 @@ public class TransportAddColumnAction extends AbstractDDLTransportAction<AddColu
 
     private void objectMapping(Map<String, Object> propertiesMap, Reference reference, HashMap<ColumnIdent, List<Reference>> tree) {
         propertiesMap.put("dynamic", ColumnPolicies.encodeMappingValue(reference.columnPolicy()));
-        Map<String, Map> nestedObjectMap = buildMapping(reference.column(), tree);
+        Map<String, Map<String, Object>> nestedObjectMap = buildMapping(reference.column(), tree);
         if (nestedObjectMap != null) {
             propertiesMap.put("properties", nestedObjectMap);
         }
