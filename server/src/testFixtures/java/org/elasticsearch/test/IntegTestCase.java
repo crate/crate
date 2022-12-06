@@ -2147,8 +2147,8 @@ public abstract class IntegTestCase extends ESTestCase {
 
     /**
      * If the Test class or method contains a @UseRandomizedSchema annotation then,
-     * based on the schema argument, a random (unquoted) schema name is returned. The schema name consists
-     * of a 1-20 character long ASCII string.
+     * based on the schema argument, a random schema name is returned. The schema name consists
+     * of a 1-20 character long ASCII string that may start with '_' or enclosed by duoble quotes.
      * For more details on the schema parameter see {@link UseRandomizedSchema}
      * <p>
      * Method annotations have higher priority than class annotations.
@@ -2161,10 +2161,16 @@ public abstract class IntegTestCase extends ESTestCase {
 
         Random random = RandomizedContext.current().getRandom();
         while (true) {
-            String schemaName = RandomStrings.randomAsciiLettersOfLengthBetween(random, 1, 20).toLowerCase();
+            String schemaName = RandomStrings.randomAsciiLettersOfLengthBetween(random, 1, 20);
             if (!Schemas.READ_ONLY_SYSTEM_SCHEMAS.contains(schemaName) &&
                 !Identifiers.isKeyWord(schemaName) &&
                 !containsExtendedAsciiChars(schemaName)) {
+                if (random.nextBoolean()) {
+                    schemaName = "_" + schemaName;
+                }
+                if (random.nextBoolean()) {
+                    schemaName = "\"" + schemaName + "\"";
+                }
                 return schemaName;
             }
         }
