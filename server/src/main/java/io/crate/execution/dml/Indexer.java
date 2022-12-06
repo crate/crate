@@ -24,6 +24,7 @@ package io.crate.execution.dml;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -53,7 +54,6 @@ import io.crate.execution.engine.collect.ArrayCollectExpression;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.InputFactory;
-import io.crate.expression.ValueExtractors;
 import io.crate.expression.InputFactory.Context;
 import io.crate.expression.reference.ReferenceResolver;
 import io.crate.expression.symbol.Symbol;
@@ -73,12 +73,13 @@ public class Indexer {
     private final List<ValueIndexer<?>> valueIndexers;
     private final List<Reference> columns;
     private final SymbolEvaluator symbolEval;
-    private final List<ColumnInput> synthetics;
-    private final List<ValueIndexer<?>> syntheticIndexers;
+    private final Map<ColumnIdent, Synthetic> synthetics;
     private final List<CollectExpression<Object[], Object>> expressions;
 
-    record ColumnInput(ColumnIdent name, Input<?> input) {}
+    record Synthetic(Input<?> input, ValueIndexer<Object> indexer) {
+    }
 
+    @SuppressWarnings("unchecked")
     public Indexer(DocTableInfo table,
                    TransactionContext txnCtx,
                    NodeContext nodeCtx,
@@ -93,8 +94,7 @@ public class Indexer {
                 return ref.valueType().valueIndexer(table.ident(), ref, getFieldType, getRef);
             });
 
-        this.synthetics = new ArrayList<>();
-        this.syntheticIndexers = new ArrayList<>();
+        this.synthetics = new HashMap<>();
         InputFactory inputFactory = new InputFactory(nodeCtx);
         var referenceResolver = new ReferenceResolver<CollectExpression<Object[], Object>>() {
 
@@ -103,52 +103,69 @@ public class Indexer {
                 int index = targetColumns.indexOf(ref);
                 if (index > -1) {
                     return new ArrayCollectExpression(index);
-                } else if (!ref.column().isTopLevel()) {
-                    ColumnIdent root = ref.column().getRoot();
-                    int rootIdx = -1;
-                    for (int i = 0; i < targetColumns.size(); i++) {
-                        if (targetColumns.get(i).column().equals(root)) {
-                            rootIdx = i;
-                            break;
+                }
+                if (ref.column().isTopLevel()) {
+                    throw new IllegalStateException("Top level column must exist in targetColumns");
+                }
+                ColumnIdent root = ref.column().getRoot();
+                int rootIdx = -1;
+                for (int i = 0; i < targetColumns.size(); i++) {
+                    if (targetColumns.get(i).column().equals(root)) {
+                        rootIdx = i;
+                        break;
+                    }
+                }
+                final int rootIndex = rootIdx;
+                Function<Object[], Object> getValue = array -> {
+                    Object val = array[rootIndex];
+                    if (val instanceof Map<?, ?> m) {
+                        List<String> path = ref.column().path();
+                        val = Maps.getByPath((Map<String, Object>) m, path);
+                    }
+                    if (val == null) {
+                        Symbol defaultExpression = ref.defaultExpression();
+                        if (defaultExpression != null) {
+                            val = defaultExpression.accept(symbolEval, Row.EMPTY).value();
                         }
                     }
-                    final int rootIndex = rootIdx;
-                    return NestableCollectExpression.forFunction(
-                        array -> {
-                            Object val = array[rootIndex];
-                            if (val instanceof Map<?, ?> m) {
-                                return Maps.getByPath((Map<String, Object>) m, ref.column().path());
-                            }
-                            return val;
-                        }
-                    );
-                }
-                return null;
+                    return val;
+                };
+                return NestableCollectExpression.forFunction(getValue);
             }
         };
         Context<CollectExpression<Object[], Object>> ctxForRefs = inputFactory.ctxForRefs(
             txnCtx,
             referenceResolver
         );
-        for (var column : table.defaultExpressionColumns()) {
-            if (targetColumns.contains(column) || column.granularity() == RowGranularity.PARTITION) {
+        for (var ref : table.defaultExpressionColumns()) {
+            if (targetColumns.contains(ref) || ref.granularity() == RowGranularity.PARTITION) {
                 continue;
             }
-            Input<?> input = ctxForRefs.add(column.defaultExpression());
-            this.synthetics.add(new ColumnInput(column.column(), input));
-            this.syntheticIndexers.add(
-                column.valueType().valueIndexer(table.ident(), column, getFieldType, getRef)
+            Input<?> input = ctxForRefs.add(ref.defaultExpression());
+            ValueIndexer<Object> valueIndexer = (ValueIndexer<Object>) ref.valueType().valueIndexer(
+                table.ident(),
+                ref,
+                getFieldType,
+                getRef
             );
+            this.synthetics.put(ref.column(), new Synthetic(input, valueIndexer));
         }
-        for (var column : table.generatedColumns()) {
-            if (targetColumns.contains(column) || column.granularity() == RowGranularity.PARTITION) {
+        for (var ref : table.generatedColumns()) {
+            if (ref.granularity() == RowGranularity.PARTITION) {
                 continue;
             }
-            Input<?> input = ctxForRefs.add(column.generatedExpression());
-            this.synthetics.add(new ColumnInput(column.column(), input));
-            this.syntheticIndexers.add(
-                column.valueType().valueIndexer(table.ident(), column, getFieldType, getRef)
+            if (targetColumns.contains(ref)) {
+                // TODO: need to validate
+                continue;
+            }
+            Input<?> input = ctxForRefs.add(ref.generatedExpression());
+            ValueIndexer<Object> valueIndexer = (ValueIndexer<Object>) ref.valueType().valueIndexer(
+                table.ident(),
+                ref,
+                getFieldType,
+                getRef
             );
+            this.synthetics.put(ref.column(), new Synthetic(input, valueIndexer));
         }
         this.expressions = ctxForRefs.expressions();
     }
@@ -165,6 +182,9 @@ public class Indexer {
         // TODO: re-use stream?
         XContentBuilder xContentBuilder = XContentFactory.jsonBuilder();
         xContentBuilder.startObject();
+        for (var expression : expressions) {
+            expression.setNextRow(values);
+        }
         for (int i = 0; i < values.length; i++) {
             Reference reference = columns.get(i);
             Symbol defaultExpression = reference.defaultExpression();
@@ -174,17 +194,24 @@ public class Indexer {
             }
             ValueIndexer<Object> valueIndexer = (ValueIndexer<Object>) valueIndexers.get(i);
             xContentBuilder.field(reference.column().leafName());
-            valueIndexer.indexValue(value, xContentBuilder, addField, onDynamicColumn);
+            valueIndexer.indexValue(
+                value,
+                xContentBuilder,
+                addField,
+                onDynamicColumn,
+                synthetics
+            );
         }
-        for (var expression : expressions) {
-            expression.setNextRow(values);
-        }
-        for (int i = 0; i < synthetics.size(); i++) {
-            ColumnInput columnInput = synthetics.get(i);
-            ValueIndexer<Object> valueIndexer = (ValueIndexer<Object>) syntheticIndexers.get(i);
-            Object value = columnInput.input.value();
-            xContentBuilder.field(columnInput.name().leafName());
-            valueIndexer.indexValue(value, xContentBuilder, addField, onDynamicColumn);
+        for (var entry : synthetics.entrySet()) {
+            ColumnIdent column = entry.getKey();
+            if (!column.isTopLevel()) {
+                continue;
+            }
+            Synthetic synthetic = entry.getValue();
+            ValueIndexer<Object> indexer = synthetic.indexer();
+            Object value = synthetic.input().value();
+            xContentBuilder.field(column.leafName());
+            indexer.indexValue(value, xContentBuilder, addField, onDynamicColumn, synthetics);
         }
         xContentBuilder.endObject();
 

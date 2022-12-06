@@ -23,11 +23,13 @@ package io.crate.execution.dml;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 
 import org.apache.lucene.index.IndexableField;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 
 public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
@@ -42,10 +44,11 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
     public void indexValue(List<T> values,
                            XContentBuilder xContentBuilder,
                            Consumer<? super IndexableField> addField,
-                           Consumer<? super Reference> onDynamicColumn) throws IOException {
+                           Consumer<? super Reference> onDynamicColumn,
+                           Map<ColumnIdent, Indexer.Synthetic> synthetics) throws IOException {
         xContentBuilder.startArray();
         for (T value : values) {
-            innerIndexer.indexValue(value, xContentBuilder, addField, onDynamicColumn);
+            innerIndexer.indexValue(value, xContentBuilder, addField, onDynamicColumn, synthetics);
         }
         xContentBuilder.endArray();
     }

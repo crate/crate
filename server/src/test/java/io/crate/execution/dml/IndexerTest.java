@@ -115,8 +115,6 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
 
         Map<String, Object> value = Map.of("x", 10, "xs", List.of(2, 3, 4));
         ParsedDocument parsedDoc = indexer.index("id1", new Object[] { value });
-        assertThat(parsedDoc.doc().getFields())
-            .hasSize(14);
 
         assertThat(parsedDoc.newColumns())
             .satisfiesExactly(
@@ -127,6 +125,9 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             "{\"o\":{\"x\":10,\"xs\":[2,3,4]}}",
             "{\"o\":{\"xs\":[2,3,4],\"x\":10}}"
         );
+
+        assertThat(parsedDoc.doc().getFields())
+            .hasSize(14);
     }
 
     @Test
@@ -225,6 +226,26 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         var parsedDoc = indexer.index("id1", Map.of("z", 20));
         assertThat(parsedDoc.source().utf8ToString()).isEqualTo(
             "{\"o\":{\"x\":0,\"y\":2,\"z\":20}}"
+        );
+    }
+
+    @Test
+    public void test_default_for_full_object() throws Exception {
+        var executor = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (o object as (x int) default {x=10})")
+            .build();
+        DocTableInfo table = executor.resolveTableInfo("tbl");
+        Reference o = table.getReference(new ColumnIdent("o"));
+        Indexer indexer = new Indexer(
+            table,
+            new CoordinatorTxnCtx(executor.getSessionSettings()),
+            executor.nodeCtx,
+            column -> NumberFieldMapper.FIELD_TYPE,
+            List.of(o)
+        );
+        var parsedDoc = indexer.index("id1", new Object[] { null });
+        assertThat(parsedDoc.source().utf8ToString()).isEqualTo(
+            "{\"o\":{\"x\":10}}"
         );
     }
 }

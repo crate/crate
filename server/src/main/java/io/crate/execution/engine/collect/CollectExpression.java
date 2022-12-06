@@ -22,6 +22,8 @@
 package io.crate.execution.engine.collect;
 
 
+import java.util.function.Function;
+
 import io.crate.data.Input;
 
 /**
@@ -30,4 +32,18 @@ import io.crate.data.Input;
 public interface CollectExpression<TRow, TReturnValue> extends Input<TReturnValue> {
 
     void setNextRow(TRow row);
+
+    default <U> CollectExpression<TRow, U> andThen(Function<TReturnValue, U> convert) {
+        return new CollectExpression<TRow ,U>() {
+
+            @Override
+            public U value() {
+                return null;
+            }
+
+            @Override
+            public void setNextRow(TRow row) {
+            }
+        };
+    }
 }

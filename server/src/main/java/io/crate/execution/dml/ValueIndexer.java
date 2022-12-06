@@ -22,11 +22,13 @@
 package io.crate.execution.dml;
 
 import java.io.IOException;
+import java.util.Map;
 import java.util.function.Consumer;
 
 import org.apache.lucene.index.IndexableField;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 
 public interface ValueIndexer<T> {
@@ -35,6 +37,7 @@ public interface ValueIndexer<T> {
         T value,
         XContentBuilder xcontentBuilder,
         Consumer<? super IndexableField> addField,
-        Consumer<? super Reference> onDynamicColumn
+        Consumer<? super Reference> onDynamicColumn,
+        Map<ColumnIdent, Indexer.Synthetic> synthetics
     ) throws IOException;
 }

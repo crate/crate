@@ -22,6 +22,7 @@
 package io.crate.execution.dml;
 
 import java.io.IOException;
+import java.util.Map;
 import java.util.function.Consumer;
 
 import org.apache.lucene.document.Field;
@@ -32,6 +33,7 @@ import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 
 public class StringIndexer implements ValueIndexer<String> {
@@ -48,7 +50,8 @@ public class StringIndexer implements ValueIndexer<String> {
     public void indexValue(String value,
                            XContentBuilder xcontentBuilder,
                            Consumer<? super IndexableField> addField,
-                           Consumer<? super Reference> onDynamicColumn) throws IOException {
+                           Consumer<? super Reference> onDynamicColumn,
+                           Map<ColumnIdent, Indexer.Synthetic> synthetics) throws IOException {
         xcontentBuilder.value(value);
         if (value == null) {
             return;
