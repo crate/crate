@@ -44,26 +44,6 @@ public class AddColumnRequest extends AcknowledgedRequest<AddColumnRequest> {
     private final IntArrayList pKeyIndices = new IntArrayList();
     private final List<StreamableCheckConstraint> checkConstraints = new ArrayList<>();
 
-    public AddColumnRequest(StreamInput in) throws IOException {
-        super(in);
-        relationName = new RelationName(in);
-
-        int count = in.readVInt();
-        for (int i = 0; i < count; i++) {
-            checkConstraints.add(StreamableCheckConstraint.readFrom(in));
-        }
-
-        count = in.readVInt();
-        for (int i = 0; i < count; i++) {
-            refs.add(Reference.fromStream(in));
-        }
-
-        count = in.readVInt();
-        for (int i = 0; i < count; i++) {
-            pKeyIndices.add(in.readVInt());
-        }
-    }
-
     /**
      * @param checkConstraints must be accumulated map of all columns' constraints in case of adding multiple columns.
      *  This would be the case when we eventually support adding multiple column via ADD COLUMN statement.
@@ -82,25 +62,24 @@ public class AddColumnRequest extends AcknowledgedRequest<AddColumnRequest> {
         this.pKeyIndices.addAll(pKeyIndices);
     }
 
+    public AddColumnRequest(StreamInput in) throws IOException {
+        super(in);
+        relationName = new RelationName(in);
 
-    @Nonnull
-    public RelationName relationName() {
-        return this.relationName;
-    }
+        int count = in.readVInt();
+        for (int i = 0; i < count; i++) {
+            checkConstraints.add(StreamableCheckConstraint.readFrom(in));
+        }
 
-    @Nonnull
-    public List<StreamableCheckConstraint> checkConstraints() {
-        return this.checkConstraints;
-    }
+        count = in.readVInt();
+        for (int i = 0; i < count; i++) {
+            refs.add(Reference.fromStream(in));
+        }
 
-    @Nonnull
-    public List<Reference> references() {
-        return this.refs;
-    }
-
-    @Nonnull
-    public IntArrayList pKeyIndices() {
-        return this.pKeyIndices;
+        count = in.readVInt();
+        for (int i = 0; i < count; i++) {
+            pKeyIndices.add(in.readVInt());
+        }
     }
 
     @Override
@@ -122,6 +101,27 @@ public class AddColumnRequest extends AcknowledgedRequest<AddColumnRequest> {
         for (int i = 0; i < pKeyIndices.size(); i++) {
             out.writeVInt(pKeyIndices.get(i));
         }
+    }
+
+
+    @Nonnull
+    public RelationName relationName() {
+        return this.relationName;
+    }
+
+    @Nonnull
+    public List<StreamableCheckConstraint> checkConstraints() {
+        return this.checkConstraints;
+    }
+
+    @Nonnull
+    public List<Reference> references() {
+        return this.refs;
+    }
+
+    @Nonnull
+    public IntArrayList pKeyIndices() {
+        return this.pKeyIndices;
     }
 
     /**
