@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -66,6 +67,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.operators.SubQueryResults;
+import io.crate.sql.tree.CheckConstraint;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.ObjectType;
@@ -77,15 +79,68 @@ public class Indexer {
     private final SymbolEvaluator symbolEval;
     private final Map<ColumnIdent, Synthetic> synthetics;
     private final List<CollectExpression<Object[], Object>> expressions;
-    private final Map<ColumnIdent, GeneratedValidator> toValidate = new HashMap<>();
+    private final Map<ColumnIdent, Check> checks = new HashMap<>();
+    private final List<Constraint> constraints;
 
     record Synthetic(Input<?> input, ValueIndexer<Object> indexer) {
     }
 
-    record GeneratedValidator(Input<?> input, GeneratedReference ref) {
+    interface Check {
+
+        void verify(Object providedValue);
+    }
+
+    record Constraint(Input<?> input, CheckConstraint<Symbol> checkConstraint) {
+
+        void verify() {
+            Object value = input.value();
+            // SQL semantics: If a column is omitted from an INSERT/UPDATE statement,
+            // CHECK constraints should not fail. Same for writing explicit `null` values.
+            if (value instanceof Boolean bool) {
+                if (!bool) {
+                    throw new IllegalArgumentException(String.format(
+                        Locale.ENGLISH,
+                        "Failed CONSTRAINT %s CHECK (%s)",
+                        checkConstraint.name(),
+                        checkConstraint.expressionStr()));
+                }
+            }
+        }
+    }
+
+    record MultiCheck(List<Check> checks) implements Check {
+
+        @Override
+        public void verify(Object providedValue) {
+            for (var check : checks) {
+                check.verify(providedValue);
+            }
+        }
+
+        public static Check merge(Check check1, Check check2) {
+            if (check1 instanceof MultiCheck multiCheck) {
+                multiCheck.checks.add(check2);
+                return check1;
+            }
+            ArrayList<Check> checks = new ArrayList<>(2);
+            return new MultiCheck(checks);
+        }
+    }
+
+    record NotNull(ColumnIdent column) implements Check {
+
+        public void verify(Object providedValue) {
+            if (providedValue == null) {
+                throw new IllegalArgumentException("\"" + column + "\" must not be null");
+            }
+        }
+    }
+
+    record CheckGeneratedValue(Input<?> input, GeneratedReference ref) implements Check {
 
         @SuppressWarnings("unchecked")
-        void ensureMatch(Object providedValue) {
+        @Override
+        public void verify(Object providedValue) {
             DataType<Object> valueType = (DataType<Object>) ref.valueType();
             Object generatedValue = input.value();
             int compare = Comparator
@@ -124,7 +179,13 @@ public class Indexer {
                     return new ArrayCollectExpression(index);
                 }
                 if (ref.column().isTopLevel()) {
-                    throw new IllegalStateException("Top level column must exist in targetColumns");
+                    Symbol defaultExpression = ref.defaultExpression();
+                    if (defaultExpression == null || targetColumns.contains(ref)) {
+                        return NestableCollectExpression.constant(null);
+                    }
+                    return NestableCollectExpression.constant(
+                        defaultExpression.accept(symbolEval, Row.EMPTY).value()
+                    );
                 }
                 ColumnIdent root = ref.column().getRoot();
                 int rootIdx = -1;
@@ -164,6 +225,17 @@ public class Indexer {
             );
             addToValidate(table, ctxForRefs, ref);
         }
+        for (var column : table.notNullColumns()) {
+            Reference ref = table.getReference(column);
+            assert ref != null : "Column in #notNullColumns must be available via table.getReference";
+            checks.merge(ref.column(), new NotNull(column), MultiCheck::merge);
+        }
+        this.constraints = new ArrayList<>(table.checkConstraints().size());
+        for (var constraint : table.checkConstraints()) {
+            Symbol expression = constraint.expression();
+            Input<?> input = ctxForRefs.add(expression);
+            constraints.add(new Constraint(input, constraint));
+        }
         for (var ref : table.defaultExpressionColumns()) {
             if (targetColumns.contains(ref) || ref.granularity() == RowGranularity.PARTITION) {
                 continue;
@@ -201,7 +273,7 @@ public class Indexer {
                                Reference ref) {
         if (ref instanceof GeneratedReference generated && ref.granularity() == RowGranularity.DOC) {
             Input<?> input = ctxForRefs.add(generated.generatedExpression());
-            toValidate.put(ref.column(), new GeneratedValidator(input, generated));
+            checks.put(ref.column(), new CheckGeneratedValue(input, generated));
         }
         if (ref.valueType() instanceof ObjectType objectType) {
             for (var entry : objectType.innerTypes().entrySet()) {
@@ -234,12 +306,13 @@ public class Indexer {
         for (int i = 0; i < values.length; i++) {
             Reference reference = columns.get(i);
             Symbol defaultExpression = reference.defaultExpression();
-            Object value = values[i];
-            if (value == null && defaultExpression != null) {
+            Object value = reference.valueType().valueForInsert(values[i]);
+            if (value == null && defaultExpression != null && !columns.contains(reference)) {
                 value = defaultExpression.accept(symbolEval, Row.EMPTY).value();
-            } else if (reference instanceof GeneratedReference generated) {
-                var validator = toValidate.get(reference.column());
-                validator.ensureMatch(value);
+            }
+            Check check = checks.get(reference.column());
+            if (check != null) {
+                check.verify(value);
             }
             ValueIndexer<Object> valueIndexer = (ValueIndexer<Object>) valueIndexers.get(i);
             xContentBuilder.field(reference.column().leafName());
@@ -249,7 +322,7 @@ public class Indexer {
                 addField,
                 onDynamicColumn,
                 synthetics,
-                toValidate
+                checks
             );
         }
         for (var entry : synthetics.entrySet()) {
@@ -267,10 +340,14 @@ public class Indexer {
                 addField,
                 onDynamicColumn,
                 synthetics,
-                toValidate
+                checks
             );
         }
         xContentBuilder.endObject();
+
+        for (var constraint : constraints) {
+            constraint.verify();
+        }
 
         NumericDocValuesField version = new NumericDocValuesField(DocSysColumns.Names.VERSION, -1L);
         doc.add(version);
@@ -304,6 +381,7 @@ public class Indexer {
     public boolean isSupported() {
         return true && valueIndexers.stream().noneMatch(x -> x == null)
             && columns.stream().noneMatch(x -> x.valueType().id() == ObjectType.ID)
+            && columns.stream().noneMatch(x -> x.column().equals(DocSysColumns.RAW))
             && columns.stream().noneMatch(x -> x.valueType() instanceof ArrayType);
     }
 }

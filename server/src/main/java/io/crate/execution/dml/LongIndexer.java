@@ -53,7 +53,7 @@ public class LongIndexer implements ValueIndexer<Long> {
                            Consumer<? super IndexableField> addField,
                            Consumer<? super Reference> onDynamicColumn,
                            Map<ColumnIdent, Indexer.Synthetic> synthetics,
-                           Map<ColumnIdent, Indexer.GeneratedValidator> toValidate) throws IOException {
+                           Map<ColumnIdent, Indexer.Check> toValidate) throws IOException {
         xcontentBuilder.value(value);
         if (value == null) {
             return;

@@ -148,11 +148,11 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             List.of(y)
         );
         var parsedDoc = indexer.index("id1", new Object[] { null });
-        assertThat(parsedDoc.source().utf8ToString()).isEqualTo(
-            "{\"y\":0}"
-        );
+        assertThat(parsedDoc.source().utf8ToString())
+            .as("If explicit null value is provided, the default expression is not applied")
+            .isEqualTo( "{\"y\":null}");
         assertThat(parsedDoc.doc().getFields())
-            .hasSize(8);
+            .hasSize(6);
 
         indexer = new Indexer(
             table,
@@ -233,21 +233,26 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_default_for_full_object() throws Exception {
         var executor = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (o object as (x int) default {x=10})")
+            .addTable("create table tbl (x int, o object as (x int) default {x=10})")
             .build();
         DocTableInfo table = executor.resolveTableInfo("tbl");
-        Reference o = table.getReference(new ColumnIdent("o"));
+        Reference x = table.getReference(new ColumnIdent("x"));
         Indexer indexer = new Indexer(
             table,
             new CoordinatorTxnCtx(executor.getSessionSettings()),
             executor.nodeCtx,
             column -> NumberFieldMapper.FIELD_TYPE,
-            List.of(o)
+            List.of(x)
         );
-        var parsedDoc = indexer.index("id1", new Object[] { null });
-        assertThat(parsedDoc.source().utf8ToString()).isEqualTo(
-            "{\"o\":{\"x\":10}}"
-        );
+        var parsedDoc = indexer.index("id1", 42);
+        assertThat(parsedDoc.source().utf8ToString()).isEqualToIgnoringWhitespace("""
+            {
+                "x":42,
+                "o": {
+                    "x": 10
+                }
+            }
+        """);
     }
 
     @Test
@@ -278,5 +283,60 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         );
         assertThatThrownBy(() -> indexer2.index("id1", 1, Map.of("z", 10)))
             .hasMessage("Given value 10 for generated column o['z'] does not match calculation (x + 3) = 4");
+    }
+
+    @Test
+    public void test_index_fails_if_not_null_column_has_null_value() throws Exception {
+        SQLExecutor executor = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (x int not null, y int default 0 NOT NULL)")
+            .build();
+        DocTableInfo table = executor.resolveTableInfo("tbl");
+        Indexer indexer = new Indexer(
+            table,
+            new CoordinatorTxnCtx(executor.getSessionSettings()),
+            executor.nodeCtx,
+            column -> NumberFieldMapper.FIELD_TYPE,
+            List.of(
+                table.getReference(new ColumnIdent("x"))
+            )
+        );
+        assertThatThrownBy(() -> indexer.index("id1", new Object[] { null }))
+            .hasMessage("\"x\" must not be null");
+
+        ParsedDocument parsedDoc = indexer.index("id2", 10);
+        assertThat(parsedDoc.source().utf8ToString()).isEqualToIgnoringWhitespace("""
+            {"x":10, "y":0}
+        """);
+    }
+
+    @Test
+    public void test_index_fails_if_check_constraint_returns_false() throws Exception {
+        SQLExecutor executor = SQLExecutor.builder(clusterService)
+            .addTable("""
+                create table tbl (
+                    x int not null constraint c1 check (x > 10),
+                    y int constraint c2 check (y < 3),
+                    z int default 0 check (z > 0)
+                )
+                """)
+            .build();
+        DocTableInfo table = executor.resolveTableInfo("tbl");
+        Indexer indexer = new Indexer(
+            table,
+            new CoordinatorTxnCtx(executor.getSessionSettings()),
+            executor.nodeCtx,
+            column -> NumberFieldMapper.FIELD_TYPE,
+            List.of(
+                table.getReference(new ColumnIdent("x")),
+                table.getReference(new ColumnIdent("z"))
+            )
+        );
+        assertThatThrownBy(() -> indexer.index("id1", 8, 10))
+            .hasMessage("Failed CONSTRAINT c1 CHECK (\"x\" > 10)");
+
+        ParsedDocument parsedDoc = indexer.index("id1", 20, null);
+        assertThat(parsedDoc.source().utf8ToString()).isEqualToIgnoringWhitespace("""
+            {"x":20, "z":null}
+        """);
     }
 }

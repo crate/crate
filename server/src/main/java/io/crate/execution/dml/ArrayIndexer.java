@@ -46,7 +46,7 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
                            Consumer<? super IndexableField> addField,
                            Consumer<? super Reference> onDynamicColumn,
                            Map<ColumnIdent, Indexer.Synthetic> synthetics,
-                           Map<ColumnIdent, Indexer.GeneratedValidator> toValidate) throws IOException {
+                           Map<ColumnIdent, Indexer.Check> toValidate) throws IOException {
         xContentBuilder.startArray();
         for (T value : values) {
             innerIndexer.indexValue(value, xContentBuilder, addField, onDynamicColumn, synthetics, toValidate);

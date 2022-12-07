@@ -53,7 +53,7 @@ public class IntIndexer implements ValueIndexer<Integer> {
                            Consumer<? super IndexableField> addField,
                            Consumer<? super Reference> onDynamicColumn,
                            Map<ColumnIdent, Indexer.Synthetic> synthetics,
-                           Map<ColumnIdent, Indexer.GeneratedValidator> toValidate) throws IOException {
+                           Map<ColumnIdent, Indexer.Check> toValidate) throws IOException {
         xContentBuilder.value(value);
         if (value == null) {
             return;

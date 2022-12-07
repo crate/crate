@@ -27,11 +27,13 @@ import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+import javax.annotation.Nullable;
+
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.IndexableField;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 
-import io.crate.execution.dml.Indexer.GeneratedValidator;
+import io.crate.execution.dml.Indexer.Check;
 import io.crate.execution.dml.Indexer.Synthetic;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
@@ -81,14 +83,56 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
     }
 
     @Override
-    @SuppressWarnings("unchecked")
-    public void indexValue(Map<String, Object> value,
+    public void indexValue(@Nullable Map<String, Object> value,
                            XContentBuilder xContentBuilder,
                            Consumer<? super IndexableField> addField,
                            Consumer<? super Reference> onDynamicColumn,
                            Map<ColumnIdent, Indexer.Synthetic> synthetics,
-                           Map<ColumnIdent, Indexer.GeneratedValidator> toValidate) throws IOException {
+                           Map<ColumnIdent, Indexer.Check> checks) throws IOException {
+        if (value == null) {
+            // TODO: check if any synthetics, if not don't create empty object
+        }
         xContentBuilder.startObject();
+        if (value != null) {
+            addNewColumns(value, xContentBuilder, addField, onDynamicColumn, synthetics, checks);
+        }
+        for (var entry : objectType.innerTypes().entrySet()) {
+            String innerName = entry.getKey();
+            ColumnIdent innerColumn = column.getChild(innerName);
+            Object innerValue = value == null ? null : value.get(innerName);
+            if (innerValue == null) {
+                Synthetic synthetic = synthetics.get(innerColumn);
+                if (synthetic != null) {
+                    innerValue = synthetic.input().value();
+                }
+            }
+            Check check = checks.get(innerColumn);
+            if (check != null) {
+                check.verify(innerValue);
+            }
+            var valueIndexer = innerIndexers.get(innerName);
+            assert valueIndexer != null : "ValueIndexer must exist for inner column retrieved from ObjectType information";
+
+            xContentBuilder.field(innerName);
+            valueIndexer.indexValue(
+                innerValue,
+                xContentBuilder,
+                addField,
+                onDynamicColumn,
+                synthetics,
+                checks
+            );
+        }
+        xContentBuilder.endObject();
+    }
+
+    @SuppressWarnings("unchecked")
+    private void addNewColumns(Map<String, Object> value,
+                               XContentBuilder xContentBuilder,
+                               Consumer<? super IndexableField> addField,
+                               Consumer<? super Reference> onDynamicColumn,
+                               Map<ColumnIdent, Indexer.Synthetic> synthetics,
+                               Map<ColumnIdent, Indexer.Check> checks) throws IOException {
         for (var entry : value.entrySet()) {
             String innerName = entry.getKey();
             Object innerValue = entry.getValue();
@@ -124,38 +168,9 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
                     addField,
                     onDynamicColumn,
                     synthetics,
-                    toValidate
+                    checks
                 );
             }
         }
-        for (var entry : objectType.innerTypes().entrySet()) {
-            String innerName = entry.getKey();
-            ColumnIdent innerColumn = column.getChild(innerName);
-            Object innerValue = value.get(innerName);
-            if (innerValue == null) {
-                Synthetic synthetic = synthetics.get(innerColumn);
-                if (synthetic != null) {
-                    innerValue = synthetic.input().value();
-                }
-            } else {
-                GeneratedValidator generatedValidator = toValidate.get(innerColumn);
-                if (generatedValidator != null) {
-                    generatedValidator.ensureMatch(innerValue);
-                }
-            }
-            var valueIndexer = innerIndexers.get(innerName);
-            assert valueIndexer != null : "ValueIndexer must exist for inner column retrieved from ObjectType information";
-
-            xContentBuilder.field(innerName);
-            valueIndexer.indexValue(
-                innerValue,
-                xContentBuilder,
-                addField,
-                onDynamicColumn,
-                synthetics,
-                toValidate
-            );
-        }
-        xContentBuilder.endObject();
     }
 }

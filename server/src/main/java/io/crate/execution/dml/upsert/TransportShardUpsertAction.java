@@ -42,7 +42,6 @@ import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.Term;
 import org.elasticsearch.action.support.replication.ReplicationOperation;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
-import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.bytes.BytesReference;

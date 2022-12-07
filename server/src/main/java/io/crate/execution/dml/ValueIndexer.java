@@ -25,20 +25,22 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.function.Consumer;
 
+import javax.annotation.Nullable;
+
 import org.apache.lucene.index.IndexableField;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 
-import io.crate.execution.dml.Indexer.GeneratedValidator;
+import io.crate.execution.dml.Indexer.Check;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 
 public interface ValueIndexer<T> {
 
     void indexValue(
-        T value,
+        @Nullable T value,
         XContentBuilder xcontentBuilder,
         Consumer<? super IndexableField> addField,
         Consumer<? super Reference> onDynamicColumn,
-        Map<ColumnIdent, Indexer.Synthetic> synthetics, Map<ColumnIdent, GeneratedValidator> toValidate
+        Map<ColumnIdent, Indexer.Synthetic> synthetics, Map<ColumnIdent, Check> toValidate
     ) throws IOException;
 }
