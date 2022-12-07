@@ -23,6 +23,8 @@ package io.crate.testing;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.List;
+
 import org.assertj.core.api.AbstractAssert;
 
 public final class SQLResponseAssert extends AbstractAssert<SQLResponseAssert, SQLResponse> {
@@ -34,6 +36,26 @@ public final class SQLResponseAssert extends AbstractAssert<SQLResponseAssert, S
     public SQLResponseAssert hasRowCount(long expectedRowCount) {
         isNotNull();
         assertThat(actual.rowCount()).isEqualTo(expectedRowCount);
+        return this;
+    }
+
+    public SQLResponseAssert hasRows(String printedRows) {
+        assertThat(TestingHelpers.printedTable(actual.rows())).isEqualTo(printedRows);
+        return this;
+    }
+
+    public SQLResponseAssert hasRows(Object[] ... rows) {
+        assertThat(List.of(actual.rows())).contains(rows);
+        return this;
+    }
+
+    public SQLResponseAssert hasRowsInAnyOrder(Object[] ... rows) {
+        assertThat(List.of(actual.rows())).containsExactlyInAnyOrder(rows);
+        return this;
+    }
+
+    public SQLResponseAssert hasColumns(String ... names) {
+        assertThat(actual.cols()).contains(names);
         return this;
     }
 }
