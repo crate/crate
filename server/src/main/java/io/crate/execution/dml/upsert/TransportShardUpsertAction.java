@@ -157,6 +157,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             indexer = insertColumns == null
                 ? null
                 : new Indexer(
+                    indexName,
                     tableInfo,
                     txnCtx,
                     nodeCtx,
@@ -363,7 +364,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
 
             // TODO: Move some of this into IndexShard and keep assertions
             long startTime = System.nanoTime();
-            ParsedDocument parsedDoc = indexer.index(item.id(), item.insertValues());
+            ParsedDocument parsedDoc = indexer.index(item.id(), item.pkValues(), item.insertValues());
             if (!parsedDoc.newColumns().isEmpty()) {
                 var addColumnRequest = new AddColumnRequest(
                     RelationName.fromIndexName(indexShard.shardId().getIndexName()),

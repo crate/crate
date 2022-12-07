@@ -33,7 +33,7 @@ import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.IndexableField;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 
-import io.crate.execution.dml.Indexer.Check;
+import io.crate.execution.dml.Indexer.ColumnConstraint;
 import io.crate.execution.dml.Indexer.Synthetic;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
@@ -88,7 +88,7 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
                            Consumer<? super IndexableField> addField,
                            Consumer<? super Reference> onDynamicColumn,
                            Map<ColumnIdent, Indexer.Synthetic> synthetics,
-                           Map<ColumnIdent, Indexer.Check> checks) throws IOException {
+                           Map<ColumnIdent, Indexer.ColumnConstraint> checks) throws IOException {
         if (value == null) {
             // TODO: check if any synthetics, if not don't create empty object
         }
@@ -106,7 +106,7 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
                     innerValue = synthetic.input().value();
                 }
             }
-            Check check = checks.get(innerColumn);
+            ColumnConstraint check = checks.get(innerColumn);
             if (check != null) {
                 check.verify(innerValue);
             }
@@ -132,7 +132,7 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
                                Consumer<? super IndexableField> addField,
                                Consumer<? super Reference> onDynamicColumn,
                                Map<ColumnIdent, Indexer.Synthetic> synthetics,
-                               Map<ColumnIdent, Indexer.Check> checks) throws IOException {
+                               Map<ColumnIdent, Indexer.ColumnConstraint> checks) throws IOException {
         for (var entry : value.entrySet()) {
             String innerName = entry.getKey();
             Object innerValue = entry.getValue();

@@ -51,7 +51,6 @@ import io.crate.analyze.SymbolEvaluator;
 import io.crate.common.collections.Maps;
 import io.crate.data.Input;
 import io.crate.data.Row;
-import io.crate.execution.engine.collect.ArrayCollectExpression;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.InputFactory;
@@ -61,6 +60,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
@@ -78,21 +78,120 @@ public class Indexer {
     private final List<Reference> columns;
     private final SymbolEvaluator symbolEval;
     private final Map<ColumnIdent, Synthetic> synthetics;
-    private final List<CollectExpression<Object[], Object>> expressions;
-    private final Map<ColumnIdent, Check> checks = new HashMap<>();
-    private final List<Constraint> constraints;
+    private final List<CollectExpression<InsertValues, Object>> expressions;
+    private final Map<ColumnIdent, ColumnConstraint> columnConstraints = new HashMap<>();
+    private final List<TableConstraint> tableConstraints;
+
+
+    record InsertValues(List<String> pkValues, Object[] values) {
+    }
+
+    static class RefResolver implements ReferenceResolver<CollectExpression<InsertValues, Object>> {
+
+        private final PartitionName partitionName;
+        private final List<Reference> targetColumns;
+        private final DocTableInfo table;
+        private final SymbolEvaluator symbolEval;
+
+        private RefResolver(SymbolEvaluator symbolEval,
+                            PartitionName partitionName,
+                            List<Reference> targetColumns,
+                            DocTableInfo table) {
+            this.symbolEval = symbolEval;
+            this.partitionName = partitionName;
+            this.targetColumns = targetColumns;
+            this.table = table;
+        }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public CollectExpression<InsertValues, Object> getImplementation(Reference ref) {
+            int pkIndex = table.primaryKey().indexOf(ref.column());
+            if (pkIndex > -1) {
+                return NestableCollectExpression.forFunction(values -> values.pkValues.get(pkIndex));
+            }
+            int index = targetColumns.indexOf(ref);
+            if (index > -1) {
+                return NestableCollectExpression.forFunction(values -> values.values[index]);
+            }
+            if (ref.granularity() == RowGranularity.PARTITION) {
+                int pIndex = table.partitionedByColumns().indexOf(ref);
+                if (pIndex > -1) {
+                    String val = partitionName.values().get(pIndex);
+                    return NestableCollectExpression.constant(val);
+                } else {
+                    return NestableCollectExpression.constant(null);
+                }
+            }
+            if (ref.column().isTopLevel()) {
+                if (targetColumns.contains(ref)) {
+                    return NestableCollectExpression.constant(null);
+                }
+                Symbol defaultExpression = ref.defaultExpression();
+                if (defaultExpression == null) {
+                    return NestableCollectExpression.constant(null);
+                }
+                return NestableCollectExpression.constant(
+                    defaultExpression.accept(symbolEval, Row.EMPTY).value()
+                );
+            }
+            ColumnIdent root = ref.column().getRoot();
+            int rootIdx = -1;
+            for (int i = 0; i < targetColumns.size(); i++) {
+                if (targetColumns.get(i).column().equals(root)) {
+                    rootIdx = i;
+                    break;
+                }
+            }
+            final int rootIndex = rootIdx;
+            Function<InsertValues, Object> getValue = values -> {
+                Object val = values.values[rootIndex];
+                if (val instanceof Map<?, ?> m) {
+                    List<String> path = ref.column().path();
+                    val = Maps.getByPath((Map<String, Object>) m, path);
+                }
+                if (val == null) {
+                    Symbol defaultExpression = ref.defaultExpression();
+                    if (defaultExpression != null) {
+                        val = defaultExpression.accept(symbolEval, Row.EMPTY).value();
+                    }
+                }
+                return val;
+            };
+            return NestableCollectExpression.forFunction(getValue);
+        }
+    }
 
     record Synthetic(Input<?> input, ValueIndexer<Object> indexer) {
     }
 
-    interface Check {
+    interface ColumnConstraint {
 
         void verify(Object providedValue);
     }
 
-    record Constraint(Input<?> input, CheckConstraint<Symbol> checkConstraint) {
+    interface TableConstraint {
 
-        void verify() {
+        void verify();
+    }
+
+    record MissingNotNullConstraint(ColumnIdent column, Input<?> input) implements TableConstraint {
+
+        @Override
+        public void verify() {
+            Object value = input.value();
+            if (value == null) {
+                throw new IllegalArgumentException("\"" + column + "\" must not be null");
+            }
+        }
+    }
+
+    record TableCheckConstraint(
+            Input<?> input,
+            CheckConstraint<Symbol> checkConstraint) implements TableConstraint {
+
+        @Override
+        public void verify() {
             Object value = input.value();
             // SQL semantics: If a column is omitted from an INSERT/UPDATE statement,
             // CHECK constraints should not fail. Same for writing explicit `null` values.
@@ -108,7 +207,7 @@ public class Indexer {
         }
     }
 
-    record MultiCheck(List<Check> checks) implements Check {
+    record MultiCheck(List<ColumnConstraint> checks) implements ColumnConstraint {
 
         @Override
         public void verify(Object providedValue) {
@@ -117,17 +216,17 @@ public class Indexer {
             }
         }
 
-        public static Check merge(Check check1, Check check2) {
+        public static ColumnConstraint merge(ColumnConstraint check1, ColumnConstraint check2) {
             if (check1 instanceof MultiCheck multiCheck) {
                 multiCheck.checks.add(check2);
                 return check1;
             }
-            ArrayList<Check> checks = new ArrayList<>(2);
+            ArrayList<ColumnConstraint> checks = new ArrayList<>(2);
             return new MultiCheck(checks);
         }
     }
 
-    record NotNull(ColumnIdent column) implements Check {
+    record NotNull(ColumnIdent column) implements ColumnConstraint {
 
         public void verify(Object providedValue) {
             if (providedValue == null) {
@@ -136,7 +235,7 @@ public class Indexer {
         }
     }
 
-    record CheckGeneratedValue(Input<?> input, GeneratedReference ref) implements Check {
+    record CheckGeneratedValue(Input<?> input, GeneratedReference ref) implements ColumnConstraint {
 
         @SuppressWarnings("unchecked")
         @Override
@@ -161,7 +260,8 @@ public class Indexer {
     }
 
     @SuppressWarnings("unchecked")
-    public Indexer(DocTableInfo table,
+    public Indexer(String indexName,
+                   DocTableInfo table,
                    TransactionContext txnCtx,
                    NodeContext nodeCtx,
                    Function<ColumnIdent, FieldType> getFieldType,
@@ -169,51 +269,12 @@ public class Indexer {
         this.symbolEval = new SymbolEvaluator(txnCtx, nodeCtx, SubQueryResults.EMPTY);
         this.columns = targetColumns;
         this.synthetics = new HashMap<>();
+        PartitionName partitionName = table.isPartitioned()
+            ? PartitionName.fromIndexOrTemplate(indexName)
+            : null;
         InputFactory inputFactory = new InputFactory(nodeCtx);
-        var referenceResolver = new ReferenceResolver<CollectExpression<Object[], Object>>() {
-
-            @Override
-            public CollectExpression<Object[], Object> getImplementation(Reference ref) {
-                int index = targetColumns.indexOf(ref);
-                if (index > -1) {
-                    return new ArrayCollectExpression(index);
-                }
-                if (ref.column().isTopLevel()) {
-                    Symbol defaultExpression = ref.defaultExpression();
-                    if (defaultExpression == null || targetColumns.contains(ref)) {
-                        return NestableCollectExpression.constant(null);
-                    }
-                    return NestableCollectExpression.constant(
-                        defaultExpression.accept(symbolEval, Row.EMPTY).value()
-                    );
-                }
-                ColumnIdent root = ref.column().getRoot();
-                int rootIdx = -1;
-                for (int i = 0; i < targetColumns.size(); i++) {
-                    if (targetColumns.get(i).column().equals(root)) {
-                        rootIdx = i;
-                        break;
-                    }
-                }
-                final int rootIndex = rootIdx;
-                Function<Object[], Object> getValue = array -> {
-                    Object val = array[rootIndex];
-                    if (val instanceof Map<?, ?> m) {
-                        List<String> path = ref.column().path();
-                        val = Maps.getByPath((Map<String, Object>) m, path);
-                    }
-                    if (val == null) {
-                        Symbol defaultExpression = ref.defaultExpression();
-                        if (defaultExpression != null) {
-                            val = defaultExpression.accept(symbolEval, Row.EMPTY).value();
-                        }
-                    }
-                    return val;
-                };
-                return NestableCollectExpression.forFunction(getValue);
-            }
-        };
-        Context<CollectExpression<Object[], Object>> ctxForRefs = inputFactory.ctxForRefs(
+        var referenceResolver = new RefResolver(symbolEval, partitionName, targetColumns, table);
+        Context<CollectExpression<InsertValues, Object>> ctxForRefs = inputFactory.ctxForRefs(
             txnCtx,
             referenceResolver
         );
@@ -225,22 +286,32 @@ public class Indexer {
             );
             addToValidate(table, ctxForRefs, ref);
         }
+        this.tableConstraints = new ArrayList<>(table.checkConstraints().size());
         for (var column : table.notNullColumns()) {
             Reference ref = table.getReference(column);
             assert ref != null : "Column in #notNullColumns must be available via table.getReference";
-            checks.merge(ref.column(), new NotNull(column), MultiCheck::merge);
+            if (targetColumns.contains(ref)) {
+                columnConstraints.merge(ref.column(), new NotNull(column), MultiCheck::merge);
+            } else if (ref instanceof GeneratedReference generated) {
+                Input<?> input = ctxForRefs.add(generated.generatedExpression());
+                tableConstraints.add(new MissingNotNullConstraint(column, input));
+            } else {
+                Input<?> input = ctxForRefs.add(ref);
+                tableConstraints.add(new MissingNotNullConstraint(column, input));
+            }
         }
-        this.constraints = new ArrayList<>(table.checkConstraints().size());
         for (var constraint : table.checkConstraints()) {
             Symbol expression = constraint.expression();
             Input<?> input = ctxForRefs.add(expression);
-            constraints.add(new Constraint(input, constraint));
+            tableConstraints.add(new TableCheckConstraint(input, constraint));
         }
         for (var ref : table.defaultExpressionColumns()) {
             if (targetColumns.contains(ref) || ref.granularity() == RowGranularity.PARTITION) {
                 continue;
             }
-            Input<?> input = ctxForRefs.add(ref.defaultExpression());
+            Input<?> input = table.primaryKey().contains(ref.column())
+                ? ctxForRefs.add(ref)
+                : ctxForRefs.add(ref.defaultExpression());
             ValueIndexer<Object> valueIndexer = (ValueIndexer<Object>) ref.valueType().valueIndexer(
                 table.ident(),
                 ref,
@@ -269,11 +340,11 @@ public class Indexer {
     }
 
     private void addToValidate(DocTableInfo table,
-                               Context<CollectExpression<Object[], Object>> ctxForRefs,
+                               Context<?> ctxForRefs,
                                Reference ref) {
         if (ref instanceof GeneratedReference generated && ref.granularity() == RowGranularity.DOC) {
             Input<?> input = ctxForRefs.add(generated.generatedExpression());
-            checks.put(ref.column(), new CheckGeneratedValue(input, generated));
+            columnConstraints.put(ref.column(), new CheckGeneratedValue(input, generated));
         }
         if (ref.valueType() instanceof ObjectType objectType) {
             for (var entry : objectType.innerTypes().entrySet()) {
@@ -289,7 +360,7 @@ public class Indexer {
     }
 
     @SuppressWarnings("unchecked")
-    public ParsedDocument index(String id, Object ... values) throws IOException {
+    public ParsedDocument index(String id, List<String> pkValues, Object ... values) throws IOException {
         assert values.length == valueIndexers.size()
             : "Number of values must match number of targetColumns/valueIndexers";
 
@@ -298,8 +369,9 @@ public class Indexer {
         ArrayList<Reference> newColumns = new ArrayList<>();
         Consumer<? super Reference> onDynamicColumn = newColumns::add;
         // TODO: re-use stream?
+        InsertValues insertValues = new InsertValues(pkValues, values);
         for (var expression : expressions) {
-            expression.setNextRow(values);
+            expression.setNextRow(insertValues);
         }
         XContentBuilder xContentBuilder = XContentFactory.jsonBuilder();
         xContentBuilder.startObject();
@@ -310,9 +382,12 @@ public class Indexer {
             if (value == null && defaultExpression != null && !columns.contains(reference)) {
                 value = defaultExpression.accept(symbolEval, Row.EMPTY).value();
             }
-            Check check = checks.get(reference.column());
+            ColumnConstraint check = columnConstraints.get(reference.column());
             if (check != null) {
                 check.verify(value);
+            }
+            if (reference.granularity() == RowGranularity.PARTITION) {
+                continue;
             }
             ValueIndexer<Object> valueIndexer = (ValueIndexer<Object>) valueIndexers.get(i);
             xContentBuilder.field(reference.column().leafName());
@@ -322,7 +397,7 @@ public class Indexer {
                 addField,
                 onDynamicColumn,
                 synthetics,
-                checks
+                columnConstraints
             );
         }
         for (var entry : synthetics.entrySet()) {
@@ -340,12 +415,12 @@ public class Indexer {
                 addField,
                 onDynamicColumn,
                 synthetics,
-                checks
+                columnConstraints
             );
         }
         xContentBuilder.endObject();
 
-        for (var constraint : constraints) {
+        for (var constraint : tableConstraints) {
             constraint.verify();
         }
 

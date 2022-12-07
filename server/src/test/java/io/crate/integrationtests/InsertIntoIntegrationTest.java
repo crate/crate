@@ -1453,6 +1453,8 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
                 "partitioned by (country) " +
                 "clustered into 1 shards");
 
+        execute("select * from tsrc");
+        Asserts.assertThat(response).hasRowCount(1);
         execute("insert into tdst (country, name) (select country, name from tsrc)");
         assertThat(response.rowCount(), is(1L));
     }
