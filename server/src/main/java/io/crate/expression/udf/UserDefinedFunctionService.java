@@ -308,6 +308,7 @@ public class UserDefinedFunctionService {
             for (var ref : tableInfo.columns()) {
                 if (ref instanceof GeneratedReference) {
                     var genRef = (GeneratedReference) ref;
+                    // would this expression become lower cased?
                     Expression expression = SqlParser.createExpression(genRef.formattedGeneratedExpression());
                     try {
                         exprAnalyzer.convert(expression, new ExpressionAnalysisContext(coordinatorTxnCtx.sessionSettings()));

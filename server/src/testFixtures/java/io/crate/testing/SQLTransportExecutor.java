@@ -167,6 +167,7 @@ public class SQLTransportExecutor {
                             // create un-fully-qualified relations will fail. we filter it out and will implicitly
                             // remain the first in the search path.
                             .filter(s -> !s.equals(PgCatalogSchemaInfo.NAME))
+                            .map(t -> t = "\"" + t + "\"")
                             .collect(Collectors.joining(", "))
         );
 

@@ -132,7 +132,20 @@ public class Identifiers {
     }
 
     private static boolean quotesRequired(String identifier) {
-        return isKeyWord(identifier) || !IDENTIFIER.matcher(identifier).matches();
+        return containsUpperCase(identifier) || isKeyWord(identifier) || !IDENTIFIER.matcher(identifier).matches();
+    }
+
+    public static boolean containsUpperCase(String identifier) {
+        if (identifier == null) {
+            return false;
+        }
+        for (int i = 0; i < identifier.length(); i++) {
+            char c = identifier.charAt(i);
+            if (c >= 'A' && c <= 'Z') {
+                return true;
+            }
+        }
+        return false;
     }
 
     public static boolean isKeyWord(String identifier) {

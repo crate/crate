@@ -2165,12 +2165,7 @@ public abstract class IntegTestCase extends ESTestCase {
             if (!Schemas.READ_ONLY_SYSTEM_SCHEMAS.contains(schemaName) &&
                 !Identifiers.isKeyWord(schemaName) &&
                 !containsExtendedAsciiChars(schemaName)) {
-                if (random.nextBoolean()) {
-                    schemaName = "_" + schemaName;
-                }
-                if (random.nextBoolean()) {
-                    schemaName = "\"" + schemaName + "\"";
-                }
+                //schemaName = "_" + schemaName;
                 return schemaName;
             }
         }

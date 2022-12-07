@@ -75,6 +75,7 @@ import io.crate.metadata.SimpleReference;
 import io.crate.metadata.table.ColumnPolicies;
 import io.crate.metadata.table.Operation;
 import io.crate.replication.logical.metadata.PublicationsMetadata;
+import io.crate.sql.Identifiers;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.CheckConstraint;
 import io.crate.sql.tree.ColumnPolicy;
@@ -661,7 +662,12 @@ public class DocIndexMetadata {
         checkConstraints = checkConstraintsBuilder != null ? List.copyOf(checkConstraintsBuilder) : List.of();
 
         for (var generatedReference : generatedColumnReferences) {
-            Expression expression = SqlParser.createExpression(generatedReference.formattedGeneratedExpression());
+            String schema = generatedReference.reference().ident().tableIdent().schema();
+            Expression expression = SqlParser.createExpression(
+                Identifiers.containsUpperCase(schema) ?
+                    generatedReference.formattedGeneratedExpression().replace(schema, "\"" + schema + "\"") :
+                    generatedReference.formattedGeneratedExpression()
+            );
             tableReferenceResolver.references().clear();
             generatedReference.generatedExpression(exprAnalyzer.convert(expression, analysisCtx));
             generatedReference.referencedReferences(List.copyOf(tableReferenceResolver.references()));
