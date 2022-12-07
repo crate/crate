@@ -37,6 +37,7 @@ import io.crate.expression.scalar.arithmetic.RadiansDegreesFunctions;
 import io.crate.expression.scalar.arithmetic.RandomFunction;
 import io.crate.expression.scalar.arithmetic.RoundFunction;
 import io.crate.expression.scalar.arithmetic.SquareRootFunction;
+import io.crate.expression.scalar.arithmetic.SubtractTimestampScalar;
 import io.crate.expression.scalar.arithmetic.TrigonometricFunctions;
 import io.crate.expression.scalar.arithmetic.TruncFunction;
 import io.crate.expression.scalar.bitwise.BitwiseFunctions;
@@ -111,6 +112,7 @@ public class ScalarFunctionModule extends AbstractFunctionModule<FunctionImpleme
 
         ArithmeticFunctions.register(this);
         BitwiseFunctions.register(this);
+        SubtractTimestampScalar.register(this);
         IntervalTimestampArithmeticScalar.register(this);
         IntervalArithmeticScalar.register(this);
 

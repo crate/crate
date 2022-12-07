@@ -135,17 +135,29 @@ public class ArithmeticFunctions {
                 (signature, boundSignature) ->
                     new BinaryScalar<>(op.integerFunction, signature, boundSignature, DataTypes.INTEGER)
             );
-            for (var type : List.of(DataTypes.LONG, DataTypes.TIMESTAMP, DataTypes.TIMESTAMPZ)) {
-                module.register(
-                    Signature.scalar(
-                        op.toString(),
-                        type.getTypeSignature(),
-                        type.getTypeSignature(),
-                        type.getTypeSignature()
-                    ).withFeatures(op.features),
-                    (signature, boundSignature) ->
-                        new BinaryScalar<>(op.longFunction, signature, boundSignature, type)
-                );
+            module.register(
+                Signature.scalar(
+                    op.toString(),
+                    DataTypes.LONG.getTypeSignature(),
+                    DataTypes.LONG.getTypeSignature(),
+                    DataTypes.LONG.getTypeSignature()
+                ).withFeatures(op.features),
+                (signature, boundSignature) ->
+                    new BinaryScalar<>(op.longFunction, signature, boundSignature, DataTypes.LONG)
+            );
+            if (op != Operations.SUBTRACT) {
+                for (var type : List.of(DataTypes.TIMESTAMP, DataTypes.TIMESTAMPZ)) {
+                    module.register(
+                        Signature.scalar(
+                            op.toString(),
+                            type.getTypeSignature(),
+                            type.getTypeSignature(),
+                            type.getTypeSignature()
+                        ).withFeatures(op.features),
+                        (signature, boundSignature) ->
+                            new BinaryScalar<>(op.longFunction, signature, boundSignature, type)
+                    );
+                }
             }
             module.register(
                 Signature.scalar(
