@@ -56,6 +56,7 @@ import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.SnapshotDeletionsInProgress;
 import org.elasticsearch.cluster.SnapshotsInProgress;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeUnit;
@@ -67,6 +68,7 @@ import org.elasticsearch.snapshots.mockstore.MockRepository;
 import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.test.TestCluster;
 import org.elasticsearch.test.disruption.NetworkDisruption;
+import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.elasticsearch.test.transport.MockTransportService;
 import org.junit.Test;
 
@@ -1053,13 +1055,13 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
             startFullSnapshotBlockedOnDataNode("blocked-snapshot-2", blockedRepoName, dataNode);
         final CreateSnapshotFuture createSlowFuture3 =
             startFullSnapshotBlockedOnDataNode("other-blocked-snapshot", otherBlockedRepoName, dataNode);
-//        awaitNSnapshotsInProgress(3);
+        awaitNSnapshotsInProgress(3);
 
-//        assertSnapshotStatusCountOnRepo(blockedRepoName, 2);
+        assertSnapshotStatusCountOnRepo(blockedRepoName, 2);
         assertSnapshotStatusCountOnRepo(otherBlockedRepoName, 1);
 
         unblockNode(blockedRepoName, dataNode);
-//        awaitNSnapshotsInProgress(1);
+        awaitNSnapshotsInProgress(1);
         assertSnapshotStatusCountOnRepo(blockedRepoName, 0);
         assertSnapshotStatusCountOnRepo(otherBlockedRepoName, 1);
 
@@ -1232,11 +1234,18 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
         return internalCluster().startDataOnlyNode(LARGE_SNAPSHOT_POOL_SETTINGS);
     }
 
-    private void assertSnapshotStatusCountOnRepo(String repoName, int count) throws InterruptedException {
-        assertThat(getRepositoryData(repoName).getSnapshotIds()).hasSize(count);
-//        execute("SELECT count(*) FROM sys.snapshots WHERE repository=?", new Object[]{repoName});
-//        assertThat(response.rows()[0][0]).isEqualTo(count);
+    private void assertSnapshotStatusCountOnRepo(String repoName, int count) {
+        var clusterService = internalCluster().getInstance(ClusterService.class, internalCluster().getMasterName());
+        var snapshotsInProgress = clusterService.state().custom(SnapshotsInProgress.TYPE, SnapshotsInProgress.EMPTY);
+        int snapshotCountInRepo = 0;
+        for (var entry : snapshotsInProgress.entries()) {
+            if (entry.repository().equals(repoName)) {
+                snapshotCountInRepo++;
+            }
+        }
+        assertThat(snapshotCountInRepo).isEqualTo(count);
     }
+
 
     private String[] createNSnapshots(String repoName, int count) {
         final String[] snapshotNames = new String[count];
