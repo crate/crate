@@ -27,6 +27,7 @@ import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.StringStartsWith.startsWith;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
+import static org.mockito.ArgumentMatchers.contains;
 
 import java.io.IOException;
 
@@ -77,6 +78,22 @@ public class RestSQLActionIntegrationTest extends SQLHttpIntegrationTest {
         String bodyAsString = EntityUtils.toString(response.getEntity());
         assertThat(bodyAsString, startsWith("{\"cols\":[],\"duration\":"));
     }
+
+    @Test
+    public void test_bulk_insert_failed_shows_at_least_one_error_() throws IOException {
+        execute("CREATE TABLE doc.test(obj OBJECT(STRICT) AS (obj_var text) NOT NULL)");
+        CloseableHttpResponse httpResponse = post("{\"stmt\": \"INSERT into doc.test (obj) values (?)\", \"bulk_args\": [ " +
+            "[\"{\\\"obj_var\\\":\\\"ok_val\\\"}\"], [\"{\\\"obj_var_2\\\":\\\"bad_val\\\"}\"]]}");
+        assertThat(httpResponse.getStatusLine().getStatusCode(), is(200));
+
+        String bodyAsString = EntityUtils.toString(httpResponse.getEntity());
+        assertThat(bodyAsString, containsString("error_message"));
+
+     //   execute("select * from doc.test");
+      //  assertEquals(1, response.rowCount());
+
+    }
+
 
     @Test
     public void testSetCustomSchema() throws IOException {

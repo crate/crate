@@ -172,8 +172,8 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                         shardResponse.add(location);
                         translogLocation = indexItemResponse.translog;
                     }
-                    if (indexItemResponse.returnValues != null) {
-                        shardResponse.addResultRows(indexItemResponse.returnValues);
+                    if (indexItemResponse.returnValues != null) {  // returnValues is null and it leads to NOT writing at least one error to the bulk insert output
+                        shardResponse.addResultRows(indexItemResponse.returnValues); // not executed
                     }
                 }
             } catch (Exception e) {
@@ -366,7 +366,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 )
             );
         }
-        return new IndexItemResponse(indexResult.getTranslogLocation(), returnvalues);
+        return new IndexItemResponse(indexResult.getTranslogLocation(), returnvalues); // returnValues is null and it leads to NOT writing at least one error to the bulk insert output
     }
 
     protected IndexItemResponse update(ShardUpsertRequest.Item item,

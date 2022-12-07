@@ -690,7 +690,18 @@ public class InsertFromValues implements LogicalPlan {
                         nodeLimit.onSample(startTime, false);
                         synchronized (compressedResult) {
                             compressedResult.update(shardResponse);
+                            // Failures might be not empty here.
+                            // We do have logic to write failures list into errors.
+                            // However, it gets skipped because of NULL check inside 'compressedResult.update'
                         }
+
+//                        if (shardResponse.failures().size() > 0) { // failures is not null, at least empty list.
+//                            // getting "first_available_error" in the result of bulk insert, not just -2 rows
+//                            lastFailure.set(new RuntimeException(shardResponse.failures().get(0).message()));
+//                            // actually need to tweak Failure to keep original Throwable
+//                            // and don't create dummy RuntimeException from the error message
+//                        }
+
                     } else {
                         nodeLimit.onSample(startTime, true);
                         lastFailure.set(throwable);

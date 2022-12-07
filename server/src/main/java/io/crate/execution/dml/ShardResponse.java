@@ -267,12 +267,12 @@ public class ShardResponse extends ReplicationResponse implements WriteResponse 
                 if (failure == null) {
                     successfulWrites.set(location, true);
                 } else {
-                    failureLocations.set(location, true);
+                    failureLocations.set(location, true); // We do have entries here in case of failures in the bulk insert. But... see below
                 }
             }
             List<Object[]> resultRows = response.getResultRows();
             if (resultRows != null) {
-                this.resultRows.addAll(resultRows);
+                this.resultRows.addAll(resultRows); // This is never added in case of bulk insert because 'resultRows' is null
             }
         }
 
