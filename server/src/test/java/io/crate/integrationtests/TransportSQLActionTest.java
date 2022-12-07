@@ -24,26 +24,20 @@ package io.crate.integrationtests;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_TABLE;
+import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
-import static org.hamcrest.Matchers.arrayContaining;
-import static org.hamcrest.Matchers.closeTo;
-import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.lessThanOrEqualTo;
-import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
 import java.io.File;
@@ -63,12 +57,13 @@ import java.util.UUID;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import org.assertj.core.data.Offset;
+import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.test.IntegTestCase;
-import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -83,7 +78,6 @@ import io.crate.exceptions.SQLExceptions;
 import io.crate.sql.SqlFormatter;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.testing.DataTypeTesting;
-import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedSchema;
 import io.crate.types.DataType;
@@ -98,14 +92,6 @@ public class TransportSQLActionTest extends IntegTestCase {
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
-
-    private <T> List<T> getCol(Object[][] result, int idx) {
-        ArrayList<T> res = new ArrayList<>(result.length);
-        for (Object[] row : result) {
-            res.add((T) row[idx]);
-        }
-        return res;
-    }
 
     @Test
     public void testSelectResultContainsColumnsInTheOrderOfTheSelectListInTheQuery() throws Exception {
@@ -212,9 +198,8 @@ public class TransportSQLActionTest extends IntegTestCase {
         execute("create table test1 (col1 string index using fulltext)");
         execute("insert into test1 (col1) values ('abc def, ghi. jkl')");
         refresh();
-        assertThat(
-            printedTable(execute("select count(col1) from test1 group by col1").rows()),
-            is("1\n")
+        assertThat(execute("select count(col1) from test1 group by col1")).hasRows(
+            "1\n"
         );
     }
 
@@ -225,9 +210,10 @@ public class TransportSQLActionTest extends IntegTestCase {
         execute("refresh table test");
 
         execute("select \"_version\", *, \"_id\" from test");
-        assertThat(response.cols(), arrayContaining("_version", "id", "first_name", "last_name", "_id"));
-        assertEquals(1, response.rowCount());
-        assertArrayEquals(new Object[]{1L, "id1", "Youri", "Zoon", "id1"}, response.rows()[0]);
+        assertThat(response)
+            .hasColumns("_version", "id", "first_name", "last_name", "_id")
+            .hasRowCount(1)
+            .hasRows(new Object[]{1L, "id1", "Youri", "Zoon", "id1"});
     }
 
     @Test
@@ -382,9 +368,8 @@ public class TransportSQLActionTest extends IntegTestCase {
         refresh();
         execute("select \"id\" from test order by id limit 1 offset 1");
         assertEquals(1, response.rowCount());
-        assertThat(
-            printedTable(response.rows()),
-            is("id2\n")
+        assertThat(response).hasRows(
+            "id2\n"
         );
     }
 
@@ -394,10 +379,8 @@ public class TransportSQLActionTest extends IntegTestCase {
         execute("create table test (id string primary key)");
         execute("insert into test (id) values ('id1'), ('id2')");
         execute("select _id from test where id = 'id1'");
-        assertEquals(1, response.rowCount());
-        assertThat(
-            printedTable(response.rows()),
-            is("id1\n")
+        assertThat(response).hasRows(
+            "id1\n"
         );
     }
 
@@ -411,8 +394,7 @@ public class TransportSQLActionTest extends IntegTestCase {
         });
         refresh();
         execute("select id from test where id != 'id1'");
-        assertEquals(1, response.rowCount());
-        assertEquals("id2", response.rows()[0][0]);
+        assertThat(response).hasRows("id2\n");
     }
 
 
@@ -424,7 +406,10 @@ public class TransportSQLActionTest extends IntegTestCase {
         refresh();
         execute("select id from test where id='id1' or id='id3'");
         assertEquals(2, response.rowCount());
-        assertThat(this.<String>getCol(response.rows(), 0), containsInAnyOrder("id1", "id3"));
+        assertThat(response).hasRowsInAnyOrder(
+            $("id1"),
+            $("id3")
+        );
     }
 
     @Test
@@ -434,9 +419,11 @@ public class TransportSQLActionTest extends IntegTestCase {
         execute("insert into test (id) values ('id1'), ('id2'), ('id3'), ('id4')");
         refresh();
         execute("select id from test where id='id1' or id='id2' or id='id4'");
-        assertEquals(3, response.rowCount());
-        List<String> col1 = this.getCol(response.rows(), 0);
-        assertThat(col1, containsInAnyOrder("id1", "id2", "id4"));
+        assertThat(response).hasRowsInAnyOrder(
+            $("id1"),
+            $("id2"),
+            $("id4")
+        );
     }
 
     @Test
@@ -445,8 +432,7 @@ public class TransportSQLActionTest extends IntegTestCase {
         execute("insert into test (date) values ('2013-10-01'), ('2013-10-02')");
         execute("refresh table test");
         execute("select date from test where date = '2013-10-01'");
-        assertEquals(1, response.rowCount());
-        assertEquals(1380585600000L, response.rows()[0][0]);
+        assertThat(response).hasRows("1380585600000\n");
     }
 
     @Test
@@ -456,8 +442,7 @@ public class TransportSQLActionTest extends IntegTestCase {
         execute("refresh table test");
         execute(
             "select date from test where date > '2013-10-01'");
-        assertEquals(1, response.rowCount());
-        assertEquals(1380672000000L, response.rows()[0][0]);
+        assertThat(response).hasRows("1380672000000\n");
     }
 
     @Test
@@ -467,16 +452,13 @@ public class TransportSQLActionTest extends IntegTestCase {
         execute("refresh table test");
         execute(
             "select i from test where i > 10");
-        assertEquals(1, response.rowCount());
-        assertEquals(20L, response.rows()[0][0]);
+        assertThat(response).hasRows("20\n");
     }
 
 
     @Test
     public void testArraySupport() throws Exception {
         execute("create table t1 (id int primary key, strings array(string), integers array(integer)) with (number_of_replicas=0)");
-        ensureYellow();
-
         execute("insert into t1 (id, strings, integers) values (?, ?, ?)",
             new Object[]{
                 1,
@@ -485,32 +467,23 @@ public class TransportSQLActionTest extends IntegTestCase {
             }
         );
         refresh();
-
         execute("select id, strings, integers from t1");
-        assertThat(response.rowCount(), is(1L));
-        assertThat(response.rows()[0][0], is(1));
-        assertThat(((List) response.rows()[0][1]).get(0), is("foo"));
-        assertThat(((List) response.rows()[0][1]).get(1), is("bar"));
-        assertThat(((List) response.rows()[0][2]).get(0), is(1));
-        assertThat(((List) response.rows()[0][2]).get(1), is(2));
-        assertThat(((List) response.rows()[0][2]).get(2), is(3));
+        assertThat(response).hasRows(
+            "1| [foo, bar]| [1, 2, 3]\n"
+        );
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void testArrayInsideObject() throws Exception {
         execute("create table t1 (id int primary key, details object as (names array(string))) with (number_of_replicas=0)");
-        ensureYellow();
-
         Map<String, Object> details = new HashMap<>();
         details.put("names", new Object[]{"Arthur", "Trillian"});
         execute("insert into t1 (id, details) values (?, ?)", new Object[]{1, details});
         refresh();
 
-        execute("select details['names'] from t1");
-        assertThat(response.rowCount(), is(1L));
-        assertThat(((List) response.rows()[0][0]).get(0), is("Arthur"));
-        assertThat(((List) response.rows()[0][0]).get(1), is("Trillian"));
+        assertThat(execute("select details['names'] from t1")).hasRows(
+            "[Arthur, Trillian]\n"
+        );
     }
 
     @Test
@@ -533,9 +506,8 @@ public class TransportSQLActionTest extends IntegTestCase {
                 "details['names'], ['Arthur', 'Trillian'] = ANY (details['names']) " +
                 "from t1 " +
                 "where ['Ford', 'Slarti', 'Ford'] = ANY (details['names'])");
-        assertThat(
-            printedTable(response.rows()),
-            is("[[Arthur, Trillian], [Ford, Slarti, Ford]]| true\n")
+        assertThat(response).hasRows(
+            "[[Arthur, Trillian], [Ford, Slarti, Ford]]| true\n"
         );
     }
 
@@ -556,15 +528,12 @@ public class TransportSQLActionTest extends IntegTestCase {
         execute("refresh table t1");
 
         execute("select details from t1 where details['id'] = 2");
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response).hasRowCount(0L);
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void testArraySupportWithNullValues() throws Exception {
         execute("create table t1 (id int primary key, strings array(string)) with (number_of_replicas=0)");
-        ensureYellow();
-
         execute("insert into t1 (id, strings) values (?, ?)",
             new Object[]{
                 1,
@@ -574,11 +543,9 @@ public class TransportSQLActionTest extends IntegTestCase {
         refresh();
 
         execute("select id, strings from t1");
-        assertThat(response.rowCount(), is(1L));
-        assertThat(response.rows()[0][0], is(1));
-        assertThat(((List) response.rows()[0][1]).get(0), is("foo"));
-        assertThat(((List) response.rows()[0][1]).get(1), nullValue());
-        assertThat(((List) response.rows()[0][1]).get(2), is("bar"));
+        assertThat(response).hasRows(
+            "1| [foo, null, bar]\n"
+        );
     }
 
     @Test
@@ -592,8 +559,6 @@ public class TransportSQLActionTest extends IntegTestCase {
                 "   )" +
                 "  )" +
                 ") with (number_of_replicas=0)");
-        ensureYellow();
-
         Map<String, Object> obj1 = Map.of("name", "foo", "age", 1);
         Map<String, Object> obj2 = Map.of("name", "bar", "age", 2);
 
@@ -602,27 +567,14 @@ public class TransportSQLActionTest extends IntegTestCase {
         refresh();
 
         execute("select objects from t1");
-        assertThat(response.rowCount(), is(1L));
-
-        List objResults = (List) response.rows()[0][0];
-        Map<String, Object> obj1Result = (Map) objResults.get(0);
-        assertThat(obj1Result.get("name"), is("foo"));
-        assertThat(obj1Result.get("age"), is(1));
-
-        Map<String, Object> obj2Result = (Map) objResults.get(1);
-        assertThat(obj2Result.get("name"), is("bar"));
-        assertThat(obj2Result.get("age"), is(2));
-
+        assertThat(response).hasRows(
+            "[{name=foo, age=1}, {name=bar, age=2}]\n"
+        );
         execute("select objects['name'] from t1");
-        assertThat(response.rowCount(), is(1L));
-
-        List names = (List) response.rows()[0][0];
-
-        assertThat(names.get(0), is("foo"));
-        assertThat(names.get(1), is("bar"));
+        assertThat(response).hasRows("[foo, bar]\n");
 
         execute("select objects['name'] from t1 where ? = ANY (objects['name'])", new Object[]{"foo"});
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response).hasRows("[foo, bar]\n");
     }
 
     @Test
@@ -638,7 +590,7 @@ public class TransportSQLActionTest extends IntegTestCase {
         refresh();
 
         execute("select data from test where id = ?", new Object[]{"1"});
-        assertEquals(data, response.rows()[0][0]);
+        assertThat(response).hasRows($(data));
     }
 
     @Test
@@ -651,8 +603,7 @@ public class TransportSQLActionTest extends IntegTestCase {
         waitNoPendingTasksOnAll(); // wait for mapping update as foo is being added
 
         execute("select pk_col, message from test where pk_col='124'");
-        assertEquals(1, response.rowCount());
-        assertEquals("124", response.rows()[0][0]);
+        assertThat(response).hasRows("124| bar1\n");
     }
 
     @Test
@@ -664,14 +615,14 @@ public class TransportSQLActionTest extends IntegTestCase {
         execute("insert into test (pk_col, message) values ('3', 'baz')");
 
         execute("SELECT * FROM test WHERE pk_col='1' OR pk_col='2'");
-        assertThat(response.rowCount(), is(2L));
+        assertThat(response).hasRowCount(2);
 
         execute("SELECT * FROM test WHERE pk_col=? OR pk_col=?", new Object[]{"1", "2"});
-        assertThat(response.rowCount(), is(2L));
+        assertThat(response).hasRowCount(2);
 
         execute("SELECT * FROM test WHERE (pk_col=? OR pk_col=?) OR pk_col=?", new Object[]{"1", "2", "3"});
-        assertThat(response.rowCount(), is(3L));
-        assertThat(String.join(", ", List.of(response.cols())), is("pk_col, message"));
+        assertThat(response).hasRowCount(3);
+        assertThat(response).hasColumns("pk_col", "message");
     }
 
     @Test
@@ -684,11 +635,12 @@ public class TransportSQLActionTest extends IntegTestCase {
         refresh();
 
         execute("SELECT pk_col, message FROM test WHERE pk_col='4' OR pk_col='3'");
-        assertEquals(1, response.rowCount());
-        assertThat(Arrays.asList(response.rows()[0]), hasItems(new Object[]{"3", "baz"}));
+        assertThat(response).hasRows(
+            "3| baz\n"
+        );
 
         execute("SELECT pk_col, message FROM test WHERE pk_col='4' OR pk_col='99'");
-        assertEquals(0, response.rowCount());
+        assertThat(response).hasRowCount(0);
     }
 
     @Test
@@ -701,7 +653,7 @@ public class TransportSQLActionTest extends IntegTestCase {
         refresh();
 
         execute("SELECT * FROM test WHERE pk_col IN (?,?,?)", new Object[]{"1", "2", "3"});
-        assertEquals(3, response.rowCount());
+        assertThat(response).hasRowCount(3);
     }
 
     @Test
@@ -710,10 +662,10 @@ public class TransportSQLActionTest extends IntegTestCase {
         execute("insert into test (pk_col, message) values ('1', 'foo'), ('2', 'bar'), ('3', 'baz')");
         refresh();
         execute("update test set message='new' WHERE pk_col='1' or pk_col='2' or pk_col='4'");
-        assertThat(response.rowCount(), is(2L));
+        assertThat(response).hasRowCount(2);
         refresh();
         execute("SELECT distinct message FROM test");
-        assertThat(response.rowCount(), is(2L));
+        assertThat(response).hasRowCount(2);
     }
 
     @Test
@@ -721,13 +673,13 @@ public class TransportSQLActionTest extends IntegTestCase {
         this.setup.groupBySetup();
 
         execute("select name from characters where name like '%ltz'");
-        assertEquals(2L, response.rowCount());
+        assertThat(response).hasRowCount(2);
 
         execute("select count(*) from characters where name like 'Jeltz'");
-        assertEquals(1L, response.rows()[0][0]);
+        assertThat(response).hasRows("1\n");
 
         execute("select count(*) from characters where race like '%o%'");
-        assertEquals(3L, response.rows()[0][0]);
+        assertThat(response).hasRows("3\n");
 
         Map<String, Object> emptyMap = new HashMap<>();
         Map<String, Object> details = new HashMap<>();
@@ -862,13 +814,13 @@ public class TransportSQLActionTest extends IntegTestCase {
         ensureYellow();
         execute("insert into test (id, name) values (0, 'Trillian'), (1, 'Ford'), (2, 'Zaphod')");
         execute("select count(*) from test");
-        assertThat((long) response.rows()[0][0], lessThanOrEqualTo(3L));
+        assertThat((long) response.rows()[0][0]).isLessThanOrEqualTo(3L);
 
         execute("refresh table test");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response).hasRowCount(1L);
 
         execute("select count(*) from test");
-        assertThat((Long) response.rows()[0][0], is(3L));
+        assertThat(response).hasRows("3\n");
     }
 
     @Test
@@ -885,15 +837,15 @@ public class TransportSQLActionTest extends IntegTestCase {
         assertEquals(1L, response.rowCount());
 
         // Validate generated _id, must be: <generatedRandom>
-        assertNotNull(response.rows()[0][0]);
-        assertThat(((String) response.rows()[0][0]).length(), greaterThan(0));
+        assertThat((String) response.rows()[0][0])
+            .isNotNull()
+            .hasSize(UUIDs.base64UUID().length());
     }
 
     @Test
     public void testInsertSelectWithAutoGeneratedId() throws Exception {
         execute("create table quotes (id integer, quote string)" +
                 "with (number_of_replicas=0)");
-        ensureYellow();
         execute("insert into quotes (id, quote) values(?, ?)",
             new Object[]{1, "I'd far rather be happy than right any day."});
         assertEquals(1L, response.rowCount());
@@ -903,8 +855,9 @@ public class TransportSQLActionTest extends IntegTestCase {
         assertEquals(1L, response.rowCount());
 
         // Validate generated _id, must be: <generatedRandom>
-        assertNotNull(response.rows()[0][0]);
-        assertThat(((String) response.rows()[0][0]).length(), greaterThan(0));
+        assertThat((String) response.rows()[0][0])
+            .isNotNull()
+            .hasSize(UUIDs.base64UUID().length());
     }
 
     @Test
@@ -931,7 +884,6 @@ public class TransportSQLActionTest extends IntegTestCase {
     public void testInsertSelectWithMultiplePrimaryKey() throws Exception {
         execute("create table quotes (id integer primary key, author string primary key, " +
                 "quote string) with (number_of_replicas=0)");
-        ensureYellow();
         execute("insert into quotes (id, author, quote) values(?, ?, ?)",
             new Object[]{1, "Ford", "I'd far rather be happy than right any day."});
         assertEquals(1L, response.rowCount());
@@ -939,15 +891,15 @@ public class TransportSQLActionTest extends IntegTestCase {
 
         execute("select \"_id\", id from quotes where id=1 and author='Ford'");
         assertEquals(1L, response.rowCount());
-        assertThat((String) response.rows()[0][0], is("AgExBEZvcmQ="));
-        assertThat((Integer) response.rows()[0][1], is(1));
+        assertThat(response).hasRows(
+            "AgExBEZvcmQ=| 1\n"
+        );
     }
 
     @Test
     public void testInsertSelectWithMultiplePrimaryKeyAndClusteredBy() throws Exception {
         execute("create table quotes (id integer primary key, author string primary key, " +
                 "quote string) clustered by(author) with (number_of_replicas=0)");
-        ensureYellow();
         execute("insert into quotes (id, author, quote) values(?, ?, ?)",
             new Object[]{1, "Ford", "I'd far rather be happy than right any day."});
         assertEquals(1L, response.rowCount());
@@ -955,28 +907,27 @@ public class TransportSQLActionTest extends IntegTestCase {
 
         execute("select \"_id\", id from quotes where id=1 and author='Ford'");
         assertEquals(1L, response.rowCount());
-        assertThat((String) response.rows()[0][0], is("AgRGb3JkATE="));
-        assertThat((Integer) response.rows()[0][1], is(1));
+        assertThat(response).hasRows(
+            "AgRGb3JkATE=| 1\n"
+        );
     }
 
     @Test
     public void testInsertSelectWithMultiplePrimaryOnePkSame() throws Exception {
         execute("create table quotes (id integer primary key, author string primary key, " +
                 "quote string) clustered by(author) with (number_of_replicas=0)");
-        ensureYellow();
         execute("insert into quotes (id, author, quote) values (?, ?, ?), (?, ?, ?)",
             new Object[]{1, "Ford", "I'd far rather be happy than right any day.",
                 1, "Douglas", "Don't panic"}
         );
-        assertEquals(2L, response.rowCount());
+        assertThat(response).hasRowCount(2);
         refresh();
 
         execute("select \"_id\", id from quotes where id=1 order by author");
-        assertEquals(2L, response.rowCount());
-        assertThat((String) response.rows()[0][0], is("AgdEb3VnbGFzATE="));
-        assertThat((Integer) response.rows()[0][1], is(1));
-        assertThat((String) response.rows()[1][0], is("AgRGb3JkATE="));
-        assertThat((Integer) response.rows()[1][1], is(1));
+        assertThat(response).hasRows(
+            "AgdEb3VnbGFzATE=| 1\n" +
+            "AgRGb3JkATE=| 1\n"
+        );
     }
 
     @Test
@@ -1036,9 +987,9 @@ public class TransportSQLActionTest extends IntegTestCase {
                 {1, "Earth", 2, "Saturn"},    // bulk row 1
                 {3, "Moon", 4, "Mars"}        // bulk row 2
             });
-        assertThat(rowCounts.length, is(2));
+        assertThat(rowCounts).hasSize(2);
         for (long rowCount : rowCounts) {
-            assertThat(rowCount, is(2L));
+            assertThat(rowCount).isEqualTo(2);
         }
         refresh();
 
@@ -1047,9 +998,9 @@ public class TransportSQLActionTest extends IntegTestCase {
                 {1, "Earth", 2, "Saturn"},    // bulk row 1
                 {3, "Moon", 4, "Mars"}        // bulk row 2
             });
-        assertThat(rowCounts.length, is(2));
+        assertThat(rowCounts).hasSize(2);
         for (long rowCount : rowCounts) {
-            assertThat(rowCount, is(-2L));
+            assertThat(rowCount).isEqualTo(-2L);
         }
 
         execute("select name from test order by id asc");
@@ -1061,42 +1012,42 @@ public class TransportSQLActionTest extends IntegTestCase {
             new Object[]{3},
             new Object[]{4},
         });
-        assertThat(rowCounts.length, is(3));
+        assertThat(rowCounts).hasSize(3);
         for (long rowCount : rowCounts) {
-            assertThat(rowCount, is(1L));
+            assertThat(rowCount).isEqualTo(1L);
         }
         refresh();
 
         execute("select count(*) from test where name like '%-updated'");
-        assertThat(response.rows()[0][0], is(3L));
+        assertThat(response).hasRows("3\n");
 
         // test bulk of delete-by-id
         rowCounts = execute("delete from test where id = ?", new Object[][]{
             new Object[]{1},
             new Object[]{3}
         });
-        assertThat(rowCounts.length, is(2));
+        assertThat(rowCounts).hasSize(2);
         for (long rowCount : rowCounts) {
-            assertThat(rowCount, is(1L));
+            assertThat(rowCount).isEqualTo(1L);
         }
         refresh();
 
         execute("select count(*) from test");
-        assertThat(response.rows()[0][0], is(2L));
+        assertThat(response).hasRows("2\n");
 
         // test bulk of delete-by-query
         rowCounts = execute("delete from test where name = ?", new Object[][]{
             new Object[]{"Saturn-updated"},
             new Object[]{"Mars-updated"}
         });
-        assertThat(rowCounts.length, is(2));
+        assertThat(rowCounts).hasSize(2);
         for (long rowCount : rowCounts) {
-            assertThat(rowCount, is(1L));
+            assertThat(rowCount).isEqualTo(1);
         }
         refresh();
 
         execute("select count(*) from test");
-        assertThat(response.rows()[0][0], is(0L));
+        assertThat(response).hasRows("0\n");
 
     }
 
@@ -1106,12 +1057,12 @@ public class TransportSQLActionTest extends IntegTestCase {
         execute("insert into tbl (name, kind) values ('', 'Planet'), ('Aldebaran', 'Star System'), ('Algol', 'Star System')");
         execute("refresh table tbl");
         execute("select format('%s is a %s', name, kind) as sentence from tbl order by name");
-        assertThat(response.cols(), Matchers.arrayContaining("sentence"));
-        assertThat(printedTable(response.rows()), is(
+        assertThat(response).hasColumns("sentence");
+        assertThat(response).hasRows(
             " is a Planet\n" +
             "Aldebaran is a Star System\n" +
             "Algol is a Star System\n"
-        ));
+        );
 
     }
 
@@ -1120,40 +1071,44 @@ public class TransportSQLActionTest extends IntegTestCase {
         this.setup.setUpArrayTables();
 
         execute("select count(*) from any_table where 'Berlin' = ANY (names)");
-        assertThat((Long) response.rows()[0][0], is(2L));
+        assertThat(response).hasRows("2\n");
 
         execute("select id, names from any_table where 'Berlin' = ANY (names) order by id");
-        assertThat(response.rowCount(), is(2L));
-        assertThat((Integer) response.rows()[0][0], is(1));
-        assertThat((Integer) response.rows()[1][0], is(3));
+        assertThat(response).hasRows(
+            "1| [Dornbirn, Berlin, St. Margrethen]\n" +
+            "3| [Hangelsberg, Berlin]\n"
+        );
 
         execute("select id from any_table where 'Berlin' != ANY (names) order by id");
-        assertThat(response.rowCount(), is(3L));
-        assertThat((Integer) response.rows()[0][0], is(1));
-        assertThat((Integer) response.rows()[1][0], is(2));
-        assertThat((Integer) response.rows()[2][0], is(3));
+        assertThat(response).hasRows(
+            "1\n" +
+            "2\n" +
+            "3\n"
+        );
 
         execute("select count(id) from any_table where 0.0 < ANY (temps)");
-        assertThat((Long) response.rows()[0][0], is(2L));
+        assertThat(response).hasRows("2\n");
 
         execute("select id, names from any_table where 0.0 < ANY (temps) order by id");
-        assertThat(response.rowCount(), is(2L));
-        assertThat((Integer) response.rows()[0][0], is(2));
-        assertThat((Integer) response.rows()[1][0], is(3));
+        assertThat(response).hasRows(
+            "2| [Dornbirn, Dornbirn, Dornbirn]\n" +
+            "3| [Hangelsberg, Berlin]\n"
+        );
 
         execute("select count(*) from any_table where 0.0 > ANY (temps)");
-        assertThat((Long) response.rows()[0][0], is(2L));
+        assertThat(response).hasRows("2\n");
 
         execute("select id, names from any_table where 0.0 > ANY (temps) order by id");
-        assertThat(response.rowCount(), is(2L));
-        assertThat((Integer) response.rows()[0][0], is(2));
-        assertThat((Integer) response.rows()[1][0], is(3));
+        assertThat(response).hasRows(
+            "2| [Dornbirn, Dornbirn, Dornbirn]\n" +
+            "3| [Hangelsberg, Berlin]\n"
+        );
 
         execute("select id, names from any_table where 'Ber%' LIKE ANY (names) order by id");
-        assertThat(response.rowCount(), is(2L));
-        assertThat((Integer) response.rows()[0][0], is(1));
-        assertThat((Integer) response.rows()[1][0], is(3));
-
+        assertThat(response).hasRows(
+            "1| [Dornbirn, Berlin, St. Margrethen]\n" +
+            "3| [Hangelsberg, Berlin]\n"
+        );
     }
 
     @Test
@@ -1161,15 +1116,17 @@ public class TransportSQLActionTest extends IntegTestCase {
         this.setup.setUpArrayTables();
 
         execute("select id from any_table where NOT 'Hangelsberg' = ANY (names) order by id");
-        assertThat(response.rowCount(), is(2L));
-        assertThat((Integer) response.rows()[0][0], is(1));
-        assertThat((Integer) response.rows()[1][0], is(2));
+        assertThat(response).hasRows(
+            "1\n" +
+            "2\n"
+        );
 
         execute("select id from any_table where 'Hangelsberg' != ANY (names) order by id");
-        assertThat(response.rowCount(), is(3L));
-        assertThat((Integer) response.rows()[0][0], is(1));
-        assertThat((Integer) response.rows()[1][0], is(2));
-        assertThat((Integer) response.rows()[2][0], is(3));
+        assertThat(response).hasRows(
+            "1\n" +
+            "2\n" +
+            "3\n"
+        );
     }
 
     @Test
@@ -1177,16 +1134,17 @@ public class TransportSQLActionTest extends IntegTestCase {
         this.setup.setUpArrayTables();
 
         execute("select id from any_table where 'kuh%' LIKE ANY (tags) order by id");
-        assertThat(response.rowCount(), is(2L));
-        assertThat((Integer) response.rows()[0][0], is(3));
-        assertThat((Integer) response.rows()[1][0], is(4));
+        assertThat(response).hasRows(
+            "3\n" +
+            "4\n"
+        );
 
         execute("select id from any_table where 'kuh%' NOT LIKE ANY (tags) order by id");
-        assertThat(response.rowCount(), is(3L));
-        assertThat((Integer) response.rows()[0][0], is(1));
-        assertThat((Integer) response.rows()[1][0], is(2));
-        assertThat((Integer) response.rows()[2][0], is(3));
-
+        assertThat(response).hasRows(
+            "1\n" +
+            "2\n" +
+            "3\n"
+        );
     }
 
     @Test
@@ -1197,32 +1155,29 @@ public class TransportSQLActionTest extends IntegTestCase {
         execute("refresh table ip_table");
 
         execute("select addr from ip_table where addr = '23.235.33.143'");
-        assertThat(response.rowCount(), is(1L));
-        assertThat((String) response.rows()[0][0], is("23.235.33.143"));
+        assertThat(response).hasRows("23.235.33.143\n");
 
         execute("select addr from ip_table where addr > '127.0.0.1'");
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response).hasRowCount(0);
         execute("select addr from ip_table where addr > 2130706433"); // 2130706433 == 127.0.0.1
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response).hasRowCount(0);
 
         execute("select addr from ip_table where addr < '127.0.0.1'");
-        assertThat(response.rowCount(), is(1L));
-        assertThat((String) response.rows()[0][0], is("23.235.33.143"));
+        assertThat(response).hasRows("23.235.33.143\n");
         execute("select addr from ip_table where addr < 2130706433"); // 2130706433 == 127.0.0.1
-        assertThat(response.rowCount(), is(1L));
-        assertThat((String) response.rows()[0][0], is("23.235.33.143"));
+        assertThat(response).hasRows("23.235.33.143\n");
 
         execute("select addr from ip_table where addr <= '127.0.0.1'");
-        assertThat(response.rowCount(), is(2L));
+        assertThat(response).hasRowCount(2L);
 
         execute("select addr from ip_table where addr >= '23.235.33.143'");
-        assertThat(response.rowCount(), is(2L));
+        assertThat(response).hasRowCount(2L);
 
         execute("select addr from ip_table where addr IS NULL");
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response).hasRowCount(0L);
 
         execute("select addr from ip_table where addr IS NOT NULL");
-        assertThat(response.rowCount(), is(2L));
+        assertThat(response).hasRowCount(2L);
 
     }
 
@@ -1234,11 +1189,10 @@ public class TransportSQLActionTest extends IntegTestCase {
         execute("refresh table t");
         execute("select i, count(*) from t group by 1 order by count(*) desc");
 
-        assertThat(response.rowCount(), is(2L));
-        assertThat((String) response.rows()[0][0], is("192.168.1.2"));
-        assertThat((Long) response.rows()[0][1], is(2L));
-        assertThat((String) response.rows()[1][0], is("192.168.1.3"));
-        assertThat((Long) response.rows()[1][1], is(1L));
+        assertThat(response).hasRows(
+            "192.168.1.2| 2\n" +
+            "192.168.1.3| 1\n"
+        );
     }
 
     @Test
@@ -1251,14 +1205,14 @@ public class TransportSQLActionTest extends IntegTestCase {
 
         execute("select p from geo_point_table order by id desc");
 
-        assertThat(response.rowCount(), is(2L));
+        assertThat(response).hasRowCount(2L);
         Point p1 = (Point) response.rows()[0][0];
-        assertThat(p1.getX(), closeTo(57.22, 0.01));
-        assertThat(p1.getY(), closeTo(7.12, 0.01));
+        assertThat(p1.getX()).isCloseTo(57.22, Offset.offset(0.01d));
+        assertThat(p1.getY()).isCloseTo(7.12, Offset.offset(0.01d));
 
         Point p2 = (Point) response.rows()[1][0];
-        assertThat(p2.getX(), closeTo(47.22, 0.01));
-        assertThat(p2.getY(), closeTo(12.09, 0.01));
+        assertThat(p2.getX()).isCloseTo(47.22, Offset.offset(0.01));
+        assertThat(p2.getY()).isCloseTo(12.09, Offset.offset(0.01));
     }
 
     @Test
@@ -1274,19 +1228,19 @@ public class TransportSQLActionTest extends IntegTestCase {
 
         // order by
         execute("select distance(p, 'POINT (11 21)') from t order by 1");
-        assertThat(response.rowCount(), is(2L));
+        assertThat(response).hasRowCount(2L);
 
         Double result1 = (Double) response.rows()[0][0];
         Double result2 = (Double) response.rows()[1][0];
 
-        assertThat(result1, is(0.0d));
-        assertThat(result2, is(152354.32308347954));
+        assertThat(result1).isEqualTo(0.0d);
+        assertThat(result2).isEqualTo(152354.32308347954);
 
         String stmtOrderBy = "SELECT id " +
                              "FROM t " +
                              "ORDER BY distance(p, 'POINT(30.0 30.0)')";
         execute(stmtOrderBy);
-        assertThat(response.rowCount(), is(2L));
+        assertThat(response).hasRowCount(2L);
         String expectedOrderBy =
             "2\n" +
             "1\n";
@@ -1297,43 +1251,43 @@ public class TransportSQLActionTest extends IntegTestCase {
                                "FROM t " +
                                "GROUP BY i";
         execute(stmtAggregate);
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response).hasRowCount(1L);
         String expectedAggregate = "1| 2296582.8899438097\n";
         assertEquals(expectedAggregate, printedTable(response.rows()));
 
         Point point;
         // queries
         execute("select p from t where distance(p, 'POINT (11 21)') > 0.0");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response).hasRowCount(1L);
         point = (Point) response.rows()[0][0];
-        assertThat(point.getX(), closeTo(10.0d, 0.01));
-        assertThat(point.getY(), closeTo(20.0d, 0.02));
+        assertThat(point.getX()).isCloseTo(10.0d, Offset.offset(0.01));
+        assertThat(point.getY()).isCloseTo(20.0d, Offset.offset(0.02));
 
         execute("select p from t where distance(p, 'POINT (11 21)') < 10.0");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response).hasRowCount(1L);
         point = (Point) response.rows()[0][0];
-        assertThat(point.getX(), closeTo(11.0d, 0.01));
-        assertThat(point.getY(), closeTo(21.0d, 0.01));
+        assertThat(point.getX()).isCloseTo(11.0d, Offset.offset(0.01));
+        assertThat(point.getY()).isCloseTo(21.0d, Offset.offset(0.01));
 
         execute("select p from t where distance(p, 'POINT (11 21)') < 10.0 or distance(p, 'POINT (11 21)') > 10.0");
-        assertThat(response.rowCount(), is(2L));
+        assertThat(response).hasRowCount(2L);
 
         execute("select p from t where distance(p, 'POINT (10 20)') >= 0.0 and distance(p, 'POINT (10 20)') <= 0.1");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response).hasRowCount(1L);
         point = (Point) response.rows()[0][0];
-        assertThat(point.getX(), closeTo(10.0d, 0.01));
-        assertThat(point.getY(), closeTo(20.0d, 0.01));
+        assertThat(point.getX()).isCloseTo(10.0d, Offset.offset(0.01));
+        assertThat(point.getY()).isCloseTo(20.0d, Offset.offset(0.01));
 
         execute("select p from t where distance(p, 'POINT (10 20)') = 0.0");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response).hasRowCount(1L);
         point = (Point) response.rows()[0][0];
-        assertThat(point.getX(), closeTo(10.0d, 0.01));
-        assertThat(point.getY(), closeTo(20.0d, 0.01));
+        assertThat(point.getX()).isCloseTo(10.0d, Offset.offset(0.01));
+        assertThat(point.getY()).isCloseTo(20.0d, Offset.offset(0.01));
 
         execute("select p from t where distance(p, 'POINT (10 20)') = 152354.3209044634");
         Point p = (Point) response.rows()[0][0];
-        assertThat(p.getX(), closeTo(11.0, 0.01));
-        assertThat(p.getY(), closeTo(21.0, 0.01));
+        assertThat(p.getX()).isCloseTo(11.0, Offset.offset(0.01));
+        assertThat(p.getY()).isCloseTo(21.0, Offset.offset(0.01));
     }
 
     @Test
@@ -1347,10 +1301,10 @@ public class TransportSQLActionTest extends IntegTestCase {
         refresh();
 
         execute("select within(p, 'POLYGON (( 5 5, 30 5, 30 30, 5 30, 5 5 ))') from t");
-        assertThat((Boolean) response.rows()[0][0], is(true));
+        assertThat(response).hasRows("true\n");
 
         execute("select * from t where within(p, 'POLYGON (( 5 5, 30 5, 30 30, 5 30, 5 5 ))')");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response).hasRowCount(1L);
         execute("select * from t where within(p, ?)", $(Map.of(
             "type", "Polygon",
             "coordinates", new double[][][]{
@@ -1363,16 +1317,16 @@ public class TransportSQLActionTest extends IntegTestCase {
                 }
             }
         )));
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response).hasRowCount(1L);
 
         execute("select * from t where within(p, 'POLYGON (( 5 5, 30 5, 30 30, 5 30, 5 5 ))') = false");
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response).hasRowCount(0L);
     }
 
     @Test
     public void testTwoSubStrOnSameColumn() throws Exception {
         execute("select substr(name, 0, 4), substr(name, 4, 8) from sys.cluster");
-        assertThat(printedTable(response.rows()), is("SUIT| TE-TEST_\n"));
+        assertThat(response).hasRows("SUIT| TE-TEST_\n");
     }
 
 
@@ -1384,13 +1338,13 @@ public class TransportSQLActionTest extends IntegTestCase {
         refresh();
 
         execute("select i, i%3 from t order by i%3, l");
-        assertThat(response.rowCount(), is(5L));
-        assertThat(printedTable(response.rows()), is(
+        assertThat(response).hasRowCount(5L);
+        assertThat(response).hasRows(
             "-1| -1\n" +
             "1| 1\n" +
             "10| 1\n" +
             "193384| 1\n" +
-            "2| 2\n"));
+            "2| 2\n");
     }
 
     @Test
@@ -1479,10 +1433,10 @@ public class TransportSQLActionTest extends IntegTestCase {
         execute("refresh table tbl");
 
         execute("select name from tbl where name = name");
-        assertThat(response.rowCount(), is(2L));
+        assertThat(response).hasRowCount(2L);
 
         execute("select name from tbl where substr(name, 1, 1) = substr(name, 1, 1)");
-        assertThat(response.rowCount(), is(2L));
+        assertThat(response).hasRowCount(2L);
     }
 
     @Test
@@ -1529,21 +1483,21 @@ public class TransportSQLActionTest extends IntegTestCase {
             DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
             (String) response.rows()[0][0]).map();
 
-        assertThat(response.rows()[0][1], is("2"));
-        assertThat(firstRaw.get("id"), is("2"));
-        assertThat(firstRaw.get("name"), is("Outer Eastern Rim"));
-        assertThat(firstRaw.get("date"), is(308534400000L));
-        assertThat(firstRaw.get("kind"), is("Galaxy"));
+        assertThat(response.rows()[0][1]).isEqualTo("2");
+        assertThat(firstRaw).containsEntry("id", "2");
+        assertThat(firstRaw).containsEntry("name", "Outer Eastern Rim");
+        assertThat(firstRaw).containsEntry("date", 308534400000L);
+        assertThat(firstRaw).containsEntry("kind", "Galaxy");
 
         Map<String, Object> secondRaw = JsonXContent.JSON_XCONTENT.createParser(
             NamedXContentRegistry.EMPTY,
             DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
             (String) response.rows()[1][0]).map();
-        assertThat(response.rows()[1][1], is("3"));
-        assertThat(secondRaw.get("id"), is("3"));
-        assertThat(secondRaw.get("name"), is("Galactic Sector QQ7 Active J Gamma"));
-        assertThat(secondRaw.get("date"), is(1367366400000L));
-        assertThat(secondRaw.get("kind"), is("Galaxy"));
+        assertThat(response.rows()[1][1]).isEqualTo("3");
+        assertThat(secondRaw).containsEntry("id", "3");
+        assertThat(secondRaw).containsEntry("name", "Galactic Sector QQ7 Active J Gamma");
+        assertThat(secondRaw).containsEntry("date", 1367366400000L);
+        assertThat(secondRaw).containsEntry("kind", "Galaxy");
     }
 
     @Test
@@ -1587,7 +1541,7 @@ public class TransportSQLActionTest extends IntegTestCase {
         execute("refresh table t");
 
         execute("select _id, * from t");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response).hasRowCount(1L);
     }
 
 
@@ -1599,7 +1553,7 @@ public class TransportSQLActionTest extends IntegTestCase {
         execute("refresh table t");
 
         execute("select _doc['name'] from t");
-        assertThat(((String) response.rows()[0][0]), is("Marvin"));
+        assertThat(response).hasRows("Marvin\n");
     }
 
     @Test
@@ -1627,9 +1581,9 @@ public class TransportSQLActionTest extends IntegTestCase {
         execute("INSERT INTO with_quote (\"\"\"\") VALUES ('''')");
         execute("REFRESH TABLE with_quote");
         execute("SELECT * FROM with_quote");
-        assertThat(response.rowCount(), is(1L));
-        assertThat(response.cols(), is(arrayContaining("\"")));
-        assertThat((String) response.rows()[0][0], is("'"));
+        assertThat(response)
+            .hasColumns("\"")
+            .hasRows("'\n");
     }
 
     @Test
@@ -1639,35 +1593,29 @@ public class TransportSQLActionTest extends IntegTestCase {
         execute("refresh table t");
 
         execute("select b, not b, not (b > i::boolean) from t order by b");
-        Object[][] rows = response.rows();
-        assertThat((Boolean) rows[0][0], is(false));
-        assertThat((Boolean) rows[0][1], is(true));
-        assertThat((Boolean) rows[0][2], is(true));
-        assertThat((Boolean) rows[1][0], is(true));
-        assertThat((Boolean) rows[1][1], is(false));
-        assertThat((Boolean) rows[1][2], is(true));
-        assertThat(rows[2][0], nullValue());
-        assertThat(rows[2][1], nullValue());
-        assertThat(rows[2][2], nullValue());
+        assertThat(response).hasRows(
+            "false| true| true\n" +
+            "true| false| true\n" +
+            "NULL| NULL| NULL\n"
+        );
 
         execute("select b, i from t where not b");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response).hasRowCount(1L);
 
         execute("select b, i from t where not b > i::boolean");
-        assertThat(response.rowCount(), is(2L));
+        assertThat(response).hasRowCount(2L);
 
         execute("SELECt b, i FROM t WHERE NOT (i = 1 AND b = TRUE)");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response).hasRowCount(1L);
 
         execute("SELECT b, i FROM t WHERE NOT (i IS NULL OR b IS NULL)");
-        assertThat(response.rowCount(), is(2L));
+        assertThat(response).hasRowCount(2L);
 
         execute("SELECT b FROM t WHERE NOT (coalesce(b, true))");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response).hasRowCount(1L);
 
         execute("SELECT b, i FROM t WHERE NOT (coalesce(b, false) = true AND i IS NULL)");
-        assertThat(response.rowCount(), is(2L));
-
+        assertThat(response).hasRowCount(2L);
     }
 
     @Test
@@ -1694,23 +1642,22 @@ public class TransportSQLActionTest extends IntegTestCase {
         execute("create table t1 (id int) with (number_of_replicas=0)");
         ensureYellow();
         execute("select 1/0 from t1 where true = false");
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response).hasRowCount(0L);
     }
 
     @Test
     public void testOrderByWorksOnSymbolWithLateNormalization() throws Exception {
         execute("create table t (x int) with (number_of_replicas = 0)");
-        ensureYellow();
         execute("insert into t (x) values (5), (10), (3)");
         execute("refresh table t");
 
         // cast is added to have a to_int(2) after the subquery is inserted
         // this causes a normalization on the map-side which used to remove the order by
         execute("select cast((select 2) as integer) * x from t order by 1");
-        assertThat(printedTable(response.rows()),
-            is("6\n" +
-               "10\n" +
-               "20\n"));
+        assertThat(response).hasRows(
+            "6\n" +
+            "10\n" +
+            "20\n");
     }
 
     @Test
@@ -1719,21 +1666,19 @@ public class TransportSQLActionTest extends IntegTestCase {
         execute("insert into t (text) values ('Hello World'), ('The End')");
         execute("refresh table t");
 
-        assertThat(
-            printedTable(execute("select text from t order by 1 desc").rows()),
-            is("The End\n" +
-               "Hello World\n")
+        assertThat(execute("select text from t order by 1 desc")).hasRows(
+            "The End\n" +
+            "Hello World\n"
         );
     }
 
     @Test
     public void test_values_as_top_level_relation() {
         execute("VALUES (1, 'a'), (2, 'b'), (3, (SELECT 'c'))");
-        assertThat(
-            printedTable(response.rows()),
-            is("1| a\n" +
-               "2| b\n" +
-               "3| c\n")
+        assertThat(response).hasRows(
+            "1| a\n" +
+            "2| b\n" +
+            "3| c\n"
         );
     }
 
@@ -1800,9 +1745,9 @@ public class TransportSQLActionTest extends IntegTestCase {
             + "     nspname,"
             + "     c.relname,"
             + "     attnum");
-        assertThat(printedTable(response.rows()),
-            is("doc| metrics| id| 23| true| -1| 4| 1| NULL| NULL| 0| b\n" +
-               "doc| metrics| x| 23| false| -1| 4| 2| NULL| NULL| 0| b\n")
+        assertThat(response).hasRows(
+            "doc| metrics| id| 23| true| -1| 4| 1| NULL| NULL| 0| b\n" +
+            "doc| metrics| x| 23| false| -1| 4| 2| NULL| NULL| 0| b\n"
         );
     }
 
@@ -1813,10 +1758,10 @@ public class TransportSQLActionTest extends IntegTestCase {
         execute("refresh table tbl");
 
         execute("select * from tbl where obj['b'] = 10");
-        assertThat(printedTable(response.rows()), is(""));
+        assertThat(response).hasRows("");
 
         execute("select * from (select * from tbl) as t where obj['b'] = 10");
-        assertThat(printedTable(response.rows()), is(""));
+        assertThat(response).hasRows("");
     }
 
 
@@ -1834,13 +1779,13 @@ public class TransportSQLActionTest extends IntegTestCase {
         execute("insert into doc.test (id, region_level_1, marker_type, is_auto) values ('1', '2', '3', false)");
         execute("refresh table doc.test");
         execute("explain select id from doc.test where id = '1' and region_level_1 = '2' and marker_type = '3' and is_auto = false;");
-        assertThat(printedTable(response.rows()), is(
+        assertThat(response).hasRows(
             "Get[doc.test | id | DocKeys{'1', '2', '3', false} | ((((id = '1') AND (region_level_1 = '2')) AND (marker_type = '3')) AND (is_auto = false))]\n"
-        ));
+        );
         execute("select id from doc.test where id = '1' and region_level_1 = '2' and marker_type = '3' and is_auto = false;");
-        assertThat(printedTable(response.rows()), is(
+        assertThat(response).hasRows(
             "1\n"
-        ));
+        );
     }
 
     @Test
@@ -1849,13 +1794,13 @@ public class TransportSQLActionTest extends IntegTestCase {
         execute("INSERT INTO tbl (ts, path) VALUES ('2017-06-21T00:00:00.000000Z', 'c1')");
 
         execute("select _id, path from tbl where ts = '2017-06-21' and path = 'c1'");
-        assertThat(printedTable(response.rows()), is(
+        assertThat(response).hasRows(
             "Ag0xNDk4MDAzMjAwMDAwAmMx| c1\n"
-        ));
+        );
         execute("select _id, path from tbl where ts = ? and path = ?", new Object[] { "2017-06-21", "c1" });
-        assertThat(printedTable(response.rows()), is(
+        assertThat(response).hasRows(
             "Ag0xNDk4MDAzMjAwMDAwAmMx| c1\n"
-        ));
+        );
     }
 
     @Test
@@ -1919,18 +1864,14 @@ public class TransportSQLActionTest extends IntegTestCase {
         }
 
         execute(selectParams.toString(), args);
-        assertThat(
-            selectParams.toString() + " with values " + Arrays.toString(args) + " must return a record",
-            response.rowCount(),
-            is(1L)
-        );
+        assertThat(response)
+            .as(selectParams.toString() + " with values " + Arrays.toString(args) + " must return a record")
+            .hasRowCount(1L);
 
         execute(selectInlineValues.toString());
-        assertThat(
-            selectInlineValues.toString() + " must return a record",
-            response.rowCount(),
-            is(1L)
-        );
+        assertThat(response)
+            .as(selectInlineValues.toString() + " must return a record")
+            .hasRowCount(1L);
     }
 
 
@@ -1945,14 +1886,8 @@ public class TransportSQLActionTest extends IntegTestCase {
         execute("insert into tbl (x, y) values (?, ?)", args);
         execute("refresh table tbl");
         Object[][] rows = execute("select x, y from tbl order by y desc").rows();
-        assertThat(
-            rows[0],
-            Matchers.arrayContaining(Integer.toString(numItems - 1), numItems - 1)
-        );
-        assertThat(
-            rows[1],
-            Matchers.arrayContaining(Integer.toString(numItems - 2), numItems - 2)
-        );
+        assertThat(rows[0]).contains(Integer.toString(numItems - 1), numItems - 1);
+        assertThat(rows[1]).contains(Integer.toString(numItems - 2), numItems - 2);
     }
 
 
@@ -1962,24 +1897,24 @@ public class TransportSQLActionTest extends IntegTestCase {
     public void test_bit_string_can_be_inserted_and_queried() throws Exception {
         execute("create table tbl (id int primary key, xs bit(4))");
         execute("insert into tbl (id, xs) values (1, B'0000'), (2, B'0001'), (3, B'0011'), (4, B'0111'), (5, B'1111'), (6, B'1001')");
-        assertThat(response.rowCount(), is(6L));
+        assertThat(response).hasRowCount(6L);
         execute("refresh table tbl");
 
         execute("SELECT _doc['xs'], xs, _raw, xs::bit(3) FROM tbl WHERE xs = B'1001'");
-        assertThat(TestingHelpers.printedTable(response.rows()), is(
+        assertThat(response).hasRows(
             "B'1001'| B'1001'| {\"id\":6,\"xs\":\"CQ==\"}| B'100'\n"
-        ));
+        );
         // use LIMIT 1 to hit a different execution path that should load `xs` differently
         execute("SELECT _doc['xs'], xs, _raw, xs::bit(3) FROM tbl WHERE xs = B'1001' LIMIT 1");
-        assertThat(TestingHelpers.printedTable(response.rows()), is(
+        assertThat(response).hasRows(
             "B'1001'| B'1001'| {\"id\":6,\"xs\":\"CQ==\"}| B'100'\n"
-        ));
+        );
 
         // primary key lookup uses different execution path to decode the value
         execute("select xs from tbl where id = 6");
-        assertThat(TestingHelpers.printedTable(response.rows()), is(
+        assertThat(response).hasRows(
             "B'1001'\n"
-        ));
+        );
 
         var properties = new Properties();
         properties.put("user", "crate");
@@ -1993,14 +1928,14 @@ public class TransportSQLActionTest extends IntegTestCase {
                 results.add(string);
             }
         }
-        assertThat(results, Matchers.contains(
+        assertThat(results).contains(
             "0000",
             "0001",
             "0011",
             "0111",
             "1001",
             "1111"
-        ));
+        );
     }
 
     /**
@@ -2050,28 +1985,22 @@ public class TransportSQLActionTest extends IntegTestCase {
                 hasPrecisionChange = x1 instanceof Map<?, ?> innerMap && innerMap.containsKey("coordinates");
             }
             if (!hasPrecisionChange) {
-                assertThat(
-                    "inserted value must match selected value for type " + type + ": val=" + val1 + " response=" + x,
-                    ((DataType) type).compare(x, val1),
-                    is(0)
-                );
+                assertThat(((DataType) type).compare(x, val1))
+                    .as("inserted value must match selected value for type " + type + ": val=" + val1 + " response=" + x)
+                    .isEqualTo(0);
             }
 
             var resp2 = execute("select _doc['x'], x, _raw FROM tbl where id = ?", new Object[] { 1 });
-            assertThat(
-                "primary key lookup output must match regular select output for type " + type,
-                resp2.rows()[0],
-                Matchers.arrayContaining(resp1.rows()[0])
-            );
+            assertThat(resp2.rows()[0])
+                .as("primary key lookup output must match regular select output for type " + type)
+                .contains(resp1.rows()[0]);
 
-            if (SemanticSortValidator.SUPPORTED_TYPES.contains(type)) {
+            if (SemanticSortValidator.SUPPORTED_TYPES.contains(type.id())) {
                 // should use doc-values/query-without-fetch execution path due to order + limit
                 var resp3 = execute("select _doc['x'], x, _raw FROM tbl order by x limit 1");
-                assertThat(
-                    "output of query with order and limit must match output of query without" + type,
-                    resp3.rows()[0],
-                    Matchers.arrayContaining(resp1.rows()[0])
-                );
+                assertThat(resp3.rows()[0])
+                    .as("output of query with order and limit must match output of query without" + type)
+                    .contains(resp1.rows()[0]);
             }
 
             execute("drop table tbl");
@@ -2084,9 +2013,9 @@ public class TransportSQLActionTest extends IntegTestCase {
         execute("insert into tbl (xs) values ([B'010', B'110'])");
         execute("refresh table tbl");
         execute("select xs from tbl");
-        assertThat(TestingHelpers.printedTable(response.rows()), is(
+        assertThat(response).hasRows(
             "[B'010', B'110']\n"
-        ));
+        );
     }
 
     @Test
@@ -2095,18 +2024,18 @@ public class TransportSQLActionTest extends IntegTestCase {
     public void test_character_can_be_inserted_and_queried() throws Exception {
         execute("create table tbl (c character(4))");
         execute("insert into tbl (c) values ('four'), ('two')");
-        assertThat(response.rowCount(), is(2L));
+        assertThat(response).hasRowCount(2L);
         execute("refresh table tbl");
 
         execute("SELECT _doc['c'], c, _raw, c::char(1) FROM tbl WHERE c = 'two'");
-        assertThat(TestingHelpers.printedTable(response.rows()), is(
+        assertThat(response).hasRows(
                 "two | two | {\"c\":\"two \"}| t\n"
-        ));
+        );
         // use LIMIT 1 to hit a different execution path that should load `c` differently
         execute("SELECT _doc['c'], c, _raw, c::char(1) FROM tbl WHERE c = 'four' LIMIT 1");
-        assertThat(TestingHelpers.printedTable(response.rows()), is(
+        assertThat(response).hasRows(
             "four| four| {\"c\":\"four\"}| f\n"
-        ));
+        );
 
         var properties = new Properties();
         properties.put("user", "crate");
@@ -2120,10 +2049,10 @@ public class TransportSQLActionTest extends IntegTestCase {
                 results.add(string);
             }
         }
-        assertThat(results, Matchers.contains(
+        assertThat(results).contains(
             "four",
             "two "
-        ));
+        );
     }
 
     @Test
@@ -2132,9 +2061,9 @@ public class TransportSQLActionTest extends IntegTestCase {
         execute("insert into tbl (c) values (['four', 'two'])");
         execute("refresh table tbl");
         execute("select c from tbl");
-        assertThat(TestingHelpers.printedTable(response.rows()), is(
+        assertThat(response).hasRows(
             "[four, two ]\n"
-        ));
+        );
     }
 
     @Test
@@ -2143,11 +2072,11 @@ public class TransportSQLActionTest extends IntegTestCase {
         execute("insert into tbl (x) values (1), (2), (3)");
         execute("refresh table tbl");
         execute("select _doc['x'] from tbl order by 1");
-        assertThat(printedTable(response.rows()), is(
+        assertThat(response).hasRows(
             "1\n" +
             "2\n" +
             "3\n"
-        ));
+        );
 
     }
 
@@ -2160,9 +2089,9 @@ public class TransportSQLActionTest extends IntegTestCase {
         execute("INSERT INTO t1 (o) VALUES ({\"my first \"\" field\" = 'foo'})");
         refresh();
         execute("SELECT o FROM t1");
-        assertThat(printedTable(response.rows()), Matchers.is("{my first \" field=foo}\n"));
+        assertThat(response).hasRows("{my first \" field=foo}\n");
         execute("SELECT o['my first \" field'] FROM t1");
-        assertThat(printedTable(response.rows()), Matchers.is("foo\n"));
+        assertThat(response).hasRows("foo\n");
     }
 
     /**
@@ -2175,9 +2104,9 @@ public class TransportSQLActionTest extends IntegTestCase {
         execute("insert into doc.obj (obj) VALUES ('{\"(\": 1.0}');");
         refresh();
         execute("SELECT count(*) FROM doc.obj");
-        assertThat(printedTable(response.rows()), Matchers.is("2\n"));
+        assertThat(response).hasRows("2\n");
         execute("SELECT obj FROM doc.obj limit 1");
-        assertThat(printedTable(response.rows()), Matchers.is("{(=1.0}\n"));
+        assertThat(response).hasRows("{(=1.0}\n");
     }
 
 
@@ -2187,16 +2116,16 @@ public class TransportSQLActionTest extends IntegTestCase {
         execute("insert into doc.test VALUES ('\"\"')");
         refresh();
         execute("SELECT \"\"\"\" FROM doc.test");
-        assertThat(printedTable(response.rows()), Matchers.is("\"\"\n"));
+        assertThat(response).hasRows("\"\"\n");
     }
 
     @Test
     public void test_select_with_order_by_can_have_limit_zero() {
         execute("select 1 order by 1 limit 0");
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response).hasRowCount(0L);
 
         execute("select 1 order by 1 offset 10 limit 0");
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response).hasRowCount(0L);
     }
 
     /**
@@ -2216,6 +2145,6 @@ public class TransportSQLActionTest extends IntegTestCase {
         // this used to throw a NPE because the `DocTableInfo` instance used in the
         // ShardCollectorProvider got stale and didn't have the new column
         execute("select * from tbl where xo is null");
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response).hasRowCount(0L);
     }
 }
