@@ -51,7 +51,6 @@ app/logs/
 app/oss_modules/
 app/plugins/
 app/src/main/dist/bin/crate.bat
-app/src/main/dist/bin/crate.in.sh
 app/src/main/resources/crate-build.properties
 
 # Docs

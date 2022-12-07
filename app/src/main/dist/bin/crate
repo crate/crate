@@ -174,7 +174,7 @@ else
 fi
 
 if [ -z "$CRATE_CLASSPATH" ]; then
-    echo "CRATE_CLASSPATH should've been initialized via crate.in.sh" >&2
+    echo "ERROR: CRATE_CLASSPATH is not defined or empty" >&2
     exit 1
 fi
 
