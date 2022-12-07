@@ -68,7 +68,6 @@ import org.elasticsearch.snapshots.mockstore.MockRepository;
 import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.test.TestCluster;
 import org.elasticsearch.test.disruption.NetworkDisruption;
-import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.elasticsearch.test.transport.MockTransportService;
 import org.junit.Test;
 
@@ -1122,13 +1121,13 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
         blockMasterFromFinalizingSnapshotOnIndexFile(otherRepoName);
 
         client().execute(CreateSnapshotAction.INSTANCE, new CreateSnapshotRequest(repoName, "snapshot-blocked-1")
-            .waitForCompletion(false));
+            .waitForCompletion(false)).get();
         client().execute(CreateSnapshotAction.INSTANCE, new CreateSnapshotRequest(repoName, "snapshot-blocked-2")
-            .waitForCompletion(false));
+            .waitForCompletion(false)).get();
         client().execute(CreateSnapshotAction.INSTANCE, new CreateSnapshotRequest(otherRepoName, "snapshot-other-blocked-1")
-            .waitForCompletion(false));
+            .waitForCompletion(false)).get();
         client().execute(CreateSnapshotAction.INSTANCE, new CreateSnapshotRequest(otherRepoName, "snapshot-other-blocked-2")
-            .waitForCompletion(false));
+            .waitForCompletion(false)).get();
 
 //        awaitNSnapshotsInProgress(4);
         final String initialMaster = internalCluster().getMasterName();
