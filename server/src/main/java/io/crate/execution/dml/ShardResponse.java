@@ -273,6 +273,9 @@ public class ShardResponse extends ReplicationResponse implements WriteResponse 
             List<Object[]> resultRows = response.getResultRows();
             if (resultRows != null) {
                 this.resultRows.addAll(resultRows); // This is never added in case of bulk insert because 'resultRows' is null
+            } else {
+                // bulk update, let's collect errors
+                //TODO: create result out of failures
             }
         }
 
