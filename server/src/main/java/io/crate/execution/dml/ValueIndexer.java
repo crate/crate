@@ -28,6 +28,7 @@ import java.util.function.Consumer;
 import org.apache.lucene.index.IndexableField;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 
+import io.crate.execution.dml.Indexer.GeneratedValidator;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 
@@ -38,6 +39,6 @@ public interface ValueIndexer<T> {
         XContentBuilder xcontentBuilder,
         Consumer<? super IndexableField> addField,
         Consumer<? super Reference> onDynamicColumn,
-        Map<ColumnIdent, Indexer.Synthetic> synthetics
+        Map<ColumnIdent, Indexer.Synthetic> synthetics, Map<ColumnIdent, GeneratedValidator> toValidate
     ) throws IOException;
 }

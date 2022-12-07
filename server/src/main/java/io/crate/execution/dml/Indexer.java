@@ -24,6 +24,7 @@ package io.crate.execution.dml;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -46,7 +47,6 @@ import org.elasticsearch.index.mapper.SequenceIDFields;
 import org.elasticsearch.index.mapper.Uid;
 
 import io.crate.analyze.SymbolEvaluator;
-import io.crate.common.collections.Lists2;
 import io.crate.common.collections.Maps;
 import io.crate.data.Input;
 import io.crate.data.Row;
@@ -58,6 +58,7 @@ import io.crate.expression.InputFactory.Context;
 import io.crate.expression.reference.ReferenceResolver;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
@@ -66,6 +67,7 @@ import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.types.ArrayType;
+import io.crate.types.DataType;
 import io.crate.types.ObjectType;
 
 public class Indexer {
@@ -75,8 +77,32 @@ public class Indexer {
     private final SymbolEvaluator symbolEval;
     private final Map<ColumnIdent, Synthetic> synthetics;
     private final List<CollectExpression<Object[], Object>> expressions;
+    private final Map<ColumnIdent, GeneratedValidator> toValidate = new HashMap<>();
 
     record Synthetic(Input<?> input, ValueIndexer<Object> indexer) {
+    }
+
+    record GeneratedValidator(Input<?> input, GeneratedReference ref) {
+
+        @SuppressWarnings("unchecked")
+        void ensureMatch(Object providedValue) {
+            DataType<Object> valueType = (DataType<Object>) ref.valueType();
+            Object generatedValue = input.value();
+            int compare = Comparator
+                .nullsFirst(valueType)
+                .compare(
+                    valueType.sanitizeValue(generatedValue),
+                    valueType.sanitizeValue(providedValue)
+                );
+            if (compare != 0) {
+                throw new IllegalArgumentException(
+                    "Given value " + providedValue +
+                    " for generated column " + ref.column() +
+                    " does not match calculation " + ref.formattedGeneratedExpression() + " = " +
+                    generatedValue
+                );
+            }
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -87,13 +113,6 @@ public class Indexer {
                    List<Reference> targetColumns) {
         this.symbolEval = new SymbolEvaluator(txnCtx, nodeCtx, SubQueryResults.EMPTY);
         this.columns = targetColumns;
-        Function<ColumnIdent, Reference> getRef = table::getReference;
-        this.valueIndexers = Lists2.map(
-            targetColumns,
-            ref -> {
-                return ref.valueType().valueIndexer(table.ident(), ref, getFieldType, getRef);
-            });
-
         this.synthetics = new HashMap<>();
         InputFactory inputFactory = new InputFactory(nodeCtx);
         var referenceResolver = new ReferenceResolver<CollectExpression<Object[], Object>>() {
@@ -137,6 +156,14 @@ public class Indexer {
             txnCtx,
             referenceResolver
         );
+        Function<ColumnIdent, Reference> getRef = table::getReference;
+        this.valueIndexers = new ArrayList<>(targetColumns.size());
+        for (var ref : targetColumns) {
+            this.valueIndexers.add(
+                ref.valueType().valueIndexer(table.ident(), ref, getFieldType, getRef)
+            );
+            addToValidate(table, ctxForRefs, ref);
+        }
         for (var ref : table.defaultExpressionColumns()) {
             if (targetColumns.contains(ref) || ref.granularity() == RowGranularity.PARTITION) {
                 continue;
@@ -155,7 +182,6 @@ public class Indexer {
                 continue;
             }
             if (targetColumns.contains(ref)) {
-                // TODO: need to validate
                 continue;
             }
             Input<?> input = ctxForRefs.add(ref.generatedExpression());
@@ -170,6 +196,26 @@ public class Indexer {
         this.expressions = ctxForRefs.expressions();
     }
 
+    private void addToValidate(DocTableInfo table,
+                               Context<CollectExpression<Object[], Object>> ctxForRefs,
+                               Reference ref) {
+        if (ref instanceof GeneratedReference generated && ref.granularity() == RowGranularity.DOC) {
+            Input<?> input = ctxForRefs.add(generated.generatedExpression());
+            toValidate.put(ref.column(), new GeneratedValidator(input, generated));
+        }
+        if (ref.valueType() instanceof ObjectType objectType) {
+            for (var entry : objectType.innerTypes().entrySet()) {
+                String innerName = entry.getKey();
+                ColumnIdent innerColumn = ref.column().getChild(innerName);
+                Reference reference = table.getReference(innerColumn);
+                if (reference == null) {
+                    continue;
+                }
+                addToValidate(table, ctxForRefs, reference);
+            }
+        }
+    }
+
     @SuppressWarnings("unchecked")
     public ParsedDocument index(String id, Object ... values) throws IOException {
         assert values.length == valueIndexers.size()
@@ -180,17 +226,20 @@ public class Indexer {
         ArrayList<Reference> newColumns = new ArrayList<>();
         Consumer<? super Reference> onDynamicColumn = newColumns::add;
         // TODO: re-use stream?
-        XContentBuilder xContentBuilder = XContentFactory.jsonBuilder();
-        xContentBuilder.startObject();
         for (var expression : expressions) {
             expression.setNextRow(values);
         }
+        XContentBuilder xContentBuilder = XContentFactory.jsonBuilder();
+        xContentBuilder.startObject();
         for (int i = 0; i < values.length; i++) {
             Reference reference = columns.get(i);
             Symbol defaultExpression = reference.defaultExpression();
             Object value = values[i];
             if (value == null && defaultExpression != null) {
                 value = defaultExpression.accept(symbolEval, Row.EMPTY).value();
+            } else if (reference instanceof GeneratedReference generated) {
+                var validator = toValidate.get(reference.column());
+                validator.ensureMatch(value);
             }
             ValueIndexer<Object> valueIndexer = (ValueIndexer<Object>) valueIndexers.get(i);
             xContentBuilder.field(reference.column().leafName());
@@ -199,7 +248,8 @@ public class Indexer {
                 xContentBuilder,
                 addField,
                 onDynamicColumn,
-                synthetics
+                synthetics,
+                toValidate
             );
         }
         for (var entry : synthetics.entrySet()) {
@@ -211,7 +261,14 @@ public class Indexer {
             ValueIndexer<Object> indexer = synthetic.indexer();
             Object value = synthetic.input().value();
             xContentBuilder.field(column.leafName());
-            indexer.indexValue(value, xContentBuilder, addField, onDynamicColumn, synthetics);
+            indexer.indexValue(
+                value,
+                xContentBuilder,
+                addField,
+                onDynamicColumn,
+                synthetics,
+                toValidate
+            );
         }
         xContentBuilder.endObject();
 

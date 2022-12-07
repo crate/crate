@@ -51,7 +51,8 @@ public class StringIndexer implements ValueIndexer<String> {
                            XContentBuilder xcontentBuilder,
                            Consumer<? super IndexableField> addField,
                            Consumer<? super Reference> onDynamicColumn,
-                           Map<ColumnIdent, Indexer.Synthetic> synthetics) throws IOException {
+                           Map<ColumnIdent, Indexer.Synthetic> synthetics,
+                           Map<ColumnIdent, Indexer.GeneratedValidator> toValidate) throws IOException {
         xcontentBuilder.value(value);
         if (value == null) {
             return;

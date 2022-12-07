@@ -31,11 +31,10 @@ import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.IndexableField;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 
-import io.crate.data.Input;
+import io.crate.execution.dml.Indexer.GeneratedValidator;
 import io.crate.execution.dml.Indexer.Synthetic;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
@@ -87,7 +86,8 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
                            XContentBuilder xContentBuilder,
                            Consumer<? super IndexableField> addField,
                            Consumer<? super Reference> onDynamicColumn,
-                           Map<ColumnIdent, Indexer.Synthetic> synthetics) throws IOException {
+                           Map<ColumnIdent, Indexer.Synthetic> synthetics,
+                           Map<ColumnIdent, Indexer.GeneratedValidator> toValidate) throws IOException {
         xContentBuilder.startObject();
         for (var entry : value.entrySet()) {
             String innerName = entry.getKey();
@@ -118,7 +118,14 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
                 var valueIndexer = (ValueIndexer<Object>) type.valueIndexer(table, newColumn, getFieldType, getRef);
                 innerIndexers.put(innerName, valueIndexer);
                 xContentBuilder.field(innerName);
-                valueIndexer.indexValue(innerValue, xContentBuilder, addField, onDynamicColumn, synthetics);
+                valueIndexer.indexValue(
+                    innerValue,
+                    xContentBuilder,
+                    addField,
+                    onDynamicColumn,
+                    synthetics,
+                    toValidate
+                );
             }
         }
         for (var entry : objectType.innerTypes().entrySet()) {
@@ -130,12 +137,24 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
                 if (synthetic != null) {
                     innerValue = synthetic.input().value();
                 }
+            } else {
+                GeneratedValidator generatedValidator = toValidate.get(innerColumn);
+                if (generatedValidator != null) {
+                    generatedValidator.ensureMatch(innerValue);
+                }
             }
             var valueIndexer = innerIndexers.get(innerName);
             assert valueIndexer != null : "ValueIndexer must exist for inner column retrieved from ObjectType information";
 
             xContentBuilder.field(innerName);
-            valueIndexer.indexValue(innerValue, xContentBuilder, addField, onDynamicColumn, synthetics);
+            valueIndexer.indexValue(
+                innerValue,
+                xContentBuilder,
+                addField,
+                onDynamicColumn,
+                synthetics,
+                toValidate
+            );
         }
         xContentBuilder.endObject();
     }

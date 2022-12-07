@@ -23,6 +23,7 @@ package io.crate.execution.dml;
 
 import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 import java.util.Map;
@@ -247,5 +248,35 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(parsedDoc.source().utf8ToString()).isEqualTo(
             "{\"o\":{\"x\":10}}"
         );
+    }
+
+    @Test
+    public void test_validates_user_provided_value_for_generated_columns() throws Exception {
+        SQLExecutor executor = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (x int, y int as x + 2, o object as (z int as x + 3))")
+            .build();
+        DocTableInfo table = executor.resolveTableInfo("tbl");
+        Reference x = table.getReference(new ColumnIdent("x"));
+        Reference y = table.getReference(new ColumnIdent("y"));
+        Reference o = table.getReference(new ColumnIdent("o"));
+        Indexer indexer1 = new Indexer(
+            table,
+            new CoordinatorTxnCtx(executor.getSessionSettings()),
+            executor.nodeCtx,
+            column -> NumberFieldMapper.FIELD_TYPE,
+            List.of(x, y)
+        );
+        assertThatThrownBy(() -> indexer1.index("id1", 1, 2))
+            .hasMessage("Given value 2 for generated column y does not match calculation (x + 2) = 3");
+
+        Indexer indexer2 = new Indexer(
+            table,
+            new CoordinatorTxnCtx(executor.getSessionSettings()),
+            executor.nodeCtx,
+            column -> NumberFieldMapper.FIELD_TYPE,
+            List.of(x, o)
+        );
+        assertThatThrownBy(() -> indexer2.index("id1", 1, Map.of("z", 10)))
+            .hasMessage("Given value 10 for generated column o['z'] does not match calculation (x + 3) = 4");
     }
 }
