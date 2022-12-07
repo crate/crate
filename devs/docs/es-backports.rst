@@ -180,7 +180,7 @@ should be crossed out as well.
 - [s] 8b56441d2b0 Search - add case insensitive support for regex queries. (#59441) (#61532)
 - [ ] f3f7d25316f Header warning logging refactoring backport(#55941) (#61515)
 - [ ] f22ddf822e2 Some Optimizations around BytesArray (#61183) (#61511)
-- [ ] 806dfcfcf7d Speed up Compression Logic by Pooling Resources (#61358) (#61495)
+- [x] 806dfcfcf7d Speed up Compression Logic by Pooling Resources (#61358) (#61495)
 - [s] f3b6d49ae1e Migrate server mapper tests to new MapperTestCase (#61378) (#61490)
 - [s] 078e8717eea Stop opening PING conns to remote clusters (#61408)
 - [s] 997c73ec177 Correct how field retrieval handles multifields and copy_to. (#61391)
