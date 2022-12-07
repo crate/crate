@@ -52,7 +52,7 @@ public class ViewsITest extends IntegTestCase {
 
     @After
     public void dropViews() {
-        execute("SELECT table_schema || '.' || table_name FROM information_schema.views");
+        execute("SELECT pg_catalog.quote_ident(table_schema) || '.' || table_name FROM information_schema.views");
         if (response.rows().length > 0) {
             String views = Stream.of(response.rows())
                 .map(row -> String.valueOf(row[0]))
@@ -172,7 +172,7 @@ public class ViewsITest extends IntegTestCase {
     @Test
     public void testDropViewFailsIfViewIsMissing() {
         assertThrowsMatches(() -> execute("drop view v1"),
-                     isSQLError(containsString("Relations not found: " + sqlExecutor.getCurrentSchema() + ".v1"),
+                     isSQLError(containsString("Relations not found: \"" + sqlExecutor.getCurrentSchema() + "\".v1"),
                                 INTERNAL_ERROR,
                                 NOT_FOUND,
                                 4041));
