@@ -135,29 +135,4 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
-- Fixed privileges for :ref:`DECLARE <sql-declare>` for cursors to make it
-  accessible for non-super-users. All users can declare cursors as long as they
-  have the required permissions for the query used within ``DECLARE``.
-
-- Added dynamic bulk sizing for update by query or delete by query operations to
-  reduce memory pressure and fix out of memory errors when running update
-  statements with large assignment expressions.
-
-- Fixed inefficient join optimizations on hash and nested-loop joins when
-  table statistics aren't available.
-
-- Fixed a race condition that could lead to a ``NullPointerException`` when
-  using ``IS NULL`` on an object that was just added to a table.
-
-- Fixed an issue that caused the generated expressions on columns of type
-  ``GEO_SHAPE`` not being evaluated on writes and such being ignored.
-
-- Fixed an issue that could generate duplicate data on ``COPY FROM``  while
-  some internal retries were happening due to I/O errors e.g. socket timeouts.
-
-- Fixed an issue that caused ``routing.allocation.*.{attribute}``
-  settings to be ignored when executing ``ALTER TABLE SET`` on a partitioned
-  table.
-
-- Fixed an issue that caused the setting, ``number_of_replicas`` to be ignored
-  when executing ``ALTER TABLE SET`` on a partitioned table.
+None
