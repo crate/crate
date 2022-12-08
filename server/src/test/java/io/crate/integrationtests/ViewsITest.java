@@ -174,7 +174,7 @@ public class ViewsITest extends IntegTestCase {
     public void testDropViewFailsIfViewIsMissing() {
         var schema = sqlExecutor.getCurrentSchema();
         String msg = "Relations not found: ";
-        msg += Identifiers.containsUpperCase(schema) ? Identifiers.quote(schema) : schema;
+        msg += schema != null && Identifiers.containsUpperCase(schema) ? Identifiers.quote(schema) : schema;
         msg += ".v1";
         assertThrowsMatches(() -> execute("drop view v1"),
                      isSQLError(containsString(msg),

@@ -79,7 +79,6 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
 
     private static final Logger LOGGER = LogManager.getLogger(Schemas.class);
 
-    @VisibleForTesting
     public static final Collection<String> READ_ONLY_SYSTEM_SCHEMAS = Set.of(
         SysSchemaInfo.NAME,
         InformationSchemaInfo.NAME,

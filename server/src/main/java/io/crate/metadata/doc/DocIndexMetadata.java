@@ -664,8 +664,8 @@ public class DocIndexMetadata {
         for (var generatedReference : generatedColumnReferences) {
             String schema = generatedReference.reference().ident().tableIdent().schema();
             Expression expression = SqlParser.createExpression(
-                Identifiers.containsUpperCase(schema) ?
-                    generatedReference.formattedGeneratedExpression().replace(schema, "\"" + schema + "\"") :
+                schema != null && Identifiers.containsUpperCase(schema) ?
+                    generatedReference.formattedGeneratedExpression().replace(schema, Identifiers.quote(schema)) :
                     generatedReference.formattedGeneratedExpression()
             );
             tableReferenceResolver.references().clear();

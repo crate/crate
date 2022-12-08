@@ -29,6 +29,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import javax.annotation.Nonnull;
+
 import org.antlr.v4.runtime.Vocabulary;
 
 import io.crate.sql.parser.ParsingException;
@@ -135,10 +137,7 @@ public class Identifiers {
         return isKeyWord(identifier) || !IDENTIFIER.matcher(identifier).matches();
     }
 
-    public static boolean containsUpperCase(String identifier) {
-        if (identifier == null) {
-            return false;
-        }
+    public static boolean containsUpperCase(@Nonnull String identifier) {
         for (int i = 0; i < identifier.length(); i++) {
             char c = identifier.charAt(i);
             if (c >= 'A' && c <= 'Z') {
