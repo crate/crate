@@ -50,6 +50,7 @@ import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.junit.Assert;
 
 import io.crate.common.unit.TimeValue;
+import io.crate.sql.Identifiers;
 import io.crate.testing.DataTypeTesting;
 import io.crate.types.DataTypes;
 
@@ -95,7 +96,7 @@ public class BackgroundIndexer implements AutoCloseable {
         if (random == null) {
             random = RandomizedTest.getRandom();
         }
-        this.table = table;
+        this.table = (Identifiers.containsUpperCase(schema) ? Identifiers.quote(schema) : schema) + "." + table;
         writers = new Thread[writerCount];
         stopLatch = new CountDownLatch(writers.length);
         logger.info("--> creating {} indexing threads (auto start: [{}], numOfDocs: [{}])", writerCount, autoStart, numOfDocs);

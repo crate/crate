@@ -46,6 +46,7 @@ import org.junit.jupiter.api.Assertions;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.view.ViewsMetadata;
+import io.crate.sql.Identifiers;
 import io.netty.handler.codec.http.HttpResponseStatus;
 
 public class ViewsITest extends IntegTestCase {
@@ -171,8 +172,12 @@ public class ViewsITest extends IntegTestCase {
 
     @Test
     public void testDropViewFailsIfViewIsMissing() {
+        var schema = sqlExecutor.getCurrentSchema();
+        String msg = "Relations not found: ";
+        msg += Identifiers.containsUpperCase(schema) ? Identifiers.quote(schema) : schema;
+        msg += ".v1";
         assertThrowsMatches(() -> execute("drop view v1"),
-                     isSQLError(containsString("Relations not found: \"" + sqlExecutor.getCurrentSchema() + "\".v1"),
+                     isSQLError(containsString(msg),
                                 INTERNAL_ERROR,
                                 NOT_FOUND,
                                 4041));

@@ -132,7 +132,7 @@ public class Identifiers {
     }
 
     private static boolean quotesRequired(String identifier) {
-        return containsUpperCase(identifier) || isKeyWord(identifier) || !IDENTIFIER.matcher(identifier).matches();
+        return isKeyWord(identifier) || !IDENTIFIER.matcher(identifier).matches();
     }
 
     public static boolean containsUpperCase(String identifier) {
