@@ -96,10 +96,7 @@ public class BackgroundIndexer implements AutoCloseable {
         if (random == null) {
             random = RandomizedTest.getRandom();
         }
-        this.table = schema != null && Identifiers.containsUpperCase(schema) ?
-                          Identifiers.quote(schema) :
-                          schema
-                          + "." + table;
+        this.table = Identifiers.quoteIfNeeded(schema) + "." + table;
         writers = new Thread[writerCount];
         stopLatch = new CountDownLatch(writers.length);
         logger.info("--> creating {} indexing threads (auto start: [{}], numOfDocs: [{}])", writerCount, autoStart, numOfDocs);

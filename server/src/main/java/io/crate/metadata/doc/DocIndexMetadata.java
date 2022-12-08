@@ -664,10 +664,11 @@ public class DocIndexMetadata {
         for (var generatedReference : generatedColumnReferences) {
             String schema = generatedReference.reference().ident().tableIdent().schema();
             Expression expression = SqlParser.createExpression(
-                schema != null && Identifiers.containsUpperCase(schema) ?
-                    generatedReference.formattedGeneratedExpression().replace(schema, Identifiers.quote(schema)) :
                     generatedReference.formattedGeneratedExpression()
-            );
+                        .replace(schema + ".", Identifiers.quoteIfNeeded(schema) + "."));
+            assert expression.toString().replace("\"", "")
+                .equals(generatedReference.formattedGeneratedExpression())
+                : "validation of the expression recovered from the generated-expression failed";
             tableReferenceResolver.references().clear();
             generatedReference.generatedExpression(exprAnalyzer.convert(expression, analysisCtx));
             generatedReference.referencedReferences(List.copyOf(tableReferenceResolver.references()));

@@ -96,6 +96,7 @@ import io.crate.protocols.postgres.types.PGArray;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.protocols.postgres.types.PgOidVectorType;
+import io.crate.sql.Identifiers;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.user.User;
@@ -167,7 +168,7 @@ public class SQLTransportExecutor {
                             // create un-fully-qualified relations will fail. we filter it out and will implicitly
                             // remain the first in the search path.
                             .filter(s -> !s.equals(PgCatalogSchemaInfo.NAME))
-                            .map(t -> t = "\"" + t + "\"")
+                            .map(Identifiers::quoteIfNeeded)
                             .collect(Collectors.joining(", "))
         );
 
