@@ -71,11 +71,11 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.SchemaNameCaseSensitivityRecoverer;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.table.ColumnPolicies;
 import io.crate.metadata.table.Operation;
 import io.crate.replication.logical.metadata.PublicationsMetadata;
-import io.crate.sql.Identifiers;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.CheckConstraint;
 import io.crate.sql.tree.ColumnPolicy;
@@ -662,13 +662,11 @@ public class DocIndexMetadata {
         checkConstraints = checkConstraintsBuilder != null ? List.copyOf(checkConstraintsBuilder) : List.of();
 
         for (var generatedReference : generatedColumnReferences) {
+            Expression expression = SqlParser.createExpression(generatedReference.formattedGeneratedExpression());
             String schema = generatedReference.reference().ident().tableIdent().schema();
-            Expression expression = SqlParser.createExpression(
-                    generatedReference.formattedGeneratedExpression()
-                        .replace(schema + ".", Identifiers.quoteIfNeeded(schema) + "."));
-            assert expression.toString().replace("\"", "")
-                .equals(generatedReference.formattedGeneratedExpression())
-                : "validation of the expression recovered from the generated-expression failed";
+            if (schema != null && !schema.equals(schema.toLowerCase(Locale.ROOT))) {
+                SchemaNameCaseSensitivityRecoverer.recover(expression, schema);
+            }
             tableReferenceResolver.references().clear();
             generatedReference.generatedExpression(exprAnalyzer.convert(expression, analysisCtx));
             generatedReference.referencedReferences(List.copyOf(tableReferenceResolver.references()));
