@@ -67,8 +67,7 @@ import io.crate.types.DataTypes;
 public class TableParameters {
 
     // all available table settings
-    static final Map.Entry<String, NumberOfReplicasSetting> NUMBER_OF_REPLICAS =
-        Map.entry(stripIndexPrefix(NumberOfReplicasSetting.NAME), new NumberOfReplicasSetting());
+    static final NumberOfReplicasSetting NUMBER_OF_REPLICAS = new NumberOfReplicasSetting();
     static final Setting<String> COLUMN_POLICY = new Setting<>(
         new Setting.SimpleKey(ColumnPolicies.ES_MAPPING_NAME),
         s -> ColumnPolicy.STRICT.lowerCaseName(),
@@ -86,7 +85,7 @@ public class TableParameters {
 
     private static final List<Setting<?>> SUPPORTED_SETTINGS =
         List.of(
-            NUMBER_OF_REPLICAS.getValue(),
+            NUMBER_OF_REPLICAS,
             IndexSettings.INDEX_REFRESH_INTERVAL_SETTING,
             IndexMetadata.INDEX_READ_ONLY_SETTING,
             INDEX_BLOCKS_READ_ONLY_ALLOW_DELETE_SETTING,
@@ -157,7 +156,7 @@ public class TableParameters {
             .filter(s -> s.isFinal() == false)
             .collect(Collectors.toMap((s) -> stripDotSuffix(stripIndexPrefix(s.getKey())), s -> s));
 
-    private static final Set<Setting<?>> EXCLUDED_SETTING_FOR_METADATA_IMPORT = Set.of(NUMBER_OF_REPLICAS.getValue());
+    private static final Set<Setting<?>> EXCLUDED_SETTING_FOR_METADATA_IMPORT = Set.of(NUMBER_OF_REPLICAS);
 
     private static final Map<String, Setting<?>> SUPPORTED_SETTINGS_INCL_SHARDS
         = MapBuilder.newMapBuilder(SUPPORTED_NON_FINAL_SETTINGS_DEFAULT)
@@ -191,7 +190,7 @@ public class TableParameters {
 
     public static final TableParameters CREATE_BLOB_TABLE_PARAMETERS = new TableParameters(
         Map.of(
-            NUMBER_OF_REPLICAS.getKey(), NUMBER_OF_REPLICAS.getValue(),
+            stripIndexPrefix(NUMBER_OF_REPLICAS.getKey()), NUMBER_OF_REPLICAS,
             "blobs_path", Setting.simpleString(
                 BlobIndicesService.SETTING_INDEX_BLOBS_PATH.getKey(), Validators.stringValidator("blobs_path"))
         ),
@@ -199,8 +198,8 @@ public class TableParameters {
     );
 
     public static final TableParameters ALTER_BLOB_TABLE_PARAMETERS = new TableParameters(
-        Map.of(NUMBER_OF_REPLICAS.getKey(),
-               NUMBER_OF_REPLICAS.getValue(),
+        Map.of(stripIndexPrefix(NUMBER_OF_REPLICAS.getKey()),
+               NUMBER_OF_REPLICAS,
                stripDotSuffix(stripIndexPrefix(SETTING_READ_ONLY_ALLOW_DELETE)),
                INDEX_BLOCKS_READ_ONLY_ALLOW_DELETE_SETTING
         ),
