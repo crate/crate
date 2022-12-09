@@ -278,7 +278,7 @@ public class MetadataToASTNodeResolver {
             // WITH ( key = value, ... )
             Map<String, Expression> properties = new HashMap<>();
             Expression numReplicas = new StringLiteral(tableInfo.numberOfReplicas());
-            properties.put(TableParameters.NUMBER_OF_REPLICAS.getKey(), numReplicas);
+            properties.put(TableParameters.stripIndexPrefix(TableParameters.NUMBER_OF_REPLICAS.getKey()), numReplicas);
             // we want a sorted map of table parameters
 
             TreeMap<String, Object> tableParameters = new TreeMap<>(
