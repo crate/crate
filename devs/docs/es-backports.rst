@@ -80,6 +80,7 @@ should be crossed out as well.
 - [ ] 16fae5d66d3 Also reroute after shard snapshot size fetch failure (#66008)
 - [ ] 26d67c1662d Ensure notify when proxy connections disconnect (#65697)
 - [ ] 745f527feac Deduplicate Index Meta Generations when Deserializing (#65619) (#65666)
+- [x] 6bbeedc9321 Reset Deflater/Inflater after Use in DeflateCompressor (#65617) (#65646)
 - [ ] 0137c1679bb Fix the earliest last modified age of translog stats (#64753)
 - [ ] fb84b6710d5 Restore use of default search and search_quote analyzers (#65491) (#65562)
 - [ ] 88993e763f9 Fix handling of null values in geo_point (#65307)
