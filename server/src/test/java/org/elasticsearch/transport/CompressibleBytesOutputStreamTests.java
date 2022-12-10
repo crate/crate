@@ -23,6 +23,7 @@ import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.compress.CompressorFactory;
 import org.elasticsearch.common.io.stream.BytesStream;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.InputStreamStreamInput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.test.ESTestCase;
 
@@ -73,7 +74,7 @@ public class CompressibleBytesOutputStreamTests extends ESTestCase {
 
         assertThat(CompressorFactory.COMPRESSOR.isCompressed(bytesRef)).isTrue();
 
-        StreamInput streamInput = CompressorFactory.COMPRESSOR.threadLocalStreamInput(bytesRef.streamInput());
+        StreamInput streamInput = new InputStreamStreamInput(CompressorFactory.COMPRESSOR.threadLocalInputStream(bytesRef.streamInput()));
         byte[] actualBytes = new byte[expectedBytes.length];
         streamInput.readBytes(actualBytes, 0, expectedBytes.length);
 
@@ -96,7 +97,8 @@ public class CompressibleBytesOutputStreamTests extends ESTestCase {
         stream.write(expectedBytes);
 
 
-        StreamInput streamInput = CompressorFactory.COMPRESSOR.threadLocalStreamInput(bStream.bytes().streamInput());
+        StreamInput streamInput =
+                new InputStreamStreamInput(CompressorFactory.COMPRESSOR.threadLocalInputStream(bStream.bytes().streamInput()));
         byte[] actualBytes = new byte[expectedBytes.length];
         assertThrowsMatches(
             () -> streamInput.readBytes(actualBytes, 0, expectedBytes.length),

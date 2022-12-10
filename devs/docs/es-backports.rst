@@ -156,7 +156,7 @@ should be crossed out as well.
 - [ ] 3d69b5c41e2 Introduce point in time APIs in x-pack basic (#61062)
 - [ ] 7b941a18e9d Optimize Snapshot Shard Status Update Handling (#62070) (#62219)
 - [ ] 6710104673d Fix Creating NOOP Tasks on SNAPSHOT Pool (#62152) (#62157)
-- [ ] ed4984a32e7 Remove Redundant Stream Wrapping from Compression (#62017) (#62132)
+- [x] ed4984a32e7 Remove Redundant Stream Wrapping from Compression (#62017) (#62132)
 - [x] 075271758e3 Keep checkpoint file channel open across fsyncs (#61744)
 - [ ] 2bb5716b3dc Add repositories metering API (#62088)
 - [ ] bb0a583990e Allow enabling soft-deletes on restore from snapshot (#62018)

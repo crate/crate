@@ -51,7 +51,7 @@ public class XContentHelper {
                                               BytesReference bytes) throws IOException {
         Compressor compressor = CompressorFactory.compressor(bytes);
         if (compressor != null) {
-            InputStream compressedInput = compressor.threadLocalStreamInput(bytes.streamInput());
+            InputStream compressedInput = compressor.threadLocalInputStream(bytes.streamInput());
             if (compressedInput.markSupported() == false) {
                 compressedInput = new BufferedInputStream(compressedInput);
             }
@@ -70,7 +70,7 @@ public class XContentHelper {
         Objects.requireNonNull(xContentType);
         Compressor compressor = CompressorFactory.compressor(bytes);
         if (compressor != null) {
-            InputStream compressedInput = compressor.threadLocalStreamInput(bytes.streamInput());
+            InputStream compressedInput = compressor.threadLocalInputStream(bytes.streamInput());
             if (compressedInput.markSupported() == false) {
                 compressedInput = new BufferedInputStream(compressedInput);
             }
@@ -108,7 +108,7 @@ public class XContentHelper {
         if (compressor == null) {
             return bytes.streamInput();
         }
-        InputStream compressedStreamInput = compressor.threadLocalStreamInput(bytes.streamInput());
+        InputStream compressedStreamInput = compressor.threadLocalInputStream(bytes.streamInput());
         if (compressedStreamInput.markSupported()) {
             return compressedStreamInput;
         } else {
