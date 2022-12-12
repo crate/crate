@@ -28,6 +28,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 
@@ -42,6 +43,7 @@ import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
 
 public class UserDefinedFunctionServiceTest extends UdfUnitTest {
+    private static final String DUMMY_SCHEMA = "_Dummy_Schema_";
 
     private final UserDefinedFunctionMetadata same1 = new UserDefinedFunctionMetadata(
         Schemas.DOC_SCHEMA_NAME, "same", List.of(), DataTypes.INTEGER,
@@ -56,7 +58,7 @@ public class UserDefinedFunctionServiceTest extends UdfUnitTest {
         DUMMY_LANG.name(), "function different() { return 3; }"
     );
     private static final UserDefinedFunctionMetadata FOO = new UserDefinedFunctionMetadata(
-        Schemas.DOC_SCHEMA_NAME, "foo", List.of(FunctionArgumentDefinition.of("i", DataTypes.INTEGER)), DataTypes.INTEGER,
+        DUMMY_SCHEMA, "foo", List.of(FunctionArgumentDefinition.of("i", DataTypes.INTEGER)), DataTypes.INTEGER,
         DUMMY_LANG.name(), "function foo(i) { return i; }"
     );
 
@@ -123,19 +125,17 @@ public class UserDefinedFunctionServiceTest extends UdfUnitTest {
         SQLExecutor executor = SQLExecutor.builder(clusterService)
             .addUDFLanguage(DUMMY_LANG)
             .addUDF(FOO)
-            .addTable("create table doc.t1 (id int, gen as foo(id))")
+            .addTable("create table t1 (id int, gen as \"" + DUMMY_SCHEMA + "\".foo(id))")
             .build();
 
-        Assertions.assertThrows(
-            IllegalArgumentException.class,
+        assertThatThrownBy(
             () -> executor.udfService().validateFunctionIsNotInUseByGeneratedColumn(
-                Schemas.DOC_SCHEMA_NAME,
+                DUMMY_SCHEMA,
                 "foo",
                 metadataWithoutFunction,
                 clusterService.state()
-            ),
-            "Cannot drop function 'foo', it is still in use by 'doc.t1.gen AS doc.foo(id)'"
-        );
+            )).isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Cannot drop function 'foo', it is still in use by 'doc.t1.gen AS " + DUMMY_SCHEMA + ".foo(id)'");
     }
 
     @Test
@@ -144,18 +144,19 @@ public class UserDefinedFunctionServiceTest extends UdfUnitTest {
         SQLExecutor executor = SQLExecutor.builder(clusterService)
             .addUDFLanguage(DUMMY_LANG)
             .addUDF(FOO)
-            .addPartitionedTable("create table doc.p1 (id int, p int, gen as foo(id)) partitioned by (p)")
+            .addPartitionedTable(
+                "create table doc.p1 (id int, p int, gen as\"" + DUMMY_SCHEMA + "\".foo(id)) partitioned by (p)")
             .build();
 
         Assertions.assertThrows(
             IllegalArgumentException.class,
             () -> executor.udfService().validateFunctionIsNotInUseByGeneratedColumn(
-                Schemas.DOC_SCHEMA_NAME,
+                DUMMY_SCHEMA,
                 "foo",
                 metadataWithoutFunction,
                 clusterService.state()
             ),
-            "Cannot drop function 'foo', it is still in use by 'doc.p1.gen AS doc.foo(id)'"
+            "Cannot drop function 'foo', it is still in use by 'doc.p1.gen AS" + DUMMY_SCHEMA + ".foo(id)'"
         );
     }
 }
