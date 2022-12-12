@@ -29,10 +29,12 @@ import static io.crate.testing.DataTypeTesting.randomType;
 import static io.crate.types.DataTypes.GEO_POINT;
 import static io.crate.types.DataTypes.GEO_SHAPE;
 import static io.crate.types.TypeSignature.parseTypeSignature;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
 import java.math.BigDecimal;
+import java.time.Period;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -321,5 +323,17 @@ public class CastFunctionTest extends ScalarTestCase {
     public void test_can_cast_date_to_timestamp() {
         assertEvaluate("'2020-02-09T17:50:44+0100'::date::timestamp", 1581206400000L);
         assertEvaluate("'2020-02-09T17:50:44+0100'::date::timestamp without time zone", 1581206400000L);
+    }
+
+    @Test
+    public void test_interval_to_long() {
+        assertEvaluate("CAST(INTERVAL '1025 days 29 hours 137 minutes 72 seconds' AS LONG)", 88672692000L);
+        assertEvaluate("CAST(INTERVAL '21:47:36' AS LONG)", 78456000L);
+        assertThatThrownBy(() -> assertEvaluate("CAST(INTERVAL '2 years 11 months 15 days 12 hours' AS LONG)", -1))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("Cannot convert to Duration as this period contains months and months vary in length");
+        assertThatThrownBy(() -> DataTypes.LONG.implicitCast(Period.ofDays(123)))
+            .isExactlyInstanceOf(ClassCastException.class)
+            .hasMessage("Can't cast 'P123D' to bigint");
     }
 }

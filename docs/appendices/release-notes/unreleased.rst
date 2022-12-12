@@ -87,6 +87,13 @@ None
 
 Changes
 =======
+- Added support for ``CAST(<INTERVAL> AS LONG)`` to get the total number of
+  milliseconds in an interval, e.g.::
+
+    SELECT (ts_end - ts_start)::long FROM test
+    SELECT (ts_end - ts_start)::long / (1000 * 60 * 60 * 24) FROM test
+
+
 - Added support for ``SUM()`` aggregations on ``INTERVAL`` type. e.g.::
 
     SELECT SUM(tsEnd - tsStart) FROM test

@@ -22,9 +22,12 @@
 package io.crate.types;
 
 import io.crate.Streamer;
+import io.crate.metadata.settings.SessionSettings;
+
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.joda.time.Period;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -60,24 +63,32 @@ public class LongType extends DataType<Long> implements FixedWidthType, Streamer
     public Long implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
         if (value == null) {
             return null;
-        } else if (value instanceof Long) {
-            return (Long) value;
-        } else if (value instanceof String) {
-            return Long.valueOf((String) value);
-        } else if (value instanceof BigDecimal) {
-            var bigDecimalValue = (BigDecimal) value;
+        } else if (value instanceof Long l) {
+            return l;
+        } else if (value instanceof String str) {
+            return Long.valueOf(str);
+        } else if (value instanceof BigDecimal bigDecimalValue) {
             var max = BigDecimal.valueOf(Long.MAX_VALUE).toBigInteger();
             var min = BigDecimal.valueOf(Long.MIN_VALUE).toBigInteger();
             if (max.compareTo(bigDecimalValue.toBigInteger()) <= 0
                 || min.compareTo(bigDecimalValue.toBigInteger()) >= 0) {
                 throw new IllegalArgumentException(getName() + " value out of range: " + value);
             }
-            return ((BigDecimal) value).longValue();
-        } else if (value instanceof Number) {
-            return ((Number) value).longValue();
+            return bigDecimalValue.longValue();
+        } else if (value instanceof Number n) {
+            return n.longValue();
         } else {
             throw new ClassCastException("Can't cast '" + value + "' to " + getName());
         }
+    }
+
+    @Override
+    public Long explicitCast(Object value,
+                             SessionSettings sessionSettings) throws IllegalArgumentException, ClassCastException {
+        if (value instanceof Period p) {
+            return p.toStandardDuration().getMillis();
+        }
+        return implicitCast(value);
     }
 
     @Override

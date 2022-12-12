@@ -27,6 +27,7 @@ import org.hamcrest.Matchers;
 import org.joda.time.Period;
 import org.junit.Test;
 
+import io.crate.exceptions.ConversionException;
 import io.crate.expression.scalar.ScalarTestCase;
 
 public class IntervalFunctionTest extends ScalarTestCase {
@@ -58,10 +59,9 @@ public class IntervalFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_unsupported_arithmetic_operator_on_interval_types() {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Unknown function: (NULL * cast('1 second' AS interval))," +
-                                        " no overload found for matching argument types: (undefined, interval).");
-        assertEvaluate("null * interval '1 second'", Matchers.nullValue());
+        assertThatThrownBy(() -> assertEvaluate("null * interval '1 second'", Matchers.nullValue()))
+            .isExactlyInstanceOf(ConversionException.class)
+            .hasMessage("Cannot cast `'PT1S'::interval` of type `interval` to type `bigint`");
     }
 
     @Test
@@ -78,7 +78,7 @@ public class IntervalFunctionTest extends ScalarTestCase {
     public void test_unallowed_operations() {
         assertThatThrownBy(
             () -> assertEvaluate("interval '1 second' - '86401000'::timestamptz", 86400000L))
-            .isExactlyInstanceOf(UnsupportedOperationException.class)
-            .hasMessageStartingWith("Unknown function: (cast('1 second' AS interval) - cast('86401000' AS timestamp with time zone)), ");
+            .isExactlyInstanceOf(ConversionException.class)
+            .hasMessage("Cannot cast `'PT1S'::interval` of type `interval` to type `bigint`");
     }
 }
