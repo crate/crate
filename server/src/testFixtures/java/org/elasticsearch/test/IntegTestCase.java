@@ -2245,4 +2245,24 @@ public abstract class IntegTestCase extends ESTestCase {
             future.get(30L, TimeUnit.SECONDS);
         }
     }
+
+
+
+    protected void awaitBusyClusterState(String viaNode, Predicate<ClusterState> statePredicate) throws Exception {
+        long maxTimeInMillis = TimeUnit.MILLISECONDS.convert(30,  TimeUnit.SECONDS);
+        long timeInMillis = 1;
+        long sum = 0;
+        while (sum + timeInMillis < maxTimeInMillis) {
+            final ClusterService clusterService = internalCluster().getInstance(ClusterService.class, viaNode);
+            ClusterState state = clusterService.state();
+            if (statePredicate.test(state)) {
+                return;
+            }
+            Thread.sleep(timeInMillis);
+            sum += timeInMillis;
+            timeInMillis = Math.min(AWAIT_BUSY_THRESHOLD, timeInMillis * 2);
+        }
+        timeInMillis = maxTimeInMillis - sum;
+        Thread.sleep(Math.max(timeInMillis, 0));
+    }
 }

@@ -68,6 +68,7 @@ import org.elasticsearch.snapshots.mockstore.MockRepository;
 import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.test.TestCluster;
 import org.elasticsearch.test.disruption.NetworkDisruption;
+import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.elasticsearch.test.transport.MockTransportService;
 import org.junit.Test;
 
@@ -585,11 +586,11 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
         final DeleteSnapshotFuture firstDeleteSnapshotFuture = startAndBlockOnDeleteSnapshot(repoName, snapshotNames);
 
         final CreateSnapshotFuture snapshotFuture = createSnapshot(client(masterNode), repoName, "snapshot-queued");
-//        awaitNSnapshotsInProgress(1);
+        awaitNSnapshotsInProgress(1);
 
         final DeleteSnapshotFuture secondDeleteFuture =
             startDelete(repoName, ArrayUtils.concat(snapshotNames, new String[] {"snapshot-queued"}));
-//        awaitNDeletionsInProgress(1);
+        awaitNDeletionsInProgress(1);
 
         unblockNode(repoName, masterNode);
         assertThat(firstDeleteSnapshotFuture.get().isAcknowledged()).isTrue();
@@ -644,13 +645,13 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
         waitForBlock(masterNode, repoName, TimeValue.timeValueSeconds(30L));
 
         final CreateSnapshotFuture createThirdSnapshot = createSnapshot(client(masterNode), repoName, "snapshot-three");
-//        awaitNSnapshotsInProgress(1);
+        awaitNSnapshotsInProgress(1);
 
         final DeleteSnapshotFuture secondDeleteSnapshotFuture = deleteSnapshot(client(masterNode), repoName, snapshotNames);
-//        awaitNDeletionsInProgress(2);
+        awaitNDeletionsInProgress(2);
 
         networkDisruption.startDisrupting();
-        ensureStableCluster(3, dataNode);
+//        ensureStableCluster(3, dataNode);
         unblockNode(repoName, masterNode);
         networkDisruption.stopDisrupting();
 
@@ -722,7 +723,7 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
             .waitForCompletion(false));
 
         final DeleteSnapshotFuture deleteFuture = startDeleteFromNonMasterClient(repoName, snapshotNames);
-//        awaitNDeletionsInProgress(1);
+        awaitNDeletionsInProgress(1);
 
         internalCluster().stopCurrentMasterNode();
         ensureStableCluster(3);
@@ -781,7 +782,7 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
         corruptIndexN(repoPath, generation);
 
         final CreateSnapshotFuture snapshotFour = startFullSnapshotFromNonMasterClient(repoName, "snapshot-four");
-//        awaitNSnapshotsInProgress(2);
+        awaitNSnapshotsInProgress(2);
 
         final NetworkDisruption networkDisruption = isolateMasterDisruption(new NetworkDisruption.NetworkDisconnect());
         internalCluster().setDisruptionScheme(networkDisruption);
@@ -919,7 +920,7 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
 
         final DeleteSnapshotFuture deleteSnapshotOne = startAndBlockOnDeleteSnapshot(repoName, snapshotOne);
         final DeleteSnapshotFuture deleteSnapshotTwo = startDelete(repoName, snapshotTwo);
-//        awaitNDeletionsInProgress(2);
+        awaitNDeletionsInProgress(2);
 
         unblockNode(repoName, masterName);
         assertAcked(deleteSnapshotOne.get());
@@ -1114,8 +1115,9 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
         createNSnapshots(repoName, randomIntBetween(2, 5));
         final int countOtherRepo = randomIntBetween(2, 5);
         createNSnapshots(otherRepoName, countOtherRepo);
-
-        corruptIndexN(repoPath, getRepositoryData(repoName).getGenId());
+        // Skip corruption step. The original test corrupts the repository data. We don't cache the repository data therefore the corruption
+        // will break the test.
+//        corruptIndexN(repoPath, getRepositoryData(repoName).getGenId());
 
         blockMasterFromFinalizingSnapshotOnIndexFile(repoName);
         blockMasterFromFinalizingSnapshotOnIndexFile(otherRepoName);
@@ -1129,7 +1131,7 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
         client().execute(CreateSnapshotAction.INSTANCE, new CreateSnapshotRequest(otherRepoName, "snapshot-other-blocked-2")
             .waitForCompletion(false)).get();
 
-//        awaitNSnapshotsInProgress(4);
+        awaitNSnapshotsInProgress(4);
         final String initialMaster = internalCluster().getMasterName();
         waitForBlock(initialMaster, repoName, TimeValue.timeValueSeconds(30L));
         waitForBlock(initialMaster, otherRepoName, TimeValue.timeValueSeconds(30L));
@@ -1173,10 +1175,10 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
                 deleteFuture = startDelete(repoName, randomFrom(snapshotNames));
             }
         }
-//        awaitNSnapshotsInProgress(blockedSnapshots);
-//        if (blockedDelete) {
-//            awaitNDeletionsInProgress(1);
-//        }
+        awaitNSnapshotsInProgress(blockedSnapshots);
+        if (blockedDelete) {
+            awaitNDeletionsInProgress(1);
+        }
         waitForBlock(masterName, repoName, TimeValue.timeValueSeconds(30L));
 
         final String expectedFailureMessage = "Cannot start another operation, already running [" + limitToTest +
@@ -1327,7 +1329,7 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
     }
 
     private void awaitClusterState(Predicate<ClusterState> statePredicate) throws Exception {
-        awaitClusterState(internalCluster().getMasterName(), statePredicate);
+        awaitBusyClusterState(internalCluster().getMasterName(), statePredicate);
     }
 
 
