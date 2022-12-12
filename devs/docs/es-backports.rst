@@ -176,7 +176,7 @@ should be crossed out as well.
 - [s] 5723b928d7d Remove Outdated Snapshot Docs (#61684) (#61728)
 - [s] 1bfebd54ea7 [7.x] Allocate newly created indices on data_hot tier nodes (#61342) (#61650)
 - [s] f769821bc80 Pass SearchLookup supplier through to fielddataBuilder (#61430) (#61638)
-- [ ] b866aaf81c0 Use int for number of parts in blob store (#61618)
+- [x] b866aaf81c0 Use int for number of parts in blob store (#61618)
 - [s] 9f566644af2 Do not create two loggers for DeprecationLogger backport(#58435)  (#61530)
 - [s] 8b56441d2b0 Search - add case insensitive support for regex queries. (#59441) (#61532)
 - [s] f3f7d25316f Header warning logging refactoring backport(#55941) (#61515)
