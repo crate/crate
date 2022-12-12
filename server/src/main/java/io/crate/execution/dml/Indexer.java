@@ -81,7 +81,13 @@ public class Indexer {
     private final List<CollectExpression<InsertValues, Object>> expressions;
     private final Map<ColumnIdent, ColumnConstraint> columnConstraints = new HashMap<>();
     private final List<TableConstraint> tableConstraints;
+    private final List<IndexColumn> indexColumns;
 
+    record IndexInput(Input<?> input, FieldType fieldType) {
+    }
+
+    record IndexColumn(ColumnIdent name, List<IndexInput> inputs) {
+    }
 
     record InsertValues(List<String> pkValues, Object[] values) {
     }
@@ -336,6 +342,19 @@ public class Indexer {
             );
             this.synthetics.put(ref.column(), new Synthetic(input, valueIndexer));
         }
+        this.indexColumns = new ArrayList<>(table.indexColumns().size());
+        for (var ref : table.indexColumns()) {
+            ArrayList<IndexInput> indexInputs = new ArrayList<>(ref.columns().size());
+            for (var sourceRef : ref.columns()) {
+                Reference reference = table.getReference(sourceRef.column());
+                assert reference.equals(sourceRef) : "refs must match";
+
+                Input<?> input = ctxForRefs.add(sourceRef);
+                FieldType fieldType = getFieldType.apply(sourceRef.column());
+                indexInputs.add(new IndexInput(input, fieldType));
+            }
+            indexColumns.add(new IndexColumn(ref.column(), indexInputs));
+        }
         this.expressions = ctxForRefs.expressions();
     }
 
@@ -419,6 +438,14 @@ public class Indexer {
             );
         }
         xContentBuilder.endObject();
+
+        for (var indexColumn : indexColumns) {
+            for (var input : indexColumn.inputs) {
+                String value = (String) input.input.value();
+                Field field = new Field(indexColumn.name.fqn(), value, input.fieldType);
+                doc.add(field);
+            }
+        }
 
         for (var constraint : tableConstraints) {
             constraint.verify();
