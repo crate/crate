@@ -152,21 +152,16 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         var mapperService = indexShard.mapperService();
         Function<ColumnIdent, FieldType> getFieldType = column -> mapperService.getLuceneFieldType(column.fqn());
         TransactionContext txnCtx = TransactionContext.of(request.sessionSettings());
-        Indexer indexer;
-        try {
-            indexer = insertColumns == null
-                ? null
-                : new Indexer(
-                    indexName,
-                    tableInfo,
-                    txnCtx,
-                    nodeCtx,
-                    getFieldType,
-                    List.of(insertColumns)
-                );
-        } catch (Throwable t) {
-            indexer = null;
-        }
+        Indexer indexer = insertColumns == null
+            ? null
+            : new Indexer(
+                indexName,
+                tableInfo,
+                txnCtx,
+                nodeCtx,
+                getFieldType,
+                List.of(insertColumns)
+            );
 
         InsertSourceGen insertSourceGen = insertColumns == null
             ? null

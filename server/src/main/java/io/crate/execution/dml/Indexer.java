@@ -37,6 +37,7 @@ import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.NumericDocValuesField;
 import org.apache.lucene.document.StoredField;
+import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.bytes.BytesReference;
@@ -83,10 +84,7 @@ public class Indexer {
     private final List<TableConstraint> tableConstraints;
     private final List<IndexColumn> indexColumns;
 
-    record IndexInput(Input<?> input, FieldType fieldType) {
-    }
-
-    record IndexColumn(ColumnIdent name, List<IndexInput> inputs) {
+    record IndexColumn(ColumnIdent name, FieldType fieldType, List<Input<?>> inputs) {
     }
 
     record InsertValues(List<String> pkValues, Object[] values) {
@@ -344,16 +342,17 @@ public class Indexer {
         }
         this.indexColumns = new ArrayList<>(table.indexColumns().size());
         for (var ref : table.indexColumns()) {
-            ArrayList<IndexInput> indexInputs = new ArrayList<>(ref.columns().size());
+            ArrayList<Input<?>> indexInputs = new ArrayList<>(ref.columns().size());
+            FieldType fieldType = getFieldType.apply(ref.column());
+
             for (var sourceRef : ref.columns()) {
                 Reference reference = table.getReference(sourceRef.column());
                 assert reference.equals(sourceRef) : "refs must match";
 
                 Input<?> input = ctxForRefs.add(sourceRef);
-                FieldType fieldType = getFieldType.apply(sourceRef.column());
-                indexInputs.add(new IndexInput(input, fieldType));
+                indexInputs.add(input);
             }
-            indexColumns.add(new IndexColumn(ref.column(), indexInputs));
+            indexColumns.add(new IndexColumn(ref.column(), fieldType, indexInputs));
         }
         this.expressions = ctxForRefs.expressions();
     }
@@ -441,9 +440,11 @@ public class Indexer {
 
         for (var indexColumn : indexColumns) {
             for (var input : indexColumn.inputs) {
-                String value = (String) input.input.value();
-                Field field = new Field(indexColumn.name.fqn(), value, input.fieldType);
-                doc.add(field);
+                String value = (String) input.value();
+                if (indexColumn.fieldType.indexOptions() != IndexOptions.NONE) {
+                    Field field = new Field(indexColumn.name.fqn(), value, indexColumn.fieldType);
+                    doc.add(field);
+                }
             }
         }
 
