@@ -77,6 +77,10 @@ Breaking Changes
     | 337:11:11.122                |
     +------------------------------+
 
+  To use the previous behaviour, timestamps can simply be cast to longs before
+  subtracting them::
+
+    SELECT (ts_end::long - ts_start:long) FROM test
 
 
 Deprecations
