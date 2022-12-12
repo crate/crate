@@ -698,7 +698,7 @@ public class ExpressionAnalyzer {
                 var columnName = qualifiedName.getSuffix();
                 var maybeQuotedSubscript = detectAndSanitizeQuotedSubscript(columnName);
                 if (maybeQuotedSubscript != null) {
-                    var subscript = (SubscriptExpression) SqlParser.createExpression(maybeQuotedSubscript);
+                    var subscript = (SubscriptExpression) SqlParser.createExpressionWithPreservedCaseSensitivity(maybeQuotedSubscript);
                     return visitSubscriptExpression(new SubscriptExpression(subscript, node.index()), context);
                 }
 
@@ -942,7 +942,7 @@ public class ExpressionAnalyzer {
             // Detect and process quoted subscript expressions
             var maybeQuotedSubscript = detectAndSanitizeQuotedSubscript(columnName);
             if (maybeQuotedSubscript != null) {
-                var subscript = (SubscriptExpression) SqlParser.createExpression(maybeQuotedSubscript);
+                var subscript = (SubscriptExpression) SqlParser.createExpressionWithPreservedCaseSensitivity(maybeQuotedSubscript);
                 return visitSubscriptExpression(subscript, context);
             }
 

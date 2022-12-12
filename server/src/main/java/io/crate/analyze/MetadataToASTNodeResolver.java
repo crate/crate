@@ -111,7 +111,7 @@ public class MetadataToASTNodeResolver {
                 .map(chk -> new CheckConstraint<>(
                     chk.name(),
                     chk.columnName(),
-                    SqlParser.createExpression(chk.expressionStr()),
+                    SqlParser.createExpressionWithPreservedCaseSensitivity(chk.expressionStr()),
                     chk.expressionStr()))
                 .forEach(elements::add);
             return elements;
@@ -189,13 +189,13 @@ public class MetadataToASTNodeResolver {
                 Expression generatedExpression = null;
                 if (ref instanceof GeneratedReference generatedRef) {
                     String formattedExpression = generatedRef.formattedGeneratedExpression();
-                    generatedExpression = SqlParser.createExpression(formattedExpression);
+                    generatedExpression = SqlParser.createExpressionWithPreservedCaseSensitivity(formattedExpression);
                 }
                 Expression defaultExpression = null;
                 Symbol defaultExpr = ref.defaultExpression();
                 if (defaultExpr != null) {
                     String symbol = defaultExpr.toString(Style.UNQUALIFIED);
-                    defaultExpression = SqlParser.createExpression(symbol);
+                    defaultExpression = SqlParser.createExpressionWithPreservedCaseSensitivity(symbol);
                 }
 
                 StorageSupport<?> storageSupport = ref.valueType().storageSupport();

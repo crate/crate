@@ -71,7 +71,6 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.SchemaNameCaseSensitivityRecoverer;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.table.ColumnPolicies;
 import io.crate.metadata.table.Operation;
@@ -286,7 +285,7 @@ public class DocIndexMetadata {
                               boolean hasDocValues) {
         Symbol defaultExpression = null;
         if (formattedDefaultExpression != null) {
-            Expression expression = SqlParser.createExpression(formattedDefaultExpression);
+            Expression expression = SqlParser.createExpressionWithPreservedCaseSensitivity(formattedDefaultExpression);
             defaultExpression = this.expressionAnalyzer.convert(
                 expression,
                 new ExpressionAnalysisContext(CoordinatorTxnCtx.systemTransactionContext().sessionSettings()));
@@ -651,7 +650,7 @@ public class DocIndexMetadata {
                 for (Map.Entry<String, String> entry : checkConstraintsMap.entrySet()) {
                     String name = entry.getKey();
                     String expressionStr = entry.getValue();
-                    Expression expr = SqlParser.createExpression(expressionStr);
+                    Expression expr = SqlParser.createExpressionWithPreservedCaseSensitivity(expressionStr);
                     Symbol analyzedExpr = exprAnalyzer.convert(expr, analysisCtx);
                     ArrayList<Short> positions = new ArrayList<>();
                     analyzedExpr.accept(RefCollector.REF_COLLECTOR_INSTANCE, positions);
@@ -662,11 +661,7 @@ public class DocIndexMetadata {
         checkConstraints = checkConstraintsBuilder != null ? List.copyOf(checkConstraintsBuilder) : List.of();
 
         for (var generatedReference : generatedColumnReferences) {
-            Expression expression = SqlParser.createExpression(generatedReference.formattedGeneratedExpression());
-            String schema = generatedReference.reference().ident().tableIdent().schema();
-            if (schema != null && !schema.equals(schema.toLowerCase(Locale.ROOT))) {
-                SchemaNameCaseSensitivityRecoverer.recover(expression, schema);
-            }
+            Expression expression = SqlParser.createExpressionWithPreservedCaseSensitivity(generatedReference.formattedGeneratedExpression());
             tableReferenceResolver.references().clear();
             generatedReference.generatedExpression(exprAnalyzer.convert(expression, analysisCtx));
             generatedReference.referencedReferences(List.copyOf(tableReferenceResolver.references()));

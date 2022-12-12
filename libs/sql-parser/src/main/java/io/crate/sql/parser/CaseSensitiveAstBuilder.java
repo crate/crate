@@ -19,27 +19,25 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.metadata;
+package io.crate.sql.parser;
 
-import io.crate.sql.tree.AstVisitor;
-import io.crate.sql.tree.Expression;
-import io.crate.sql.tree.FunctionCall;
+import io.crate.sql.parser.antlr.v4.SqlBaseParser;
+import io.crate.sql.tree.Node;
+import io.crate.sql.tree.StringLiteral;
 
-public class SchemaNameCaseSensitivityRecoverer extends AstVisitor<Expression, String> {
-
-    private static final SchemaNameCaseSensitivityRecoverer INSTANCE = new SchemaNameCaseSensitivityRecoverer();
-
-    public static Expression recover(Expression expression, String caseSensitiveSchemaName) {
-        return expression.accept(INSTANCE, caseSensitiveSchemaName);
-    }
+/**
+ * For Postgres compatibility, it has been the norm that unquoted identifiers are converted to lower cases.
+ * See {@link AstBuilder#visitUnquotedIdentifier(SqlBaseParser.UnquotedIdentifierContext)}
+ * 
+ * However, in some cases the original case sensitivity should be preserved.
+ * For example, a generated reference, "col1 AS MySchema.arr_max(..)" stored in the metadata as a string
+ * needs to be converted back to {@link io.crate.sql.tree.Expression} as part of building {@link DocTableInfo}.
+ * And {@link AstBuilder} would convert "MySchema" to "myschema".
+ */
+public class CaseSensitiveAstBuilder extends AstBuilder {
 
     @Override
-    protected Expression visitFunctionCall(FunctionCall node, String caseSensitiveSchemaName) {
-        var functionName = node.getName().getParts();
-        if (functionName.get(0).equals(caseSensitiveSchemaName.toLowerCase())) {
-            functionName.remove(0);
-            functionName.add(0, caseSensitiveSchemaName);
-        }
-        return node;
+    public Node visitUnquotedIdentifier(SqlBaseParser.UnquotedIdentifierContext context) {
+        return new StringLiteral(context.getText());
     }
 }

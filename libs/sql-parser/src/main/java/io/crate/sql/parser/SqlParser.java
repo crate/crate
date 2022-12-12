@@ -79,22 +79,26 @@ public class SqlParser {
     }
 
     private Statement generateStatements(String sql) {
-        return (Statement) invokeParser("statements", sql, SqlBaseParser::statements);
+        return (Statement) invokeParser("statements", sql, SqlBaseParser::statements, new AstBuilder());
     }
 
     private Statement generateStatement(String sql) {
-        return (Statement) invokeParser("statement", sql, SqlBaseParser::singleStatement);
+        return (Statement) invokeParser("statement", sql, SqlBaseParser::singleStatement, new AstBuilder());
     }
 
     public static Expression createExpression(String expression) {
-        return INSTANCE.generateExpression(expression);
+        return INSTANCE.generateExpression(expression, new AstBuilder());
     }
 
-    private Expression generateExpression(String expression) {
-        return (Expression) invokeParser("expression", expression, SqlBaseParser::singleExpression);
+    public static Expression createExpressionWithPreservedCaseSensitivity(String expression) {
+        return INSTANCE.generateExpression(expression, new CaseSensitiveAstBuilder());
     }
 
-    private Node invokeParser(String name, String sql, Function<SqlBaseParser, ParserRuleContext> parseFunction) {
+    private Expression generateExpression(String expression, AstBuilder astBuilder) {
+        return (Expression) invokeParser("expression", expression, SqlBaseParser::singleExpression, astBuilder);
+    }
+
+    private Node invokeParser(String name, String sql, Function<SqlBaseParser, ParserRuleContext> parseFunction, AstBuilder astBuilder) {
         try {
             SqlBaseLexer lexer = new SqlBaseLexer(new CaseInsensitiveStream(CharStreams.fromString(sql, name)));
             CommonTokenStream tokenStream = new CommonTokenStream(lexer);
@@ -123,7 +127,7 @@ public class SqlParser {
                 tree = parseFunction.apply(parser);
             }
 
-            return new AstBuilder().visit(tree);
+            return astBuilder.visit(tree);
         } catch (StackOverflowError e) {
             throw new ParsingException(name + " is too large (stack overflow while parsing)");
         }
