@@ -166,7 +166,7 @@ should be crossed out as well.
 - [s] a295b0aa86f Fix null_value parsing for data_nanos field mapper (#61994)
 - [s] 1799c0c5833 Convert completion, binary, boolean tests to MapperTestCase (#62004)
 - [s] 0c8b4385777 Add support for runtime fields (#61776)
-- [ ] b26584dff89 Remove unused deciders in BalancedShardsAllocator (#62026)
+- [x] b26584dff89 Remove unused deciders in BalancedShardsAllocator (#62026)
 - [s] 6d08b55d4e3 Simplify searchable snapshot shard allocation (#61911)
 - [s] 66bb1eea982 Improve error messages on bad [format] and [null_value] params for date mapper (#61932)
 - [s] 31c026f25cc upgrade to Lucene-8.7.0-snapshot-61ea26a (#61957) (#61974)
