@@ -59,6 +59,7 @@ import org.elasticsearch.index.engine.DocumentMissingException;
 import org.elasticsearch.index.engine.DocumentSourceMissingException;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.engine.Engine.IndexResult;
+import org.elasticsearch.index.engine.Engine.Operation.Origin;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
 import org.elasticsearch.index.mapper.IdFieldMapper;
 import org.elasticsearch.index.mapper.ParsedDocument;
@@ -217,7 +218,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
 
                 // *mark* the item as failed by setting the source to null
                 // to prevent the replica operation from processing this concrete item
-                item.source(null);
+                item.seqNo(SequenceNumbers.UNASSIGNED_SEQ_NO);
 
                 if (!request.continueOnError()) {
                     shardResponse.failure(e);
@@ -244,42 +245,102 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
     @Override
     protected WriteReplicaResult<ShardUpsertRequest> processRequestItemsOnReplica(IndexShard indexShard, ShardUpsertRequest request) throws IOException {
         Translog.Location location = null;
+        boolean traceEnabled = logger.isTraceEnabled();
+        Reference[] insertColumns = request.insertColumns();
+        String indexName = request.index();
+        DocTableInfo tableInfo = schemas.getTableInfo(RelationName.fromIndexName(indexName), Operation.INSERT);
+        var mapperService = indexShard.mapperService();
+        Function<ColumnIdent, FieldType> getFieldType = column -> mapperService.getLuceneFieldType(column.fqn());
+        TransactionContext txnCtx = TransactionContext.of(request.sessionSettings());
+        Indexer indexer = insertColumns == null
+            ? null
+            : new Indexer(
+                indexName,
+                tableInfo,
+                txnCtx,
+                nodeCtx,
+                getFieldType,
+                List.of(insertColumns)
+            );
+        boolean indexerSupported = indexer.isSupported();
         for (ShardUpsertRequest.Item item : request.items()) {
-            if (item.source() == null) {
-                if (logger.isTraceEnabled()) {
-                    logger.trace("[{} (R)] Document with id {}, has no source, primary operation must have failed",
-                        indexShard.shardId(), item.id());
+            if (item.seqNo() == SequenceNumbers.UNASSIGNED_SEQ_NO) {
+                if (traceEnabled) {
+                    logger.trace(
+                        "[{} (R)] Document with id {}, has no source, primary operation must have failed",
+                        indexShard.shardId(),
+                        item.id()
+                    );
                 }
                 continue;
             }
-            SourceToParse sourceToParse = new SourceToParse(
-                indexShard.shardId().getIndexName(),
-                item.id(),
-                item.source(),
-                XContentType.JSON
-            );
+            if (indexerSupported) {
+                long startTime = System.nanoTime();
+                ParsedDocument parsedDoc = indexer.index(
+                    item.id(),
+                    item.pkValues(),
+                    item.insertValues()
+                );
+                Term uid = new Term(IdFieldMapper.NAME, Uid.encodeId(item.id()));
+                boolean isRetry = false;
+                Engine.Index index = new Engine.Index(
+                    uid,
+                    parsedDoc,
+                    item.seqNo(),
+                    item.primaryTerm(),
+                    item.version(),
+                    null,
+                    Origin.REPLICA,
+                    startTime,
+                    Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
+                    isRetry,
+                    SequenceNumbers.UNASSIGNED_SEQ_NO,
+                    SequenceNumbers.UNASSIGNED_PRIMARY_TERM
+                );
+                IndexResult result = indexShard.index(index);
+                if (result.getResultType() == Engine.Result.Type.MAPPING_UPDATE_REQUIRED) {
+                    // Even though the primary waits on all nodes to ack the mapping changes to the master
+                    // (see MappingUpdatedAction.updateMappingOnMaster) we still need to protect against missing mappings
+                    // and wait for them. The reason is concurrent requests. Request r1 which has new field f triggers a
+                    // mapping update. Assume that that update is first applied on the primary, and only later on the replica
+                    // (it’s happening concurrently). Request r2, which now arrives on the primary and which also has the new
+                    // field f might see the updated mapping (on the primary), and will therefore proceed to be replicated
+                    // to the replica. When it arrives on the replica, there’s no guarantee that the replica has already
+                    // applied the new mapping, so there is no other option than to wait.
+                    throw new TransportReplicationAction.RetryOnReplicaException(indexShard.shardId(),
+                        "Mappings are not available on the replica yet, triggered update: " + result.getRequiredMappingUpdate());
+                }
+                location = result.getTranslogLocation();
+            } else {
+                SourceToParse sourceToParse = new SourceToParse(
+                    indexShard.shardId().getIndexName(),
+                    item.id(),
+                    item.source(),
+                    XContentType.JSON
+                );
 
-            Engine.IndexResult indexResult = indexShard.applyIndexOperationOnReplica(
-                item.seqNo(),
-                item.primaryTerm(),
-                item.version(),
-                Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
-                false,
-                sourceToParse
-            );
-            if (indexResult.getResultType() == Engine.Result.Type.MAPPING_UPDATE_REQUIRED) {
-                // Even though the primary waits on all nodes to ack the mapping changes to the master
-                // (see MappingUpdatedAction.updateMappingOnMaster) we still need to protect against missing mappings
-                // and wait for them. The reason is concurrent requests. Request r1 which has new field f triggers a
-                // mapping update. Assume that that update is first applied on the primary, and only later on the replica
-                // (it’s happening concurrently). Request r2, which now arrives on the primary and which also has the new
-                // field f might see the updated mapping (on the primary), and will therefore proceed to be replicated
-                // to the replica. When it arrives on the replica, there’s no guarantee that the replica has already
-                // applied the new mapping, so there is no other option than to wait.
-                throw new TransportReplicationAction.RetryOnReplicaException(indexShard.shardId(),
-                    "Mappings are not available on the replica yet, triggered update: " + indexResult.getRequiredMappingUpdate());
+                Engine.IndexResult indexResult = indexShard.applyIndexOperationOnReplica(
+                    item.seqNo(),
+                    item.primaryTerm(),
+                    item.version(),
+                    Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
+                    false,
+                    sourceToParse
+                );
+                if (indexResult.getResultType() == Engine.Result.Type.MAPPING_UPDATE_REQUIRED) {
+                    // Even though the primary waits on all nodes to ack the mapping changes to the master
+                    // (see MappingUpdatedAction.updateMappingOnMaster) we still need to protect against missing mappings
+                    // and wait for them. The reason is concurrent requests. Request r1 which has new field f triggers a
+                    // mapping update. Assume that that update is first applied on the primary, and only later on the replica
+                    // (it’s happening concurrently). Request r2, which now arrives on the primary and which also has the new
+                    // field f might see the updated mapping (on the primary), and will therefore proceed to be replicated
+                    // to the replica. When it arrives on the replica, there’s no guarantee that the replica has already
+                    // applied the new mapping, so there is no other option than to wait.
+                    throw new TransportReplicationAction.RetryOnReplicaException(indexShard.shardId(),
+                        "Mappings are not available on the replica yet, triggered update: " + indexResult.getRequiredMappingUpdate());
+                }
+                location = indexResult.getTranslogLocation();
             }
-            location = indexResult.getTranslogLocation();
         }
         return new WriteReplicaResult<>(request, location, null, indexShard, logger);
     }
@@ -307,7 +368,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 lastException = e;
                 if (request.duplicateKeyAction() == DuplicateKeyAction.IGNORE) {
                     // on conflict do nothing
-                    item.source(null);
+                    item.seqNo(SequenceNumbers.UNASSIGNED_SEQ_NO);
                     return null;
                 }
                 Symbol[] updateAssignments = item.updateAssignments();
@@ -388,7 +449,6 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             IndexResult result = indexShard.index(index);
             switch (result.getResultType()) {
                 case SUCCESS:
-                    item.source(parsedDoc.source());
                     item.seqNo(result.getSeqNo());
                     item.version(result.getVersion());
                     item.primaryTerm(result.getTerm());
