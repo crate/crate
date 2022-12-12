@@ -114,7 +114,7 @@ public class Indexer {
         public CollectExpression<InsertValues, Object> getImplementation(Reference ref) {
             int pkIndex = table.primaryKey().indexOf(ref.column());
             if (pkIndex > -1) {
-                return NestableCollectExpression.forFunction(values -> values.pkValues.get(pkIndex));
+                return NestableCollectExpression.forFunction(values -> ref.valueType().implicitCast(values.pkValues.get(pkIndex)));
             }
             int index = targetColumns.indexOf(ref);
             if (index > -1) {
