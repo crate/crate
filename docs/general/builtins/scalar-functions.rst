@@ -919,11 +919,11 @@ Examples:
 
 ``extract`` is a special :ref:`expression <gloss-expression>` that translates
 to a function which retrieves subcolumns such as day, hour or minute from a
-timestamp.
+timestamp or an interval.
 
 The return type depends on the used ``field``.
 
-Example::
+Example with timestamp::
 
     cr> select extract(day from '2014-08-23') AS day;
     +-----+
@@ -933,19 +933,40 @@ Example::
     +-----+
     SELECT 1 row in set (... sec)
 
+Example with interval::
+
+    cr> select extract(hour from INTERVAL '5 days 12 hours 45 minutes') AS hour;
+    +------+
+    | hour |
+    +------+
+    |   12 |
+    +------+
+    SELECT 1 row in set (... sec)
+
 Synopsis::
 
     EXTRACT( field FROM source )
 
 ``field``
-  An identifier or string literal which identifies the part of the timestamp
-  that should be extracted.
+  An identifier or string literal which identifies the part of the timestamp or
+  interval that should be extracted.
 
 ``source``
-  An expression that resolves to a timestamp data type with or without timezone
-  or is castable to timestamp data types. In the case the expression has a
-  different return type but is known to be castable to timestamp an implicit
-  cast will be attempted.
+  An expression that resolves to an interval, or a timestamp (with or without
+  timezone), or is castable to a timestamp.
+
+.. NOTE::
+
+    When extracting from an :ref:`INTERVAL <type-interval>` there is no
+    normalization of units, e.g.::
+
+       cr> SELECT extract(year from INTERVAL '14 years 1250 days 49 hours') AS year;
+       +------+
+       | year |
+       +------+
+       |   14 |
+       +------+
+       SELECT 1 row in set (... sec)
 
 The following fields are supported:
 
@@ -976,7 +997,7 @@ The following fields are supported:
 
 ``DAY``
   | *Return type:* ``integer``
-  | the day of the month
+  | the day of the month for timestamps, days for intervals
 
 ``DAY_OF_MONTH``
   | *Return type:* ``integer``
@@ -1014,7 +1035,6 @@ The following fields are supported:
   | *Return type:* ``double precision``
   | The number of seconds since Jan 1, 1970.
   | Can be negative if earlier than Jan 1, 1970.
-
 
 .. _scalar-current_time:
 

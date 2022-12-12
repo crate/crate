@@ -21,24 +21,8 @@
 
 package io.crate.expression.scalar;
 
-import io.crate.data.Input;
-import io.crate.metadata.NodeContext;
-import io.crate.metadata.Scalar;
-import io.crate.metadata.TransactionContext;
-import io.crate.metadata.functions.BoundSignature;
-import io.crate.metadata.functions.Signature;
-import io.crate.sql.tree.Extract;
-import io.crate.types.DataTypes;
-import org.elasticsearch.common.joda.Joda;
-import org.joda.time.DateTimeField;
-import org.joda.time.chrono.ISOChronology;
-
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.function.Function;
-
 import static io.crate.sql.tree.Extract.Field.CENTURY;
+import static io.crate.sql.tree.Extract.Field.DAY;
 import static io.crate.sql.tree.Extract.Field.DAY_OF_MONTH;
 import static io.crate.sql.tree.Extract.Field.DAY_OF_WEEK;
 import static io.crate.sql.tree.Extract.Field.DAY_OF_YEAR;
@@ -51,38 +35,57 @@ import static io.crate.sql.tree.Extract.Field.SECOND;
 import static io.crate.sql.tree.Extract.Field.WEEK;
 import static io.crate.sql.tree.Extract.Field.YEAR;
 import static io.crate.types.TypeSignature.parseTypeSignature;
-import static java.util.Map.entry;
+
+import java.util.List;
+import java.util.Locale;
+import java.util.function.Function;
+
+import org.elasticsearch.common.joda.Joda;
+import org.joda.time.DateTimeField;
+import org.joda.time.DurationFieldType;
+import org.joda.time.Period;
+import org.joda.time.chrono.ISOChronology;
+
+import io.crate.metadata.functions.Signature;
+import io.crate.sql.tree.Extract;
+import io.crate.types.DataTypes;
 
 public class ExtractFunctions {
 
     public static final String NAME_PREFIX = "extract_";
 
-    // Keep a map from parser Field to DateTimeField here to avoid joda dependencies at the parser
-    private static final Map<Extract.Field, DateTimeField> FIELDS_MAP_WITH_INT_RETURN = Map.ofEntries(
-        entry(CENTURY, ISOChronology.getInstanceUTC().centuryOfEra()),
-        entry(YEAR, ISOChronology.getInstanceUTC().year()),
-        entry(QUARTER, Joda.QUARTER_OF_YEAR.getField(ISOChronology.getInstanceUTC())),
-        entry(MONTH, ISOChronology.getInstanceUTC().monthOfYear()),
-        entry(WEEK, ISOChronology.getInstanceUTC().weekOfWeekyear()),
-        entry(DAY_OF_MONTH, ISOChronology.getInstanceUTC().dayOfMonth()),
-        entry(DAY_OF_WEEK, ISOChronology.getInstanceUTC().dayOfWeek()),
-        entry(DAY_OF_YEAR, ISOChronology.getInstanceUTC().dayOfYear()),
-        entry(HOUR, ISOChronology.getInstanceUTC().hourOfDay()),
-        entry(MINUTE, ISOChronology.getInstanceUTC().minuteOfHour()),
-        entry(SECOND, ISOChronology.getInstanceUTC().secondOfMinute())
-    );
+    private record TsFieldWithDateTimeField(Extract.Field extractField, DateTimeField dtf) {}
+
+    private record IntervalFieldWithFunction(Extract.Field extractField, Function<Period, Integer> function) {}
 
     public static void register(ScalarFunctionModule module) {
+
+        List<TsFieldWithDateTimeField> fieldsMapWithIntReturn = List.of(
+            new TsFieldWithDateTimeField(CENTURY, ISOChronology.getInstanceUTC().centuryOfEra()),
+            new TsFieldWithDateTimeField(YEAR, ISOChronology.getInstanceUTC().year()),
+            new TsFieldWithDateTimeField(QUARTER, Joda.QUARTER_OF_YEAR.getField(ISOChronology.getInstanceUTC())),
+            new TsFieldWithDateTimeField(MONTH, ISOChronology.getInstanceUTC().monthOfYear()),
+            new TsFieldWithDateTimeField(WEEK, ISOChronology.getInstanceUTC().weekOfWeekyear()),
+            new TsFieldWithDateTimeField(DAY, ISOChronology.getInstanceUTC().dayOfMonth()),
+            new TsFieldWithDateTimeField(DAY_OF_MONTH, ISOChronology.getInstanceUTC().dayOfMonth()),
+            new TsFieldWithDateTimeField(DAY_OF_WEEK, ISOChronology.getInstanceUTC().dayOfWeek()),
+            new TsFieldWithDateTimeField(DAY_OF_YEAR, ISOChronology.getInstanceUTC().dayOfYear()),
+            new TsFieldWithDateTimeField(HOUR, ISOChronology.getInstanceUTC().hourOfDay()),
+            new TsFieldWithDateTimeField(MINUTE, ISOChronology.getInstanceUTC().minuteOfHour()),
+            new TsFieldWithDateTimeField(SECOND, ISOChronology.getInstanceUTC().secondOfMinute())
+        );
+
         for (var argType : List.of(DataTypes.TIMESTAMPZ, DataTypes.TIMESTAMP)) {
-            for (var entry : FIELDS_MAP_WITH_INT_RETURN.entrySet()) {
+            for (var entry : fieldsMapWithIntReturn) {
+                final DateTimeField dtf = entry.dtf();
                 module.register(
                     Signature.scalar(
-                        functionNameFrom(entry.getKey()),
+                        functionNameFrom(entry.extractField()),
                         argType.getTypeSignature(),
                         parseTypeSignature("integer")
                     ),
                     (signature, boundSignature) ->
-                        new ExtractFunction(signature, boundSignature, l -> entry.getValue().get(l))
+                        new UnaryScalar<Number, Long>(signature, boundSignature, argType, dtf::get)
                 );
             }
             // extract(epoch from ...) is different as is returns a `double precision`
@@ -93,7 +96,31 @@ public class ExtractFunctions {
                     parseTypeSignature("double precision")
                 ),
                 (signature, boundSignature) ->
-                    new ExtractFunction(signature, boundSignature, v -> (double) v / 1000)
+                    new UnaryScalar<Number, Long>(signature, boundSignature, argType, v -> (double) v / 1000)
+            );
+        }
+
+        // Intervals
+        List<IntervalFieldWithFunction> intervalFieldsMapWithIntReturn = List.of(
+            new IntervalFieldWithFunction(YEAR, p -> p.get(DurationFieldType.years())),
+            new IntervalFieldWithFunction(QUARTER, p -> p.get(DurationFieldType.months()) / 4),
+            new IntervalFieldWithFunction(MONTH, p -> p.get(DurationFieldType.months())),
+            new IntervalFieldWithFunction(DAY, p -> p.get(DurationFieldType.days())),
+            new IntervalFieldWithFunction(HOUR, p -> p.get(DurationFieldType.hours())),
+            new IntervalFieldWithFunction(MINUTE, p -> p.get(DurationFieldType.minutes())),
+            new IntervalFieldWithFunction(SECOND, p -> p.get(DurationFieldType.seconds()))
+        );
+
+        for (var entry : intervalFieldsMapWithIntReturn) {
+            final Function<Period, Integer> function = entry.function();
+            module.register(
+                Signature.scalar(
+                    functionNameFrom(entry.extractField()),
+                    DataTypes.INTERVAL.getTypeSignature(),
+                    parseTypeSignature("integer")
+                ),
+                (signature, boundSignature) ->
+                    new UnaryScalar<Number, Period>(signature, boundSignature, DataTypes.INTERVAL, function::apply)
             );
         }
     }
@@ -109,61 +136,22 @@ public class ExtractFunctions {
             case MINUTE:
             case SECOND:
             case EPOCH:
-                return NAME_PREFIX + field.toString();
-            case DAY_OF_MONTH:
+                return NAME_PREFIX + field;
             case DAY:
-                return NAME_PREFIX + DAY_OF_MONTH.toString();
+                return NAME_PREFIX + DAY;
+            case DAY_OF_MONTH:
+                return NAME_PREFIX + DAY_OF_MONTH;
             case DAY_OF_WEEK:
             case DOW:
-                return NAME_PREFIX + DAY_OF_WEEK.toString();
+                return NAME_PREFIX + DAY_OF_WEEK;
             case DAY_OF_YEAR:
             case DOY:
-                return NAME_PREFIX + DAY_OF_YEAR.toString();
+                return NAME_PREFIX + DAY_OF_YEAR;
             case TIMEZONE_HOUR:
             case TIMEZONE_MINUTE:
             default:
                 throw new UnsupportedOperationException(
                     String.format(Locale.ENGLISH, "Extract( %s from <expression>) is not supported", field));
-        }
-    }
-
-    private static class ExtractFunction extends Scalar<Number, Long> {
-
-        private final Signature signature;
-        private final BoundSignature boundSignature;
-        private final Function<Long, Number> evaluate;
-
-        ExtractFunction(Signature signature,
-                        BoundSignature boundSignature,
-                        Function<Long, Number> evaluate) {
-            this.signature = signature;
-            this.boundSignature = boundSignature;
-            this.evaluate = evaluate;
-        }
-
-        @Override
-        public Signature signature() {
-            return signature;
-        }
-
-        @Override
-        public BoundSignature boundSignature() {
-            return boundSignature;
-        }
-
-        public Number evaluate(long value) {
-            return evaluate.apply(value);
-        }
-
-        @Override
-        @SafeVarargs
-        public final Number evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Long>... args) {
-            assert args.length == 1 : "extract only takes one argument";
-            Long value = args[0].value();
-            if (value == null) {
-                return null;
-            }
-            return evaluate(value);
         }
     }
 }

@@ -44,7 +44,6 @@ public class UnaryScalar<R, T> extends Scalar<R, T> {
     private final BoundSignature boundSignature;
     private final DataType<T> type;
 
-
     public UnaryScalar(Signature signature,
                        BoundSignature boundSignature,
                        DataType<T> type,

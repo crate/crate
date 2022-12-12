@@ -91,7 +91,15 @@ None
 
 Changes
 =======
-- Added support for ``SUM()`` aggregations on ``INTERVAL`` type. e.g.::
+
+- Added support for :ref:`EXTRACT(field FROM interval) <scalar-extract>`.
+  e.g.::
+
+    SELECT EXTRACT(MINUTE FROM INTERVAL '49 hours 127 minutes')
+
+
+- Added support for :ref:`SUM() <aggregation-sum>` aggregations on
+  :ref:`INTERVAL type <type-interval>`. e.g.::
 
     SELECT SUM(tsEnd - tsStart) FROM test
 
