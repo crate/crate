@@ -162,7 +162,7 @@ should be crossed out as well.
 - [ ] 2bb5716b3dc Add repositories metering API (#62088)
 - [ ] bb0a583990e Allow enabling soft-deletes on restore from snapshot (#62018)
 - [ ] 3389d5ccb25 Introduce integ tests for high disk watermark (#60460)
-- [ ] 395538f5083 Improve Snapshot State Machine Performance (#62000) (#62049)
+- [x] 395538f5083 Improve Snapshot State Machine Performance (#62000) (#62049)
 - [s] a295b0aa86f Fix null_value parsing for data_nanos field mapper (#61994)
 - [s] 1799c0c5833 Convert completion, binary, boolean tests to MapperTestCase (#62004)
 - [s] 0c8b4385777 Add support for runtime fields (#61776)
