@@ -23,15 +23,15 @@ package io.crate.metadata.settings;
 
 import static io.crate.analyze.TableParameters.stripIndexPrefix;
 
-import io.crate.analyze.NumberOfReplicas;
-import io.crate.types.DataTypes;
+import java.util.function.Function;
 
 import org.elasticsearch.cluster.metadata.AutoExpandReplicas;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 
-import java.util.function.Function;
+import io.crate.analyze.NumberOfReplicas;
+import io.crate.types.DataTypes;
 
 public class NumberOfReplicasSetting extends Setting<Settings> {
 
