@@ -32,6 +32,8 @@ import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+import javax.annotation.Nullable;
+
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
@@ -79,18 +81,16 @@ public class Indexer {
     private final List<Reference> columns;
     private final SymbolEvaluator symbolEval;
     private final Map<ColumnIdent, Synthetic> synthetics;
-    private final List<CollectExpression<InsertValues, Object>> expressions;
+    private final List<CollectExpression<IndexItem, Object>> expressions;
     private final Map<ColumnIdent, ColumnConstraint> columnConstraints = new HashMap<>();
     private final List<TableConstraint> tableConstraints;
     private final List<IndexColumn> indexColumns;
+    private final List<Input<?>> returnValueInputs;
 
     record IndexColumn(ColumnIdent name, FieldType fieldType, List<Input<?>> inputs) {
     }
 
-    record InsertValues(List<String> pkValues, Object[] values) {
-    }
-
-    static class RefResolver implements ReferenceResolver<CollectExpression<InsertValues, Object>> {
+    static class RefResolver implements ReferenceResolver<CollectExpression<IndexItem, Object>> {
 
         private final PartitionName partitionName;
         private final List<Reference> targetColumns;
@@ -109,14 +109,22 @@ public class Indexer {
 
         @Override
         @SuppressWarnings("unchecked")
-        public CollectExpression<InsertValues, Object> getImplementation(Reference ref) {
-            int pkIndex = table.primaryKey().indexOf(ref.column());
+        public CollectExpression<IndexItem, Object> getImplementation(Reference ref) {
+            ColumnIdent column = ref.column();
+            if (column.equals(DocSysColumns.SEQ_NO)) {
+                return NestableCollectExpression.forFunction(IndexItem::seqNo);
+            } else if (column.equals(DocSysColumns.PRIMARY_TERM)) {
+                return NestableCollectExpression.forFunction(IndexItem::primaryTerm);
+            }
+            int pkIndex = table.primaryKey().indexOf(column);
             if (pkIndex > -1) {
-                return NestableCollectExpression.forFunction(values -> ref.valueType().implicitCast(values.pkValues.get(pkIndex)));
+                return NestableCollectExpression.forFunction(item ->
+                    ref.valueType().implicitCast(item.pkValues().get(pkIndex))
+                );
             }
             int index = targetColumns.indexOf(ref);
             if (index > -1) {
-                return NestableCollectExpression.forFunction(values -> values.values[index]);
+                return NestableCollectExpression.forFunction(item -> item.insertValues()[index]);
             }
             if (ref.granularity() == RowGranularity.PARTITION) {
                 int pIndex = table.partitionedByColumns().indexOf(ref);
@@ -127,7 +135,7 @@ public class Indexer {
                     return NestableCollectExpression.constant(null);
                 }
             }
-            if (ref.column().isTopLevel()) {
+            if (column.isTopLevel()) {
                 if (targetColumns.contains(ref)) {
                     return NestableCollectExpression.constant(null);
                 }
@@ -139,7 +147,7 @@ public class Indexer {
                     defaultExpression.accept(symbolEval, Row.EMPTY).value()
                 );
             }
-            ColumnIdent root = ref.column().getRoot();
+            ColumnIdent root = column.getRoot();
             int rootIdx = -1;
             for (int i = 0; i < targetColumns.size(); i++) {
                 if (targetColumns.get(i).column().equals(root)) {
@@ -148,10 +156,10 @@ public class Indexer {
                 }
             }
             final int rootIndex = rootIdx;
-            Function<InsertValues, Object> getValue = values -> {
-                Object val = values.values[rootIndex];
+            Function<IndexItem, Object> getValue = item -> {
+                Object val = item.insertValues()[rootIndex];
                 if (val instanceof Map<?, ?> m) {
-                    List<String> path = ref.column().path();
+                    List<String> path = column.path();
                     val = Maps.getByPath((Map<String, Object>) m, path);
                 }
                 if (val == null) {
@@ -269,7 +277,8 @@ public class Indexer {
                    TransactionContext txnCtx,
                    NodeContext nodeCtx,
                    Function<ColumnIdent, FieldType> getFieldType,
-                   List<Reference> targetColumns) {
+                   List<Reference> targetColumns,
+                   Symbol[] returnValues) {
         this.symbolEval = new SymbolEvaluator(txnCtx, nodeCtx, SubQueryResults.EMPTY);
         this.columns = targetColumns;
         this.synthetics = new HashMap<>();
@@ -278,7 +287,7 @@ public class Indexer {
             : null;
         InputFactory inputFactory = new InputFactory(nodeCtx);
         var referenceResolver = new RefResolver(symbolEval, partitionName, targetColumns, table);
-        Context<CollectExpression<InsertValues, Object>> ctxForRefs = inputFactory.ctxForRefs(
+        Context<CollectExpression<IndexItem, Object>> ctxForRefs = inputFactory.ctxForRefs(
             txnCtx,
             referenceResolver
         );
@@ -313,7 +322,8 @@ public class Indexer {
             if (targetColumns.contains(ref) || ref.granularity() == RowGranularity.PARTITION) {
                 continue;
             }
-            Input<?> input = table.primaryKey().contains(ref.column())
+            ColumnIdent column = ref.column();
+            Input<?> input = table.primaryKey().contains(column)
                 ? ctxForRefs.add(ref)
                 : ctxForRefs.add(ref.defaultExpression());
             ValueIndexer<Object> valueIndexer = (ValueIndexer<Object>) ref.valueType().valueIndexer(
@@ -322,7 +332,7 @@ public class Indexer {
                 getFieldType,
                 getRef
             );
-            this.synthetics.put(ref.column(), new Synthetic(input, valueIndexer));
+            this.synthetics.put(column, new Synthetic(input, valueIndexer));
         }
         for (var ref : table.generatedColumns()) {
             if (ref.granularity() == RowGranularity.PARTITION) {
@@ -354,6 +364,15 @@ public class Indexer {
             }
             indexColumns.add(new IndexColumn(ref.column(), fieldType, indexInputs));
         }
+        // TODO: maybe worth using a new context/separate expressions for these?
+        if (returnValues == null) {
+            this.returnValueInputs = null;
+        } else {
+            this.returnValueInputs = new ArrayList<>(returnValues.length);
+            for (Symbol returnValue : returnValues) {
+                this.returnValueInputs.add(ctxForRefs.add(returnValue));
+            }
+        }
         this.expressions = ctxForRefs.expressions();
     }
 
@@ -378,8 +397,8 @@ public class Indexer {
     }
 
     @SuppressWarnings("unchecked")
-    public ParsedDocument index(String id, List<String> pkValues, Object ... values) throws IOException {
-        assert values.length == valueIndexers.size()
+    public ParsedDocument index(IndexItem item) throws IOException {
+        assert item.insertValues().length == valueIndexers.size()
             : "Number of values must match number of targetColumns/valueIndexers";
 
         Document doc = new Document();
@@ -387,12 +406,12 @@ public class Indexer {
         ArrayList<Reference> newColumns = new ArrayList<>();
         Consumer<? super Reference> onDynamicColumn = newColumns::add;
         // TODO: re-use stream?
-        InsertValues insertValues = new InsertValues(pkValues, values);
         for (var expression : expressions) {
-            expression.setNextRow(insertValues);
+            expression.setNextRow(item);
         }
         XContentBuilder xContentBuilder = XContentFactory.jsonBuilder();
         xContentBuilder.startObject();
+        Object[] values = item.insertValues();
         for (int i = 0; i < values.length; i++) {
             Reference reference = columns.get(i);
             Symbol defaultExpression = reference.defaultExpression();
@@ -459,17 +478,18 @@ public class Indexer {
         BytesRef sourceRef = source.toBytesRef();
         doc.add(new StoredField("_source", sourceRef.bytes, sourceRef.offset, sourceRef.length));
 
-        BytesRef idBytes = Uid.encodeId(id);
+        BytesRef idBytes = Uid.encodeId(item.id());
         doc.add(new Field(DocSysColumns.Names.ID, idBytes, IdFieldMapper.Defaults.FIELD_TYPE));
 
         SequenceIDFields seqID = SequenceIDFields.emptySeqID();
+        // Actual values are set via ParsedDocument.updateSeqID
         doc.add(seqID.seqNo);
         doc.add(seqID.seqNoDocValue);
         doc.add(seqID.primaryTerm);
         return new ParsedDocument(
             version,
             seqID,
-            id,
+            item.id(),
             doc,
             source,
             null,
@@ -486,5 +506,18 @@ public class Indexer {
             && columns.stream().noneMatch(x -> x.valueType().id() == ObjectType.ID)
             && columns.stream().noneMatch(x -> x.column().equals(DocSysColumns.RAW))
             && columns.stream().noneMatch(x -> x.valueType() instanceof ArrayType);
+    }
+
+    @Nullable
+    public Object[] returnValues(IndexItem item) {
+        if (this.returnValueInputs == null) {
+            return null;
+        }
+        expressions.forEach(x -> x.setNextRow(item));
+        Object[] result = new Object[this.returnValueInputs.size()];
+        for (int i = 0; i < result.length; i++) {
+            result[i] = this.returnValueInputs.get(i).value();
+        }
+        return result;
     }
 }

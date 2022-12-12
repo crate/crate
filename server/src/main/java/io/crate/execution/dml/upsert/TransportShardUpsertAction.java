@@ -161,7 +161,8 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 txnCtx,
                 nodeCtx,
                 getFieldType,
-                List.of(insertColumns)
+                List.of(insertColumns),
+                request.returnValues()
             );
 
         InsertSourceGen insertSourceGen = insertColumns == null
@@ -260,7 +261,8 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 txnCtx,
                 nodeCtx,
                 getFieldType,
-                List.of(insertColumns)
+                List.of(insertColumns),
+                null
             );
         boolean indexerSupported = indexer.isSupported();
         for (ShardUpsertRequest.Item item : request.items()) {
@@ -274,13 +276,10 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 }
                 continue;
             }
+            IndexResult result;
             if (indexerSupported) {
                 long startTime = System.nanoTime();
-                ParsedDocument parsedDoc = indexer.index(
-                    item.id(),
-                    item.pkValues(),
-                    item.insertValues()
-                );
+                ParsedDocument parsedDoc = indexer.index(item);
                 Term uid = new Term(IdFieldMapper.NAME, Uid.encodeId(item.id()));
                 boolean isRetry = false;
                 Engine.Index index = new Engine.Index(
@@ -297,20 +296,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                     SequenceNumbers.UNASSIGNED_SEQ_NO,
                     SequenceNumbers.UNASSIGNED_PRIMARY_TERM
                 );
-                IndexResult result = indexShard.index(index);
-                if (result.getResultType() == Engine.Result.Type.MAPPING_UPDATE_REQUIRED) {
-                    // Even though the primary waits on all nodes to ack the mapping changes to the master
-                    // (see MappingUpdatedAction.updateMappingOnMaster) we still need to protect against missing mappings
-                    // and wait for them. The reason is concurrent requests. Request r1 which has new field f triggers a
-                    // mapping update. Assume that that update is first applied on the primary, and only later on the replica
-                    // (it’s happening concurrently). Request r2, which now arrives on the primary and which also has the new
-                    // field f might see the updated mapping (on the primary), and will therefore proceed to be replicated
-                    // to the replica. When it arrives on the replica, there’s no guarantee that the replica has already
-                    // applied the new mapping, so there is no other option than to wait.
-                    throw new TransportReplicationAction.RetryOnReplicaException(indexShard.shardId(),
-                        "Mappings are not available on the replica yet, triggered update: " + result.getRequiredMappingUpdate());
-                }
-                location = result.getTranslogLocation();
+                result = indexShard.index(index);
             } else {
                 SourceToParse sourceToParse = new SourceToParse(
                     indexShard.shardId().getIndexName(),
@@ -318,8 +304,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                     item.source(),
                     XContentType.JSON
                 );
-
-                Engine.IndexResult indexResult = indexShard.applyIndexOperationOnReplica(
+                result = indexShard.applyIndexOperationOnReplica(
                     item.seqNo(),
                     item.primaryTerm(),
                     item.version(),
@@ -327,20 +312,20 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                     false,
                     sourceToParse
                 );
-                if (indexResult.getResultType() == Engine.Result.Type.MAPPING_UPDATE_REQUIRED) {
-                    // Even though the primary waits on all nodes to ack the mapping changes to the master
-                    // (see MappingUpdatedAction.updateMappingOnMaster) we still need to protect against missing mappings
-                    // and wait for them. The reason is concurrent requests. Request r1 which has new field f triggers a
-                    // mapping update. Assume that that update is first applied on the primary, and only later on the replica
-                    // (it’s happening concurrently). Request r2, which now arrives on the primary and which also has the new
-                    // field f might see the updated mapping (on the primary), and will therefore proceed to be replicated
-                    // to the replica. When it arrives on the replica, there’s no guarantee that the replica has already
-                    // applied the new mapping, so there is no other option than to wait.
-                    throw new TransportReplicationAction.RetryOnReplicaException(indexShard.shardId(),
-                        "Mappings are not available on the replica yet, triggered update: " + indexResult.getRequiredMappingUpdate());
-                }
-                location = indexResult.getTranslogLocation();
             }
+            if (result.getResultType() == Engine.Result.Type.MAPPING_UPDATE_REQUIRED) {
+                // Even though the primary waits on all nodes to ack the mapping changes to the master
+                // (see MappingUpdatedAction.updateMappingOnMaster) we still need to protect against missing mappings
+                // and wait for them. The reason is concurrent requests. Request r1 which has new field f triggers a
+                // mapping update. Assume that that update is first applied on the primary, and only later on the replica
+                // (it’s happening concurrently). Request r2, which now arrives on the primary and which also has the new
+                // field f might see the updated mapping (on the primary), and will therefore proceed to be replicated
+                // to the replica. When it arrives on the replica, there’s no guarantee that the replica has already
+                // applied the new mapping, so there is no other option than to wait.
+                throw new TransportReplicationAction.RetryOnReplicaException(indexShard.shardId(),
+                    "Mappings are not available on the replica yet, triggered update: " + result.getRequiredMappingUpdate());
+            }
+            location = result.getTranslogLocation();
         }
         return new WriteReplicaResult<>(request, location, null, indexShard, logger);
     }
@@ -413,14 +398,14 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                        boolean isRetry,
                                        @Nullable ReturnValueGen returnGen,
                                        InsertSourceGen insertSourceGen) throws Exception {
-        if (indexer != null && indexer.isSupported() && returnGen == null) {
+        if (indexer.isSupported()) {
             final long version = request.duplicateKeyAction() == DuplicateKeyAction.OVERWRITE
                 ? Versions.MATCH_ANY
                 : Versions.MATCH_DELETED;
 
             // TODO: Move some of this into IndexShard and keep assertions
             long startTime = System.nanoTime();
-            ParsedDocument parsedDoc = indexer.index(item.id(), item.pkValues(), item.insertValues());
+            ParsedDocument parsedDoc = indexer.index(item);
             if (!parsedDoc.newColumns().isEmpty()) {
                 var addColumnRequest = new AddColumnRequest(
                     RelationName.fromIndexName(indexShard.shardId().getIndexName()),
@@ -452,7 +437,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                     item.seqNo(result.getSeqNo());
                     item.version(result.getVersion());
                     item.primaryTerm(result.getTerm());
-                    return new IndexItemResponse(result.getTranslogLocation(), null);
+                    return new IndexItemResponse(result.getTranslogLocation(), indexer.returnValues(item));
 
                 case FAILURE:
                     Exception failure = result.getFailure();
