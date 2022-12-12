@@ -43,6 +43,7 @@ import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
+import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
@@ -68,7 +69,7 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
         this.getFieldType = getFieldType;
         this.getRef = getRef;
         this.column = ref.column();
-        this.objectType = (ObjectType) ref.valueType();
+        this.objectType = (ObjectType) ArrayType.unnest(ref.valueType());
         this.innerIndexers = new HashMap<>();
         for (var entry : objectType.innerTypes().entrySet()) {
             String innerName = entry.getKey();
