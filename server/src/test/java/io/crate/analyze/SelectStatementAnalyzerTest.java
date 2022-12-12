@@ -1920,7 +1920,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         AnalyzedRelation relation = executor.analyze(
             "select extract(day from name::timestamp with time zone) from users");
         Symbol symbol = relation.outputs().get(0);
-        assertThat(symbol).isFunction("extract_DAY_OF_MONTH");
+        assertThat(symbol).isFunction("extract_DAY");
 
         Symbol argument = ((Function) symbol).arguments().get(0);
         assertThat(argument)
@@ -1935,7 +1935,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         AnalyzedRelation relation = executor.analyze("select extract(day from timestamp) from transactions");
 
         Symbol symbol = relation.outputs().get(0);
-        assertThat(symbol).isFunction("extract_DAY_OF_MONTH");
+        assertThat(symbol).isFunction("extract_DAY");
 
         Symbol argument = ((Function) symbol).arguments().get(0);
         assertThat(argument).isReference("timestamp");
