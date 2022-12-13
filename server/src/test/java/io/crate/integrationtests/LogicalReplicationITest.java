@@ -55,23 +55,22 @@ import io.crate.user.User;
 import io.crate.user.UserLookup;
 
 
-@UseRandomizedSchema(random = false)
 public class LogicalReplicationITest extends LogicalReplicationITestCase {
 
     @Test
     public void test_create_publication_checks_owner_was_not_deleted_before_creation() {
-        executeOnPublisher("CREATE TABLE doc.t1 (id INT)");
+        executeOnPublisher("CREATE TABLE t1 (id INT)");
 
         String publicationOwner = "publication_owner";
         executeOnPublisher("CREATE USER " + publicationOwner);
         executeOnPublisher("GRANT AL TO " + publicationOwner);
-        executeOnPublisher("GRANT DQL, DML, DDL ON TABLE doc.t1 TO " + publicationOwner);
+        executeOnPublisher("GRANT DQL, DML, DDL ON TABLE t1 TO " + publicationOwner);
         UserLookup userLookup = publisherCluster.getInstance(UserLookup.class);
         User user = Objects.requireNonNull(userLookup.findUser(publicationOwner), "User " + publicationOwner + " must exist");
 
         executeOnPublisher("DROP USER " + publicationOwner);
         assertThrowsMatches(
-            () -> executeOnPublisherAsUser("CREATE PUBLICATION pub1 FOR TABLE doc.t1", user),
+            () -> executeOnPublisherAsUser("CREATE PUBLICATION pub1 FOR TABLE t1", user),
             IllegalStateException.class,
             "Publication 'pub1' cannot be created as the user 'publication_owner' owning the publication has been dropped."
         );
@@ -80,8 +79,8 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
 
     @Test
     public void test_create_subscription_checks_owner_was_not_deleted_before_creation() {
-        executeOnPublisher("CREATE TABLE doc.t1 (id INT)");
-        createPublication("pub1", false, List.of("doc.t1"));
+        executeOnPublisher("CREATE TABLE t1 (id INT)");
+        createPublication("pub1", false, List.of("t1"));
 
         String subscriptionOwner = "subscription_owner";
         executeOnSubscriber("CREATE USER " + subscriptionOwner);
@@ -100,16 +99,16 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
 
     @Test
     public void test_cannot_drop_user_who_owns_publications() {
-        executeOnPublisher("CREATE TABLE doc.t1 (id INT)");
+        executeOnPublisher("CREATE TABLE t1 (id INT)");
 
         String publicationOwner = "publication_owner";
         executeOnPublisher("CREATE USER " + publicationOwner);
         executeOnPublisher("GRANT AL TO " + publicationOwner);
-        executeOnPublisher("GRANT DQL, DML, DDL ON TABLE doc.t1 TO " + publicationOwner);
+        executeOnPublisher("GRANT DQL, DML, DDL ON TABLE t1 TO " + publicationOwner);
 
         UserLookup userLookup = publisherCluster.getInstance(UserLookup.class);
         User user = Objects.requireNonNull(userLookup.findUser(publicationOwner), "User " + publicationOwner + " must exist");
-        executeOnPublisherAsUser("CREATE PUBLICATION pub1 FOR TABLE doc.t1", user);
+        executeOnPublisherAsUser("CREATE PUBLICATION pub1 FOR TABLE t1", user);
 
         assertThrowsMatches(
             () -> executeOnPublisher("DROP USER " + publicationOwner),
@@ -120,8 +119,8 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
 
     @Test
     public void test_cannot_drop_user_who_owns_subscriptions() throws Exception {
-        executeOnPublisher("CREATE TABLE doc.t1 (id INT)");
-        createPublication("pub1", false, List.of("doc.t1"));
+        executeOnPublisher("CREATE TABLE t1 (id INT)");
+        createPublication("pub1", false, List.of("t1"));
 
         String subscriptionOwner = "subscription_owner";
         executeOnSubscriber("CREATE USER " + subscriptionOwner);
@@ -140,8 +139,8 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
 
     @Test
     public void test_create_publication_for_concrete_table() {
-        executeOnPublisher("CREATE TABLE doc.t1 (id INT)");
-        executeOnPublisher("CREATE PUBLICATION pub1 FOR TABLE doc.t1");
+        executeOnPublisher("CREATE TABLE t1 (id INT)");
+        executeOnPublisher("CREATE PUBLICATION pub1 FOR TABLE t1");
         var response = executeOnPublisher(
             "SELECT oid, p.pubname, pubowner, puballtables, schemaname, tablename, pubinsert, pubupdate, pubdelete" +
             " FROM pg_publication p" +
@@ -153,7 +152,7 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
 
     @Test
     public void test_create_publication_for_all_tables() {
-        executeOnPublisher("CREATE TABLE doc.t1 (id INT)");
+        executeOnPublisher("CREATE TABLE t1 (id INT)");
         executeOnPublisher("CREATE PUBLICATION pub1 FOR ALL TABLES");
         executeOnPublisher("CREATE TABLE my_schema.t2 (id INT)");
         var response = executeOnPublisher(
@@ -168,8 +167,8 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
 
     @Test
     public void test_drop_publication() {
-        executeOnPublisher("CREATE TABLE doc.t3 (id INT)");
-        executeOnPublisher("CREATE PUBLICATION pub2 FOR TABLE doc.t3");
+        executeOnPublisher("CREATE TABLE t3 (id INT)");
+        executeOnPublisher("CREATE PUBLICATION pub2 FOR TABLE t3");
         executeOnPublisher("DROP PUBLICATION pub2");
 
         var response = executeOnPublisher("SELECT * FROM pg_publication WHERE pubname = 'pub2'");
@@ -180,9 +179,9 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
 
     @Test
     public void test_drop_subscription() throws Exception {
-        executeOnPublisher("CREATE TABLE doc.t1 (id INT) WITH(" + defaultTableSettings() + ")");
+        executeOnPublisher("CREATE TABLE t1 (id INT) WITH(" + defaultTableSettings() + ")");
 
-        createPublication("pub1", false, List.of("doc.t1"));
+        createPublication("pub1", false, List.of("t1"));
         createSubscription("sub1", "pub1");
 
         LogicalReplicationService replicationService = subscriberCluster.getInstance(LogicalReplicationService.class);
@@ -199,10 +198,10 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
 
     @Test
     public void test_create_subscription_subscribing_user_not_found() {
-        executeOnPublisher("CREATE TABLE doc.t1 (id INT) WITH(" + defaultTableSettings() + ")");
+        executeOnPublisher("CREATE TABLE t1 (id INT) WITH(" + defaultTableSettings() + ")");
 
         // createPublication is not used in order not to create SUBSCRIBING_USER and verify that check is done in PublicationsStateAction
-        executeOnPublisher("CREATE PUBLICATION pub1 FOR TABLE doc.t1");
+        executeOnPublisher("CREATE PUBLICATION pub1 FOR TABLE t1");
 
         assertThatThrownBy(() -> createSubscription("sub1", "pub1"))
             .satisfiesAnyOf(
@@ -219,17 +218,17 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
 
     @Test
     public void test_subscribing_to_single_publication() throws Exception {
-        executeOnPublisher("CREATE TABLE doc.t1 (id INT) WITH(" +
+        executeOnPublisher("CREATE TABLE t1 (id INT) WITH(" +
                            defaultTableSettings() +
                            ")");
-        executeOnPublisher("INSERT INTO doc.t1 (id) VALUES (1), (2)");
+        executeOnPublisher("INSERT INTO t1 (id) VALUES (1), (2)");
 
-        createPublication("pub1", false, List.of("doc.t1"));
+        createPublication("pub1", false, List.of("t1"));
 
         createSubscription("sub1", "pub1");
 
-        executeOnSubscriber("REFRESH TABLE doc.t1");
-        var response = executeOnSubscriber("SELECT * FROM doc.t1 ORDER BY id");
+        executeOnSubscriber("REFRESH TABLE t1");
+        var response = executeOnSubscriber("SELECT * FROM t1 ORDER BY id");
         assertThat(printedTable(response.rows()), is("1\n" +
                                                      "2\n"));
     }
@@ -247,11 +246,11 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
 
     @Test
     public void test_create_subscription_system_tables_filled() throws Exception {
-        executeOnPublisher("CREATE TABLE doc.t1 (id INT) WITH(" + defaultTableSettings() + ")");
-        executeOnPublisher("CREATE TABLE doc.t2 (id INT) WITH(" + defaultTableSettings() + ")");
+        executeOnPublisher("CREATE TABLE t1 (id INT) WITH(" + defaultTableSettings() + ")");
+        executeOnPublisher("CREATE TABLE t2 (id INT) WITH(" + defaultTableSettings() + ")");
 
         // If isForAllTables is true, list argument is used only to grant DQL (to make subscribe work) but publication is not aware of tables in the moment of creation.
-        createPublication("pub1", true, List.of("doc.t1, doc.t2"));
+        createPublication("pub1", true, List.of("t1, t2"));
         createSubscription("sub1", "pub1");
 
         // s.subconninfo is not being selected since
@@ -273,16 +272,16 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
 
     @Test
     public void test_subscribing_to_publication_while_table_exists_raises_error() throws Exception {
-        executeOnPublisher("CREATE TABLE doc.t1 (id INT) WITH(" +
+        executeOnPublisher("CREATE TABLE t1 (id INT) WITH(" +
                            defaultTableSettings() +
                            ")");
-        executeOnPublisher("INSERT INTO doc.t1 (id) VALUES (1), (2)");
+        executeOnPublisher("INSERT INTO t1 (id) VALUES (1), (2)");
 
-        createPublication("pub1", false, List.of("doc.t1"));
+        createPublication("pub1", false, List.of("t1"));
 
-        executeOnSubscriber("CREATE TABLE doc.t1 (id int)");
+        executeOnSubscriber("CREATE TABLE t1 (id int)");
         assertThrows(
-            "Subscription 'sub1' cannot be created as included relation 'doc.t1' already exists",
+            "Subscription 'sub1' cannot be created as included relation 't1' already exists",
             RelationAlreadyExists.class,
             () -> createSubscription("sub1", "pub1")
         );
@@ -290,65 +289,65 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
 
     @Test
     public void test_subscribing_to_single_publication_with_multiple_tables() throws Exception {
-        executeOnPublisher("CREATE TABLE doc.t1 (id INT) WITH(" +
+        executeOnPublisher("CREATE TABLE t1 (id INT) WITH(" +
                            defaultTableSettings() +
                            ")");
-        executeOnPublisher("INSERT INTO doc.t1 (id) VALUES (1), (2)");
+        executeOnPublisher("INSERT INTO t1 (id) VALUES (1), (2)");
 
-        executeOnPublisher("CREATE TABLE doc.t2 (id INT) CLUSTERED INTO 1 SHARDS WITH(" +
+        executeOnPublisher("CREATE TABLE t2 (id INT) CLUSTERED INTO 1 SHARDS WITH(" +
                            defaultTableSettings() +
                            ")");
-        executeOnPublisher("INSERT INTO doc.t2 (id) VALUES (3), (4)");
+        executeOnPublisher("INSERT INTO t2 (id) VALUES (3), (4)");
 
-        createPublication("pub1", false, List.of("doc.t1", "doc.t2"));
+        createPublication("pub1", false, List.of("t1", "t2"));
 
         createSubscription("sub1", "pub1");
 
-        executeOnSubscriber("REFRESH TABLE doc.t1");
-        var response = executeOnSubscriber("SELECT * FROM doc.t1 ORDER BY id");
+        executeOnSubscriber("REFRESH TABLE t1");
+        var response = executeOnSubscriber("SELECT * FROM t1 ORDER BY id");
         assertThat(printedTable(response.rows()), is("1\n" +
                                                      "2\n"));
 
-        executeOnSubscriber("REFRESH TABLE doc.t2");
-        response = executeOnSubscriber("SELECT * FROM doc.t2 ORDER BY id");
+        executeOnSubscriber("REFRESH TABLE t2");
+        response = executeOnSubscriber("SELECT * FROM t2 ORDER BY id");
         assertThat(printedTable(response.rows()), is("3\n" +
                                                      "4\n"));
     }
 
     @Test
     public void test_subscribing_to_single_publication_with_partitioned_table() throws Exception {
-        executeOnPublisher("CREATE TABLE doc.t1 (id INT, p INT) PARTITIONED BY (p) WITH(" +
+        executeOnPublisher("CREATE TABLE t1 (id INT, p INT) PARTITIONED BY (p) WITH(" +
                            defaultTableSettings() +
                            ")");
-        executeOnPublisher("INSERT INTO doc.t1 (id, p) VALUES (1, 1), (2, 2)");
+        executeOnPublisher("INSERT INTO t1 (id, p) VALUES (1, 1), (2, 2)");
 
-        createPublication("pub1", false, List.of("doc.t1"));
+        createPublication("pub1", false, List.of("t1"));
 
         createSubscription("sub1", "pub1");
 
-        executeOnSubscriber("REFRESH TABLE doc.t1");
-        var response = executeOnSubscriber("SELECT * FROM doc.t1 ORDER BY id");
+        executeOnSubscriber("REFRESH TABLE t1");
+        var response = executeOnSubscriber("SELECT * FROM t1 ORDER BY id");
         assertThat(printedTable(response.rows()), is("1| 1\n" +
                                                      "2| 2\n"));
     }
 
     @Test
     public void test_subscribing_to_single_publication_for_all_tables() throws Exception {
-        executeOnPublisher("CREATE TABLE doc.t1 (id INT, p INT) PARTITIONED BY (p) WITH(" +
+        executeOnPublisher("CREATE TABLE t1 (id INT, p INT) PARTITIONED BY (p) WITH(" +
                            defaultTableSettings() +
                            ")");
-        executeOnPublisher("INSERT INTO doc.t1 (id, p) VALUES (1, 1), (2, 2)");
+        executeOnPublisher("INSERT INTO t1 (id, p) VALUES (1, 1), (2, 2)");
         executeOnPublisher("CREATE TABLE my_schema.t2 (id INT) WITH(" +
                            defaultTableSettings() +
                            ")");
         executeOnPublisher("INSERT INTO my_schema.t2 (id) VALUES (1), (2)");
 
-        createPublication("pub1", false, List.of("doc.t1", "my_schema.t2"));
+        createPublication("pub1", false, List.of("t1", "my_schema.t2"));
 
         createSubscription("sub1", "pub1");
 
-        executeOnSubscriber("REFRESH TABLE doc.t1");
-        var response = executeOnSubscriber("SELECT * FROM doc.t1 ORDER BY id");
+        executeOnSubscriber("REFRESH TABLE t1");
+        var response = executeOnSubscriber("SELECT * FROM t1 ORDER BY id");
         assertThat(printedTable(response.rows()), is("1| 1\n" +
                                                      "2| 2\n"));
 
@@ -360,18 +359,18 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
 
     @Test
     public void test_subscribed_tables_are_followed_and_updated() throws Exception {
-        executeOnPublisher("CREATE TABLE doc.t1 (id INT) WITH(" +
+        executeOnPublisher("CREATE TABLE t1 (id INT) WITH(" +
                            defaultTableSettings() +
                            ")");
-        executeOnPublisher("INSERT INTO doc.t1 (id) VALUES (1), (2)");
+        executeOnPublisher("INSERT INTO t1 (id) VALUES (1), (2)");
 
 
-        createPublication("pub1", false, List.of("doc.t1"));
+        createPublication("pub1", false, List.of("t1"));
 
         createSubscription("sub1", "pub1");
 
-        executeOnSubscriber("REFRESH TABLE doc.t1");
-        var response = executeOnSubscriber("SELECT * FROM doc.t1 ORDER BY id");
+        executeOnSubscriber("REFRESH TABLE t1");
+        var response = executeOnSubscriber("SELECT * FROM t1 ORDER BY id");
         assertThat(printedTable(response.rows()), is("1\n" +
                                                      "2\n"));
 
@@ -380,37 +379,38 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
         for (int i = 0; i < numDocs; i++) {
             bulkArgs[i][0] = i;
         }
-        executeBulkOnPublisher("INSERT INTO doc.t1 (id) VALUES (?)", bulkArgs);
+        executeBulkOnPublisher("INSERT INTO t1 (id) VALUES (?)", bulkArgs);
 
         assertBusy(() -> {
-            executeOnSubscriber("REFRESH TABLE doc.t1");
-            var res = executeOnSubscriber("SELECT * FROM doc.t1");
+            executeOnSubscriber("REFRESH TABLE t1");
+            var res = executeOnSubscriber("SELECT * FROM t1");
             assertThat(res.rowCount(), is((long) (numDocs + 2)));
         }, 10, TimeUnit.SECONDS);
     }
 
     @Test
     public void test_write_to_subscribed_table_is_forbidden() throws Exception {
-        executeOnPublisher("CREATE TABLE doc.t1 (id INT) WITH(" +
+        executeOnPublisher("CREATE TABLE t1 (id INT) WITH(" +
                            defaultTableSettings() +
                            ")");
-        executeOnPublisher("INSERT INTO doc.t1 (id) VALUES (1), (2)");
-        createPublication("pub1", false, List.of("doc.t1"));
+        executeOnPublisher("INSERT INTO t1 (id) VALUES (1), (2)");
+        createPublication("pub1", false, List.of("t1"));
         createSubscription("sub1", "pub1");
 
         assertThrowsMatches(
-            () -> executeOnSubscriber("INSERT INTO doc.t1 (id) VALUES(3)"),
+            () -> executeOnSubscriber("INSERT INTO t1 (id) VALUES(3)"),
             OperationOnInaccessibleRelationException.class,
-            "The relation \"doc.t1\" doesn't allow INSERT operations, because it is included in a logical replication subscription."
+            "The relation \"" + publisherSqlExecutor.getCurrentSchema() +
+            ".t1\" doesn't allow INSERT operations, because it is included in a logical replication subscription."
         );
     }
 
     @Test
     public void test_write_to_subscribed_empty_partitioned_table_is_forbidden() throws Exception {
-        executeOnPublisher("CREATE TABLE doc.t1 (id INT, p INT) PARTITIONED BY (p) WITH(" +
+        executeOnPublisher("CREATE TABLE t1 (id INT, p INT) PARTITIONED BY (p) WITH(" +
                            defaultTableSettings() +
                            ")");
-        createPublication("pub1", false, List.of("doc.t1"));
+        createPublication("pub1", false, List.of("t1"));
         executeOnSubscriber("CREATE SUBSCRIPTION sub1" +
             " CONNECTION '" + publisherConnectionUrl() + "' PUBLICATION pub1");
         // Wait until empty partitioned table (template only) is replicated
@@ -423,9 +423,10 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
         });
 
         assertThrowsMatches(
-            () -> executeOnSubscriber("INSERT INTO doc.t1 (id) VALUES(3)"),
+            () -> executeOnSubscriber("INSERT INTO t1 (id) VALUES(3)"),
             OperationOnInaccessibleRelationException.class,
-            "The relation \"doc.t1\" doesn't allow INSERT operations, because it is included in a logical replication subscription."
+            "The relation \"" + publisherSqlExecutor.getCurrentSchema() +
+            ".t1\" doesn't allow INSERT operations, because it is included in a logical replication subscription."
         );
     }
 
@@ -444,7 +445,7 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
                 if (metadata != null) {
                     var subscription = metadata.subscription().get(subscriptionName);
                     if (subscription != null) {
-                        var currentState = subscription.relations().get(RelationName.fromIndexName("doc.t1")).state();
+                        var currentState = subscription.relations().get(RelationName.fromIndexName("t1")).state();
                         synchronized (subscriptionStates) {
                             var size = subscriptionStates.size();
                             if (size == 0 || subscriptionStates.get(size - 1).equals(currentState) == false) {
@@ -455,10 +456,10 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
                 }
             });
 
-        executeOnPublisher("CREATE TABLE doc.t1 (id INT) WITH(" +
+        executeOnPublisher("CREATE TABLE t1 (id INT) WITH(" +
                            defaultTableSettings() +
                            ")");
-        createPublication("pub1", false, List.of("doc.t1"));
+        createPublication("pub1", false, List.of("t1"));
         createSubscription("sub1", "pub1");
 
         // Tracking (MONITORING state) may not have started even if table is green, so lets use a busy loop
@@ -488,22 +489,22 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
 
     @Test
     public void test_write_to_subscribed_table_is_allowed_after_dropping_subscription() throws Exception {
-        executeOnPublisher("CREATE TABLE doc.t1 (id INT) WITH(" + defaultTableSettings() + ")");
-        executeOnPublisher("CREATE TABLE doc.t2 (id INT, p INT) PARTITIONED BY (p) WITH(" + defaultTableSettings() + ")");
-        executeOnPublisher("INSERT INTO doc.t1 (id) VALUES (1), (2)");
-        executeOnPublisher("INSERT INTO doc.t2 (id, p) VALUES (1, 1), (2, 2)");
+        executeOnPublisher("CREATE TABLE t1 (id INT) WITH(" + defaultTableSettings() + ")");
+        executeOnPublisher("CREATE TABLE t2 (id INT, p INT) PARTITIONED BY (p) WITH(" + defaultTableSettings() + ")");
+        executeOnPublisher("INSERT INTO t1 (id) VALUES (1), (2)");
+        executeOnPublisher("INSERT INTO t2 (id, p) VALUES (1, 1), (2, 2)");
 
         // It's important to subscribe to more than 1 table to check
         // that re-used close/open table logic works with multiple tables
-        createPublication("pub1", false, List.of("doc.t1", "doc.t2"));
+        createPublication("pub1", false, List.of("t1", "t2"));
         createSubscription("sub1", "pub1");
 
         executeOnSubscriber("DROP SUBSCRIPTION sub1 ");
 
-        var response = executeOnSubscriber("INSERT INTO doc.t1 (id) VALUES(3)");
+        var response = executeOnSubscriber("INSERT INTO t1 (id) VALUES(3)");
         assertThat(response.rowCount(), is(1L));
 
-        response = executeOnSubscriber("INSERT INTO doc.t2 (id, p) VALUES(3, 3)");
+        response = executeOnSubscriber("INSERT INTO t2 (id, p) VALUES(3, 3)");
         assertThat(response.rowCount(), is(1L));
     }
 
@@ -557,7 +558,8 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
         assertThrowsMatches(
             () -> executeOnSubscriber("DROP TABLE t1"),
             OperationOnInaccessibleRelationException.class,
-            "The relation \"doc.t1\" doesn't allow DROP operations, because it is included in a logical replication subscription."
+            "The relation \"" + publisherSqlExecutor.getCurrentSchema() +
+            ".t1\" doesn't allow DROP operations, because it is included in a logical replication subscription."
         );
     }
 

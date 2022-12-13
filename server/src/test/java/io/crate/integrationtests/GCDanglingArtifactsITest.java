@@ -33,7 +33,7 @@ public class GCDanglingArtifactsITest extends IntegTestCase {
 
     @Test
     public void testAlterClusterGCDanglingIndicesRemovesDanglingIndices() {
-        execute("create table doc.t1 (x int)");
+        execute("create table t1 (x int)");
         createIndex(".resized.foobar");
 
         ClusterService clusterService = internalCluster().getInstance(ClusterService.class);
@@ -42,6 +42,6 @@ public class GCDanglingArtifactsITest extends IntegTestCase {
         execute("alter cluster gc dangling artifacts");
 
         assertThat(clusterService.state().metadata().hasIndex(".resized.foobar"), is(false));
-        assertThat(clusterService.state().metadata().hasIndex("t1"), is(true));
+        assertThat(clusterService.state().metadata().hasIndex(sqlExecutor.getCurrentSchema() + ".t1"), is(true));
     }
 }

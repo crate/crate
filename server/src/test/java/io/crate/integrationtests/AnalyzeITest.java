@@ -36,9 +36,9 @@ public class AnalyzeITest extends IntegTestCase {
 
     @Test
     public void test_analyze_statement_refreshes_table_stats_and_stats_are_visible_in_pg_class_and_pg_stats() {
-        execute("create table doc.tbl (x int)");
-        execute("insert into doc.tbl (x) values (1), (2), (3), (null), (3), (3)");
-        execute("refresh table doc.tbl");
+        execute("create table tbl (x int)");
+        execute("insert into tbl (x) values (1), (2), (3), (null), (3), (3)");
+        execute("refresh table tbl");
         execute("analyze");
         execute("select reltuples from pg_class where relname = 'tbl'");
         assertThat(response.rows()[0][0], is(6.0f));
@@ -63,9 +63,9 @@ public class AnalyzeITest extends IntegTestCase {
 
     @Test
     public void test_analyze_statement_works_on_tables_with_object_arrays() throws Exception {
-        execute("create table doc.tbl (objs array(object as (y int)))");
-        execute("insert into doc.tbl (objs) values ([{y=1}, {y=2}])");
-        execute("refresh table doc.tbl");
+        execute("create table tbl (objs array(object as (y int)))");
+        execute("insert into tbl (objs) values ([{y=1}, {y=2}])");
+        execute("refresh table tbl");
         execute("analyze");
         execute("select reltuples from pg_class where relname = 'tbl'");
         assertThat(response.rows()[0][0], is(1.0f));
@@ -73,9 +73,9 @@ public class AnalyzeITest extends IntegTestCase {
 
     @Test
     public void test_select_from_pg_stats_when_most_common_vals_is_array_type_value() {
-        execute("CREATE TABLE doc.tbl (val array(object as (id int)))");
-        execute("INSERT INTO doc.tbl (val) VALUES ([{id=1}]), ([{id=1}]), ([{id=2}])");
-        execute("REFRESH TABLE doc.tbl");
+        execute("CREATE TABLE tbl (val array(object as (id int)))");
+        execute("INSERT INTO tbl (val) VALUES ([{id=1}]), ([{id=1}]), ([{id=2}])");
+        execute("REFRESH TABLE tbl");
         execute("ANALYZE");
         execute("SELECT attname, most_common_vals, histogram_bounds FROM pg_stats");
         Object[] row = response.rows()[0];

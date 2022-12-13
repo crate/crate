@@ -107,7 +107,7 @@ public class CopyFromFailFastITest extends IntegTestCase {
         execute("set global overload_protection.dml.max_concurrency = 2");
         execute("set global overload_protection.dml.queue_size = 2");
 
-        execute("CREATE TABLE doc.t (a INT PRIMARY KEY, b INT) CLUSTERED INTO 2 SHARDS WITH (number_of_replicas=0)");
+        execute("CREATE TABLE t (a INT PRIMARY KEY, b INT) CLUSTERED INTO 2 SHARDS WITH (number_of_replicas=0)");
 
         execute("SELECT node['name'] FROM sys.shards WHERE table_name='t' ORDER BY id");
         var nodeNameOfShard0 = (String) response.rows()[0][0];
@@ -136,7 +136,7 @@ public class CopyFromFailFastITest extends IntegTestCase {
         Path target = Files.createDirectories(tmpDir.resolve("target"));
         int numDocs = 100;
 
-        var indexMetadata = clusterService().state().getMetadata().index("t");
+        var indexMetadata = clusterService().state().getMetadata().index(sqlExecutor.getCurrentSchema() + ".t");
         List<String> rows = new ArrayList<>();
         for (int i = 0; i < numDocs; i++) {
             String line;
@@ -153,7 +153,7 @@ public class CopyFromFailFastITest extends IntegTestCase {
         assertExpectedLogMessages(
             () -> assertThrowsMatches(
                 () -> handlerNodeExecutor.exec(
-                    "COPY doc.t FROM ? WITH (bulk_size = 1, fail_fast = true, shared= true)", // fail_fast = true
+                    "COPY \"" + sqlExecutor.getCurrentSchema() + "\".t FROM ? WITH (bulk_size = 1, fail_fast = true, shared= true)", // fail_fast = true
                     new Object[]{target.toUri() + "*"}),
                 JobKilledException.class,
                 "Cannot cast value `fail here` to type `integer`"
@@ -165,7 +165,7 @@ public class CopyFromFailFastITest extends IntegTestCase {
                 "Failed to execute upsert on nodeName=" + nodeNameOfShard1 + ".*")
         );
 
-        execute("SELECT COUNT(*) FROM doc.t");
+        execute("SELECT COUNT(*) FROM t");
         assertThat((long) response.rows()[0][0], lessThan(50L));
     }
 
@@ -180,7 +180,7 @@ public class CopyFromFailFastITest extends IntegTestCase {
         execute("set global overload_protection.dml.max_concurrency = 2");
         execute("set global overload_protection.dml.queue_size = 2");
 
-        execute("CREATE TABLE doc.t (a INT PRIMARY KEY, b INT) CLUSTERED INTO 2 SHARDS WITH (number_of_replicas=0)");
+        execute("CREATE TABLE t (a INT PRIMARY KEY, b INT) CLUSTERED INTO 2 SHARDS WITH (number_of_replicas=0)");
 
         execute("SELECT node['name'] FROM sys.shards WHERE table_name='t' ORDER BY id");
         var nodeNameOfShard0 = (String) response.rows()[0][0];
@@ -208,7 +208,7 @@ public class CopyFromFailFastITest extends IntegTestCase {
         Path target = Files.createDirectories(tmpDir.resolve("target"));
         int numDocs = 100;
 
-        var indexMetadata = clusterService().state().getMetadata().index("t");
+        var indexMetadata = clusterService().state().getMetadata().index(sqlExecutor.getCurrentSchema() + ".t");
         List<String> rows = new ArrayList<>();
         for (int i = 0; i < numDocs; i++) {
             String line;
@@ -225,7 +225,7 @@ public class CopyFromFailFastITest extends IntegTestCase {
         assertExpectedLogMessages(
             () -> assertThrowsMatches(
                 () -> handlerNodeExecutor.exec(
-                    "COPY doc.t FROM ? WITH (bulk_size = 1, fail_fast = true, shared= true)", // fail_fast = true
+                    "COPY \"" + sqlExecutor.getCurrentSchema() + "\".t FROM ? WITH (bulk_size = 1, fail_fast = true, shared= true)", // fail_fast = true
                     new Object[]{target.toUri() + "*"}),
                 JobKilledException.class,
                 "Cannot cast value `fail here` to type `integer`"
@@ -237,7 +237,7 @@ public class CopyFromFailFastITest extends IntegTestCase {
                 "Failed to execute upsert on nodeName=" + nodeNameOfShard0 + ".*")
         );
 
-        execute("SELECT COUNT(*) FROM doc.t");
+        execute("SELECT COUNT(*) FROM t");
         assertThat((long) response.rows()[0][0], lessThan(50L));
     }
 

@@ -39,7 +39,6 @@ import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.MetadataTracker;
 import io.crate.testing.UseRandomizedSchema;
 
-@UseRandomizedSchema(random = false)
 public class MetadataTrackerITest extends LogicalReplicationITestCase {
 
     @Test
@@ -326,12 +325,12 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
         executeOnPublisher("CREATE SUBSCRIPTION sub " +
                            " CONNECTION '" + publisherConnectionUrl() + "' publication pub");
 
-        executeOnPublisher("CREATE TABLE doc.t1 (id INT) WITH(" +
+        executeOnPublisher("CREATE TABLE t1 (id INT) WITH(" +
                            defaultTableSettings() +
                            ")");
-        executeOnPublisher("CREATE TABLE doc.t2 (id INT, p INT) PARTITIONED BY (p)");
+        executeOnPublisher("CREATE TABLE t2 (id INT, p INT) PARTITIONED BY (p)");
 
-        executeOnPublisher("GRANT DQL ON TABLE doc.t1, doc.t2 TO " + SUBSCRIBING_USER);
+        executeOnPublisher("GRANT DQL ON TABLE t1, t2 TO " + SUBSCRIBING_USER);
 
         assertBusy(
             () -> {
@@ -342,8 +341,8 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
                         " ORDER BY s.subname");
                 assertThat(res.rows(),
                     arrayContainingInAnyOrder(
-                        new Object[] {"sub", "doc.t1", "e", "Relation already exists"},
-                        new Object[] {"sub", "doc.t2", "e", "Relation already exists"}
+                        new Object[] {"sub", publisherSqlExecutor.getCurrentSchema() + ".t1", "e", "Relation already exists"},
+                        new Object[] {"sub", publisherSqlExecutor.getCurrentSchema() + ".t2", "e", "Relation already exists"}
                     )
                 );
                 assertThat(isTrackerActive(), is(false));

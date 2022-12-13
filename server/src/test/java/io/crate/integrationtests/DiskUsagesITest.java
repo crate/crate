@@ -305,7 +305,7 @@ public class DiskUsagesITest extends IntegTestCase {
                 "   cluster.routing.allocation.disk.watermark.high='90%'," +
                 "   cluster.routing.allocation.disk.watermark.flood_stage='100%'");
 
-        execute("CREATE TABLE doc.t (id INT PRIMARY KEY) " +
+        execute("CREATE TABLE t (id INT PRIMARY KEY) " +
                 "CLUSTERED INTO 6 SHARDS " +
                 "WITH (number_of_replicas = 0)");
         ensureGreen();
@@ -320,7 +320,7 @@ public class DiskUsagesITest extends IntegTestCase {
             "SELECT path " +
             "FROM sys.shards " +
             "WHERE table_name = 't' " +
-            "  AND schema_name = 'doc'" +
+            "  AND schema_name = '" + sqlExecutor.getCurrentSchema() + "'" +
             "  AND node['id'] = ?",
             new Object[]{nodeIdWithTwoPaths});
         assertThat(
