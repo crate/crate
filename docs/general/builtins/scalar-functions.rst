@@ -3015,6 +3015,31 @@ Returns: ``array(text)``
     SELECT 1 row in set (... sec)
 
 
+.. _scalar-object_deepmerge:
+
+``object_deepmerge(object, object)``
+------------------------------------
+
+The ``object_deepmerge`` function combines two objects into a new object 
+containing the deep union of their properties, taking the second 
+object's values for duplicate non-``OBJECT`` properties.  If one of the 
+objects is ``NULL``, the non-``NULL`` object is returned. If both objects 
+are ``NULL``, ``NULL`` is returned.
+
+Returns: ``object``
+
+::
+
+    cr> SELECT
+    ...     object_deepmerge({a = 1, b = {c = 2}}, {a = 3, b = {d = 4}}) AS object_deepmerge;
+    +---------------------------------+
+    | object_deepmerge                |
+    +---------------------------------+
+    | {"a": 3, "b": {"c": 2, "d": 4}} |
+    +---------------------------------+
+    SELECT 1 row in set (... sec)
+
+
 .. _scalar-conditional-fn-exp:
 
 Conditional functions and expressions

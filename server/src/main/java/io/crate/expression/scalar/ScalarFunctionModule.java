@@ -57,6 +57,7 @@ import io.crate.expression.scalar.geo.GeoHashFunction;
 import io.crate.expression.scalar.geo.IntersectsFunction;
 import io.crate.expression.scalar.geo.WithinFunction;
 import io.crate.expression.scalar.object.ObjectKeysFunction;
+import io.crate.expression.scalar.object.ObjectDeepMergeFunction;
 import io.crate.expression.scalar.postgres.CurrentSettingFunction;
 import io.crate.expression.scalar.postgres.PgBackendPidFunction;
 import io.crate.expression.scalar.postgres.PgEncodingToCharFunction;
@@ -223,6 +224,7 @@ public class ScalarFunctionModule extends AbstractFunctionModule<FunctionImpleme
         PgGetSerialSequenceFunction.register(this);
 
         ObjectKeysFunction.register(this);
+        ObjectDeepMergeFunction.register(this);
 
         HasSchemaPrivilegeFunction.register(this);
     }
