@@ -19,6 +19,12 @@
 
 package org.elasticsearch.index.engine;
 
+import java.io.Closeable;
+import java.io.IOException;
+import java.util.Comparator;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
@@ -26,7 +32,7 @@ import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
-import org.apache.lucene.search.DocValuesFieldExistsQuery;
+import org.apache.lucene.search.FieldExistsQuery;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
@@ -36,9 +42,6 @@ import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.util.ArrayUtil;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.lucene.Lucene;
-import io.crate.common.io.IOUtils;
-import io.crate.metadata.doc.DocSysColumns;
-
 import org.elasticsearch.index.fieldvisitor.FieldsVisitor;
 import org.elasticsearch.index.mapper.IdFieldMapper;
 import org.elasticsearch.index.mapper.MapperService;
@@ -46,11 +49,8 @@ import org.elasticsearch.index.mapper.SourceFieldMapper;
 import org.elasticsearch.index.mapper.Uid;
 import org.elasticsearch.index.translog.Translog;
 
-import java.io.Closeable;
-import java.io.IOException;
-import java.util.Comparator;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
+import io.crate.common.io.IOUtils;
+import io.crate.metadata.doc.DocSysColumns;
 
 /**
  * A {@link Translog.Snapshot} from changes in a Lucene index
@@ -66,7 +66,6 @@ final class LuceneChangesSnapshot implements Translog.Snapshot {
     private final boolean requiredFullRange;
 
     private final IndexSearcher indexSearcher;
-    private final MapperService mapperService;
     private int docIndex = 0;
     private final int totalHits;
     private ScoreDoc[] scoreDocs;
@@ -97,7 +96,6 @@ final class LuceneChangesSnapshot implements Translog.Snapshot {
                 IOUtils.close(engineSearcher);
             }
         };
-        this.mapperService = mapperService;
         final long requestingSize = (toSeqNo - fromSeqNo) == Long.MAX_VALUE ? Long.MAX_VALUE : (toSeqNo - fromSeqNo + 1L);
         this.searchBatchSize = requestingSize < searchBatchSize ? Math.toIntExact(requestingSize) : searchBatchSize;
         this.fromSeqNo = fromSeqNo;
@@ -219,7 +217,7 @@ final class LuceneChangesSnapshot implements Translog.Snapshot {
         final Query rangeQuery = new BooleanQuery.Builder()
             .add(LongPoint.newRangeQuery(DocSysColumns.Names.SEQ_NO, Math.max(fromSeqNo, lastSeenSeqNo), toSeqNo), BooleanClause.Occur.MUST)
             // exclude non-root nested documents
-            .add(new DocValuesFieldExistsQuery(DocSysColumns.Names.PRIMARY_TERM), BooleanClause.Occur.MUST)
+            .add(new FieldExistsQuery(DocSysColumns.Names.PRIMARY_TERM), BooleanClause.Occur.MUST)
             .build();
         final Sort sortedBySeqNo = new Sort(new SortField(DocSysColumns.Names.SEQ_NO, SortField.Type.LONG));
         return indexSearcher.searchAfter(after, rangeQuery, searchBatchSize, sortedBySeqNo);
