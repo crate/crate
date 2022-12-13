@@ -22,12 +22,8 @@ package org.elasticsearch.index.mapper;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
-
-import org.elasticsearch.common.regex.Regex;
 
 /**
  * An immutable container for looking up {@link MappedFieldType}s by their name.
@@ -53,19 +49,6 @@ class FieldTypeLookup implements Iterable<MappedFieldType> {
     /** Returns the field for the given field */
     public MappedFieldType get(String field) {
         return fullNameToFieldType.get(field);
-    }
-
-    /**
-     * Returns a list of the full names of a simple match regex like pattern against full name and index name.
-     */
-    public Collection<String> simpleMatchToFullName(String pattern) {
-        Set<String> fields = new HashSet<>();
-        for (MappedFieldType fieldType : this) {
-            if (Regex.simpleMatch(pattern, fieldType.name())) {
-                fields.add(fieldType.name());
-            }
-        }
-        return fields;
     }
 
     @Override
