@@ -26,6 +26,7 @@ test-output/
 # eclipse files
 bin/
 .jdt.ls/
+benchmarks/.factorypath
 
 # Python files
 __pycache__/
