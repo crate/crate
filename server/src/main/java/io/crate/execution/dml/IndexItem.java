@@ -34,4 +34,12 @@ public interface IndexItem {
     long seqNo();
 
     long primaryTerm();
+
+    static record Item(
+            String id,
+            List<String> pkValues,
+            Object[] insertValues,
+            long seqNo,
+            long primaryTerm) implements IndexItem {
+    }
 }

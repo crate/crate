@@ -524,8 +524,14 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                        boolean isRetry,
                                        @Nullable ReturnValueGen returnGen,
                                        UpdateSourceGen updateSourceGen) throws Exception {
+
+
+
         assert updateSourceGen != null : "UpdateSourceGen must not be null";
         Doc fetchedDoc = getDocument(indexShard, item.id(), item.version(), item.seqNo(), item.primaryTerm());
+        // TODO:
+        // item = updateToInsert.convert(fetchedDoc, item.updateAssignments(), item.insertValues());
+        // index(item)
         LinkedHashMap<String, Object> source = updateSourceGen.generateSource(
             fetchedDoc,
             item.updateAssignments(),
