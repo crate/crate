@@ -34,7 +34,6 @@ import static io.crate.sql.tree.Extract.Field.QUARTER;
 import static io.crate.sql.tree.Extract.Field.SECOND;
 import static io.crate.sql.tree.Extract.Field.WEEK;
 import static io.crate.sql.tree.Extract.Field.YEAR;
-import static io.crate.types.TypeSignature.parseTypeSignature;
 
 import java.util.List;
 import java.util.Locale;
@@ -82,7 +81,7 @@ public class ExtractFunctions {
                     Signature.scalar(
                         functionNameFrom(entry.extractField()),
                         argType.getTypeSignature(),
-                        parseTypeSignature("integer")
+                        DataTypes.INTEGER.getTypeSignature()
                     ),
                     (signature, boundSignature) ->
                         new UnaryScalar<Number, Long>(signature, boundSignature, argType, dtf::get)
@@ -93,10 +92,10 @@ public class ExtractFunctions {
                 Signature.scalar(
                     functionNameFrom(EPOCH),
                     argType.getTypeSignature(),
-                    parseTypeSignature("double precision")
+                    DataTypes.DOUBLE.getTypeSignature()
                 ),
                 (signature, boundSignature) ->
-                    new UnaryScalar<Number, Long>(signature, boundSignature, argType, v -> (double) v / 1000)
+                    new UnaryScalar<>(signature, boundSignature, argType, v -> (double) v / 1000)
             );
         }
 
@@ -117,12 +116,43 @@ public class ExtractFunctions {
                 Signature.scalar(
                     functionNameFrom(entry.extractField()),
                     DataTypes.INTERVAL.getTypeSignature(),
-                    parseTypeSignature("integer")
+                    DataTypes.INTEGER.getTypeSignature()
                 ),
                 (signature, boundSignature) ->
                     new UnaryScalar<Number, Period>(signature, boundSignature, DataTypes.INTERVAL, function::apply)
             );
         }
+        // extract(epoch from ...) is different as is returns a `double precision`
+        module.register(
+            Signature.scalar(
+                functionNameFrom(EPOCH),
+                DataTypes.INTERVAL.getTypeSignature(),
+                DataTypes.DOUBLE.getTypeSignature()
+            ),
+            (signature, boundSignature) ->
+                new UnaryScalar<>(signature, boundSignature, DataTypes.INTERVAL, ExtractFunctions::toMillis)
+        );
+    }
+
+    private static final long YEAR_IN_SECONDS = 365 * 24 * 60 * 60L;
+    private static final long MONTH_IN_SECONDS = 30 * 24 * 60 * 60L;
+    private static final long WEEK_IN_SECONDS = 7 * 24 * 60 * 60L;
+    private static final long DAY_IN_SECONDS = 24 * 60 * 60L;
+    private static final long HOUR_IN_SECONDS = 60 * 60L;
+    private static final long MINUTE_IN_SECONDS = 60L;
+
+    private static Double toMillis(Period period) {
+        double result = 0.0d;
+        result += period.getYears() * YEAR_IN_SECONDS;
+        result += period.getYears() * 6 * HOUR_IN_SECONDS; // + 6 hours per year
+        result += period.getMonths() * MONTH_IN_SECONDS;
+        result += period.getWeeks() * WEEK_IN_SECONDS;
+        result += period.getDays() * DAY_IN_SECONDS;
+        result += period.getHours() * HOUR_IN_SECONDS;
+        result += period.getMinutes() * MINUTE_IN_SECONDS;
+        result += period.getSeconds();
+        result += period.getMillis() / 1000.0d;
+        return result;
     }
 
     public static String functionNameFrom(Extract.Field field) {

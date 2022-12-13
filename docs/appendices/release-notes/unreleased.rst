@@ -80,7 +80,11 @@ Breaking Changes
   To use the previous behaviour, timestamps can simply be cast to longs before
   subtracting them::
 
-    SELECT (ts_end::long - ts_start:long) FROM test
+    SELECT (ts_end::long - ts_start::long) FROM test
+
+  Alternatively, epoch can be extracted from the result of the subtraction::
+
+    SELECT EXTRACT(epoch FROM ts_end - ts_start) FROM test
 
 
 Deprecations

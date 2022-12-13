@@ -152,6 +152,11 @@ public class ExtractFunctionsTest extends ScalarTestCase {
         assertEvaluate("extract(epoch from '1970-01-01T00:00:00')", 0.0);
         assertEvaluate("extract(epoch from '1969-12-31T23:59:59')", -1.0);
         assertEvaluate("extract(epoch from timestamp_tz)", 1392500003.0);
-        assertEvaluateIntervalException("epoch");
+
+        assertEvaluate("extract(epoch from INTERVAL '1025 days 29 hours 137 minutes 72 seconds')", 88672692.0d);
+        assertEvaluate("extract(epoch from INTERVAL '21:47:36')", 78456.0d);
+        assertEvaluate("extract(epoch from INTERVAL '7 years 11 months 18 days 11 hours')", 251010000.0d);
+        assertEvaluate("extract(epoch from " +
+                       "'1970-01-01T00:00:01.789'::timestamp - '1970-01-01T00:00:00.123'::timestamp)", 1.666d);
     }
 }
