@@ -219,7 +219,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
 
                 // *mark* the item as failed by setting the source to null
                 // to prevent the replica operation from processing this concrete item
-                item.seqNo(SequenceNumbers.UNASSIGNED_SEQ_NO);
+                item.seqNo(SequenceNumbers.SKIP_ON_REPLICA);
 
                 if (!request.continueOnError()) {
                     shardResponse.failure(e);
@@ -266,7 +266,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             );
         boolean indexerSupported = indexer.isSupported();
         for (ShardUpsertRequest.Item item : request.items()) {
-            if (item.seqNo() == SequenceNumbers.UNASSIGNED_SEQ_NO) {
+            if (item.seqNo() == SequenceNumbers.SKIP_ON_REPLICA) {
                 if (traceEnabled) {
                     logger.trace(
                         "[{} (R)] Document with id {}, has no source, primary operation must have failed",
@@ -280,6 +280,10 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             if (indexerSupported) {
                 long startTime = System.nanoTime();
                 ParsedDocument parsedDoc = indexer.index(item);
+                if (!parsedDoc.newColumns().isEmpty()) {
+                    throw new TransportReplicationAction.RetryOnReplicaException(indexShard.shardId(),
+                        "Mappings are not available on the replica yet, triggered update: " + parsedDoc.newColumns());
+                }
                 Term uid = new Term(IdFieldMapper.NAME, Uid.encodeId(item.id()));
                 boolean isRetry = false;
                 Engine.Index index = new Engine.Index(
@@ -288,7 +292,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                     item.seqNo(),
                     item.primaryTerm(),
                     item.version(),
-                    null,
+                    null, // versionType
                     Origin.REPLICA,
                     startTime,
                     Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
@@ -353,7 +357,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 lastException = e;
                 if (request.duplicateKeyAction() == DuplicateKeyAction.IGNORE) {
                     // on conflict do nothing
-                    item.seqNo(SequenceNumbers.UNASSIGNED_SEQ_NO);
+                    item.seqNo(SequenceNumbers.SKIP_ON_REPLICA);
                     return null;
                 }
                 Symbol[] updateAssignments = item.updateAssignments();

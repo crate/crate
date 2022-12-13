@@ -57,6 +57,7 @@ import org.elasticsearch.index.mapper.ContentPath;
 import org.elasticsearch.index.mapper.Mapper;
 import org.elasticsearch.index.mapper.ObjectMapper;
 import org.elasticsearch.index.mapper.SourceToParse;
+import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.translog.Translog;
@@ -275,7 +276,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
     }
 
     @Test
-    public void testItemsWithoutSourceAreSkippedOnReplicaOperation() throws Exception {
+    public void test_items_with_skip_seq_no_are_skipped_on_replica_operation() throws Exception {
         ShardId shardId = new ShardId(TABLE_IDENT.indexNameOrAlias(), charactersIndexUUID, 0);
         ShardUpsertRequest request = new ShardUpsertRequest.Builder(
             DUMMY_SESSION_INFO,
@@ -289,6 +290,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             false
         ).newRequest(shardId);
         request.add(1, ShardUpsertRequest.Item.forInsert("1", List.of(), Translog.UNSET_AUTO_GENERATED_TIMESTAMP, new Object[]{1}, null));
+        request.items().get(0).seqNo(SequenceNumbers.SKIP_ON_REPLICA);
 
         reset(indexShard);
 
