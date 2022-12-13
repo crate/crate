@@ -44,12 +44,9 @@ import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
-import io.crate.common.unit.TimeValue;
-import io.crate.metadata.doc.DocSysColumns;
-
+import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
-import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.document.NumericDocValuesField;
 import org.apache.lucene.index.DirectoryReader;
@@ -69,7 +66,7 @@ import org.apache.lucene.index.Term;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.DocIdSetIterator;
-import org.apache.lucene.search.DocValuesFieldExistsQuery;
+import org.apache.lucene.search.FieldExistsQuery;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ReferenceManager;
@@ -120,6 +117,8 @@ import org.elasticsearch.threadpool.ThreadPool;
 import io.crate.common.Booleans;
 import io.crate.common.SuppressForbidden;
 import io.crate.common.io.IOUtils;
+import io.crate.common.unit.TimeValue;
+import io.crate.metadata.doc.DocSysColumns;
 
 public class InternalEngine extends Engine {
 
@@ -2770,7 +2769,7 @@ public class InternalEngine extends Engine {
             .add(LongPoint.newRangeQuery(
                     DocSysColumns.Names.SEQ_NO, getPersistedLocalCheckpoint() + 1, Long.MAX_VALUE), BooleanClause.Occur.MUST)
             // exclude non-root nested documents
-            .add(new DocValuesFieldExistsQuery(DocSysColumns.Names.PRIMARY_TERM), BooleanClause.Occur.MUST)
+            .add(new FieldExistsQuery(DocSysColumns.Names.PRIMARY_TERM), BooleanClause.Occur.MUST)
             .build();
         final Weight weight = searcher.createWeight(searcher.rewrite(query), ScoreMode.COMPLETE_NO_SCORES, 1.0f);
         for (LeafReaderContext leaf : directoryReader.leaves()) {
