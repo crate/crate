@@ -2,13 +2,19 @@
 package io.crate.execution.dml.upsert;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
+import io.crate.common.collections.Maps;
 import io.crate.data.Input;
 import io.crate.execution.dml.IndexItem;
 import io.crate.execution.engine.collect.CollectExpression;
+import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.BaseImplementationSymbolVisitor;
+import io.crate.expression.InputFactory;
+import io.crate.expression.InputFactory.Context;
 import io.crate.expression.reference.Doc;
 import io.crate.expression.reference.DocRefResolver;
 import io.crate.expression.reference.ReferenceResolver;
@@ -69,6 +75,8 @@ public final class UpdateToInsert {
     private final DocTableInfo table;
     private final Evaluator eval;
     private final List<Reference> updateColumns;
+    private final List<CollectExpression<Object[], Object>> expressions;
+    private final List<GeneratedColumn> generatedColumns;
 
     record Values(Doc doc, Object[] excludedValues) {
     }
@@ -97,6 +105,24 @@ public final class UpdateToInsert {
         }
     }
 
+    static class RefResolver implements ReferenceResolver<CollectExpression<Object[], Object>> {
+
+        private final Collection<Reference> columns;
+
+        public RefResolver(Collection<Reference> columns) {
+            this.columns = columns;
+        }
+
+        @Override
+        public CollectExpression<Object[], Object> getImplementation(Reference ref) {
+            int idx = Reference.indexOf(columns, ref.column());
+            return NestableCollectExpression.forFunction(cells -> cells[idx]);
+        }
+    }
+
+    record GeneratedColumn(Reference ref, Input<?> input, int idx) {
+    }
+
     public UpdateToInsert(NodeContext nodeCtx,
                           TransactionContext txnCtx,
                           DocTableInfo table,
@@ -113,6 +139,21 @@ public final class UpdateToInsert {
                 : existingRef;
             this.updateColumns.add(reference);
         }
+        InputFactory inputFactory = new InputFactory(nodeCtx);
+        Context<CollectExpression<Object[], Object>> ctx = inputFactory.ctxForRefs(txnCtx, new RefResolver(table.columns()));
+        this.generatedColumns = new ArrayList<>();
+        for (var generatedColumn : table.generatedColumns()) {
+            dependencies:
+            for (var dependency : generatedColumn.referencedReferences()) {
+                if (this.updateColumns.contains(dependency)) {
+                    int idx = Reference.indexOf(table.columns(), generatedColumn.column());
+                    Input<?> input = ctx.add(generatedColumn.generatedExpression());
+                    generatedColumns.add(new GeneratedColumn(generatedColumn, input, idx));
+                    break dependencies;
+                }
+            }
+        }
+        this.expressions = ctx.expressions();
     }
 
     public IndexItem convert(Doc doc, Symbol[] updateAssignments, Object[] excludedValues) {
@@ -120,8 +161,7 @@ public final class UpdateToInsert {
         Values values = new Values(doc, excludedValues);
 
         Iterator<Reference> it = table.columns().iterator();
-        int i = 0;
-        while (it.hasNext()) {
+        for (int i = 0; it.hasNext(); i++) {
             Reference ref = it.next();
             int updateIdx = updateColumns.indexOf(ref);
             if (updateIdx >= 0) {
@@ -133,9 +173,26 @@ public final class UpdateToInsert {
             } else {
                 insertValues[i] = ref.accept(eval, values).value();
             }
-            i++;
         }
-        return new IndexItem.Item(
+        for (int i = 0; i < updateColumns.size(); i++) {
+            Reference updateColumn = updateColumns.get(i);
+            ColumnIdent column = updateColumn.column();
+            if (column.isTopLevel()) {
+                continue;
+            }
+            ColumnIdent root = column.getRoot();
+            int idx = Reference.indexOf(table.columns(), root);
+            assert idx > -1 : "Root of updateColumns must exist in table columns";
+            Symbol assignment = updateAssignments[i];
+            Object value = assignment.accept(eval, values).value();
+            ColumnIdent targetPath = column.shiftRight();
+            Maps.mergeInto((Map<String, Object>) insertValues[idx], targetPath.name(), targetPath.path(), value);
+        }
+        expressions.forEach(expression -> expression.setNextRow(insertValues));
+        for (var generatedColumn : generatedColumns) {
+            insertValues[generatedColumn.idx] = generatedColumn.input.value();
+        }
+        return new IndexItem.StaticItem(
             doc.getId(),
             List.of(),
             insertValues,

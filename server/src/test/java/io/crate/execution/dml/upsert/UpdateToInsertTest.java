@@ -55,8 +55,7 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
             new Object[0]
         );
         assertThat(item.insertValues())
-            .hasSize(2)
-            .contains(10, 20);
+            .containsExactly(10, 20);
     }
 
     @Test
@@ -80,8 +79,7 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
             new Object[] { 20 }
         );
         assertThat(item.insertValues())
-            .hasSize(2)
-            .contains(10, 20);
+            .containsExactly(10, 20);
     }
 
     @Test
@@ -104,12 +102,53 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
             new Object[] {}
         );
         assertThat(item.insertValues())
-            .hasSize(2)
-            .contains(1, Map.of("y", 3));
+            .containsExactly(1, Map.of("y", 3));
     }
 
     @Test
     public void test_generated_columns_are_updated_using_new_values() throws Exception {
-        assertThat(false).isEqualTo(true);
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (x int, y int as x + 4)")
+            .build();
+        DocTableInfo table = e.resolveTableInfo("tbl");
+        UpdateToInsert updateToInsert = new UpdateToInsert(
+            e.nodeCtx,
+            new CoordinatorTxnCtx(e.getSessionSettings()),
+            table,
+            new String[] { "x" }
+        );
+        Map<String, Object> source = Map.of("x", 1, "y", 5);
+        Doc doc = doc(table.concreteIndices()[0], source);
+        IndexItem item = updateToInsert.convert(
+            doc,
+            new Symbol[] { Literal.of(8) },
+            new Object[] {}
+        );
+        assertThat(item.insertValues())
+            .containsExactly(8, 12);
+    }
+
+    @Test
+    public void test_checks_are_ignored() throws Exception {
+        /**
+         * Checks can be ignored because the index operation afterwards will run them.
+         **/
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (x int check (x > 10))")
+            .build();
+        DocTableInfo table = e.resolveTableInfo("tbl");
+        UpdateToInsert updateToInsert = new UpdateToInsert(
+            e.nodeCtx,
+            new CoordinatorTxnCtx(e.getSessionSettings()),
+            table,
+            new String[] { "x" }
+        );
+        Map<String, Object> source = Map.of("x", 12);
+        Doc doc = doc(table.concreteIndices()[0], source);
+
+        Symbol[] assignments = new Symbol[] { Literal.of(8) };
+        IndexItem item = updateToInsert.convert(doc, assignments, new Object[0]);
+        assertThat(item.insertValues())
+            .containsExactly(8);
     }
 }

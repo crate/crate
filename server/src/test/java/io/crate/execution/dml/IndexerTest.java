@@ -46,7 +46,7 @@ import io.crate.types.DataTypes;
 public class IndexerTest extends CrateDummyClusterServiceUnitTest {
 
     static IndexItem item(Object ... values) {
-        return new IndexItem.Item("dummy-id-1", List.of(),values, 0L, 0L);
+        return new IndexItem.StaticItem("dummy-id-1", List.of(),values, 0L, 0L);
     }
 
     @Test

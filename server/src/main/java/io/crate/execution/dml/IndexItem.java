@@ -35,7 +35,7 @@ public interface IndexItem {
 
     long primaryTerm();
 
-    static record Item(
+    static record StaticItem(
             String id,
             List<String> pkValues,
             Object[] insertValues,
