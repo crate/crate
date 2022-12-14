@@ -21,7 +21,19 @@
 
 package io.crate.expression.scalar;
 
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+
+import javax.annotation.Nullable;
+
+import org.elasticsearch.common.TriFunction;
+
 import io.crate.data.Input;
+import io.crate.exceptions.MissingPrivilegeException;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
@@ -32,15 +44,6 @@ import io.crate.types.DataTypes;
 import io.crate.user.Privilege;
 import io.crate.user.User;
 import io.crate.user.UserLookup;
-import org.elasticsearch.common.TriFunction;
-
-import javax.annotation.Nullable;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.function.BiFunction;
-import java.util.function.Function;
 
 public class HasSchemaPrivilegeFunction extends Scalar<Boolean, Object> {
 
@@ -246,7 +249,9 @@ public class HasSchemaPrivilegeFunction extends Scalar<Boolean, Object> {
         // can mean that privilege string is not null but not Literal either.
         // When we pass NULL to the compiled version, it treats last argument like regular evaluate:
         // does null check and parses privileges string.
+        var sessionUser = USER_BY_NAME.apply(userLookup, currentUser);
         User user = getUser.apply(userLookup, userValue);
+        validateCallPrivileges(sessionUser, user);
         return new CompiledHasSchemaPrivilege(user, compiledPrivileges);
     }
 
@@ -269,20 +274,26 @@ public class HasSchemaPrivilegeFunction extends Scalar<Boolean, Object> {
     public final Boolean evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input[] args) {
         Object userNameOrOid, schemaNameOrOid, privileges;
 
+        var sessionUser = USER_BY_NAME.apply(nodeCtx.userLookup(), txnCtx.sessionSettings().userName());
+        User user;
         if (args.length == 2) {
-            userNameOrOid = txnCtx.sessionSettings().userName();
             schemaNameOrOid = args[0].value();
             privileges = args[1].value();
+            user = sessionUser;
         } else {
             userNameOrOid = args[0].value();
+            if (userNameOrOid == null) {
+                return null;
+            }
+            user = getUser.apply(nodeCtx.userLookup(), userNameOrOid);
+            validateCallPrivileges(sessionUser, user);
             schemaNameOrOid = args[1].value();
             privileges = args[2].value();
         }
 
-        if (userNameOrOid == null || schemaNameOrOid == null || privileges == null) {
+        if (schemaNameOrOid == null || privileges == null) {
             return null;
         }
-        var user = getUser.apply(nodeCtx.userLookup(), userNameOrOid);
         return checkPrivilege.apply(user, schemaNameOrOid, parsePrivileges((String) privileges));
     }
 
@@ -329,6 +340,15 @@ public class HasSchemaPrivilegeFunction extends Scalar<Boolean, Object> {
                 return null;
             }
             return checkPrivilege.apply(user, schema, getPrivileges.apply(privilege));
+        }
+    }
+
+    private static void validateCallPrivileges(User sessionUser, User user) {
+        // Only superusers can call this function for other users
+        if (user.name().equals(sessionUser.name()) == false
+            && sessionUser.hasPrivilege(Privilege.Type.DQL, Privilege.Clazz.TABLE, "sys.privileges", null) == false
+            && sessionUser.hasPrivilege(Privilege.Type.AL, Privilege.Clazz.CLUSTER, "crate", null) == false) {
+            throw new MissingPrivilegeException(sessionUser.name());
         }
     }
 }
