@@ -256,13 +256,20 @@ public abstract class ScalarTestCase extends CrateDummyClusterServiceUnitTest {
     @SuppressWarnings("rawtypes")
     public void assertCompile(String functionExpression,
                               java.util.function.Function<Scalar, Consumer<Scalar>> matcher) {
-        assertCompile(functionExpression, matcher, () -> List.of(User.CRATE_USER));
+        assertCompile(functionExpression, User.of("dummy"), () -> List.of(User.of("dummy")), matcher);
+    }
+
+    @SuppressWarnings("rawtypes")
+    public void assertCompileAsSuperUser(String functionExpression,
+                                         java.util.function.Function<Scalar, Consumer<Scalar>> matcher) {
+        assertCompile(functionExpression, User.CRATE_USER, () -> List.of(User.CRATE_USER), matcher);
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
     public void assertCompile(String functionExpression,
-                              java.util.function.Function<Scalar, Consumer<Scalar>> matcher,
-                              UserLookup userLookup) {
+                              User sessionUser,
+                              UserLookup userLookup,
+                              java.util.function.Function<Scalar, Consumer<Scalar>> matcher) {
         Symbol functionSymbol = sqlExpressions.asSymbol(functionExpression);
         functionSymbol = sqlExpressions.normalize(functionSymbol);
         assertThat(functionSymbol)
@@ -274,7 +281,7 @@ public abstract class ScalarTestCase extends CrateDummyClusterServiceUnitTest {
             .as("Function implementation not found using full qualified lookup")
             .isNotNull();
 
-        Scalar compiled = scalar.compile(function.arguments(), "dummy", userLookup);
+        Scalar compiled = scalar.compile(function.arguments(), sessionUser.name(), userLookup);
         assertThat(compiled).satisfies(matcher.apply(scalar));
     }
 
