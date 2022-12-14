@@ -21,6 +21,7 @@
 
 package io.crate.planner.optimizer.iterative;
 
+import static io.crate.common.collections.Iterables.getOnlyElement;
 import static org.junit.Assert.assertEquals;
 
 import java.util.List;
@@ -28,6 +29,7 @@ import java.util.Optional;
 
 import org.junit.Test;
 
+import io.crate.planner.iterative.GroupReference;
 import io.crate.planner.iterative.Memo;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.LogicalPlanId;
@@ -64,7 +66,7 @@ public class TestMemo
         LogicalPlan transformed = node(node());
         memo.replace(getChildGroup(memo, memo.getRootGroup()), transformed, "rule");
         assertEquals(memo.getGroupCount(), 3);
-        assertMatchesStructure(memo.extract(), node(plan.getId(), transformed));
+        assertMatchesStructure(memo.extract(), node(plan.id(), transformed));
     }
 
     /*
@@ -74,20 +76,20 @@ public class TestMemo
     @Test
     public void testReplaceNode()
     {
-        PlanNode z = node();
-        PlanNode y = node(z);
-        PlanNode x = node(y);
+        LogicalPlan z = node();
+        LogicalPlan y = node(z);
+        LogicalPlan x = node(y);
 
         Memo memo = new Memo(idAllocator, x);
         assertEquals(memo.getGroupCount(), 3);
 
         // replace child of root node with another node, retaining child's child
         int yGroup = getChildGroup(memo, memo.getRootGroup());
-        GroupReference zRef = (GroupReference) getOnlyElement(memo.getNode(yGroup).getSources());
-        PlanNode transformed = node(zRef);
+        GroupReference zRef = (GroupReference) getOnlyElement(memo.getNode(yGroup).sources());
+        LogicalPlan transformed = node(zRef);
         memo.replace(yGroup, transformed, "rule");
         assertEquals(memo.getGroupCount(), 3);
-        assertMatchesStructure(memo.extract(), node(x.getId(), node(transformed.getId(), z)));
+        assertMatchesStructure(memo.extract(), node(x.id(), node(transformed.id(), z)));
     }
 
     /*
@@ -97,10 +99,10 @@ public class TestMemo
     @Test
     public void testReplaceNonLeafSubtree()
     {
-        PlanNode w = node();
-        PlanNode z = node(w);
-        PlanNode y = node(z);
-        PlanNode x = node(y);
+        LogicalPlan w = node();
+        LogicalPlan z = node(w);
+        LogicalPlan y = node(z);
+        LogicalPlan x = node(y);
 
         Memo memo = new Memo(idAllocator, x);
 
@@ -109,10 +111,10 @@ public class TestMemo
         int yGroup = getChildGroup(memo, memo.getRootGroup());
         int zGroup = getChildGroup(memo, yGroup);
 
-        PlanNode rewrittenW = memo.getNode(zGroup).getSources().get(0);
+        LogicalPlan rewrittenW = memo.getNode(zGroup).sources().get(0);
 
-        PlanNode newZ = node(rewrittenW);
-        PlanNode newY = node(newZ);
+        LogicalPlan newZ = node(rewrittenW);
+        LogicalPlan newY = node(newZ);
 
         memo.replace(yGroup, newY, "rule");
 
@@ -120,10 +122,10 @@ public class TestMemo
 
         assertMatchesStructure(
             memo.extract(),
-            node(x.getId(),
-                 node(newY.getId(),
-                      node(newZ.getId(),
-                           node(w.getId())))));
+            node(x.id(),
+                 node(newY.id(),
+                      node(newZ.id(),
+                           node(w.id())))));
     }
 
     /*
@@ -133,16 +135,16 @@ public class TestMemo
     @Test
     public void testRemoveNode()
     {
-        PlanNode z = node();
-        PlanNode y = node(z);
-        PlanNode x = node(y);
+        LogicalPlan z = node();
+        LogicalPlan y = node(z);
+        LogicalPlan x = node(y);
 
         Memo memo = new Memo(idAllocator, x);
 
         assertEquals(memo.getGroupCount(), 3);
 
         int yGroup = getChildGroup(memo, memo.getRootGroup());
-        memo.replace(yGroup, memo.getNode(yGroup).getSources().get(0), "rule");
+        memo.replace(yGroup, memo.getNode(yGroup).sources().get(0), "rule");
 
         assertEquals(memo.getGroupCount(), 2);
 
@@ -159,15 +161,15 @@ public class TestMemo
     @Test
     public void testInsertNode()
     {
-        PlanNode z = node();
-        PlanNode x = node(z);
+        LogicalPlan z = node();
+        LogicalPlan x = node(z);
 
         Memo memo = new Memo(idAllocator, x);
 
         assertEquals(memo.getGroupCount(), 2);
 
         int zGroup = getChildGroup(memo, memo.getRootGroup());
-        PlanNode y = node(memo.getNode(zGroup));
+        LogicalPlan y = node(memo.getNode(zGroup));
         memo.replace(zGroup, y, "rule");
 
         assertEquals(memo.getGroupCount(), 3);
@@ -187,20 +189,20 @@ public class TestMemo
     @Test
     public void testMultipleReferences()
     {
-        PlanNode z = node();
-        PlanNode y = node(z);
-        PlanNode x = node(y);
+        LogicalPlan z = node();
+        LogicalPlan y = node(z);
+        LogicalPlan x = node(y);
 
         Memo memo = new Memo(idAllocator, x);
         assertEquals(memo.getGroupCount(), 3);
 
         int yGroup = getChildGroup(memo, memo.getRootGroup());
 
-        PlanNode rewrittenZ = memo.getNode(yGroup).getSources().get(0);
-        PlanNode y1 = node(rewrittenZ);
-        PlanNode y2 = node(rewrittenZ);
+        LogicalPlan rewrittenZ = memo.getNode(yGroup).getSources().get(0);
+        LogicalPlan y1 = node(rewrittenZ);
+        LogicalPlan y2 = node(rewrittenZ);
 
-        PlanNode newX = node(y1, y2);
+        LogicalPlan newX = node(y1, y2);
         memo.replace(memo.getRootGroup(), newX, "rule");
         assertEquals(memo.getGroupCount(), 4);
 
@@ -211,89 +213,89 @@ public class TestMemo
                  node(y2.getId(), node(z.getId()))));
     }
 
-    @Test
-    public void testEvictStatsOnReplace()
-    {
-        PlanNode y = node();
-        PlanNode x = node(y);
+//    @Test
+//    public void testEvictStatsOnReplace()
+//    {
+//        LogicalPlan y = node();
+//        LogicalPlan x = node(y);
+//
+//        Memo memo = new Memo(idAllocator, x);
+//        int xGroup = memo.getRootGroup();
+//        int yGroup = getChildGroup(memo, memo.getRootGroup());
+//        LogicalPlanStatsEstimate xStats = LogicalPlanStatsEstimate.builder().setOutputRowCount(42).build();
+//        PlanNodeStatsEstimate yStats = PlanNodeStatsEstimate.builder().setOutputRowCount(55).build();
+//
+//        memo.storeStats(yGroup, yStats);
+//        memo.storeStats(xGroup, xStats);
+//
+//        assertEquals(memo.getStats(yGroup), Optional.of(yStats));
+//        assertEquals(memo.getStats(xGroup), Optional.of(xStats));
+//
+//        memo.replace(yGroup, node(), "rule");
+//
+//        assertEquals(memo.getStats(yGroup), Optional.empty());
+//        assertEquals(memo.getStats(xGroup), Optional.empty());
+//    }
 
-        Memo memo = new Memo(idAllocator, x);
-        int xGroup = memo.getRootGroup();
-        int yGroup = getChildGroup(memo, memo.getRootGroup());
-        PlanNodeStatsEstimate xStats = PlanNodeStatsEstimate.builder().setOutputRowCount(42).build();
-        PlanNodeStatsEstimate yStats = PlanNodeStatsEstimate.builder().setOutputRowCount(55).build();
+//    @Test
+//    public void testEvictCostOnReplace()
+//    {
+//        PlanNode y = node();
+//        PlanNode x = node(y);
+//
+//        Memo memo = new Memo(idAllocator, x);
+//        int xGroup = memo.getRootGroup();
+//        int yGroup = getChildGroup(memo, memo.getRootGroup());
+//        PlanCostEstimate yCost = new PlanCostEstimate(42, 0, 0, 0);
+//        PlanCostEstimate xCost = new PlanCostEstimate(42, 0, 0, 37);
+//
+//        memo.storeCost(yGroup, yCost);
+//        memo.storeCost(xGroup, xCost);
+//
+//        assertEquals(memo.getCost(yGroup), Optional.of(yCost));
+//        assertEquals(memo.getCost(xGroup), Optional.of(xCost));
+//
+//        memo.replace(yGroup, node(), "rule");
+//
+//        assertEquals(memo.getCost(yGroup), Optional.empty());
+//        assertEquals(memo.getCost(xGroup), Optional.empty());
+//    }
 
-        memo.storeStats(yGroup, yStats);
-        memo.storeStats(xGroup, xStats);
-
-        assertEquals(memo.getStats(yGroup), Optional.of(yStats));
-        assertEquals(memo.getStats(xGroup), Optional.of(xStats));
-
-        memo.replace(yGroup, node(), "rule");
-
-        assertEquals(memo.getStats(yGroup), Optional.empty());
-        assertEquals(memo.getStats(xGroup), Optional.empty());
-    }
-
-    @Test
-    public void testEvictCostOnReplace()
-    {
-        PlanNode y = node();
-        PlanNode x = node(y);
-
-        Memo memo = new Memo(idAllocator, x);
-        int xGroup = memo.getRootGroup();
-        int yGroup = getChildGroup(memo, memo.getRootGroup());
-        PlanCostEstimate yCost = new PlanCostEstimate(42, 0, 0, 0);
-        PlanCostEstimate xCost = new PlanCostEstimate(42, 0, 0, 37);
-
-        memo.storeCost(yGroup, yCost);
-        memo.storeCost(xGroup, xCost);
-
-        assertEquals(memo.getCost(yGroup), Optional.of(yCost));
-        assertEquals(memo.getCost(xGroup), Optional.of(xCost));
-
-        memo.replace(yGroup, node(), "rule");
-
-        assertEquals(memo.getCost(yGroup), Optional.empty());
-        assertEquals(memo.getCost(xGroup), Optional.empty());
-    }
-
-    private static void assertMatchesStructure(PlanNode actual, PlanNode expected)
+    private static void assertMatchesStructure(LogicalPlan actual, LogicalPlan expected)
     {
         assertEquals(actual.getClass(), expected.getClass());
-        assertEquals(actual.getId(), expected.getId());
-        assertEquals(actual.getSources().size(), expected.getSources().size());
+        assertEquals(actual.id(), expected.id());
+        assertEquals(actual.sources().size(), expected.sources().size());
 
-        for (int i = 0; i < actual.getSources().size(); i++) {
-            assertMatchesStructure(actual.getSources().get(i), expected.getSources().get(i));
+        for (int i = 0; i < actual.sources().size(); i++) {
+            assertMatchesStructure(actual.sources().get(i), expected.sources().get(i));
         }
     }
 
     private int getChildGroup(Memo memo, int group)
     {
-        PlanNode node = memo.getNode(group);
-        GroupReference child = (GroupReference) node.getSources().get(0);
+        LogicalPlan node = memo.getNode(group);
+        GroupReference child = (GroupReference) node.sources().get(0);
 
-        return child.getGroupId();
+        return child.groupId();
     }
 
     private GenericNode node(LogicalPlanId id, LogicalPlan... children)
     {
-        return new GenericNode(id, ImmutableList.copyOf(children));
+        return new GenericNode(id, List.copyOf(children));
     }
 
     private GenericNode node(LogicalPlan... children)
     {
-        return node(idAllocator.getNextId(), children);
+        return node(idAllocator.nextId(), children);
     }
 
     private static class GenericNode
-        extends PlanNode
+        extends LogicalPlan
     {
-        private final List<PlanNode> sources;
+        private final List<LogicalPlan> sources;
 
-        public GenericNode(PlanNodeId id, List<PlanNode> sources)
+        public GenericNode(LogicalPlanId id, List<PlanNode> sources)
         {
             super(id);
             this.sources = ImmutableList.copyOf(sources);
