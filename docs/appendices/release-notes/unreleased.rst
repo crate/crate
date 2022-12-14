@@ -96,6 +96,10 @@ None
 Changes
 =======
 
+- Added :ref:`has_database_privilege <scalar-has-database-priv>` scalar function
+  which checks whether user (or current user if not specified) has specific
+  privilege(s) for the database.
+
 - Added support for :ref:`EXTRACT(field FROM interval) <scalar-extract>`.
   e.g.::
 

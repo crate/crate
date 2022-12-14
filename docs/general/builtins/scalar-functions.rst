@@ -3401,6 +3401,52 @@ Example::
     have a special SQL syntax, meaning that they must be called without
     trailing parenthesis (``()``).
 
+.. _scalar-has-database-priv:
+
+``has_database_privilege([user,] database, privilege text)``
+------------------------------------------------------------
+
+Returns ``boolean`` or ``NULL`` if at least one argument is ``NULL``.
+
+First argument is ``TEXT`` user name or ``INTEGER`` user OID. If user is not
+specified current user is used as an argument.
+
+Second argument is ``TEXT`` database name or ``INTEGER`` database OID.
+
+.. NOTE::
+
+    Only `crate` is valid for database name and only `0` is valid for database
+    OID.
+
+Third argument is privilege(s) to check. Multiple privileges
+can be provided as a comma separated list, in which case the result will be
+``true`` if any of the listed privileges is held. Allowed privilege types are
+``CONNECT``, ``CREATE`` and ``TEMP`` or ``TEMPORARY``. Privilege string is case
+insensitive and extra whitespace is allowed between privilege names. Duplicate
+entries in privilege string are allowed.
+
+:CONNECT:
+  is ``true`` for all defined users in the database
+
+:CREATE:
+  is ``true`` if the user has any ``DDL`` privilege on ``CLUSTER`` or on any
+  ``SCHEMA``
+
+:TEMP:
+  is ``false`` for all users
+
+Example::
+
+    cr> select has_database_privilege('crate', ' Connect ,  CREATe ')
+    ... as has_priv;
+    +----------+
+    | has_priv |
+    +----------+
+    | TRUE     |
+    +----------+
+    SELECT 1 row in set (... sec)
+
+
 .. _scalar-has-schema-priv:
 
 ``has_schema_privilege([user,] schema, privilege text)``
