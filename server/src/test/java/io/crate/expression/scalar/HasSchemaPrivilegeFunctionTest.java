@@ -22,39 +22,50 @@
 package io.crate.expression.scalar;
 
 import static io.crate.testing.Asserts.isNotSameInstance;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.List;
 import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
 
+import io.crate.exceptions.MissingPrivilegeException;
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.pgcatalog.OidHash;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.testing.Asserts;
 import io.crate.testing.SqlExpressions;
 import io.crate.user.Privilege;
-import io.crate.user.StubUserManager;
 import io.crate.user.User;
 
 public class HasSchemaPrivilegeFunctionTest extends ScalarTestCase {
 
-    private static User TEST_USER = User.of("test");
+    private static final User TEST_USER = User.of("test");
+    private static final User TEST_USER_WITH_AL_ON_CLUSTER =
+        User.of("testUserWithClusterAL",
+                Set.of(new Privilege(Privilege.State.GRANT, Privilege.Type.AL, Privilege.Clazz.CLUSTER, "crate", User.CRATE_USER.name())),
+                null);
+    private static final User TEST_USER_WITH_DQL_ON_SYS =
+        User.of("testUserWithSysDQL",
+                Set.of(new Privilege(Privilege.State.GRANT, Privilege.Type.DQL, Privilege.Clazz.TABLE, "sys.privileges", User.CRATE_USER.name())),
+                null);
 
     @Before
-    private void prepare() {
-        sqlExpressions = new SqlExpressions(tableSources, null, TEST_USER);
+    public void prepare() {
+        sqlExpressions = new SqlExpressions(
+            tableSources, null, randomFrom(TEST_USER_WITH_AL_ON_CLUSTER, TEST_USER_WITH_DQL_ON_SYS, User.CRATE_USER), List.of(TEST_USER));
     }
 
     @Test
     public void test_no_user_compile_gets_new_instance() {
-        assertCompile("has_schema_privilege(name, 'USAGE')", isNotSameInstance(), new StubUserManager());
+        assertCompileAsSuperUser("has_schema_privilege(name, 'USAGE')", isNotSameInstance());
     }
 
     @Test
     public void test_user_is_literal_compile_gets_new_instance() {
         // Using name column as schema name since having 3 literals leads to skipping even compilation and returning computed Literal
-        assertCompile("has_schema_privilege('crate', name, 'USAGE')", isNotSameInstance());
+        assertCompileAsSuperUser("has_schema_privilege('crate', name, 'USAGE')", isNotSameInstance());
     }
 
     @Test
@@ -66,22 +77,38 @@ public class HasSchemaPrivilegeFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_throws_error_when_user_is_not_found() {
-        sqlExpressions = new SqlExpressions(tableSources, null, null, null);
-
-        Asserts.assertThrowsMatches(
-            () -> assertEvaluate("has_schema_privilege('not_existing_user', 'pg_catalog', ' USAGE')", null),
-            IllegalArgumentException.class,
-            "User not_existing_user does not exist"
-        );
+        assertThatThrownBy(
+            () -> assertEvaluate("has_schema_privilege('not_existing_user', 'pg_catalog', ' USAGE')", null))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("User not_existing_user does not exist");
     }
 
     @Test
     public void test_throws_error_when_invalid_privilege() {
-        Asserts.assertThrowsMatches(
-            () -> assertEvaluate("has_schema_privilege('test', 'pg_catalog', ' USAGE, CREATE, SELECT')", null),
-            IllegalArgumentException.class,
-            "Unrecognized privilege type: select"
-        );
+        assertThatThrownBy(
+            () -> assertEvaluate("has_schema_privilege('test', 'pg_catalog', ' USAGE, CREATE, SELECT')", null))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Unrecognized privilege type: select");
+    }
+
+    @Test
+    public void test_throws_error_when_user_without_related_privileges_is_checking_for_other_user() {
+        sqlExpressions = new SqlExpressions(tableSources, null, TEST_USER, List.of(TEST_USER_WITH_AL_ON_CLUSTER));
+        assertThatThrownBy(
+            () -> assertEvaluate("has_schema_privilege('testUserWithClusterAL', 'pg_catalog', ' USAGE, CREATE, SELECT')", null))
+            .isExactlyInstanceOf(MissingPrivilegeException.class)
+            .hasMessage("Missing privilege for user 'test'");
+    }
+
+    @Test
+    public void test_throws_error_when_user_without_related_privileges_is_checking_for_other_user_for_compiled() {
+        sqlExpressions = new SqlExpressions(tableSources, null, TEST_USER, List.of(TEST_USER_WITH_AL_ON_CLUSTER));
+        assertThatThrownBy(
+            () -> assertCompile("has_schema_privilege('testUserWithClusterAL', name, 'USAGE')",
+                                TEST_USER, () -> List.of(TEST_USER, TEST_USER_WITH_AL_ON_CLUSTER),
+                                s -> s1 -> Asserts.fail("should fail with MissingPrivilegeException")))
+            .isExactlyInstanceOf(MissingPrivilegeException.class)
+            .hasMessage("Missing privilege for user 'test'");
     }
 
     @Test
@@ -130,6 +157,7 @@ public class HasSchemaPrivilegeFunctionTest extends ScalarTestCase {
         assertEvaluate("has_schema_privilege('test', '" + PgCatalogSchemaInfo.NAME + "', 'CREATE')", false);
 
         // Same as above but we take current user (which is test so outcome is same)
+        sqlExpressions = new SqlExpressions(tableSources, null, TEST_USER);
         assertEvaluate("has_schema_privilege('" + InformationSchemaInfo.NAME + "', 'USAGE')", true);
         assertEvaluate("has_schema_privilege('" + PgCatalogSchemaInfo.NAME + "', 'USAGE')", true);
 
@@ -148,9 +176,8 @@ public class HasSchemaPrivilegeFunctionTest extends ScalarTestCase {
         assertEvaluate("has_schema_privilege(" + userOid + ", 'doc', 'USAGE')", false);
         assertEvaluate("has_schema_privilege(" + userOid + "," + schemaOid + ", 'USAGE')", false);
 
+        sqlExpressions = new SqlExpressions(tableSources, null, TEST_USER);
         assertEvaluate("has_schema_privilege('doc', 'USAGE')", false);
         assertEvaluate("has_schema_privilege(" + schemaOid + ", 'USAGE')", false);
-
     }
-
 }

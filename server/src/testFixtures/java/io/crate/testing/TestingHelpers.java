@@ -173,13 +173,13 @@ public class TestingHelpers {
     }
 
     public static NodeContext createNodeContext(AbstractModule... additionalModules) {
-        return createNodeContext(User.CRATE_USER, additionalModules);
+        return createNodeContext(List.of(User.CRATE_USER), additionalModules);
     }
 
-    public static NodeContext createNodeContext(User user, AbstractModule... additionalModules) {
+    public static NodeContext createNodeContext(List<User> users, AbstractModule... additionalModules) {
         return new NodeContext(
             prepareModulesBuilder(additionalModules).createInjector().getInstance(Functions.class),
-            () -> user == null ? List.of() : List.of(user)
+            () -> users
         );
     }
 

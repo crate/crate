@@ -24,6 +24,7 @@ package io.crate.testing;
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.mockito.Mockito.mock;
 
+import java.util.List;
 import java.util.Map;
 
 import javax.annotation.Nullable;
@@ -40,6 +41,7 @@ import io.crate.analyze.relations.FullQualifiedNameFieldProvider;
 import io.crate.analyze.relations.ParentRelations;
 import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.analyze.relations.StatementAnalysisContext;
+import io.crate.common.collections.Lists2;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -72,11 +74,19 @@ public class SqlExpressions {
 
     public SqlExpressions(Map<RelationName, AnalyzedRelation> sources,
                           @Nullable FieldResolver fieldResolver,
-                          User user,
+                          User sessionUser,
                           AbstractModule... additionalModules) {
-        this.nodeCtx = createNodeContext(user, additionalModules);
+        this(sources, fieldResolver, sessionUser, List.of(), additionalModules);
+    }
+
+    public SqlExpressions(Map<RelationName, AnalyzedRelation> sources,
+                          @Nullable FieldResolver fieldResolver,
+                          User sessionUser,
+                          List<User> additionalUsers,
+                          AbstractModule... additionalModules) {
+        this.nodeCtx = createNodeContext(Lists2.concat(additionalUsers, sessionUser), additionalModules);
         // In test_throws_error_when_user_is_not_found we explicitly inject null user but SessionContext user cannot be not null.
-        var sessionSettings = new CoordinatorSessionSettings(user == null ? User.CRATE_USER : user);
+        var sessionSettings = new CoordinatorSessionSettings(sessionUser == null ? User.CRATE_USER : sessionUser);
         coordinatorTxnCtx = new CoordinatorTxnCtx(sessionSettings);
         expressionAnalyzer = new ExpressionAnalyzer(
             coordinatorTxnCtx,
