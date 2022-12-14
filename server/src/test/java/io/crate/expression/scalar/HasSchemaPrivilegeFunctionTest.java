@@ -89,6 +89,10 @@ public class HasSchemaPrivilegeFunctionTest extends ScalarTestCase {
             () -> assertEvaluate("has_schema_privilege('test', 'pg_catalog', ' USAGE, CREATE, SELECT')", null))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Unrecognized privilege type: select");
+        assertThatThrownBy(
+            () -> assertEvaluate("has_schema_privilege('test', 'pg_catalog', '')", null))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Unrecognized privilege type: ");
     }
 
     @Test
@@ -123,12 +127,12 @@ public class HasSchemaPrivilegeFunctionTest extends ScalarTestCase {
         var user = User.of("test", Set.of(usage), null);
         sqlExpressions = new SqlExpressions(tableSources, null, user);
         assertEvaluate("has_schema_privilege('test', 'doc', 'USAGE')", true);
-        assertEvaluate("has_schema_privilege('test', 'doc', 'USAGE, CREATE')", true); // true if has at least one privilege
+        assertEvaluate("has_schema_privilege('test', 'doc', 'create, USAGE, CREATE')", true); // true if has at least one privilege
         assertEvaluate("has_schema_privilege('test', 'doc', 'CREATE')", false);
 
         // Same as above but we take current user (which is test so outcome is same)
         assertEvaluate("has_schema_privilege('doc', 'USAGE')", true);
-        assertEvaluate("has_schema_privilege('doc', 'USAGE, CREATE')", true); // true if has at least one privilege
+        assertEvaluate("has_schema_privilege('doc', 'create, USAGE, CREATE')", true); // true if has at least one privilege
         assertEvaluate("has_schema_privilege('doc', 'CREATE')", false);
     }
 
