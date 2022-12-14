@@ -211,6 +211,11 @@ public class UserDefinedFunctionService {
                                                 String name,
                                                 List<DataType<?>> argumentDataTypes,
                                                 boolean ifExists) {
+        if (functions != null && functions.functionsMetadata() != null) {
+            LOGGER.info(functions.functionsMetadata().stream().map(
+                f -> f.schema() + "|" + f.name() + "|" + f.arguments() + "|" + f.argumentTypes()
+            ).collect(Collectors.toList()));
+        }
         if (!ifExists && (functions == null || !functions.contains(schema, name, argumentDataTypes))) {
             throw new UserDefinedFunctionUnknownException(schema, name, argumentDataTypes);
         } else if (functions == null) {
