@@ -1057,15 +1057,15 @@ public class UpdateIntegrationTest extends IntegTestCase {
 
     @Test
     public void test_update_preserves_the_sub_column_order_implied_by_set_clause_while_dynamically_adding_columns() {
-        execute("create table doc.t (id int primary key) with (column_policy='dynamic')");
-        execute("insert into doc.t values (1)");
+        execute("create table t (id int primary key) with (column_policy='dynamic')");
+        execute("insert into t values (1)");
         refresh();
-        execute("update doc.t set o = {c=1, a={d=1, b=1, c=1, a=1}, b=1}");
-        execute("show create table doc.t");
+        execute("update t set o = {c=1, a={d=1, b=1, c=1, a=1}, b=1}");
+        execute("show create table t");
         assertThat(printedTable(response.rows()))
             // the same order as provided by 'update t set o = {c=1, a={d=1, b=1, c=1, a=1}, b=1}'
             .contains(
-                "CREATE TABLE IF NOT EXISTS \"doc\".\"t\" (\n" +
+                "CREATE TABLE IF NOT EXISTS \"" + sqlExecutor.getCurrentSchema() + "\".\"t\" (\n" +
                 "   \"id\" INTEGER NOT NULL,\n" +
                 "   \"o\" OBJECT(DYNAMIC) AS (\n" +
                 "      \"c\" BIGINT,\n" +

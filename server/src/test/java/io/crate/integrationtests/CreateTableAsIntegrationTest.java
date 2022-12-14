@@ -121,10 +121,10 @@ public class CreateTableAsIntegrationTest extends IntegTestCase {
     @Test
     public void testCreateTableAsExistingTableName() {
         expectedException.expect(RelationAlreadyExists.class);
-        expectedException.expectMessage("Relation 'doc.cpy' already exists.");
+        expectedException.expectMessage("Relation '" + sqlExecutor.getCurrentSchema() + ".cpy' already exists.");
 
-        execute("create table doc.tbl (col_text text, col_int integer)");
-        execute("create table doc.cpy as select * from doc.tbl");
-        execute("create table doc.cpy as select * from doc.tbl");
+        execute("create table tbl (col_text text, col_int integer)");
+        execute("create table cpy as select * from tbl");
+        execute("create table cpy as select * from tbl");
     }
 }

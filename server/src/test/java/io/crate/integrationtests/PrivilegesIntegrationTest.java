@@ -173,7 +173,7 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
         executeAsSuperuser("insert into t1 values (1)");
         executeAsSuperuser("insert into t1 values (2)");
         executeAsSuperuser("insert into t1 values (3)");
-        executeAsSuperuser("create table doc.t2 (x int) clustered into 1 shards with (number_of_replicas = 0)");
+        executeAsSuperuser("create table t2 (x int) clustered into 1 shards with (number_of_replicas = 0)");
         executeAsSuperuser("create table t3 (x int) clustered into 1 shards with (number_of_replicas = 0)");
 
         executeAsSuperuser("grant dql on table t1 to " + TEST_USERNAME);
@@ -311,10 +311,10 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
 
     @Test
     public void testRenameTableTransfersPrivilegesToNewTable() {
-        executeAsSuperuser("create table doc.t1 (x int) clustered into 1 shards with (number_of_replicas = 0)");
+        executeAsSuperuser("create table t1 (x int) clustered into 1 shards with (number_of_replicas = 0)");
         executeAsSuperuser("grant dql on table t1 to " + TEST_USERNAME);
 
-        executeAsSuperuser("alter table doc.t1 rename to t1_renamed");
+        executeAsSuperuser("alter table t1 rename to t1_renamed");
         ensureYellow();
 
         try (Session testUserSession = testUserSession()) {
@@ -325,13 +325,13 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
 
     @Test
     public void testPrivilegeIsSwappedWithSwapTable() {
-        executeAsSuperuser("create table doc.t1 (x int)");
-        executeAsSuperuser("create table doc.t2 (x int)");
-        executeAsSuperuser("grant dql on table doc.t1 to " + TEST_USERNAME);
+        executeAsSuperuser("create table t1 (x int)");
+        executeAsSuperuser("create table t2 (x int)");
+        executeAsSuperuser("grant dql on table t1 to " + TEST_USERNAME);
 
-        executeAsSuperuser("alter cluster swap table doc.t1 to doc.t2 with (drop_source = true)");
+        executeAsSuperuser("alter cluster swap table t1 to t2 with (drop_source = true)");
         try (Session testUserSession = testUserSession()) {
-            execute("select * from doc.t2", null, testUserSession);
+            execute("select * from t2", null, testUserSession);
         }
         assertThat(response.rowCount(), is(0L));
     }
@@ -342,7 +342,7 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
         executeAsSuperuser("insert into t1 values (1)");
         executeAsSuperuser("grant dql on table t1 to " + TEST_USERNAME);
 
-        executeAsSuperuser("alter table doc.t1 rename to t1_renamed");
+        executeAsSuperuser("alter table t1 rename to t1_renamed");
         ensureYellow();
 
         try (Session testUserSession = testUserSession()) {
@@ -353,13 +353,13 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
 
     @Test
     public void testDropTableRemovesPrivileges() {
-        executeAsSuperuser("create table doc.t1 (x int) clustered into 1 shards with (number_of_replicas = 0)");
+        executeAsSuperuser("create table t1 (x int) clustered into 1 shards with (number_of_replicas = 0)");
         executeAsSuperuser("grant dql on table t1 to " + TEST_USERNAME);
 
         executeAsSuperuser("drop table t1");
         ensureYellow();
 
-        executeAsSuperuser("create table doc.t1 (x int) clustered into 1 shards with (number_of_replicas = 0)");
+        executeAsSuperuser("create table t1 (x int) clustered into 1 shards with (number_of_replicas = 0)");
 
         assertThrowsMatches(
             () -> {
@@ -378,13 +378,13 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
 
     @Test
     public void testDropViewRemovesPrivileges() {
-        executeAsSuperuser("create view doc.v1 as select 1");
+        executeAsSuperuser("create view v1 as select 1");
         executeAsSuperuser("grant dql on view v1 to " + TEST_USERNAME);
 
         executeAsSuperuser("drop view v1");
         ensureYellow();
 
-        executeAsSuperuser("create view doc.v1 as select 1");
+        executeAsSuperuser("create view v1 as select 1");
         assertThrowsMatches(
             () -> {
                 try (Session testUserSession = testUserSession()) {
@@ -403,17 +403,17 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
     @Test
     public void testDropEmptyPartitionedTableRemovesPrivileges() {
         executeAsSuperuser(
-            "create table doc.t1 (x int) partitioned by (x) clustered into 1 shards with (number_of_replicas = 0)");
+            "create table t1 (x int) partitioned by (x) clustered into 1 shards with (number_of_replicas = 0)");
         executeAsSuperuser("grant dql on table t1 to " + TEST_USERNAME);
 
         executeAsSuperuser("drop table t1");
         ensureYellow();
 
         executeAsSuperuser("select * from sys.privileges where grantee = ? and ident = ?",
-                           new Object[] {TEST_USERNAME, "doc.t1"});
+                           new Object[] {TEST_USERNAME, "t1"});
         assertThat(response.rowCount(), is(0L));
 
-        executeAsSuperuser("create table doc.t1 (x int) clustered into 1 shards with (number_of_replicas = 0)");
+        executeAsSuperuser("create table t1 (x int) clustered into 1 shards with (number_of_replicas = 0)");
         assertThrowsMatches(
             () -> {
                 try (Session testUserSession = testUserSession()) {
@@ -431,7 +431,7 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
 
     @Test
     public void testGrantWithCustomDefaultSchema() {
-        executeAsSuperuser("create table doc.t1 (x int)");
+        executeAsSuperuser("create table t1 (x int)");
         executeAsSuperuser("set search_path to 'custom_schema'");
         executeAsSuperuser("create table t2 (x int)");
         ensureYellow();

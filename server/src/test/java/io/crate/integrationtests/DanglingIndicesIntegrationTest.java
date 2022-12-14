@@ -33,11 +33,11 @@ public class DanglingIndicesIntegrationTest extends IntegTestCase {
 
     @Test
     public void testDanglingIndicesAreFilteredOutFromDBCatalog() throws Exception {
-        execute("create table doc.t1 (id int) clustered into 3 shards with (number_of_replicas=0)");
-        execute("create table doc.t2 (id int) partitioned by(id) clustered into 3 shards with (number_of_replicas=0)");
-        execute("insert into doc.t2 values (1), (2)");
+        execute("create table t1 (id int) clustered into 3 shards with (number_of_replicas=0)");
+        execute("create table t2 (id int) partitioned by(id) clustered into 3 shards with (number_of_replicas=0)");
+        execute("insert into t2 values (1), (2)");
 
-        execute("refresh table doc.t2");
+        execute("refresh table t2");
         execute("create blob table blobs clustered into 3 shards with (number_of_replicas=0)");
 
         final String dangling1 = ".shrink.t1";

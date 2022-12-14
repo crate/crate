@@ -69,24 +69,24 @@ public class SubSelectIntegrationTest extends IntegTestCase {
 
     @Test
     public void test_sub_select_order_by_and_limit_using_query_then_fetch() throws Exception {
-        execute("create table doc.tbl (ord int, name text)");
-        execute("insert into doc.tbl (ord, name) values (?, ?)", $$(
+        execute("create table tbl (ord int, name text)");
+        execute("insert into tbl (ord, name) values (?, ?)", $$(
             $(4, "Arthur"),
             $(3, "Trillian"),
             $(2, "Ford"),
             $(1, "Arthur")
         ));
-        execute("refresh table doc.tbl");
-        execute("explain select i, name from (select ord as i, name from doc.tbl order by name) as t order by i desc limit 20");
-        assertThat(printedTable(response.rows()), is(
+        execute("refresh table tbl");
+        execute("explain select i, name from (select ord as i, name from tbl order by name) as t order by i desc limit 20");
+        assertThat(printedTable(response.rows()).replace(sqlExecutor.getCurrentSchema() + ".", ""), is(
             "Rename[i, name] AS t\n" +
             "  └ Fetch[ord AS i, name]\n" +
             "    └ Limit[20::bigint;0]\n" +
             "      └ OrderBy[ord AS i DESC]\n" +
-            "        └ Collect[doc.tbl | [_fetchid, ord AS i] | true]\n"
+            "        └ Collect[tbl | [_fetchid, ord AS i] | true]\n"
         ));
 
-        execute("select i, name from (select ord as i, name from doc.tbl order by name) as t order by i desc limit 20");
+        execute("select i, name from (select ord as i, name from tbl order by name) as t order by i desc limit 20");
         assertThat(printedTable(response.rows()), is(
             "4| Arthur\n" +
             "3| Trillian\n" +

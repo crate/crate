@@ -60,7 +60,7 @@ public class ShowIntegrationTest extends IntegTestCase {
 
     @Test
     public void testShowCrateTableSimple() {
-        String expected = "CREATE TABLE IF NOT EXISTS \"doc\".\"test\" (\n" +
+        String expected = "CREATE TABLE IF NOT EXISTS \"" + sqlExecutor.getCurrentSchema() + "\".\"test\" (\n" +
                           "   \"col_bool\" BOOLEAN,\n" +
                           "   \"col_byte\" BYTE,\n" +
                           "   \"col_short\" SMALLINT,\n" +
@@ -88,7 +88,7 @@ public class ShowIntegrationTest extends IntegTestCase {
                 ")");
         execute("show create table test");
         assertRow(expected);
-        execute("show create table doc.test");
+        execute("show create table test");
         assertRow(expected);
     }
 
@@ -102,7 +102,7 @@ public class ShowIntegrationTest extends IntegTestCase {
                 " col_obj_b object(dynamic) as (arr array(integer), obj object(strict) as (id int, name string))" +
                 ")");
         execute("show create table test");
-        assertRow("CREATE TABLE IF NOT EXISTS \"doc\".\"test\" (\n" +
+        assertRow("CREATE TABLE IF NOT EXISTS \"" + sqlExecutor.getCurrentSchema() + "\".\"test\" (\n" +
                   "   \"col_arr_str\" ARRAY(TEXT),\n" +
                   "   \"col_arr_obj_a\" ARRAY(OBJECT(DYNAMIC)),\n" +
                   "   \"col_arr_obj_b\" ARRAY(OBJECT(STRICT) AS (\n" +
@@ -146,7 +146,7 @@ public class ShowIntegrationTest extends IntegTestCase {
                 ") " +
                 "clustered into 2 shards");
         execute("show create table test");
-        assertRow("CREATE TABLE IF NOT EXISTS \"doc\".\"test\" (\n" +
+        assertRow("CREATE TABLE IF NOT EXISTS \"" + sqlExecutor.getCurrentSchema() + "\".\"test\" (\n" +
                   "   \"col_a\" TEXT INDEX OFF,\n" +
                   "   \"col_b\" TEXT,\n" +
                   "   \"col_c\" TEXT INDEX USING FULLTEXT WITH (\n" +
@@ -174,7 +174,7 @@ public class ShowIntegrationTest extends IntegTestCase {
                 "clustered into 4 shards " +
                 "partitioned by (\"date\")");
         execute("show create table test");
-        assertRow("CREATE TABLE IF NOT EXISTS \"doc\".\"test\" (\n" +
+        assertRow("CREATE TABLE IF NOT EXISTS \"" + sqlExecutor.getCurrentSchema() + "\".\"test\" (\n" +
                   "   \"id\" BIGINT,\n" +
                   "   \"date\" TIMESTAMP WITH TIME ZONE\n" +
                   ")\n" +
@@ -190,7 +190,7 @@ public class ShowIntegrationTest extends IntegTestCase {
                 " name string" +
                 ") clustered into 8 shards");
         execute("show create table test_pk_single");
-        assertRow("CREATE TABLE IF NOT EXISTS \"doc\".\"test_pk_single\" (\n" +
+        assertRow("CREATE TABLE IF NOT EXISTS \"" + sqlExecutor.getCurrentSchema() + "\".\"test_pk_single\" (\n" +
                   "   \"id\" INTEGER NOT NULL,\n" +
                   "   \"name\" TEXT,\n" +
                   "   PRIMARY KEY (\"id\")\n" +
@@ -204,7 +204,7 @@ public class ShowIntegrationTest extends IntegTestCase {
                 " col_a string primary key" +
                 ") clustered into 8 shards");
         execute("show create table test_pk_multi");
-        assertRow("CREATE TABLE IF NOT EXISTS \"doc\".\"test_pk_multi\" (\n" +
+        assertRow("CREATE TABLE IF NOT EXISTS \"" + sqlExecutor.getCurrentSchema() + "\".\"test_pk_multi\" (\n" +
                   "   \"id\" INTEGER,\n" +
                   "   \"col_z\" TEXT NOT NULL,\n" +
                   "   \"col_a\" TEXT NOT NULL,\n" +
@@ -229,7 +229,7 @@ public class ShowIntegrationTest extends IntegTestCase {
                 " \"user\" object AS (name string)" +
                 ")");
         execute("show create table test_generated_column");
-        assertRow("CREATE TABLE IF NOT EXISTS \"doc\".\"test_generated_column\" (\n" +
+        assertRow("CREATE TABLE IF NOT EXISTS \"" + sqlExecutor.getCurrentSchema() + "\".\"test_generated_column\" (\n" +
                   "   \"day1\" TIMESTAMP WITH TIME ZONE GENERATED ALWAYS AS date_trunc('day', \"ts\"),\n" +
                   "   \"day2\" TIMESTAMP WITH TIME ZONE GENERATED ALWAYS AS date_trunc('day', \"ts\") INDEX OFF,\n" +
                   "   \"day3\" TIMESTAMP WITH TIME ZONE GENERATED ALWAYS AS date_trunc('day', \"ts\"),\n" +
@@ -251,7 +251,7 @@ public class ShowIntegrationTest extends IntegTestCase {
         ensureYellow();
 
         execute("SHOW CREATE TABLE with_quote");
-        assertRow("CREATE TABLE IF NOT EXISTS \"doc\".\"with_quote\" (\n" +
+        assertRow("CREATE TABLE IF NOT EXISTS \"" + sqlExecutor.getCurrentSchema() + "\".\"with_quote\" (\n" +
                   "   \"\"\"\" TEXT\n" +
                   ")\n" +
                   "CLUSTERED INTO 1 SHARDS");

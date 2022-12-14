@@ -60,7 +60,7 @@ public class CreateTableIntegrationTest extends IntegTestCase {
 
     @Test
     public void test_allow_drop_of_corrupted_table() throws Exception {
-        execute("create table doc.tbl (ts timestamp without time zone as '2020-01-01')");
+        execute("create table tbl (ts timestamp without time zone as '2020-01-01')");
         XContentBuilder builder = XContentFactory.jsonBuilder()
             .startObject()
             .startObject("default")
@@ -71,21 +71,21 @@ public class CreateTableIntegrationTest extends IntegTestCase {
                 .endObject()
             .endObject()
             .endObject();
-        client().admin().indices().putMapping(new PutMappingRequest("tbl").source(builder))
+        client().admin().indices().putMapping(new PutMappingRequest(sqlExecutor.getCurrentSchema() + ".tbl").source(builder))
             .get(5, TimeUnit.SECONDS);
 
-        assertThat(internalCluster().getInstance(ClusterService.class).state().metadata().hasIndex("tbl"))
+        assertThat(internalCluster().getInstance(ClusterService.class).state().metadata().hasIndex(sqlExecutor.getCurrentSchema() + ".tbl"))
             .isTrue();
         assertThrowsMatches(
-            () -> execute("select * from doc.tbl"),
-            isSQLError(startsWith("Relation 'doc.tbl' unknown"),
+            () -> execute("select * from tbl"),
+            isSQLError(startsWith("Relation 'tbl' unknown"),
                        UNDEFINED_TABLE,
                        NOT_FOUND,
                        4041));
-        execute("drop table doc.tbl");
+        execute("drop table tbl");
         execute("select count(*) from information_schema.tables where table_name = 'tbl'");
         assertThat(response.rows()[0][0]).isEqualTo(0L);
-        assertThat(internalCluster().getInstance(ClusterService.class).state().metadata().hasIndex("tbl"))
+        assertThat(internalCluster().getInstance(ClusterService.class).state().metadata().hasIndex(sqlExecutor.getCurrentSchema() + ".tbl"))
             .isFalse();
     }
 

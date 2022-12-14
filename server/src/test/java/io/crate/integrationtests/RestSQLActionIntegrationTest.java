@@ -71,8 +71,8 @@ public class RestSQLActionIntegrationTest extends SQLHttpIntegrationTest {
 
     @Test
     public void testEmptyBulkArgsWithStatementContainingParameters() throws IOException {
-        execute("create table doc.t (id int primary key) with (number_of_replicas = 0)");
-        CloseableHttpResponse response = post("{\"stmt\": \"delete from t where id = ?\", \"bulk_args\": []}");
+        execute("create table \"My_Schema\".t (id int primary key) with (number_of_replicas = 0)");
+        CloseableHttpResponse response = post("{\"stmt\": \"delete from \\\"My_Schema\\\".t where id = ?\", \"bulk_args\": []}");
         assertThat(response.getStatusLine().getStatusCode(), is(200));
         String bodyAsString = EntityUtils.toString(response.getEntity());
         assertThat(bodyAsString, startsWith("{\"cols\":[],\"duration\":"));
@@ -94,11 +94,11 @@ public class RestSQLActionIntegrationTest extends SQLHttpIntegrationTest {
 
     @Test
     public void testInsertWithMixedCompatibleTypes() throws IOException {
-        execute("create table doc.t1 (x array(float))");
-        CloseableHttpResponse resp = post("{\"stmt\": \"insert into doc.t1 (x) values (?)\", \"args\": [[0, 1.0, 1.42]]}");
+        execute("create table \"My_Schema\".t1 (x array(float))");
+        CloseableHttpResponse resp = post("{\"stmt\": \"insert into \\\"My_Schema\\\".t1 (x) values (?)\", \"args\": [[0, 1.0, 1.42]]}");
         assertThat(resp.getStatusLine().getStatusCode(), is(200));
-        execute("refresh table doc.t1");
-        assertThat(printedTable(execute("select x from doc.t1").rows()),
+        execute("refresh table \"My_Schema\".t1");
+        assertThat(printedTable(execute("select x from \"My_Schema\".t1").rows()),
             is("[0.0, 1.0, 1.42]\n"));
     }
 

@@ -1107,7 +1107,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     public void test_copy_preserves_the_implied_sub_column_order() throws IOException {
         execute(
             """
-                create table doc.t (
+                create table t (
                     p int,
                     o object
                 ) partitioned by (p) with (column_policy = 'dynamic');
@@ -1120,13 +1120,13 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         );
         var file = folder.newFile(UUID.randomUUID().toString());
         Files.write(file.toPath(), lines, StandardCharsets.UTF_8);
-        execute("copy doc.t from ? ", new Object[]{Paths.get(file.toURI()).toUri().toString()});
-        execute("refresh table doc.t");
-        execute("show create table doc.t");
+        execute("copy t from ? ", new Object[]{Paths.get(file.toURI()).toUri().toString()});
+        execute("refresh table t");
+        execute("show create table t");
         assertThat(printedTable(response.rows()))
             // follow the same order as provided by '{"o":{"c":1, "a":{"d":1, "b":1, "c":1, "a":1}, "b":1}}'
             .contains(
-                "CREATE TABLE IF NOT EXISTS \"doc\".\"t\" (\n" +
+                "CREATE TABLE IF NOT EXISTS \"" + sqlExecutor.getCurrentSchema() + "\".\"t\" (\n" +
                 "   \"p\" INTEGER,\n" +
                 "   \"o\" OBJECT(DYNAMIC) AS (\n" +
                 "      \"c\" BIGINT,\n" +

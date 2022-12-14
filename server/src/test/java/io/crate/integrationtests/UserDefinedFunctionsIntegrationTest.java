@@ -57,7 +57,6 @@ import io.crate.metadata.FunctionName;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
-import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
@@ -286,7 +285,7 @@ public class UserDefinedFunctionsIntegrationTest extends IntegTestCase {
         Signature signature = Signature
             .builder()
             .kind(FunctionType.SCALAR)
-            .name(new FunctionName(Schemas.DOC_SCHEMA_NAME, "my_func"))
+            .name(new FunctionName(sqlExecutor.getCurrentSchema(), "my_func"))
             .argumentTypes(
                 TypeSignature.parseTypeSignature("array(array(integer))"),
                 TypeSignature.parseTypeSignature("integer"),
@@ -298,12 +297,12 @@ public class UserDefinedFunctionsIntegrationTest extends IntegTestCase {
         execute("select pg_function_is_visible(" + functionOid + ")");
         assertThat(response.rows()[0][0], is(false));
 
-        execute("create function doc.my_func(array(array(integer)), integer, text) returns text language dummy_lang as '42'");
+        execute("create function my_func(array(array(integer)), integer, text) returns text language dummy_lang as '42'");
 
         execute("select pg_function_is_visible(" + functionOid + ")");
         assertThat(response.rows()[0][0], is(true));
 
-        execute("drop function doc.my_func(array(array(integer)), integer, text)");
+        execute("drop function my_func(array(array(integer)), integer, text)");
         execute("select pg_function_is_visible(" + functionOid + ")");
         assertThat(response.rows()[0][0], is(false));
     }
@@ -315,7 +314,7 @@ public class UserDefinedFunctionsIntegrationTest extends IntegTestCase {
         Signature signature = Signature
             .builder()
             .kind(FunctionType.SCALAR)
-            .name(new FunctionName(Schemas.DOC_SCHEMA_NAME, "make_2d_array"))
+            .name(new FunctionName(sqlExecutor.getCurrentSchema(), "make_2d_array"))
             .argumentTypes(DataTypes.INTEGER.getTypeSignature())
             .returnType(returnTypeSig)
             .build();
@@ -324,12 +323,12 @@ public class UserDefinedFunctionsIntegrationTest extends IntegTestCase {
         execute("select pg_get_function_result(?)", new Object[]{functionOid});
         assertThat(response.rows()[0][0], nullValue());
 
-        execute("create function doc.make_2d_array(integer) returns array(array(integer)) language dummy_lang as ?", new Object[]{returnType});
+        execute("create function make_2d_array(integer) returns array(array(integer)) language dummy_lang as ?", new Object[]{returnType});
 
         execute("select pg_get_function_result(" + functionOid + ")");
         assertThat(response.rows()[0][0], is(returnType));
 
-        execute("drop function doc.make_2d_array(integer)");
+        execute("drop function make_2d_array(integer)");
         execute("select pg_get_function_result(" + functionOid + ")");
         assertThat(response.rows()[0][0], nullValue());
     }
@@ -355,14 +354,16 @@ public class UserDefinedFunctionsIntegrationTest extends IntegTestCase {
 
     @Test
     public void test_udf_used_inside_generated_column_definition_cannot_be_dropped() {
-        execute("create function doc.foo(long) returns string language dummy_lang as" +
+        execute("create function foo(long) returns string language dummy_lang as" +
             " 'function foo(a) { return a; }'");
-        execute("create table doc.t1 (id long, l as doc.foo(id))");
+        execute("create table t1 (id long, l as foo(id))");
 
+        String schema = sqlExecutor.getCurrentSchema();
         assertThrowsMatches(
-            () -> execute("drop function doc.foo(long)"),
+            () -> execute("drop function foo(long)"),
             isSQLError(containsString(
-                    "Cannot drop function 'doc.foo(bigint)', it is still in use by 'doc.t1.l AS doc.foo(id)'"),
+                    "Cannot drop function '" + schema + ".foo(bigint)', it is still in use by '"
+                    + schema + ".t1.l AS " + schema + ".foo(id)'"),
                 INTERNAL_ERROR,
                 BAD_REQUEST,
                 4000)

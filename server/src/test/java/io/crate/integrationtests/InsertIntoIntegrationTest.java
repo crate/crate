@@ -1687,18 +1687,18 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
     public void test_insert_preserves_the_implied_sub_column_order() {
         execute(
             """
-                create table doc.t (
+                create table t (
                     o object
                 ) with (column_policy = 'dynamic');
                 """
         );
-        execute("insert into doc.t(o) values ({c=1, a={d=1, b=1, c=1, a=1}, b=1})");
-        execute("refresh table doc.t");
-        execute("show create table doc.t");
+        execute("insert into t(o) values ({c=1, a={d=1, b=1, c=1, a=1}, b=1})");
+        execute("refresh table t");
+        execute("show create table t");
         assertThat(printedTable(response.rows()))
             // the same order as provided by '.. values ({c=1, a={d=1, b=1, c=1, a=1}, b=1})'
             .contains(
-                "CREATE TABLE IF NOT EXISTS \"doc\".\"t\" (\n" +
+                "CREATE TABLE IF NOT EXISTS \"" + sqlExecutor.getCurrentSchema() + "\".\"t\" (\n" +
                 "   \"o\" OBJECT(DYNAMIC) AS (\n" +
                 "      \"c\" BIGINT,\n" +
                 "      \"a\" OBJECT(DYNAMIC) AS (\n" +

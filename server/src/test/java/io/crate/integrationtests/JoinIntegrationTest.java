@@ -415,21 +415,21 @@ public class JoinIntegrationTest extends IntegTestCase {
 
     @Test
     public void test_self_join_with_order_and_limit_is_executed_with_qtf() throws Exception {
-        execute("create table doc.t (x int, y int)");
-        execute("insert into doc.t (x, y) values (1, 10), (2, 20)");
-        execute("refresh table doc.t");
-        execute("explain select * from doc.t as t1, doc.t as t2 order by t1.x, t2.x limit 3");
-        assertThat(printedTable(response.rows()), is(
+        execute("create table t (x int, y int)");
+        execute("insert into t (x, y) values (1, 10), (2, 20)");
+        execute("refresh table t");
+        execute("explain select * from t as t1, t as t2 order by t1.x, t2.x limit 3");
+        assertThat(printedTable(response.rows()).replace(sqlExecutor.getCurrentSchema() + ".", ""), is(
             "Fetch[x, y, x, y]\n" +
             "  └ Limit[3::bigint;0]\n" +
             "    └ OrderBy[x ASC x ASC]\n" +
             "      └ NestedLoopJoin[CROSS]\n" +
             "        ├ Rename[t1._fetchid, x] AS t1\n" +
-            "        │  └ Collect[doc.t | [_fetchid, x] | true]\n" +
+            "        │  └ Collect[t | [_fetchid, x] | true]\n" +
             "        └ Rename[t2._fetchid, x] AS t2\n" +
-            "          └ Collect[doc.t | [_fetchid, x] | true]\n"
+            "          └ Collect[t | [_fetchid, x] | true]\n"
         ));
-        execute("select * from doc.t as t1, doc.t as t2 order by t1.x, t2.x limit 3");
+        execute("select * from t as t1, t as t2 order by t1.x, t2.x limit 3");
         assertThat(printedTable(response.rows()), is(
             "1| 10| 1| 10\n" +
             "1| 10| 2| 20\n" +
@@ -1165,15 +1165,15 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("EXPLAIN " + stmt);
         // ensure that the query is using the execution plan we want to test
         // This should prevent from the test case becoming invalid
-        assertThat(printedTable(response.rows()), is(
+        assertThat(printedTable(response.rows()).replace(sqlExecutor.getCurrentSchema() + ".", ""), is(
             "Eval[id, a, id, b, id, c, id, d]\n" +
             "  └ NestedLoopJoin[LEFT | (id = id)]\n" +
             "    ├ HashJoin[(id = id)]\n" +
             "    │  ├ HashJoin[(id = id)]\n" +
-            "    │  │  ├ Get[doc.t2 | id, b | DocKeys{1; 2} | ((id = 1) OR (id = 2))]\n" +
-            "    │  │  └ Collect[doc.t1 | [id, a] | true]\n" +
-            "    │  └ Collect[doc.t3 | [id, c] | true]\n" +
-            "    └ Collect[doc.t4 | [id, d] | true]\n"
+            "    │  │  ├ Get[t2 | id, b | DocKeys{1; 2} | ((id = 1) OR (id = 2))]\n" +
+            "    │  │  └ Collect[t1 | [id, a] | true]\n" +
+            "    │  └ Collect[t3 | [id, c] | true]\n" +
+            "    └ Collect[t4 | [id, d] | true]\n"
         ));
         execute(stmt);
     }
@@ -1211,13 +1211,13 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("EXPLAIN " + stmt);
         // ensure that the query is using the execution plan we want to test
         // This should prevent from the test case becoming invalid
-        assertThat(printedTable(response.rows()), is(
+        assertThat(printedTable(response.rows()).replace(sqlExecutor.getCurrentSchema() + ".", ""), is(
             "Eval[id, a, id, b, id, c]\n" +
             "  └ NestedLoopJoin[INNER | (id = id)]\n" +
             "    ├ NestedLoopJoin[INNER | (id = id)]\n" +
-            "    │  ├ Get[doc.t2 | id, b | DocKeys{1} | (id = 1)]\n" +
-            "    │  └ Collect[doc.t1 | [id, a] | true]\n" +
-            "    └ Get[doc.t3 | id, c | DocKeys{1} | (id = 1)]\n"));
+            "    │  ├ Get[t2 | id, b | DocKeys{1} | (id = 1)]\n" +
+            "    │  └ Collect[t1 | [id, a] | true]\n" +
+            "    └ Get[t3 | id, c | DocKeys{1} | (id = 1)]\n"));
         execute(stmt);
     }
 
@@ -1257,41 +1257,41 @@ public class JoinIntegrationTest extends IntegTestCase {
     @Test
     @UseHashJoins(1)
     public void test_joins_with_constant_conditions_with_unions_and_renames() {
-        execute("CREATE TABLE doc.t1 (id TEXT, name TEXT, PRIMARY KEY (id))");
-        execute("CREATE TABLE doc.t2 (id TEXT, name TEXT, PRIMARY KEY (id))");
-        execute("CREATE TABLE doc.t3 (id TEXT, name TEXT, PRIMARY KEY (id))");
+        execute("CREATE TABLE t1 (id TEXT, name TEXT, PRIMARY KEY (id))");
+        execute("CREATE TABLE t2 (id TEXT, name TEXT, PRIMARY KEY (id))");
+        execute("CREATE TABLE t3 (id TEXT, name TEXT, PRIMARY KEY (id))");
 
-        execute("insert into doc.t1 values ('1', 'a')");
-        execute("insert into doc.t2 values ('1', 'b')");
-        execute("insert into doc.t3 values ('1', 'c')");
+        execute("insert into t1 values ('1', 'a')");
+        execute("insert into t2 values ('1', 'b')");
+        execute("insert into t3 values ('1', 'c')");
 
-        execute("refresh table doc.t1");
-        execute("refresh table doc.t2");
-        execute("refresh table doc.t3");
+        execute("refresh table t1");
+        execute("refresh table t2");
+        execute("refresh table t3");
 
         var stmt = """
                 select x.name, y.name
-                from (select name from doc.t1 where name = 'a' union select name from doc.t3 where name = 'c') x
+                from (select name from t1 where name = 'a' union select name from t3 where name = 'c') x
                 join
-                (select name from doc.t1 where name = 'a' union select name from doc.t2 where name = 'b') y
+                (select name from t1 where name = 'a' union select name from t2 where name = 'b') y
                 on x.name = y.name and x.name != 'constant-condition'
             """;
 
         execute("EXPLAIN " + stmt);
 
-        assertThat(printedTable(response.rows()), is(
+        assertThat(printedTable(response.rows()).replace(sqlExecutor.getCurrentSchema() + ".", ""), is(
             """
                 HashJoin[(name = name)]
                   ├ Rename[name] AS x
                   │  └ GroupHashAggregate[name]
                   │    └ Union[name]
-                  │      ├ Collect[doc.t1 | [name] | ((NOT (name = 'constant-condition')) AND (name = 'a'))]
-                  │      └ Collect[doc.t3 | [name] | ((NOT (name = 'constant-condition')) AND (name = 'c'))]
+                  │      ├ Collect[t1 | [name] | ((NOT (name = 'constant-condition')) AND (name = 'a'))]
+                  │      └ Collect[t3 | [name] | ((NOT (name = 'constant-condition')) AND (name = 'c'))]
                   └ Rename[name] AS y
                     └ GroupHashAggregate[name]
                       └ Union[name]
-                        ├ Collect[doc.t1 | [name] | (name = 'a')]
-                        └ Collect[doc.t2 | [name] | (name = 'b')]
+                        ├ Collect[t1 | [name] | (name = 'a')]
+                        └ Collect[t2 | [name] | (name = 'b')]
                 """
         ));
         execute(stmt);

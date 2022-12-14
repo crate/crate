@@ -2279,9 +2279,9 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
 
     @Test
     public void testCurrentVersionsAreSetOnPartitionCreation() throws Exception {
-        execute("create table doc.p1 (id int, p int) partitioned by (p)");
+        execute("create table p1 (id int, p int) partitioned by (p)");
 
-        execute("insert into doc.p1 (id, p) values (1, 2)");
+        execute("insert into p1 (id, p) values (1, 2)");
         execute("select version['created'] from information_schema.table_partitions where table_name='p1'");
 
         assertThat(response.rows()[0][0], is(Version.CURRENT.externalNumber()));
@@ -2356,20 +2356,20 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
 
     @Test
     public void test_select_partitioned_by_column_with_query_then_fetch_plan() throws Exception {
-        execute("create table doc.tbl (p int, ordinal int, name text) partitioned by (p)");
-        execute("insert into doc.tbl (p, ordinal, name) values (1, 1, 'Arthur')");
-        execute("insert into doc.tbl (p, ordinal, name) values (1, 2, 'Trillian')");
-        execute("refresh table doc.tbl");
+        execute("create table tbl (p int, ordinal int, name text) partitioned by (p)");
+        execute("insert into tbl (p, ordinal, name) values (1, 1, 'Arthur')");
+        execute("insert into tbl (p, ordinal, name) values (1, 2, 'Trillian')");
+        execute("refresh table tbl");
 
-        execute("explain select p, name from doc.tbl order by ordinal limit 100");
-        assertThat(printedTable(response.rows()), is(
+        execute("explain select p, name from tbl order by ordinal limit 100");
+        assertThat(printedTable(response.rows()).replace(sqlExecutor.getCurrentSchema() + ".", ""), is(
             "Eval[p, name]\n" +
             "  └ Fetch[p, name, ordinal]\n" +
             "    └ Limit[100::bigint;0]\n" +
             "      └ OrderBy[ordinal ASC]\n" +
-            "        └ Collect[doc.tbl | [_fetchid, ordinal] | true]\n"
+            "        └ Collect[tbl | [_fetchid, ordinal] | true]\n"
         ));
-        execute("select p, name from doc.tbl order by ordinal limit 100");
+        execute("select p, name from tbl order by ordinal limit 100");
         assertThat(printedTable(response.rows()), is(
             "1| Arthur\n" +
             "1| Trillian\n"

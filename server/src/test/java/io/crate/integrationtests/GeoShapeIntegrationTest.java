@@ -98,7 +98,7 @@ public class GeoShapeIntegrationTest extends IntegTestCase {
                 "CLUSTERED INTO 1 SHARDS");
         ensureYellow();
         execute("show create table test");
-        String expected = "CREATE TABLE IF NOT EXISTS \"doc\".\"test\" (\n" +
+        String expected = "CREATE TABLE IF NOT EXISTS \"" + sqlExecutor.getCurrentSchema() + "\".\"test\" (\n" +
                           "   \"col1\" GEO_SHAPE INDEX USING QUADTREE WITH (\n" +
                           "      distance_error_pct = 0.25,\n" +
                           "      precision = '1.0m'\n" +
@@ -127,7 +127,7 @@ public class GeoShapeIntegrationTest extends IntegTestCase {
                 "CLUSTERED INTO 1 SHARDS");
         ensureYellow();
         execute("show create table test");
-        String expected = "CREATE TABLE IF NOT EXISTS \"doc\".\"test\" (\n" +
+        String expected = "CREATE TABLE IF NOT EXISTS \"" + sqlExecutor.getCurrentSchema() + "\".\"test\" (\n" +
                           "   \"col1\" GEO_SHAPE INDEX USING GEOHASH\n" +
                           ")\n" +
                           "CLUSTERED INTO 1 SHARDS\n" +
