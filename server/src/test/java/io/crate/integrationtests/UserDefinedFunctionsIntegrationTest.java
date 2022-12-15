@@ -368,5 +368,7 @@ public class UserDefinedFunctionsIntegrationTest extends IntegTestCase {
                 BAD_REQUEST,
                 4000)
         );
+        execute("drop table t1");
+        execute("drop function foo(long)");
     }
 }
