@@ -217,8 +217,7 @@ public class UnionPlannerTest extends CrateDummyClusterServiceUnitTest {
         var logicalPlanner = new LogicalPlanner(
             e.nodeCtx,
             tableStats,
-            () -> clusterService.state().nodes().getMinNodeVersion(),
-            new LogicalPlanIdAllocator()
+            () -> clusterService.state().nodes().getMinNodeVersion()
         );
         var plan = logicalPlanner.plan(e.analyze(stmt), context);
         var union = (Union) plan.sources().get(0);

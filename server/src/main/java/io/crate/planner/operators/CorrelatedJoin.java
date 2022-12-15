@@ -136,12 +136,12 @@ public class CorrelatedJoin implements LogicalPlan {
 
     @Override
     public List<LogicalPlan> sources() {
-        return List.of(inputPlan);
+        return List.of(inputPlan, subQueryPlan);
     }
 
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
-        return this;
+        return new CorrelatedJoin(sources.get(0), this.selectSymbol, sources.get(1), this.id);
     }
 
     @Override

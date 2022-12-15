@@ -117,12 +117,10 @@ public class LogicalPlanner {
     private final Visitor statementVisitor = new Visitor();
     private final Optimizer writeOptimizer;
     private final Optimizer fetchOptimizer;
-    private final LogicalPlanIdAllocator logicalPlanIdAllocator;
 
     public LogicalPlanner(NodeContext nodeCtx,
                           TableStats tableStats,
-                          Supplier<Version> minNodeVersionInCluster,
-                          LogicalPlanIdAllocator logicalPlanIdAllocator) {
+                          Supplier<Version> minNodeVersionInCluster) {
         this.optimizer = new Optimizer(
             nodeCtx,
             minNodeVersionInCluster,
@@ -165,7 +163,6 @@ public class LogicalPlanner {
             List.of(new RewriteInsertFromSubQueryToInsertFromValues())
         );
         this.tableStats = tableStats;
-        this.logicalPlanIdAllocator = logicalPlanIdAllocator;
     }
 
     public LogicalPlan plan(AnalyzedStatement statement, PlannerContext plannerContext) {
@@ -210,7 +207,7 @@ public class LogicalPlanner {
         );
         LogicalPlan plan = relation.accept(planBuilder, relation.outputs());
 
-        plan = tryOptimizeForInSubquery(selectSymbol, relation, plan);
+        plan = tryOptimizeForInSubquery(selectSymbol, relation, plan, txnCtx.idAllocator());
         LogicalPlan optimizedPlan = optimizer.optimize(maybeApplySoftLimit.apply(plan), tableStats, txnCtx);
         return new RootRelationBoundary(optimizedPlan, plannerContext.transactionContext().idAllocator().nextId());
     }
@@ -219,7 +216,7 @@ public class LogicalPlanner {
     // the building of TermInSetQuery which does a sort on the collection of values.
     // See issue https://github.com/crate/crate/issues/6755
     // If the output values are already sorted (even in desc order) no optimization is needed
-    private LogicalPlan tryOptimizeForInSubquery(SelectSymbol selectSymbol, AnalyzedRelation relation, LogicalPlan planBuilder) {
+    private LogicalPlan tryOptimizeForInSubquery(SelectSymbol selectSymbol, AnalyzedRelation relation, LogicalPlan planBuilder, LogicalPlanIdAllocator logicalPlanIdAllocator) {
         if (selectSymbol.isCorrelated()) {
             return planBuilder;
         }

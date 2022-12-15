@@ -50,27 +50,24 @@ public class GroupReference implements LogicalPlan {
     private final List<Symbol> outputs;
     private final LogicalPlanId id;
 
-    public GroupReference(LogicalPlanId id, int groupId, List<Symbol> outputs)
-    {
+    public GroupReference(LogicalPlanId id, int groupId, List<Symbol> outputs) {
         this.id = id;
         this.groupId = groupId;
         this.outputs = List.copyOf(outputs);
     }
 
-    public int groupId()
-    {
+    public int groupId() {
         return groupId;
     }
 
     @Override
-    public List<LogicalPlan> sources()
-    {
-        throw new UnsupportedOperationException();
+    public List<LogicalPlan> sources() {
+        return List.of();
     }
 
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
-        throw new UnsupportedOperationException();
+        return this;
     }
 
     @Override
@@ -105,7 +102,7 @@ public class GroupReference implements LogicalPlan {
 
     @Override
     public Set<RelationName> getRelationNames() {
-        throw new UnsupportedOperationException();
+        return Set.of();
     }
 
 
@@ -124,8 +121,7 @@ public class GroupReference implements LogicalPlan {
     }
 
     @Override
-    public List<Symbol> outputs()
-    {
+    public List<Symbol> outputs() {
         return outputs;
     }
 

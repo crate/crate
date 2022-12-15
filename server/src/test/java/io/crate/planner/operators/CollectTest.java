@@ -83,8 +83,7 @@ public class CollectTest extends CrateDummyClusterServiceUnitTest {
         LogicalPlanner logicalPlanner = new LogicalPlanner(
             e.nodeCtx,
             tableStats,
-            () -> clusterService.state().nodes().getMinNodeVersion(),
-            txnCtx.idAllocator()
+            () -> clusterService.state().nodes().getMinNodeVersion()
         );
         LogicalPlan operator = logicalPlanner.plan(analyzedRelation, plannerCtx);
         ExecutionPlan build = operator.build(

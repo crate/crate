@@ -103,8 +103,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         LogicalPlanner logicalPlanner = new LogicalPlanner(
             e.nodeCtx,
             tableStats,
-            () -> clusterService.state().nodes().getMinNodeVersion(),
-            txnCtx.idAllocator()
+            () -> clusterService.state().nodes().getMinNodeVersion()
         );
         SubqueryPlanner subqueryPlanner = new SubqueryPlanner((s) -> logicalPlanner.planSubSelect(s, plannerCtx));
         return JoinPlanBuilder.buildJoinTree(
@@ -261,8 +260,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         LogicalPlanner logicalPlanner = new LogicalPlanner(
             e.nodeCtx,
             tableStats,
-            () -> clusterService.state().nodes().getMinNodeVersion(),
-            txnCtx.idAllocator()
+            () -> clusterService.state().nodes().getMinNodeVersion()
         );
         SubqueryPlanner subqueryPlanner = new SubqueryPlanner((s) -> logicalPlanner.planSubSelect(s, context));
         LogicalPlan operator = JoinPlanBuilder.buildJoinTree(
@@ -294,8 +292,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         LogicalPlanner logicalPlanner = new LogicalPlanner(
             e.nodeCtx,
             tableStats,
-            () -> clusterService.state().nodes().getMinNodeVersion(),
-            txnCtx.idAllocator()
+            () -> clusterService.state().nodes().getMinNodeVersion()
         );
         LogicalPlan plan = logicalPlanner.plan(e.analyze("select users.id from users, locations " +
                                                          "where users.id = locations.id order by users.id"), context);
@@ -492,8 +489,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         LogicalPlanner logicalPlanner = new LogicalPlanner(
             e.nodeCtx,
             tableStats,
-            () -> clusterService.state().nodes().getMinNodeVersion(),
-            txnCtx.idAllocator()
+            () -> clusterService.state().nodes().getMinNodeVersion()
         );
         LogicalPlan operator = logicalPlanner.plan(mss, plannerCtx);
         ExecutionPlan build = operator.build(
@@ -512,8 +508,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         LogicalPlanner logicalPlanner = new LogicalPlanner(
             e.nodeCtx,
             new TableStats(),
-            () -> clusterService.state().nodes().getMinNodeVersion(),
-            txnCtx.idAllocator()
+            () -> clusterService.state().nodes().getMinNodeVersion()
         );
         LogicalPlan join = logicalPlanner.plan(mss, plannerCtx);
 

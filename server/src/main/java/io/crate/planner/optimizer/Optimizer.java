@@ -25,6 +25,8 @@ import java.util.List;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
 
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -38,6 +40,8 @@ import io.crate.planner.optimizer.matcher.Match;
 import io.crate.statistics.TableStats;
 
 public class Optimizer implements OptimizerI {
+
+    private static final Logger LOGGER = LogManager.getLogger(OptimizerOld.class);
 
     private final List<Rule<?>> rules;
     private final Supplier<Version> minNodeVersionInCluster;
@@ -83,8 +87,8 @@ public class Optimizer implements OptimizerI {
     }
 
     private boolean exploreNode(int group, Context context) {
+        final boolean isTraceEnabled = LOGGER.isTraceEnabled();
         LogicalPlan node = context.memo().getNode(group);
-
         boolean done = false;
         boolean progress = false;
 
@@ -93,6 +97,9 @@ public class Optimizer implements OptimizerI {
             for (Rule rule : rules) {
                 Match<?> match = rule.pattern().accept(node, Captures.empty());
                 if (match.isPresent()) {
+                    if (isTraceEnabled) {
+                        LOGGER.trace("Rule '" + rule.getClass().getSimpleName() + "' matched");
+                    }
                     @SuppressWarnings("unchecked")
                     LogicalPlan transformed = rule.apply(node,
                                                          match.captures(),
