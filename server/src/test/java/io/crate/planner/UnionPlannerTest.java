@@ -44,6 +44,7 @@ import io.crate.execution.dsl.projection.EvalProjection;
 import io.crate.execution.dsl.projection.LimitAndOffsetProjection;
 import io.crate.metadata.RelationName;
 import io.crate.planner.node.dql.Collect;
+import io.crate.planner.operators.LogicalPlanIdAllocator;
 import io.crate.planner.operators.LogicalPlanner;
 import io.crate.planner.operators.LogicalPlannerTest;
 import io.crate.planner.operators.Union;
@@ -216,7 +217,8 @@ public class UnionPlannerTest extends CrateDummyClusterServiceUnitTest {
         var logicalPlanner = new LogicalPlanner(
             e.nodeCtx,
             tableStats,
-            () -> clusterService.state().nodes().getMinNodeVersion()
+            () -> clusterService.state().nodes().getMinNodeVersion(),
+            new LogicalPlanIdAllocator()
         );
         var plan = logicalPlanner.plan(e.analyze(stmt), context);
         var union = (Union) plan.sources().get(0);

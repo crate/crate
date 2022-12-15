@@ -352,7 +352,7 @@ public class ExplainPlan implements Plan {
     private static class CastOptimizer extends LogicalPlanVisitor<PlannerContext, LogicalPlan> {
 
         @Override
-        protected LogicalPlan visitPlan(LogicalPlan logicalPlan, PlannerContext context) {
+        public LogicalPlan visitPlan(LogicalPlan logicalPlan, PlannerContext context) {
             ArrayList<LogicalPlan> newSources = new ArrayList<>(logicalPlan.sources().size());
             for (var source : logicalPlan.sources()) {
                 newSources.add(source.accept(this, context));

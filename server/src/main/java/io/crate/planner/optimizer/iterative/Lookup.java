@@ -19,50 +19,23 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.iterative;
+package io.crate.planner.optimizer.iterative;
 
-import java.util.List;
+import java.util.function.Function;
+import java.util.stream.Stream;
 
-import io.crate.expression.symbol.Symbol;
 import io.crate.planner.operators.LogicalPlan;
-import io.crate.planner.operators.LogicalPlanId;
-import io.crate.planner.operators.LogicalPlanVisitor;
 
-public class GroupReference extends LogicalPlan
-{
-    private final int groupId;
-    private final List<Symbol> outputs;
-    private LogicalPlanId id;
+public interface Lookup {
 
-    public GroupReference(LogicalPlanId id, int groupId, List<Symbol> outputs)
-    {
-        this.id = id;
-        this.groupId = groupId;
-        this.outputs = List.copyOf(outputs);
+    Stream<LogicalPlan> resolveGroup(LogicalPlan node);
+
+    static Lookup from(Function<GroupReference, Stream<LogicalPlan>> resolver) {
+        return node -> {
+            if (!(node instanceof GroupReference)) {
+                throw new IllegalStateException("Node is not a GroupReference");
+            }
+            return resolver.apply((GroupReference) node);
+        };
     }
-
-    public int groupId()
-    {
-        return groupId;
-    }
-
-    @Override
-    public List<LogicalPlan> sources()
-    {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public <R, C> R accept(LogicalPlanVisitor<R, C> visitor, C context)
-    {
-        return visitor.visitGroupReference(this, context);
-    }
-
-    @Override
-    public List<Symbol> outputs()
-    {
-        return outputs;
-    }
-
-
 }

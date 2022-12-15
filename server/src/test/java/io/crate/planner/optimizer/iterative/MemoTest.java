@@ -24,25 +24,39 @@ package io.crate.planner.optimizer.iterative;
 import static io.crate.common.collections.Iterables.getOnlyElement;
 import static org.junit.Assert.assertEquals;
 
+import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
+import java.util.Map;
+import java.util.Set;
+
+import javax.annotation.Nullable;
 
 import org.junit.Test;
 
-import io.crate.planner.iterative.GroupReference;
-import io.crate.planner.iterative.Memo;
+import io.crate.analyze.OrderBy;
+import io.crate.analyze.relations.AbstractTableRelation;
+import io.crate.data.Row;
+import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
+import io.crate.expression.symbol.SelectSymbol;
+import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.RelationName;
+import io.crate.planner.DependencyCarrier;
+import io.crate.planner.ExecutionPlan;
+import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.LogicalPlanId;
 import io.crate.planner.operators.LogicalPlanIdAllocator;
+import io.crate.planner.operators.LogicalPlanVisitor;
+import io.crate.planner.operators.PlanHint;
+import io.crate.planner.operators.SubQueryResults;
+import io.crate.statistics.TableStats;
 
 
-public class TestMemo
-{
+public class MemoTest {
     private final LogicalPlanIdAllocator idAllocator = new LogicalPlanIdAllocator();
 
     @Test
-    public void testInitialization()
-    {
+    public void testInitialization() {
         LogicalPlan plan = node(node());
         Memo memo = new Memo(idAllocator, plan);
 
@@ -55,8 +69,7 @@ public class TestMemo
       To:   X -> Y' -> Z'
      */
     @Test
-    public void testReplaceSubtree()
-    {
+    public void testReplaceSubtree() {
         LogicalPlan plan = node(node(node()));
 
         Memo memo = new Memo(idAllocator, plan);
@@ -74,8 +87,7 @@ public class TestMemo
       To:   X -> Y' -> Z
      */
     @Test
-    public void testReplaceNode()
-    {
+    public void testReplaceNode() {
         LogicalPlan z = node();
         LogicalPlan y = node(z);
         LogicalPlan x = node(y);
@@ -97,8 +109,7 @@ public class TestMemo
       To:   X -> Y' -> Z' -> W
      */
     @Test
-    public void testReplaceNonLeafSubtree()
-    {
+    public void testReplaceNonLeafSubtree() {
         LogicalPlan w = node();
         LogicalPlan z = node(w);
         LogicalPlan y = node(z);
@@ -133,8 +144,7 @@ public class TestMemo
       To:   X -> Z
      */
     @Test
-    public void testRemoveNode()
-    {
+    public void testRemoveNode() {
         LogicalPlan z = node();
         LogicalPlan y = node(z);
         LogicalPlan x = node(y);
@@ -150,8 +160,8 @@ public class TestMemo
 
         assertMatchesStructure(
             memo.extract(),
-            node(x.getId(),
-                 node(z.getId())));
+            node(x.id(),
+                 node(z.id())));
     }
 
     /*
@@ -159,8 +169,7 @@ public class TestMemo
        To:   X -> Y -> Z
      */
     @Test
-    public void testInsertNode()
-    {
+    public void testInsertNode() {
         LogicalPlan z = node();
         LogicalPlan x = node(z);
 
@@ -176,9 +185,9 @@ public class TestMemo
 
         assertMatchesStructure(
             memo.extract(),
-            node(x.getId(),
-                 node(y.getId(),
-                      node(z.getId()))));
+            node(x.id(),
+                 node(y.id(),
+                      node(z.id()))));
     }
 
     /*
@@ -187,8 +196,7 @@ public class TestMemo
               \-> Y2' -/
      */
     @Test
-    public void testMultipleReferences()
-    {
+    public void testMultipleReferences() {
         LogicalPlan z = node();
         LogicalPlan y = node(z);
         LogicalPlan x = node(y);
@@ -198,7 +206,7 @@ public class TestMemo
 
         int yGroup = getChildGroup(memo, memo.getRootGroup());
 
-        LogicalPlan rewrittenZ = memo.getNode(yGroup).getSources().get(0);
+        LogicalPlan rewrittenZ = memo.getNode(yGroup).sources().get(0);
         LogicalPlan y1 = node(rewrittenZ);
         LogicalPlan y2 = node(rewrittenZ);
 
@@ -208,61 +216,13 @@ public class TestMemo
 
         assertMatchesStructure(
             memo.extract(),
-            node(newX.getId(),
-                 node(y1.getId(), node(z.getId())),
-                 node(y2.getId(), node(z.getId()))));
+            node(newX.id(),
+                 node(y1.id(), node(z.id())),
+                 node(y2.id(), node(z.id()))));
     }
 
-//    @Test
-//    public void testEvictStatsOnReplace()
-//    {
-//        LogicalPlan y = node();
-//        LogicalPlan x = node(y);
-//
-//        Memo memo = new Memo(idAllocator, x);
-//        int xGroup = memo.getRootGroup();
-//        int yGroup = getChildGroup(memo, memo.getRootGroup());
-//        LogicalPlanStatsEstimate xStats = LogicalPlanStatsEstimate.builder().setOutputRowCount(42).build();
-//        PlanNodeStatsEstimate yStats = PlanNodeStatsEstimate.builder().setOutputRowCount(55).build();
-//
-//        memo.storeStats(yGroup, yStats);
-//        memo.storeStats(xGroup, xStats);
-//
-//        assertEquals(memo.getStats(yGroup), Optional.of(yStats));
-//        assertEquals(memo.getStats(xGroup), Optional.of(xStats));
-//
-//        memo.replace(yGroup, node(), "rule");
-//
-//        assertEquals(memo.getStats(yGroup), Optional.empty());
-//        assertEquals(memo.getStats(xGroup), Optional.empty());
-//    }
 
-//    @Test
-//    public void testEvictCostOnReplace()
-//    {
-//        PlanNode y = node();
-//        PlanNode x = node(y);
-//
-//        Memo memo = new Memo(idAllocator, x);
-//        int xGroup = memo.getRootGroup();
-//        int yGroup = getChildGroup(memo, memo.getRootGroup());
-//        PlanCostEstimate yCost = new PlanCostEstimate(42, 0, 0, 0);
-//        PlanCostEstimate xCost = new PlanCostEstimate(42, 0, 0, 37);
-//
-//        memo.storeCost(yGroup, yCost);
-//        memo.storeCost(xGroup, xCost);
-//
-//        assertEquals(memo.getCost(yGroup), Optional.of(yCost));
-//        assertEquals(memo.getCost(xGroup), Optional.of(xCost));
-//
-//        memo.replace(yGroup, node(), "rule");
-//
-//        assertEquals(memo.getCost(yGroup), Optional.empty());
-//        assertEquals(memo.getCost(xGroup), Optional.empty());
-//    }
-
-    private static void assertMatchesStructure(LogicalPlan actual, LogicalPlan expected)
-    {
+    private static void assertMatchesStructure(LogicalPlan actual, LogicalPlan expected) {
         assertEquals(actual.getClass(), expected.getClass());
         assertEquals(actual.id(), expected.id());
         assertEquals(actual.sources().size(), expected.sources().size());
@@ -272,51 +232,99 @@ public class TestMemo
         }
     }
 
-    private int getChildGroup(Memo memo, int group)
-    {
+    private int getChildGroup(Memo memo, int group) {
         LogicalPlan node = memo.getNode(group);
         GroupReference child = (GroupReference) node.sources().get(0);
 
         return child.groupId();
     }
 
-    private GenericNode node(LogicalPlanId id, LogicalPlan... children)
-    {
-        return new GenericNode(id, List.copyOf(children));
+    private TestPlan node(LogicalPlanId id, LogicalPlan... children) {
+        return new TestPlan(id, List.of(children));
     }
 
-    private GenericNode node(LogicalPlan... children)
-    {
+    private TestPlan node(LogicalPlan... children) {
         return node(idAllocator.nextId(), children);
     }
 
-    private static class GenericNode
-        extends LogicalPlan
-    {
+    private static class TestPlan implements LogicalPlan {
         private final List<LogicalPlan> sources;
+        private final LogicalPlanId id;
 
-        public GenericNode(LogicalPlanId id, List<PlanNode> sources)
-        {
-            super(id);
-            this.sources = ImmutableList.copyOf(sources);
+        public TestPlan(LogicalPlanId id, List<LogicalPlan> sources) {
+            this.sources = List.copyOf(sources);
+            this.id = id;
         }
 
         @Override
-        public List<PlanNode> getSources()
-        {
+        public List<LogicalPlan> sources() {
             return sources;
         }
 
         @Override
-        public List<Symbol> getOutputSymbols()
-        {
-            return ImmutableList.of();
+        public List<Symbol> outputs() {
+            return List.of();
         }
 
         @Override
-        public PlanNode replaceChildren(List<PlanNode> newChildren)
-        {
-            return new GenericNode(getId(), newChildren);
+        public ExecutionPlan build(DependencyCarrier dependencyCarrier,
+                                   PlannerContext plannerContext,
+                                   Set<PlanHint> planHints,
+                                   ProjectionBuilder projectionBuilder,
+                                   int limit,
+                                   int offset,
+                                   @Nullable OrderBy order,
+                                   @Nullable Integer pageSizeHint,
+                                   Row params,
+                                   SubQueryResults subQueryResults) {
+            return null;
+        }
+
+
+        @Override
+        public List<AbstractTableRelation<?>> baseTables() {
+            return null;
+        }
+
+
+        @Override
+        public LogicalPlan replaceSources(List<LogicalPlan> sources) {
+            return new TestPlan(id(), sources);
+        }
+
+        @Override
+        public LogicalPlanId id() {
+            return id;
+        }
+
+        @Override
+        public LogicalPlan pruneOutputsExcept(TableStats tableStats, Collection<Symbol> outputsToKeep) {
+            return null;
+        }
+
+        @Override
+        public Map<LogicalPlan, SelectSymbol> dependencies() {
+            return null;
+        }
+
+        @Override
+        public long numExpectedRows() {
+            return 0;
+        }
+
+        @Override
+        public long estimatedRowSize() {
+            return 0;
+        }
+
+        @Override
+        public <C, R> R accept(LogicalPlanVisitor<C, R> visitor, C context) {
+            return visitor.visitPlan(this, context);
+        }
+
+        @Override
+        public Set<RelationName> getRelationNames() {
+            return null;
         }
     }
 }
