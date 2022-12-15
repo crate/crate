@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -21,105 +21,139 @@
 
 package io.crate.planner.optimizer;
 
-import io.crate.common.annotations.VisibleForTesting;
-import io.crate.common.collections.Lists2;
+import java.util.List;
+import java.util.function.Supplier;
+import java.util.stream.Stream;
+
+import org.elasticsearch.Version;
+
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.LogicalPlan;
+import io.crate.planner.optimizer.iterative.GroupReference;
+import io.crate.planner.optimizer.iterative.Lookup;
+import io.crate.planner.optimizer.iterative.Memo;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Match;
 import io.crate.statistics.TableStats;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.Version;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import java.util.function.Supplier;
-
-public class Optimizer {
-
-    private static final Logger LOGGER = LogManager.getLogger(Optimizer.class);
+public class Optimizer implements OptimizerI {
 
     private final List<Rule<?>> rules;
     private final Supplier<Version> minNodeVersionInCluster;
     private final NodeContext nodeCtx;
 
-    public Optimizer(NodeContext nodeCtx,
-                     Supplier<Version> minNodeVersionInCluster,
-                     List<Rule<?>> rules) {
+    public Optimizer(NodeContext nodeCtx, Supplier<Version> minNodeVersionInCluster, List<Rule<?>> rules) {
         this.rules = rules;
         this.minNodeVersionInCluster = minNodeVersionInCluster;
         this.nodeCtx = nodeCtx;
     }
 
+    @Override
     public LogicalPlan optimize(LogicalPlan plan, TableStats tableStats, CoordinatorTxnCtx txnCtx) {
-        var applicableRules = removeExcludedRules(rules, txnCtx.sessionSettings().excludedOptimizerRules());
-        LogicalPlan optimizedRoot = tryApplyRules(applicableRules, plan, tableStats, txnCtx);
-        var optimizedSources = Lists2.mapIfChange(optimizedRoot.sources(), x -> optimize(x, tableStats, txnCtx));
-        return tryApplyRules(
-            applicableRules,
-            optimizedSources == optimizedRoot.sources() ? optimizedRoot : optimizedRoot.replaceSources(optimizedSources),
-            tableStats,
-            txnCtx
-        );
+        Memo memo = new Memo(txnCtx.idAllocator(), plan);
+
+        Lookup lookup = node -> {
+            if (node instanceof GroupReference) {
+                return Stream.of(memo.getNode(((GroupReference) node).groupId()));
+            }
+            return Stream.of(node);
+        };
+
+        exploreGroup(memo.getRootGroup(), new Context(memo, lookup, txnCtx, tableStats));
+
+        return memo.extract();
     }
 
-    @VisibleForTesting
-    static List<Rule<?>> removeExcludedRules(List<Rule<?>> rules, Set<Class<? extends Rule<?>>> excludedRules) {
-        final boolean isTraceEnabled = LOGGER.isTraceEnabled();
-        if (excludedRules.isEmpty()) {
-            return rules;
-        }
-        var result = new ArrayList<Rule<?>>(rules.size());
-        for (var rule : rules) {
-            if (excludedRules.contains(rule.getClass())) {
-                if (isTraceEnabled) {
-                    LOGGER.trace("Rule '" + rule.getClass().getSimpleName() + "' excluded from execution");
-                }
-            } else {
-                result.add(rule);
+    private boolean exploreGroup(int group, Context context) {
+        // tracks whether this group or any children groups change as
+        // this method executes
+        boolean progress = exploreNode(group, context);
+
+        while (exploreChildren(group, context)) {
+            progress = true;
+            // if children changed, try current group again
+            // in case we can match additional rules
+            if (!exploreNode(group, context)) {
+                // no additional matches, so bail out
+                break;
             }
         }
-        return result;
+        return progress;
     }
 
-    private LogicalPlan tryApplyRules(List<Rule<?>> rules, LogicalPlan plan, TableStats tableStats, TransactionContext txnCtx) {
-        final boolean isTraceEnabled = LOGGER.isTraceEnabled();
-        LogicalPlan node = plan;
-        // Some rules may only become applicable after another rule triggered, so we keep
-        // trying to re-apply the rules as long as at least one plan was transformed.
+    private boolean exploreNode(int group, Context context) {
+        LogicalPlan node = context.memo().getNode(group);
+
         boolean done = false;
-        int numIterations = 0;
-        while (!done && numIterations < 10_000) {
+        boolean progress = false;
+
+        while (!done) {
             done = true;
-            Version minVersion = minNodeVersionInCluster.get();
             for (Rule rule : rules) {
-                if (minVersion.before(rule.requiredVersion())) {
-                    continue;
-                }
                 Match<?> match = rule.pattern().accept(node, Captures.empty());
                 if (match.isPresent()) {
-                    if (isTraceEnabled) {
-                        LOGGER.trace("Rule '" + rule.getClass().getSimpleName() + "' matched");
-                    }
                     @SuppressWarnings("unchecked")
-                    LogicalPlan transformedPlan = rule.apply(match.value(), match.captures(), tableStats, txnCtx, nodeCtx);
-                    if (transformedPlan != null) {
-                        if (isTraceEnabled) {
-                            LOGGER.trace("Rule '" + rule.getClass().getSimpleName() + "' transformed the logical plan");
-                        }
-                        node = transformedPlan;
+                    LogicalPlan transformed = rule.apply(node,
+                                                         match.captures(),
+                                                         context.tableStats(),
+                                                         context.txnCtx,
+                                                         nodeCtx);
+
+                    if (transformed != null) {
+                        context.memo().replace(group, transformed, rule.getClass().getName());
+                        node = transformed;
                         done = false;
+                        progress = true;
                     }
                 }
             }
-            numIterations++;
         }
-        assert numIterations < 10_000
-            : "Optimizer reached 10_000 iterations safety guard. This is an indication of a broken rule that matches again and again";
-        return node;
+
+        return progress;
+    }
+
+    private boolean exploreChildren(int group, Context context) {
+        boolean progress = false;
+
+        LogicalPlan expression = context.memo().getNode(group);
+        for (LogicalPlan child : expression.sources()) {
+            if (!(child instanceof GroupReference)) {
+                throw new IllegalStateException(
+                    "Expected child to be a group reference. Found: " + child.getClass().getName());
+            }
+
+            if (exploreGroup(((GroupReference) child).groupId(), context)) {
+                progress = true;
+            }
+        }
+
+        return progress;
+    }
+
+    private static class Context {
+        private final Memo memo;
+        private final Lookup lookup;
+        private final CoordinatorTxnCtx txnCtx;
+        private final TableStats tableStats;
+
+        public Context(Memo memo, Lookup lookup, CoordinatorTxnCtx txnCtx, TableStats tableStats) {
+            this.memo = memo;
+            this.lookup = lookup;
+            this.txnCtx = txnCtx;
+            this.tableStats = tableStats;
+        }
+
+        public Memo memo() {
+            return memo;
+        }
+
+        public Lookup lookup() {
+            return lookup;
+        }
+
+        public TableStats tableStats() {
+            return tableStats;
+        }
     }
 }

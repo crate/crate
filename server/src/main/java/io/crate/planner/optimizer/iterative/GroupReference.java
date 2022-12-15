@@ -85,7 +85,7 @@ public class GroupReference implements LogicalPlan {
 
     @Override
     public Map<LogicalPlan, SelectSymbol> dependencies() {
-        throw new UnsupportedOperationException();
+        return Map.of();
     }
 
     @Override
@@ -95,7 +95,7 @@ public class GroupReference implements LogicalPlan {
 
     @Override
     public long estimatedRowSize() {
-        throw new UnsupportedOperationException();
+        return 0;
     }
 
     @Override
@@ -131,6 +131,6 @@ public class GroupReference implements LogicalPlan {
 
     @Override
     public List<AbstractTableRelation<?>> baseTables() {
-        throw new UnsupportedOperationException();
+        return List.of();
     }
 }
