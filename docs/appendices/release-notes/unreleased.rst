@@ -65,3 +65,18 @@ Fixes
 - Fixed an issue that allowed users without the related privileges to check
   other users' privileges by calling
   :ref:`has_schema_privilege <scalar-has-schema-priv>` function.
+
+- Fixed an issue that caused ``SELECT *`` statements to fail if a table has an
+  object with inner null object and a sibling column with the same name with
+  one of the sub-columns. An example::
+
+    CREATE TABLE IF NOT EXISTS "t" (
+      "obj1" OBJECT(DYNAMIC) AS (
+       "target" text,
+       "obj2" OBJECT(DYNAMIC) AS (
+          "target" REAL
+       )
+      )
+    );
+    INSERT INTO t VALUES ('{"obj2": null, "target": "Sensor"}');
+    SELECT * FROM t;
