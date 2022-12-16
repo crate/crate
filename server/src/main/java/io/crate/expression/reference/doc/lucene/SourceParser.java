@@ -57,6 +57,8 @@ import io.crate.types.ObjectType;
 import io.crate.types.ShortType;
 import io.crate.types.TimestampType;
 
+import static org.elasticsearch.common.xcontent.XContentParser.Token.VALUE_NULL;
+
 public final class SourceParser {
 
     private final Map<String, Object> requiredColumns = new HashMap<>();
@@ -141,10 +143,15 @@ public final class SourceParser {
             XContentParser.Token token = parser.nextToken(); // move past START_OBJECT;
             for (; token == XContentParser.Token.FIELD_NAME; token = parser.nextToken()) {
                 String fieldName = parser.currentName();
-                parser.nextToken();
+                token = parser.nextToken(); // Move to the current field's value
                 var required = requiredColumns.get(fieldName);
                 if (required == null && !includeUnknown) {
                     parser.skipChildren();
+                } else if (token == VALUE_NULL) {
+                    // If object value is null, we can short-circuit to NULL and continue further with other fields.
+                    // We should not call parseObject() as current object's innerTypes can interfere with sibling columns
+                    // and in case of same names cause parsing errors. See https://github.com/crate/crate/issues/13372
+                    values.put(fieldName, null);
                 } else if (required instanceof ObjectType objectType) {
                     values.put(fieldName, parseObject(parser, objectType, (Map) objectType.innerTypes(), true));
                 } else if (required instanceof DataType<?> dataType) {
