@@ -25,7 +25,7 @@ Synopsis
                            | table_ident [ PARTITION (partition_column = value [ , ... ]) ] }
       { SET ( parameter = value [ , ... ] )
         | RESET ( parameter [ , ... ] )
-        | ADD [ COLUMN ] column_name data_type [ column_constraint [ ... ] ]
+        | { ADD [ COLUMN ] column_name data_type [ column_constraint [ ... ] ] } [, ... ]
         | OPEN
         | CLOSE
         | RENAME TO table_ident
@@ -170,6 +170,7 @@ expression <sql-literal-value>`.
 :column_name:
   Name of the column which should be added.
 
+It's possible to add multiple columns at once.
 
 .. _sql-alter-table-open-close:
 

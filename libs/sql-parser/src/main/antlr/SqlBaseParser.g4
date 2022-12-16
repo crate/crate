@@ -115,7 +115,8 @@ dropStmt
     ;
 
 alterStmt
-    : ALTER TABLE alterTableDefinition ADD COLUMN? addColumnDefinition               #addColumn
+    : ALTER TABLE alterTableDefinition addColumnDefinition
+      (COMMA addColumnDefinition)*                                                   #addColumn
     | ALTER TABLE alterTableDefinition DROP CONSTRAINT ident                         #dropCheckConstraint
     | ALTER TABLE alterTableDefinition
         (SET OPEN_ROUND_BRACKET genericProperties CLOSE_ROUND_BRACKET
@@ -632,7 +633,7 @@ columnDefinition
     ;
 
 addColumnDefinition
-    : subscriptSafe dataType? ((GENERATED ALWAYS)? AS expr)? columnConstraint*
+    : ADD COLUMN? subscriptSafe dataType? ((GENERATED ALWAYS)? AS expr)? columnConstraint*
     ;
 
 rerouteOption
