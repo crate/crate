@@ -156,4 +156,61 @@ public class SourceParserTest extends ESTestCase {
             .extracting("bs")
             .isEqualTo(BitString.ofRawBits("1001"));
     }
+
+    @Test
+    public void test_null_object_sibling_subcolumn_has_same_name() {
+        SourceParser sourceParser = new SourceParser();
+        ObjectType innerObjectType = ObjectType.builder()
+            .setInnerType("target", DataTypes.FLOAT)
+            .build();
+        ObjectType outerObjectType = ObjectType.builder()
+            .setInnerType("inner_object", innerObjectType)
+            .setInnerType("target", DataTypes.STRING)
+            .build();
+        sourceParser.register(new ColumnIdent("_doc", List.of("outer_object")), outerObjectType);
+        Map<String, Object> result = sourceParser.parse(new BytesArray(
+            """
+            {
+                "outer_object": {
+                    "inner_object": null,
+                    "target": "some text"
+                }
+            }
+            """));
+
+        assertThat(result)
+            .extracting("outer_object")
+            .extracting("inner_object")
+            .isNull();
+
+        assertThat(result)
+            .extracting("outer_object")
+            .extracting("target")
+            .isEqualTo("some text");
+    }
+
+    @Test
+    public void test_null_object_next_not_sibling_column_has_same_name() {
+        SourceParser sourceParser = new SourceParser();
+        ObjectType objectType = ObjectType.builder()
+            .setInnerType("target", DataTypes.FLOAT)
+            .build();
+        sourceParser.register(new ColumnIdent("_doc", List.of("obj")), objectType);
+        sourceParser.register(new ColumnIdent("_doc", List.of("target")), DataTypes.STRING);
+        Map<String, Object> result = sourceParser.parse(new BytesArray(
+            """
+            {
+                "obj": null,
+                "target": "some text"
+            }
+            """));
+
+        assertThat(result)
+            .extracting("obj")
+            .isNull();
+
+        assertThat(result)
+            .extracting("target")
+            .isEqualTo("some text");
+    }
 }
