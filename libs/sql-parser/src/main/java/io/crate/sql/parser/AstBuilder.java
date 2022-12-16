@@ -1244,9 +1244,8 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
 
     @Override
     public Node visitAddColumn(SqlBaseParser.AddColumnContext context) {
-        return new AlterTableAddColumn(
-            (Table) visit(context.alterTableDefinition()),
-            (AddColumnDefinition) visit(context.addColumnDefinition()));
+        var columnDefinitions = Lists2.map(context.addColumnDefinition(), x -> (TableElement<Expression>) visit(x));
+        return new AlterTableAddColumn((Table) visit(context.alterTableDefinition()), columnDefinitions);
     }
 
     @Override
