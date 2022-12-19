@@ -35,6 +35,7 @@ import java.time.format.DateTimeParseException;
 import java.time.format.ResolverStyle;
 import java.time.temporal.TemporalAccessor;
 import java.util.Locale;
+import java.util.Map;
 import java.util.function.Function;
 
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -218,5 +219,13 @@ public final class TimestampType extends DataType<Long>
     @Override
     public long valueBytes(Long value) {
         return LongType.LONG_SIZE;
+    }
+
+    @Override
+    public void addMappingOptions(Map<String, Object> mapping) {
+        mapping.put("format", "epoch_millis||strict_date_optional_time");
+        if (id == ID_WITHOUT_TZ) {
+            mapping.put("ignore_timezone", true);
+        }
     }
 }

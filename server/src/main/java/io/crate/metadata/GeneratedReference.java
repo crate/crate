@@ -24,6 +24,7 @@ package io.crate.metadata;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 import javax.annotation.Nullable;
@@ -239,5 +240,10 @@ public class GeneratedReference implements Reference {
             + RamUsageEstimator.sizeOf(formattedGeneratedExpression)
             + (generatedExpression == null ? 0 : generatedExpression.ramBytesUsed())
             + referencedReferences.stream().mapToLong(Reference::ramBytesUsed).sum();
+    }
+
+    @Override
+    public Map<String, Object> toMapping() {
+        return ref.toMapping();
     }
 }

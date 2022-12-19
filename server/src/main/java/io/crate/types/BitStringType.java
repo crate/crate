@@ -25,17 +25,19 @@ import java.io.IOException;
 import java.util.BitSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
-import com.fasterxml.jackson.core.Base64Variants;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+
+import com.fasterxml.jackson.core.Base64Variants;
 
 import io.crate.Streamer;
 import io.crate.metadata.settings.SessionSettings;
@@ -254,5 +256,10 @@ public final class BitStringType extends DataType<BitString> implements Streamer
     @Override
     public Integer characterMaximumLength() {
         return length();
+    }
+
+    @Override
+    public void addMappingOptions(Map<String, Object> mapping) {
+        mapping.put("length", length);
     }
 }

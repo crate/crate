@@ -25,9 +25,11 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.annotation.Nullable;
 
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -57,6 +59,14 @@ public interface Reference extends Symbol {
     Symbol defaultExpression();
 
     Reference getRelocated(ReferenceIdent referenceIdent);
+
+    /**
+     * Creates the {@link IndexMetadata} mapping representation of the Column.
+     * <p>
+     * Note that for object types it does _NOT_ include the inner columns.
+     * </p>
+     */
+    Map<String, Object> toMapping();
 
     static void toStream(Reference ref, StreamOutput out) throws IOException {
         out.writeVInt(ref.symbolType().ordinal());

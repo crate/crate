@@ -486,7 +486,7 @@ public final class DataTypes {
     private static final Map<Integer, String> TYPE_IDS_TO_MAPPINGS = Map.ofEntries(
         entry(TIMESTAMPZ.id(), "date"),
         entry(TIMESTAMP.id(), "date"),
-        entry(STRING.id(), "text"),
+        entry(STRING.id(), "keyword"),
         entry(CHARACTER.id(), "keyword"),
         entry(BYTE.id(), "byte"),
         entry(BOOLEAN.id(), "boolean"),

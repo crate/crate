@@ -45,14 +45,10 @@ import io.crate.metadata.IndexType;
 import io.crate.metadata.table.ColumnPolicies;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.GenericProperties;
-import io.crate.types.BitStringType;
-import io.crate.types.CharacterType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.GeoShapeType;
 import io.crate.types.ObjectType;
 import io.crate.types.StringType;
-import io.crate.types.TimestampType;
 
 public class AnalyzedColumnDefinition<T> {
 
@@ -497,51 +493,16 @@ public class AnalyzedColumnDefinition<T> {
     }
 
     public static void addTypeOptions(Map<String, Object> mapping,
-                                      DataType dataType,
+                                      DataType<?> dataType,
                                       @Nullable GenericProperties geoProperties,
                                       @Nullable String geoTree,
                                       @Nullable String analyzer) {
-        switch (dataType.id()) {
-            case TimestampType.ID_WITH_TZ:
-                /*
-                 * We want 1000 not be be interpreted as year 1000AD but as 1970-01-01T00:00:01.000
-                 * so prefer date mapping format epoch_millis over strict_date_optional_time
-                 */
-                mapping.put("format", "epoch_millis||strict_date_optional_time");
-                break;
-            case TimestampType.ID_WITHOUT_TZ:
-                mapping.put("format", "epoch_millis||strict_date_optional_time");
-                mapping.put("ignore_timezone", true);
-                break;
-            case GeoShapeType.ID:
-                if (geoProperties != null) {
-                    GeoSettingsApplier.applySettings(mapping, geoProperties, geoTree);
-                }
-                break;
-
-            case StringType.ID:
-                if (analyzer != null) {
-                    mapping.put("analyzer", analyzer);
-                }
-                var stringType = (StringType) dataType;
-                if (!stringType.unbound()) {
-                    mapping.put("length_limit", stringType.lengthLimit());
-                }
-                break;
-            case CharacterType.ID:
-                var type = (CharacterType) dataType;
-                mapping.put("length_limit", type.lengthLimit());
-                mapping.put("blank_padding", true);
-                break;
-
-            case BitStringType.ID:
-                int length = ((BitStringType) dataType).length();
-                mapping.put("length", length);
-                break;
-
-            default:
-                // noop
-                break;
+        dataType.addMappingOptions(mapping);
+        if (analyzer != null) {
+            mapping.put("analyzer", analyzer);
+        }
+        if (geoProperties != null) {
+            GeoSettingsApplier.applySettings(mapping, geoProperties, geoTree);
         }
     }
 

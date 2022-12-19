@@ -26,6 +26,7 @@ import static io.crate.common.StringUtils.padEnd;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
@@ -176,5 +177,11 @@ public class CharacterType extends StringType {
     @Override
     public Precedence precedence() {
         return Precedence.CHARACTER;
+    }
+
+    @Override
+    public void addMappingOptions(Map<String, Object> mapping) {
+        mapping.put("length_limit", lengthLimit);
+        mapping.put("blank_padding", true);
     }
 }

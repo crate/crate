@@ -21,25 +21,30 @@
 
 package io.crate.metadata;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 
 import java.util.Map;
 
 import org.elasticsearch.Version;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
+import io.crate.common.collections.Maps;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.sql.tree.ColumnPolicy;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
-public class ReferenceTest extends ESTestCase {
+public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testEquals() {
@@ -114,5 +119,42 @@ public class ReferenceTest extends ESTestCase {
         Reference reference2 = Reference.fromStream(in);
 
         assertThat(reference2, is(reference));
+    }
+
+
+    @Test
+    public void test_mapping_generation_for_varchar_with_length() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (xs varchar(40))")
+            .build();
+        DocTableInfo table = e.resolveTableInfo("tbl");
+        Reference reference = table.getReference(new ColumnIdent("xs"));
+        Map<String, Object> mapping = reference.toMapping();
+        assertThat(mapping)
+            .containsEntry("length_limit", 40)
+            .containsEntry("position", 1)
+            .containsEntry("type", "keyword")
+            .hasSize(3);
+        IndexMetadata indexMetadata = clusterService.state().getMetadata().getIndices().valuesIt().next();
+        Map<String, Object> sourceAsMap = indexMetadata.mapping().sourceAsMap();
+        assertThat(Maps.getByPath(sourceAsMap, "properties.xs")).isEqualTo(mapping);
+    }
+
+    @Test
+    public void test_mapping_generation_for_string_without_doc_values() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (xs string storage with (columnstore = false))")
+            .build();
+        DocTableInfo table = e.resolveTableInfo("tbl");
+        Reference reference = table.getReference(new ColumnIdent("xs"));
+        Map<String, Object> mapping = reference.toMapping();
+        assertThat(mapping)
+            .containsEntry("position", 1)
+            .containsEntry("type", "keyword")
+            .containsEntry("doc_values", "false")
+            .hasSize(3);
+        IndexMetadata indexMetadata = clusterService.state().getMetadata().getIndices().valuesIt().next();
+        Map<String, Object> sourceAsMap = indexMetadata.mapping().sourceAsMap();
+        assertThat(Maps.getByPath(sourceAsMap, "properties.xs")).isEqualTo(mapping);
     }
 }

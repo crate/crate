@@ -22,15 +22,17 @@
 package io.crate.metadata;
 
 import java.io.IOException;
+import java.util.Map;
 import java.util.Objects;
 
 import javax.annotation.Nullable;
 
-import io.crate.sql.tree.ColumnPolicy;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
+import io.crate.common.collections.Maps;
 import io.crate.expression.symbol.SymbolType;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataTypes;
 
 public class GeoReference extends SimpleReference {
@@ -130,5 +132,17 @@ public class GeoReference extends SimpleReference {
         if (distanceErrorPct != null) {
             out.writeDouble(distanceErrorPct);
         }
+    }
+
+    @Override
+    public Map<String, Object> toMapping() {
+        Map<String, Object> mapping = super.toMapping();
+        Maps.putNonNull(mapping, "tree", geoTree);
+        Maps.putNonNull(mapping, "precision", precision);
+        Maps.putNonNull(mapping, "tree_levels", treeLevels);
+        if (distanceErrorPct != null) {
+            mapping.put("distance_error_pct", distanceErrorPct.floatValue());
+        }
+        return mapping;
     }
 }
