@@ -28,6 +28,13 @@ import io.crate.planner.operators.LogicalPlan;
 
 public interface Lookup {
 
+    default LogicalPlan resolve(LogicalPlan node) {
+        if (node instanceof GroupReference) {
+            return resolveGroup(node).findFirst().get();
+        }
+        return node;
+    }
+
     Stream<LogicalPlan> resolveGroup(LogicalPlan node);
 
     static Lookup from(Function<GroupReference, Stream<LogicalPlan>> resolver) {

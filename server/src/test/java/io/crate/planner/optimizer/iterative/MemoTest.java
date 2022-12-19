@@ -239,19 +239,19 @@ public class MemoTest {
         return child.groupId();
     }
 
-    private TestPlan node(LogicalPlanId id, LogicalPlan... children) {
-        return new TestPlan(id, List.of(children));
+    private Node node(LogicalPlanId id, LogicalPlan... children) {
+        return new Node(id, List.of(children));
     }
 
-    private TestPlan node(LogicalPlan... children) {
+    private Node node(LogicalPlan... children) {
         return node(idAllocator.nextId(), children);
     }
 
-    private static class TestPlan implements LogicalPlan {
+    private static class Node implements LogicalPlan {
         private final List<LogicalPlan> sources;
         private final LogicalPlanId id;
 
-        public TestPlan(LogicalPlanId id, List<LogicalPlan> sources) {
+        public Node(LogicalPlanId id, List<LogicalPlan> sources) {
             this.sources = List.copyOf(sources);
             this.id = id;
         }
@@ -289,7 +289,7 @@ public class MemoTest {
 
         @Override
         public LogicalPlan replaceSources(List<LogicalPlan> sources) {
-            return new TestPlan(id(), sources);
+            return new Node(id(), sources);
         }
 
         @Override

@@ -48,10 +48,10 @@ public class OptimizerTest {
             true
         );
 
-        List<Rule<?>> rules = OptimizerOld.removeExcludedRules(List.of(new MergeFilters()),
+        List<Rule<?>> rules = Optimizer.removeExcludedRules(List.of(new MergeFilters()),
                                                             sessionSettings.excludedOptimizerRules());
         assertThat(rules.isEmpty(), is(true));
-        rules = OptimizerOld.removeExcludedRules(List.of(new MoveFilterBeneathHashJoin()), sessionSettings.excludedOptimizerRules());
+        rules = Optimizer.removeExcludedRules(List.of(new MoveFilterBeneathHashJoin()), sessionSettings.excludedOptimizerRules());
         assertThat(rules.size(), is(1));
     }
 }

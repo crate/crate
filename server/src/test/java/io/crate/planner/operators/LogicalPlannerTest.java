@@ -166,7 +166,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testIntermediateFetch() throws Exception {
         LogicalPlan plan = plan("select sum(x) from (select x from t1 limit 10) tt");
-        assertThat(plan, isPlan(
+        assertThat(printPlan(plan), is(
             "HashAggregate[sum(x)]\n" +
             "  └ Rename[x] AS tt\n" +
             "    └ Fetch[x]\n" +
