@@ -36,7 +36,7 @@ public class PgDatabaseTable {
 
     public static SystemTable<Void> create() {
         return SystemTable.<Void>builder(NAME)
-            .add("oid", INTEGER, c -> 0)
+            .add("oid", INTEGER, c -> Constants.DB_OID)
             .add("datname", STRING, c -> Constants.DB_NAME)
             .add("datdba", INTEGER, c -> 1)
             .add("encoding", INTEGER, c -> 6)
