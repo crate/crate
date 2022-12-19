@@ -52,7 +52,7 @@ public class SourceIndexWriterProjectionSerializationTest {
 
     @Test
     public void testSerializationFailFast() throws IOException {
-        RelationName relationName = new RelationName("doc", "test");
+        RelationName relationName = RelationName.of("doc", "test");
         ReferenceIdent referenceIdent = new ReferenceIdent(relationName, "object_column");
         SimpleReference reference = new SimpleReference(
             referenceIdent,
@@ -110,7 +110,7 @@ public class SourceIndexWriterProjectionSerializationTest {
 
     @Test
     public void testSerializationValidationFlag() throws IOException {
-        RelationName relationName = new RelationName("doc", "test");
+        RelationName relationName = RelationName.of("doc", "test");
         ReferenceIdent referenceIdent = new ReferenceIdent(relationName, "object_column");
         SimpleReference reference = new SimpleReference(
             referenceIdent,

@@ -76,7 +76,7 @@ public class SelectAnalyzer {
                 // prefix is either: <tableOrAlias>.* or <schema>.<table>
 
                 QualifiedName prefix = node.getPrefix().get();
-                AnalyzedRelation relation = context.sources().get(RelationName.of(prefix, null));
+                AnalyzedRelation relation = context.sources().get(RelationName.ofQualified(null, prefix));
                 if (relation != null) {
                     addAllFieldsFromRelation(context, relation);
                     return null;

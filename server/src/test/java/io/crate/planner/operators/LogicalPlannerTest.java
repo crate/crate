@@ -67,8 +67,8 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
             .addTable(T3.T1_DEFINITION)
             .addTable(T3.T2_DEFINITION)
             .setTableStats(tableStats)
-            .addView(new RelationName("doc", "v2"), "select a, x from doc.t1")
-            .addView(new RelationName("doc", "v3"), "select a, x from doc.t1")
+            .addView(RelationName.of("doc", "v2"), "select a, x from doc.t1")
+            .addView(RelationName.of("doc", "v3"), "select a, x from doc.t1")
             .build();
     }
 

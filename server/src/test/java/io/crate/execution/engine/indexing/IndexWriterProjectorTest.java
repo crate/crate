@@ -80,7 +80,7 @@ public class IndexWriterProjectorTest extends IntegTestCase {
         RowCollectExpression sourceInput = new RowCollectExpression(1);
         List<CollectExpression<Row, ?>> collectExpressions = Collections.<CollectExpression<Row, ?>>singletonList(sourceInput);
 
-        RelationName bulkImportIdent = new RelationName(sqlExecutor.getCurrentSchema(), "bulk_import");
+        RelationName bulkImportIdent = RelationName.of(sqlExecutor.getCurrentSchema(), "bulk_import");
         ClusterState state = clusterService().state();
         Settings tableSettings = TableSettingsResolver.get(state.getMetadata(), bulkImportIdent, false);
         ThreadPool threadPool = internalCluster().getInstance(ThreadPool.class);

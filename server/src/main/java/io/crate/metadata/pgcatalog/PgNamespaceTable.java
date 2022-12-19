@@ -33,7 +33,7 @@ import static io.crate.types.DataTypes.STRING;
 
 public class PgNamespaceTable {
 
-    public static final RelationName IDENT = new RelationName(PgCatalogSchemaInfo.NAME, "pg_namespace");
+    public static final RelationName IDENT = RelationName.of(PgCatalogSchemaInfo.NAME, "pg_namespace");
 
     public static SystemTable<SchemaInfo> create() {
         return SystemTable.<SchemaInfo>builder(IDENT)

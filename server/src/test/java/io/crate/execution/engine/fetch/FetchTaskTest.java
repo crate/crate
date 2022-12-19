@@ -93,7 +93,7 @@ public class FetchTaskTest extends CrateDummyClusterServiceUnitTest {
         ibb.allocate("i1", shards);
 
         Map<RelationName, Collection<String>> tableIndices = new HashMap<>();
-        tableIndices.put(new RelationName(Schemas.DOC_SCHEMA_NAME, "i1"), List.of("i1"));
+        tableIndices.put(RelationName.of(Schemas.DOC_SCHEMA_NAME, "i1"), List.of("i1"));
 
         Metadata metadata = Metadata.builder()
             .put(IndexMetadata.builder("i1")

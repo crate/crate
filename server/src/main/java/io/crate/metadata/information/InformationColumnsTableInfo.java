@@ -49,7 +49,7 @@ import static io.crate.types.DataTypes.TIMESTAMPZ;
 public class InformationColumnsTableInfo {
 
     public static final String NAME = "columns";
-    public static final RelationName IDENT = new RelationName(InformationSchemaInfo.NAME, NAME);
+    public static final RelationName IDENT = RelationName.of(InformationSchemaInfo.NAME, NAME);
 
     private static final String IS_GENERATED_NEVER = "NEVER";
     private static final String IS_GENERATED_ALWAYS = "ALWAYS";

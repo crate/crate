@@ -796,7 +796,7 @@ public class DDLIntegrationTest extends IntegTestCase {
             new Object[]{3, "Time is a illusion. Lunchtime doubles so", 1495961200000L}
         );
         PartitionName partitionName = new PartitionName(
-            new RelationName("doc", "quotes"), Arrays.asList("1495961200000"));
+            RelationName.of("doc", "quotes"), Arrays.asList("1495961200000"));
 
         execute("select number_of_shards from information_schema.table_partitions where partition_ident = ? and table_name = ?",
             $(partitionName.ident(), partitionName.relationName().name()));

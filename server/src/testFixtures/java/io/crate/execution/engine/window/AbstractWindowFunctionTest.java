@@ -84,7 +84,7 @@ public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServic
     @Before
     public void prepareFunctions() {
         DocTableInfo tableInfo = SQLExecutor.tableInfo(
-            new RelationName("doc", "t1"),
+            RelationName.of("doc", "t1"),
             "create table doc.t1 (x int, y bigint, z string, d double)",
             clusterService);
         DocTableRelation tableRelation = new DocTableRelation(tableInfo);

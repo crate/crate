@@ -56,7 +56,7 @@ public class TableStatsServiceIntegrationTest extends IntegTestCase {
         execute("refresh table t1");
         assertBusy(() -> {
             TableStats tableStats = internalCluster().getDataNodeInstance(TableStats.class);
-            assertThat(tableStats.numDocs(new RelationName(sqlExecutor.getCurrentSchema(), "t1")), is(5L));
+            assertThat(tableStats.numDocs(RelationName.of(sqlExecutor.getCurrentSchema(), "t1")), is(5L));
             // tableStats.tableStats.estimatedSizePerRow() is not tested because it's based on sys.shards size
             // column which is is cached for 10 secs in ShardSizeExpression which will increase the time needed
             // to run this test.

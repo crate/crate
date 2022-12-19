@@ -37,7 +37,7 @@ public class IndexReferenceTest extends ESTestCase {
 
     @Test
     public void testStreaming() throws Exception {
-        RelationName relationName = new RelationName("doc", "test");
+        RelationName relationName = RelationName.of("doc", "test");
         ReferenceIdent referenceIdent = new ReferenceIdent(relationName, "string_col");
         SimpleReference reference = new SimpleReference(referenceIdent, RowGranularity.DOC, StringType.INSTANCE, 1, null);
 

@@ -57,7 +57,7 @@ public final class CreateTableStatementAnalyzer {
                                        ParamTypeHints paramTypeHints,
                                        CoordinatorTxnCtx txnCtx) {
         RelationName relationName = RelationName
-            .of(createTable.name().getName(), txnCtx.sessionSettings().searchPath().currentSchema());
+            .ofQualified(txnCtx.sessionSettings().searchPath().currentSchema(), createTable.name().getName());
         relationName.ensureValidForRelationCreation();
 
         var exprAnalyzerWithoutFields = new ExpressionAnalyzer(

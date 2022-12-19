@@ -39,7 +39,7 @@ import static io.crate.types.DataTypes.isArray;
 
 public class PgAttributeTable {
 
-    public static final RelationName IDENT = new RelationName(PgCatalogSchemaInfo.NAME, "pg_attribute");
+    public static final RelationName IDENT = RelationName.of(PgCatalogSchemaInfo.NAME, "pg_attribute");
 
     public static SystemTable<ColumnContext> create() {
         return SystemTable.<ColumnContext>builder(IDENT)

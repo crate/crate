@@ -72,7 +72,7 @@ public class AlterTableOperationTest extends ESTestCase {
             .put(SETTING_NUMBER_OF_SHARDS, 5L)
             .build();
 
-        RelationName t1 = new RelationName("doc", "t1");
+        RelationName t1 = RelationName.of("doc", "t1");
         var oneTablePublished = Map.of("pub1", new Publication("owner", false, List.of(t1)));
 
         assertThrowsMatches(

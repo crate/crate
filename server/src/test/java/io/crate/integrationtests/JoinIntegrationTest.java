@@ -929,8 +929,8 @@ public class JoinIntegrationTest extends IntegTestCase {
         Iterable<TableStats> tableStatsOnAllNodes = internalCluster().getInstances(TableStats.class);
         for (TableStats tableStats : tableStatsOnAllNodes) {
             Map<RelationName, Stats> newStats = new HashMap<>();
-            newStats.put(new RelationName(sqlExecutor.getCurrentSchema(), "t1"), new Stats(4L, 16L, Map.of()));
-            newStats.put(new RelationName(sqlExecutor.getCurrentSchema(), "t2"), new Stats(6L, 24L, Map.of()));
+            newStats.put(RelationName.of(sqlExecutor.getCurrentSchema(), "t1"), new Stats(4L, 16L, Map.of()));
+            newStats.put(RelationName.of(sqlExecutor.getCurrentSchema(), "t2"), new Stats(6L, 24L, Map.of()));
             tableStats.updateTableStats(newStats);
         }
 
@@ -958,9 +958,9 @@ public class JoinIntegrationTest extends IntegTestCase {
         Iterable<TableStats> tableStatsOnAllNodes = internalCluster().getInstances(TableStats.class);
         for (TableStats tableStats : tableStatsOnAllNodes) {
             Map<RelationName, Stats> newStats = new HashMap<>();
-            newStats.put(new RelationName(sqlExecutor.getCurrentSchema(), "t1"), new Stats(2L, 8L, Map.of()));
-            newStats.put(new RelationName(sqlExecutor.getCurrentSchema(), "t2"), new Stats(3L, 12L, Map.of()));
-            newStats.put(new RelationName(sqlExecutor.getCurrentSchema(), "t3"), new Stats(10L, 40L, Map.of()));
+            newStats.put(RelationName.of(sqlExecutor.getCurrentSchema(), "t1"), new Stats(2L, 8L, Map.of()));
+            newStats.put(RelationName.of(sqlExecutor.getCurrentSchema(), "t2"), new Stats(3L, 12L, Map.of()));
+            newStats.put(RelationName.of(sqlExecutor.getCurrentSchema(), "t3"), new Stats(10L, 40L, Map.of()));
             tableStats.updateTableStats(newStats);
         }
 
@@ -1008,7 +1008,7 @@ public class JoinIntegrationTest extends IntegTestCase {
 
         for (TableStats tableStats : internalCluster().getInstances(TableStats.class)) {
             Map<RelationName, Stats> newStats = new HashMap<>();
-            newStats.put(new RelationName(sqlExecutor.getCurrentSchema(), relationName), new Stats(rowsCount, tableSizeInBytes, Map.of()));
+            newStats.put(RelationName.of(sqlExecutor.getCurrentSchema(), relationName), new Stats(rowsCount, tableSizeInBytes, Map.of()));
             tableStats.updateTableStats(newStats);
         }
 

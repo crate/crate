@@ -1259,7 +1259,7 @@ public class InformationSchemaTest extends IntegTestCase {
 
         execute("insert into t values (1)");
         String partitionIdent = new PartitionName(
-            new RelationName(sqlExecutor.getCurrentSchema(), "t"),
+            RelationName.of(sqlExecutor.getCurrentSchema(), "t"),
             Collections.singletonList("1")
         ).ident();
 

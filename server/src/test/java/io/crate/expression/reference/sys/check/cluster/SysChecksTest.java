@@ -82,7 +82,7 @@ public class SysChecksTest extends ESTestCase {
         List<PartitionName> partitions = new ArrayList<>();
 
         for (int i = 0; i < size; i++) {
-            partitions.add(new PartitionName(new RelationName("doc", "partition-" + i), Collections.emptyList()));
+            partitions.add(new PartitionName(RelationName.of("doc", "partition-" + i), Collections.emptyList()));
         }
 
         return partitions;

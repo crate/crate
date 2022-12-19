@@ -233,7 +233,7 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
         execute("insert into c.dynamic_table (meta) values({meta={a=['a','b']}})");
         execute("refresh table c.dynamic_table");
         execute("insert into c.dynamic_table (meta) values({meta={a=['c','d']}})");
-        waitForMappingUpdateOnAll(new RelationName("c", "dynamic_table"), "meta.meta.a");
+        waitForMappingUpdateOnAll(RelationName.of("c", "dynamic_table"), "meta.meta.a");
         Map<String, Object> sourceMap = getSourceMap("c", "dynamic_table");
         assertThat(String.valueOf(nestedValue(sourceMap, "properties.meta.properties.meta.properties.a.type")), is("array"));
         assertThat(String.valueOf(nestedValue(sourceMap, "properties.meta.properties.meta.properties.a.inner.type")), is("keyword"));
@@ -401,7 +401,7 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
         execute("refresh table numbers");
 
         Map<String, Object> sourceMap = getSourceMap(
-            new PartitionName(new RelationName("doc", "numbers"), Arrays.asList("true")).asIndexName());
+            new PartitionName(RelationName.of("doc", "numbers"), Arrays.asList("true")).asIndexName());
         assertThat(decodeMappingValue(sourceMap.get("dynamic")), is(ColumnPolicy.STRICT));
 
         assertThrowsMatches(() -> execute("insert into numbers (num, odd, prime, perfect) values (?, ?, ?, ?)",
@@ -439,7 +439,7 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
         execute("refresh table numbers");
 
         Map<String, Object> sourceMap = getSourceMap(
-            new PartitionName(new RelationName("doc", "numbers"), Arrays.asList("true")).asIndexName());
+            new PartitionName(RelationName.of("doc", "numbers"), Arrays.asList("true")).asIndexName());
         assertThat(decodeMappingValue(sourceMap.get("dynamic")), is(ColumnPolicy.STRICT));
 
         assertThrowsMatches(() -> execute("update numbers set num=?, perfect=? where num=6",
@@ -476,7 +476,7 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
         execute("refresh table numbers");
 
         Map<String, Object> sourceMap = getSourceMap(
-            new PartitionName(new RelationName("doc", "numbers"), Collections.singletonList("true")).asIndexName());
+            new PartitionName(RelationName.of("doc", "numbers"), Collections.singletonList("true")).asIndexName());
         assertThat(String.valueOf(sourceMap.get("dynamic")), is("true"));
 
         execute("insert into numbers (num, odd, prime, perfect) values (?, ?, ?, ?)",
@@ -555,7 +555,7 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
         execute("alter table dynamic_table set (column_policy = 'dynamic')");
         waitNoPendingTasksOnAll();
         String indexName = new PartitionName(
-            new RelationName("doc", "dynamic_table"), Arrays.asList("10.0")).asIndexName();
+            RelationName.of("doc", "dynamic_table"), Arrays.asList("10.0")).asIndexName();
         Map<String, Object> sourceMap = getSourceMap(indexName);
         assertThat(decodeMappingValue(sourceMap.get("dynamic")), is(ColumnPolicy.DYNAMIC));
         execute("alter table dynamic_table reset (column_policy)");
@@ -603,15 +603,15 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
         ensureYellow();
 
         Map<String, Object> sourceMap = getSourceMap(
-            new PartitionName(new RelationName("doc", "dynamic_table"), Arrays.asList("10.0")).asIndexName());
+            new PartitionName(RelationName.of("doc", "dynamic_table"), Arrays.asList("10.0")).asIndexName());
         assertThat(decodeMappingValue(sourceMap.get("dynamic")), is(ColumnPolicy.DYNAMIC));
 
         sourceMap = getSourceMap(new PartitionName(
-            new RelationName("doc", "dynamic_table"), Arrays.asList("5.0")).asIndexName());
+            RelationName.of("doc", "dynamic_table"), Arrays.asList("5.0")).asIndexName());
         assertThat(decodeMappingValue(sourceMap.get("dynamic")), is(ColumnPolicy.DYNAMIC));
 
         sourceMap = getSourceMap(new PartitionName(
-            new RelationName("doc", "dynamic_table"), Arrays.asList("3.0")).asIndexName());
+            RelationName.of("doc", "dynamic_table"), Arrays.asList("3.0")).asIndexName());
         assertThat(decodeMappingValue(sourceMap.get("dynamic")), is(ColumnPolicy.DYNAMIC));
     }
 

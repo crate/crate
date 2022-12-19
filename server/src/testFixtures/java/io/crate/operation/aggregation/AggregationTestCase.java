@@ -600,7 +600,7 @@ public abstract class AggregationTestCase extends ESTestCase {
         for (int i = 0; i < dataTypes.size(); i++) {
             references.add(
                 new SimpleReference(
-                    new ReferenceIdent(new RelationName(null, "dummy"), Integer.toString(i)),
+                    new ReferenceIdent(RelationName.of(null, "dummy"), Integer.toString(i)),
                     RowGranularity.DOC,
                     dataTypes.get(i),
                     ColumnPolicy.DYNAMIC,

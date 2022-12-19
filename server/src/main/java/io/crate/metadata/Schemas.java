@@ -231,10 +231,10 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
         if (schemaInfo != null) {
             TableInfo tableInfo = schemaInfo.getTableInfo(relation);
             if (tableInfo != null) {
-                return new RelationName(pathSchema, relation);
+                return RelationName.of(pathSchema, relation);
             } else {
                 if (views != null) {
-                    RelationName viewRelation = new RelationName(pathSchema, relation);
+                    RelationName viewRelation = RelationName.of(pathSchema, relation);
                     if (views.contains(viewRelation)) {
                         return viewRelation;
                     }
@@ -449,7 +449,7 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
                 for (String pathSchema : searchPath) {
                     SchemaInfo schemaInfo = schemas.get(pathSchema);
                     if (schemaInfo != null) {
-                        name = new RelationName(pathSchema, viewName);
+                        name = RelationName.of(pathSchema, viewName);
                         metadata = views.getView(name);
                         if (metadata != null) {
                             break;
@@ -457,7 +457,7 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
                     }
                 }
             } else {
-                name = new RelationName(identSchema, viewName);
+                name = RelationName.of(identSchema, viewName);
                 metadata = views.getView(name);
             }
         }
