@@ -204,4 +204,14 @@ public final class Maps {
         }
         return Collections.unmodifiableMap(result);
     }
+
+    /**
+     * Adds the value under the given key to the given map unless the value is null.
+     */
+    public static <K, V> V putNonNull(Map<K, V> map, K key, @Nullable V value) {
+        if (value != null) {
+            return map.put(key, value);
+        }
+        return null;
+    }
 }

@@ -25,12 +25,14 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
 import org.apache.lucene.util.Accountable;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 
@@ -245,5 +247,12 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
     public long ramBytesUsed() {
         // Most DataType's are singleton instances
         return 0L;
+    }
+
+    /**
+     * Adds type specific information to the provided mapping.
+     * The mapping is for the cluster state's {@link IndexMetadata}
+     */
+    public void addMappingOptions(Map<String, Object> mapping) {
     }
 }

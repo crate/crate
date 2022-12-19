@@ -352,4 +352,11 @@ public class StringType extends DataType<String> implements Streamer<String> {
     public long valueBytes(String value) {
         return RamUsageEstimator.sizeOf(value);
     }
+
+    @Override
+    public void addMappingOptions(Map<String, Object> mapping) {
+        if (!unbound()) {
+            mapping.put("length_limit", lengthLimit);
+        }
+    }
 }

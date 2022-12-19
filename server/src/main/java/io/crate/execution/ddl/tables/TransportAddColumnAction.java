@@ -21,11 +21,8 @@
 
 package io.crate.execution.ddl.tables;
 
-import static io.crate.analyze.AnalyzedColumnDefinition.addTypeOptions;
-import static io.crate.analyze.AnalyzedColumnDefinition.typeNameForESMapping;
 import static io.crate.metadata.Reference.buildTree;
 import static io.crate.metadata.cluster.AlterTableClusterStateExecutor.resolveIndices;
-import static org.elasticsearch.index.mapper.TypeParsers.DOC_VALUES;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -65,9 +62,6 @@ import io.crate.execution.ddl.AbstractDDLTransportAction;
 import io.crate.execution.ddl.TransportSchemaUpdateAction;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
-import io.crate.metadata.GeoReference;
-import io.crate.metadata.IndexReference;
-import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
@@ -75,7 +69,6 @@ import io.crate.metadata.cluster.DDLClusterStateHelpers;
 import io.crate.metadata.cluster.DDLClusterStateTaskExecutor;
 import io.crate.metadata.doc.DocTableInfoFactory;
 import io.crate.metadata.table.ColumnPolicies;
-import io.crate.sql.tree.GenericProperties;
 import io.crate.types.ArrayType;
 import io.crate.types.ObjectType;
 
@@ -295,50 +288,7 @@ public class TransportAddColumnAction extends AbstractDDLTransportAction<AddColu
      */
     private Map<String, Object> addColumnProperties(Reference reference, HashMap<ColumnIdent, List<Reference>> tree) {
 
-        if (reference instanceof GeneratedReference genRef) {
-            // extract actual reference (geo or index) from the generated reference since we are using instance of below.
-            reference = genRef.reference();
-        }
-
-        String analyzer = null;
-        if (reference instanceof IndexReference indRef) {
-            analyzer = indRef.analyzer();
-        }
-
-        String geoTree = null;
-        GenericProperties geoProperties = null;
-        if (reference instanceof GeoReference geoRef) {
-            geoTree = geoRef.geoTree();
-            Map<String, Object> geoMap = new HashMap<>();
-            if (geoRef.precision() != null) {
-                geoMap.put("precision", geoRef.precision());
-            }
-            if (geoRef.treeLevels() != null) {
-                geoMap.put("tree_levels", geoRef.treeLevels());
-            }
-            if (geoRef.distanceErrorPct() != null) {
-                geoMap.put("distance_error_pct", geoRef.distanceErrorPct());
-            }
-            if (geoMap.isEmpty() == false) {
-                geoProperties = new GenericProperties<>(geoMap);
-            }
-        }
-
-        var innerType = ArrayType.unnest(reference.valueType()); // In case of array reference, type options and type are specified based on the inner type.
-        HashMap<String, Object> columnProperties = new HashMap<>();
-
-        addTypeOptions(columnProperties, innerType, geoProperties, geoTree, analyzer);
-        columnProperties.put("type", typeNameForESMapping(innerType, analyzer, reference.indexType() == IndexType.FULLTEXT));
-
-        columnProperties.put("position", reference.position());
-
-        if (reference.indexType() == IndexType.NONE) {
-            // we must use a boolean <p>false</p> and NO string "false", otherwise parser support for old indices will fail
-            columnProperties.put("index", false);
-        }
-
-        // We align with AnalyzedColumnDefinition.toMapping() but don't handle copy_to field since it's irrelevant for ADD COLUMN
-
+        Map<String, Object> columnProperties = reference.toMapping();
         if (reference.valueType().id() == ArrayType.ID) {
             HashMap<String, Object> outerMapping = new HashMap<>();
             outerMapping.put("type", "array");
@@ -349,13 +299,6 @@ public class TransportAddColumnAction extends AbstractDDLTransportAction<AddColu
             return outerMapping;
         } else if (reference.valueType().id() == ObjectType.ID) {
             objectMapping(columnProperties, reference, tree);
-        }
-
-        if (reference.hasDocValues() != innerType.storageSupport().getComputedDocValuesDefault(reference.indexType())) {
-            // innerType = ref.valueType for non-arrays.
-            // When doc values are supported, they are enabled by default.
-            // If streamed value is non-default it means doc values are supported but disabled.
-            columnProperties.put(DOC_VALUES, "false");
         }
         return columnProperties;
     }

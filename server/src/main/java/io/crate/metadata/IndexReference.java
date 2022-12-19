@@ -26,6 +26,7 @@ import static java.util.Objects.requireNonNull;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 import javax.annotation.Nullable;
@@ -156,5 +157,15 @@ public class IndexReference extends SimpleReference {
         for (Reference reference : columns) {
             Reference.toStream(reference, out);
         }
+    }
+
+    @Override
+    public Map<String, Object> toMapping() {
+        Map<String, Object> mapping = super.toMapping();
+        if (analyzer != null) {
+            mapping.put("analyzer", analyzer);
+            mapping.put("type", "text");
+        }
+        return mapping;
     }
 }
