@@ -84,7 +84,7 @@ public class JsonReaderBenchmark {
     public static Reference createReference(String columnName, DataType<?> dataType) {
         return new SimpleReference(
             new ReferenceIdent(
-                new RelationName(Schemas.DOC_SCHEMA_NAME, "dummyTable"),
+                RelationName.of(Schemas.DOC_SCHEMA_NAME, "dummyTable"),
                 new ColumnIdent(columnName)
             ),
             RowGranularity.DOC,

@@ -50,7 +50,8 @@ public final class ViewAnalyzer {
     }
 
     public CreateViewStmt analyze(CreateView createView, CoordinatorTxnCtx txnCtx) {
-        RelationName name = RelationName.of(createView.name(), txnCtx.sessionSettings().searchPath().currentSchema());
+        RelationName name = RelationName.ofQualified(txnCtx.sessionSettings().searchPath().currentSchema(),
+                                                     createView.name());
         name.ensureValidForRelationCreation();
         if (BlobSchemaInfo.NAME.equals(name.schema())) {
             throw new UnsupportedOperationException("Creating a view in the \"blob\" schema is not supported");
@@ -97,7 +98,8 @@ public final class ViewAnalyzer {
                 views.add(schemas.resolveView(qualifiedName, txnCtx.sessionSettings().searchPath()).name());
             } catch (RelationUnknown e) {
                 if (!dropView.ifExists()) {
-                    missing.add(RelationName.of(qualifiedName, txnCtx.sessionSettings().searchPath().currentSchema()));
+                    missing.add(RelationName.ofQualified(txnCtx.sessionSettings().searchPath().currentSchema(),
+                                                         qualifiedName));
                 }
             }
         }

@@ -36,7 +36,7 @@ import static io.crate.types.DataTypes.REGCLASS;
 
 public class PgClassTable {
 
-    public static final RelationName IDENT = new RelationName(PgCatalogSchemaInfo.NAME, "pg_class");
+    public static final RelationName IDENT = RelationName.of(PgCatalogSchemaInfo.NAME, "pg_class");
     private static final String PERSISTENCE_PERMANENT = "p";
 
     public static SystemTable<Entry> create(TableStats tableStats) {

@@ -103,7 +103,7 @@ public class OrderedLuceneBatchIteratorBenchmark {
         indexSearcher = new IndexSearcher(DirectoryReader.open(iw, true, true));
         collectorContext = new CollectorContext();
         reference = new SimpleReference(
-            new ReferenceIdent(new RelationName(Schemas.DOC_SCHEMA_NAME, "dummyTable"), columnName),
+            new ReferenceIdent(RelationName.of(Schemas.DOC_SCHEMA_NAME, "dummyTable"), columnName),
             RowGranularity.DOC,
             DataTypes.INTEGER,
             1,

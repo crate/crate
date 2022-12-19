@@ -45,7 +45,7 @@ public class ExplainAnalyzedStatement implements AnalyzedStatement, AnalyzedRela
     private final RelationName relationName;
 
     ExplainAnalyzedStatement(String columnName, AnalyzedStatement statement, @Nullable ProfilingContext context) {
-        relationName = new RelationName(null, "explain");
+        relationName = RelationName.of(null, "explain");
         ScopedSymbol field = new ScopedSymbol(
             relationName,
             new ColumnIdent(columnName),

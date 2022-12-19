@@ -609,7 +609,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         }
         AnalyzedRelation aliasedRelation = new AliasedAnalyzedRelation(
             childRelation,
-            new RelationName(null, node.getAlias()),
+            RelationName.of(null, node.getAlias()),
             columnAliases
         );
         context.endRelation();
@@ -623,7 +623,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         AnalyzedRelation childRelation = node.query().accept(this, context);
         AnalyzedRelation aliasedRelation = new AliasedAnalyzedRelation(
             childRelation,
-            new RelationName(null, node.name()),
+            RelationName.of(null, node.name()),
             node.columnNames()
         );
         context.currentRelationContext().addSourceRelation(aliasedRelation);
@@ -638,7 +638,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         var relationContext = context.currentRelationContext();
 
         var withQuery = relationContext.parentSources()
-            .getAncestor(RelationName.of(tableQualifiedName, null));
+            .getAncestor(RelationName.ofQualified(null, tableQualifiedName));
         if (withQuery != null) {
             relation = withQuery;
         } else {

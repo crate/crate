@@ -33,7 +33,7 @@ import io.crate.metadata.SystemTable;
 public class InformationSqlFeaturesTableInfo {
 
     public static final String NAME = "sql_features";
-    public static final RelationName IDENT = new RelationName(InformationSchemaInfo.NAME, NAME);
+    public static final RelationName IDENT = RelationName.of(InformationSchemaInfo.NAME, NAME);
 
     public static SystemTable<SqlFeatureContext> create() {
         return SystemTable.<SqlFeatureContext>builder(IDENT)

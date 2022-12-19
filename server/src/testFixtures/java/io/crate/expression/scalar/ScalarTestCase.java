@@ -108,7 +108,7 @@ public abstract class ScalarTestCase extends CrateDummyClusterServiceUnitTest {
             ")";
 
         DocTableInfo tableInfo = SQLExecutor.tableInfo(
-            new RelationName(DocSchemaInfo.NAME, "users"),
+            RelationName.of(DocSchemaInfo.NAME, "users"),
             createTableStmt,
             clusterService);
 

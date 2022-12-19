@@ -43,7 +43,7 @@ public class SelectFromViewAnalyzerTest extends CrateDummyClusterServiceUnitTest
     public void setUpExecutor() throws Exception {
         e = SQLExecutor.builder(clusterService)
             .addTable("create table doc.t1 (name string, x int)")
-            .addView(new RelationName("doc", "v1"), "select name, count(*) from doc.t1 group by name")
+            .addView(RelationName.of("doc", "v1"), "select name, count(*) from doc.t1 group by name")
             .build();
     }
 
@@ -55,6 +55,6 @@ public class SelectFromViewAnalyzerTest extends CrateDummyClusterServiceUnitTest
         assertThat(query.from()).satisfiesExactly(exactlyInstanceOf(AnalyzedView.class));
         QueriedSelectRelation queriedDocTable = (QueriedSelectRelation) ((AnalyzedView) query.from().get(0)).relation();
         assertThat(queriedDocTable.groupBy()).satisfiesExactly(isReference("name"));
-        assertThat(queriedDocTable.from()).satisfiesExactly(isDocTable(new RelationName("doc", "t1")));
+        assertThat(queriedDocTable.from()).satisfiesExactly(isDocTable(RelationName.of("doc", "t1")));
     }
 }

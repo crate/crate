@@ -67,7 +67,7 @@ public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
             .addTable(T3.T2_DEFINITION)
             .addTable(TableDefinitions.TEST_DOC_LOCATIONS_TABLE_DEFINITION)
             .addTable("create table my_schema.locations (id int)")
-            .addView(new RelationName("my_schema", "locations_view"),
+            .addView(RelationName.of("my_schema", "locations_view"),
                      "select * from my_schema.locations limit 2")
             .setUserManager(USER_MANAGER)
             .build();

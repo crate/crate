@@ -42,7 +42,7 @@ import io.crate.types.DataTypes;
 
 public class SysClusterTableInfo {
 
-    public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "cluster");
+    public static final RelationName IDENT = RelationName.of(SysSchemaInfo.NAME, "cluster");
 
     public static class LoggerEntry {
 

@@ -31,7 +31,7 @@ import static io.crate.types.DataTypes.BOOLEAN;
 public final class PgTablesTable {
 
     public static final String NAME = "pg_tables";
-    public static final RelationName IDENT = new RelationName(PgCatalogSchemaInfo.NAME, NAME);
+    public static final RelationName IDENT = RelationName.of(PgCatalogSchemaInfo.NAME, NAME);
 
     public static SystemTable<TableInfo> create() {
         return SystemTable.<TableInfo>builder(IDENT)

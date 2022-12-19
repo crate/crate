@@ -48,7 +48,7 @@ public class FetchPhaseTest {
     @Test
     public void testStreaming() throws Exception {
 
-        RelationName t1 = new RelationName(Schemas.DOC_SCHEMA_NAME, "t1");
+        RelationName t1 = RelationName.of(Schemas.DOC_SCHEMA_NAME, "t1");
 
         TreeMap<String, Integer> bases = new TreeMap<>();
         bases.put(t1.name(), 0);
@@ -56,7 +56,7 @@ public class FetchPhaseTest {
 
         HashMap<RelationName, Collection<String>> tableIndices = new HashMap<>();
         tableIndices.put(t1, List.of(t1.name()));
-        tableIndices.put(new RelationName(Schemas.DOC_SCHEMA_NAME, "i2"), List.of("i2_s1", "i2_s2"));
+        tableIndices.put(RelationName.of(Schemas.DOC_SCHEMA_NAME, "i2"), List.of("i2_s1", "i2_s2"));
 
         ReferenceIdent nameIdent = new ReferenceIdent(t1, "name");
         SimpleReference name = new SimpleReference(nameIdent, RowGranularity.DOC, DataTypes.STRING, 0, null);

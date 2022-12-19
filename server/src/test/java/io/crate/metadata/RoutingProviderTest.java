@@ -53,7 +53,7 @@ public class RoutingProviderTest extends CrateDummyClusterServiceUnitTest {
             .localNodeId(local.getId())
             .build();
 
-        Routing forRandomMasterOrDataNode = routingProvider.forRandomMasterOrDataNode(new RelationName("doc", "dummy"), nodes);
+        Routing forRandomMasterOrDataNode = routingProvider.forRandomMasterOrDataNode(RelationName.of("doc", "dummy"), nodes);
         assertThat(forRandomMasterOrDataNode.nodes(), contains(
             Matchers.oneOf(node1.getId(), node2.getId())
         ));

@@ -43,7 +43,7 @@ public class ReferenceTest extends ESTestCase {
 
     @Test
     public void testEquals() {
-        RelationName relationName = new RelationName("doc", "test");
+        RelationName relationName = RelationName.of("doc", "test");
         ReferenceIdent referenceIdent = new ReferenceIdent(relationName, "object_column");
         DataType<?> dataType1 = new ArrayType<>(DataTypes.UNTYPED_OBJECT);
         DataType<?> dataType2 = new ArrayType<>(DataTypes.UNTYPED_OBJECT);
@@ -64,7 +64,7 @@ public class ReferenceTest extends ESTestCase {
 
     @Test
     public void testStreaming() throws Exception {
-        RelationName relationName = new RelationName("doc", "test");
+        RelationName relationName = RelationName.of("doc", "test");
         ReferenceIdent referenceIdent = new ReferenceIdent(relationName, "object_column");
         SimpleReference reference = new SimpleReference(
             referenceIdent,
@@ -90,7 +90,7 @@ public class ReferenceTest extends ESTestCase {
 
     @Test
     public void test_streaming_of_reference_position_before_4_6_0() throws Exception {
-        RelationName relationName = new RelationName("doc", "test");
+        RelationName relationName = RelationName.of("doc", "test");
         ReferenceIdent referenceIdent = new ReferenceIdent(relationName, "object_column");
         SimpleReference reference = new SimpleReference(
             referenceIdent,

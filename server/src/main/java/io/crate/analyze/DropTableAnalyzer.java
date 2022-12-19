@@ -80,7 +80,7 @@ class DropTableAnalyzer {
             tableInfo = (T) schemas.resolveTableInfo(name, Operation.DROP, sessionSettings.sessionUser(), sessionSettings.searchPath());
             tableName = tableInfo.ident();
         } catch (SchemaUnknownException | RelationUnknown e) {
-            tableName = RelationName.of(name, sessionSettings.searchPath().currentSchema());
+            tableName = RelationName.ofQualified(sessionSettings.searchPath().currentSchema(), name);
             var metadata = clusterService.state().metadata();
             var indexNameOrAlias = tableName.indexNameOrAlias();
 
@@ -100,7 +100,7 @@ class DropTableAnalyzer {
             }
             tableInfo = null;
             maybeCorrupt = true;
-            tableName = RelationName.of(name, sessionSettings.searchPath().currentSchema());
+            tableName = RelationName.ofQualified(sessionSettings.searchPath().currentSchema(), name);
             LOGGER.info(
                 "Unexpected error resolving table during DROP TABLE operation on {}. " +
                 "Proceeding with operation as table schema may be corrupt (error={})",

@@ -32,7 +32,7 @@ import io.crate.metadata.SystemTable;
 
 public class PgDatabaseTable {
 
-    public static final RelationName NAME = new RelationName(PgCatalogSchemaInfo.NAME, "pg_database");
+    public static final RelationName NAME = RelationName.of(PgCatalogSchemaInfo.NAME, "pg_database");
 
     public static SystemTable<Void> create() {
         return SystemTable.<Void>builder(NAME)

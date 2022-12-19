@@ -195,7 +195,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testUpdateAssignments() throws Exception {
         AnalyzedUpdateStatement update = analyze("update users set name='Trillian'");
         assertThat(update.assignmentByTargetCol().size(), is(1));
-        assertThat(((DocTableRelation) update.table()).tableInfo().ident(), is(new RelationName(Schemas.DOC_SCHEMA_NAME, "users")));
+        assertThat(((DocTableRelation) update.table()).tableInfo().ident(), is(RelationName.of(Schemas.DOC_SCHEMA_NAME, "users")));
 
         Reference ref = update.assignmentByTargetCol().keySet().iterator().next();
         assertThat(ref.ident().tableIdent().name(), is("users"));
@@ -273,7 +273,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testUpdateWithParameter() throws Exception {
         AnalyzedUpdateStatement update = analyze("update users set name=?, other_id=?, friends=? where id=?");
 
-        RelationName usersRelation = new RelationName("doc", "users");
+        RelationName usersRelation = RelationName.of("doc", "users");
         assertThat(update.assignmentByTargetCol().size(), is(3));
         DocTableInfo tableInfo = e.schemas().getTableInfo(usersRelation);
         Reference name = tableInfo.getReference(new ColumnIdent("name"));

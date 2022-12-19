@@ -32,7 +32,7 @@ import io.crate.metadata.SystemTable;
 
 public class SysSummitsTableInfo {
 
-    public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME,"summits");
+    public static final RelationName IDENT = RelationName.of(SysSchemaInfo.NAME,"summits");
 
     public static SystemTable<SummitsContext> create() {
         return SystemTable.<SummitsContext>builder(IDENT)

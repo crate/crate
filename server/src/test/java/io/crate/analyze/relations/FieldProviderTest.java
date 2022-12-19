@@ -56,7 +56,7 @@ public class FieldProviderTest extends ESTestCase {
     private static FullQualifiedNameFieldProvider newFQFieldProvider(Map<QualifiedName, AnalyzedRelation> sources) {
         Map<RelationName, AnalyzedRelation> relations = sources.entrySet().stream()
             .collect(Collectors.toMap(
-                entry -> RelationName.of(entry.getKey(), "doc"),
+                entry -> RelationName.ofQualified("doc", entry.getKey()),
                 Map.Entry::getValue
             ));
         return new FullQualifiedNameFieldProvider(
@@ -123,10 +123,10 @@ public class FieldProviderTest extends ESTestCase {
 
     @Test
     public void testMultipleSourcesWithDynamicReferenceAndReference() throws Exception {
-        AnalyzedRelation barT = new DummyRelation(new RelationName("bar", "t"), "name");
-        AnalyzedRelation fooT = new DummyRelation(new RelationName("foo", "t"), "name");
-        AnalyzedRelation fooA = new DummyRelation(new RelationName("foo", "a"), "name");
-        AnalyzedRelation customT = new DummyRelation(new RelationName("custom", "t"), "tags");
+        AnalyzedRelation barT = new DummyRelation(RelationName.of("bar", "t"), "name");
+        AnalyzedRelation fooT = new DummyRelation(RelationName.of("foo", "t"), "name");
+        AnalyzedRelation fooA = new DummyRelation(RelationName.of("foo", "a"), "name");
+        AnalyzedRelation customT = new DummyRelation(RelationName.of("custom", "t"), "tags");
 
         FieldProvider<Symbol> resolver = newFQFieldProvider(Map.of(
             newQN("bar.t"), barT,
@@ -146,7 +146,7 @@ public class FieldProviderTest extends ESTestCase {
     @Test
     public void testRelationOutputFromAlias() throws Exception {
         // t.name from doc.foo t
-        AnalyzedRelation relation = new DummyRelation(new RelationName("doc", "t"), "name");
+        AnalyzedRelation relation = new DummyRelation(RelationName.of("doc", "t"), "name");
         FieldProvider<Symbol> resolver = newFQFieldProvider(Map.of(
             new QualifiedName(List.of("t")), relation));
         Symbol field = resolver.resolveField(newQN("t.name"), null, Operation.READ, DEFAULT_ERROR_ON_UNKNOWN_OBJECT_KEY);
@@ -166,7 +166,7 @@ public class FieldProviderTest extends ESTestCase {
     public void testRelationOutputFromSchemaTableColumnName() throws Exception {
         // doc.t.name from t.name
 
-        AnalyzedRelation relation = new DummyRelation(new RelationName("doc", "t"), "name");
+        AnalyzedRelation relation = new DummyRelation(RelationName.of("doc", "t"), "name");
         FieldProvider<Symbol> resolver = newFQFieldProvider(Map.of(newQN("doc.t"), relation));
         Symbol field = resolver.resolveField(newQN("doc.t.name"), null, Operation.INSERT, DEFAULT_ERROR_ON_UNKNOWN_OBJECT_KEY);
         assertThat(field).isField("name", relation.relationName());
@@ -232,7 +232,7 @@ public class FieldProviderTest extends ESTestCase {
 
     @Test
     public void testColumnSchemaResolver() throws Exception {
-        AnalyzedRelation barT = new DummyRelation(new RelationName("Foo", "Bar"), "\"Name\"");
+        AnalyzedRelation barT = new DummyRelation(RelationName.of("Foo", "Bar"), "\"Name\"");
 
         FieldProvider<Symbol> resolver = newFQFieldProvider(Map.of(newQN("\"Foo\".\"Bar\""), barT));
         Symbol field = resolver.resolveField(newQN("\"Foo\".\"Bar\".\"Name\""), null, Operation.READ, DEFAULT_ERROR_ON_UNKNOWN_OBJECT_KEY);
@@ -250,7 +250,7 @@ public class FieldProviderTest extends ESTestCase {
 
     @Test
     public void testAliasRelationNameResolver() throws Exception {
-        AnalyzedRelation barT = new DummyRelation(new RelationName("doc", "Bar"), "name");
+        AnalyzedRelation barT = new DummyRelation(RelationName.of("doc", "Bar"), "name");
 
         FieldProvider<Symbol> resolver = newFQFieldProvider(Map.of(newQN("\"Bar\""), barT));
         Symbol field = resolver.resolveField(newQN("\"Bar\".name"), null, Operation.READ, DEFAULT_ERROR_ON_UNKNOWN_OBJECT_KEY);

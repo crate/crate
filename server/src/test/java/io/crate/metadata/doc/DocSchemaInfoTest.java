@@ -232,7 +232,7 @@ public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
     }
 
     private PublicationsMetadata publicationsMetadata(String name, boolean allTables, List<String> tables) {
-        var relationNames = Lists2.map(tables, x -> new RelationName(Schemas.DOC_SCHEMA_NAME, x));
+        var relationNames = Lists2.map(tables, x -> RelationName.of(Schemas.DOC_SCHEMA_NAME, x));
         var publications = Map.of(name, new Publication("user1", allTables, relationNames));
         return new PublicationsMetadata(publications);
     }
@@ -247,7 +247,7 @@ public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
 
     private DocTableInfo docTableInfo(String name) {
         return new DocTableInfo(
-            new RelationName(Schemas.DOC_SCHEMA_NAME, name),
+            RelationName.of(Schemas.DOC_SCHEMA_NAME, name),
             List.of(),
             List.of(),
             List.of(),

@@ -30,7 +30,7 @@ import io.crate.metadata.SystemTable;
 public final class InformationCharacterSetsTable {
 
     public static final String NAME = "character_sets";
-    public static final RelationName IDENT = new RelationName(InformationSchemaInfo.NAME, NAME);
+    public static final RelationName IDENT = RelationName.of(InformationSchemaInfo.NAME, NAME);
 
     public static SystemTable<Void> create() {
         return SystemTable.<Void>builder(IDENT)

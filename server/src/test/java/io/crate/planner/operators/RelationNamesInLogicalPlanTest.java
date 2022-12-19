@@ -69,7 +69,7 @@ public class RelationNamesInLogicalPlanTest extends CrateDummyClusterServiceUnit
         DocTableInfo t1 = e.resolveTableInfo("t1");
         Reference x = (Reference) e.asSymbol("x");
         t1Relation = new DocTableRelation(t1);
-        t1RenamedRelationName = new RelationName("doc", "t1_renamed");
+        t1RenamedRelationName = RelationName.of("doc", "t1_renamed");
         var t1Alias = new AliasedAnalyzedRelation(t1Relation, t1RenamedRelationName);
         var t1Collect = new Collect(t1Relation, List.of(x), WhereClause.MATCH_ALL, 1L, DataTypes.INTEGER.fixedSize());
         Symbol t1Output = t1Alias.getField(x.column(), Operation.READ, true);
@@ -78,7 +78,7 @@ public class RelationNamesInLogicalPlanTest extends CrateDummyClusterServiceUnit
         DocTableInfo t2 = e.resolveTableInfo("t2");
         Reference y = (Reference) e.asSymbol("y");
         t2Relation = new DocTableRelation(t2);
-        t2RenamedRelationName = new RelationName("doc", "t2_renamed");
+        t2RenamedRelationName = RelationName.of("doc", "t2_renamed");
         var t2Alias = new AliasedAnalyzedRelation(t2Relation, t2RenamedRelationName);
         var t2Collect = new Collect(t2Relation, List.of(x), WhereClause.MATCH_ALL, 1L, DataTypes.INTEGER.fixedSize());
         Symbol t2Output = t2Alias.getField(y.column(), Operation.READ, true);
@@ -118,7 +118,7 @@ public class RelationNamesInLogicalPlanTest extends CrateDummyClusterServiceUnit
         TableFunctionRelation tableFunctionRelation = (TableFunctionRelation) relation.from().get(0);
         var tableFunction = new TableFunction(tableFunctionRelation, List.of(), new WhereClause(null));
         assertThat(tableFunction.baseTables(), containsInAnyOrder());
-        assertThat(tableFunction.getRelationNames(), containsInAnyOrder(new RelationName(null, "abs")));
+        assertThat(tableFunction.getRelationNames(), containsInAnyOrder(RelationName.of(null, "abs")));
     }
 
     @Test

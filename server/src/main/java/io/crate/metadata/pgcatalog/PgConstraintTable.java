@@ -37,7 +37,7 @@ import io.crate.types.DataTypes;
 
 public class PgConstraintTable {
 
-    public static final RelationName IDENT = new RelationName(PgCatalogSchemaInfo.NAME, "pg_constraint");
+    public static final RelationName IDENT = RelationName.of(PgCatalogSchemaInfo.NAME, "pg_constraint");
 
     private static final String NO_ACTION = "a";
     private static final String MATCH_SIMPLE = "s";
