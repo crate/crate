@@ -178,3 +178,7 @@ Fixes
     );
     INSERT INTO t VALUES ('{"obj2": null, "target": "Sensor"}');
     SELECT * FROM t;
+
+- Fixed :ref:`swap table <alter_cluster_swap_table>` statements to throw an
+  exception when the table names provided contain ``.`` which is reserved as
+  the delimiter.
