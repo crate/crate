@@ -96,6 +96,10 @@ None
 Changes
 =======
 
+- Added :ref:`has_database_privilege <scalar-has-database-priv>` scalar function
+  which checks whether user (or current user if not specified) has specific
+  privilege(s) for the database.
+
 - Added support for :ref:`EXTRACT(field FROM interval) <scalar-extract>`.
   e.g.::
 
@@ -151,4 +155,6 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
-None
+- Fixed an issue that allowed users without the related privileges to check
+  other users' privileges by calling
+  :ref:`has_schema_privilege <scalar-has-schema-priv>` function.

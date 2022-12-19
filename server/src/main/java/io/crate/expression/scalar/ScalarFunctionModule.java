@@ -225,5 +225,6 @@ public class ScalarFunctionModule extends AbstractFunctionModule<FunctionImpleme
         ObjectKeysFunction.register(this);
 
         HasSchemaPrivilegeFunction.register(this);
+        HasDatabasePrivilegeFunction.register(this);
     }
 }
