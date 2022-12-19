@@ -31,6 +31,7 @@ import java.util.stream.Collectors;
 
 import org.antlr.v4.runtime.Vocabulary;
 
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.sql.parser.ParsingException;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.parser.antlr.v4.SqlBaseLexer;
@@ -38,7 +39,10 @@ import io.crate.sql.tree.QualifiedNameReference;
 
 public class Identifiers {
 
-    private static final Pattern IDENTIFIER = Pattern.compile("(^[a-z_]+[a-z0-9_]*)");
+    @VisibleForTesting
+    static final Pattern IDENTIFIER = Pattern.compile("(^[a-z_]+[a-z0-9_]*)"
+                                                      // can contain uppercase letters as long as quoted
+                                                      + "|(^\"([a-z_]+[a-z0-9_]*)?[A-Z][a-zA-Z0-9_]*\")");
     private static final Pattern ESCAPE_REPLACE_RE = Pattern.compile("\"", Pattern.LITERAL);
     private static final String ESCAPE_REPLACEMENT = Matcher.quoteReplacement("\"\"");
 
@@ -133,6 +137,11 @@ public class Identifiers {
 
     private static boolean quotesRequired(String identifier) {
         return isKeyWord(identifier) || !IDENTIFIER.matcher(identifier).matches();
+    }
+
+    public static boolean isQuoted(String identifier) {
+        return identifier.length() >= 2 &&
+               identifier.charAt(0) == '"' && identifier.charAt(identifier.length() - 1) == '"';
     }
 
     public static boolean isKeyWord(String identifier) {

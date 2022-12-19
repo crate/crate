@@ -38,6 +38,7 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 import org.antlr.v4.runtime.ParserRuleContext;
+import org.antlr.v4.runtime.RuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
@@ -1488,6 +1489,11 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
     @Override
     public Node visitQuotedIdentifier(SqlBaseParser.QuotedIdentifierContext context) {
         String token = context.getText();
+        if (isPartOfQname(context.parent)) {
+            if (!token.equals(token.toLowerCase(Locale.ROOT))) {
+                return new StringLiteral(context.getText());
+            }
+        }
         String identifier = token.substring(1, token.length() - 1)
             .replace("\"\"", "\"");
         return new StringLiteral(identifier);
@@ -2480,5 +2486,12 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
             default:
                 throw new IllegalArgumentException("Unsupported bound type: " + token.getText());
         }
+    }
+
+    private boolean isPartOfQname(RuleContext context) {
+        if (context == null) {
+            return false;
+        }
+        return context instanceof SqlBaseParser.QnameContext || isPartOfQname(context.parent);
     }
 }

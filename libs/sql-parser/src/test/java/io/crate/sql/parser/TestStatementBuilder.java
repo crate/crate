@@ -765,6 +765,7 @@ public class TestStatementBuilder {
         printStatement("create table test (col1 int, col2 timestamp without time zone not null)");
 
         printStatement("create table test (col1 string storage with (columnstore = false))");
+        printStatement("create table \"MySchema\".t (a int)");
     }
 
     @Test

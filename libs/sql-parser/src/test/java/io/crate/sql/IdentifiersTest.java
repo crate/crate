@@ -64,6 +64,7 @@ public class IdentifiersTest {
         assertThat(Identifiers.quoteIfNeeded("fhjgadhjgfhs")).isEqualTo("fhjgadhjgfhs");
         assertThat(Identifiers.quoteIfNeeded("fhjgadhjgfhsÖ")).isEqualTo("\"fhjgadhjgfhsÖ\"");
         assertThat(Identifiers.quoteIfNeeded("ABC")).isEqualTo("\"ABC\"");
+        assertThat(Identifiers.quoteIfNeeded("\"ABC\"")).isEqualTo("\"ABC\""); // quoted-ident containing upper case letters
         assertThat(Identifiers.quoteIfNeeded("abc\"")).isEqualTo("\"abc\"\"\"");
         assertThat(Identifiers.quoteIfNeeded("select")).isEqualTo("\"select\""); // keyword
         assertThat(Identifiers.quoteIfNeeded("1column")).isEqualTo("\"1column\"");
@@ -104,5 +105,15 @@ public class IdentifiersTest {
     @Test
     public void test_quote_expression_quotes_keywords() {
         assertThat(Identifiers.maybeQuoteExpression("select")).isEqualTo("\"select\""); // keyword
+    }
+
+    @Test
+    public void test_IDENTIFIER_pattern() {
+        assertThat(Identifiers.IDENTIFIER.matcher("a").matches()).isTrue();
+        assertThat(Identifiers.IDENTIFIER.matcher("A").matches()).isFalse(); // not quoted
+        assertThat(Identifiers.IDENTIFIER.matcher("\"A\"").matches()).isTrue();
+        assertThat(Identifiers.IDENTIFIER.matcher("\"\"A\"").matches()).isFalse(); // it is not an ident
+        assertThat(Identifiers.IDENTIFIER.matcher("a0a").matches()).isTrue();
+        assertThat(Identifiers.IDENTIFIER.matcher("\"a0A\"").matches()).isTrue();
     }
 }

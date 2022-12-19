@@ -324,7 +324,7 @@ public class Strings {
     }
 
     public static final Set<Character> INVALID_FILENAME_CHARS =
-        Set.of('\\', '/', '*', '?', '"', '<', '>', '|', ' ', ',');
+        Set.of('\\', '/', '*', '?', '<', '>', '|', ' ', ',');
 
     public static boolean validFileName(String fileName) {
         for (int i = 0; i < fileName.length(); i++) {

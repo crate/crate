@@ -715,7 +715,7 @@ public final class ExpressionFormatter {
         }
 
         private static String formatIdentifier(String s) {
-            return Identifiers.quote(s);
+            return Identifiers.isQuoted(s) ? s : Identifiers.quote(s);
         }
     }
 }
