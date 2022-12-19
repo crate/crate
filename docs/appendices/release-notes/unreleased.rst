@@ -137,8 +137,8 @@ Changes
   <sql-copy-from-skip>` for :ref:`COPY FROM <sql-copy-from>` which allows
   skipping rows from the beginning while copying data.
 
-- Updated to Admin UI 1.24.0, which added Italian translations, and updated some
-  dependency packages across the board.
+- Updated to Admin UI 1.24.1, which added Italian translations, updated some
+  dependency packages across the board, and its tool chain.
 
 - Added support for dollar quoted strings,
   see :ref:`String Literal <string_literal>` for further details.
