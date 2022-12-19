@@ -213,7 +213,7 @@ should be crossed out as well.
 - [s] 204efe9387c Add Repository Setting to Disable Writing index.latest (#60448) (#60576)
 - [s] 8ac81a3447d Remove IndexFieldData#clear since it is unused. (#60475)
 - [x] a2c49a4f02d Reduce Heap Use during Shard Snapshot (#60370) (#60440)
-- [ ] 8429b4ace88 Fix Queued Snapshot Deletes After Finalization Failure (#60285) (#60379)
+- [x] 8429b4ace88 Fix Queued Snapshot Deletes After Finalization Failure (#60285) (#60379)
 - [s] 1f6a3765e46 Fix NPE in SnapshotsInProgress Constructor (#60355)
 - [x] 753fd4f6bc3 Cleanup and optimize More Serialization Spots (#59959) (#60331)
 - [s] c7bfb5de41b Add search `fields` parameter to support high-level field retrieval. (#60258)
