@@ -665,8 +665,8 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
                 "   date timestamp with time zone," +
                 "   city string" +
                 ") clustered by (city) partitioned by (date) ",
-                new PartitionName(new RelationName("doc", "clustered_parted"), singletonList("1395874800000")).asIndexName(),
-                new PartitionName(new RelationName("doc", "clustered_parted"), singletonList("1395961200000")).asIndexName()
+                new PartitionName(RelationName.of("doc", "clustered_parted"), singletonList("1395874800000")).asIndexName(),
+                new PartitionName(RelationName.of("doc", "clustered_parted"), singletonList("1395961200000")).asIndexName()
             ).build();
 
         // only one partition hit
@@ -695,8 +695,8 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
                 "   date timestamp with time zone," +
                 "   city string" +
                 ") clustered by (city) partitioned by (date) ",
-                new PartitionName(new RelationName("doc", "clustered_parted"), singletonList("1395874800000")).asIndexName(),
-                new PartitionName(new RelationName("doc", "clustered_parted"), singletonList("1395961200000")).asIndexName()
+                new PartitionName(RelationName.of("doc", "clustered_parted"), singletonList("1395874800000")).asIndexName(),
+                new PartitionName(RelationName.of("doc", "clustered_parted"), singletonList("1395961200000")).asIndexName()
             ).build();
         Merge plan = e.plan("select date from clustered_parted group by date order by date");
         Merge reduceMerge = (Merge) plan.subPlan();

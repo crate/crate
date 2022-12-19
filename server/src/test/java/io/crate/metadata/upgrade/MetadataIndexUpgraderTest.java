@@ -60,7 +60,7 @@ public class MetadataIndexUpgraderTest extends ESTestCase {
 
     @Test
     public void test__all_is_removed_from_mapping() throws Throwable {
-        IndexMetadata indexMetadata = IndexMetadata.builder(new RelationName("doc", "users").indexNameOrAlias())
+        IndexMetadata indexMetadata = IndexMetadata.builder(RelationName.of("doc", "users").indexNameOrAlias())
             .settings(Settings.builder().put("index.version.created", VersionUtils.randomVersion(random())))
             .numberOfShards(1)
             .numberOfReplicas(0)
@@ -85,7 +85,7 @@ public class MetadataIndexUpgraderTest extends ESTestCase {
 
     @Test
     public void test_mappingMetadata_set_to_null() throws Throwable {
-        IndexMetadata indexMetadata = IndexMetadata.builder(new RelationName("blob", "b1").indexNameOrAlias())
+        IndexMetadata indexMetadata = IndexMetadata.builder(RelationName.of("blob", "b1").indexNameOrAlias())
             .settings(Settings.builder().put("index.version.created", Version.V_4_7_0))
             .numberOfShards(1)
             .numberOfReplicas(0)

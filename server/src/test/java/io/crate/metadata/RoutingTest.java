@@ -91,10 +91,10 @@ public class RoutingTest extends ESTestCase {
             .build();
 
         RoutingProvider routingProvider = new RoutingProvider(Randomness.get().nextInt(), Collections.emptyList());
-        Routing routing = routingProvider.forRandomMasterOrDataNode(new RelationName("doc", "table"), nodes);
+        Routing routing = routingProvider.forRandomMasterOrDataNode(RelationName.of("doc", "table"), nodes);
         assertThat(routing.locations().keySet(), anyOf(contains("data_master_node_1"), contains("data_master_node_2")));
 
-        Routing routing2 = routingProvider.forRandomMasterOrDataNode(new RelationName("doc", "table"), nodes);
+        Routing routing2 = routingProvider.forRandomMasterOrDataNode(RelationName.of("doc", "table"), nodes);
         assertThat("routingProvider is seeded and must return deterministic routing",
             routing.locations(), equalTo(routing2.locations()));
     }
@@ -114,7 +114,7 @@ public class RoutingTest extends ESTestCase {
             .build();
 
         RoutingProvider routingProvider = new RoutingProvider(Randomness.get().nextInt(), Collections.emptyList());
-        Routing routing = routingProvider.forRandomMasterOrDataNode(new RelationName("doc", "table"), nodes);
+        Routing routing = routingProvider.forRandomMasterOrDataNode(RelationName.of("doc", "table"), nodes);
         assertThat(routing.locations().keySet(), contains("local_data"));
     }
 }

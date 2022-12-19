@@ -143,7 +143,7 @@ public final class CreateViewPlan implements Plan {
 
         @Override
         protected Void visitTable(Table<?> node, Void context) {
-            RelationName tableName = RelationName.of(node.getName(), searchPath.currentSchema());
+            RelationName tableName = RelationName.ofQualified(searchPath.currentSchema(), node.getName());
             if (tableName.equals(viewName)) {
                 throw new IllegalArgumentException("Creating a view that references itself is not allowed. (`" + viewName + "`)");
             }

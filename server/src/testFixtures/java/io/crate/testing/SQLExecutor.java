@@ -552,7 +552,7 @@ public class SQLExecutor {
         }
 
         public Builder closeTable(String tableName) throws IOException {
-            String indexName = RelationName.of(QualifiedName.of(tableName), Schemas.DOC_SCHEMA_NAME).indexNameOrAlias();
+            String indexName = RelationName.ofQualified(Schemas.DOC_SCHEMA_NAME, QualifiedName.of(tableName)).indexNameOrAlias();
             ClusterState prevState = clusterService.state();
             var metadata = prevState.metadata();
             String[] concreteIndices = IndexNameExpressionResolver

@@ -51,7 +51,7 @@ import static io.crate.types.DataTypes.STRING_ARRAY;
 
 public class PgProcTable {
 
-    public static final RelationName IDENT = new RelationName(
+    public static final RelationName IDENT = RelationName.of(
         PgCatalogSchemaInfo.NAME,
         "pg_proc");
 

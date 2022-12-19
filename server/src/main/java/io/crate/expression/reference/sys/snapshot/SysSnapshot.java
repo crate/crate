@@ -102,7 +102,7 @@ public class SysSnapshot {
             .map(IndexParts::new)
             .filter(IndexParts::isPartitioned)
             .map(indexParts -> new PartitionName(
-                new RelationName(indexParts.getSchema(), indexParts.getTable()),
+                RelationName.of(indexParts.getSchema(), indexParts.getTable()),
                 indexParts.getPartitionIdent()))
             .toList();
     }

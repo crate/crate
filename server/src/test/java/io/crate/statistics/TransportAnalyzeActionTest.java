@@ -57,7 +57,7 @@ public class TransportAnalyzeActionTest extends ESTestCase {
         );
         var references = List.<Reference>of(
             new SimpleReference(
-                new ReferenceIdent(new RelationName(Schemas.DOC_SCHEMA_NAME, "dummy"), "dummy"),
+                new ReferenceIdent(RelationName.of(Schemas.DOC_SCHEMA_NAME, "dummy"), "dummy"),
                 RowGranularity.DOC,
                 DataTypes.STRING_ARRAY,
                 0,

@@ -74,7 +74,7 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
             "  idx int," +
             "  s_arr array(text)" +
             ")";
-        RelationName name = new RelationName(DocSchemaInfo.NAME, TABLE_NAME);
+        RelationName name = RelationName.of(DocSchemaInfo.NAME, TABLE_NAME);
         DocTableInfo tableInfo = SQLExecutor.tableInfo(
             name,
             createTableStmt,
@@ -151,7 +151,7 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
     public void testReference() {
         SimpleReference r = new SimpleReference(
             new ReferenceIdent(
-                new RelationName("sys", "table"),
+                RelationName.of("sys", "table"),
                 new ColumnIdent("column", Arrays.asList("path", "nested"))),
             RowGranularity.DOC,
             DataTypes.STRING,
@@ -165,7 +165,7 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
     public void testDocReference() {
         SimpleReference r = new SimpleReference(
             new ReferenceIdent(
-                new RelationName("doc", "table"),
+                RelationName.of("doc", "table"),
                 new ColumnIdent("column", Arrays.asList("path", "nested"))),
             RowGranularity.DOC,
             DataTypes.STRING,
@@ -178,7 +178,7 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testDynamicReference() {
         Reference r = new DynamicReference(
-            new ReferenceIdent(new RelationName("schema", "table"),
+            new ReferenceIdent(RelationName.of("schema", "table"),
                                new ColumnIdent("column", Arrays.asList("path", "nested"))),
             RowGranularity.DOC,
             0);
@@ -188,7 +188,7 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testVoidReference() {
         Reference r = new VoidReference(
-            new ReferenceIdent(new RelationName("schema", "table"),
+            new ReferenceIdent(RelationName.of("schema", "table"),
                                new ColumnIdent("column", Arrays.asList("path", "nested"))),
             RowGranularity.DOC,
             0);
@@ -198,7 +198,7 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testReferenceEscaped() {
         SimpleReference r = new SimpleReference(
-            new ReferenceIdent(new RelationName("doc", "table"),
+            new ReferenceIdent(RelationName.of("doc", "table"),
                                new ColumnIdent("colum\"n")),
             RowGranularity.DOC,
             DataTypes.STRING,

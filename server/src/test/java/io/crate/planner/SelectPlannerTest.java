@@ -176,8 +176,8 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
             .addPartitionedTable(
                 TableDefinitions.PARTED_PKS_TABLE_DEFINITION,
-                new PartitionName(new RelationName("doc", "parted_pks"), singletonList("1395874800000")).asIndexName(),
-                new PartitionName(new RelationName("doc", "parted_pks"), singletonList("1395961200000")).asIndexName()
+                new PartitionName(RelationName.of("doc", "parted_pks"), singletonList("1395874800000")).asIndexName(),
+                new PartitionName(RelationName.of("doc", "parted_pks"), singletonList("1395961200000")).asIndexName()
             )
             .build();
 
@@ -324,8 +324,8 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
             .addPartitionedTable(
                 TableDefinitions.PARTED_PKS_TABLE_DEFINITION,
-                new PartitionName(new RelationName("doc", "parted_pks"), singletonList("1395874800000")).asIndexName(),
-                new PartitionName(new RelationName("doc", "parted_pks"), singletonList("1395961200000")).asIndexName()
+                new PartitionName(RelationName.of("doc", "parted_pks"), singletonList("1395874800000")).asIndexName(),
+                new PartitionName(RelationName.of("doc", "parted_pks"), singletonList("1395961200000")).asIndexName()
             )
             .build();
 
@@ -339,8 +339,8 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             indices.addAll(entry.getValue().keySet());
         }
         assertThat(indices, Matchers.containsInAnyOrder(
-            new PartitionName(new RelationName("doc", "parted_pks"), Arrays.asList("1395874800000")).asIndexName(),
-            new PartitionName(new RelationName("doc", "parted_pks"), Arrays.asList("1395961200000")).asIndexName()));
+            new PartitionName(RelationName.of("doc", "parted_pks"), Arrays.asList("1395874800000")).asIndexName(),
+            new PartitionName(RelationName.of("doc", "parted_pks"), Arrays.asList("1395961200000")).asIndexName()));
 
         assertThat(collectPhase.where().toString(), is("(name = 'x')"));
 
@@ -441,9 +441,9 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
                 "   date timestamp without time zone," +
                 "   obj object" +
                 ") partitioned by (date) clustered into 1 shards ",
-                new PartitionName(new RelationName("doc", "parted"), singletonList("1395874800000")).asIndexName(),
-                new PartitionName(new RelationName("doc", "parted"), singletonList("1395961200000")).asIndexName(),
-                new PartitionName(new RelationName("doc", "parted"), singletonList(null)).asIndexName()
+                new PartitionName(RelationName.of("doc", "parted"), singletonList("1395874800000")).asIndexName(),
+                new PartitionName(RelationName.of("doc", "parted"), singletonList("1395961200000")).asIndexName(),
+                new PartitionName(RelationName.of("doc", "parted"), singletonList(null)).asIndexName()
             )
             .build();
 
@@ -468,9 +468,9 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
                 "   date timestamp without time zone," +
                 "   obj object" +
                 ") partitioned by (date) clustered into 1 shards ",
-                new PartitionName(new RelationName("doc", "parted"), singletonList("1395874800000")).asIndexName(),
-                new PartitionName(new RelationName("doc", "parted"), singletonList("1395961200000")).asIndexName(),
-                new PartitionName(new RelationName("doc", "parted"), singletonList(null)).asIndexName()
+                new PartitionName(RelationName.of("doc", "parted"), singletonList("1395874800000")).asIndexName(),
+                new PartitionName(RelationName.of("doc", "parted"), singletonList("1395961200000")).asIndexName(),
+                new PartitionName(RelationName.of("doc", "parted"), singletonList(null)).asIndexName()
             )
             .build();
 
@@ -521,9 +521,9 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
                 "   date timestamp without time zone," +
                 "   obj object" +
                 ") partitioned by (date) clustered into 1 shards ",
-                new PartitionName(new RelationName("doc", "parted"), singletonList("1395874800000")).asIndexName(),
-                new PartitionName(new RelationName("doc", "parted"), singletonList("1395961200000")).asIndexName(),
-                new PartitionName(new RelationName("doc", "parted"), singletonList(null)).asIndexName()
+                new PartitionName(RelationName.of("doc", "parted"), singletonList("1395874800000")).asIndexName(),
+                new PartitionName(RelationName.of("doc", "parted"), singletonList("1395961200000")).asIndexName(),
+                new PartitionName(RelationName.of("doc", "parted"), singletonList(null)).asIndexName()
             )
             .build();
 
@@ -644,7 +644,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void test3TableJoinQuerySplitting() throws Exception {
         TableStats tableStats = new TableStats();
         tableStats.updateTableStats(
-            Map.of(new RelationName("doc", "users"), new Stats(20, 20, Map.of())));
+            Map.of(RelationName.of("doc", "users"), new Stats(20, 20, Map.of())));
         SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .setTableStats(tableStats)
@@ -680,7 +680,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testOuterJoinToInnerJoinRewrite() throws Exception {
         TableStats tableStats = new TableStats();
         tableStats.updateTableStats(
-            Map.of(new RelationName("doc", "users"), new Stats(20, 20, Map.of())));
+            Map.of(RelationName.of("doc", "users"), new Stats(20, 20, Map.of())));
         SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .setTableStats(tableStats)
@@ -1013,9 +1013,9 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
                 "   date timestamp without time zone," +
                 "   obj object" +
                 ") partitioned by (date) clustered into 1 shards ",
-                new PartitionName(new RelationName("doc", "parted"), singletonList("1395874800000")).asIndexName(),
-                new PartitionName(new RelationName("doc", "parted"), singletonList("1395961200000")).asIndexName(),
-                new PartitionName(new RelationName("doc", "parted"), singletonList(null)).asIndexName()
+                new PartitionName(RelationName.of("doc", "parted"), singletonList("1395874800000")).asIndexName(),
+                new PartitionName(RelationName.of("doc", "parted"), singletonList("1395961200000")).asIndexName(),
+                new PartitionName(RelationName.of("doc", "parted"), singletonList(null)).asIndexName()
             )
             .build();
 
@@ -1050,7 +1050,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void test_distinct_with_limit_is_optimized_to_limitandoffset_distinct() throws Exception {
         TableStats tableStats = new TableStats();
         tableStats.updateTableStats(
-            Map.of(new RelationName("doc", "users"), new Stats(20, 20, Map.of())));
+            Map.of(RelationName.of("doc", "users"), new Stats(20, 20, Map.of())));
         SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .setTableStats(tableStats)
@@ -1352,8 +1352,8 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
                 "   ts timestamp without time zone, " +
                 "   p as date_trunc('month', ts) " +
                 ") partitioned by (p)",
-                new PartitionName(new RelationName("doc", "parted_by_generated"), singletonList("1577836800000")).asIndexName(),
-                new PartitionName(new RelationName("doc", "parted_by_generated"), singletonList("1580515200000")).asIndexName())
+                new PartitionName(RelationName.of("doc", "parted_by_generated"), singletonList("1577836800000")).asIndexName(),
+                new PartitionName(RelationName.of("doc", "parted_by_generated"), singletonList("1580515200000")).asIndexName())
             .build();
 
         String stmt = "SELECT * FROM parted_by_generated WHERE ts >= '2020-02-01'";

@@ -48,7 +48,7 @@ import io.crate.types.DataTypes;
 
 public class ColumnIndexWriterProjectionTest {
 
-    private RelationName relationName = new RelationName("dummy", "table");
+    private RelationName relationName = RelationName.of("dummy", "table");
 
     @Test
     public void testTargetColumnRefsAndSymbolsAreCorrectAfterExclusionOfPartitionColumns() {

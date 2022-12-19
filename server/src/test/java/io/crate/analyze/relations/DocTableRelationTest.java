@@ -36,7 +36,7 @@ public class DocTableRelationTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testUpdatingPrimaryKeyThrowsCorrectException() {
         DocTableInfo tableInfo = SQLExecutor.tableInfo(
-            new RelationName("doc", "t1"),
+            RelationName.of("doc", "t1"),
             "create table doc.t1 (i int primary key)",
             clusterService);
         DocTableRelation rel = new DocTableRelation(tableInfo);
@@ -49,7 +49,7 @@ public class DocTableRelationTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testUpdatingCompoundPrimaryKeyThrowsCorrectException() {
         DocTableInfo tableInfo = SQLExecutor.tableInfo(
-            new RelationName("doc", "t1"),
+            RelationName.of("doc", "t1"),
             "create table doc.t1 (i int, j int, primary key (i, j))",
             clusterService);
         DocTableRelation rel = new DocTableRelation(tableInfo);
@@ -62,7 +62,7 @@ public class DocTableRelationTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testUpdatingClusteredByColumnThrowsCorrectException() {
         DocTableInfo tableInfo = SQLExecutor.tableInfo(
-            new RelationName("doc", "t1"),
+            RelationName.of("doc", "t1"),
             "create table doc.t1 (i int) clustered by (i)",
             clusterService);
         DocTableRelation rel = new DocTableRelation(tableInfo);

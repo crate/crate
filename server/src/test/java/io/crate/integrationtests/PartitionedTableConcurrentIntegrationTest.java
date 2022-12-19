@@ -118,7 +118,7 @@ public class PartitionedTableConcurrentIntegrationTest extends IntegTestCase {
         t.start();
 
         PartitionName partitionName = new PartitionName(
-            new RelationName(sqlExecutor.getCurrentSchema(), "t"),
+            RelationName.of(sqlExecutor.getCurrentSchema(), "t"),
             Collections.singletonList("a"));
         final String indexName = partitionName.asIndexName();
 
@@ -310,7 +310,7 @@ public class PartitionedTableConcurrentIntegrationTest extends IntegTestCase {
 
         final CountDownLatch deleteLatch = new CountDownLatch(1);
         final String partitionName = new PartitionName(
-            new RelationName(sqlExecutor.getCurrentSchema(), "parted"),
+            RelationName.of(sqlExecutor.getCurrentSchema(), "parted"),
             Collections.singletonList(String.valueOf(idToDelete))
         ).asIndexName();
         final Object[] deleteArgs = new Object[]{idToDelete};

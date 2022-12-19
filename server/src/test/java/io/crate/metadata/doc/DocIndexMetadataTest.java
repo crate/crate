@@ -125,7 +125,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
     }
 
     private DocIndexMetadata newMeta(IndexMetadata metadata, String name) throws IOException {
-        return new DocIndexMetadata(nodeCtx, metadata, new RelationName(Schemas.DOC_SCHEMA_NAME, name), null).build();
+        return new DocIndexMetadata(nodeCtx, metadata, RelationName.of(Schemas.DOC_SCHEMA_NAME, name), null).build();
     }
 
     @Before

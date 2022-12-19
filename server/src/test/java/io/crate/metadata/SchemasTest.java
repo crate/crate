@@ -66,7 +66,7 @@ public class SchemasTest extends CrateDummyClusterServiceUnitTest {
         expectedException.expectMessage("The relation \"foo.bar\" doesn't support or allow INSERT " +
                                         "operations, as it is read-only.");
 
-        RelationName relationName = new RelationName("foo", "bar");
+        RelationName relationName = RelationName.of("foo", "bar");
         SchemaInfo schemaInfo = mock(SchemaInfo.class);
         TableInfo tableInfo = mock(TableInfo.class);
         when(tableInfo.ident()).thenReturn(relationName);
@@ -145,7 +145,7 @@ public class SchemasTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testResolveTableInfoForValidFQN() throws IOException {
-        RelationName tableIdent = RelationName.of(QualifiedName.of("crate", "schema", "t"), null);
+        RelationName tableIdent = RelationName.ofQualified(null, QualifiedName.of("crate", "schema", "t"));
         SQLExecutor sqlExecutor = getSqlExecutorBuilderForTable(tableIdent, "doc", "schema").build();
 
         QualifiedName fqn = QualifiedName.of("crate", "schema", "t");
@@ -166,7 +166,7 @@ public class SchemasTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testResolveTableInfoForInvalidFQNThrowsSchemaUnknownException() throws IOException {
-        SQLExecutor sqlExecutor = getSqlExecutorBuilderForTable(new RelationName("schema", "t")).build();
+        SQLExecutor sqlExecutor = getSqlExecutorBuilderForTable(RelationName.of("schema", "t")).build();
         QualifiedName invalidFqn = QualifiedName.of("bogus_schema", "t");
 
         var sessionSetttings = sqlExecutor.getSessionSettings();
@@ -177,7 +177,7 @@ public class SchemasTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testResolveTableInfoThrowsRelationUnknownIfRelationIsNotInSearchPath() throws IOException {
-        SQLExecutor sqlExecutor = getSqlExecutorBuilderForTable(new RelationName("schema", "t")).build();
+        SQLExecutor sqlExecutor = getSqlExecutorBuilderForTable(RelationName.of("schema", "t")).build();
         QualifiedName table = QualifiedName.of("missing_table");
 
         var sessionSettings = sqlExecutor.getSessionSettings();
@@ -188,7 +188,7 @@ public class SchemasTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testResolveTableInfoLooksUpRelationInSearchPath() throws IOException {
-        SQLExecutor sqlExecutor = getSqlExecutorBuilderForTable(new RelationName("schema", "t"), "doc", "schema")
+        SQLExecutor sqlExecutor = getSqlExecutorBuilderForTable(RelationName.of("schema", "t"), "doc", "schema")
             .build();
         QualifiedName tableQn = QualifiedName.of("t");
         var sessionSettings = sqlExecutor.getSessionSettings();
@@ -202,7 +202,7 @@ public class SchemasTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testResolveRelationThrowsRelationUnknownfForInvalidFQN() throws IOException {
-        SQLExecutor sqlExecutor = getSqlExecutorBuilderForTable(new RelationName("schema", "t"), "schema")
+        SQLExecutor sqlExecutor = getSqlExecutorBuilderForTable(RelationName.of("schema", "t"), "schema")
             .build();
         QualifiedName invalidFqn = QualifiedName.of("bogus_schema", "t");
 
@@ -213,7 +213,7 @@ public class SchemasTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testResolveRelationThrowsRelationUnknownIfRelationIsNotInSearchPath() throws IOException {
-        SQLExecutor sqlExecutor = getSqlExecutorBuilderForTable(new RelationName("schema", "t"), "doc", "schema")
+        SQLExecutor sqlExecutor = getSqlExecutorBuilderForTable(RelationName.of("schema", "t"), "doc", "schema")
             .build();
         QualifiedName table = QualifiedName.of("missing_table");
 
@@ -224,8 +224,8 @@ public class SchemasTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testResolveRelationForTableAndView() throws IOException {
-        SQLExecutor sqlExecutor = getSqlExecutorBuilderForTable(new RelationName("schema", "t"), "doc", "schema")
-            .addView(new RelationName("schema", "view"), "select 1")
+        SQLExecutor sqlExecutor = getSqlExecutorBuilderForTable(RelationName.of("schema", "t"), "doc", "schema")
+            .addView(RelationName.of("schema", "view"), "select 1")
             .build();
 
         QualifiedName table = QualifiedName.of("t");

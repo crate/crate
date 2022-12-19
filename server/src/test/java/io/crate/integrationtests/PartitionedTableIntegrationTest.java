@@ -157,7 +157,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         ClusterState state = client().admin().cluster().state(new ClusterStateRequest()).get().getState();
         for (String id : List.of("1", "2", "3")) {
             String partitionName = new PartitionName(
-                new RelationName(sqlExecutor.getCurrentSchema(), "quotes"),
+                RelationName.of(sqlExecutor.getCurrentSchema(), "quotes"),
                 List.of(id)).asIndexName();
             var partitionIndexMetadata = state.metadata().indices().get(partitionName);
             assertNotNull(partitionIndexMetadata);
@@ -306,7 +306,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         assertTrue(clusterService().state().metadata().hasAlias(getFqn("parted")));
 
         String partitionName = new PartitionName(
-            new RelationName(sqlExecutor.getCurrentSchema(), "parted"),
+            RelationName.of(sqlExecutor.getCurrentSchema(), "parted"),
             Collections.singletonList(String.valueOf(13959981214861L))
         ).asIndexName();
         Metadata metadata = client().admin().cluster().state(new ClusterStateRequest()).get()
@@ -376,7 +376,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("refresh table parted");
 
         PartitionName partitionName = new PartitionName(
-            new RelationName(sqlExecutor.getCurrentSchema(), "parted"),
+            RelationName.of(sqlExecutor.getCurrentSchema(), "parted"),
             Arrays.asList("Ford", String.valueOf(13959981214861L))
         );
 
@@ -458,7 +458,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         ensureYellow();
         refresh();
         String partitionName = new PartitionName(
-            new RelationName(sqlExecutor.getCurrentSchema(), "parted"),
+            RelationName.of(sqlExecutor.getCurrentSchema(), "parted"),
             Arrays.asList("Trillian", dateValue.toString())).asIndexName();
         assertNotNull(client().admin().cluster().state(new ClusterStateRequest()).get()
             .getState().metadata().indices().get(partitionName).getAliases().get(getFqn("parted")));
@@ -748,9 +748,9 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
                                        "order by partition_ident", new Object[]{defaultSchema});
         assertThat(response.rowCount(), is(2L));
         assertThat((String) response.rows()[0][0], is(new PartitionName(
-            new RelationName(defaultSchema, "parted"), List.of("1388534400000")).ident()));
+            RelationName.of(defaultSchema, "parted"), List.of("1388534400000")).ident()));
         assertThat((String) response.rows()[1][0], is(new PartitionName(
-            new RelationName(defaultSchema, "parted"), List.of("1391212800000")).ident()));
+            RelationName.of(defaultSchema, "parted"), List.of("1391212800000")).ident()));
 
         execute("delete from parted where date = '2014-03-01'");
         refresh();
@@ -770,9 +770,9 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
                                        "order by partition_ident", new Object[]{sqlExecutor.getCurrentSchema()});
         assertThat(response.rowCount(), is(2L));
         assertThat((String) response.rows()[0][0], is(new PartitionName(
-            new RelationName(defaultSchema, "parted"), List.of("1388534400000")).ident()));
+            RelationName.of(defaultSchema, "parted"), List.of("1388534400000")).ident()));
         assertThat((String) response.rows()[1][0], is(new PartitionName(
-            new RelationName(defaultSchema, "parted"), List.of("1391212800000")).ident()));
+            RelationName.of(defaultSchema, "parted"), List.of("1391212800000")).ident()));
 
         execute("delete from parted where o['dat'] = '2014-03-01'");
         refresh();
@@ -808,11 +808,11 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
                                        "order by partition_ident", new Object[]{defaultSchema});
         assertThat(response.rowCount(), is(3L));
         assertThat((String) response.rows()[0][0], is(new PartitionName(
-            new RelationName(defaultSchema, "parted"), List.of("1395874800000")).ident()));
+            RelationName.of(defaultSchema, "parted"), List.of("1395874800000")).ident()));
         assertThat((String) response.rows()[1][0], is(new PartitionName(
-            new RelationName(defaultSchema, "parted"), List.of("1395961200000")).ident()));
+            RelationName.of(defaultSchema, "parted"), List.of("1395961200000")).ident()));
         assertThat((String) response.rows()[2][0], is(new PartitionName(
-            new RelationName(defaultSchema, "parted"), List.of("1396303200000")).ident()));
+            RelationName.of(defaultSchema, "parted"), List.of("1396303200000")).ident()));
 
         execute("delete from quotes where quote = 'Don''t panic'");
         refresh();
@@ -1324,10 +1324,10 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
 
         List<String> partitions = List.of(
             new PartitionName(
-                new RelationName(defaultSchema, "quotes"),
+                RelationName.of(defaultSchema, "quotes"),
                 Collections.singletonList("1395874800000")).asIndexName(),
             new PartitionName(
-                new RelationName(defaultSchema, "quotes"),
+                RelationName.of(defaultSchema, "quotes"),
                 Collections.singletonList("1395961200000")).asIndexName()
         );
 
@@ -1637,7 +1637,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         ensureGreen();
         MappingMetadata partitionMetadata = clusterService().state().metadata().indices()
             .get(new PartitionName(
-                new RelationName(sqlExecutor.getCurrentSchema(), "dynamic_table"),
+                RelationName.of(sqlExecutor.getCurrentSchema(), "dynamic_table"),
                 Collections.singletonList("10.0")).asIndexName())
             .mapping();
         Map<String, Object> metaMap = (Map) partitionMetadata.sourceAsMap().get("_meta");
@@ -1646,7 +1646,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         waitNoPendingTasksOnAll();
         partitionMetadata = clusterService().state().metadata().indices()
             .get(new PartitionName(
-                new RelationName(sqlExecutor.getCurrentSchema(), "dynamic_table"),
+                RelationName.of(sqlExecutor.getCurrentSchema(), "dynamic_table"),
                 Collections.singletonList("10.0")).asIndexName())
             .mapping();
         metaMap = (Map) partitionMetadata.sourceAsMap().get("_meta");

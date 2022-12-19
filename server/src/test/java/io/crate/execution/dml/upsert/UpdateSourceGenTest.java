@@ -60,7 +60,7 @@ public class UpdateSourceGenTest extends CrateDummyClusterServiceUnitTest {
     public void testSetXBasedOnXAndPartitionedColumn() throws Exception {
         SQLExecutor e = SQLExecutor.builder(clusterService)
             .addPartitionedTable("create table t (x int, p int) partitioned by (p)",
-                new PartitionName(new RelationName("doc", "t"), Collections.singletonList("1")).asIndexName())
+                new PartitionName(RelationName.of("doc", "t"), Collections.singletonList("1")).asIndexName())
             .build();
 
         AnalyzedUpdateStatement update = e.analyze("update t set x = x + p");

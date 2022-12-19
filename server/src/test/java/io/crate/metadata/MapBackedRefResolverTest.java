@@ -36,7 +36,7 @@ import io.crate.types.DataTypes;
 
 public class MapBackedRefResolverTest {
 
-    private static final RelationName USERS_TI = new RelationName(Schemas.DOC_SCHEMA_NAME, "users");
+    private static final RelationName USERS_TI = RelationName.of(Schemas.DOC_SCHEMA_NAME, "users");
 
     @Test
     public void testGetImplementation() throws Exception {
