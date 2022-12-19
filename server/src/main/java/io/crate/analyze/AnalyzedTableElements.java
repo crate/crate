@@ -36,13 +36,12 @@ import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
-import com.carrotsearch.hppc.IntArrayList;
-import io.crate.analyze.ddl.GeoSettingsApplier;
-import io.crate.sql.tree.GenericProperties;
-import io.crate.types.GeoShapeType;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.settings.Settings;
 
+import com.carrotsearch.hppc.IntArrayList;
+
+import io.crate.analyze.ddl.GeoSettingsApplier;
 import io.crate.analyze.expressions.TableReferenceResolver;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.exceptions.ColumnUnknownException;
@@ -65,9 +64,11 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
 import io.crate.sql.tree.CheckColumnConstraint;
 import io.crate.sql.tree.CheckConstraint;
+import io.crate.sql.tree.GenericProperties;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.GeoShapeType;
 
 public class AnalyzedTableElements<T> {
 
@@ -453,6 +454,7 @@ public class AnalyzedTableElements<T> {
             : type;
 
         Reference ref;
+        boolean isNullable = !columnDefinition.hasNotNullConstraint();
         if (isAddColumn && type.id() == GeoShapeType.ID) {
             Map<String, Object> geoMap = new HashMap<>();
             if (columnDefinition.geoProperties() != null) {
@@ -465,7 +467,7 @@ public class AnalyzedTableElements<T> {
             ref = new GeoReference(
                 columnDefinition.position,
                 new ReferenceIdent(relationName, columnDefinition.ident()),
-                columnDefinition.hasNotNullConstraint(),
+                isNullable,
                 columnDefinition.geoTree(),
                 (String) geoMap.get("precision"),
                 (Integer) geoMap.get("tree_levels"),
@@ -478,7 +480,7 @@ public class AnalyzedTableElements<T> {
             // columnDefinition.isIndexColumn() cannot be used here, it's always false for ADD COLUMN.
             ref = new IndexReference(
                 columnDefinition.position,
-                columnDefinition.hasNotNullConstraint(),
+                isNullable,
                 columnDefinition.docValues(),
                 new ReferenceIdent(relationName, columnDefinition.ident()),
                 columnDefinition.indexConstraint(),
@@ -492,7 +494,7 @@ public class AnalyzedTableElements<T> {
                 realType,
                 columnDefinition.objectType(),
                 columnDefinition.indexConstraint() != null ? columnDefinition.indexConstraint() : IndexType.PLAIN, // Use default value for none IndexReference to not break streaming
-                columnDefinition.hasNotNullConstraint(),
+                isNullable,
                 columnDefinition.docValues(),
                 columnDefinition.position,
                 null // not required in this context

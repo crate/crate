@@ -21,25 +21,22 @@
 
 package io.crate.execution.ddl.tables;
 
-import com.carrotsearch.hppc.IntArrayList;
-import io.crate.common.collections.Maps;
-import io.crate.execution.ddl.AbstractDDLTransportAction;
-import io.crate.execution.ddl.TransportSchemaUpdateAction;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.IndexReference;
-import io.crate.metadata.GeneratedReference;
-import io.crate.metadata.GeoReference;
-import io.crate.metadata.IndexType;
-import io.crate.metadata.NodeContext;
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.Reference;
-import io.crate.metadata.cluster.DDLClusterStateHelpers;
-import io.crate.metadata.cluster.DDLClusterStateTaskExecutor;
-import io.crate.metadata.doc.DocTableInfoFactory;
-import io.crate.metadata.table.ColumnPolicies;
-import io.crate.sql.tree.GenericProperties;
-import io.crate.types.ArrayType;
-import io.crate.types.ObjectType;
+import static io.crate.analyze.AnalyzedColumnDefinition.addTypeOptions;
+import static io.crate.analyze.AnalyzedColumnDefinition.typeNameForESMapping;
+import static io.crate.metadata.Reference.buildTree;
+import static io.crate.metadata.cluster.AlterTableClusterStateExecutor.resolveIndices;
+import static org.elasticsearch.index.mapper.TypeParsers.DOC_VALUES;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import javax.annotation.Nullable;
+
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateTaskExecutor;
@@ -61,20 +58,26 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import javax.annotation.Nullable;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
+import com.carrotsearch.hppc.IntArrayList;
 
-import static io.crate.analyze.AnalyzedColumnDefinition.addTypeOptions;
-import static io.crate.analyze.AnalyzedColumnDefinition.typeNameForESMapping;
-import static io.crate.metadata.Reference.buildTree;
-import static io.crate.metadata.cluster.AlterTableClusterStateExecutor.resolveIndices;
-import static org.elasticsearch.index.mapper.TypeParsers.DOC_VALUES;
+import io.crate.common.collections.Maps;
+import io.crate.execution.ddl.AbstractDDLTransportAction;
+import io.crate.execution.ddl.TransportSchemaUpdateAction;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.GeneratedReference;
+import io.crate.metadata.GeoReference;
+import io.crate.metadata.IndexReference;
+import io.crate.metadata.IndexType;
+import io.crate.metadata.NodeContext;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.Reference;
+import io.crate.metadata.cluster.DDLClusterStateHelpers;
+import io.crate.metadata.cluster.DDLClusterStateTaskExecutor;
+import io.crate.metadata.doc.DocTableInfoFactory;
+import io.crate.metadata.table.ColumnPolicies;
+import io.crate.sql.tree.GenericProperties;
+import io.crate.types.ArrayType;
+import io.crate.types.ObjectType;
 
 @Singleton
 public class TransportAddColumnAction extends AbstractDDLTransportAction<AddColumnRequest, AcknowledgedResponse> {
@@ -223,7 +226,7 @@ public class TransportAddColumnAction extends AbstractDDLTransportAction<AddColu
         }
 
         // Not nulls
-        List<String> newNotNulls = references.stream().filter(Reference::isNullable).map(ref -> ref.column().fqn()).collect(Collectors.toList());
+        List<String> newNotNulls = references.stream().filter(ref -> !ref.isNullable()).map(ref -> ref.column().fqn()).collect(Collectors.toList());
         if (newNotNulls.isEmpty() == false) {
             Map<String, List<String>> constraints = (Map<String, List<String>>) meta.get("constraints");
             List<String> notNulls = constraints != null ? constraints.get("not_null") : null;

@@ -211,7 +211,7 @@ public class DocIndexMetadata {
                      @Nullable String defaultExpression,
                      ColumnPolicy columnPolicy,
                      IndexType indexType,
-                     boolean isNotNull,
+                     boolean nullable,
                      boolean hasDocValues) {
         Reference ref;
         boolean partitionByColumn = partitionedBy.contains(column);
@@ -219,7 +219,7 @@ public class DocIndexMetadata {
         if (partitionByColumn) {
             indexType = IndexType.PLAIN;
         }
-        Reference simpleRef = newInfo(position, column, type, defaultExpression, columnPolicy, indexType, isNotNull, hasDocValues);
+        Reference simpleRef = newInfo(position, column, type, defaultExpression, columnPolicy, indexType, nullable, hasDocValues);
         if (generatedExpression == null) {
             ref = simpleRef;
         } else {
@@ -440,7 +440,6 @@ public class DocIndexMetadata {
             Map<String, Object> columnProperties = (Map) columnEntry.getValue();
             final DataType columnDataType = getColumnDataType(columnProperties);
             ColumnIdent newIdent = childIdent(columnIdent, columnEntry.getKey());
-
 
             boolean nullable = !notNullColumns.contains(newIdent) && !primaryKey.contains(newIdent);
             columnProperties = furtherColumnProperties(columnProperties);
