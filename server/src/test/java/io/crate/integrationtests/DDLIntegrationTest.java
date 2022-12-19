@@ -32,6 +32,7 @@ import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static io.netty.handler.codec.rtsp.RtspResponseStatuses.INTERNAL_SERVER_ERROR;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.core.Is.is;
@@ -992,7 +993,7 @@ public class DDLIntegrationTest extends IntegTestCase {
             "INDEX USING FULLTEXT WITH (analyzer = 'simple')");
 
         execute("show create table tbl");
-        assertThat((String) response.rows()[0][0], startsWith(
+        assertThat((String) response.rows()[0][0]).startsWith(
             """
                 CREATE TABLE IF NOT EXISTS "doc"."tbl" (
                    "id" INTEGER NOT NULL,
@@ -1004,7 +1005,7 @@ public class DDLIntegrationTest extends IntegTestCase {
                    CONSTRAINT id_check CHECK("id" > 0),
                    CONSTRAINT test_check CHECK("col1" <> 'd')
                 )""".stripIndent()
-        ));
+        );
 
         // test other options, which couldn't be tested in the first scenario:
         // Primary key can be used here as we don't have not null

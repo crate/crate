@@ -22,6 +22,8 @@
 package io.crate.metadata;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 
 import javax.annotation.Nullable;
@@ -30,6 +32,7 @@ import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.index.mapper.TypeParsers;
 
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
@@ -37,8 +40,10 @@ import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.format.Style;
 import io.crate.sql.tree.ColumnPolicy;
+import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.StorageSupport;
 
 public class SimpleReference implements Reference {
 
@@ -196,6 +201,26 @@ public class SimpleReference implements Reference {
     @Nullable
     public Symbol defaultExpression() {
         return defaultExpression;
+    }
+
+    @Override
+    public Map<String, Object> toMapping() {
+        DataType<?> innerType = ArrayType.unnest(type);
+        Map<String, Object> mapping = new HashMap<>();
+        mapping.put("type", DataTypes.esMappingNameFrom(innerType.id()));
+        mapping.put("position", position);
+        if (indexType == IndexType.NONE) {
+            mapping.put("index", false);
+        }
+        StorageSupport<?> storageSupport = innerType.storageSupport();
+        if (storageSupport != null) {
+            boolean docValuesDefault = storageSupport.getComputedDocValuesDefault(indexType);
+            if (docValuesDefault != hasDocValues) {
+                mapping.put(TypeParsers.DOC_VALUES, Boolean.toString(hasDocValues));
+            }
+        }
+        innerType.addMappingOptions(mapping);
+        return mapping;
     }
 
     @Override
