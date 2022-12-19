@@ -111,7 +111,7 @@ public class IndexParts {
     }
 
     public RelationName toRelationName() {
-        return new RelationName(schema, table);
+        return RelationName.of(schema, table);
     }
 
     public String toFullyQualifiedName() {

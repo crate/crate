@@ -46,7 +46,7 @@ public class RestoreSnapshotPlanTest {
         var context = RestoreSnapshotPlan.resolveIndexNames(
             "my_repo",
             Set.of(new BoundRestoreSnapshot.RestoreTableInfo(
-                new RelationName(Schemas.DOC_SCHEMA_NAME, "my_table"), null)),
+                RelationName.of(Schemas.DOC_SCHEMA_NAME, "my_table"), null)),
             true,
             null
         ).get();
@@ -63,7 +63,7 @@ public class RestoreSnapshotPlanTest {
     public void testResolveTableIndexFromSnapshot() {
         var context = new RestoreSnapshotPlan.ResolveIndicesAndTemplatesContext();
         RestoreSnapshotPlan.resolveTableFromSnapshots(
-            new BoundRestoreSnapshot.RestoreTableInfo(new RelationName("custom", "restoreme"), null),
+            new BoundRestoreSnapshot.RestoreTableInfo(RelationName.of("custom", "restoreme"), null),
             List.of(
                 new SnapshotInfo(
                     new SnapshotId("snapshot01", UUID.randomUUID().toString()),
@@ -81,7 +81,7 @@ public class RestoreSnapshotPlanTest {
     public void testResolvePartitionedTableIndexFromSnapshot() {
         var context = new RestoreSnapshotPlan.ResolveIndicesAndTemplatesContext();
         RestoreSnapshotPlan.resolveTableFromSnapshots(
-            new BoundRestoreSnapshot.RestoreTableInfo(new RelationName(Schemas.DOC_SCHEMA_NAME, "restoreme"), null),
+            new BoundRestoreSnapshot.RestoreTableInfo(RelationName.of(Schemas.DOC_SCHEMA_NAME, "restoreme"), null),
             List.of(new SnapshotInfo(
                 new SnapshotId("snapshot01", UUID.randomUUID().toString()),
                 List.of(".partitioned.restoreme.046jcchm6krj4e1g60o30c0"), 0L, false)),
@@ -97,7 +97,7 @@ public class RestoreSnapshotPlanTest {
     public void testResolveEmptyPartitionedTemplate() {
         var context = new RestoreSnapshotPlan.ResolveIndicesAndTemplatesContext();
         RestoreSnapshotPlan.resolveTableFromSnapshots(
-            new BoundRestoreSnapshot.RestoreTableInfo(new RelationName(Schemas.DOC_SCHEMA_NAME, "restoreme"), null),
+            new BoundRestoreSnapshot.RestoreTableInfo(RelationName.of(Schemas.DOC_SCHEMA_NAME, "restoreme"), null),
             List.of(new SnapshotInfo(new SnapshotId("snapshot01", UUID.randomUUID().toString()), List.of(), 0L, false)),
             context
         );
@@ -111,9 +111,9 @@ public class RestoreSnapshotPlanTest {
     public void testResolveMultiTablesIndexNamesFromSnapshot() {
         List<BoundRestoreSnapshot.RestoreTableInfo> tables = List.of(
             new BoundRestoreSnapshot.RestoreTableInfo(
-                new RelationName(Schemas.DOC_SCHEMA_NAME, "my_table"), null),
+                RelationName.of(Schemas.DOC_SCHEMA_NAME, "my_table"), null),
             new BoundRestoreSnapshot.RestoreTableInfo(
-                new RelationName(Schemas.DOC_SCHEMA_NAME, "my_partitioned_table"), null));
+                RelationName.of(Schemas.DOC_SCHEMA_NAME, "my_partitioned_table"), null));
 
         List<SnapshotInfo> snapshots = List.of(
             new SnapshotInfo(

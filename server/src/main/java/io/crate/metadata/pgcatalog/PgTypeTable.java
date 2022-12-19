@@ -34,7 +34,7 @@ import io.crate.protocols.postgres.types.PGType;
 
 public class PgTypeTable {
 
-    public static final RelationName IDENT = new RelationName(PgCatalogSchemaInfo.NAME, "pg_type");
+    public static final RelationName IDENT = RelationName.of(PgCatalogSchemaInfo.NAME, "pg_type");
 
     private static final Integer TYPE_NAMESPACE_OID = schemaOid(PgCatalogSchemaInfo.NAME);
 

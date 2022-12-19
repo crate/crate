@@ -86,8 +86,8 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .addPartitionedTable(
                 TableDefinitions.PARTED_PKS_TABLE_DEFINITION,
-                new PartitionName(new RelationName("doc", "parted_pks"), singletonList("1395874800000")).asIndexName(),
-                new PartitionName(new RelationName("doc", "parted_pks"), singletonList("1395961200000")).asIndexName())
+                new PartitionName(RelationName.of("doc", "parted_pks"), singletonList("1395874800000")).asIndexName(),
+                new PartitionName(RelationName.of("doc", "parted_pks"), singletonList("1395961200000")).asIndexName())
             .addPartitionedTable(
                 "create table doc.empty_parted (" +
                 "  name text," +

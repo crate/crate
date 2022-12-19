@@ -35,7 +35,7 @@ import io.crate.Constants;
 public class InformationViewsTableInfo {
 
     public static final String NAME = "views";
-    public static final RelationName IDENT = new RelationName(InformationSchemaInfo.NAME, NAME);
+    public static final RelationName IDENT = RelationName.of(InformationSchemaInfo.NAME, NAME);
 
     private static final String CHECK_OPTION_NONE = "NONE";
 

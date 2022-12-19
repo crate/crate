@@ -60,9 +60,9 @@ public class WhereClauseOptimizerTest extends CrateDummyClusterServiceUnitTest {
                 "   id int primary key, " +
                 "   date timestamp with time zone primary key" +
                 ") partitioned by (date)",
-                new PartitionName(new RelationName("doc", "parted_pk"), List.of("1395874800000")).asIndexName(),
-                new PartitionName(new RelationName("doc", "parted_pk"), List.of("1395961200000")).asIndexName(),
-                new PartitionName(new RelationName("doc", "parted_pk"), singletonList(null)).asIndexName()
+                new PartitionName(RelationName.of("doc", "parted_pk"), List.of("1395874800000")).asIndexName(),
+                new PartitionName(RelationName.of("doc", "parted_pk"), List.of("1395961200000")).asIndexName(),
+                new PartitionName(RelationName.of("doc", "parted_pk"), singletonList(null)).asIndexName()
             )
             .build();
     }

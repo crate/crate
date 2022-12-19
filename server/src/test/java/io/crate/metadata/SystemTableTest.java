@@ -36,7 +36,7 @@ public class SystemTableTest {
 
     @Test
     public void test_create_system_table_with_nested_object() {
-        var relation = new RelationName("doc", "dummy");
+        var relation = RelationName.of("doc", "dummy");
         var table = SystemTable.builder(relation)
             .startObject("obj_a")
                 .startObject("obj_b")
@@ -76,7 +76,7 @@ public class SystemTableTest {
 
     @Test
     public void test_object_array() throws Exception {
-        var relation = new RelationName("doc", "dummy");
+        var relation = RelationName.of("doc", "dummy");
         var table = SystemTable.builder(relation)
             .startObjectArray("points", x -> List.of(new Point(10, 20), new Point(30, 40)))
                 .add("x", DataTypes.INTEGER, point -> point.x)

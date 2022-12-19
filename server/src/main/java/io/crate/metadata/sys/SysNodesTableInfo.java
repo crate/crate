@@ -43,7 +43,7 @@ import io.crate.types.DataTypes;
 
 public class SysNodesTableInfo {
 
-    public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "nodes");
+    public static final RelationName IDENT = RelationName.of(SysSchemaInfo.NAME, "nodes");
 
     private static final String SYS_COL_ID = "id";
     private static final String SYS_COL_NODE_NAME = "name";

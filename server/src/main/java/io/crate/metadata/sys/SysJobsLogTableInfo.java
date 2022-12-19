@@ -38,7 +38,7 @@ import io.crate.types.ArrayType;
 
 public class SysJobsLogTableInfo {
 
-    public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "jobs_log");
+    public static final RelationName IDENT = RelationName.of(SysSchemaInfo.NAME, "jobs_log");
 
     public static SystemTable<JobContextLog> create(Supplier<DiscoveryNode> localNode) {
         return SystemTable.<JobContextLog>builder(IDENT)

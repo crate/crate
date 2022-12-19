@@ -153,7 +153,7 @@ public class FullQualifiedNameFieldProvider implements FieldProvider<Symbol> {
         if (!schemaMatched || !tableNameMatched) {
             String schema = columnSchema == null ? defaultSchema : columnSchema;
             raiseUnsupportedFeatureIfInAncestorScope(columnSchema, columnTableName, schema);
-            RelationName relationName = new RelationName(schema, columnTableName);
+            RelationName relationName = RelationName.of(schema, columnTableName);
             throw new RelationUnknown(relationName);
         }
         RelationName relationName = sources.entrySet().iterator().next().getKey();
@@ -161,14 +161,14 @@ public class FullQualifiedNameFieldProvider implements FieldProvider<Symbol> {
     }
 
     private void raiseUnsupportedFeatureIfInAncestorScope(String columnSchema, String columnTableName, String schema) {
-        RelationName name = new RelationName(schema, columnTableName);
+        RelationName name = RelationName.of(schema, columnTableName);
         if (parents.containsRelation(name)) {
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
                 "Cannot use relation \"%s.%s\" in this context. Can only access columns of an immediate parent, not a grandparent",
                 schema,
                 columnTableName));
         }
-        if (columnSchema == null && parents.containsRelation(new RelationName(null, columnTableName))) {
+        if (columnSchema == null && parents.containsRelation(RelationName.of(null, columnTableName))) {
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
                 "Cannot use relation \"%s\" in this context. Can only access columns of an immediate parent, not a grandparent", columnTableName));
         }

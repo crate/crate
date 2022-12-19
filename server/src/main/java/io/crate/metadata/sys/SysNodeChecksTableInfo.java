@@ -39,7 +39,7 @@ import io.crate.metadata.table.Operation;
 
 public class SysNodeChecksTableInfo {
 
-    public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "node_checks");
+    public static final RelationName IDENT = RelationName.of(SysSchemaInfo.NAME, "node_checks");
 
     private static final Set<Operation> SUPPORTED_OPERATIONS = EnumSet.of(Operation.READ, Operation.UPDATE);
 

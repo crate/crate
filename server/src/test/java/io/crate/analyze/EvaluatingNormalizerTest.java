@@ -69,7 +69,7 @@ public class EvaluatingNormalizerTest extends ESTestCase {
     public void prepare() throws Exception {
         Map<ColumnIdent, NestableInput> referenceImplementationMap = new HashMap<>(1, 1);
 
-        ReferenceIdent dummyLoadIdent = new ReferenceIdent(new RelationName("test", "dummy"), "load");
+        ReferenceIdent dummyLoadIdent = new ReferenceIdent(RelationName.of("test", "dummy"), "load");
         dummyLoadInfo = new SimpleReference(dummyLoadIdent, RowGranularity.NODE, DataTypes.DOUBLE, 0, null);
 
         referenceImplementationMap.put(dummyLoadIdent.columnIdent(), constant(0.08d));
@@ -96,7 +96,7 @@ public class EvaluatingNormalizerTest extends ESTestCase {
         );
 
         Symbol name_ref = new SimpleReference(
-            new ReferenceIdent(new RelationName(Schemas.DOC_SCHEMA_NAME, "foo"), "name"),
+            new ReferenceIdent(RelationName.of(Schemas.DOC_SCHEMA_NAME, "foo"), "name"),
             RowGranularity.DOC,
             DataTypes.STRING,
             0,

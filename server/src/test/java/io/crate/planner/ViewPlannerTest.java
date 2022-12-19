@@ -38,7 +38,7 @@ public class ViewPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void test_view_of_join_condition_containing_subscript_expressions() throws IOException {
         var e = SQLExecutor.builder(clusterService)
             .addTable("create table doc.t1 (id int, o object as (i int))")
-            .addView(new RelationName("doc", "v1"),
+            .addView(RelationName.of("doc", "v1"),
                 "select b.id, b.o['i']" +
                     " from t1 g1" +
                     " left join t1 b on b.o['i'] = g1.o['i']")

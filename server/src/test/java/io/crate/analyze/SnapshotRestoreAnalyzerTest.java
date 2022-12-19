@@ -297,7 +297,7 @@ public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTes
             analyze(e, "RESTORE SNAPSHOT my_repo.my_snapshot TABLE custom.restoreme");
         assertThat(statement.restoreTables().size(), is(1));
         var table = statement.restoreTables().iterator().next();
-        assertThat(table.tableIdent(), is(new RelationName("custom", "restoreme")));
+        assertThat(table.tableIdent(), is(RelationName.of("custom", "restoreme")));
         assertThat(table.partitionName(), is(nullValue()));
         assertThat(statement.includeTables(), is(true));
         assertThat(statement.includeCustomMetadata(), is(false));
@@ -324,11 +324,11 @@ public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTes
             e,
             "RESTORE SNAPSHOT my_repo.my_snapshot TABLE parted PARTITION (date=123)");
         PartitionName partition = new PartitionName(
-            new RelationName("doc", "parted"), List.of("123"));
+            RelationName.of("doc", "parted"), List.of("123"));
         assertThat(statement.restoreTables().size(), is(1));
         var table = statement.restoreTables().iterator().next();
         assertThat(table.partitionName(), is(partition));
-        assertThat(table.tableIdent(), is(new RelationName(Schemas.DOC_SCHEMA_NAME, "parted")));
+        assertThat(table.tableIdent(), is(RelationName.of(Schemas.DOC_SCHEMA_NAME, "parted")));
         assertThat(statement.includeTables(), is(true));
         assertThat(statement.includeCustomMetadata(), is(false));
         assertThat(statement.includeGlobalSettings(), is(false));
@@ -340,11 +340,11 @@ public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTes
             e,
             "RESTORE SNAPSHOT my_repo.my_snapshot TABLE unknown_parted PARTITION (date=123)");
         PartitionName partitionName = new PartitionName(
-            new RelationName("doc", "unknown_parted"), List.of("123"));
+            RelationName.of("doc", "unknown_parted"), List.of("123"));
         assertThat(statement.restoreTables().size(), is(1));
         var table = statement.restoreTables().iterator().next();
         assertThat(table.partitionName(), is(partitionName));
-        assertThat(table.tableIdent(), is(new RelationName(Schemas.DOC_SCHEMA_NAME, "unknown_parted")));
+        assertThat(table.tableIdent(), is(RelationName.of(Schemas.DOC_SCHEMA_NAME, "unknown_parted")));
     }
 
     @Test

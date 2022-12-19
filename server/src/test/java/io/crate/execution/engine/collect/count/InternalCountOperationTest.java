@@ -84,7 +84,7 @@ public class InternalCountOperationTest extends IntegTestCase {
         }
 
         Schemas schemas = internalCluster().getInstance(Schemas.class);
-        TableInfo tableInfo = schemas.getTableInfo(new RelationName(sqlExecutor.getCurrentSchema(), "t"));
+        TableInfo tableInfo = schemas.getTableInfo(RelationName.of(sqlExecutor.getCurrentSchema(), "t"));
         TableRelation tableRelation = new TableRelation(tableInfo);
         Map<RelationName, AnalyzedRelation> tableSources = Map.of(tableInfo.ident(), tableRelation);
         SqlExpressions sqlExpressions = new SqlExpressions(tableSources, tableRelation);
@@ -103,7 +103,7 @@ public class InternalCountOperationTest extends IntegTestCase {
         ClusterService clusterService = internalCluster().getDataNodeInstance(ClusterService.class);
         CoordinatorTxnCtx txnCtx = CoordinatorTxnCtx.systemTransactionContext();
         Metadata metadata = clusterService.state().getMetadata();
-        Index index = metadata.index(new PartitionName(new RelationName("doc", "t"), List.of("1")).asIndexName()).getIndex();
+        Index index = metadata.index(new PartitionName(RelationName.of("doc", "t"), List.of("1")).asIndexName()).getIndex();
         var countOperation = (InternalCountOperation) internalCluster().getDataNodeInstance(CountOperation.class);
         IndexService indexService = mock(IndexService.class);
         IndexShard indexShard = mock(IndexShard.class);

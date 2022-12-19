@@ -46,7 +46,7 @@ public class ExcludedFieldProviderTest {
 
         FieldProvider<?> fieldProvider = (qualifiedName, path, operation, errorOnUnknownObjectKey) ->
             new ScopedSymbol(
-                new RelationName("doc", "dummy"),
+                RelationName.of("doc", "dummy"),
                 new ColumnIdent(qualifiedName.toString()),
                 DataTypes.INTEGER);
         ValuesResolver valuesResolver = argumentColumn -> {

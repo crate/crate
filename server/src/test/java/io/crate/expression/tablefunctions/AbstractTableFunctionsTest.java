@@ -67,7 +67,7 @@ public abstract class AbstractTableFunctionsTest extends ESTestCase {
     public void prepareFunctions() {
 
         DocTableRelation relation = mock(DocTableRelation.class);
-        RelationName relationName = new RelationName(null, "t");
+        RelationName relationName = RelationName.of(null, "t");
         when(relation.getField(any(ColumnIdent.class), any(Operation.class), any(Boolean.class)))
             .thenReturn(new SimpleReference(
                 new ReferenceIdent(relationName, "name"),

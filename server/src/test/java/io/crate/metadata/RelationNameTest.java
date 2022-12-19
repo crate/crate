@@ -35,27 +35,27 @@ public class RelationNameTest extends ESTestCase {
 
     @Test
     public void testIndexName() throws Exception {
-        RelationName ti = new RelationName(Schemas.DOC_SCHEMA_NAME, "t");
+        RelationName ti = RelationName.of(Schemas.DOC_SCHEMA_NAME, "t");
         assertThat(ti.indexNameOrAlias(), is("t"));
-        ti = new RelationName("s", "t");
+        ti = RelationName.of("s", "t");
         assertThat(ti.indexNameOrAlias(), is("s.t"));
     }
 
     @Test
     public void testFromIndexName() throws Exception {
-        assertThat(RelationName.fromIndexName("t"), is(new RelationName(Schemas.DOC_SCHEMA_NAME, "t")));
-        assertThat(RelationName.fromIndexName("s.t"), is(new RelationName("s", "t")));
+        assertThat(RelationName.fromIndexName("t"), is(RelationName.of(Schemas.DOC_SCHEMA_NAME, "t")));
+        assertThat(RelationName.fromIndexName("s.t"), is(RelationName.of("s", "t")));
 
-        PartitionName pn = new PartitionName(new RelationName("s", "t"), List.of("v1"));
-        assertThat(RelationName.fromIndexName(pn.asIndexName()), is(new RelationName("s", "t")));
+        PartitionName pn = new PartitionName(RelationName.of("s", "t"), List.of("v1"));
+        assertThat(RelationName.fromIndexName(pn.asIndexName()), is(RelationName.of("s", "t")));
 
-        pn = new PartitionName(new RelationName("doc", "t"), List.of("v1"));
-        assertThat(RelationName.fromIndexName(pn.asIndexName()), is(new RelationName(Schemas.DOC_SCHEMA_NAME, "t")));
+        pn = new PartitionName(RelationName.of("doc", "t"), List.of("v1"));
+        assertThat(RelationName.fromIndexName(pn.asIndexName()), is(RelationName.of(Schemas.DOC_SCHEMA_NAME, "t")));
     }
 
     @Test
     public void testFromIndexNameCreatesCorrectBlobRelationName() {
-        RelationName relationName = new RelationName("blob", "foobar");
+        RelationName relationName = RelationName.of("blob", "foobar");
         String indexName = relationName.indexNameOrAlias();
         assertThat(BlobIndex.isBlobIndex(indexName), is(true));
         assertThat(RelationName.fromIndexName(indexName), is(relationName));
@@ -63,17 +63,17 @@ public class RelationNameTest extends ESTestCase {
 
     @Test
     public void testDefaultSchema() throws Exception {
-        RelationName ti = new RelationName(Schemas.DOC_SCHEMA_NAME, "t");
+        RelationName ti = RelationName.of(Schemas.DOC_SCHEMA_NAME, "t");
         assertThat(ti.schema(), is("doc"));
-        assertThat(ti, is(new RelationName("doc", "t")));
+        assertThat(ti, is(RelationName.of("doc", "t")));
     }
 
     @Test
     public void testFQN() throws Exception {
-        RelationName ti = new RelationName(Schemas.DOC_SCHEMA_NAME, "t");
+        RelationName ti = RelationName.of(Schemas.DOC_SCHEMA_NAME, "t");
         assertThat(ti.fqn(), is("doc.t"));
 
-        ti = new RelationName("s", "t");
+        ti = RelationName.of("s", "t");
         assertThat(ti.fqn(), is("s.t"));
     }
 

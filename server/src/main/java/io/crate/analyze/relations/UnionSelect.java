@@ -51,7 +51,7 @@ public class UnionSelect implements AnalyzedRelation {
             : "Both the left side and the right side of UNION must have the same number of outputs";
         this.left = left;
         this.right = right;
-        this.name = new RelationName(null, UUIDs.dirtyUUID().toString());
+        this.name = RelationName.of(null, UUIDs.dirtyUUID().toString());
         // SQL semantics dictate that UNION uses the column names from the first relation (top or left side)
         List<Symbol> fieldsFromLeft = left.outputs();
         ArrayList<ScopedSymbol> outputs = new ArrayList<>(fieldsFromLeft.size());

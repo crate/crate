@@ -32,7 +32,7 @@ import io.crate.metadata.sys.SysSchemaInfo;
 
 public class SysUsersTableInfo {
 
-    private static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "users");
+    private static final RelationName IDENT = RelationName.of(SysSchemaInfo.NAME, "users");
     private static final String PASSWORD_PLACEHOLDER = "********";
 
     public static SystemTable<User> create() {

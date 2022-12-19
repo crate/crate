@@ -45,7 +45,7 @@ public class AnalyzedShowCreateTable implements AnalyzedStatement, AnalyzedRelat
 
     public AnalyzedShowCreateTable(DocTableInfo tableInfo) {
         String columnName = "SHOW CREATE TABLE " + tableInfo.ident().fqn();
-        relationName = new RelationName(null, "SHOW CREATE TABLE");
+        relationName = RelationName.of(null, "SHOW CREATE TABLE");
         this.fields = Collections.singletonList(new ScopedSymbol(relationName, new ColumnIdent(columnName), DataTypes.STRING));
         this.tableInfo = tableInfo;
     }

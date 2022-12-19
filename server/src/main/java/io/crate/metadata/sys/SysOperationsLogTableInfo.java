@@ -32,7 +32,7 @@ import static io.crate.types.DataTypes.TIMESTAMPZ;
 
 public class SysOperationsLogTableInfo {
 
-    public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "operations_log");
+    public static final RelationName IDENT = RelationName.of(SysSchemaInfo.NAME, "operations_log");
 
     static SystemTable<OperationContextLog> create() {
         return SystemTable.<OperationContextLog>builder(IDENT)

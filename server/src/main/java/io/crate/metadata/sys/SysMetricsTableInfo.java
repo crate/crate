@@ -37,7 +37,7 @@ import io.crate.metadata.SystemTable;
 
 public class SysMetricsTableInfo {
 
-    public static final RelationName NAME = new RelationName(SysSchemaInfo.NAME, "jobs_metrics");
+    public static final RelationName NAME = RelationName.of(SysSchemaInfo.NAME, "jobs_metrics");
 
     public static SystemTable<MetricsView> create(Supplier<DiscoveryNode> localNode) {
         return SystemTable.<MetricsView>builder(NAME)

@@ -366,7 +366,7 @@ public class SymbolToColumnDefinitionConverterTest extends CrateDummyClusterServ
         var e = SQLExecutor
             .builder(clusterService)
             .addTable(createTableStmt)
-            .addView(new RelationName("doc", "tbl_view"), "select * from doc.tbl")
+            .addView(RelationName.of("doc", "tbl_view"), "select * from doc.tbl")
             .build();
         String selectStmt =
             "select " +
