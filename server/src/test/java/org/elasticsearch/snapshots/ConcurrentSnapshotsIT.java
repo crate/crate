@@ -1161,7 +1161,7 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
             )).get();
 
         final String[] snapshotNames = createNSnapshots(repoName, limitToTest + 1);
-        blockNodeOnAnyFiles(repoName, masterName);
+//        blockNodeOnAnyFiles(repoName, masterName);
         int blockedSnapshots = 0;
         boolean blockedDelete = false;
         final List<CreateSnapshotFuture> snapshotFutures = new ArrayList<>();
@@ -1179,7 +1179,7 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
         if (blockedDelete) {
             awaitNDeletionsInProgress(1);
         }
-        waitForBlock(masterName, repoName, TimeValue.timeValueSeconds(30L));
+//        waitForBlock(masterName, repoName, TimeValue.timeValueSeconds(30L));
 
         final String expectedFailureMessage = "Cannot start another operation, already running [" + limitToTest +
                                               "] operations and the current limit for concurrent snapshot operations is set to [" + limitToTest + "]";
