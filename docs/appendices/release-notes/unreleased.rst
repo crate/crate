@@ -66,6 +66,9 @@ Fixes
   other users' privileges by calling
   :ref:`has_schema_privilege <scalar-has-schema-priv>` function.
 
+- Fixed an issue that prevented :ref:`UDFs <user-defined-functions>` from
+  accessing nested objects.
+
 - Fixed an issue that caused ``SELECT *`` statements to fail if a table has an
   object with inner null object and a sibling column with the same name with
   one of the sub-columns. An example::
