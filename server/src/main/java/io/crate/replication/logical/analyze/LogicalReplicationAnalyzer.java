@@ -78,7 +78,7 @@ public class LogicalReplicationAnalyzer {
         var tables = Lists2.map(
             createPublication.tables(),
             q -> {
-                var relation = RelationName.ofQualified(defaultSchema, q);
+                var relation = RelationName.of(q, defaultSchema);
                 if (schemas.getTableInfo(relation) instanceof DocTableInfo tableInfo) {
                     boolean softDeletes;
                     if ((softDeletes = IndexSettings.INDEX_SOFT_DELETES_SETTING.get(tableInfo.parameters())) == false) {
@@ -137,7 +137,7 @@ public class LogicalReplicationAnalyzer {
         var tables = Lists2.map(
             alterPublication.tables(),
             q -> {
-                var relation = RelationName.ofQualified(defaultSchema, q);
+                var relation = RelationName.of(q, defaultSchema);
                 if (schemas.tableExists(relation) == false) {
                     throw new RelationUnknown(relation);
                 }

@@ -38,7 +38,7 @@ import static io.crate.types.DataTypes.STRING;
 
 public class SysSegmentsTableInfo {
 
-    public static final RelationName IDENT = RelationName.of(SysSchemaInfo.NAME, "segments");
+    public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "segments");
 
     @SuppressWarnings("unchecked")
     public static SystemTable<ShardSegment> create(Supplier<DiscoveryNode> localNode) {

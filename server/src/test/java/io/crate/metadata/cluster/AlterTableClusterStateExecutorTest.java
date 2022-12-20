@@ -64,7 +64,7 @@ public class AlterTableClusterStateExecutorTest {
     public void testPrivateSettingsAreRemovedOnUpdateTemplate() throws IOException {
         IndexScopedSettings indexScopedSettings = IndexScopedSettings.DEFAULT_SCOPED_SETTINGS;
 
-        RelationName relationName = RelationName.of(Schemas.DOC_SCHEMA_NAME, "t1");
+        RelationName relationName = new RelationName(Schemas.DOC_SCHEMA_NAME, "t1");
         String templateName = PartitionName.templateName(relationName.schema(), relationName.name());
 
         Settings settings = Settings.builder()

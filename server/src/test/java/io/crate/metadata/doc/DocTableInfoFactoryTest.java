@@ -59,7 +59,7 @@ public class DocTableInfoFactoryTest extends ESTestCase {
     public void testNoTableInfoFromOrphanedPartition() throws Exception {
         String schemaName = randomSchema();
         PartitionName partitionName = new PartitionName(
-            RelationName.of(schemaName, "test"), Collections.singletonList("boo"));
+            new RelationName(schemaName, "test"), Collections.singletonList("boo"));
         IndexMetadata.Builder indexMetadataBuilder = IndexMetadata.builder(partitionName.asIndexName())
             .settings(Settings.builder().put("index.version.created", Version.CURRENT).build())
             .numberOfReplicas(0)
@@ -85,6 +85,6 @@ public class DocTableInfoFactoryTest extends ESTestCase {
 
         expectedException.expect(RelationUnknown.class);
         expectedException.expectMessage(String.format(Locale.ENGLISH, "Relation '%s.test' unknown", schemaName));
-        docTableInfoFactory.create(RelationName.of(schemaName, "test"), state);
+        docTableInfoFactory.create(new RelationName(schemaName, "test"), state);
     }
 }

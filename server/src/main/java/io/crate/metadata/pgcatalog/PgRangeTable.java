@@ -28,7 +28,7 @@ import static io.crate.types.DataTypes.REGPROC;
 
 public final class PgRangeTable {
 
-    public static final RelationName IDENT = RelationName.of(PgCatalogSchemaInfo.NAME, "pg_range");
+    public static final RelationName IDENT = new RelationName(PgCatalogSchemaInfo.NAME, "pg_range");
 
     public static SystemTable<Void> create() {
         return SystemTable.<Void>builder(IDENT)

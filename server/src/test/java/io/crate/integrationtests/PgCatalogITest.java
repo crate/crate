@@ -323,7 +323,7 @@ public class PgCatalogITest extends IntegTestCase {
             "PRIMARY KEY (int_col, long_col)," +
             "CONSTRAINT many_cols_and_functions CHECK(not_null * long_col > int_col))"
         );
-        int reloid = OidHash.relationOid(OidHash.Type.TABLE, RelationName.of("doc", "tbl"));
+        int reloid = OidHash.relationOid(OidHash.Type.TABLE, new RelationName("doc", "tbl"));
         response = execute("select i.conkey, i.conname, i.contype from pg_catalog.pg_constraint i where i.conrelid  = " + reloid + " order by i.conname");
         assertThat(printedTable(response.rows()), is(
             "[2, 1, 3]| many_cols_and_functions| c\n" +

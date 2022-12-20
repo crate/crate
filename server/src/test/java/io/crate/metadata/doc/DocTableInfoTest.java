@@ -56,7 +56,7 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testGetColumnInfo() throws Exception {
-        RelationName relationName = RelationName.of(Schemas.DOC_SCHEMA_NAME, "dummy");
+        RelationName relationName = new RelationName(Schemas.DOC_SCHEMA_NAME, "dummy");
 
         DocTableInfo info = new DocTableInfo(
             relationName,
@@ -119,7 +119,7 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testGetColumnInfoStrictParent() throws Exception {
-        RelationName dummy = RelationName.of(Schemas.DOC_SCHEMA_NAME, "dummy");
+        RelationName dummy = new RelationName(Schemas.DOC_SCHEMA_NAME, "dummy");
         ReferenceIdent foobarIdent = new ReferenceIdent(dummy, new ColumnIdent("foobar"));
         SimpleReference strictParent = new SimpleReference(
             foobarIdent,

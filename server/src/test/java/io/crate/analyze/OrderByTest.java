@@ -42,7 +42,7 @@ import io.crate.types.DataTypes;
 
 public class OrderByTest extends ESTestCase {
 
-    private static final RelationName TI = RelationName.of("doc", "people");
+    private static final RelationName TI = new RelationName("doc", "people");
 
     private Reference ref(String name) {
         return new SimpleReference(new ReferenceIdent(TI, name), RowGranularity.DOC, DataTypes.STRING, 0, null);

@@ -43,7 +43,7 @@ import static io.crate.types.DataTypes.TIMESTAMPZ;
 
 public class SysNodesTableInfo {
 
-    public static final RelationName IDENT = RelationName.of(SysSchemaInfo.NAME, "nodes");
+    public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "nodes");
 
     private static final String SYS_COL_ID = "id";
     private static final String SYS_COL_NODE_NAME = "name";

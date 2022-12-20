@@ -310,7 +310,7 @@ public class SourceFromCellsTest extends CrateDummyClusterServiceUnitTest {
         var e = SQLExecutor.builder(clusterService)
             .addPartitionedTable(
                 "create table doc.tbl (obj object as (p integer, x integer)) partitioned by (obj['p'])",
-                new PartitionName(RelationName.of("doc", "tbl"), List.of("1")).asIndexName()
+                new PartitionName(new RelationName("doc", "tbl"), List.of("1")).asIndexName()
             )
             .build();
         DocTableInfo table = e.resolveTableInfo("tbl");

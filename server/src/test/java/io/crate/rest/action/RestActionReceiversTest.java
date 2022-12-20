@@ -53,9 +53,9 @@ public class RestActionReceiversTest extends ESTestCase {
         new RowN("foobar", 3, null)
     );
     private final List<Symbol> fields = List.of(
-        new ScopedSymbol(RelationName.of("doc", "dummy"), ColumnIdent.fromPath("doc.col_a"), DataTypes.STRING),
-        new ScopedSymbol(RelationName.of("doc", "dummy"), ColumnIdent.fromPath("doc.col_b"), DataTypes.INTEGER),
-        new ScopedSymbol(RelationName.of("doc", "dummy"), ColumnIdent.fromPath("doc.col_c"), DataTypes.BOOLEAN)
+        new ScopedSymbol(new RelationName("doc", "dummy"), ColumnIdent.fromPath("doc.col_a"), DataTypes.STRING),
+        new ScopedSymbol(new RelationName("doc", "dummy"), ColumnIdent.fromPath("doc.col_b"), DataTypes.INTEGER),
+        new ScopedSymbol(new RelationName("doc", "dummy"), ColumnIdent.fromPath("doc.col_c"), DataTypes.BOOLEAN)
     );
     private final Row row = new Row1(1L);
 

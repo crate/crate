@@ -36,7 +36,7 @@ import static io.crate.types.DataTypes.STRING;
 
 public class PgIndexTable {
 
-    public static final RelationName IDENT = RelationName.of(PgCatalogSchemaInfo.NAME, "pg_index");
+    public static final RelationName IDENT = new RelationName(PgCatalogSchemaInfo.NAME, "pg_index");
 
     public static SystemTable<Entry> create() {
         return SystemTable.<Entry>builder(IDENT)

@@ -33,7 +33,7 @@ import io.crate.metadata.SystemTable;
 
 public class SysAllocationsTableInfo {
 
-    public static final RelationName IDENT = RelationName.of(SysSchemaInfo.NAME, "allocations");
+    public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "allocations");
 
     public static SystemTable<SysAllocation> create() {
         return SystemTable.<SysAllocation>builder(IDENT)

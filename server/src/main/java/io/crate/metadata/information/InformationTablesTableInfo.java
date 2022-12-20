@@ -64,7 +64,7 @@ import static org.elasticsearch.index.engine.EngineConfig.INDEX_CODEC_SETTING;
 public class InformationTablesTableInfo {
 
     public static final String NAME = "tables";
-    public static final RelationName IDENT = RelationName.of(InformationSchemaInfo.NAME, NAME);
+    public static final RelationName IDENT = new RelationName(InformationSchemaInfo.NAME, NAME);
 
     private static final String SELF_REFERENCING_COLUMN_NAME = "_id";
     private static final String REFERENCE_GENERATION = "SYSTEM GENERATED";

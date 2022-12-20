@@ -39,7 +39,7 @@ import static io.crate.types.DataTypes.TIMESTAMPZ;
 
 public class SysSnapshotsTableInfo {
 
-    public static final RelationName IDENT = RelationName.of(SysSchemaInfo.NAME, "snapshots");
+    public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "snapshots");
 
     static SystemTable<SysSnapshot> create() {
         return SystemTable.<SysSnapshot>builder(IDENT)

@@ -57,7 +57,7 @@ public class SelectivityFunctionsCalculationTest extends CrateDummyClusterServic
         );
         Stats stats = new Stats(totalNumRows, DataTypes.INTEGER.fixedSize(), columnStats);
         TableStats tableStats = new TableStats();
-        tableStats.updateTableStats(Map.of(RelationName.of("doc", "tbl"), stats));
+        tableStats.updateTableStats(Map.of(new RelationName("doc", "tbl"), stats));
         SQLExecutor e = SQLExecutor.builder(clusterService)
             .setTableStats(tableStats)
             .addTable("create table doc.tbl (x int)")
@@ -81,7 +81,7 @@ public class SelectivityFunctionsCalculationTest extends CrateDummyClusterServic
             Map.of(new ColumnIdent("x"), ColumnStats.fromSortedValues(samples, DataTypes.INTEGER, 0, numDocs))
         );
         TableStats tableStats = new TableStats();
-        tableStats.updateTableStats(Map.of(RelationName.of("doc", "tbl"), stats));
+        tableStats.updateTableStats(Map.of(new RelationName("doc", "tbl"), stats));
         SQLExecutor e = SQLExecutor.builder(clusterService)
             .setTableStats(tableStats)
             .addTable("create table doc.tbl (x int)")

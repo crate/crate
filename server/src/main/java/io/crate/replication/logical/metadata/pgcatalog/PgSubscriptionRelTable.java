@@ -37,7 +37,7 @@ import static io.crate.types.DataTypes.STRING;
 
 public class PgSubscriptionRelTable {
 
-    public static final RelationName IDENT = RelationName.of(PgCatalogSchemaInfo.NAME, "pg_subscription_rel");
+    public static final RelationName IDENT = new RelationName(PgCatalogSchemaInfo.NAME, "pg_subscription_rel");
 
     public static SystemTable<PgSubscriptionRelTable.PgSubscriptionRelRow> create() {
         return SystemTable.<PgSubscriptionRelTable.PgSubscriptionRelRow>builder(IDENT)

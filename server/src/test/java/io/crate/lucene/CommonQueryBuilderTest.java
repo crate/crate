@@ -86,7 +86,7 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
             resetClusterService();
 
             DocTableInfo tableInfo = SQLExecutor.tableInfo(
-                RelationName.of(DocSchemaInfo.NAME, "test_primitive"),
+                new RelationName(DocSchemaInfo.NAME, "test_primitive"),
                 "create table doc.test_primitive (" +
                 "  x " + type.getName() +
                 ")",
