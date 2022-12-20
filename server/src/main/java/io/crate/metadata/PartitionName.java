@@ -228,7 +228,7 @@ public class PartitionName {
         if (!indexParts.isPartitioned()) {
             throw new IllegalArgumentException("Invalid index name: " + indexOrTemplate);
         }
-        return new PartitionName(RelationName.of(indexParts.getSchema(), indexParts.getTable()), indexParts.getPartitionIdent());
+        return new PartitionName(new RelationName(indexParts.getSchema(), indexParts.getTable()), indexParts.getPartitionIdent());
     }
 
     /**

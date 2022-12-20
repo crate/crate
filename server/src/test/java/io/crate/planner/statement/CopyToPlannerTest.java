@@ -69,17 +69,17 @@ public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
                 "   date timestamp with time zone," +
                 "   obj object" +
                 ") partitioned by (date) ",
-                new PartitionName(RelationName.of("doc", "parted"), singletonList("1395874800000")).asIndexName(),
-                new PartitionName(RelationName.of("doc", "parted"), singletonList("1395961200000")).asIndexName(),
-                new PartitionName(RelationName.of("doc", "parted"), singletonList(null)).asIndexName()
+                new PartitionName(new RelationName("doc", "parted"), singletonList("1395874800000")).asIndexName(),
+                new PartitionName(new RelationName("doc", "parted"), singletonList("1395961200000")).asIndexName(),
+                new PartitionName(new RelationName("doc", "parted"), singletonList(null)).asIndexName()
             )
             .addPartitionedTable(
                 "create table parted_generated (" +
                 "   ts timestamp with time zone," +
                 "   day as date_trunc('day', ts)" +
                 ") partitioned by (day) ",
-                new PartitionName(RelationName.of("doc", "parted_generated"), List.of("1395874800000")).asIndexName(),
-                new PartitionName(RelationName.of("doc", "parted_generated"), List.of("1395961200000")).asIndexName()
+                new PartitionName(new RelationName("doc", "parted_generated"), List.of("1395874800000")).asIndexName(),
+                new PartitionName(new RelationName("doc", "parted_generated"), List.of("1395961200000")).asIndexName()
             ).build();
     }
 
@@ -129,7 +129,7 @@ public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
             "copy parted where date = 1395874800000 to directory '/tmp/foo'");
         Collect collect = (Collect) merge.subPlan();
         String expectedIndex = new PartitionName(
-            RelationName.of("doc", "parted"), singletonList("1395874800000")).asIndexName();
+            new RelationName("doc", "parted"), singletonList("1395874800000")).asIndexName();
 
         assertThat(
             ((RoutedCollectPhase) collect.collectPhase()).routing().locations().values().stream()

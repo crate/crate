@@ -218,8 +218,8 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table j.left_table (id int)")
             .addTable("create table j.right_table (id int)")
             .build();
-        RelationName leftName = RelationName.of("j", "left_table");
-        RelationName rightName = RelationName.of("j", "right_table");
+        RelationName leftName = new RelationName("j", "left_table");
+        RelationName rightName = new RelationName("j", "right_table");
 
         QueriedSelectRelation mss = e.analyze("select * from j.left_table as l left join j.right_table as r on l.id = r.id");
 
@@ -604,7 +604,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             """
             )
             .addView(
-                RelationName.of("doc", "v1"),
+                new RelationName("doc", "v1"),
                 """
                     SELECT "b".ts_production AS "start"
                     FROM (

@@ -32,7 +32,7 @@ import io.crate.metadata.table.ConstraintInfo;
 public class InformationTableConstraintsTableInfo {
 
     public static final String NAME = "table_constraints";
-    public static final RelationName IDENT = RelationName.of(InformationSchemaInfo.NAME, NAME);
+    public static final RelationName IDENT = new RelationName(InformationSchemaInfo.NAME, NAME);
 
     public static SystemTable<ConstraintInfo> create() {
         return SystemTable.<ConstraintInfo>builder(IDENT)

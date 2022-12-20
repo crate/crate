@@ -32,7 +32,7 @@ import io.crate.metadata.SystemTable;
 
 public final class SysChecksTableInfo {
 
-    public static final RelationName IDENT = RelationName.of(SysSchemaInfo.NAME, "checks");
+    public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "checks");
 
     public static SystemTable<SysCheck> create() {
         return SystemTable.<SysCheck>builder(IDENT)

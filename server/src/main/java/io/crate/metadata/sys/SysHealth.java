@@ -30,7 +30,7 @@ import static io.crate.types.DataTypes.STRING;
 
 public class SysHealth {
 
-    public static final RelationName IDENT = RelationName.of(SysSchemaInfo.NAME, "health");
+    public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "health");
 
     static SystemTable<TableHealth> create() {
         return SystemTable.<TableHealth>builder(IDENT)

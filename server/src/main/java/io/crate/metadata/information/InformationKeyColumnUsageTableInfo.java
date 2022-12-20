@@ -37,7 +37,7 @@ import io.crate.metadata.SystemTable;
 public class InformationKeyColumnUsageTableInfo {
 
     public static final String NAME = "key_column_usage";
-    public static final RelationName IDENT = RelationName.of(InformationSchemaInfo.NAME, NAME);
+    public static final RelationName IDENT = new RelationName(InformationSchemaInfo.NAME, NAME);
 
     public static SystemTable<InformationSchemaIterables.KeyColumnUsage> create() {
         return SystemTable.<InformationSchemaIterables.KeyColumnUsage>builder(IDENT)

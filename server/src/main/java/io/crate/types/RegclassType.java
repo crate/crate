@@ -117,7 +117,7 @@ public final class RegclassType extends DataType<Regclass> implements Streamer<R
         if (value instanceof String s) {
             try {
                 var qualifiedNameReference = (QualifiedNameReference) SqlParser.createExpression(s);
-                var relationName = RelationName.ofQualified(currentSchema, qualifiedNameReference.getName());
+                var relationName = RelationName.of(qualifiedNameReference.getName(), currentSchema);
                 return Regclass.fromRelationName(relationName);
             } catch (ParsingException e) {
                 throw new InvalidRelationName(s, e);

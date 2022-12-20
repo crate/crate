@@ -29,7 +29,7 @@ import io.crate.types.DataTypes;
 
 public class DocReferencesTest {
 
-    private static final RelationName RELATION_ID = RelationName.of(Schemas.DOC_SCHEMA_NAME, "users");
+    private static final RelationName RELATION_ID = new RelationName(Schemas.DOC_SCHEMA_NAME, "users");
 
     private static Reference stringRef(String path) {
         ColumnIdent columnIdent = ColumnIdent.fromPath(path);

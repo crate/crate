@@ -49,7 +49,7 @@ import io.crate.testing.SQLExecutor;
 public class RoutingBuilderTest extends CrateDummyClusterServiceUnitTest {
 
     private RoutingProvider routingProvider = new RoutingProvider(Randomness.get().nextInt(), Collections.emptyList());
-    private RelationName relationName = RelationName.of("custom", "t1");
+    private RelationName relationName = new RelationName("custom", "t1");
     private TableInfo tableInfo;
 
     @Before

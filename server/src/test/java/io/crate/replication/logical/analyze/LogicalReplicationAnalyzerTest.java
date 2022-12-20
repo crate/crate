@@ -62,7 +62,7 @@ public class LogicalReplicationAnalyzerTest extends CrateDummyClusterServiceUnit
     public void test_create_publication_which_already_exists_raises_error() throws Exception {
         var e = SQLExecutor.builder(clusterService)
             .addTable("create table doc.t1 (x int)")
-            .addPublication("pub1", false, RelationName.of("doc", "t1"))
+            .addPublication("pub1", false, new RelationName("doc", "t1"))
             .build();
 
         assertThrows(
@@ -158,7 +158,7 @@ public class LogicalReplicationAnalyzerTest extends CrateDummyClusterServiceUnit
     public void test_alter_publication_with_unknown_table_raise_error() throws Exception {
         var e = SQLExecutor.builder(clusterService)
             .addTable("create table doc.t1 (x int)")
-            .addPublication("pub1", false, RelationName.of("doc", "t1"))
+            .addPublication("pub1", false, new RelationName("doc", "t1"))
             .build();
         assertThrows(
             RelationUnknown.class,
@@ -183,7 +183,7 @@ public class LogicalReplicationAnalyzerTest extends CrateDummyClusterServiceUnit
     public void test_alter_publication_as_non_superuser_and_non_owner_raises_error() {
         var e = SQLExecutor.builder(clusterService)
             .setUser(User.of("owner"))
-            .addPublication("pub1", false, RelationName.of("doc", "t1"))
+            .addPublication("pub1", false, new RelationName("doc", "t1"))
             .build();
         assertThrowsMatches(
             () -> e.analyzer.analyze(

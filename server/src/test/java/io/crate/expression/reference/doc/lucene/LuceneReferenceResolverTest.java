@@ -42,7 +42,7 @@ import io.crate.types.DataTypes;
 public class LuceneReferenceResolverTest extends ESTestCase {
 
     // just return any fieldType to get passt the null check
-    private RelationName name = RelationName.of("s", "t");
+    private RelationName name = new RelationName("s", "t");
     private LuceneReferenceResolver luceneReferenceResolver = new LuceneReferenceResolver(
         name.indexNameOrAlias(),
         i -> new KeywordFieldType("dummy", true, false),

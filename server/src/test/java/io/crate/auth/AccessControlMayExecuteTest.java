@@ -141,7 +141,7 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
                 TableDefinitions.TEST_PARTITIONED_TABLE_DEFINITION,
                 TableDefinitions.TEST_PARTITIONED_TABLE_PARTITIONS)
             .setUser(superUser)
-            .addView(RelationName.of("doc", "v1"), "select * from users")
+            .addView(new RelationName("doc", "v1"), "select * from users")
             .setUserManager(userManager)
             .build();
     }
@@ -676,7 +676,7 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     public void test_alter_publication_asks_cluster_AL() throws Exception {
         e = SQLExecutor.builder(clusterService)
             .setUser(user)
-            .addPublication("pub1", false, RelationName.of("doc", "t1"))
+            .addPublication("pub1", false, new RelationName("doc", "t1"))
             .setUserManager(userManager)
             .build();
         analyze("ALTER PUBLICATION pub1 ADD TABLE t2", user);

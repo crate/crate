@@ -123,10 +123,10 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             .build();
 
         QueriedSelectRelation queriedTable = executor.analyze("select * from t");
-        assertThat(queriedTable.from()).satisfiesExactly(isDocTable(RelationName.of("first", "t")));
+        assertThat(queriedTable.from()).satisfiesExactly(isDocTable(new RelationName("first", "t")));
 
         queriedTable = executor.analyze("select * from t1");
-        assertThat(queriedTable.from()).satisfiesExactly(isDocTable(RelationName.of("third", "t1")));
+        assertThat(queriedTable.from()).satisfiesExactly(isDocTable(new RelationName("third", "t1")));
     }
 
     @Test
@@ -1879,7 +1879,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
     @Test
     public void testSelectPartitionedTableOrderBy() throws Exception {
-        RelationName multiPartName = RelationName.of("doc", "multi_parted");
+        RelationName multiPartName = new RelationName("doc", "multi_parted");
         var executor = SQLExecutor.builder(clusterService)
             .addPartitionedTable(
                 "create table doc.multi_parted (" +

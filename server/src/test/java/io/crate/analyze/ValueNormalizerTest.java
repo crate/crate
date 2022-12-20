@@ -56,7 +56,7 @@ import io.crate.types.DataTypes;
 
 public class ValueNormalizerTest extends CrateDummyClusterServiceUnitTest {
 
-    private static final RelationName TEST_TABLE_IDENT = RelationName.of(Schemas.DOC_SCHEMA_NAME, "test1");
+    private static final RelationName TEST_TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "test1");
     private TableInfo userTableInfo;
     private EvaluatingNormalizer normalizer;
 

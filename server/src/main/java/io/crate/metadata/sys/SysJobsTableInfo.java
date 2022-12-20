@@ -36,7 +36,7 @@ import io.crate.metadata.SystemTable;
 
 public class SysJobsTableInfo {
 
-    public static final RelationName IDENT = RelationName.of(SysSchemaInfo.NAME, "jobs");
+    public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "jobs");
 
     public static SystemTable<JobContext> create(Supplier<DiscoveryNode> localNode) {
         return SystemTable.<JobContext>builder(IDENT)

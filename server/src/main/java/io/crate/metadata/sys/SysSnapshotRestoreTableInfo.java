@@ -36,7 +36,7 @@ import static io.crate.types.DataTypes.STRING;
 
 public class SysSnapshotRestoreTableInfo {
 
-    public static final RelationName IDENT = RelationName.of(SysSchemaInfo.NAME, "snapshot_restore");
+    public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "snapshot_restore");
 
     static SystemTable<SysSnapshotRestoreInProgress> create() {
         return SystemTable.<SysSnapshotRestoreInProgress>builder(IDENT)

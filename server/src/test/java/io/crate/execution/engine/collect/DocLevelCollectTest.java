@@ -86,14 +86,14 @@ public class DocLevelCollectTest extends IntegTestCase {
 
     private static final String TEST_TABLE_NAME = "test_table";
     private static final SimpleReference TEST_DOC_LEVEL_REFERENCE = new SimpleReference(
-        new ReferenceIdent(RelationName.of(Schemas.DOC_SCHEMA_NAME, TEST_TABLE_NAME), "doc"),
+        new ReferenceIdent(new RelationName(Schemas.DOC_SCHEMA_NAME, TEST_TABLE_NAME), "doc"),
         RowGranularity.DOC,
         DataTypes.INTEGER,
         0,
         null
     );
     private static final SimpleReference UNDERSCORE_ID_REFERENCE = new SimpleReference(
-        new ReferenceIdent(RelationName.of(Schemas.DOC_SCHEMA_NAME, TEST_TABLE_NAME), "_id"),
+        new ReferenceIdent(new RelationName(Schemas.DOC_SCHEMA_NAME, TEST_TABLE_NAME), "_id"),
         RowGranularity.DOC,
         DataTypes.STRING,
         0,
@@ -207,7 +207,7 @@ public class DocLevelCollectTest extends IntegTestCase {
 
     @Test
     public void testCollectWithPartitionedColumns() throws Throwable {
-        RelationName relationName = RelationName.of(Schemas.DOC_SCHEMA_NAME, PARTITIONED_TABLE_NAME);
+        RelationName relationName = new RelationName(Schemas.DOC_SCHEMA_NAME, PARTITIONED_TABLE_NAME);
         TableInfo tableInfo = schemas.getTableInfo(relationName);
         Routing routing = tableInfo.getRouting(
             clusterService().state(),

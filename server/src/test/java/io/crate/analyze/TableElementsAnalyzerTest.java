@@ -87,7 +87,7 @@ public class TableElementsAnalyzerTest extends CrateDummyClusterServiceUnitTest 
             List.of()
         );
         List<TableElement<Expression>> tableElements = List.of(e1, e2);
-        var analyzed = TableElementsAnalyzer.analyze(tableElements, RelationName.of(null, "dummy"), null, true);
+        var analyzed = TableElementsAnalyzer.analyze(tableElements, new RelationName(null, "dummy"), null, true);
 
         var nested = analyzed.columns().get(0);
         assertThat(nested.position).isEqualTo(-1);

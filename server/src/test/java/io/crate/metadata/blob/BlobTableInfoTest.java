@@ -39,7 +39,7 @@ import io.crate.types.DataTypes;
 public class BlobTableInfoTest extends ESTestCase {
 
     private BlobTableInfo info = new BlobTableInfo(
-        RelationName.of("blob", "dummy"),
+        new RelationName("blob", "dummy"),
         ".blob_dummy",
         5,
         "0",

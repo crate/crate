@@ -92,7 +92,7 @@ import io.crate.types.DataTypes;
 public class LuceneOrderedDocCollectorTest extends RandomizedTest {
 
     private static final SimpleReference REFERENCE = new SimpleReference(
-        new ReferenceIdent(RelationName.of(Schemas.DOC_SCHEMA_NAME, "table"), "value"),
+        new ReferenceIdent(new RelationName(Schemas.DOC_SCHEMA_NAME, "table"), "value"),
         RowGranularity.DOC,
         DataTypes.LONG,
         0,
@@ -262,7 +262,7 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
         Reference sysColReference =
             new SimpleReference(
                 new ReferenceIdent(
-                    RelationName.of(Schemas.DOC_SCHEMA_NAME, "table"),
+                    new RelationName(Schemas.DOC_SCHEMA_NAME, "table"),
                     DocSysColumns.SCORE), RowGranularity.DOC, DataTypes.FLOAT, 0, null
             );
 

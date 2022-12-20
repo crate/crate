@@ -55,24 +55,24 @@ public class RelationNameCollectorTest extends CrateDummyClusterServiceUnitTest 
         assertThat(RelationNameCollector.collect(constantCondition), is(Set.of()));
 
         constantCondition = sqlExpressions.asSymbol("t1.x = 4");
-        assertThat(RelationNameCollector.collect(constantCondition), contains(RelationName.of("doc", "t1")));
+        assertThat(RelationNameCollector.collect(constantCondition), contains(new RelationName("doc", "t1")));
 
         constantCondition = sqlExpressions.asSymbol("t1.x < 4");
-        assertThat(RelationNameCollector.collect(constantCondition), contains(RelationName.of("doc", "t1")));
+        assertThat(RelationNameCollector.collect(constantCondition), contains(new RelationName("doc", "t1")));
 
         constantCondition = sqlExpressions.asSymbol("t1.x = 4 AND true");
-        assertThat(RelationNameCollector.collect(constantCondition), contains(RelationName.of("doc", "t1")));
+        assertThat(RelationNameCollector.collect(constantCondition), contains(new RelationName("doc", "t1")));
 
         constantCondition = sqlExpressions.asSymbol("t1.x = 1 and t1.i = 10");
-        assertThat(RelationNameCollector.collect(constantCondition), contains(RelationName.of("doc", "t1")));
+        assertThat(RelationNameCollector.collect(constantCondition), contains(new RelationName("doc", "t1")));
 
         constantCondition = sqlExpressions.asSymbol("t1.x = 1 and t1.i = 10 and t2.y = 3");
         assertThat(RelationNameCollector.collect(constantCondition),
-                   contains(RelationName.of("doc", "t1"), RelationName.of("doc", "t2")));
+                   contains(new RelationName("doc", "t1"), new RelationName("doc", "t2")));
 
         constantCondition = sqlExpressions.asSymbol("t1.x = t2.y AND t2.y + t2.y = 4");
         assertThat(RelationNameCollector.collect(constantCondition),
-                   contains(RelationName.of("doc", "t1"), RelationName.of("doc", "t2")));
+                   contains(new RelationName("doc", "t1"), new RelationName("doc", "t2")));
 
     }
 }

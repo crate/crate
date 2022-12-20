@@ -142,8 +142,8 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         TableInfo t1 = executor.resolveTableInfo("t1");
         TableRelation relation = new TableRelation(t1);
 
-        RelationName a1 = RelationName.of(null, "a1");
-        RelationName a2 = RelationName.of(null, "a2");
+        RelationName a1 = new RelationName(null, "a1");
+        RelationName a2 = new RelationName(null, "a2");
         Map<RelationName, AnalyzedRelation> sources = Map.of(
             a1, new AliasedAnalyzedRelation(relation, a1),
             a2, new AliasedAnalyzedRelation(relation, a2)
@@ -401,7 +401,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testAnalyzeArraySliceFunctionCall() {
-        ReferenceIdent arrayRefIdent = new ReferenceIdent(RelationName.of("doc", "tarr"), "xs");
+        ReferenceIdent arrayRefIdent = new ReferenceIdent(new RelationName("doc", "tarr"), "xs");
         SimpleReference arrayRef = new SimpleReference(arrayRefIdent,
                                            RowGranularity.DOC,
                                            DataTypes.INTEGER_ARRAY,

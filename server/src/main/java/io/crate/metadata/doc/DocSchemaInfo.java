@@ -152,7 +152,7 @@ public class DocSchemaInfo implements SchemaInfo {
     @Override
     public TableInfo getTableInfo(String name) {
         try {
-            return docTableByName.computeIfAbsent(name, n -> docTableInfoFactory.create(RelationName.of(schemaName, n), clusterService.state()));
+            return docTableByName.computeIfAbsent(name, n -> docTableInfoFactory.create(new RelationName(schemaName, n), clusterService.state()));
         } catch (Exception e) {
             if (e instanceof ResourceUnknownException) {
                 return null;
@@ -189,7 +189,7 @@ public class DocSchemaInfo implements SchemaInfo {
 
     @Nullable
     private ViewInfo getViewInfo(String name) {
-        return viewInfoFactory.create(RelationName.of(schemaName, name), clusterService.state());
+        return viewInfoFactory.create(new RelationName(schemaName, name), clusterService.state());
     }
 
     private Collection<String> viewNames() {

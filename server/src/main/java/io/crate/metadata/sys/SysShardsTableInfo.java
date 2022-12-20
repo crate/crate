@@ -65,7 +65,7 @@ import io.crate.user.User;
 
 public class SysShardsTableInfo {
 
-    public static final RelationName IDENT = RelationName.of(SysSchemaInfo.NAME, "shards");
+    public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "shards");
 
     public static class Columns {
         /**
