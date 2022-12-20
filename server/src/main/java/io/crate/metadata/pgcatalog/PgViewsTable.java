@@ -31,7 +31,7 @@ import static io.crate.types.DataTypes.STRING;
 public final class PgViewsTable {
 
     public static final String NAME = "pg_views";
-    public static final RelationName IDENT = RelationName.of(PgCatalogSchemaInfo.NAME, NAME);
+    public static final RelationName IDENT = new RelationName(PgCatalogSchemaInfo.NAME, NAME);
 
     public static SystemTable<ViewInfo> create() {
         return SystemTable.<ViewInfo>builder(IDENT)

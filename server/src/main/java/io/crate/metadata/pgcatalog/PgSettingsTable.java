@@ -33,7 +33,7 @@ import io.crate.metadata.settings.session.NamedSessionSetting;
 
 public class PgSettingsTable {
 
-    public static final RelationName IDENT = RelationName.of(PgCatalogSchemaInfo.NAME, "pg_settings");
+    public static final RelationName IDENT = new RelationName(PgCatalogSchemaInfo.NAME, "pg_settings");
 
     public static SystemTable<NamedSessionSetting> create() {
         return SystemTable.<NamedSessionSetting>builder(IDENT)

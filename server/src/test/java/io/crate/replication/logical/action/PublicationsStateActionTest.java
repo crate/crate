@@ -97,7 +97,7 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
         ));
 
         Map<RelationName, RelationMetadata> resolvedRelations = publication.resolveCurrentRelations(clusterService.state(), user, user, "dummy");
-        assertThat(resolvedRelations.keySet(), contains(RelationName.of("doc", "t1")));
+        assertThat(resolvedRelations.keySet(), contains(new RelationName("doc", "t1")));
         appender.assertAllExpectationsMatched();
     }
 
@@ -133,7 +133,7 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
             "dummy"
         );
 
-        assertThat(resolvedRelations.keySet(), contains(RelationName.of("doc", "t1")));
+        assertThat(resolvedRelations.keySet(), contains(new RelationName("doc", "t1")));
     }
 
     @Test
@@ -163,7 +163,7 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
         var publication = new Publication("publisher", true, List.of());
 
         var resolvedRelations = publication.resolveCurrentRelations(clusterService.state(), publicationOwner, subscriber, "dummy");
-        assertThat(resolvedRelations.keySet(), contains(RelationName.of("doc", "t1")));
+        assertThat(resolvedRelations.keySet(), contains(new RelationName("doc", "t1")));
     }
 
     @Test
@@ -192,8 +192,8 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
             .build();
         var publication = new Publication("publisher", false,
             List.of(
-                RelationName.ofQualified(Schemas.DOC_SCHEMA_NAME, QualifiedName.of("t1")),
-                RelationName.ofQualified(Schemas.DOC_SCHEMA_NAME, QualifiedName.of("t2"))
+                RelationName.of(QualifiedName.of("t1"), Schemas.DOC_SCHEMA_NAME),
+                RelationName.of(QualifiedName.of("t2"), Schemas.DOC_SCHEMA_NAME)
             )
         );
 
@@ -203,6 +203,6 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
             subscriber,
             "dummy"
         );
-        assertThat(resolvedRelations.keySet(), contains(RelationName.of("doc", "t1")));
+        assertThat(resolvedRelations.keySet(), contains(new RelationName("doc", "t1")));
     }
 }

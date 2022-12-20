@@ -33,7 +33,7 @@ public class GeoReferenceTest extends ESTestCase {
 
     @Test
     public void testStreaming() throws Exception {
-        RelationName relationName = RelationName.of("doc", "test");
+        RelationName relationName = new RelationName("doc", "test");
         ReferenceIdent referenceIdent = new ReferenceIdent(relationName, "geo_column");
         GeoReference geoReferenceInfo = new GeoReference(1, referenceIdent, true, "some_tree", "1m", 3, 0.5d);
 

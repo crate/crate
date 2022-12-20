@@ -113,7 +113,7 @@ public class HandlerSideLevelCollectTest extends IntegTestCase {
     @Test
     public void testClusterLevel() throws Exception {
         Schemas schemas = internalCluster().getInstance(Schemas.class);
-        TableInfo tableInfo = schemas.getTableInfo(RelationName.of("sys", "cluster"));
+        TableInfo tableInfo = schemas.getTableInfo(new RelationName("sys", "cluster"));
         Routing routing = tableInfo.getRouting(
             clusterService().state(),
             routingProvider,

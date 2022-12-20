@@ -210,7 +210,7 @@ public class TestingHelpers {
 
     public static Reference createReference(String tableName, ColumnIdent columnIdent, DataType<?> dataType) {
         return new SimpleReference(
-            new ReferenceIdent(RelationName.of(Schemas.DOC_SCHEMA_NAME, tableName), columnIdent),
+            new ReferenceIdent(new RelationName(Schemas.DOC_SCHEMA_NAME, tableName), columnIdent),
             RowGranularity.DOC,
             dataType,
             0,
@@ -289,8 +289,8 @@ public class TestingHelpers {
             nestedParts = Arrays.asList(nested);
         }
         refIdent = switch (parts.length) {
-            case 2 -> new ReferenceIdent(RelationName.of(Schemas.DOC_SCHEMA_NAME, parts[0]), parts[1], nestedParts);
-            case 3 -> new ReferenceIdent(RelationName.of(parts[0], parts[1]), parts[2], nestedParts);
+            case 2 -> new ReferenceIdent(new RelationName(Schemas.DOC_SCHEMA_NAME, parts[0]), parts[1], nestedParts);
+            case 3 -> new ReferenceIdent(new RelationName(parts[0], parts[1]), parts[2], nestedParts);
             default -> throw new IllegalArgumentException(
                 "fqColumnName must contain <table>.<column> or <schema>.<table>.<column>");
         };

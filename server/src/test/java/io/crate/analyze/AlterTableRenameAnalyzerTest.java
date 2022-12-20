@@ -70,7 +70,7 @@ public class AlterTableRenameAnalyzerTest extends CrateDummyClusterServiceUnitTe
 
     @Test
     public void test_rename_is_not_allowed_when_table_is_published() throws Exception {
-        var clusterService = clusterServiceWithPublicationMetadata(false, RelationName.of("doc", "t1"));
+        var clusterService = clusterServiceWithPublicationMetadata(false, new RelationName("doc", "t1"));
         var executor = SQLExecutor.builder(clusterService).addTable(T3.T1_DEFINITION).build();
         assertThrowsMatches(
             () -> executor.analyze("ALTER TABLE t1 rename to t1_renamed"),

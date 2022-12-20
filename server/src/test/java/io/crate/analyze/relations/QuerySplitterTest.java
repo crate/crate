@@ -38,9 +38,9 @@ import io.crate.testing.T3;
 
 public class QuerySplitterTest extends CrateDummyClusterServiceUnitTest {
 
-    private static final RelationName tr1 = RelationName.of("doc", "t1");
-    private static final RelationName tr2 = RelationName.of("doc", "t2");
-    private static final RelationName tr3 = RelationName.of("doc", "t3");
+    private static final RelationName tr1 = new RelationName("doc", "t1");
+    private static final RelationName tr2 = new RelationName("doc", "t2");
+    private static final RelationName tr3 = new RelationName("doc", "t3");
     private SqlExpressions expressions;
 
     @Before

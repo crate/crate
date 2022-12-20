@@ -50,7 +50,7 @@ import io.crate.types.DataTypes;
 
 public class ShardUpsertRequestTest extends ESTestCase {
 
-    private static final RelationName CHARACTERS_IDENTS = RelationName.of(Schemas.DOC_SCHEMA_NAME, "characters");
+    private static final RelationName CHARACTERS_IDENTS = new RelationName(Schemas.DOC_SCHEMA_NAME, "characters");
 
     private static final SimpleReference ID_REF = new SimpleReference(
         new ReferenceIdent(CHARACTERS_IDENTS, "id"),

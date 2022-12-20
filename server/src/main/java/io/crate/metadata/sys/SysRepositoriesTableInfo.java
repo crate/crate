@@ -35,7 +35,7 @@ import io.crate.metadata.SystemTable;
 
 public class SysRepositoriesTableInfo {
 
-    public static final RelationName IDENT = RelationName.of(SysSchemaInfo.NAME, "repositories");
+    public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "repositories");
 
     public static SystemTable<Repository> create(List<Setting<?>> maskedSettings) {
         var maskedSettingNames = maskedSettings.stream().map(Setting::getKey).collect(Collectors.toSet());

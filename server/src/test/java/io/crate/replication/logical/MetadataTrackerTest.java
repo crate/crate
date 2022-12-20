@@ -253,7 +253,7 @@ public class MetadataTrackerTest extends ESTestCase {
             .addPublication("pub1", List.of("test"))
             .build();
 
-        testTable = RelationName.of("doc", "test");
+        testTable = new RelationName("doc", "test");
         publicationsStateResponse = new Response(Map.of(
             testTable,
             RelationMetadata.fromMetadata(testTable, PUBLISHER_CLUSTER_STATE.metadata())), List.of());
@@ -386,7 +386,7 @@ public class MetadataTrackerTest extends ESTestCase {
             .addPublication("pub1", List.of("t2"))
             .build();
 
-        RelationName table = RelationName.of("doc", "t2");
+        RelationName table = new RelationName("doc", "t2");
         var updatedResponse = new Response(Map.of(
             table,
             RelationMetadata.fromMetadata(table, publisherState.metadata())), List.of());

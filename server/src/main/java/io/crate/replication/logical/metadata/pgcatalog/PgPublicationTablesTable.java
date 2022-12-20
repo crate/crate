@@ -35,7 +35,7 @@ import static io.crate.types.DataTypes.STRING;
 
 public class PgPublicationTablesTable {
 
-    public static final RelationName IDENT = RelationName.of(PgCatalogSchemaInfo.NAME, "pg_publication_tables");
+    public static final RelationName IDENT = new RelationName(PgCatalogSchemaInfo.NAME, "pg_publication_tables");
 
     public static SystemTable<PublicatedTableRow> create() {
         return SystemTable.<PublicatedTableRow>builder(IDENT)

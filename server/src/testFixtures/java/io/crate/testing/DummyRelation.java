@@ -52,7 +52,7 @@ public class DummyRelation implements AnalyzedRelation {
     }
 
     public DummyRelation(String... referenceNames) {
-        this.name = RelationName.of("foo", "dummy");
+        this.name = new RelationName("foo", "dummy");
         for (String referenceName : referenceNames) {
             columnReferences.add(ColumnIdent.fromPath(referenceName));
         }

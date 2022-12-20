@@ -51,7 +51,7 @@ public class PublicationsMetadataTest extends ESTestCase {
             new Publication(
                 "user1",
                 false,
-                List.of(RelationName.of("s1", "t1"), RelationName.of("s1", "t2"))
+                List.of(new RelationName("s1", "t1"), new RelationName("s1", "t2"))
             ),
             "myPub2",
             new Publication("user2", true, List.of())
