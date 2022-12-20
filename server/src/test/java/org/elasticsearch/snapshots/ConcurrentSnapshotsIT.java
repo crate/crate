@@ -1194,8 +1194,8 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
             }
         };
         client().execute(CreateSnapshotAction.INSTANCE, new CreateSnapshotRequest(repoName, "expected-to-fail")
-            .waitForCompletion(false)).whenComplete(listener);
-
+            .waitForCompletion(true)).whenComplete(listener);
+        // Exception is thrown, but the listener is not called
         createSnapshotFuture.get();
         assertBusy(() -> assertThat(createSnapshotFuture).isCompletedExceptionally());
         assertThat(createSnapshotFuture.throwable()).isExactlyInstanceOf(ConcurrentSnapshotExecutionException.class);
