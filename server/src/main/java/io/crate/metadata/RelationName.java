@@ -72,13 +72,6 @@ public final class RelationName implements Writeable, Accountable {
 
     public static RelationName of(@Nullable String schema, String name) {
         assert name != null : "table name must not be null";
-        if (schema != null && containsIllegalCharacters(schema)) {
-            throw new InvalidSchemaNameException(schema);
-        }
-        if (containsIllegalCharacters(name)) {
-            var invalidRelationName = new RelationName(schema, name);
-            throw new InvalidRelationName(invalidRelationName);
-        }
         return new RelationName(schema, name);
     }
 
@@ -191,16 +184,15 @@ public final class RelationName implements Writeable, Accountable {
     }
 
     private static boolean isValidRelationOrSchemaName(String name) {
-        return !name.isEmpty() && !name.startsWith("_");
-    }
-
-    private static boolean containsIllegalCharacters(String name) {
         for (String illegalCharacter : INVALID_NAME_CHARACTERS) {
-            if (name.contains(illegalCharacter)) {
-                return true;
+            if (name.contains(illegalCharacter) || name.length() == 0) {
+                return false;
             }
         }
-        return false;
+        if (name.startsWith("_")) {
+            return false;
+        }
+        return true;
     }
 
     @Override
