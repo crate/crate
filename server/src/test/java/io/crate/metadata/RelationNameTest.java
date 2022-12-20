@@ -21,7 +21,6 @@
 
 package io.crate.metadata;
 
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 
@@ -31,9 +30,6 @@ import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import io.crate.blob.v2.BlobIndex;
-import io.crate.exceptions.InvalidRelationName;
-import io.crate.exceptions.InvalidSchemaNameException;
-import io.crate.sql.tree.QualifiedName;
 
 public class RelationNameTest extends ESTestCase {
 
@@ -101,28 +97,5 @@ public class RelationNameTest extends ESTestCase {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Invalid index name: my_schema..partitioned.t1.abc.foo");
         RelationName.fqnFromIndexName("my_schema..partitioned.t1.abc.foo");
-    }
-
-    @Test
-    public void testCreateRelationNameWithInvalidCharacters() {
-        assertThatThrownBy(() -> RelationName.of("doc", ".table"))
-            .isExactlyInstanceOf(InvalidRelationName.class)
-            .hasMessage("Relation name \"doc..table\" is invalid.");
-        assertThatThrownBy(() -> RelationName.of(null, ".table"))
-            .isExactlyInstanceOf(InvalidRelationName.class)
-            .hasMessage("Relation name \".table\" is invalid.");
-        assertThatThrownBy(() -> RelationName.of("doc.", ".table"))
-            .isExactlyInstanceOf(InvalidSchemaNameException.class)
-            .hasMessage("schema name \"doc.\" is invalid.");
-
-        assertThatThrownBy(() -> RelationName.ofQualified("doc", new QualifiedName(".table")))
-            .isExactlyInstanceOf(InvalidRelationName.class)
-            .hasMessage("Relation name \"doc..table\" is invalid.");
-        assertThatThrownBy(() -> RelationName.ofQualified(null, new QualifiedName(".table")))
-            .isExactlyInstanceOf(InvalidRelationName.class)
-            .hasMessage("Relation name \".table\" is invalid.");
-        assertThatThrownBy(() -> RelationName.ofQualified("doc.", new QualifiedName(".table")))
-            .isExactlyInstanceOf(InvalidSchemaNameException.class)
-            .hasMessage("schema name \"doc.\" is invalid.");
     }
 }
