@@ -107,7 +107,7 @@ public final class RelationName implements Writeable, Accountable {
 
     public RelationName(@Nullable String schema, String name) {
         assert name != null : "table name must not be null";
-        if (schema != null && isInvalidSchemaOrRelationName(schema)) {
+        if (schema != null && (schema.startsWith("_") || isInvalidSchemaOrRelationName(schema))) {
             throw new InvalidSchemaNameException(schema);
         }
         if (isInvalidSchemaOrRelationName(name)) {
@@ -165,6 +165,10 @@ public final class RelationName implements Writeable, Accountable {
     }
 
     public void ensureValidForRelationCreation() throws InvalidSchemaNameException, InvalidRelationName {
+        // Relation names can start with "_" - ex) _values, just not allowed to be created.
+        if (name.startsWith("_")) {
+            throw new InvalidRelationName(this.fqn());
+        }
         if (Schemas.READ_ONLY_SYSTEM_SCHEMAS.contains(schema)) {
             throw new IllegalArgumentException("Cannot create relation in read-only schema: " + schema);
         }
@@ -180,7 +184,7 @@ public final class RelationName implements Writeable, Accountable {
     }
 
     private static boolean isInvalidSchemaOrRelationName(String name) {
-        return name.isEmpty() || containsIllegalCharacters(name) || name.startsWith("_");
+        return name.isEmpty() || containsIllegalCharacters(name);
     }
 
     private static boolean containsIllegalCharacters(String name) {
