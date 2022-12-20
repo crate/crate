@@ -53,7 +53,7 @@ public class IsNullPredicateTest extends ScalarTestCase {
             .build();
         LuceneQueryBuilder luceneQueryBuilder = new LuceneQueryBuilder(sqlExpressions.nodeCtx);
         Symbol query = sqlExpressions.asSymbol("obj is NULL");
-        DocTableRelation relation = (DocTableRelation) tableSources.get(RelationName.of("doc", "users"));
+        DocTableRelation relation = (DocTableRelation) tableSources.get(new RelationName("doc", "users"));
         DocTableInfo table = relation.tableInfo();
         try (var indexEnv = new IndexEnv(
                 THREAD_POOL,

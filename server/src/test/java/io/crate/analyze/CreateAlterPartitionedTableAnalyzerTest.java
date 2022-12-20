@@ -94,7 +94,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
                 .metadata(metadata)
                 .build();
         ClusterServiceUtils.setState(clusterService, state);
-        RelationName multiPartName = RelationName.of("doc", "multi_parted");
+        RelationName multiPartName = new RelationName("doc", "multi_parted");
         e = SQLExecutor.builder(clusterService)
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .addPartitionedTable(
@@ -335,7 +335,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
             "alter table parted partition (date=1395874800000) set (number_of_replicas='0-all')");
         assertThat(analysis.partitionName().isPresent(), is(true));
         assertThat(analysis.partitionName().get(), is(new PartitionName(
-            RelationName.of("doc", "parted"), Collections.singletonList("1395874800000"))));
+            new RelationName("doc", "parted"), Collections.singletonList("1395874800000"))));
         assertEquals("0-all", analysis.tableParameter().settings().get(AutoExpandReplicas.SETTING.getKey()));
     }
 

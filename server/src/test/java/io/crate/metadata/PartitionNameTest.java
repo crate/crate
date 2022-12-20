@@ -39,7 +39,7 @@ public class PartitionNameTest extends ESTestCase {
 
     @Test
     public void testSingleColumn() throws Exception {
-        PartitionName partitionName = new PartitionName(RelationName.of("doc", "test"), List.of("1"));
+        PartitionName partitionName = new PartitionName(new RelationName("doc", "test"), List.of("1"));
 
         assertThat(partitionName.values().size(), is(1));
         assertEquals(List.of("1"), partitionName.values());
@@ -50,7 +50,7 @@ public class PartitionNameTest extends ESTestCase {
 
     @Test
     public void testSingleColumnSchema() throws Exception {
-        PartitionName partitionName = new PartitionName(RelationName.of("schema", "test"), List.of("1"));
+        PartitionName partitionName = new PartitionName(new RelationName("schema", "test"), List.of("1"));
 
         assertThat(partitionName.values().size(), is(1));
         assertEquals(List.of("1"), partitionName.values());
@@ -62,7 +62,7 @@ public class PartitionNameTest extends ESTestCase {
     @Test
     public void testMultipleColumns() throws Exception {
         PartitionName partitionName = new PartitionName(
-            RelationName.of("doc", "test"),
+            new RelationName("doc", "test"),
             List.of("1", "foo")
         );
 
@@ -76,7 +76,7 @@ public class PartitionNameTest extends ESTestCase {
     @Test
     public void testMultipleColumnsSchema() throws Exception {
         PartitionName partitionName = new PartitionName(
-            RelationName.of("schema", "test"), List.of("1", "foo"));
+            new RelationName("schema", "test"), List.of("1", "foo"));
 
         assertThat(partitionName.values().size(), is(2));
         assertEquals(List.of("1", "foo"), partitionName.values());
@@ -87,7 +87,7 @@ public class PartitionNameTest extends ESTestCase {
 
     @Test
     public void testNull() throws Exception {
-        PartitionName partitionName = new PartitionName(RelationName.of("doc", "test"), singletonList(null));
+        PartitionName partitionName = new PartitionName(new RelationName("doc", "test"), singletonList(null));
 
         assertThat(partitionName.values().size(), is(1));
         assertEquals(null, partitionName.values().get(0));
@@ -98,7 +98,7 @@ public class PartitionNameTest extends ESTestCase {
 
     @Test
     public void testNullSchema() throws Exception {
-        PartitionName partitionName = new PartitionName(RelationName.of("schema", "test"), singletonList(null));
+        PartitionName partitionName = new PartitionName(new RelationName("schema", "test"), singletonList(null));
         assertThat(partitionName.values().size(), is(1));
         assertEquals(null, partitionName.values().get(0));
 
@@ -108,7 +108,7 @@ public class PartitionNameTest extends ESTestCase {
 
     @Test
     public void testEmptyStringValue() throws Exception {
-        PartitionName partitionName = new PartitionName(RelationName.of("doc", "test"), List.of(""));
+        PartitionName partitionName = new PartitionName(new RelationName("doc", "test"), List.of(""));
 
         assertThat(partitionName.values().size(), is(1));
         assertEquals(List.of(""), partitionName.values());
@@ -156,26 +156,26 @@ public class PartitionNameTest extends ESTestCase {
     @Test
     public void testFromIndexOrTemplate() throws Exception {
         PartitionName partitionName = new PartitionName(
-            RelationName.of("doc", "t"), Arrays.asList("a", "b"));
+            new RelationName("doc", "t"), Arrays.asList("a", "b"));
         assertThat(partitionName, equalTo(PartitionName.fromIndexOrTemplate(partitionName.asIndexName())));
 
         partitionName = new PartitionName(
-            RelationName.of("doc", "t"), Arrays.asList("a", "b"));
-        assertThat(partitionName, equalTo(PartitionName.fromIndexOrTemplate(partitionName.asIndexName())));
-        assertThat(partitionName.ident(), is("081620j2"));
-
-        partitionName = new PartitionName(
-            RelationName.of("schema", "t"), Arrays.asList("a", "b"));
+            new RelationName("doc", "t"), Arrays.asList("a", "b"));
         assertThat(partitionName, equalTo(PartitionName.fromIndexOrTemplate(partitionName.asIndexName())));
         assertThat(partitionName.ident(), is("081620j2"));
 
         partitionName = new PartitionName(
-            RelationName.of("doc", "t"), singletonList("hoschi"));
+            new RelationName("schema", "t"), Arrays.asList("a", "b"));
+        assertThat(partitionName, equalTo(PartitionName.fromIndexOrTemplate(partitionName.asIndexName())));
+        assertThat(partitionName.ident(), is("081620j2"));
+
+        partitionName = new PartitionName(
+            new RelationName("doc", "t"), singletonList("hoschi"));
         assertThat(partitionName, equalTo(PartitionName.fromIndexOrTemplate(partitionName.asIndexName())));
         assertThat(partitionName.ident(), is("043mgrrjcdk6i"));
 
         partitionName = new PartitionName(
-            RelationName.of("doc", "t"), singletonList(null));
+            new RelationName("doc", "t"), singletonList(null));
         assertThat(partitionName, equalTo(PartitionName.fromIndexOrTemplate(partitionName.asIndexName())));
         assertThat(partitionName.ident(), is("0400"));
     }
@@ -183,7 +183,7 @@ public class PartitionNameTest extends ESTestCase {
     @Test
     public void splitTemplateName() throws Exception {
         PartitionName partitionName = PartitionName.fromIndexOrTemplate(PartitionName.templateName("schema", "t"));
-        assertThat(partitionName.relationName(), is(RelationName.of("schema", "t")));
+        assertThat(partitionName.relationName(), is(new RelationName("schema", "t")));
         assertThat(partitionName.ident(), is(""));
     }
 
@@ -234,16 +234,16 @@ public class PartitionNameTest extends ESTestCase {
     public void testEquals() throws Exception {
         assertTrue(
             new PartitionName(
-                RelationName.of("doc", "table"), Arrays.asList("xxx")).equals(
-                    new PartitionName(RelationName.of("doc", "table"), Arrays.asList("xxx"))));
+                new RelationName("doc", "table"), Arrays.asList("xxx")).equals(
+                    new PartitionName(new RelationName("doc", "table"), Arrays.asList("xxx"))));
         assertTrue(
-            new PartitionName(RelationName.of("doc", "table"), Arrays.asList("xxx")).equals(
+            new PartitionName(new RelationName("doc", "table"), Arrays.asList("xxx")).equals(
                 new PartitionName(
-                    RelationName.of("doc", "table"), Arrays.asList("xxx"))));
+                    new RelationName("doc", "table"), Arrays.asList("xxx"))));
         assertFalse(
-            new PartitionName(RelationName.of("doc", "table"), Arrays.asList("xxx")).equals(
-                new PartitionName(RelationName.of("schema", "table"), Arrays.asList("xxx"))));
-        PartitionName name = new PartitionName(RelationName.of("doc", "table"), Arrays.asList("xxx"));
+            new PartitionName(new RelationName("doc", "table"), Arrays.asList("xxx")).equals(
+                new PartitionName(new RelationName("schema", "table"), Arrays.asList("xxx"))));
+        PartitionName name = new PartitionName(new RelationName("doc", "table"), Arrays.asList("xxx"));
         assertTrue(name.equals(PartitionName.fromIndexOrTemplate(name.asIndexName())));
     }
 }

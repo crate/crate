@@ -55,7 +55,7 @@ public class BlobSchemaInfo implements SchemaInfo {
         try {
             return tableByName.computeIfAbsent(
                 name,
-                n -> blobTableInfoFactory.create(RelationName.of(NAME, n), clusterService.state())
+                n -> blobTableInfoFactory.create(new RelationName(NAME, n), clusterService.state())
             );
         } catch (Exception e) {
             if (e instanceof ResourceUnknownException) {

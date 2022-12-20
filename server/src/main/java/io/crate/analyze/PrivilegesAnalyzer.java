@@ -184,7 +184,7 @@ class PrivilegesAnalyzer {
                 if (!isRevoke) {
                     throw e;
                 } else {
-                    return RelationName.ofQualified(searchPath.currentSchema(), q).fqn();
+                    return RelationName.of(q, searchPath.currentSchema()).fqn();
                 }
             }
         });

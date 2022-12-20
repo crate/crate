@@ -86,9 +86,9 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
                 "   obj object," +
                 "   primary key (id, date)" +
                 ") partitioned by (date) clustered by (id) ",
-                new PartitionName(RelationName.of("doc", "parted_pks"), singletonList("1395874800000")).asIndexName(),
-                new PartitionName(RelationName.of("doc", "parted_pks"), singletonList("1395961200000")).asIndexName(),
-                new PartitionName(RelationName.of("doc", "parted_pks"), singletonList(null)).asIndexName()
+                new PartitionName(new RelationName("doc", "parted_pks"), singletonList("1395874800000")).asIndexName(),
+                new PartitionName(new RelationName("doc", "parted_pks"), singletonList("1395961200000")).asIndexName(),
+                new PartitionName(new RelationName("doc", "parted_pks"), singletonList(null)).asIndexName()
             )
             .addTable(
                 "create table users (" +
@@ -387,7 +387,7 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(toCollect.size(), is(2));
         Asserts.assertThat(toCollect.get(0)).isReference("_doc['id']");
         assertThat(toCollect.get(1), equalTo(new SimpleReference(
-            new ReferenceIdent(RelationName.of(Schemas.DOC_SCHEMA_NAME, "parted_pks"), "date"),
+            new ReferenceIdent(new RelationName(Schemas.DOC_SCHEMA_NAME, "parted_pks"), "date"),
             RowGranularity.PARTITION,
             DataTypes.TIMESTAMPZ,
             ColumnPolicy.DYNAMIC,

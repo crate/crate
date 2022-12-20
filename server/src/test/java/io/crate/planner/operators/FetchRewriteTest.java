@@ -101,7 +101,7 @@ public class FetchRewriteTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo tableInfo = e.resolveTableInfo("tbl");
         Reference x = (Reference) e.asSymbol("x");
         var relation = new DocTableRelation(tableInfo);
-        var alias = new AliasedAnalyzedRelation(relation, RelationName.of(null, "t1"));
+        var alias = new AliasedAnalyzedRelation(relation, new RelationName(null, "t1"));
         var collect = new Collect(relation, List.of(x), WhereClause.MATCH_ALL, 1L, DataTypes.INTEGER.fixedSize());
         Symbol t1X = alias.getField(x.column(), Operation.READ, true);
         assertThat(t1X, Matchers.notNullValue());

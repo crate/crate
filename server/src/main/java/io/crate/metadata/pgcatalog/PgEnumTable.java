@@ -30,7 +30,7 @@ import static io.crate.types.DataTypes.STRING;
 
 public final class PgEnumTable {
 
-    public static final RelationName IDENT = RelationName.of(PgCatalogSchemaInfo.NAME, "pg_enum");
+    public static final RelationName IDENT = new RelationName(PgCatalogSchemaInfo.NAME, "pg_enum");
 
     public static SystemTable<Void> create() {
         return SystemTable.<Void>builder(IDENT)

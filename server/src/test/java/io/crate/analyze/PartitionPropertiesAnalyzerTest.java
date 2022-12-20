@@ -49,7 +49,7 @@ public class PartitionPropertiesAnalyzerTest extends CrateDummyClusterServiceUni
     @Test
     public void testPartitionNameFromAssignmentWithBytesRef() {
         DocTableInfo tableInfo = SQLExecutor.partitionedTableInfo(
-            RelationName.of("doc", "users"),
+            new RelationName("doc", "users"),
             "create table doc.users (name text primary key) partitioned by (name)",
             clusterService);
 
@@ -61,7 +61,7 @@ public class PartitionPropertiesAnalyzerTest extends CrateDummyClusterServiceUni
     @Test
     public void testPartitionNameOnRegularTable() {
         DocTableInfo tableInfo = SQLExecutor.tableInfo(
-            RelationName.of("doc", "users"),
+            new RelationName("doc", "users"),
             "create table doc.users (name text primary key)",
             clusterService);
 

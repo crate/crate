@@ -34,7 +34,7 @@ import io.crate.metadata.sys.SysSchemaInfo;
 
 public class SysPrivilegesTableInfo {
 
-    private static final RelationName IDENT = RelationName.of(SysSchemaInfo.NAME, "privileges");
+    private static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "privileges");
 
     @SuppressWarnings("WeakerAccess")
     public static class PrivilegeRow {

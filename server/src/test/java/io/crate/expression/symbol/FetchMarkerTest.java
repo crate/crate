@@ -37,7 +37,7 @@ public class FetchMarkerTest {
 
     @Test
     public void test_fetch_marker_streams_as_if_it_is_a_fetchId_reference() throws Exception {
-        RelationName relationName = RelationName.of("doc", "tbl");
+        RelationName relationName = new RelationName("doc", "tbl");
         FetchMarker fetchMarker = new FetchMarker(relationName, List.of());
 
         BytesStreamOutput out = new BytesStreamOutput();

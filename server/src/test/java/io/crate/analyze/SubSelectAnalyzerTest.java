@@ -65,7 +65,7 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             .addTable(T3.T2_DEFINITION)
             .build();
         schemas = executor.schemas();
-        t1Info = schemas.getTableInfo(RelationName.of("doc", "t1"));
+        t1Info = schemas.getTableInfo(new RelationName("doc", "t1"));
     }
 
     @After
@@ -111,7 +111,7 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             isField("aa"),
             isFunction("add", isField("xi"), isLiteral(1)));
         QueriedSelectRelation innerQSR = (QueriedSelectRelation) ((AliasedAnalyzedRelation) relation.from().get(0)).relation();
-        assertThat(innerQSR.from()).satisfiesExactly(isDocTable(RelationName.of("doc", "t1")));
+        assertThat(innerQSR.from()).satisfiesExactly(isDocTable(new RelationName("doc", "t1")));
     }
 
     @Test

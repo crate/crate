@@ -31,7 +31,7 @@ import io.crate.types.DataTypes;
 
 public class PgStatsTable {
 
-    public static final RelationName NAME = RelationName.of(PgCatalogSchemaInfo.NAME, "pg_stats");
+    public static final RelationName NAME = new RelationName(PgCatalogSchemaInfo.NAME, "pg_stats");
 
     public static SystemTable<ColumnStatsEntry> create() {
         return SystemTable.<ColumnStatsEntry>builder(NAME)

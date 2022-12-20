@@ -42,7 +42,7 @@ public class OptimizeQueryForSearchAfterTest {
 
     @Test
     public void test_string_range_query_can_handle_byte_ref_values() throws Exception {
-        ReferenceIdent referenceIdent = new ReferenceIdent(RelationName.of("doc", "dummy"), "x");
+        ReferenceIdent referenceIdent = new ReferenceIdent(new RelationName("doc", "dummy"), "x");
         OrderBy orderBy = new OrderBy(List.of(
             new SimpleReference(referenceIdent, RowGranularity.DOC, DataTypes.STRING, 1, null)
         ));

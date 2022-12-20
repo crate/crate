@@ -29,7 +29,7 @@ import io.crate.metadata.Schemas;
 
 public final class TableDefinitions {
 
-    public static final RelationName USER_TABLE_IDENT = RelationName.of(Schemas.DOC_SCHEMA_NAME, "users");
+    public static final RelationName USER_TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "users");
 
     public static final String USER_TABLE_DEFINITION =
         "create table doc.users (" +
@@ -76,7 +76,7 @@ public final class TableDefinitions {
         "  friends array(object)" +
         ")" +
         " clustered by (id)";
-    static final RelationName TEST_PARTITIONED_TABLE_IDENT = RelationName.of(Schemas.DOC_SCHEMA_NAME, "parted");
+    static final RelationName TEST_PARTITIONED_TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "parted");
 
     public static final String TEST_PARTITIONED_TABLE_DEFINITION =
         "create table doc.parted (" +
@@ -87,9 +87,9 @@ public final class TableDefinitions {
         ")" +
         " partitioned by (date)";
     public static final String[] TEST_PARTITIONED_TABLE_PARTITIONS = new String[] {
-        new PartitionName(RelationName.of("doc", "parted"), singletonList("1395874800000")).asIndexName(),
-        new PartitionName(RelationName.of("doc", "parted"), singletonList("1395961200000")).asIndexName(),
-        new PartitionName(RelationName.of("doc", "parted"), singletonList(null)).asIndexName()
+        new PartitionName(new RelationName("doc", "parted"), singletonList("1395874800000")).asIndexName(),
+        new PartitionName(new RelationName("doc", "parted"), singletonList("1395961200000")).asIndexName(),
+        new PartitionName(new RelationName("doc", "parted"), singletonList(null)).asIndexName()
     };
 
     public static final String PARTED_PKS_TABLE_DEFINITION =
@@ -130,7 +130,7 @@ public final class TableDefinitions {
         "  ))" +
         ")";
 
-    public static final RelationName TEST_DOC_LOCATIONS_TABLE_IDENT = RelationName.of(Schemas.DOC_SCHEMA_NAME, "locations");
+    public static final RelationName TEST_DOC_LOCATIONS_TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "locations");
 
     public static final String TEST_DOC_LOCATIONS_TABLE_DEFINITION =
         "create table doc.locations (" +

@@ -2003,7 +2003,7 @@ public abstract class IntegTestCase extends ESTestCase {
     }
 
     public void waitForMappingUpdateOnAll(final String tableOrPartition, final String... fieldNames) throws Exception {
-        waitForMappingUpdateOnAll(RelationName.of(sqlExecutor.getCurrentSchema(), tableOrPartition), fieldNames);
+        waitForMappingUpdateOnAll(new RelationName(sqlExecutor.getCurrentSchema(), tableOrPartition), fieldNames);
     }
 
     /**

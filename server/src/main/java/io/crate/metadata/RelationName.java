@@ -55,7 +55,7 @@ public final class RelationName implements Writeable, Accountable {
     private final String schema;
     private final String name;
 
-    public static RelationName ofQualified(String defaultSchema, QualifiedName name) {
+    public static RelationName of(QualifiedName name, String defaultSchema) {
         List<String> parts = name.getParts();
         if (parts.size() > 3) {
             throw new IllegalArgumentException(
@@ -65,14 +65,9 @@ public final class RelationName implements Writeable, Accountable {
             ensureIsCrateCatalog(parts.get(0));
         }
         if (parts.size() >= 2) {
-            return RelationName.of(parts.get(parts.size() - 2), parts.get(parts.size() - 1));
+            return new RelationName(parts.get(parts.size() - 2), parts.get(parts.size() - 1));
         }
-        return RelationName.of(defaultSchema, parts.get(0));
-    }
-
-    public static RelationName of(@Nullable String schema, String name) {
-        assert name != null : "table name must not be null";
-        return new RelationName(schema, name);
+        return new RelationName(defaultSchema, parts.get(0));
     }
 
     public static RelationName fromBlobTable(Table<?> table) {
@@ -86,10 +81,10 @@ public final class RelationName implements Writeable, Accountable {
                 throw new IllegalArgumentException(
                     "The Schema \"" + tableNameParts.get(0) + "\" isn't valid in a [CREATE | ALTER] BLOB TABLE clause");
             }
-            return RelationName.of(tableNameParts.get(0), tableNameParts.get(1));
+            return new RelationName(tableNameParts.get(0), tableNameParts.get(1));
         }
         assert tableNameParts.size() == 1 : "tableNameParts.size() must be 1";
-        return RelationName.of(BlobSchemaInfo.NAME, tableNameParts.get(0));
+        return new RelationName(BlobSchemaInfo.NAME, tableNameParts.get(0));
     }
 
     public static RelationName fromIndexName(String indexName) {
@@ -110,7 +105,8 @@ public final class RelationName implements Writeable, Accountable {
         name = in.readString();
     }
 
-    private RelationName(@Nullable String schema, String name) {
+    public RelationName(@Nullable String schema, String name) {
+        assert name != null : "table name must not be null";
         this.schema = schema;
         this.name = name;
     }

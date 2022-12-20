@@ -60,9 +60,9 @@ public final class CreateTableAsAnalyzer {
                                          ParamTypeHints paramTypeHints,
                                          CoordinatorTxnCtx txnCtx) {
 
-        RelationName relationName = RelationName.ofQualified(
-                txnCtx.sessionSettings().searchPath().currentSchema(), createTableAs.name().getName()
-        );
+        RelationName relationName = RelationName.of(
+            createTableAs.name().getName(),
+            txnCtx.sessionSettings().searchPath().currentSchema());
 
         relationName.ensureValidForRelationCreation();
 

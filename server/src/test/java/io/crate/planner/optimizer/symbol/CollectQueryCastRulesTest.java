@@ -81,7 +81,7 @@ public class CollectQueryCastRulesTest extends CrateDummyClusterServiceUnitTest 
             "  o_array array(object as (xs array(integer)))," +
             "  addr ip" +
             ")";
-        RelationName name = RelationName.of(DocSchemaInfo.NAME, "t1");
+        RelationName name = new RelationName(DocSchemaInfo.NAME, "t1");
         DocTableInfo tableInfo = SQLExecutor.tableInfo(
             name,
             createTableStmt,

@@ -83,7 +83,7 @@ public class CsvReaderBenchmark {
     public static Reference createReference(String columnName, DataType<?> dataType) {
         return new SimpleReference(
             new ReferenceIdent(
-                RelationName.of(Schemas.DOC_SCHEMA_NAME, "dummyTable"),
+                new RelationName(Schemas.DOC_SCHEMA_NAME, "dummyTable"),
                 new ColumnIdent(columnName)
             ),
             RowGranularity.DOC,

@@ -166,9 +166,9 @@ public class RestoreSnapshotPlan implements Plan {
 
         HashSet<BoundRestoreSnapshot.RestoreTableInfo> restoreTables = new HashSet<>(restoreSnapshot.tables().size());
         for (Table<Symbol> table : restoreSnapshot.tables()) {
-            var relationName = RelationName.ofQualified(
-                    txnCtx.sessionSettings().searchPath().currentSchema(), table.getName()
-            );
+            var relationName = RelationName.of(
+                table.getName(),
+                txnCtx.sessionSettings().searchPath().currentSchema());
 
             try {
                 DocTableInfo docTableInfo = schemas.getTableInfo(relationName, Operation.RESTORE_SNAPSHOT);

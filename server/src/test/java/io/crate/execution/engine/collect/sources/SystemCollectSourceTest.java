@@ -61,7 +61,7 @@ public class SystemCollectSourceTest extends IntegTestCase {
         SystemCollectSource systemCollectSource = internalCluster().getDataNodeInstance(SystemCollectSource.class);
 
         SimpleReference shardId = new SimpleReference(
-            new ReferenceIdent(RelationName.of("sys", "shards"), "id"),
+            new ReferenceIdent(new RelationName("sys", "shards"), "id"),
             RowGranularity.SHARD,
             DataTypes.INTEGER,
             0,

@@ -31,7 +31,7 @@ import io.crate.metadata.SystemTable;
 public class InformationRoutinesTableInfo {
 
     public static final String NAME = "routines";
-    public static final RelationName IDENT = RelationName.of(InformationSchemaInfo.NAME, NAME);
+    public static final RelationName IDENT = new RelationName(InformationSchemaInfo.NAME, NAME);
 
     public static SystemTable<RoutineInfo> create() {
         return SystemTable.<RoutineInfo>builder(IDENT)

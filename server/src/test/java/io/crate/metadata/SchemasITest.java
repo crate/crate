@@ -70,7 +70,7 @@ public class SchemasITest extends IntegTestCase {
                 ") clustered into 10 shards with (number_of_replicas=1)");
         ensureYellow();
 
-        DocTableInfo ti = schemas.getTableInfo(RelationName.of(sqlExecutor.getCurrentSchema(), "t1"));
+        DocTableInfo ti = schemas.getTableInfo(new RelationName(sqlExecutor.getCurrentSchema(), "t1"));
         assertThat(ti.ident().name(), is("t1"));
 
         assertThat(ti.columns().size(), is(3));
@@ -107,7 +107,7 @@ public class SchemasITest extends IntegTestCase {
 
     @Test
     public void testNodesTable() throws Exception {
-        TableInfo ti = schemas.getTableInfo(RelationName.of("sys", "nodes"));
+        TableInfo ti = schemas.getTableInfo(new RelationName("sys", "nodes"));
         ClusterService clusterService = clusterService();
         Routing routing = ti.getRouting(
             clusterService.state(), routingProvider, null, null, CoordinatorSessionSettings.systemDefaults());
@@ -124,7 +124,7 @@ public class SchemasITest extends IntegTestCase {
         execute("create table t3 (id int primary key) clustered into 8 shards with(number_of_replicas=0)");
         ensureYellow();
 
-        TableInfo ti = schemas.getTableInfo(RelationName.of("sys", "shards"));
+        TableInfo ti = schemas.getTableInfo(new RelationName("sys", "shards"));
         ClusterService clusterService = clusterService();
         Routing routing = ti.getRouting(
             clusterService.state(), routingProvider, null, null, CoordinatorSessionSettings.systemDefaults());
@@ -144,7 +144,7 @@ public class SchemasITest extends IntegTestCase {
 
     @Test
     public void testClusterTable() throws Exception {
-        TableInfo ti = schemas.getTableInfo(RelationName.of("sys", "cluster"));
+        TableInfo ti = schemas.getTableInfo(new RelationName("sys", "cluster"));
         ClusterService clusterService = clusterService();
         assertThat(ti.getRouting(
             clusterService.state(), routingProvider, null, null, CoordinatorSessionSettings.systemDefaults()
