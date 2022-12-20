@@ -37,7 +37,6 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
-import io.crate.Constants;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 
 public class PartitionInfosTest extends CrateDummyClusterServiceUnitTest {
@@ -88,7 +87,7 @@ public class PartitionInfosTest extends CrateDummyClusterServiceUnitTest {
         IndexMetadata.Builder indexMetadata = IndexMetadata
             .builder(partitionName.asIndexName())
             .settings(defaultSettings())
-            .putMapping(Constants.DEFAULT_MAPPING_TYPE, "{\"_meta\":{\"partitioned_by\":[[\"col\", \"string\"]]}}")
+            .putMapping("{\"_meta\":{\"partitioned_by\":[[\"col\", \"string\"]]}}")
             .numberOfShards(10)
             .numberOfReplicas(4);
         addIndexMetadataToClusterState(indexMetadata);
@@ -109,7 +108,7 @@ public class PartitionInfosTest extends CrateDummyClusterServiceUnitTest {
         IndexMetadata.Builder indexMetadata = IndexMetadata
             .builder(partitionName.asIndexName())
             .settings(defaultSettings())
-            .putMapping(Constants.DEFAULT_MAPPING_TYPE, "{\"_meta\":{\"partitioned_by\":[[\"col\", \"string\"], [\"col2\", \"integer\"]]}}")
+            .putMapping("{\"_meta\":{\"partitioned_by\":[[\"col\", \"string\"], [\"col2\", \"integer\"]]}}")
             .numberOfShards(10)
             .numberOfReplicas(4);
         addIndexMetadataToClusterState(indexMetadata);

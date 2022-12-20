@@ -20,8 +20,33 @@
  */
 package org.elasticsearch.index.shard;
 
-import io.crate.common.CheckedFunction;
-import io.crate.common.io.IOUtils;
+import static org.elasticsearch.cluster.routing.TestShardRouting.newShardRouting;
+import static org.elasticsearch.index.translog.Translog.UNSET_AUTO_GENERATED_TIMESTAMP;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasSize;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
+
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.BiFunction;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+import javax.annotation.Nullable;
+
 import org.apache.lucene.store.Directory;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.indices.flush.FlushRequest;
@@ -82,31 +107,8 @@ import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.threadpool.TestThreadPool;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import javax.annotation.Nullable;
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.BiFunction;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
-import static org.elasticsearch.cluster.routing.TestShardRouting.newShardRouting;
-import static org.elasticsearch.index.translog.Translog.UNSET_AUTO_GENERATED_TIMESTAMP;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasSize;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
+import io.crate.common.CheckedFunction;
+import io.crate.common.io.IOUtils;
 
 /**
  * A base class for unit tests that need to create and shutdown {@link IndexShard} instances easily,
@@ -216,7 +218,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
                 false);
             if (result.getResultType() == Engine.Result.Type.MAPPING_UPDATE_REQUIRED) {
                 updateMappings(shard, IndexMetadata.builder(shard.indexSettings().getIndexMetadata())
-                    .putMapping("default", result.getRequiredMappingUpdate().toString()).build());
+                    .putMapping(result.getRequiredMappingUpdate().toString()).build());
                 result = shard.applyIndexOperationOnPrimary(
                     Versions.MATCH_ANY,
                     VersionType.INTERNAL,
@@ -354,7 +356,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
         IndexMetadata.Builder metadata = IndexMetadata.builder(shardRouting.getIndexName())
             .settings(indexSettings)
             .primaryTerm(0, primaryTerm)
-            .putMapping("default", "{ \"properties\": {} }");
+            .putMapping("{ \"properties\": {} }");
         return newShard(shardRouting, metadata.build(), engineFactoryProviders, () -> {}, listeners);
     }
 

@@ -168,7 +168,7 @@ public class DocTableInfoFactory {
         DocIndexMetadata docIndexMetadata;
         try {
             IndexMetadata.Builder builder = new IndexMetadata.Builder(relation.indexNameOrAlias());
-            builder.putMapping(Constants.DEFAULT_MAPPING_TYPE,
+            builder.putMapping(
                 indexTemplateMetadata.getMappings().get(Constants.DEFAULT_MAPPING_TYPE).toString());
 
             Settings.Builder settingsBuilder = Settings.builder()

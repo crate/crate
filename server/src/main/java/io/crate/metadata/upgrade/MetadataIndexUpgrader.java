@@ -26,17 +26,17 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.BiFunction;
 
+import javax.annotation.Nullable;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
+import org.elasticsearch.cluster.metadata.MetadataMappingService;
 
 import io.crate.Constants;
 import io.crate.common.annotations.VisibleForTesting;
-import org.elasticsearch.cluster.metadata.MetadataMappingService;
-
-import javax.annotation.Nullable;
 
 public class MetadataIndexUpgrader implements BiFunction<IndexMetadata, IndexTemplateMetadata, IndexMetadata> {
 
@@ -90,8 +90,7 @@ public class MetadataIndexUpgrader implements BiFunction<IndexMetadata, IndexTem
             }
         }
         try {
-            return new MappingMetadata(
-                Constants.DEFAULT_MAPPING_TYPE, Map.of(Constants.DEFAULT_MAPPING_TYPE, newMapping));
+            return new MappingMetadata(Map.of(Constants.DEFAULT_MAPPING_TYPE, newMapping));
         } catch (IOException e) {
             logger.error("Failed to upgrade mapping for index '" + indexName + "'", e);
             return mappingMetadata;

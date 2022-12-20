@@ -38,10 +38,6 @@ import java.util.TreeMap;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import com.carrotsearch.hppc.ObjectHashSet;
-import com.carrotsearch.hppc.cursors.ObjectCursor;
-import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.CollectionUtil;
@@ -78,6 +74,12 @@ import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.plugins.MapperPlugin;
 import org.elasticsearch.rest.RestStatus;
+
+import com.carrotsearch.hppc.ObjectHashSet;
+import com.carrotsearch.hppc.cursors.ObjectCursor;
+import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
+
+import io.crate.Constants;
 
 public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata>, ToXContentFragment {
 
@@ -414,8 +416,8 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata>, To
         }
         Map<String, Object> sourceAsMap = XContentHelper.convertToMap(mappingMetadata.source().compressedReference(), true).map();
         Map<String, Object> mapping;
-        if (sourceAsMap.size() == 1 && sourceAsMap.containsKey(mappingMetadata.type())) {
-            mapping = (Map<String, Object>) sourceAsMap.get(mappingMetadata.type());
+        if (sourceAsMap.size() == 1 && sourceAsMap.containsKey(Constants.DEFAULT_MAPPING_TYPE)) {
+            mapping = (Map<String, Object>) sourceAsMap.get(Constants.DEFAULT_MAPPING_TYPE);
         } else {
             mapping = sourceAsMap;
         }
@@ -427,7 +429,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata>, To
 
         filterFields("", properties, fieldPredicate);
 
-        return new MappingMetadata(mappingMetadata.type(), sourceAsMap);
+        return new MappingMetadata(sourceAsMap);
     }
 
     @SuppressWarnings("unchecked")
