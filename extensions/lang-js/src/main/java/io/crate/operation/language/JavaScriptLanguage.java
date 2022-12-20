@@ -54,6 +54,7 @@ public class JavaScriptLanguage implements UDFLanguage {
     private static final HostAccess HOST_ACCESS = HostAccess.newBuilder()
         .allowListAccess(true)
         .allowArrayAccess(true)
+        .allowMapAccess(true)
         .build();
 
     @Inject
