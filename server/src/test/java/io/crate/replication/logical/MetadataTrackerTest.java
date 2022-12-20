@@ -57,7 +57,6 @@ import org.elasticsearch.test.ESTestCase;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.Constants;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.replication.logical.MetadataTracker.RestoreDiff;
@@ -92,7 +91,7 @@ public class MetadataTrackerTest extends ESTestCase {
 
         public Builder addTable(String name, Map<String, Object> mapping, Settings settings) throws IOException {
             var indexMetadata = IndexMetadata.builder(name)
-                .putMapping(new MappingMetadata(Constants.DEFAULT_MAPPING_TYPE, mapping))
+                .putMapping(new MappingMetadata(mapping))
                 .settings(settings(Version.CURRENT).put(settings))
                 .numberOfShards(1)
                 .numberOfReplicas(0)
@@ -114,7 +113,7 @@ public class MetadataTrackerTest extends ESTestCase {
             Map<String, Object> mapping = Map.of();
             Settings settings = Settings.EMPTY;
             var indexMetadata = IndexMetadata.builder(partition)
-                .putMapping(new MappingMetadata(Constants.DEFAULT_MAPPING_TYPE, mapping))
+                .putMapping(new MappingMetadata(mapping))
                 .settings(settings(Version.CURRENT).put(settings))
                 .numberOfShards(1)
                 .numberOfReplicas(0)
@@ -169,7 +168,7 @@ public class MetadataTrackerTest extends ESTestCase {
         public Builder updateTableMapping(String name, Map<String, Object> newMapping) throws IOException {
             var indexMetadata = clusterState.metadata().index(name);
             var newIndexMetadata = IndexMetadata.builder(indexMetadata)
-                .putMapping(new MappingMetadata(Constants.DEFAULT_MAPPING_TYPE, newMapping))
+                .putMapping(new MappingMetadata(newMapping))
                 .mappingVersion(2L)
                 .build();
             clusterState = ClusterState.builder(clusterState)

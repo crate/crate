@@ -19,9 +19,13 @@
 
 package org.elasticsearch.cluster;
 
-import com.carrotsearch.hppc.cursors.IntObjectCursor;
-import com.carrotsearch.hppc.cursors.ObjectCursor;
-import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
+import java.io.IOException;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+
 import org.elasticsearch.cluster.block.ClusterBlock;
 import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.coordination.CoordinationMetadata;
@@ -57,12 +61,11 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.discovery.Discovery;
 
-import java.io.IOException;
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
+import com.carrotsearch.hppc.cursors.IntObjectCursor;
+import com.carrotsearch.hppc.cursors.ObjectCursor;
+import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
+
+import io.crate.Constants;
 
 /**
  * Represents the current state of the cluster.
@@ -473,11 +476,11 @@ public class ClusterState implements ToXContentFragment, Diffable<ClusterState> 
                 if (mmd != null) {
                     Map<String, Object> mapping = XContentHelper
                             .convertToMap(mmd.source().uncompressed(), false).map();
-                    if (mapping.size() == 1 && mapping.containsKey(mmd.type())) {
+                    if (mapping.size() == 1 && mapping.containsKey(Constants.DEFAULT_MAPPING_TYPE)) {
                         // the type name is the root value, reduce it
-                        mapping = (Map<String, Object>) mapping.get(mmd.type());
+                        mapping = (Map<String, Object>) mapping.get(Constants.DEFAULT_MAPPING_TYPE);
                     }
-                    builder.field(mmd.type());
+                    builder.field(Constants.DEFAULT_MAPPING_TYPE);
                     builder.map(mapping);
                 }
                 builder.endObject();

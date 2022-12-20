@@ -65,7 +65,6 @@ public class MetadataIndexUpgraderTest extends ESTestCase {
             .numberOfShards(1)
             .numberOfReplicas(0)
             .putMapping(
-                Constants.DEFAULT_MAPPING_TYPE,
                 "{" +
                 "   \"_all\": {\"enabled\": false}," +
                 "   \"properties\": {" +
@@ -89,7 +88,7 @@ public class MetadataIndexUpgraderTest extends ESTestCase {
             .settings(Settings.builder().put("index.version.created", Version.V_4_7_0))
             .numberOfShards(1)
             .numberOfReplicas(0)
-            .putMapping(null) // here
+            .putMapping((MappingMetadata) null) // here
             .build();
 
         MetadataIndexUpgrader metadataIndexUpgrader = new MetadataIndexUpgrader();

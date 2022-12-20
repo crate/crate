@@ -36,7 +36,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
-import io.crate.Constants;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
@@ -64,7 +63,7 @@ public class DocTableInfoFactoryTest extends ESTestCase {
             .settings(Settings.builder().put("index.version.created", Version.CURRENT).build())
             .numberOfReplicas(0)
             .numberOfShards(5)
-            .putMapping(Constants.DEFAULT_MAPPING_TYPE,
+            .putMapping(
                 "{" +
                 "  \"default\": {" +
                 "    \"properties\":{" +
