@@ -184,3 +184,8 @@ Fixes
     );
     INSERT INTO t VALUES ('{"obj2": null, "target": "Sensor"}');
     SELECT * FROM t;
+
+- Fixed an issue that caused :ref:`swap table <alter_cluster_swap_table>` to
+  consume invalid table names provided in a double-quoted string format
+  containing ``.`` such as ``"table.t"`` by mis-interpreting it as
+  ``"table"."t"``, which is a two double-quoted strings joined by a ``.``.
