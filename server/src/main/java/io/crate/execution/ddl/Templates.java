@@ -21,15 +21,13 @@
 
 package io.crate.execution.ddl;
 
-import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.RelationName;
+import java.util.Collections;
+
 import org.elasticsearch.cluster.metadata.AliasMetadata;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
-import org.elasticsearch.common.compress.CompressedXContent;
 
-import java.io.IOException;
-import java.util.Collections;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
 
 public final class Templates {
 
@@ -41,16 +39,10 @@ public final class Templates {
             .patterns(Collections.singletonList(PartitionName.templatePrefix(newName.schema(), newName.name())))
             .settings(source.settings())
             .order(source.order())
+            .putMapping(source.mapping())
             .putAlias(AliasMetadata.builder(targetAlias).build())
             .version(source.version());
 
-        for (ObjectObjectCursor<String, CompressedXContent> mapping : source.mappings()) {
-            try {
-                templateBuilder.putMapping(mapping.key, mapping.value);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
         return templateBuilder;
     }
 }

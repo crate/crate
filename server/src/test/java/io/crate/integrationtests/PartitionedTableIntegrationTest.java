@@ -1715,7 +1715,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
 
         GetIndexTemplatesResponse templatesResponse = client().admin().indices().getTemplates(new GetIndexTemplatesRequest(".partitioned.t.")).get();
         IndexTemplateMetadata metadata = templatesResponse.getIndexTemplates().get(0);
-        String mappingSource = metadata.mappings().get(DEFAULT_MAPPING_TYPE).toString();
+        String mappingSource = metadata.mapping().toString();
         Map mapping = (Map) XContentFactory.xContent(mappingSource)
             .createParser(NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, mappingSource)
             .map()
@@ -1743,7 +1743,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
 
         GetIndexTemplatesResponse templatesResponse = client().admin().indices().getTemplates(new GetIndexTemplatesRequest(".partitioned.t.")).get();
         IndexTemplateMetadata metadata = templatesResponse.getIndexTemplates().get(0);
-        String mappingSource = metadata.mappings().get(DEFAULT_MAPPING_TYPE).toString();
+        String mappingSource = metadata.mapping().toString();
         Map mapping = (Map) XContentFactory.xContent(mappingSource)
             .createParser(NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, mappingSource)
             .map().get(DEFAULT_MAPPING_TYPE);

@@ -21,9 +21,19 @@
 
 package io.crate.metadata.upgrade;
 
-import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
-import io.crate.common.collections.Maps;
-import io.crate.metadata.IndexParts;
+import static io.crate.metadata.doc.DocIndexMetadata.furtherColumnProperties;
+import static org.elasticsearch.common.settings.AbstractScopedSettings.ARCHIVED_SETTINGS_PREFIX;
+import static org.elasticsearch.common.settings.IndexScopedSettings.DEFAULT_SCOPED_SETTINGS;
+
+import java.io.IOException;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.function.UnaryOperator;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.metadata.AliasMetadata;
@@ -36,18 +46,10 @@ import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentType;
 
-import java.io.IOException;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.function.UnaryOperator;
+import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
-import static io.crate.metadata.doc.DocIndexMetadata.furtherColumnProperties;
-import static org.elasticsearch.common.settings.AbstractScopedSettings.ARCHIVED_SETTINGS_PREFIX;
-import static org.elasticsearch.common.settings.IndexScopedSettings.DEFAULT_SCOPED_SETTINGS;
+import io.crate.common.collections.Maps;
+import io.crate.metadata.IndexParts;
 
 public class IndexTemplateUpgrader implements UnaryOperator<Map<String, IndexTemplateMetadata>> {
 
@@ -92,23 +94,20 @@ public class IndexTemplateUpgrader implements UnaryOperator<Map<String, IndexTem
                 .order(templateMetadata.order())
                 .settings(settings);
             try {
-                for (ObjectObjectCursor<String, CompressedXContent> cursor : templateMetadata.getMappings()) {
-                    var mappingSource = XContentHelper.toMap(cursor.value.compressedReference(), XContentType.JSON);
-                    Map<String, Object> defaultMapping = Maps.get(mappingSource, "default");
-                    boolean updated = populateColumnPositions(defaultMapping);
-                    if (defaultMapping.containsKey("_all")) {
-                        // Support for `_all` was removed (in favour of `copy_to`.
-                        // We never utilized this but always set `_all: {enabled: false}` if you created a table using SQL in earlier version, so we can safely drop it.
-                        defaultMapping.remove("_all");
-                        updated = true;
-                    }
-                    if (updated) {
-                        builder.putMapping(
-                            cursor.key,
-                            new CompressedXContent(BytesReference.bytes(XContentFactory.jsonBuilder().value(mappingSource))));
-                    } else {
-                        builder.putMapping(cursor.key, cursor.value);
-                    }
+                var mappingSource = XContentHelper.toMap(templateMetadata.mapping().compressedReference(), XContentType.JSON);
+                Map<String, Object> defaultMapping = Maps.get(mappingSource, "default");
+                boolean updated = populateColumnPositions(defaultMapping);
+                if (defaultMapping.containsKey("_all")) {
+                    // Support for `_all` was removed (in favour of `copy_to`.
+                    // We never utilized this but always set `_all: {enabled: false}` if you created a table using SQL in earlier version, so we can safely drop it.
+                    defaultMapping.remove("_all");
+                    updated = true;
+                }
+                if (updated) {
+                    builder.putMapping(
+                        new CompressedXContent(BytesReference.bytes(XContentFactory.jsonBuilder().value(mappingSource))));
+                } else {
+                    builder.putMapping(templateMetadata.mapping());
                 }
             } catch (IOException e) {
                 logger.error("Error while trying to upgrade template '" + templateName + "'", e);

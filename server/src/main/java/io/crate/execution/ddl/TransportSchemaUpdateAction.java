@@ -21,16 +21,16 @@
 
 package io.crate.execution.ddl;
 
-import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
-import io.crate.Constants;
-import io.crate.action.FutureActionListener;
-import io.crate.common.annotations.VisibleForTesting;
-import io.crate.common.collections.Lists2;
-import io.crate.common.collections.Maps;
-import io.crate.common.unit.TimeValue;
-import io.crate.metadata.IndexMappings;
-import io.crate.metadata.IndexParts;
-import io.crate.metadata.PartitionName;
+import static io.crate.metadata.doc.DocIndexMetadata.furtherColumnProperties;
+import static org.elasticsearch.index.mapper.MapperService.parseMapping;
+
+import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+
 import org.elasticsearch.ResourceNotFoundException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingAction;
@@ -65,15 +65,15 @@ import org.elasticsearch.index.mapper.ContentPath;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import java.io.IOException;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
-
-import static io.crate.metadata.doc.DocIndexMetadata.furtherColumnProperties;
-import static org.elasticsearch.index.mapper.MapperService.parseMapping;
+import io.crate.Constants;
+import io.crate.action.FutureActionListener;
+import io.crate.common.annotations.VisibleForTesting;
+import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Maps;
+import io.crate.common.unit.TimeValue;
+import io.crate.metadata.IndexMappings;
+import io.crate.metadata.IndexParts;
+import io.crate.metadata.PartitionName;
 
 @Singleton
 public class TransportSchemaUpdateAction extends TransportMasterNodeAction<SchemaUpdateRequest, AcknowledgedResponse> {
@@ -187,7 +187,7 @@ public class TransportSchemaUpdateAction extends TransportMasterNodeAction<Schem
     }
 
     private boolean newMappingAlreadyApplied(IndexTemplateMetadata template, Map<String, Object> newMapping) throws Exception {
-        CompressedXContent defaultMapping = template.getMappings().get(Constants.DEFAULT_MAPPING_TYPE);
+        CompressedXContent defaultMapping = template.mapping();
         Map<String, Object> currentMapping = parseMapping(xContentRegistry, defaultMapping.toString());
         return !XContentHelper.update(currentMapping, newMapping, true);
     }
@@ -203,14 +203,12 @@ public class TransportSchemaUpdateAction extends TransportMasterNodeAction<Schem
         }
 
         IndexTemplateMetadata.Builder templateBuilder = new IndexTemplateMetadata.Builder(template);
-        for (ObjectObjectCursor<String, CompressedXContent> cursor : template.mappings()) {
-            Map<String, Object> source = parseMapping(xContentRegistry, cursor.value.toString());
-            mergeIntoSource(source, newMapping);
-            Map<String, Object> defaultMap = Maps.get(source, "default");
-            populateColumnPositions(defaultMap);
-            try (XContentBuilder xContentBuilder = JsonXContent.contentBuilder()) {
-                templateBuilder.putMapping(cursor.key, Strings.toString(xContentBuilder.map(source)));
-            }
+        Map<String, Object> source = parseMapping(xContentRegistry, template.mapping().toString());
+        mergeIntoSource(source, newMapping);
+        Map<String, Object> defaultMap = Maps.get(source, Constants.DEFAULT_MAPPING_TYPE);
+        populateColumnPositions(defaultMap);
+        try (XContentBuilder xContentBuilder = JsonXContent.contentBuilder()) {
+            templateBuilder.putMapping(Strings.toString(xContentBuilder.map(source)));
         }
         Metadata.Builder builder = Metadata.builder(currentState.metadata()).put(templateBuilder);
         return ClusterState.builder(currentState).metadata(builder).build();

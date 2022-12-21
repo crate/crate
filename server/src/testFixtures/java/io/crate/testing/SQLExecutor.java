@@ -98,7 +98,6 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.RemoteClusters;
 import org.mockito.Answers;
 
-import io.crate.Constants;
 import io.crate.action.sql.Cursors;
 import io.crate.action.sql.Session;
 import io.crate.action.sql.Sessions;
@@ -473,7 +472,7 @@ public class SQLExecutor {
             IndexTemplateMetadata.Builder template = IndexTemplateMetadata.builder(analyzedStmt.templateName())
                 .patterns(singletonList(analyzedStmt.templatePrefix()))
                 .order(100)
-                .putMapping(Constants.DEFAULT_MAPPING_TYPE, mapping)
+                .putMapping(mapping)
                 .settings(buildSettings(false, combinedSettings, prevState.nodes().getSmallestNonClientNodeVersion()))
                 .putAlias(alias);
 

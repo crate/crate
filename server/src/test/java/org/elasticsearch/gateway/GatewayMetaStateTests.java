@@ -28,6 +28,8 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -44,6 +46,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugins.MetadataUpgrader;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.TestCustomMetadata;
+import org.junit.Test;
 
 public class GatewayMetaStateTests extends ESTestCase {
 
@@ -144,7 +147,8 @@ public class GatewayMetaStateTests extends ESTestCase {
     }
 
 
-    public void testMultipleIndexTemplateUpgrade() {
+    @Test
+    public void testMultipleIndexTemplateUpgrade() throws Exception {
         final Metadata metadata;
         switch (randomIntBetween(0, 2)) {
             case 0:
@@ -163,19 +167,28 @@ public class GatewayMetaStateTests extends ESTestCase {
             Collections.emptyList(),
             Arrays.asList(
                 indexTemplateMetadatas -> {
-                    indexTemplateMetadatas.put("template1", IndexTemplateMetadata.builder("template1")
-                        .patterns(randomIndexPatterns())
-                        .settings(Settings.builder().put(IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.getKey(), 20).build())
-                        .build());
+                    try {
+                        indexTemplateMetadatas.put("template1", IndexTemplateMetadata.builder("template1")
+                            .patterns(randomIndexPatterns())
+                            .settings(Settings.builder().put(IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.getKey(), 20).build())
+                            .putMapping("{}")
+                            .build());
+                    } catch (IOException e) {
+                        throw new UncheckedIOException(e);
+                    }
                     return indexTemplateMetadatas;
 
                 },
                 indexTemplateMetadatas -> {
-                    indexTemplateMetadatas.put("template2", IndexTemplateMetadata.builder("template2")
-                        .patterns(randomIndexPatterns())
-                        .settings(Settings.builder().put(IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING.getKey(), 10).build()).build());
+                    try {
+                        indexTemplateMetadatas.put("template2", IndexTemplateMetadata.builder("template2")
+                            .patterns(randomIndexPatterns())
+                            .putMapping("{}")
+                            .settings(Settings.builder().put(IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING.getKey(), 10).build()).build());
+                    } catch (IOException e) {
+                        throw new UncheckedIOException(e);
+                    }
                     return indexTemplateMetadatas;
-
             }
         ));
         Metadata upgrade = GatewayMetaState.upgradeMetadata(metadata, new MockMetadataIndexUpgradeService(false), metadataUpgrader);
@@ -266,7 +279,7 @@ public class GatewayMetaStateTests extends ESTestCase {
         return builder.build();
     }
 
-    private static Metadata randomMetadataWithIndexTemplates(String... templates) {
+    private static Metadata randomMetadataWithIndexTemplates(String... templates) throws IOException {
         Metadata.Builder builder = Metadata.builder();
         for (String template : templates) {
             IndexTemplateMetadata templateMetadata = IndexTemplateMetadata.builder(template)
@@ -274,6 +287,7 @@ public class GatewayMetaStateTests extends ESTestCase {
                     .put(IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING.getKey(), randomIntBetween(0, 3))
                     .put(IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.getKey(), randomIntBetween(1, 5)))
                 .patterns(randomIndexPatterns())
+                .putMapping("{}")
                 .build();
             builder.put(templateMetadata);
         }

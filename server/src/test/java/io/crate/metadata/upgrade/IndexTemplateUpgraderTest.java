@@ -28,19 +28,20 @@ import static org.elasticsearch.common.settings.AbstractScopedSettings.ARCHIVED_
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
-import io.crate.Constants;
-import io.crate.metadata.PartitionName;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
-import org.elasticsearch.common.compress.CompressedXContent;
-import org.elasticsearch.common.settings.Settings;
-import org.hamcrest.Matchers;
-import org.junit.Test;
 
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
+import org.elasticsearch.common.compress.CompressedXContent;
+import org.elasticsearch.common.settings.Settings;
+import org.hamcrest.Matchers;
+import org.junit.Test;
+
+import io.crate.metadata.PartitionName;
 
 public class IndexTemplateUpgraderTest {
 
@@ -51,6 +52,7 @@ public class IndexTemplateUpgraderTest {
         HashMap<String, IndexTemplateMetadata> templates = new HashMap<>();
         IndexTemplateMetadata oldTemplate = IndexTemplateMetadata.builder(TEMPLATE_NAME)
             .patterns(Collections.singletonList("*"))
+            .putMapping("{\"default\": {}}")
             .build();
         templates.put(TEMPLATE_NAME, oldTemplate);
 
@@ -59,7 +61,7 @@ public class IndexTemplateUpgraderTest {
     }
 
     @Test
-    public void testArchivedSettingsAreRemovedOnPartitionedTableTemplates() {
+    public void testArchivedSettingsAreRemovedOnPartitionedTableTemplates() throws Exception {
         IndexTemplateUpgrader upgrader = new IndexTemplateUpgrader();
 
         Settings settings = Settings.builder()
@@ -71,6 +73,7 @@ public class IndexTemplateUpgraderTest {
         String partitionTemplateName = PartitionName.templateName("doc", "t1");
         IndexTemplateMetadata oldPartitionTemplate = IndexTemplateMetadata.builder(partitionTemplateName)
             .settings(settings)
+            .putMapping("{\"default\": {}}")
             .patterns(Collections.singletonList("*"))
             .build();
         templates.put(partitionTemplateName, oldPartitionTemplate);
@@ -78,6 +81,7 @@ public class IndexTemplateUpgraderTest {
         String nonPartitionTemplateName = "non-partition-template";
         IndexTemplateMetadata oldNonPartitionTemplate = IndexTemplateMetadata.builder(nonPartitionTemplateName)
             .settings(settings)
+            .putMapping("{\"default\": {}}")
             .patterns(Collections.singletonList("*"))
             .build();
         templates.put(nonPartitionTemplateName, oldNonPartitionTemplate);
@@ -87,7 +91,7 @@ public class IndexTemplateUpgraderTest {
         assertThat(upgradedTemplate.settings().keySet(), contains(SETTING_NUMBER_OF_SHARDS));
 
         // ensure all other attributes remains the same
-        assertThat(upgradedTemplate.mappings(), is(oldPartitionTemplate.mappings()));
+        assertThat(upgradedTemplate.mapping(), is(oldPartitionTemplate.mapping()));
         assertThat(upgradedTemplate.patterns(), is(oldPartitionTemplate.patterns()));
         assertThat(upgradedTemplate.order(), is(oldPartitionTemplate.order()));
         assertThat(upgradedTemplate.aliases(), is(oldPartitionTemplate.aliases()));
@@ -97,11 +101,12 @@ public class IndexTemplateUpgraderTest {
     }
 
     @Test
-    public void testInvalidSettingIsRemovedForTemplateInCustomSchema() {
+    public void testInvalidSettingIsRemovedForTemplateInCustomSchema() throws Exception {
         Settings settings = Settings.builder().put("index.recovery.initial_shards", "quorum").build();
         String templateName = PartitionName.templateName("foobar", "t1");
         IndexTemplateMetadata template = IndexTemplateMetadata.builder(templateName)
             .settings(settings)
+            .putMapping("{\"default\": {}}")
             .patterns(Collections.singletonList("*"))
             .build();
 
@@ -121,7 +126,6 @@ public class IndexTemplateUpgraderTest {
         var template = IndexTemplateMetadata.builder(templateName)
             .patterns(List.of("*"))
             .putMapping(
-                Constants.DEFAULT_MAPPING_TYPE,
                 "{" +
                 "   \"default\": {" +
                 "       \"_all\": {\"enabled\": false}," +
@@ -138,7 +142,7 @@ public class IndexTemplateUpgraderTest {
         Map<String, IndexTemplateMetadata> result = upgrader.apply(Map.of(templateName, template));
         IndexTemplateMetadata updatedTemplate = result.get(templateName);
 
-        CompressedXContent compressedXContent = updatedTemplate.mappings().get(Constants.DEFAULT_MAPPING_TYPE);
+        CompressedXContent compressedXContent = updatedTemplate.mapping();
         assertThat(compressedXContent.string(), is("{\"default\":{\"properties\":{\"name\":{\"position\":1,\"type\":\"keyword\"}}}}"));
     }
 
