@@ -107,6 +107,12 @@ public final class RelationName implements Writeable, Accountable {
 
     public RelationName(@Nullable String schema, String name) {
         assert name != null : "table name must not be null";
+        if (schema != null && (schema.startsWith("_") || isInvalidSchemaOrRelationName(schema))) {
+            throw new InvalidSchemaNameException(schema);
+        }
+        if (isInvalidSchemaOrRelationName(name)) {
+            throw new InvalidRelationName(schema == null ? name : schema + "." + name);
+        }
         this.schema = schema;
         this.name = name;
     }
@@ -159,11 +165,10 @@ public final class RelationName implements Writeable, Accountable {
     }
 
     public void ensureValidForRelationCreation() throws InvalidSchemaNameException, InvalidRelationName {
-        if (!isValidRelationOrSchemaName(schema)) {
-            throw new InvalidSchemaNameException(schema);
-        }
-        if (!isValidRelationOrSchemaName(name)) {
-            throw new InvalidRelationName(this);
+        // Because of TableFunctionRelations such as '_values', '_pg_expandarray', RelationName can start with "_".
+        // But it is not allowed to be used as part of DDL statements.
+        if (name.startsWith("_")) {
+            throw new InvalidRelationName(this.fqn());
         }
         if (Schemas.READ_ONLY_SYSTEM_SCHEMAS.contains(schema)) {
             throw new IllegalArgumentException("Cannot create relation in read-only schema: " + schema);
@@ -179,16 +184,17 @@ public final class RelationName implements Writeable, Accountable {
         }
     }
 
-    private static boolean isValidRelationOrSchemaName(String name) {
+    private static boolean isInvalidSchemaOrRelationName(String name) {
+        return name.isEmpty() || containsIllegalCharacters(name);
+    }
+
+    private static boolean containsIllegalCharacters(String name) {
         for (String illegalCharacter : INVALID_NAME_CHARACTERS) {
-            if (name.contains(illegalCharacter) || name.length() == 0) {
-                return false;
+            if (name.contains(illegalCharacter)) {
+                return true;
             }
         }
-        if (name.startsWith("_")) {
-            return false;
-        }
-        return true;
+        return false;
     }
 
     @Override
