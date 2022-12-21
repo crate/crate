@@ -424,8 +424,7 @@ public class Node implements Closeable {
 
             final MonitorService monitorService = new MonitorService(settings,
                                                                      nodeEnvironment,
-                                                                     threadPool,
-                                                                     clusterInfoService);
+                                                                     threadPool);
             ClusterModule clusterModule = new ClusterModule(settings,
                                                             clusterService,
                                                             clusterPlugins,

@@ -26,12 +26,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.util.Constants;
-import org.elasticsearch.cluster.ClusterInfo;
-import org.elasticsearch.cluster.DiskUsage;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.env.NodeEnvironment.NodePath;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
@@ -51,7 +48,7 @@ public class FsProbe {
         this.nodeEnv = nodeEnv;
     }
 
-    public FsInfo stats(FsInfo previous, @Nullable ClusterInfo clusterInfo) throws IOException {
+    public FsInfo stats(FsInfo previous) throws IOException {
         if (!nodeEnv.hasNodeFile()) {
             return new FsInfo(System.currentTimeMillis(), null, new FsInfo.Path[0]);
         }
@@ -70,16 +67,10 @@ public class FsProbe {
             }
             ioStats = ioStats(devicesNumbers, previous);
         }
-        DiskUsage leastDiskEstimate = null;
-        DiskUsage mostDiskEstimate = null;
-        if (clusterInfo != null) {
-            leastDiskEstimate = clusterInfo.getNodeLeastAvailableDiskUsages().get(nodeEnv.nodeId());
-            mostDiskEstimate = clusterInfo.getNodeMostAvailableDiskUsages().get(nodeEnv.nodeId());
-        }
-        return new FsInfo(System.currentTimeMillis(), ioStats, paths, leastDiskEstimate, mostDiskEstimate);
+        return new FsInfo(System.currentTimeMillis(), ioStats, paths);
     }
 
-    private final FsInfo.IoStats ioStats(final Set<Tuple<Integer, Integer>> devicesNumbers, final FsInfo previous) {
+    final FsInfo.IoStats ioStats(final Set<Tuple<Integer, Integer>> devicesNumbers, final FsInfo previous) {
         try {
             final Map<Tuple<Integer, Integer>, FsInfo.DeviceStats> deviceMap = new HashMap<>();
             if (previous != null && previous.getIoStats() != null && previous.getIoStats().devicesStats != null) {
