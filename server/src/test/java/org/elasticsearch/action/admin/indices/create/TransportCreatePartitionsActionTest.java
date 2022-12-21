@@ -32,6 +32,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateAction;
+import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ack.ClusterStateUpdateResponse;
@@ -40,12 +42,12 @@ import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
 import org.elasticsearch.common.collect.ImmutableOpenIntMap;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.InvalidIndexNameException;
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.jupiter.api.Assertions;
 
 import io.crate.exceptions.SQLExceptions;
-import org.elasticsearch.test.IntegTestCase;
 
 public class TransportCreatePartitionsActionTest extends IntegTestCase {
 
@@ -59,6 +61,15 @@ public class TransportCreatePartitionsActionTest extends IntegTestCase {
     @Test
     public void testCreateBulkIndicesSimple() throws Exception {
         List<String> indices = Arrays.asList("index1", "index2", "index3", "index4");
+
+        PutIndexTemplateRequest request = new PutIndexTemplateRequest("*")
+            .patterns(List.of("*"))
+            .settings(Settings.builder()
+                .put("number_of_shards", 1)
+                .put("number_of_replicas", 0)
+            );
+        internalCluster().client().execute(PutIndexTemplateAction.INSTANCE, request).get();
+
         AcknowledgedResponse response = action.execute(
             new CreatePartitionsRequest(indices, UUID.randomUUID())
         ).get();
@@ -72,6 +83,14 @@ public class TransportCreatePartitionsActionTest extends IntegTestCase {
 
     @Test
     public void testRoutingOfIndicesIsNotOverridden() throws Exception {
+        PutIndexTemplateRequest templateRequest = new PutIndexTemplateRequest("*")
+            .patterns(List.of("*"))
+            .settings(Settings.builder()
+                .put("number_of_shards", 1)
+                .put("number_of_replicas", 0)
+            );
+        internalCluster().client().execute(PutIndexTemplateAction.INSTANCE, templateRequest).get();
+
         cluster().client().admin().indices()
             .create(new CreateIndexRequest("index_0")
                 .settings(Settings.builder().put("number_of_shards", 1).put("number_of_replicas", 0))
@@ -106,6 +125,13 @@ public class TransportCreatePartitionsActionTest extends IntegTestCase {
 
     @Test
     public void testCreateBulkIndicesIgnoreExistingSame() throws Exception {
+        PutIndexTemplateRequest templateRequest = new PutIndexTemplateRequest("*")
+            .patterns(List.of("*"))
+            .settings(Settings.builder()
+                .put("number_of_shards", 1)
+                .put("number_of_replicas", 0)
+            );
+        internalCluster().client().execute(PutIndexTemplateAction.INSTANCE, templateRequest).get();
         List<String> indices = Arrays.asList("index1", "index2", "index3", "index1");
         AcknowledgedResponse response = action.execute(
             new CreatePartitionsRequest(indices, UUID.randomUUID())
