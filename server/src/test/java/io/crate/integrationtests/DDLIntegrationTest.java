@@ -1107,4 +1107,76 @@ public class DDLIntegrationTest extends IntegTestCase {
     }
 
 
+    @Test
+    public void test_add_multiple_columns_with_constraints_in_sub_columns() {
+        execute("create table t(id integer primary key)");
+        /*
+         Adding multiple columns:
+         - 2 columns sharing sub-path to verify that we don't add multiple times common path part to AddColumnRequest
+         - object with branching (with multiple leaves)
+         - some primitive columns with different constraints
+         With dynamic mapping updates we can add many columns but they don't have constraints so
+         all added columns have different constraints as it's the only use-case hitting related code path.
+         */
+        execute("""
+            alter table t
+                add column o1['a1']['b1'] text generated always as 'val1' ,
+                add column o1['a1']['c1'] int constraint leaf_check check (o1['a1']['c1'] > 10),
+                add column o2 object as (a2 object as (b2 text not null), c2 int),
+                add column int_col INTEGER constraint int_check check (int_col > 20),
+                add column long_col LONG generated always as 30,
+                add column analyzed_col TEXT INDEX USING FULLTEXT WITH (analyzer = 'simple')
+            """
+        );
+
+        execute("show create table t");
+        assertThat((String) response.rows()[0][0], startsWith(
+            """
+                CREATE TABLE IF NOT EXISTS "doc"."t" (
+                   "id" INTEGER NOT NULL,
+                   "o1" OBJECT(DYNAMIC) AS (
+                      "a1" OBJECT(DYNAMIC) AS (
+                         "b1" TEXT GENERATED ALWAYS AS 'val1',
+                         "c1" INTEGER
+                      )
+                   ),
+                   "o2" OBJECT(DYNAMIC) AS (
+                      "a2" OBJECT(DYNAMIC) AS (
+                         "b2" TEXT NOT NULL
+                      ),
+                      "c2" INTEGER
+                   ),
+                   "int_col" INTEGER,
+                   "long_col" BIGINT GENERATED ALWAYS AS _cast(30, 'bigint'),
+                   "analyzed_col" TEXT INDEX USING FULLTEXT WITH (
+                      analyzer = 'simple'
+                   ),
+                   PRIMARY KEY ("id"),
+                   CONSTRAINT int_check CHECK("int_col" > 20),
+                   CONSTRAINT leaf_check CHECK("o1"['a1']['c1'] > 10)
+                )""".stripIndent()
+        ));
+
+        // We test explicitly only CHECK since not-null and generated is part of a Reference and this is same behavior as adding single column.
+        // CHECK constraints are streamed separately and adding multiple columns is the only use case of adding multiple checks at once.
+        assertThrowsMatches(
+            () -> execute("insert into t (id, o2, int_col) values (1, {\"a2\" = {\"b2\" = 'test'}}, 19)"),
+            isSQLError(
+                containsString("Failed CONSTRAINT int_check CHECK (\"int_col\" > 20)"),
+                INTERNAL_ERROR,
+                BAD_REQUEST,
+                4000
+            )
+        );
+
+        assertThrowsMatches(
+            () -> execute("insert into t (id, o2, o1) values (1, {\"a2\" = {\"b2\" = 'test'}}, {\"a1\" = {\"c1\" = 9}})"),
+            isSQLError(
+                containsString("Failed CONSTRAINT leaf_check CHECK (\"o1\"['a1']['c1'] > 10)"),
+                INTERNAL_ERROR,
+                BAD_REQUEST,
+                4000
+            )
+        );
+    }
 }

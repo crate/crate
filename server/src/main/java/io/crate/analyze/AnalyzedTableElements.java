@@ -68,6 +68,7 @@ import io.crate.sql.tree.GenericProperties;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 import io.crate.types.GeoShapeType;
 
 public class AnalyzedTableElements<T> {
@@ -306,10 +307,16 @@ public class AnalyzedTableElements<T> {
         additionalPrimaryKeys.add(fqColumnName);
     }
 
-    public void add(AnalyzedColumnDefinition<T> analyzedColumnDefinition) {
+    public void add(AnalyzedColumnDefinition<T> analyzedColumnDefinition, boolean isAddColumn) {
         if (columnIdents.contains(analyzedColumnDefinition.ident())) {
-            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                                                             "column \"%s\" specified more than once", analyzedColumnDefinition.ident().sqlFqn()));
+            // We can add multiple object columns via ALTER TABLE ADD COLUMN.
+            // Those columns can have overlapping paths, for example we can add columns o['a']['b'] and o['a']['c'].
+            // In this case same columnIdent (root parent 'o') can be handled twice but it's fine.
+            // However, a primitive column cannot be added twice.
+            if (isAddColumn == false || analyzedColumnDefinition.dataType().id() != ObjectType.ID) {
+                throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                    "column \"%s\" specified more than once", analyzedColumnDefinition.ident().sqlFqn()));
+            }
         }
         columnIdents.add(analyzedColumnDefinition.ident());
         columns.add(analyzedColumnDefinition);
@@ -359,12 +366,12 @@ public class AnalyzedTableElements<T> {
     }
 
     public TableReferenceResolver referenceResolver(RelationName relationName) {
-        List<Reference> tableReferences = new ArrayList<>();
+        LinkedHashMap<ColumnIdent, Reference> tableReferences = new LinkedHashMap<>();
         collectReferences(relationName, tableReferences, new IntArrayList(), false);
-        return new TableReferenceResolver(tableReferences, relationName);
+        return new TableReferenceResolver(tableReferences.values(), relationName);
     }
 
-    public void collectReferences(RelationName relationName, List<Reference> target, IntArrayList pKeysIndices, boolean isAddColumn) {
+    public void collectReferences(RelationName relationName, LinkedHashMap<ColumnIdent, Reference> target, IntArrayList pKeysIndices, boolean isAddColumn) {
         for (AnalyzedColumnDefinition<T> columnDefinition : columns) {
             buildReference(relationName, columnDefinition, target, pKeysIndices, isAddColumn);
         }
@@ -444,7 +451,7 @@ public class AnalyzedTableElements<T> {
 
     public static <T> void buildReference(RelationName relationName,
                                           AnalyzedColumnDefinition<T> columnDefinition,
-                                          List<Reference> references,
+                                          LinkedHashMap<ColumnIdent, Reference> references,
                                           IntArrayList pKeysIndices,
                                           boolean isAddColumn) {
 
@@ -504,10 +511,14 @@ public class AnalyzedTableElements<T> {
         ref = columnDefinition.isGenerated()
             ? new GeneratedReference(ref, columnDefinition.formattedGeneratedExpression(), null)
             : ref;
-        references.add(ref);
+
+        references.putIfAbsent(ref.column(), ref);
+
         if (columnDefinition.hasPrimaryKeyConstraint()) {
+            // 'references' is a LinkedHashMap, current size <==> last inserted index.
             pKeysIndices.add(references.size() - 1);
         }
+
         for (AnalyzedColumnDefinition<T> childDefinition : columnDefinition.children()) {
             buildReference(relationName, childDefinition, references, pKeysIndices, isAddColumn);
         }

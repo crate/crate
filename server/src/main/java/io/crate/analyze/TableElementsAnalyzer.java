@@ -90,7 +90,7 @@ public class TableElementsAnalyzer {
 
             tableElement.accept(analyzer, ctx);
             if (ctx.analyzedColumnDefinition.ident() != null) {
-                analyzedTableElements.add(ctx.analyzedColumnDefinition);
+                analyzedTableElements.add(ctx.analyzedColumnDefinition, isAddColumn);
             }
             positionOffset = ctx.currentColumnPosition;
         }
@@ -161,10 +161,6 @@ public class TableElementsAnalyzer {
             context.analyzedColumnDefinition.name(column.name());
 
             assert context.tableInfo != null : "Table must be available for `addColumnDefinition`";
-
-            // nested columns can only be added using alter table so no other columns exist.
-            assert context.analyzedTableElements.columns().size() == 0 :
-                "context.analyzedTableElements.columns().size() must be 0";
 
             final AnalyzedColumnDefinition<T> root = context.analyzedColumnDefinition;
             if (!column.path().isEmpty()) {

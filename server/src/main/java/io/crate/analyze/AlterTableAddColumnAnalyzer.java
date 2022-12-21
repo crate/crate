@@ -21,8 +21,7 @@
 
 package io.crate.analyze;
 
-import static java.util.Collections.singletonList;
-
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
@@ -83,10 +82,10 @@ class AlterTableAddColumnAnalyzer {
             txnCtx, nodeCtx, paramTypeHints, FieldProvider.TO_LITERAL_VALIDATE_NAME, null);
         var exprCtx = new ExpressionAnalysisContext(txnCtx.sessionSettings());
 
-        AddColumnDefinition<Expression> tableElement = alterTable.tableElement();
+        List<AddColumnDefinition<Expression>> tableElements = alterTable.tableElements();
 
         // 1st phase, exclude check constraints (their expressions contain column references) and generated expressions
-        AddColumnDefinition<Symbol> addColumnDefinition = new AddColumnDefinition<>(
+        List<AddColumnDefinition<Symbol>> addColumnDefinitions = tableElements.stream().map(tableElement -> new AddColumnDefinition<>(
             exprAnalyzerWithFieldsAsString.convert(tableElement.name(), exprCtx),
             null,   // expression must be mapped later on using mapExpressions()
             tableElement.type() == null ? null : tableElement.type().map(y -> exprAnalyzerWithFieldsAsString.convert(y, exprCtx)),
@@ -97,16 +96,23 @@ class AlterTableAddColumnAnalyzer {
                 .collect(Collectors.toList()),
             false,
             tableElement.generatedExpression() != null
-        );
+        )).collect(Collectors.toList());
+
         AnalyzedTableElements<Symbol> analyzedTableElements = TableElementsAnalyzer.analyze(
-            singletonList(addColumnDefinition), tableInfo.ident(), tableInfo, true);
+            List.copyOf(addColumnDefinitions), tableInfo.ident(), tableInfo, true);
+
 
         // 2nd phase, analyze possible generated expressions
-        AddColumnDefinition<Symbol> addColumnDefinitionWithExpression = (AddColumnDefinition<Symbol>) tableElement.mapExpressions(
-            addColumnDefinition,
-            x -> exprAnalyzerWithReferenceResolver.convert(x, exprCtx));
+        List<AddColumnDefinition<Symbol>> addColumnDefinitionsWithExpression = new ArrayList<>();
+        for (int i = 0; i < tableElements.size(); i++) {
+            addColumnDefinitionsWithExpression.add((AddColumnDefinition<Symbol>) tableElements.get(i).mapExpressions(
+                addColumnDefinitions.get(i),
+                x -> exprAnalyzerWithReferenceResolver.convert(x, exprCtx)));
+        }
+
         AnalyzedTableElements<Symbol> analyzedTableElementsWithExpressions = TableElementsAnalyzer.analyze(
-            singletonList(addColumnDefinitionWithExpression), tableInfo.ident(), tableInfo, true);
+            List.copyOf(addColumnDefinitionsWithExpression), tableInfo.ident(), tableInfo, true);
+
         // now analyze possible check expressions
         var checkColumnConstraintsAnalyzer = new ExpressionAnalyzer(
             txnCtx,
@@ -115,22 +121,29 @@ class AlterTableAddColumnAnalyzer {
             new SelfReferenceFieldProvider(
                 tableInfo.ident(), referenceResolver, analyzedTableElements.columns()),
             null);
-        tableElement.constraints()
-            .stream()
-            .filter(CheckColumnConstraint.class::isInstance)
-            .map(x -> x.map(y -> checkColumnConstraintsAnalyzer.convert(y, exprCtx)))
-            .forEach(c -> {
-                CheckColumnConstraint<Symbol> check = (CheckColumnConstraint<Symbol>) c;
-                analyzedTableElements.addCheckColumnConstraint(tableInfo.ident(), check);
-                analyzedTableElementsWithExpressions.addCheckColumnConstraint(tableInfo.ident(), check);
-            });
-        if (addColumnDefinitionWithExpression.generatedExpression() != null) {
-            GeneratedColumnValidator.validate(
-                addColumnDefinitionWithExpression.generatedExpression(),
-                tableInfo.ident(),
-                analyzedTableElements.columnIdents().iterator().next().name(),
-                tableInfo.generatedColumns().stream().map(GeneratedReference::column).toList());
-        }
+
+        tableElements.forEach(tableElement -> {
+            tableElement.constraints()
+                .stream()
+                .filter(CheckColumnConstraint.class::isInstance)
+                .map(x -> x.map(y -> checkColumnConstraintsAnalyzer.convert(y, exprCtx)))
+                .forEach(c -> {
+                    CheckColumnConstraint<Symbol> check = (CheckColumnConstraint<Symbol>) c;
+                    analyzedTableElements.addCheckColumnConstraint(tableInfo.ident(), check);
+                    analyzedTableElementsWithExpressions.addCheckColumnConstraint(tableInfo.ident(), check);
+                });
+        });
+
+        addColumnDefinitionsWithExpression.forEach(addColumnDefinitionWithExpression -> {
+            if (addColumnDefinitionWithExpression.generatedExpression() != null) {
+                GeneratedColumnValidator.validate(
+                    addColumnDefinitionWithExpression.generatedExpression(),
+                    tableInfo.ident(),
+                    analyzedTableElements.columnIdents().iterator().next().name(),
+                    tableInfo.generatedColumns().stream().map(GeneratedReference::column).toList());
+            }
+        });
+
         return new AnalyzedAlterTableAddColumn(tableInfo, analyzedTableElements, analyzedTableElementsWithExpressions);
     }
 

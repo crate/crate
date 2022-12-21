@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.TestingHelpers.mapToSortedString;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
@@ -30,12 +31,15 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.carrotsearch.hppc.cursors.IntCursor;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
@@ -667,4 +671,58 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
             is(10)
         );
     }
+
+    @Test
+    public void add_multiple_columns_pkey_indices_referring_to_correct_ref_indices() throws Exception {
+        e = SQLExecutor.builder(clusterService)
+            .addTable("CREATE TABLE tbl (x int)")
+            .build();
+
+        AnalyzedAlterTableAddColumn analyzedAlterTableAddColumn =
+            e.analyze("ALTER TABLE tbl ADD COLUMN o['a']['b'] int primary key, ADD COLUMN o['a']['c'] int primary key");
+
+        PlannerContext plannerContext = e.getPlannerContext(clusterService.state());
+
+        var request = AlterTableAddColumnPlan.createRequest(
+            analyzedAlterTableAddColumn,
+            plannerContext.nodeContext(),
+            plannerContext,
+            Row.EMPTY,
+            SubQueryResults.EMPTY,
+            e.fulltextAnalyzerResolver()
+        );
+
+
+        assertThat(request.pKeyIndices().size()).isEqualTo(2);
+        assertThat(request.references().size()).isEqualTo(4); // 2 leaves (b, c) and their common parents (o, a).
+
+        List<String> pKeyColNames = new ArrayList<>();
+        for (IntCursor cursor: request.pKeyIndices()) {
+            var ref = request.references().get(cursor.value);
+            pKeyColNames.add(ref.column().leafName());
+        }
+        assertThat(pKeyColNames).containsExactlyInAnyOrder("b", "c");
+    }
+
+    @Test
+    public void add_multiple_columns_adding_same_name_primitive_throws_an_exception() throws IOException {
+        e = SQLExecutor.builder(clusterService)
+            .addTable("CREATE TABLE tbl (x int)")
+            .build();
+
+        // same name, same type
+        assertThrowsMatches(
+            () -> e.analyze("ALTER TABLE tbl ADD COLUMN o['a']['b'] int primary key, ADD COLUMN int_col INTEGER, ADD COLUMN int_col INTEGER"),
+            IllegalArgumentException.class,
+            "column \"int_col\" specified more than once"
+        );
+
+        // only same name, different type
+        assertThrowsMatches(
+            () -> e.analyze("ALTER TABLE tbl ADD COLUMN o['a']['b'] int primary key, ADD COLUMN col INTEGER, ADD COLUMN col TEXT"),
+            IllegalArgumentException.class,
+            "column \"col\" specified more than once"
+        );
+    }
+
 }
