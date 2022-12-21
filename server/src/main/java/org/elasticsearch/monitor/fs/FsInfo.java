@@ -19,6 +19,7 @@
 
 package org.elasticsearch.monitor.fs;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.cluster.DiskUsage;
 import javax.annotation.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -328,20 +329,12 @@ public class FsInfo extends AbstractList<FsInfo.Path> implements Writeable {
     private final Path[] paths;
     private final IoStats ioStats;
     private final Path total;
-    private final DiskUsage leastDiskEstimate;
-    private final DiskUsage mostDiskEstimate;
 
     public FsInfo(long timestamp, IoStats ioStats, Path[] paths) {
-        this(timestamp, ioStats, paths, null, null);
-    }
-
-    public FsInfo(long timestamp, IoStats ioStats, Path[] paths, @Nullable DiskUsage leastUsage, @Nullable DiskUsage mostUsage) {
         this.timestamp = timestamp;
         this.ioStats = ioStats;
         this.paths = paths;
         this.total = total();
-        this.leastDiskEstimate = leastUsage;
-        this.mostDiskEstimate = mostUsage;
     }
 
     /**
@@ -355,8 +348,10 @@ public class FsInfo extends AbstractList<FsInfo.Path> implements Writeable {
             paths[i] = new Path(in);
         }
         this.total = total();
-        this.leastDiskEstimate = in.readOptionalWriteable(DiskUsage::new);
-        this.mostDiskEstimate = in.readOptionalWriteable(DiskUsage::new);
+        if (in.getVersion().before(Version.V_5_2_0)) {
+            in.readOptionalWriteable(DiskUsage::new); // previously leastDiskEstimate
+            in.readOptionalWriteable(DiskUsage::new); // previously mostDiskEstimate
+        }
     }
 
     @Override
@@ -367,22 +362,14 @@ public class FsInfo extends AbstractList<FsInfo.Path> implements Writeable {
         for (Path path : paths) {
             path.writeTo(out);
         }
-        out.writeOptionalWriteable(this.leastDiskEstimate);
-        out.writeOptionalWriteable(this.mostDiskEstimate);
+        if (out.getVersion().before(Version.V_5_2_0)) {
+            out.writeOptionalWriteable(null); // previously leastDiskEstimate
+            out.writeOptionalWriteable(null); // previously mostDiskEstimate
+        }
     }
 
     public Path getTotal() {
         return total;
-    }
-
-    @Nullable
-    public DiskUsage getLeastDiskEstimate() {
-        return this.leastDiskEstimate;
-    }
-
-    @Nullable
-    public DiskUsage getMostDiskEstimate() {
-        return this.mostDiskEstimate;
     }
 
     private Path total() {
