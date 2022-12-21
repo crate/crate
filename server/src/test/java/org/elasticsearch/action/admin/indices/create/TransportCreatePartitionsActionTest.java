@@ -27,6 +27,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -47,6 +48,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.jupiter.api.Assertions;
 
+import io.crate.Constants;
 import io.crate.exceptions.SQLExceptions;
 
 public class TransportCreatePartitionsActionTest extends IntegTestCase {
@@ -64,6 +66,7 @@ public class TransportCreatePartitionsActionTest extends IntegTestCase {
 
         PutIndexTemplateRequest request = new PutIndexTemplateRequest("*")
             .patterns(List.of("*"))
+            .mapping(Constants.DEFAULT_MAPPING_TYPE, Map.of())
             .settings(Settings.builder()
                 .put("number_of_shards", 1)
                 .put("number_of_replicas", 0)
@@ -85,6 +88,7 @@ public class TransportCreatePartitionsActionTest extends IntegTestCase {
     public void testRoutingOfIndicesIsNotOverridden() throws Exception {
         PutIndexTemplateRequest templateRequest = new PutIndexTemplateRequest("*")
             .patterns(List.of("*"))
+            .mapping(Constants.DEFAULT_MAPPING_TYPE, Map.of())
             .settings(Settings.builder()
                 .put("number_of_shards", 1)
                 .put("number_of_replicas", 0)
@@ -127,6 +131,7 @@ public class TransportCreatePartitionsActionTest extends IntegTestCase {
     public void testCreateBulkIndicesIgnoreExistingSame() throws Exception {
         PutIndexTemplateRequest templateRequest = new PutIndexTemplateRequest("*")
             .patterns(List.of("*"))
+            .mapping(Constants.DEFAULT_MAPPING_TYPE, Map.of())
             .settings(Settings.builder()
                 .put("number_of_shards", 1)
                 .put("number_of_replicas", 0)

@@ -21,6 +21,8 @@
 
 package io.crate.metadata.cluster;
 
+import static io.crate.execution.ddl.TransportSchemaUpdateAction.populateColumnPositions;
+
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -34,7 +36,6 @@ import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
@@ -44,15 +45,11 @@ import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 
-import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
-
 import io.crate.Constants;
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.MapBuilder;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
-
-import static io.crate.execution.ddl.TransportSchemaUpdateAction.populateColumnPositions;
 
 public class DDLClusterStateHelpers {
 
@@ -86,7 +83,7 @@ public class DDLClusterStateHelpers {
         try {
             return new IndexTemplateMetadata.Builder(indexTemplateMetadata)
                 .settings(settings)
-                .putMapping(Constants.DEFAULT_MAPPING_TYPE, Strings.toString(XContentFactory.jsonBuilder().map(mapping)))
+                .putMapping(Strings.toString(XContentFactory.jsonBuilder().map(mapping)))
                 .build();
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -132,15 +129,11 @@ public class DDLClusterStateHelpers {
     static Map<String, Object> mergeTemplateMapping(IndexTemplateMetadata templateMetadata,
                                                     Map<String, Object> newMapping) {
         Map<String, Object> mergedMapping = new HashMap<>();
-        for (ObjectObjectCursor<String, CompressedXContent> cursor : templateMetadata.mappings()) {
-            Map<String, Object> mapping = parseMapping(cursor.value.toString());
-            Object o = mapping.get(Constants.DEFAULT_MAPPING_TYPE);
-            assert o instanceof Map :
-                "o must not be null and must be instance of Map";
-
-            //noinspection unchecked
-            XContentHelper.update(mergedMapping, (Map) o, false);
-        }
+        Map<String, Object> mapping = parseMapping(templateMetadata.mapping().toString());
+        Object o = mapping.get(Constants.DEFAULT_MAPPING_TYPE);
+        assert o instanceof Map :
+            "o must not be null and must be instance of Map";
+        XContentHelper.update(mergedMapping, (Map) o, false);
         XContentHelper.update(mergedMapping, newMapping, false);
         populateColumnPositions(mergedMapping);
         return mergedMapping;

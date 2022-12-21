@@ -22,8 +22,10 @@
 package io.crate.metadata.cluster;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import io.crate.Constants;
-import io.crate.common.collections.MapBuilder;
+
+import java.util.List;
+import java.util.Map;
+
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesReference;
@@ -33,8 +35,8 @@ import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.junit.Test;
 
-import java.util.List;
-import java.util.Map;
+import io.crate.Constants;
+import io.crate.common.collections.MapBuilder;
 
 public class DDLClusterStateHelpersTest {
 
@@ -86,8 +88,7 @@ public class DDLClusterStateHelpersTest {
         Map<String, Object> mapping = DDLClusterStateHelpers.mergeTemplateMapping(
             IndexTemplateMetadata.builder("foo")
                 .patterns(List.of("*"))
-                .putMapping(Constants.DEFAULT_MAPPING_TYPE,
-                            Strings.toString(XContentFactory.jsonBuilder().map(
+                .putMapping(Strings.toString(XContentFactory.jsonBuilder().map(
                             MapBuilder.<String, Object>newMapBuilder()
                                 .put(Constants.DEFAULT_MAPPING_TYPE, oldMapping)
                                 .map())))

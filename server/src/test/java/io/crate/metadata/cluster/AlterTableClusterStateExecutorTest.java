@@ -22,7 +22,6 @@
 package io.crate.metadata.cluster;
 
 import static org.assertj.core.api.Assertions.assertThat;
-
 import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_ROUTING_EXCLUDE_GROUP_PREFIX;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_CREATION_DATE;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_SHARDS;
@@ -43,7 +42,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import io.crate.analyze.TableParameters;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -52,6 +50,7 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
+import io.crate.analyze.TableParameters;
 import io.crate.execution.ddl.tables.AlterTableRequest;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
@@ -74,6 +73,7 @@ public class AlterTableClusterStateExecutorTest {
         IndexTemplateMetadata indexTemplateMetadata = IndexTemplateMetadata.builder(templateName)
             .patterns(Collections.singletonList("*"))
             .settings(settings)
+            .putMapping("{\"default\": {}}")
             .build();
 
         ClusterState initialState = ClusterState.builder(ClusterState.EMPTY_STATE)

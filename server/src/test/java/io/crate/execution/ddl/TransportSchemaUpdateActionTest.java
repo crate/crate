@@ -27,8 +27,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Map;
 
-import io.crate.Constants;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.xcontent.NamedXContentRegistry;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
+import org.junit.Test;
+
 import io.crate.analyze.BoundAddColumn;
 import io.crate.common.collections.Maps;
 import io.crate.data.Row;
@@ -38,15 +46,6 @@ import io.crate.planner.node.ddl.AlterTableAddColumnPlan;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
-import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
-import org.junit.Test;
-
-import java.util.Map;
 
 public class TransportSchemaUpdateActionTest extends CrateDummyClusterServiceUnitTest {
 
@@ -90,7 +89,6 @@ public class TransportSchemaUpdateActionTest extends CrateDummyClusterServiceUni
                 .put(IndexTemplateMetadata.builder(templateName)
                     .patterns(template.patterns())
                     .putMapping(
-                        Constants.DEFAULT_MAPPING_TYPE,
                         Strings.toString(JsonXContent.contentBuilder().map(addXLong.mapping()))))
                 .build()
             ).build();

@@ -40,7 +40,6 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexNotFoundException;
 
-import io.crate.Constants;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.IndexParts;
@@ -168,8 +167,7 @@ public class DocTableInfoFactory {
         DocIndexMetadata docIndexMetadata;
         try {
             IndexMetadata.Builder builder = new IndexMetadata.Builder(relation.indexNameOrAlias());
-            builder.putMapping(
-                indexTemplateMetadata.getMappings().get(Constants.DEFAULT_MAPPING_TYPE).toString());
+            builder.putMapping(indexTemplateMetadata.mapping().toString());
 
             Settings.Builder settingsBuilder = Settings.builder()
                 .put(indexTemplateMetadata.settings());
