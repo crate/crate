@@ -25,6 +25,7 @@ import io.crate.common.unit.TimeValue;
 import org.elasticsearch.index.IndexModule;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.IndexSettings;
+import org.elasticsearch.monitor.fs.FsService;
 import org.elasticsearch.plugins.Plugin;
 
 import java.util.Arrays;
@@ -56,7 +57,8 @@ public final class InternalSettingsPlugin extends Plugin {
                 IndexModule.INDEX_QUERY_CACHE_EVERYTHING_SETTING,
                 INDEX_UUID,
                 IndexSettings.INDEX_TRANSLOG_RETENTION_TOTAL_FILES_SETTING,
-                IndexSettings.FILE_BASED_RECOVERY_THRESHOLD_SETTING
+                IndexSettings.FILE_BASED_RECOVERY_THRESHOLD_SETTING,
+                FsService.ALWAYS_REFRESH_SETTING
             );
     }
 }
