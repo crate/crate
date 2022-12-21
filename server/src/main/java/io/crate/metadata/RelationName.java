@@ -165,7 +165,8 @@ public final class RelationName implements Writeable, Accountable {
     }
 
     public void ensureValidForRelationCreation() throws InvalidSchemaNameException, InvalidRelationName {
-        // Relation names can start with "_" - ex) _values, just not allowed to be created.
+        // Because of TableFunctionRelations such as '_values', '_pg_expandarray', RelationName can start with "_".
+        // But it is not allowed to be used as part of DDL statements.
         if (name.startsWith("_")) {
             throw new InvalidRelationName(this.fqn());
         }
