@@ -36,7 +36,6 @@ import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertNoTi
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
-import static org.hamcrest.Matchers.startsWith;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -91,8 +90,6 @@ import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
 import org.elasticsearch.action.admin.indices.refresh.RefreshResponse;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
-import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateAction;
-import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
 import org.elasticsearch.action.support.ActiveShardCount;
 import org.elasticsearch.client.AdminClient;
 import org.elasticsearch.client.Client;
@@ -129,13 +126,11 @@ import org.elasticsearch.env.Environment;
 import org.elasticsearch.env.TestEnvironment;
 import org.elasticsearch.http.HttpTransportSettings;
 import org.elasticsearch.index.Index;
-import org.elasticsearch.index.IndexModule;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.MergePolicyConfig;
 import org.elasticsearch.index.MergeSchedulerConfig;
 import org.elasticsearch.index.MockEngineFactoryPlugin;
-import org.elasticsearch.index.codec.CodecService;
 import org.elasticsearch.index.mapper.MockFieldFilterPlugin;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.translog.Translog;
@@ -168,8 +163,8 @@ import com.carrotsearch.randomizedtesting.generators.RandomStrings;
 
 import io.crate.Constants;
 import io.crate.action.sql.Cursors;
-import io.crate.action.sql.Sessions;
 import io.crate.action.sql.Session;
+import io.crate.action.sql.Sessions;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.common.collections.Lists2;
@@ -355,7 +350,6 @@ public abstract class IntegTestCase extends ESTestCase {
         Callable<Void> setup = () -> {
             cluster().beforeTest(random());
             cluster().wipe();
-            randomIndexTemplate();
             return null;
         };
         switch (currentClusterScope) {
@@ -378,49 +372,6 @@ public abstract class IntegTestCase extends ESTestCase {
             logger.info("[{}]: {} suite", getTestClass().getSimpleName(), message);
         } else {
             logger.info("[{}#{}]: {} test", getTestClass().getSimpleName(), getTestName(), message);
-        }
-    }
-
-    /**
-     * Creates a randomized index template. This template is used to pass in randomized settings on a
-     * per index basis. Allows to enable/disable the randomization for number of shards and replicas
-     */
-    private void randomIndexTemplate() {
-        // TODO move settings for random directory etc here into the index based randomized settings.
-        if (cluster().size() > 0) {
-            Settings.Builder randomSettingsBuilder =
-                setRandomIndexSettings(random(), Settings.builder());
-            if (isInternalCluster()) {
-                // this is only used by mock plugins and if the cluster is not internal we just can't set it
-                randomSettingsBuilder.put(INDEX_TEST_SEED_SETTING.getKey(), random().nextLong());
-            }
-
-            randomSettingsBuilder.put(SETTING_NUMBER_OF_SHARDS, numberOfShards())
-                .put(SETTING_NUMBER_OF_REPLICAS, numberOfReplicas());
-
-            // if the test class is annotated with SuppressCodecs("*"), it means don't use lucene's codec randomization
-            // otherwise, use it, it has assertions and so on that can find bugs.
-            SuppressCodecs annotation = getClass().getAnnotation(SuppressCodecs.class);
-            if (annotation != null && annotation.value().length == 1 && "*".equals(annotation.value()[0])) {
-                randomSettingsBuilder.put("index.codec", randomFrom(CodecService.DEFAULT_CODEC, CodecService.BEST_COMPRESSION_CODEC));
-            } else {
-                randomSettingsBuilder.put("index.codec", CodecService.LUCENE_DEFAULT_CODEC);
-            }
-
-            for (String setting : randomSettingsBuilder.keys()) {
-                assertThat("non index. prefix setting set on index template, its a node setting...", setting, startsWith("index."));
-            }
-            // always default delayed allocation to 0 to make sure we have tests are not delayed
-            randomSettingsBuilder.put(UnassignedInfo.INDEX_DELAYED_NODE_LEFT_TIMEOUT_SETTING.getKey(), 0);
-            if (randomBoolean()) {
-                randomSettingsBuilder.put(IndexModule.INDEX_QUERY_CACHE_ENABLED_SETTING.getKey(), randomBoolean());
-            }
-            PutIndexTemplateRequest request = new PutIndexTemplateRequest("random_index_template")
-                .patterns(Collections.singletonList("*"))
-                .order(0)
-                .settings(randomSettingsBuilder);
-
-            assertAcked(FutureUtils.get(client().admin().indices().execute(PutIndexTemplateAction.INSTANCE, request)));
         }
     }
 
