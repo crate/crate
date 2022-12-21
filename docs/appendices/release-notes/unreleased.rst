@@ -137,8 +137,8 @@ Changes
   <sql-copy-from-skip>` for :ref:`COPY FROM <sql-copy-from>` which allows
   skipping rows from the beginning while copying data.
 
-- Updated to Admin UI 1.24.0, which added Italian translations, and updated some
-  dependency packages across the board.
+- Updated to Admin UI 1.24.1, which added Italian translations, updated some
+  dependency packages across the board, and its tool chain.
 
 - Added support for dollar quoted strings,
   see :ref:`String Literal <string_literal>` for further details.
@@ -148,9 +148,12 @@ Changes
   supported. Optionally provided pattern conventions for the order of date 
   parts (Day, Month, Year) are ignored.
 
-- Added the :ref:`concat(object, object) <scalar-concat-object>` scalar function 
-  which combines two objects into a new object containing the union of their 
-  first level properties, taking the second object's values for duplicate 
+- Added support for adding multiple columns in a single
+  :ref:`ALTER TABLE ADD COLUMN <sql-alter-table-add-column>` statement.
+
+- Added the :ref:`concat(object, object) <scalar-concat-object>` scalar function
+  which combines two objects into a new object containing the union of their
+  first level properties, taking the second object's values for duplicate
   properties.
 
 Fixes
@@ -163,6 +166,9 @@ Fixes
 - Fixed an issue that allowed users without the related privileges to check
   other users' privileges by calling
   :ref:`has_schema_privilege <scalar-has-schema-priv>` function.
+
+- Fixed an issue that prevented :ref:`UDFs <user-defined-functions>` from
+  accessing nested objects.
 
 - Fixed an issue that caused ``SELECT *`` statements to fail if a table has an
   object with inner null object and a sibling column with the same name with

@@ -215,11 +215,11 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
                     final CompressedXContent currentSource = currentIndexMetadata.mapping().source();
                     final CompressedXContent newSource = mapping.source();
                     assert currentSource.equals(newSource) :
-                        "expected current mapping [" + currentSource + "] for type [" + mapping.type() + "] "
+                        "expected current mapping [" + currentSource + "] for type [" + Constants.DEFAULT_MAPPING_TYPE + "] "
                             + "to be the same as new mapping [" + newSource + "]";
                     final CompressedXContent mapperSource = new CompressedXContent(Strings.toString(mapper));
                     assert currentSource.equals(mapperSource) :
-                        "expected current mapping [" + currentSource + "] for type [" + mapping.type() + "] "
+                        "expected current mapping [" + currentSource + "] for type [" + Constants.DEFAULT_MAPPING_TYPE + "] "
                             + "to be the same as new mapping [" + mapperSource + "]";
                 }
             } else {

@@ -47,7 +47,6 @@ public class AddColumnRequest extends AcknowledgedRequest<AddColumnRequest> {
 
     /**
      * @param checkConstraints must be accumulated map of all columns' constraints in case of adding multiple columns.
-     *  This would be the case when we eventually support adding multiple column via ADD COLUMN statement.
      */
     public AddColumnRequest(@Nonnull RelationName relationName,
                             @Nonnull List<Reference> colsToAdd,

@@ -108,4 +108,19 @@ public class JavaScriptUDFIntegrationTest extends IntegTestCase {
         execute("select x from tbl");
         assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo("27.4\n");
     }
+
+    // This tracks a bug: https://github.com/crate/crate/issues/13386
+    @Test
+    public void test_udf_nested_object_accesses() {
+        execute("""
+                    CREATE FUNCTION nested (obj OBJECT)
+                        RETURNS STRING
+                        LANGUAGE JAVASCRIPT
+                        AS 'function nested(obj){
+                            return obj["l1"]["l2"]["l3"];
+                        }';
+                        """);
+        execute("SELECT nested({l1={l2={l3='Hello'}}})");
+        assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo("Hello\n");
+    }
 }

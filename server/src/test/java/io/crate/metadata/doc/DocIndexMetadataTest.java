@@ -25,6 +25,7 @@ import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static java.util.Collections.emptyMap;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -37,7 +38,6 @@ import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -120,7 +120,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
 
         IndexMetadata.Builder mdBuilder = IndexMetadata.builder(indexName)
             .settings(settingsBuilder)
-            .putMapping(new MappingMetadata(Constants.DEFAULT_MAPPING_TYPE, mappingSource));
+            .putMapping(new MappingMetadata(mappingSource));
         return mdBuilder.build();
     }
 
@@ -1197,7 +1197,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
 
         IndexMetadata indexMetadata = IndexMetadata.builder(analyzedStatement.tableIdent().name())
             .settings(settingsBuilder)
-            .putMapping(new MappingMetadata(Constants.DEFAULT_MAPPING_TYPE, analyzedStatement.mapping()))
+            .putMapping(new MappingMetadata(analyzedStatement.mapping()))
             .build();
 
         return newMeta(indexMetadata, analyzedStatement.tableIdent().name());

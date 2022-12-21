@@ -24,6 +24,7 @@ package io.crate.planner.node.ddl;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -84,32 +85,9 @@ public class AlterTableAddColumnPlan implements Plan {
                               Row params,
                               SubQueryResults subQueryResults) throws Exception {
         if (plannerContext.clusterState().getNodes().getMinNodeVersion().onOrAfter(Version.V_5_2_0)) {
-            AnalyzedTableElements<Object> tableElements = validate(
-                alterTable,
-                plannerContext.transactionContext(),
-                dependencies.nodeContext(),
-                params,
-                subQueryResults
-            );
 
-            AnalyzedTableElements.validateAndBuildSettings(tableElements, dependencies.fulltextAnalyzerResolver());
-
-            AnalyzedTableElements.finalizeAndValidate(
-                alterTable.tableInfo().ident(),
-                alterTable.analyzedTableElementsWithExpressions(),
-                tableElements
-            );
-
-            List<Reference> references = new ArrayList<>();
-            IntArrayList pKeysIndices = new IntArrayList();
-            tableElements.collectReferences(alterTable.tableInfo().ident(), references, pKeysIndices, true);
-
-            var addColumnRequest = new AddColumnRequest(
-                alterTable.tableInfo().ident(),
-                references,
-                tableElements.getCheckConstraints(),
-                pKeysIndices
-            );
+            var addColumnRequest = createRequest(alterTable, dependencies.nodeContext(), plannerContext,
+                                                                  params, subQueryResults, dependencies.fulltextAnalyzerResolver());
 
             dependencies.alterTableOperation().executeAlterTableAddColumn(addColumnRequest)
                 .whenComplete(new OneRowActionListener<>(consumer, rCount -> new Row1(rCount == null ? -1 : rCount)));
@@ -128,6 +106,51 @@ public class AlterTableAddColumnPlan implements Plan {
             dependencies.alterTableOperation().executeAlterTableAddColumn(stmt)
                 .whenComplete(new OneRowActionListener<>(consumer, rCount -> new Row1(rCount == null ? -1 : rCount)));
         }
+    }
+
+    public static AddColumnRequest createRequest(AnalyzedAlterTableAddColumn alterTable,
+                                                 NodeContext nodeContext,
+                                                 PlannerContext plannerContext,
+                                                 Row params,
+                                                 SubQueryResults subQueryResults,
+                                                 FulltextAnalyzerResolver fulltextAnalyzerResolver) {
+        AnalyzedTableElements<Object> tableElements = validate(
+            alterTable,
+            plannerContext.transactionContext(),
+            nodeContext,
+            params,
+            subQueryResults
+        );
+
+        AnalyzedTableElements.validateAndBuildSettings(tableElements, fulltextAnalyzerResolver);
+
+        AnalyzedTableElements.finalizeAndValidate(
+            alterTable.tableInfo().ident(),
+            alterTable.analyzedTableElementsWithExpressions(),
+            tableElements
+        );
+
+        // We can add multiple object columns via ALTER TABLE ADD COLUMN.
+        // Those columns can have overlapping paths, for example we can add columns o['a']['b'] and o['a']['c'].
+        // For every added column AnalyzedColumnDefinition provides not only leaf but also path to the root.
+        // For o['a']['b'] and o['a']['c'] we can end up having Ref(Ident(o)) and Ref(Ident(a)) twice.
+
+        // We need a Map to compare References by FQN.
+        // Regular Set cannot be used as it would use Reference.position along with other fields when calling equals() and
+        // position is resolved to -1 and -2 for all parts of the path in the case above so overlapping parts will be "different".
+
+        // pKeyIndices is constructed based on insertion order, so we need a LinkedHashMap.
+
+        LinkedHashMap<ColumnIdent, Reference> references = new LinkedHashMap<>();
+        IntArrayList pKeysIndices = new IntArrayList();
+        tableElements.collectReferences(alterTable.tableInfo().ident(), references, pKeysIndices, true);
+
+        return new AddColumnRequest(
+            alterTable.tableInfo().ident(),
+            new ArrayList<>(references.values()), // We don't use Map in the request itself since we need directly indexed structure referred by pKeysIndices.
+            tableElements.getCheckConstraints(),
+            pKeysIndices
+        );
     }
 
     /**
@@ -258,7 +281,7 @@ public class AlterTableAddColumnPlan implements Plan {
                 parentDef.addChild(columnDef);
             }
             if (column.isTopLevel()) {
-                tableElements.add(columnDef);
+                tableElements.add(columnDef, true);
             }
         }
         for (ColumnIdent columnIdent : tableInfo.partitionedBy()) {

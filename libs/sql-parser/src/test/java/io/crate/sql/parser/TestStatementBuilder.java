@@ -689,6 +689,21 @@ public class TestStatementBuilder {
     }
 
     @Test
+    public void test_alter_table_multiple_columns_stmt_builder() {
+        // Some without 'COLUMN'
+        printStatement(
+            "alter table t add int_col integer not null, " +
+            "add obj['1']['2'] integer constraint leaf_check check (obj['1']['2'] > 10), " +
+            "add str_col string index using fulltext"
+        );
+        // Some with 'COLUMN'
+        printStatement("alter table t add column foo integer primary key, add column bar long primary key");
+
+        // Mix of multiple ADD COLUMN with/without 'COLUMN'
+        printStatement("alter table t add column col1 INTEGER, add col2 TEXT");
+    }
+
+    @Test
     public void testCreateTableStmtBuilder() {
         printStatement("create table if not exists t (id integer primary key, name string)");
         printStatement("create table t (id double precision)");

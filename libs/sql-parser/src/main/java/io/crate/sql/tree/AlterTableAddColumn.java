@@ -21,20 +21,21 @@
 
 package io.crate.sql.tree;
 
+import java.util.List;
 import java.util.Objects;
 
 public class AlterTableAddColumn<T> extends Statement {
 
     private final Table<T> table;
-    private final AddColumnDefinition<T> addColumnDefinition;
+    private final List<AddColumnDefinition<T>> addColumnDefinitions;
 
-    public AlterTableAddColumn(Table<T> table, AddColumnDefinition<T> addColumnDefinition) {
+    public AlterTableAddColumn(Table<T> table, List<AddColumnDefinition<T>> addColumnDefinitions) {
         this.table = table;
-        this.addColumnDefinition = addColumnDefinition;
+        this.addColumnDefinitions = addColumnDefinitions;
     }
 
-    public AddColumnDefinition<T> tableElement() {
-        return addColumnDefinition;
+    public List<AddColumnDefinition<T>> tableElements() {
+        return addColumnDefinitions;
     }
 
     public Table<T> table() {
@@ -51,19 +52,19 @@ public class AlterTableAddColumn<T> extends Statement {
         }
         AlterTableAddColumn<?> that = (AlterTableAddColumn<?>) o;
         return Objects.equals(table, that.table) &&
-               Objects.equals(addColumnDefinition, that.addColumnDefinition);
+               Objects.equals(addColumnDefinitions, that.addColumnDefinitions);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(table, addColumnDefinition);
+        return Objects.hash(table, addColumnDefinitions);
     }
 
     @Override
     public String toString() {
         return "AlterTableAddColumn{" +
                "table=" + table +
-               ", addColumnDefinition=" + addColumnDefinition +
+               ", addColumnDefinition=" + addColumnDefinitions +
                '}';
     }
 

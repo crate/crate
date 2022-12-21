@@ -100,8 +100,8 @@ import org.mockito.Answers;
 
 import io.crate.Constants;
 import io.crate.action.sql.Cursors;
-import io.crate.action.sql.Sessions;
 import io.crate.action.sql.Session;
+import io.crate.action.sql.Sessions;
 import io.crate.analyze.AnalyzedCreateBlobTable;
 import io.crate.analyze.AnalyzedCreateTable;
 import io.crate.analyze.AnalyzedStatement;
@@ -581,9 +581,7 @@ public class SQLExecutor {
             IndexMetadata.Builder metaBuilder = IndexMetadata.builder(indexName)
                 .settings(indexSettings);
             if (mapping != null) {
-                metaBuilder.putMapping(new MappingMetadata(
-                    Constants.DEFAULT_MAPPING_TYPE,
-                    mapping));
+                metaBuilder.putMapping(new MappingMetadata(mapping));
             }
 
             return metaBuilder;

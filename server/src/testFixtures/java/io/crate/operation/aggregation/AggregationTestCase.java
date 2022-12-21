@@ -87,7 +87,6 @@ import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.threadpool.TestThreadPool;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import io.crate.Constants;
 import io.crate.analyze.WhereClause;
 import io.crate.breaker.RamAccounting;
 import io.crate.common.collections.Lists2;
@@ -100,8 +99,8 @@ import io.crate.execution.dsl.projection.AggregationProjection;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.collect.CollectTask;
 import io.crate.execution.engine.collect.DocValuesAggregates;
-import io.crate.execution.engine.collect.RowCollectExpression;
 import io.crate.execution.engine.collect.MapSideDataCollectOperation;
+import io.crate.execution.engine.collect.RowCollectExpression;
 import io.crate.execution.jobs.SharedShardContexts;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.symbol.AggregateMode;
@@ -495,7 +494,7 @@ public abstract class AggregationTestCase extends ESTestCase {
         var indexMetadata = IndexMetadata.builder(routing.getIndexName())
             .settings(indexSettings)
             .primaryTerm(0, 1)
-            .putMapping(Constants.DEFAULT_MAPPING_TYPE, Strings.toString(mapping))
+            .putMapping(Strings.toString(mapping))
             .build();
         var shardId = routing.shardId();
         var nodePath = new NodeEnvironment.NodePath(createTempDir());

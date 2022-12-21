@@ -35,46 +35,26 @@ import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.mapper.DocumentMapper;
 
+import io.crate.Constants;
+
 /**
  * Mapping configuration for a type.
  */
 public class MappingMetadata extends AbstractDiffable<MappingMetadata> {
 
-    private final String type;
-
     private final CompressedXContent source;
 
     public MappingMetadata(DocumentMapper docMapper) {
-        this.type = docMapper.type();
         this.source = docMapper.mappingSource();
     }
 
     public MappingMetadata(CompressedXContent mapping) throws IOException {
         this.source = mapping;
-        Map<String, Object> mappingMap = XContentHelper.convertToMap(mapping.compressedReference(), true).map();
-        if (mappingMap.size() != 1) {
-            throw new IllegalStateException("Can't derive type from mapping, no root type: " + mapping.string());
-        }
-        this.type = mappingMap.keySet().iterator().next();
-        initMappers((Map<String, Object>) mappingMap.get(this.type));
     }
 
-    public MappingMetadata(String type, Map<String, Object> mapping) throws IOException {
-        this.type = type;
+    public MappingMetadata(Map<String, Object> mapping) throws IOException {
         this.source = new CompressedXContent(
             (builder, params) -> builder.mapContents(mapping), XContentType.JSON, ToXContent.EMPTY_PARAMS);
-        Map<String, Object> withoutType = mapping;
-        if (mapping.size() == 1 && mapping.containsKey(type)) {
-            withoutType = (Map<String, Object>) mapping.get(type);
-        }
-        initMappers(withoutType);
-    }
-
-    private void initMappers(Map<String, Object> withoutType) {
-    }
-
-    public String type() {
-        return this.type;
     }
 
     public CompressedXContent source() {
@@ -87,16 +67,18 @@ public class MappingMetadata extends AbstractDiffable<MappingMetadata> {
     @SuppressWarnings("unchecked")
     public Map<String, Object> sourceAsMap() throws ElasticsearchParseException {
         Map<String, Object> mapping = XContentHelper.convertToMap(source.compressedReference(), true).map();
-        if (mapping.size() == 1 && mapping.containsKey(type())) {
+        if (mapping.size() == 1 && mapping.containsKey(Constants.DEFAULT_MAPPING_TYPE)) {
             // the type name is the root value, reduce it
-            mapping = (Map<String, Object>) mapping.get(type());
+            mapping = (Map<String, Object>) mapping.get(Constants.DEFAULT_MAPPING_TYPE);
         }
         return mapping;
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeString(type());
+        if (out.getVersion().before(Version.V_5_2_0)) {
+            out.writeString(Constants.DEFAULT_MAPPING_TYPE);
+        }
         source().writeTo(out);
         if (out.getVersion().before(Version.V_5_0_0)) {
             // routing
@@ -111,21 +93,18 @@ public class MappingMetadata extends AbstractDiffable<MappingMetadata> {
 
         MappingMetadata that = (MappingMetadata) o;
 
-        if (!source.equals(that.source)) return false;
-        if (!type.equals(that.type)) return false;
-
-        return true;
+        return source.equals(that.source);
     }
 
     @Override
     public int hashCode() {
-        int result = type.hashCode();
-        result = 31 * result + source.hashCode();
-        return result;
+        return source.hashCode();
     }
 
     public MappingMetadata(StreamInput in) throws IOException {
-        type = in.readString();
+        if (in.getVersion().before(Version.V_5_2_0)) {
+            in.readString(); // type, was always "default"
+        }
         source = CompressedXContent.readCompressedString(in);
         if (in.getVersion().before(Version.V_5_0_0)) {
             // routing

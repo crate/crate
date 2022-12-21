@@ -19,12 +19,29 @@
 
 package org.elasticsearch.cluster.metadata;
 
-import com.carrotsearch.hppc.LongArrayList;
-import com.carrotsearch.hppc.cursors.IntObjectCursor;
-import com.carrotsearch.hppc.cursors.ObjectCursor;
-import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
-import io.crate.common.collections.MapBuilder;
-import io.crate.types.DataTypes;
+import static org.elasticsearch.cluster.node.DiscoveryNodeFilters.IP_VALIDATOR;
+import static org.elasticsearch.cluster.node.DiscoveryNodeFilters.OpType.AND;
+import static org.elasticsearch.cluster.node.DiscoveryNodeFilters.OpType.OR;
+import static org.elasticsearch.common.settings.Settings.readSettingsFromStream;
+import static org.elasticsearch.common.settings.Settings.writeSettingsToStream;
+
+import java.io.IOException;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+
+import javax.annotation.Nullable;
+
 import org.elasticsearch.Assertions;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.support.ActiveShardCount;
@@ -54,27 +71,14 @@ import org.elasticsearch.index.Index;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.rest.RestStatus;
 
-import javax.annotation.Nullable;
-import java.io.IOException;
-import java.time.Instant;
-import java.time.ZoneOffset;
-import java.time.ZonedDateTime;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.EnumSet;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Function;
+import com.carrotsearch.hppc.LongArrayList;
+import com.carrotsearch.hppc.cursors.IntObjectCursor;
+import com.carrotsearch.hppc.cursors.ObjectCursor;
+import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
-import static org.elasticsearch.cluster.node.DiscoveryNodeFilters.IP_VALIDATOR;
-import static org.elasticsearch.cluster.node.DiscoveryNodeFilters.OpType.AND;
-import static org.elasticsearch.cluster.node.DiscoveryNodeFilters.OpType.OR;
-import static org.elasticsearch.common.settings.Settings.readSettingsFromStream;
-import static org.elasticsearch.common.settings.Settings.writeSettingsToStream;
+import io.crate.Constants;
+import io.crate.common.collections.MapBuilder;
+import io.crate.types.DataTypes;
 
 public class IndexMetadata implements Diffable<IndexMetadata>, ToXContentFragment {
 
@@ -884,16 +888,15 @@ public class IndexMetadata implements Diffable<IndexMetadata>, ToXContentFragmen
             return mappings.get(type);
         }
 
-        // TODO remove type here
-        public Builder putMapping(String type, String source) throws IOException {
-            putMapping(new MappingMetadata(type, XContentHelper.convertToMap(XContentFactory.xContent(source), source, true)));
+        public Builder putMapping(String source) throws IOException {
+            putMapping(new MappingMetadata(XContentHelper.convertToMap(XContentFactory.xContent(source), source, true)));
             return this;
         }
 
         public Builder putMapping(MappingMetadata mappingMd) {
             mappings.clear();
             if (mappingMd != null) {
-                mappings.put(mappingMd.type(), mappingMd);
+                mappings.put(Constants.DEFAULT_MAPPING_TYPE, mappingMd);
             }
             return this;
         }
@@ -1201,7 +1204,7 @@ public class IndexMetadata implements Diffable<IndexMetadata>, ToXContentFragmen
                             } else if (token == XContentParser.Token.START_OBJECT) {
                                 String mappingType = currentFieldName;
                                 Map<String, Object> mappingSource = MapBuilder.<String, Object>newMapBuilder().put(mappingType, parser.mapOrdered()).map();
-                                builder.putMapping(new MappingMetadata(mappingType, mappingSource));
+                                builder.putMapping(new MappingMetadata(mappingSource));
                             } else {
                                 throw new IllegalArgumentException("Unexpected token: " + token);
                             }
@@ -1246,8 +1249,7 @@ public class IndexMetadata implements Diffable<IndexMetadata>, ToXContentFragmen
                             } else {
                                 Map<String, Object> mapping = parser.mapOrdered();
                                 if (mapping.size() == 1) {
-                                    String mappingType = mapping.keySet().iterator().next();
-                                    builder.putMapping(new MappingMetadata(mappingType, mapping));
+                                    builder.putMapping(new MappingMetadata(mapping));
                                 }
                             }
                         }
