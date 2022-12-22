@@ -150,7 +150,7 @@ should be crossed out as well.
 - [s] 24a24d050ab Implement fields fetch for runtime fields (backport of #61995) (#62416)
 - [ ] ffbc64bd109 Log WARN on Response Deserialization Failure (#62368) (#62388)
 - [ ] 95766da3452 Save Some Allocations when Working with ClusterState (#62060) (#62303)
-- [ ] 875af1c976f Remove Dead Variable in BlobStoreIndexShardSnapshots. (#62285) (#62295)
+- [x] 875af1c976f Remove Dead Variable in BlobStoreIndexShardSnapshots. (#62285) (#62295)
 - [s] 808c8689ac9 Always include the matching node when resolving point in time  (#61658)
 - [s] 3fc35aa76e6 Shard Search Scroll failures consistency (#62061)
 - [s] 4d528e91a12 Ensure validation of the reader context is executed first (#61831)
