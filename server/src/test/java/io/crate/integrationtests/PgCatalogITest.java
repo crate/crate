@@ -181,8 +181,8 @@ public class PgCatalogITest extends IntegTestCase {
             "optimizer_rewrite_insert_from_sub_query_to_insert_from_values| true| Indicates if the optimizer rule RewriteInsertFromSubQueryToInsertFromValues is activated.| NULL| NULL",
             "optimizer_rewrite_to_query_then_fetch| true| Indicates if the optimizer rule RewriteToQueryThenFetch is activated.| NULL| NULL",
             "search_path| pg_catalog, doc| Sets the schema search order.| NULL| NULL",
-            "server_version| 10.5| Reports the emulated PostgreSQL version number| NULL| NULL",
-            "server_version_num| 100500| Reports the emulated PostgreSQL version number| NULL| NULL")
+            "server_version| 11.0| Reports the emulated PostgreSQL version number| NULL| NULL",
+            "server_version_num| 110000| Reports the emulated PostgreSQL version number| NULL| NULL")
         );
     }
 
