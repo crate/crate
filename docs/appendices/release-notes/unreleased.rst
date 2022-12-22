@@ -96,6 +96,9 @@ None
 Changes
 =======
 
+- Bumped the version of PostgreSQL wire protocol to ``11`` since ``10`` has been
+  deprecated.
+
 - Added :ref:`has_database_privilege <scalar-has-database-priv>` scalar function
   which checks whether user (or current user if not specified) has specific
   privilege(s) for the database.
