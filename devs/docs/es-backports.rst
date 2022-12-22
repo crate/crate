@@ -155,7 +155,7 @@ should be crossed out as well.
 - [s] 3fc35aa76e6 Shard Search Scroll failures consistency (#62061)
 - [s] 4d528e91a12 Ensure validation of the reader context is executed first (#61831)
 - [s] 3d69b5c41e2 Introduce point in time APIs in x-pack basic (#61062)
-- [ ] 7b941a18e9d Optimize Snapshot Shard Status Update Handling (#62070) (#62219)
+- [x] 7b941a18e9d Optimize Snapshot Shard Status Update Handling (#62070) (#62219)
 - [s] 6710104673d Fix Creating NOOP Tasks on SNAPSHOT Pool (#62152) (#62157)
 - [x] ed4984a32e7 Remove Redundant Stream Wrapping from Compression (#62017) (#62132)
 - [x] 075271758e3 Keep checkpoint file channel open across fsyncs (#61744)
