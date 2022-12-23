@@ -42,6 +42,6 @@ public class NotMasterException extends ElasticsearchException {
 
     @Override
     public Throwable fillInStackTrace() {
-        return null;
+        return this;
     }
 }

@@ -39,6 +39,6 @@ public class NodeDisconnectedException extends ConnectTransportException {
     @Override
     @SuppressWarnings("sync-override")
     public Throwable fillInStackTrace() {
-        return null;
+        return this;
     }
 }
