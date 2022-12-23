@@ -205,7 +205,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                 builder.put(PUBLISHER_INDEX_UUID.getKey(), indexMetadata.getIndexUUID());
 
                 var indexMdBuilder = IndexMetadata.builder(indexMetadata).settings(builder);
-                indexMetadata.getAliases().valuesIt().forEachRemaining(a -> indexMdBuilder.putAlias(a.get()));
+                indexMetadata.getAliases().valuesIt().forEachRemaining(a -> indexMdBuilder.putAlias(a));
                 result.add(indexMdBuilder.build());
             }
             listener.onResponse(result);
@@ -229,7 +229,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
             builder.put(PUBLISHER_INDEX_UUID.getKey(), indexMetadata.getIndexUUID());
 
             var indexMdBuilder = IndexMetadata.builder(indexMetadata).settings(builder);
-            indexMetadata.getAliases().valuesIt().forEachRemaining(a -> indexMdBuilder.putAlias(a.get()));
+            indexMetadata.getAliases().valuesIt().forEachRemaining(a -> indexMdBuilder.putAlias(a));
             listener.onResponse(indexMdBuilder.build());
         }, listener::onFailure);
     }

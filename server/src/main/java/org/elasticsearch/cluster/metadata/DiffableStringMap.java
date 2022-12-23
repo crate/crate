@@ -39,15 +39,18 @@ import java.util.Set;
  */
 public class DiffableStringMap extends AbstractMap<String, String> implements Diffable<DiffableStringMap> {
 
+    public static final DiffableStringMap EMPTY = new DiffableStringMap(Collections.emptyMap());
+
     private final Map<String, String> innerMap;
+
+    @SuppressWarnings("unchecked")
+    public static DiffableStringMap readFrom(StreamInput in) throws IOException {
+        final Map<String, String> map = (Map) in.readMap();
+        return map.isEmpty() ? EMPTY : new DiffableStringMap(map);
+    }
 
     DiffableStringMap(final Map<String, String> map) {
         this.innerMap = Collections.unmodifiableMap(map);
-    }
-
-    @SuppressWarnings("unchecked")
-    DiffableStringMap(final StreamInput in) throws IOException {
-        this((Map<String, String>) (Map) in.readMap());
     }
 
     @Override
