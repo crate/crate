@@ -163,6 +163,11 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Fixed an issue that led to table not being dropped when
+  :ref:`swapping two tables <alter_cluster_swap_table>` with
+  ``drop_source = true``, when either or both source and target tables were
+  partitioned.
+
 - Fixed an issue that allowed users without the related privileges to check
   other users' privileges by calling
   :ref:`has_schema_privilege <scalar-has-schema-priv>` function.
