@@ -109,4 +109,9 @@ public class InboundMessage implements Releasable {
         IOUtils.closeWhileHandlingException(streamInput);
         Releasables.closeIgnoringException(content, breakerRelease);
     }
+
+    @Override
+    public String toString() {
+        return "InboundMessage{" + header + "}";
+    }
 }

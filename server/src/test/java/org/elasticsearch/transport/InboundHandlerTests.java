@@ -21,6 +21,7 @@ package org.elasticsearch.transport;
 
 import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -32,6 +33,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
+import io.crate.common.unit.TimeValue;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -249,6 +251,45 @@ public class InboundHandlerTests extends ESTestCase {
             handler.inboundMessage(channel, requestMessage);
             assertTrue(isClosed.get());
             assertNull(channel.getMessageCaptor().get());
+            mockAppender.assertAllExpectationsMatched();
+        } finally {
+            Loggers.removeAppender(inboundHandlerLogger, mockAppender);
+            mockAppender.stop();
+        }
+    }
+
+    public void testLogsSlowInboundProcessing() throws Exception {
+        final MockLogAppender mockAppender = new MockLogAppender();
+        mockAppender.start();
+        mockAppender.addExpectation(
+            new MockLogAppender.SeenEventExpectation(
+                "expected message",
+                InboundHandler.class.getCanonicalName(),
+                Level.WARN,
+                "handling inbound transport message "));
+        final Logger inboundHandlerLogger = LogManager.getLogger(InboundHandler.class);
+        Loggers.addAppender(inboundHandlerLogger, mockAppender);
+
+        handler.setSlowLogThreshold(TimeValue.timeValueMillis(5L));
+        try {
+            final Version remoteVersion = Version.CURRENT;
+            final long requestId = randomNonNegativeLong();
+            final Header requestHeader = new Header(between(0, 100), requestId,
+                TransportStatus.setRequest(TransportStatus.setHandshake((byte) 0)), remoteVersion);
+            final InboundMessage requestMessage =
+                new InboundMessage(requestHeader, ReleasableBytesReference.wrap(BytesArray.EMPTY), () -> {
+                    try {
+                        TimeUnit.SECONDS.sleep(1L);
+                    } catch (InterruptedException e) {
+                        throw new AssertionError(e);
+                    }
+                });
+            requestHeader.actionName = TransportHandshaker.HANDSHAKE_ACTION_NAME;
+            // Imitate that header have been read in order to pass assertion
+            // in handler.inboundMessage -> handler.messageReceived() calls below
+            requestHeader.bwcNeedsToReadVariableHeader = false;
+            handler.inboundMessage(channel, requestMessage);
+            assertNotNull(channel.getMessageCaptor().get());
             mockAppender.assertAllExpectationsMatched();
         } finally {
             Loggers.removeAppender(inboundHandlerLogger, mockAppender);
