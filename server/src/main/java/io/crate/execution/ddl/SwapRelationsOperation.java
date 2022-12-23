@@ -21,10 +21,11 @@
 
 package io.crate.execution.ddl;
 
-import io.crate.metadata.IndexParts;
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.cluster.DDLClusterStateService;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.function.Consumer;
+
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlocks;
@@ -37,10 +38,10 @@ import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.index.Index;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.function.Consumer;
+import io.crate.metadata.IndexParts;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.cluster.DDLClusterStateService;
 
 public class SwapRelationsOperation {
 
@@ -68,25 +69,29 @@ public class SwapRelationsOperation {
         if (dropRelations.isEmpty()) {
             return stateAfterRename;
         } else {
-            return applyDropRelations(state, stateAfterRename, dropRelations);
+            return applyDropRelations(stateAfterRename, dropRelations);
         }
     }
 
-    private UpdatedState applyDropRelations(ClusterState state, UpdatedState updatedState, List<RelationName> dropRelations) {
+    private UpdatedState applyDropRelations(UpdatedState updatedState, List<RelationName> dropRelations) {
         ClusterState stateAfterRename = updatedState.newState;
         Metadata.Builder updatedMetadata = Metadata.builder(stateAfterRename.metadata());
         RoutingTable.Builder routingBuilder = RoutingTable.builder(stateAfterRename.routingTable());
 
-        Metadata metadata = state.metadata();
         for (RelationName dropRelation : dropRelations) {
             for (Index index : IndexNameExpressionResolver.concreteIndices(
-                    metadata, IndicesOptions.LENIENT_EXPAND_OPEN, dropRelation.indexNameOrAlias())) {
+                    stateAfterRename.metadata(), IndicesOptions.LENIENT_EXPAND_OPEN, dropRelation.indexNameOrAlias())) {
 
                 String indexName = index.getName();
                 updatedMetadata.remove(indexName);
                 routingBuilder.remove(indexName);
                 updatedState.newIndices.remove(indexName);
             }
+
+            // In case former "target" was partitioned therefore,
+            // we have to drop a partitioned (currently "source") table
+            String templateName = PartitionName.templateName(dropRelation.schema(), dropRelation.name());
+            updatedMetadata.removeTemplate(templateName);
         }
         ClusterState stateAfterDropRelations = ClusterState
             .builder(stateAfterRename)

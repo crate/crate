@@ -36,7 +36,7 @@ import org.junit.Test;
 public class SwapTableITest extends IntegTestCase {
 
     @Test
-    public void test_swap_two_simple_tables_with() {
+    public void test_swap_two_simple_tables() {
         execute("create table source (s int)");
         execute("create table target (t double)");
 
@@ -113,6 +113,41 @@ public class SwapTableITest extends IntegTestCase {
     }
 
     @Test
+    public void test_swap_source_partitioned_target_nonpartitioned_with_drop_source() {
+        execute("create table source (s int) partitioned by (s)");
+        execute("create table target (t int)");
+
+        execute("insert into source (s) values (1),(2)");
+        execute("insert into target (t) values (3),(4)");
+        execute("refresh table source, target");
+
+        execute("select partition_ident, table_name from information_schema.table_partitions where table_name in ('source', 'target') order by 1");
+        assertThat(response.rowCount()).isEqualTo(2L);
+        String part1Ident = (String) response.rows()[0][0];
+        String part2Ident = (String) response.rows()[1][0];
+        assertThat(printedTable(response.rows()))
+                .isEqualTo(part1Ident + "| source\n" +
+                           part2Ident + "| source\n");
+
+        execute("alter cluster swap table source to target with (drop_source = ?)", $(true));
+        assertThat(printedTable(execute("select * from target order by s").rows()))
+                .isEqualTo("1\n2\n");
+        assertThat(printedTable(execute(
+                "select table_name from information_schema.tables where table_name in ('source', 'target') order by 1").rows()))
+                .isEqualTo("target\n");
+        execute("select partition_ident, table_name from information_schema.table_partitions where table_name in ('source', 'target') order by 1");
+        assertThat(printedTable(response.rows()))
+                .isEqualTo(part1Ident + "| target\n" +
+                           part2Ident + "| target\n");
+
+        assertThrowsMatches(() -> execute("select * from source"),
+                            isSQLError(containsString("Relation 'source' unknown"),
+                                       UNDEFINED_TABLE,
+                                       NOT_FOUND,
+                                       4041));
+    }
+
+    @Test
     public void test_swap_source_nonpartitioned_target_partitioned() {
         execute("create table source (s int)");
         execute("create table target (t int) partitioned by(t)");
@@ -144,6 +179,39 @@ public class SwapTableITest extends IntegTestCase {
     }
 
     @Test
+    public void test_swap_source_nonpartitioned_target_partitioned_with_drop_source() {
+        execute("create table source (s int)");
+        execute("create table target (t int) partitioned by(t)");
+
+        execute("insert into source (s) values (1),(2)");
+        execute("insert into target (t) values (3),(4)");
+        execute("refresh table source, target");
+
+        execute("select partition_ident, table_name from information_schema.table_partitions where table_name in ('source', 'target') order by 1");
+        assertThat(response.rowCount()).isEqualTo(2L);
+        String part1Ident = (String) response.rows()[0][0];
+        String part2Ident = (String) response.rows()[1][0];
+        assertThat(printedTable(response.rows()))
+                .isEqualTo(part1Ident + "| target\n" +
+                           part2Ident + "| target\n");
+
+        execute("alter cluster swap table source to target with (drop_source = ?)", $(true));
+        assertThat(printedTable(execute("select * from target order by s").rows()))
+                .isEqualTo("1\n2\n");
+        assertThat(printedTable(execute(
+                "select table_name from information_schema.tables where table_name in ('source', 'target') order by 1").rows()))
+                .isEqualTo("target\n");
+        execute("select partition_ident, table_name from information_schema.table_partitions where table_name in ('source', 'target') order by 1");
+        assertThat(response.rowCount()).isEqualTo(0L);
+
+        assertThrowsMatches(() -> execute("select * from source"),
+                            isSQLError(containsString("Relation 'source' unknown"),
+                                       UNDEFINED_TABLE,
+                                       NOT_FOUND,
+                                       4041));
+    }
+
+    @Test
     public void test_swap_two_partitioned_tables_where_target_is_empty() {
         execute("create table source (s int) partitioned by (s)");
         execute("create table target (t int) partitioned by (t)");
@@ -172,5 +240,44 @@ public class SwapTableITest extends IntegTestCase {
         assertThat(printedTable(response.rows()))
                 .isEqualTo(part1Ident + "| target\n" +
                            part2Ident + "| target\n");
+    }
+
+    @Test
+    public void test_swap_two_partitioned_tables_with_drop_source() {
+        execute("create table source (s int) partitioned by(s)");
+        execute("create table target (t int) partitioned by(t)");
+
+        execute("insert into source (s) values (1),(2)");
+        execute("insert into target (t) values (3),(4)");
+        execute("refresh table source, target");
+
+        execute("select partition_ident, table_name from information_schema.table_partitions where table_name in ('source', 'target') order by 1");
+        assertThat(response.rowCount()).isEqualTo(4L);
+        String part1IdentSource = (String) response.rows()[0][0];
+        String part2IdentSource = (String) response.rows()[1][0];
+        String part1IdentTarget = (String) response.rows()[2][0];
+        String part2IdentTarget = (String) response.rows()[3][0];
+        assertThat(printedTable(response.rows()))
+                .isEqualTo(part1IdentSource + "| source\n" +
+                           part2IdentSource + "| source\n" +
+                           part1IdentTarget + "| target\n" +
+                           part2IdentTarget + "| target\n");
+
+        execute("alter cluster swap table source to target with (drop_source = ?)", $(true));
+        assertThat(printedTable(execute("select * from target order by s").rows()))
+                .isEqualTo("1\n2\n");
+        assertThat(printedTable(execute(
+                "select table_name from information_schema.tables where table_name in ('source', 'target') order by 1").rows()))
+                .isEqualTo("target\n");
+        execute("select partition_ident, table_name from information_schema.table_partitions where table_name in ('source', 'target') order by 1");
+        assertThat(printedTable(response.rows()))
+                .isEqualTo(part1IdentSource + "| target\n" +
+                           part2IdentSource + "| target\n");
+
+        assertThrowsMatches(() -> execute("select * from source"),
+                            isSQLError(containsString("Relation 'source' unknown"),
+                                       UNDEFINED_TABLE,
+                                       NOT_FOUND,
+                                       4041));
     }
 }
