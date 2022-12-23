@@ -143,7 +143,7 @@ should be crossed out as well.
 - [ ] 06d5d360f92 Tidy up fillInStackTrace implementations (#62555)
 - [s] 9bb7ce0b229 [7.x] Allocate new indices on "hot" or "content" tier depending on data stream inclusion (#62338) (#62557)
 - [s] 91e23305295 Warn on badly-formed null values for date and IP field mappers (#62487)
-- [ ] e0a4a94985f Speed up merging when source is disabled. (#62443) (#62474)
+- [x] e0a4a94985f Speed up merging when source is disabled. (#62443) (#62474)
 - [x] 62dcc5b1ae1 Suppress stack in VersionConflictEngineException (#62433)
 - [ ] 5112c173194 Add WARN Logging on Slow Transport Message Handling (#62444) (#62521)
 - [x] 14aec44cd86 Log if recovery affected by disconnect (#62437)
