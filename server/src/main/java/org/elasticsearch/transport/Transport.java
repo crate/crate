@@ -30,6 +30,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
 
+
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -41,6 +42,7 @@ import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 
 import io.crate.common.collections.MapBuilder;
+import io.crate.common.unit.TimeValue;
 
 public interface Transport extends LifecycleComponent {
 
@@ -54,6 +56,8 @@ public interface Transport extends LifecycleComponent {
     }
 
     void setMessageListener(TransportMessageListener listener);
+
+    default void setSlowLogThreshold(TimeValue slowLogThreshold) {}
 
     /**
      * The address the transport is bound on.

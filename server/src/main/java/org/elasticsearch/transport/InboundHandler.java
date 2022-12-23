@@ -19,6 +19,7 @@
 
 package org.elasticsearch.transport;
 
+import io.crate.common.unit.TimeValue;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
@@ -49,6 +50,8 @@ public class InboundHandler {
 
     private volatile TransportMessageListener messageListener = TransportMessageListener.NOOP_LISTENER;
 
+    private volatile long slowLogThresholdMs = Long.MAX_VALUE;
+
     // Empty stream constant to avoid instantiating a new stream for empty messages.
     private static final StreamInput EMPTY_STREAM_INPUT = new ByteBufferStreamInput(ByteBuffer.wrap(BytesRef.EMPTY_BYTES));
 
@@ -76,63 +79,77 @@ public class InboundHandler {
         }
     }
 
+    void setSlowLogThreshold(TimeValue slowLogThreshold) {
+        this.slowLogThresholdMs = slowLogThreshold.getMillis();
+    }
+
     void inboundMessage(TcpChannel channel, InboundMessage message) throws Exception {
-        channel.getChannelStats().markAccessed(threadPool.relativeTimeInMillis());
+        final long startTime = threadPool.relativeTimeInMillis();
+        channel.getChannelStats().markAccessed(startTime);
         TransportLogger.logInboundMessage(channel, message);
 
         if (message.isPing()) {
             keepAlive.receiveKeepAlive(channel);
         } else {
-            messageReceived(channel, message);
+            messageReceived(channel, message, startTime);
         }
     }
 
-    private void messageReceived(TcpChannel channel, InboundMessage message) throws IOException {
+    private void messageReceived(TcpChannel channel, InboundMessage message, long startTime) throws IOException {
         final InetSocketAddress remoteAddress = channel.getRemoteAddress();
         final Header header = message.getHeader();
         assert header.needsToReadVariableHeader() == false;
 
-        if (header.isRequest()) {
-            handleRequest(channel, header, message);
-        } else {
-            // Responses do not support short circuiting currently
-            assert message.isShortCircuit() == false;
-            final TransportResponseHandler<?> handler;
-            long requestId = header.getRequestId();
-            if (header.isHandshake()) {
-                handler = handshaker.removeHandlerForHandshake(requestId);
+        try {
+            if (header.isRequest()) {
+                handleRequest(channel, header, message);
             } else {
-                TransportResponseHandler<? extends TransportResponse> theHandler =
-                    responseHandlers.onResponseReceived(requestId, messageListener);
-                if (theHandler == null && header.isError()) {
+                // Responses do not support short circuiting currently
+                assert message.isShortCircuit() == false;
+                final TransportResponseHandler<?> handler;
+                long requestId = header.getRequestId();
+                if (header.isHandshake()) {
                     handler = handshaker.removeHandlerForHandshake(requestId);
                 } else {
-                    handler = theHandler;
+                    TransportResponseHandler<? extends TransportResponse> theHandler =
+                        responseHandlers.onResponseReceived(requestId, messageListener);
+                    if (theHandler == null && header.isError()) {
+                        handler = handshaker.removeHandlerForHandshake(requestId);
+                    } else {
+                        handler = theHandler;
+                    }
+                }
+                // ignore if its null, the service logs it
+                if (handler != null) {
+                    final StreamInput streamInput;
+                    if (message.getContentLength() > 0 || header.getVersion().equals(Version.CURRENT) == false) {
+                        streamInput = namedWriteableStream(message.openOrGetStreamInput());
+                        assertRemoteVersion(streamInput, header.getVersion());
+                        if (header.isError()) {
+                            handlerResponseError(streamInput, handler);
+                        } else {
+                            handleResponse(remoteAddress, streamInput, handler);
+                        }
+                        // Check the entire message has been read
+                        final int nextByte = streamInput.read();
+                        // calling read() is useful to make sure the message is fully read, even if there is an EOS marker
+                        if (nextByte != -1) {
+                            throw new IllegalStateException("Message not fully read (response) for requestId ["
+                                + requestId + "], handler [" + handler + "], error [" + header.isError()
+                                + "]; resetting");
+                        }
+                    } else {
+                        assert header.isError() == false;
+                        handleResponse(remoteAddress, EMPTY_STREAM_INPUT, handler);
+                    }
                 }
             }
-            // ignore if its null, the service logs it
-            if (handler != null) {
-                final StreamInput streamInput;
-                if (message.getContentLength() > 0 || header.getVersion().equals(Version.CURRENT) == false) {
-                    streamInput = namedWriteableStream(message.openOrGetStreamInput());
-                    assertRemoteVersion(streamInput, header.getVersion());
-                    if (header.isError()) {
-                        handlerResponseError(streamInput, handler);
-                    } else {
-                        handleResponse(remoteAddress, streamInput, handler);
-                    }
-                    // Check the entire message has been read
-                    final int nextByte = streamInput.read();
-                    // calling read() is useful to make sure the message is fully read, even if there is an EOS marker
-                    if (nextByte != -1) {
-                        throw new IllegalStateException("Message not fully read (response) for requestId ["
-                            + requestId + "], handler [" + handler + "], error [" + header.isError()
-                            + "]; resetting");
-                    }
-                } else {
-                    assert header.isError() == false;
-                    handleResponse(remoteAddress, EMPTY_STREAM_INPUT, handler);
-                }
+        } finally {
+            final long took = threadPool.relativeTimeInMillis() - startTime;
+            final long logThreshold = slowLogThresholdMs;
+            if (logThreshold > 0 && took > logThreshold) {
+                LOGGER.warn("handling inbound transport message [{}] took [{}ms] which is above the warn threshold of [{}ms]",
+                    message, took, logThreshold);
             }
         }
     }

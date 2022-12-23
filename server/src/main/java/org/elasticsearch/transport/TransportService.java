@@ -158,6 +158,7 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
                             @Nullable ClusterSettings clusterSettings,
                             ConnectionManager connectionManager) {
         this.transport = transport;
+        transport.setSlowLogThreshold(TransportSettings.SLOW_OPERATION_THRESHOLD_SETTING.get(settings));
         this.threadPool = threadPool;
         this.localNodeFactory = localNodeFactory;
         this.connectionManager = connectionManager;
@@ -169,7 +170,9 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
         if (clusterSettings != null) {
             clusterSettings.addSettingsUpdateConsumer(TRACE_LOG_INCLUDE_SETTING, this::setTracerLogInclude);
             clusterSettings.addSettingsUpdateConsumer(TRACE_LOG_EXCLUDE_SETTING, this::setTracerLogExclude);
+            clusterSettings.addSettingsUpdateConsumer(TransportSettings.SLOW_OPERATION_THRESHOLD_SETTING, transport::setSlowLogThreshold);
         }
+
         registerRequestHandler(
             HANDSHAKE_ACTION_NAME,
             ThreadPool.Names.SAME,
