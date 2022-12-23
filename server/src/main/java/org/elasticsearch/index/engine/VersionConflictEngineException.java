@@ -66,7 +66,7 @@ public class VersionConflictEngineException extends EngineException {
     }
 
     @Override
-    public synchronized Throwable fillInStackTrace() {
+    public Throwable fillInStackTrace() {
         if (Assertions.ENABLED) {
             return super.fillInStackTrace();
         }
