@@ -149,7 +149,7 @@ should be crossed out as well.
 - [ ] 14aec44cd86 Log if recovery affected by disconnect (#62437)
 - [s] 24a24d050ab Implement fields fetch for runtime fields (backport of #61995) (#62416)
 - [ ] ffbc64bd109 Log WARN on Response Deserialization Failure (#62368) (#62388)
-- [ ] 95766da3452 Save Some Allocations when Working with ClusterState (#62060) (#62303)
+- [x] 95766da3452 Save Some Allocations when Working with ClusterState (#62060) (#62303)
 - [x] 875af1c976f Remove Dead Variable in BlobStoreIndexShardSnapshots. (#62285) (#62295)
 - [s] 808c8689ac9 Always include the matching node when resolving point in time  (#61658)
 - [s] 3fc35aa76e6 Shard Search Scroll failures consistency (#62061)
