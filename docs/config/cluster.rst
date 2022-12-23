@@ -10,7 +10,6 @@ All current applied cluster settings can be read by querying the
 :ref:`sys.cluster.settings <sys-cluster-settings>` column. Most
 cluster settings can be :ref:`changed at runtime
 <administration-runtime-config>`. This is documented at each setting.
-
 .. rubric:: Table of contents
 
 .. contents::
@@ -1259,15 +1258,13 @@ The following settings can be used to configure the behavior of the
   | *Default:*   ``-1``
   | *Runtime:*  ``no``
 
-  The setting ``gateway.expected_nodes`` defines the number of nodes that
-  should be waited for until the cluster state is recovered immediately. The
-  value of the setting should be equal to the number of nodes in the cluster,
-  because you only want the cluster state to be recovered after all nodes are
-  started.
+  The setting ``gateway.expected_nodes`` defines the total number of nodes 
+  expected in the cluster. It is evaluated together with recover_after_nodes
+  to decide if the cluster can proceed with recovery.
 
   .. CAUTION::
 
-      This setting is deprecated and will be removed in CrateDB 5.0.
+      This setting is deprecated and will be removed in a future version.
       Use `gateway.expected_data_nodes`_ instead.
 
 .. _gateway.expected_data_nodes:
@@ -1276,11 +1273,10 @@ The following settings can be used to configure the behavior of the
   | *Default:*   ``-1``
   | *Runtime:*  ``no``
 
-  The setting ``gateway.expected_data_nodes`` defines the number of data nodes
-  that should be waited for until the cluster state is recovered immediately.
-  The value of the setting should be equal to the number of data nodes in the
-  cluster, because you only want the cluster state to be recovered after all
-  data nodes are started.
+  The setting ``gateway.expected_data_nodes`` defines the total number of
+  data nodes expected in the cluster. It is evaluated together with 
+  recover_after_data_nodes
+  to decide if the cluster can proceed with recovery.
 
 .. _gateway.recover_after_time:
 
@@ -1300,11 +1296,12 @@ The following settings can be used to configure the behavior of the
   | *Runtime:*  ``no``
 
   The ``gateway.recover_after_nodes`` setting defines the number of nodes that
-  need to be started before the cluster state recovery will start. Ideally the
-  value of the setting should be equal to the number of nodes in the cluster,
-  because you only want the cluster state to be recovered once all nodes are
-  started. However, the value must be bigger than the half of the expected
+  need to be started before the cluster state recovery will start.
+  The value must be bigger than the half of the expected
   number of nodes in the cluster.
+  Only set this to a number below the total number of nodes in the cluster
+  after checking the number of nodes required for quorum and the number of 
+  replicas configured in your tables. However, 
 
   .. CAUTION::
 
@@ -1319,10 +1316,11 @@ The following settings can be used to configure the behavior of the
 
   The ``gateway.recover_after_data_nodes`` setting defines the number of data
   nodes that need to be started before the cluster state recovery will start.
-  Ideally the value of the setting should be equal to the number of data nodes
-  in the cluster, because you only want the cluster state to be recovered once
-  all data nodes are started. However, the value must be bigger than the half
-  of the expected number of data nodes in the cluster.
+  The value must be bigger than the half of the expected
+  number of data nodes in the cluster.
+  Only set this to a number below the total number of data nodes
+  after checking the number of nodes required for quorum and the number of 
+  replicas configured in your tables.
 
 Logical Replication
 -------------------
