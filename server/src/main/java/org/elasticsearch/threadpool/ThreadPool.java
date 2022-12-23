@@ -215,6 +215,14 @@ public class ThreadPool implements Scheduler {
         return cachedTimeThread.absoluteTimeInMillis();
     }
 
+    public Info info(String name) {
+        ExecutorHolder holder = executors.get(name);
+        if (holder == null) {
+            return null;
+        }
+        return holder.info;
+    }
+
     public ThreadPoolStats stats() {
         ArrayList<ThreadPoolStats.Stats> stats = new ArrayList<>(executors.size() - 1); // "same" is excluded
         for (ExecutorHolder holder : executors.values()) {

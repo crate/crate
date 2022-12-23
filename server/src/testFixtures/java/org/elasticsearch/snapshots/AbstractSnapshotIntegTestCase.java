@@ -20,6 +20,7 @@ package org.elasticsearch.snapshots;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
+import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertAcked;
 
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
@@ -30,12 +31,18 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryAction;
+import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryRequest;
+import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotResponse;
 import org.elasticsearch.action.support.PlainActionFuture;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.repositories.Repository;
@@ -203,6 +210,13 @@ public abstract class AbstractSnapshotIntegTestCase extends IntegTestCase {
         }
     }
 
+    public static void failReadsAllDataNodes(String repository) {
+        for (RepositoriesService repositoriesService : internalCluster().getDataNodeInstances(RepositoriesService.class)) {
+            MockRepository mockRepository = (MockRepository) repositoriesService.repository(repository);
+            mockRepository.setFailReadsAfterUnblock(true);
+        }
+    }
+
     public static void waitForBlockOnAnyDataNode(String repository, TimeValue timeout) throws InterruptedException {
         final boolean blocked = waitUntil(() -> {
             for (RepositoriesService repositoriesService : internalCluster().getDataNodeInstances(RepositoriesService.class)) {
@@ -216,6 +230,37 @@ public abstract class AbstractSnapshotIntegTestCase extends IntegTestCase {
 
         assertThat(blocked).as("No repository is blocked waiting on a data node").isTrue();
     }
+
+    protected void createRepository(String repoName, String type) throws ExecutionException, InterruptedException {
+        createRepository(repoName, type, randomRepositorySettings());
+    }
+
+    protected void createRepository(String repoName, String type, Settings.Builder settings) throws ExecutionException, InterruptedException {
+        logger.info("--> creating repository [{}] [{}]", repoName, type);
+        var putRepositoryRequest = new PutRepositoryRequest(repoName)
+            .type(type)
+            .settings(settings);
+        assertAcked(client().admin().cluster().execute(PutRepositoryAction.INSTANCE, putRepositoryRequest).get());
+    }
+
+    protected Settings.Builder randomRepositorySettings() {
+        final Settings.Builder settings = Settings.builder();
+        settings.put("location", randomRepoPath()).put("compress", randomBoolean());
+        if (rarely()) {
+            settings.put("chunk_size", randomIntBetween(100, 1000), ByteSizeUnit.BYTES);
+        }
+        return settings;
+    }
+
+//    protected SnapshotInfo createFullSnapshot(String repoName, String snapshotName) {
+//        logger.info("--> creating full snapshot [{}] in [{}]", snapshotName, repoName);
+//        execute(String.format(Locale.ENGLISH, "create snapshot %s.%s ALL WITH (wait_for_completion=true)", repoName, snapshotName));
+//        assertThat(response).isNull();
+////        final SnapshotInfo snapshotInfo = createSnapshotResponse.getSnapshotInfo();
+////        assertThat(snapshotInfo.successfulShards(), is(snapshotInfo.totalShards()));
+////        assertThat(snapshotInfo.state(), is(SnapshotState.SUCCESS));
+////        return snapshotInfo;
+//    }
 
     public static void unblockNode(final String repository, final String node) {
         ((MockRepository)internalCluster().getInstance(RepositoriesService.class, node).repository(repository)).unblock();

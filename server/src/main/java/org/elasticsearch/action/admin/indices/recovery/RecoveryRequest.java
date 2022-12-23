@@ -51,6 +51,12 @@ public class RecoveryRequest extends BroadcastRequest<RecoveryRequest> {
         super(indices, IndicesOptions.STRICT_EXPAND_OPEN_CLOSED);
     }
 
+    public RecoveryRequest(IndicesOptions options, boolean activeOnly, String... indices) {
+        super(indices, options);
+        this.activeOnly = activeOnly;
+    }
+
+
     /**
      * True if detailed flag is set, false otherwise. This value if false by default.
      *
