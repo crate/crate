@@ -146,7 +146,7 @@ should be crossed out as well.
 - [ ] e0a4a94985f Speed up merging when source is disabled. (#62443) (#62474)
 - [ ] 62dcc5b1ae1 Suppress stack in VersionConflictEngineException (#62433)
 - [ ] 5112c173194 Add WARN Logging on Slow Transport Message Handling (#62444) (#62521)
-- [ ] 14aec44cd86 Log if recovery affected by disconnect (#62437)
+- [x] 14aec44cd86 Log if recovery affected by disconnect (#62437)
 - [s] 24a24d050ab Implement fields fetch for runtime fields (backport of #61995) (#62416)
 - [x] ffbc64bd109 Log WARN on Response Deserialization Failure (#62368) (#62388)
 - [x] 95766da3452 Save Some Allocations when Working with ClusterState (#62060) (#62303)
