@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -21,19 +21,40 @@
 
 package io.crate.planner.optimizer.iterative.rule;
 
+import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
+
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
+import io.crate.planner.operators.Eval;
 import io.crate.planner.operators.LogicalPlan;
-import io.crate.planner.optimizer.iterative.Lookup;
-import io.crate.planner.optimizer.iterative.matcher.Captures;
-import io.crate.planner.optimizer.iterative.matcher.Pattern;
+import io.crate.planner.optimizer.Rule;
+import io.crate.planner.optimizer.matcher.Captures;
+import io.crate.planner.optimizer.matcher.Pattern;
 import io.crate.statistics.TableStats;
 
-public interface Rule<T> {
+/**
+ * Eliminates any Eval nodes that have the same output as their source
+ */
+public final class RemoveRedundantFetchOrEval implements Rule<Eval> {
 
-    Pattern<T> pattern();
+    private final Pattern<Eval> pattern;
 
-    LogicalPlan apply(T plan, Captures captures, TableStats tableStats, TransactionContext txnCtx, NodeContext nodeCtx, Lookup lookup);
+    public RemoveRedundantFetchOrEval() {
+        this.pattern = typeOf(Eval.class)
+            .with(fetchOrEval -> fetchOrEval.outputs().equals(fetchOrEval.source().outputs()));
+    }
 
+    @Override
+    public Pattern<Eval> pattern() {
+        return pattern;
+    }
+
+    @Override
+    public LogicalPlan apply(Eval plan,
+                             Captures captures,
+                             TableStats tableStats,
+                             TransactionContext txnCtx,
+                             NodeContext nodeCtx) {
+        return plan.source();
+    }
 }
-

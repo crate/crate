@@ -45,7 +45,7 @@ import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.LogicalPlanIdAllocator;
 import io.crate.planner.operators.Order;
 import io.crate.planner.operators.Rename;
-import io.crate.planner.optimizer.iterative.Lookup;
+import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Match;
 import io.crate.planner.optimizer.matcher.Pattern;
@@ -79,12 +79,11 @@ public final class RewriteToQueryThenFetch implements Rule<Limit> {
                              Captures captures,
                              TableStats tableStats,
                              TransactionContext txnCtx,
-                             NodeContext nodeCtx,
-                             Lookup lookup) {
+                             NodeContext nodeCtx) {
         if (Symbols.containsColumn(limit.outputs(), DocSysColumns.FETCHID)) {
             return null;
         }
-        FetchRewrite fetchRewrite = lookup.resolve(limit.source()).rewriteToFetch(tableStats, Set.of());
+        FetchRewrite fetchRewrite = limit.source().rewriteToFetch(tableStats, Set.of());
         if (fetchRewrite == null) {
             return null;
         }

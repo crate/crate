@@ -19,27 +19,20 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.optimizer.matcher;
+package io.crate.planner.optimizer.iterative.matcher;
 
 import io.crate.planner.optimizer.iterative.Lookup;
 
 class TypeOfPattern<T> extends Pattern<T> {
 
     private Class<T> expectedClass;
-    private final Lookup lookup;
 
-    TypeOfPattern(Class<T> expectedClass, Lookup lookup) {
+    TypeOfPattern(Class<T> expectedClass) {
         this.expectedClass = expectedClass;
-        this.lookup = lookup;
     }
 
     @Override
-    public Lookup lookup() {
-        return lookup;
-    }
-
-    @Override
-    public Match<T> accept(Object object, Captures captures) {
+    public Match<T> accept(Object object, Captures captures, Lookup lookup) {
         if (expectedClass.isInstance(object)) {
             return Match.of(expectedClass.cast(object), captures);
         } else {

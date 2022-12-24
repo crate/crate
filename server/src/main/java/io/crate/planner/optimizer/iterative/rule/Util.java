@@ -19,31 +19,23 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.optimizer.iterative.matcher;
+package io.crate.planner.optimizer.iterative.rule;
 
-import java.util.Optional;
-import java.util.function.BiFunction;
-import java.util.function.Predicate;
+import java.util.List;
 
-import io.crate.planner.optimizer.iterative.Lookup;
+import io.crate.planner.operators.LogicalPlan;
 
-public abstract class Pattern<T> {
+public final class Util {
 
-    public static <T> Pattern<T> typeOf(Class<T> expectedClass) {
-        return new TypeOfPattern<>(expectedClass);
+    private Util() {
     }
 
-    public <U, V> Pattern<T> with(BiFunction<? super T, Lookup, Optional<U>> getProperty, Pattern<V> propertyPattern) {
-        return new WithPattern<>(this, getProperty, propertyPattern);
+    /**
+     * @return a new Plan where parent-child (A-B-C) are exchanged to child-parent (B-A-C)
+     */
+    static LogicalPlan transpose(LogicalPlan parent, LogicalPlan child) {
+        return child.replaceSources(List.of(
+            parent.replaceSources(child.sources())
+        ));
     }
-
-    public Pattern<T> with(Predicate<? super T> propertyPredicate) {
-        return new WithPropertyPattern<>(this, propertyPredicate);
-    }
-
-    public Pattern<T> capturedAs(Capture<T> capture) {
-        return new CapturePattern<>(capture, this);
-    }
-
-    public abstract Match<T> accept(Object object, Captures captures, Lookup lookup);
 }

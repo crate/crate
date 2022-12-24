@@ -22,19 +22,17 @@
 package io.crate.planner.optimizer.iterative;
 
 import java.util.List;
-import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.Version;
 
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.planner.operators.LogicalPlan;
-import io.crate.planner.optimizer.Rule;
-import io.crate.planner.optimizer.matcher.Captures;
-import io.crate.planner.optimizer.matcher.Match;
+import io.crate.planner.optimizer.iterative.rule.Rule;
+import io.crate.planner.optimizer.iterative.matcher.Captures;
+import io.crate.planner.optimizer.iterative.matcher.Match;
 import io.crate.statistics.TableStats;
 
 public class IterativeOptimizer {
@@ -42,12 +40,10 @@ public class IterativeOptimizer {
     private static final Logger LOGGER = LogManager.getLogger(IterativeOptimizer.class);
 
     private final List<Rule<?>> rules;
-    private final Supplier<Version> minNodeVersionInCluster;
     private final NodeContext nodeCtx;
 
-    public IterativeOptimizer(NodeContext nodeCtx, Supplier<Version> minNodeVersionInCluster, List<Rule<?>> rules) {
+    public IterativeOptimizer(NodeContext nodeCtx, List<Rule<?>> rules) {
         this.rules = rules;
-        this.minNodeVersionInCluster = minNodeVersionInCluster;
         this.nodeCtx = nodeCtx;
     }
 
@@ -92,7 +88,7 @@ public class IterativeOptimizer {
         while (!done) {
             done = true;
             for (Rule rule : rules) {
-                Match<?> match = rule.pattern().accept(node, Captures.empty());
+                Match<?> match = rule.pattern().accept(node, Captures.empty(), context.lookup);
                 if (match.isPresent()) {
                     if (isTraceEnabled) {
                         LOGGER.trace("Rule '" + rule.getClass().getSimpleName() + "' matched");
@@ -102,7 +98,8 @@ public class IterativeOptimizer {
                                                          match.captures(),
                                                          context.tableStats(),
                                                          context.txnCtx,
-                                                         nodeCtx);
+                                                         nodeCtx,
+                                                         context.lookup);
 
                     if (transformed != null) {
                         context.memo().replace(group, transformed, rule.getClass().getName());

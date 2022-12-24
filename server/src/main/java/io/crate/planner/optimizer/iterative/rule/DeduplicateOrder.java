@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -21,19 +21,56 @@
 
 package io.crate.planner.optimizer.iterative.rule;
 
+import static io.crate.planner.optimizer.iterative.matcher.Pattern.typeOf;
+import static io.crate.planner.optimizer.iterative.matcher.Patterns.source;
+
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.LogicalPlan;
+import io.crate.planner.operators.Order;
 import io.crate.planner.optimizer.iterative.Lookup;
+import io.crate.planner.optimizer.iterative.matcher.Capture;
 import io.crate.planner.optimizer.iterative.matcher.Captures;
 import io.crate.planner.optimizer.iterative.matcher.Pattern;
 import io.crate.statistics.TableStats;
 
-public interface Rule<T> {
+/**
+ * Transforms
+ * <pre>
+ * OrderA
+ *  - OrderB
+ * </pre>
+ * into
+ * <pre>
+ * OrderA
+ * </pre>
+ *
+ * The OrderB is redundant and would get re-sorted into OrderA
+ */
+public final class DeduplicateOrder implements Rule<Order> {
 
-    Pattern<T> pattern();
+    private final Capture<Order> childOrder;
+    private final Pattern<Order> pattern;
 
-    LogicalPlan apply(T plan, Captures captures, TableStats tableStats, TransactionContext txnCtx, NodeContext nodeCtx, Lookup lookup);
+    public DeduplicateOrder(Lookup lookup) {
+        this.childOrder = new Capture<>();
+        this.pattern = typeOf(Order.class, lookup)
+            .with(source(), typeOf(Order.class, lookup).capturedAs(childOrder));
+    }
 
+    @Override
+    public Pattern<Order> pattern() {
+        return pattern;
+    }
+
+    @Override
+    public LogicalPlan apply(Order plan,
+                             Captures captures,
+                             TableStats tableStats,
+                             TransactionContext txnCtx,
+                             NodeContext nodeCtx,
+                             Lookup lookup) {
+        Order childOrder = captures.get(this.childOrder);
+        return plan.replaceSources(childOrder.sources());
+    }
 }
-

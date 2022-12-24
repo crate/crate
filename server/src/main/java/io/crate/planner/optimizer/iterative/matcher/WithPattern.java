@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.optimizer.matcher;
+package io.crate.planner.optimizer.iterative.matcher;
 
 import java.util.Optional;
 import java.util.function.BiFunction;
@@ -40,14 +40,20 @@ class WithPattern<T, U, V> extends Pattern<T> {
     }
 
     @Override
+    public Lookup lookup() {
+        return propertyPattern.lookup();
+    }
+
+    @Override
     public Match<T> accept(Object object, Captures captures) {
         Match<T> match = firstPattern.accept(object, captures);
         return match.flatMap(matchedValue -> {
-            Optional<?> optProperty = getProperty.apply(matchedValue, lookup());
+            Optional<?> optProperty = getProperty.apply(matchedValue, propertyPattern.lookup());
             Match<V> propertyMatch = optProperty
                 .map(property -> propertyPattern.accept(property, match.captures()))
                 .orElse(Match.empty());
             return propertyMatch.map(ignored -> match.value());
         });
     }
+
 }

@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.optimizer.matcher;
+package io.crate.planner.optimizer.iterative.matcher;
 
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.iterative.Lookup;

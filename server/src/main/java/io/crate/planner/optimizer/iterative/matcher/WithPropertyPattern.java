@@ -19,9 +19,11 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.optimizer.matcher;
+package io.crate.planner.optimizer.iterative.matcher;
 
 import java.util.function.Predicate;
+
+import io.crate.planner.optimizer.iterative.Lookup;
 
 public class WithPropertyPattern<T> extends Pattern<T> {
 
@@ -34,8 +36,8 @@ public class WithPropertyPattern<T> extends Pattern<T> {
     }
 
     @Override
-    public Match<T> accept(Object object, Captures captures) {
-        Match<T> match = pattern.accept(object, captures);
+    public Match<T> accept(Object object, Captures captures, Lookup lookup) {
+        Match<T> match = pattern.accept(object, captures, lookup);
         return match.flatMap(matchedValue -> {
             if (propertyPredicate.test(matchedValue)) {
                 return match;

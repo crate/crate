@@ -19,7 +19,9 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.optimizer.matcher;
+package io.crate.planner.optimizer.iterative.matcher;
+
+import io.crate.planner.optimizer.iterative.Lookup;
 
 class CapturePattern<T> extends Pattern<T> {
 
@@ -31,9 +33,10 @@ class CapturePattern<T> extends Pattern<T> {
         this.pattern = pattern;
     }
 
+
     @Override
-    public Match<T> accept(Object object, Captures captures) {
-        Match<T> match = pattern.accept(object, captures);
+    public Match<T> accept(Object object, Captures captures, Lookup lookup) {
+        Match<T> match = pattern.accept(object, captures, lookup);
         return match.flatMap(val -> Match.of(val, captures.add(Captures.of(capture, val))));
     }
 }

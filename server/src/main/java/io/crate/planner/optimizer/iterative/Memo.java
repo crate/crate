@@ -37,32 +37,6 @@ import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.LogicalPlanIdAllocator;
 import io.crate.planner.operators.LogicalPlanVisitor;
 
-/**
- * Stores a plan in a form that's efficient to mutate locally (i.e. without
- * having to do full ancestor tree rewrites due to plan nodes being immutable).
- * <p>
- * Each node in a plan is placed in a group, and it's children are replaced with
- * symbolic references to the corresponding groups.
- * <p>
- * For example, a plan like:
- * <pre>
- *    A -> B -> C -> D
- *           \> E -> F
- * </pre>
- * would be stored as:
- * <pre>
- * root: G0
- *
- * G0 : { A -> G1 }
- * G1 : { B -> [G2, G3] }
- * G2 : { C -> G4 }
- * G3 : { E -> G5 }
- * G4 : { D }
- * G5 : { F }
- * </pre>
- * Groups are reference-counted, and groups that become unreachable from the root
- * due to mutations in a subtree get garbage-collected.
- */
 public class Memo {
     private static final int ROOT_GROUP_REF = 0;
 
