@@ -913,6 +913,10 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata>, To
             return this;
         }
 
+        public IndexTemplateMetadata getTemplate(String templateName) {
+            return templates.get(templateName);
+        }
+
         public Builder removeTemplate(String templateName) {
             templates.remove(templateName);
             return this;
