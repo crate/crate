@@ -21,15 +21,13 @@
 
 package io.crate.planner.optimizer.iterative.rule;
 
-import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
+import static io.crate.planner.optimizer.iterative.rule.Pattern.typeOf;
 
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.Eval;
 import io.crate.planner.operators.LogicalPlan;
-import io.crate.planner.optimizer.Rule;
-import io.crate.planner.optimizer.matcher.Captures;
-import io.crate.planner.optimizer.matcher.Pattern;
+import io.crate.planner.optimizer.iterative.Lookup;
 import io.crate.statistics.TableStats;
 
 /**
@@ -54,7 +52,8 @@ public final class RemoveRedundantFetchOrEval implements Rule<Eval> {
                              Captures captures,
                              TableStats tableStats,
                              TransactionContext txnCtx,
-                             NodeContext nodeCtx) {
+                             NodeContext nodeCtx,
+                             Lookup lookup) {
         return plan.source();
     }
 }

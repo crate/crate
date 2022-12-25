@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,24 +19,35 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.optimizer.iterative.matcher;
+package io.crate.planner.optimizer.iterative.rule;
+
+import java.util.Optional;
+import java.util.function.BiFunction;
 
 import io.crate.planner.optimizer.iterative.Lookup;
 
-class TypeOfPattern<T> extends Pattern<T> {
+class WithPattern<T, U, V> extends Pattern<T> {
 
-    private Class<T> expectedClass;
+    private final Pattern<T> firstPattern;
+    private final BiFunction<? super T, Lookup, Optional<U>> getProperty;
+    private final Pattern<V> propertyPattern;
 
-    TypeOfPattern(Class<T> expectedClass) {
-        this.expectedClass = expectedClass;
+    WithPattern(Pattern<T> firstPattern, BiFunction<? super T, Lookup, Optional<U>> getProperty, Pattern<V> propertyPattern) {
+        this.firstPattern = firstPattern;
+        this.getProperty = getProperty;
+        this.propertyPattern = propertyPattern;
     }
 
     @Override
     public Match<T> accept(Object object, Captures captures, Lookup lookup) {
-        if (expectedClass.isInstance(object)) {
-            return Match.of(expectedClass.cast(object), captures);
-        } else {
-            return Match.empty();
-        }
+        Match<T> match = firstPattern.accept(object, captures, lookup);
+        return match.flatMap(matchedValue -> {
+            Optional<?> optProperty = getProperty.apply(matchedValue, lookup);
+            Match<V> propertyMatch = optProperty
+                .map(property -> propertyPattern.accept(property, match.captures(), lookup))
+                .orElse(Match.empty());
+            return propertyMatch.map(ignored -> match.value());
+        });
     }
+
 }

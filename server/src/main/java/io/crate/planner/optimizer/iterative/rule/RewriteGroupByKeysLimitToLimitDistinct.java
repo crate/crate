@@ -21,8 +21,8 @@
 
 package io.crate.planner.optimizer.iterative.rule;
 
-import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
-import static io.crate.planner.optimizer.matcher.Patterns.source;
+import static io.crate.planner.optimizer.iterative.rule.Pattern.typeOf;
+import static io.crate.planner.optimizer.iterative.rule.Patterns.source;
 
 import org.elasticsearch.Version;
 
@@ -33,10 +33,7 @@ import io.crate.planner.operators.GroupHashAggregate;
 import io.crate.planner.operators.Limit;
 import io.crate.planner.operators.LimitDistinct;
 import io.crate.planner.operators.LogicalPlan;
-import io.crate.planner.optimizer.Rule;
-import io.crate.planner.optimizer.matcher.Capture;
-import io.crate.planner.optimizer.matcher.Captures;
-import io.crate.planner.optimizer.matcher.Pattern;
+import io.crate.planner.optimizer.iterative.Lookup;
 import io.crate.statistics.TableStats;
 import io.crate.types.DataTypes;
 
@@ -164,7 +161,8 @@ public final class RewriteGroupByKeysLimitToLimitDistinct implements Rule<Limit>
                              Captures captures,
                              TableStats tableStats,
                              TransactionContext txnCtx,
-                             NodeContext nodeCtx) {
+                             NodeContext nodeCtx,
+                             Lookup lookup) {
         GroupHashAggregate groupBy = captures.get(groupCapture);
         if (!eagerTerminateIsLikely(limit, groupBy)) {
             return null;
@@ -178,8 +176,4 @@ public final class RewriteGroupByKeysLimitToLimitDistinct implements Rule<Limit>
         );
     }
 
-    @Override
-    public Version requiredVersion() {
-        return Version.V_4_1_0;
-    }
 }

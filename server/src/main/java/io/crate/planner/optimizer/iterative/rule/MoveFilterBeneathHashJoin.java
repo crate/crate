@@ -21,19 +21,17 @@
 
 package io.crate.planner.optimizer.iterative.rule;
 
-import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
-import static io.crate.planner.optimizer.matcher.Patterns.source;
-import static io.crate.planner.optimizer.rule.FilterOnJoinsUtil.moveQueryBelowJoin;
+
+import static io.crate.planner.optimizer.iterative.rule.FilterOnJoinsUtil.moveQueryBelowJoin;
+import static io.crate.planner.optimizer.iterative.rule.Pattern.typeOf;
+import static io.crate.planner.optimizer.iterative.rule.Patterns.source;
 
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.HashJoin;
 import io.crate.planner.operators.LogicalPlan;
-import io.crate.planner.optimizer.Rule;
-import io.crate.planner.optimizer.matcher.Capture;
-import io.crate.planner.optimizer.matcher.Captures;
-import io.crate.planner.optimizer.matcher.Pattern;
+import io.crate.planner.optimizer.iterative.Lookup;
 import io.crate.statistics.TableStats;
 
 public final class MoveFilterBeneathHashJoin implements Rule<Filter> {
@@ -57,7 +55,8 @@ public final class MoveFilterBeneathHashJoin implements Rule<Filter> {
                              Captures captures,
                              TableStats tableStats,
                              TransactionContext txnCtx,
-                             NodeContext nodeCtx) {
+                             NodeContext nodeCtx,
+                             Lookup lookup) {
         HashJoin hashJoin = captures.get(joinCapture);
         return moveQueryBelowJoin(filter.query(), hashJoin, txnCtx.idAllocator());
     }

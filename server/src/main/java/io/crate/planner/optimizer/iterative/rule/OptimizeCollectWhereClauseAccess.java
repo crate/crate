@@ -21,7 +21,7 @@
 
 package io.crate.planner.optimizer.iterative.rule;
 
-import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
+import static io.crate.planner.optimizer.iterative.rule.Pattern.typeOf;
 
 import java.util.Optional;
 
@@ -38,9 +38,7 @@ import io.crate.planner.WhereClauseOptimizer;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.Get;
 import io.crate.planner.operators.LogicalPlan;
-import io.crate.planner.optimizer.Rule;
-import io.crate.planner.optimizer.matcher.Captures;
-import io.crate.planner.optimizer.matcher.Pattern;
+import io.crate.planner.optimizer.iterative.Lookup;
 import io.crate.statistics.TableStats;
 
 public final class OptimizeCollectWhereClauseAccess implements Rule<Collect> {
@@ -66,7 +64,8 @@ public final class OptimizeCollectWhereClauseAccess implements Rule<Collect> {
                              Captures captures,
                              TableStats tableStats,
                              TransactionContext txnCtx,
-                             NodeContext nodeCtx) {
+                             NodeContext nodeCtx,
+                             Lookup lookup) {
         var relation = (DocTableRelation) collect.relation();
         var normalizer = new EvaluatingNormalizer(nodeCtx, RowGranularity.CLUSTER, null, relation);
         WhereClause where = collect.where();

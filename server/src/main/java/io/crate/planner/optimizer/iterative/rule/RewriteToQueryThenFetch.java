@@ -21,8 +21,8 @@
 
 package io.crate.planner.optimizer.iterative.rule;
 
-import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
-import static io.crate.planner.optimizer.matcher.Patterns.source;
+import static io.crate.planner.optimizer.iterative.rule.Pattern.typeOf;
+import static io.crate.planner.optimizer.iterative.rule.Patterns.source;
 
 import java.util.List;
 import java.util.Map;
@@ -45,10 +45,7 @@ import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.LogicalPlanIdAllocator;
 import io.crate.planner.operators.Order;
 import io.crate.planner.operators.Rename;
-import io.crate.planner.optimizer.Rule;
-import io.crate.planner.optimizer.matcher.Captures;
-import io.crate.planner.optimizer.matcher.Match;
-import io.crate.planner.optimizer.matcher.Pattern;
+import io.crate.planner.optimizer.iterative.Lookup;
 import io.crate.statistics.TableStats;
 
 public final class RewriteToQueryThenFetch implements Rule<Limit> {
@@ -79,7 +76,8 @@ public final class RewriteToQueryThenFetch implements Rule<Limit> {
                              Captures captures,
                              TableStats tableStats,
                              TransactionContext txnCtx,
-                             NodeContext nodeCtx) {
+                             NodeContext nodeCtx,
+                             Lookup lookup) {
         if (Symbols.containsColumn(limit.outputs(), DocSysColumns.FETCHID)) {
             return null;
         }
@@ -99,12 +97,16 @@ public final class RewriteToQueryThenFetch implements Rule<Limit> {
     }
 
 
-    public static LogicalPlan tryRewrite(AnalyzedRelation relation, LogicalPlan plan, TableStats tableStats, LogicalPlanIdAllocator idAllocator) {
-        Match<?> match = ORDER_COLLECT.accept(plan, Captures.empty());
+    public static LogicalPlan tryRewrite(AnalyzedRelation relation,
+                                         LogicalPlan plan,
+                                         TableStats tableStats,
+                                         LogicalPlanIdAllocator idAllocator,
+                                         Lookup lookup) {
+        Match<?> match = ORDER_COLLECT.accept(plan, Captures.empty(), lookup);
         if (match.isPresent()) {
             return doRewrite(relation, plan, tableStats, idAllocator);
         }
-        match = RENAME_ORDER_COLLECT.accept(plan, Captures.empty());
+        match = RENAME_ORDER_COLLECT.accept(plan, Captures.empty(), lookup);
         if (match.isPresent()) {
             return doRewrite(relation, plan, tableStats, idAllocator);
         }

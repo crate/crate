@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,31 +19,24 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.optimizer.iterative.matcher;
-
-import java.util.function.Predicate;
+package io.crate.planner.optimizer.iterative.rule;
 
 import io.crate.planner.optimizer.iterative.Lookup;
 
-public class WithPropertyPattern<T> extends Pattern<T> {
+class TypeOfPattern<T> extends Pattern<T> {
 
-    private final Pattern<T> pattern;
-    private final Predicate<? super T> propertyPredicate;
+    private Class<T> expectedClass;
 
-    WithPropertyPattern(Pattern<T> pattern, Predicate<? super T> propertyPredicate) {
-        this.pattern = pattern;
-        this.propertyPredicate = propertyPredicate;
+    TypeOfPattern(Class<T> expectedClass) {
+        this.expectedClass = expectedClass;
     }
 
     @Override
     public Match<T> accept(Object object, Captures captures, Lookup lookup) {
-        Match<T> match = pattern.accept(object, captures, lookup);
-        return match.flatMap(matchedValue -> {
-            if (propertyPredicate.test(matchedValue)) {
-                return match;
-            } else {
-                return Match.empty();
-            }
-        });
+        if (expectedClass.isInstance(object)) {
+            return Match.of(expectedClass.cast(object), captures);
+        } else {
+            return Match.empty();
+        }
     }
 }

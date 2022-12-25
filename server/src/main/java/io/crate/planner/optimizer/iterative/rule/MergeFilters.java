@@ -21,18 +21,17 @@
 
 package io.crate.planner.optimizer.iterative.rule;
 
-import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
-import static io.crate.planner.optimizer.matcher.Patterns.source;
+
+import static io.crate.planner.optimizer.iterative.rule.Pattern.typeOf;
+import static io.crate.planner.optimizer.iterative.rule.Patterns.source;
 
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.Filter;
-import io.crate.planner.optimizer.Rule;
-import io.crate.planner.optimizer.matcher.Capture;
-import io.crate.planner.optimizer.matcher.Captures;
-import io.crate.planner.optimizer.matcher.Pattern;
+import io.crate.planner.operators.LogicalPlan;
+import io.crate.planner.optimizer.iterative.Lookup;
 import io.crate.statistics.TableStats;
 
 /**
@@ -66,12 +65,12 @@ public class MergeFilters implements Rule<Filter> {
         return pattern;
     }
 
-    @Override
-    public Filter apply(Filter plan,
-                        Captures captures,
-                        TableStats tableStats,
-                        TransactionContext txnCtx,
-                        NodeContext nodeCtx) {
+    public LogicalPlan apply(Filter plan,
+                             Captures captures,
+                             TableStats tableStats,
+                             TransactionContext txnCtx,
+                             NodeContext nodeCtx,
+                             Lookup lookup) {
         Filter childFilter = captures.get(child);
         Symbol parentQuery = plan.query();
         Symbol childQuery = childFilter.query();

@@ -21,8 +21,8 @@
 
 package io.crate.planner.optimizer.iterative.rule;
 
-import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
-import static io.crate.planner.optimizer.rule.FilterOnJoinsUtil.getNewSource;
+import static io.crate.planner.optimizer.iterative.rule.FilterOnJoinsUtil.getNewSource;
+import static io.crate.planner.optimizer.iterative.rule.Pattern.typeOf;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -39,9 +39,7 @@ import io.crate.planner.node.dql.join.JoinType;
 import io.crate.planner.operators.HashJoin;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.NestedLoopJoin;
-import io.crate.planner.optimizer.Rule;
-import io.crate.planner.optimizer.matcher.Captures;
-import io.crate.planner.optimizer.matcher.Pattern;
+import io.crate.planner.optimizer.iterative.Lookup;
 import io.crate.statistics.TableStats;
 
 public class MoveConstantJoinConditionsBeneathNestedLoop implements Rule<NestedLoopJoin> {
@@ -62,10 +60,11 @@ public class MoveConstantJoinConditionsBeneathNestedLoop implements Rule<NestedL
 
     @Override
     public LogicalPlan apply(NestedLoopJoin nl,
-                             Captures captures,
+                             io.crate.planner.optimizer.iterative.rule.Captures captures,
                              TableStats tableStats,
                              TransactionContext txnCtx,
-                             NodeContext nodeCtx) {
+                             NodeContext nodeCtx,
+                             Lookup lookup) {
         var conditions = nl.joinCondition();
         var allConditions = QuerySplitter.split(conditions);
         var constantConditions = new HashMap<Set<RelationName>, Symbol>(allConditions.size());

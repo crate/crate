@@ -22,9 +22,9 @@
 package io.crate.planner.optimizer.iterative.rule;
 
 import static io.crate.planner.operators.LogicalPlanner.extractColumns;
-import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
-import static io.crate.planner.optimizer.matcher.Patterns.source;
-import static io.crate.planner.optimizer.rule.Util.transpose;
+import static io.crate.planner.optimizer.iterative.rule.Pattern.typeOf;
+import static io.crate.planner.optimizer.iterative.rule.Patterns.source;
+import static io.crate.planner.optimizer.iterative.rule.Util.transpose;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -39,10 +39,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.ProjectSet;
-import io.crate.planner.optimizer.Rule;
-import io.crate.planner.optimizer.matcher.Capture;
-import io.crate.planner.optimizer.matcher.Captures;
-import io.crate.planner.optimizer.matcher.Pattern;
+import io.crate.planner.optimizer.iterative.Lookup;
 import io.crate.statistics.TableStats;
 
 public final class MoveFilterBeneathProjectSet implements Rule<Filter> {
@@ -66,7 +63,8 @@ public final class MoveFilterBeneathProjectSet implements Rule<Filter> {
                              Captures captures,
                              TableStats tableStats,
                              TransactionContext txnCtx,
-                             NodeContext nodeCtx) {
+                             NodeContext nodeCtx,
+                             Lookup lookup) {
         var projectSet = captures.get(projectSetCapture);
 
         var queryParts = AndOperator.split(filter.query());

@@ -21,17 +21,14 @@
 
 package io.crate.planner.optimizer.iterative.rule;
 
-import static io.crate.planner.optimizer.iterative.matcher.Pattern.typeOf;
-import static io.crate.planner.optimizer.iterative.matcher.Patterns.source;
+import static io.crate.planner.optimizer.iterative.rule.Pattern.typeOf;
+import static io.crate.planner.optimizer.iterative.rule.Patterns.source;
 
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.Order;
 import io.crate.planner.optimizer.iterative.Lookup;
-import io.crate.planner.optimizer.iterative.matcher.Capture;
-import io.crate.planner.optimizer.iterative.matcher.Captures;
-import io.crate.planner.optimizer.iterative.matcher.Pattern;
 import io.crate.statistics.TableStats;
 
 /**
@@ -52,10 +49,10 @@ public final class DeduplicateOrder implements Rule<Order> {
     private final Capture<Order> childOrder;
     private final Pattern<Order> pattern;
 
-    public DeduplicateOrder(Lookup lookup) {
+    public DeduplicateOrder() {
         this.childOrder = new Capture<>();
-        this.pattern = typeOf(Order.class, lookup)
-            .with(source(), typeOf(Order.class, lookup).capturedAs(childOrder));
+        this.pattern = typeOf(Order.class)
+            .with(source(), typeOf(Order.class).capturedAs(childOrder));
     }
 
     @Override

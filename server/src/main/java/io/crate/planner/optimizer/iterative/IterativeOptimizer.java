@@ -31,8 +31,8 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.iterative.rule.Rule;
-import io.crate.planner.optimizer.iterative.matcher.Captures;
-import io.crate.planner.optimizer.iterative.matcher.Match;
+import io.crate.planner.optimizer.iterative.rule.Captures;
+import io.crate.planner.optimizer.iterative.rule.Match;
 import io.crate.statistics.TableStats;
 
 public class IterativeOptimizer {

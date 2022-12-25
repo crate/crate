@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,24 +19,31 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.optimizer.iterative.matcher;
+package io.crate.planner.optimizer.iterative.rule;
+
+import java.util.Optional;
+import java.util.function.BiFunction;
+import java.util.function.Predicate;
 
 import io.crate.planner.optimizer.iterative.Lookup;
 
-class CapturePattern<T> extends Pattern<T> {
+public abstract class Pattern<T> {
 
-    private final Capture<T> capture;
-    private final Pattern<T> pattern;
-
-    CapturePattern(Capture<T> capture, Pattern<T> pattern) {
-        this.capture = capture;
-        this.pattern = pattern;
+    public static <T> Pattern<T> typeOf(Class<T> expectedClass) {
+        return new TypeOfPattern<>(expectedClass);
     }
 
-
-    @Override
-    public Match<T> accept(Object object, Captures captures, Lookup lookup) {
-        Match<T> match = pattern.accept(object, captures, lookup);
-        return match.flatMap(val -> Match.of(val, captures.add(Captures.of(capture, val))));
+    public <U, V> Pattern<T> with(BiFunction<? super T, Lookup, Optional<U>> getProperty, Pattern<V> propertyPattern) {
+        return new WithPattern<>(this, getProperty, propertyPattern);
     }
+
+    public Pattern<T> with(Predicate<? super T> propertyPredicate) {
+        return new WithPropertyPattern<>(this, propertyPredicate);
+    }
+
+    public Pattern<T> capturedAs(Capture<T> capture) {
+        return new CapturePattern<>(capture, this);
+    }
+
+    public abstract Match<T> accept(Object object, Captures captures, Lookup lookup);
 }

@@ -21,8 +21,8 @@
 
 package io.crate.planner.optimizer.iterative.rule;
 
-import static io.crate.planner.optimizer.iterative.matcher.Pattern.typeOf;
-import static io.crate.planner.optimizer.iterative.matcher.Patterns.source;
+import static io.crate.planner.optimizer.iterative.rule.Pattern.typeOf;
+import static io.crate.planner.optimizer.iterative.rule.Patterns.source;
 
 import io.crate.common.collections.Lists2;
 import io.crate.execution.engine.aggregation.impl.CountAggregation;
@@ -34,9 +34,6 @@ import io.crate.planner.operators.Count;
 import io.crate.planner.operators.HashAggregate;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.iterative.Lookup;
-import io.crate.planner.optimizer.iterative.matcher.Capture;
-import io.crate.planner.optimizer.iterative.matcher.Captures;
-import io.crate.planner.optimizer.iterative.matcher.Pattern;
 import io.crate.statistics.TableStats;
 
 public final class MergeAggregateAndCollectToCount implements Rule<HashAggregate> {

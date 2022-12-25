@@ -21,17 +21,5 @@
 
 package io.crate.planner.optimizer.iterative.rule;
 
-import io.crate.metadata.NodeContext;
-import io.crate.metadata.TransactionContext;
-import io.crate.planner.operators.LogicalPlan;
-import io.crate.planner.optimizer.iterative.Lookup;
-import io.crate.statistics.TableStats;
-
-public interface Rule<T> {
-
-    Pattern<T> pattern();
-
-    LogicalPlan apply(T plan, Captures captures, TableStats tableStats, TransactionContext txnCtx, NodeContext nodeCtx, Lookup lookup);
-
+public class Capture<T> {
 }
-
