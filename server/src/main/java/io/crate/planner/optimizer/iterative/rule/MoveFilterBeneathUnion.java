@@ -61,8 +61,8 @@ public final class MoveFilterBeneathUnion implements Rule<Filter> {
                              NodeContext nodeCtx,
                              Lookup lookup) {
         Union union = captures.get(unionCapture);
-        LogicalPlan lhs = union.sources().get(0);
-        LogicalPlan rhs = union.sources().get(1);
+        LogicalPlan lhs = lookup.resolve(union.sources().get(0));
+        LogicalPlan rhs = lookup.resolve(union.sources().get(1));
         return union.replaceSources(List.of(
             createNewFilter(filter, lhs),
             createNewFilter(filter, rhs)

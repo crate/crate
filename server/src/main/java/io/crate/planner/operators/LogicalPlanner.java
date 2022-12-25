@@ -105,7 +105,7 @@ import io.crate.planner.optimizer.iterative.rule.OptimizeCollectWhereClauseAcces
 import io.crate.planner.optimizer.iterative.rule.RemoveRedundantFetchOrEval;
 import io.crate.planner.optimizer.iterative.rule.RewriteFilterOnOuterJoinToInnerJoin;
 import io.crate.planner.optimizer.iterative.rule.RewriteGroupByKeysLimitToLimitDistinct;
-import io.crate.planner.optimizer.iterative.rule.RewriteToQueryThenFetch;
+import io.crate.planner.optimizer.rule.RewriteToQueryThenFetch;
 import io.crate.statistics.TableStats;
 import io.crate.types.DataTypes;
 
@@ -118,7 +118,7 @@ public class LogicalPlanner {
     private final TableStats tableStats;
     private final Visitor statementVisitor = new Visitor();
     private final Optimizer writeOptimizer;
-    private final IterativeOptimizer fetchOptimizer;
+    private final Optimizer fetchOptimizer;
 
     public LogicalPlanner(NodeContext nodeCtx,
                           TableStats tableStats,
@@ -153,8 +153,9 @@ public class LogicalPlanner {
                 new MoveConstantJoinConditionsBeneathNestedLoop()
             )
         );
-        this.fetchOptimizer = new IterativeOptimizer(
+        this.fetchOptimizer = new Optimizer(
             nodeCtx,
+            minNodeVersionInCluster,
             List.of(new RewriteToQueryThenFetch())
         );
         this.writeOptimizer = new Optimizer(
@@ -274,8 +275,7 @@ public class LogicalPlanner {
         return RewriteToQueryThenFetch.tryRewrite(relation,
                                                   fetchOptimized,
                                                   tableStats,
-                                                  plannerContext.transactionContext().idAllocator(),
-                                                  node -> Stream.of(node));
+                                                  plannerContext.transactionContext().idAllocator());
     }
 
     static class PlanBuilder extends AnalyzedRelationVisitor<List<Symbol>, LogicalPlan> {

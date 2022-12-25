@@ -60,7 +60,7 @@ public class MoveFilterBeneathRename implements Rule<Filter> {
                              Lookup lookup) {
         Rename rename = captures.get(renameCapture);
         Filter newFilter = new Filter(
-            rename.source(),
+            lookup.resolve(rename.source()),
             FieldReplacer.replaceFields(plan.query(), rename::resolveField),
             plan.id()
         );

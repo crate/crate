@@ -92,8 +92,8 @@ public class MoveConstantJoinConditionsBeneathNestedLoop implements Rule<NestedL
             );
         } else {
             // Push constant join condition down to source
-            var lhs = nl.lhs();
-            var rhs = nl.rhs();
+            var lhs = lookup.resolve(nl.lhs());
+            var rhs = lookup.resolve(nl.rhs());
             var queryForLhs = constantConditions.remove(lhs.getRelationNames());
             var queryForRhs = constantConditions.remove(rhs.getRelationNames());
             var newLhs = getNewSource(queryForLhs, lhs, txnCtx.idAllocator());

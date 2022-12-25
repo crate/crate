@@ -23,7 +23,9 @@ package io.crate.planner.optimizer.iterative.rule;
 
 import java.util.List;
 
+import io.crate.common.collections.Lists2;
 import io.crate.planner.operators.LogicalPlan;
+import io.crate.planner.optimizer.iterative.Lookup;
 
 public final class Util {
 
@@ -33,9 +35,9 @@ public final class Util {
     /**
      * @return a new Plan where parent-child (A-B-C) are exchanged to child-parent (B-A-C)
      */
-    static LogicalPlan transpose(LogicalPlan parent, LogicalPlan child) {
+    static LogicalPlan transpose(LogicalPlan parent, LogicalPlan child, Lookup lookup) {
         return child.replaceSources(List.of(
-            parent.replaceSources(child.sources())
-        ));
+            parent.replaceSources(Lists2.map(child.sources(), lookup::resolve)
+            )));
     }
 }

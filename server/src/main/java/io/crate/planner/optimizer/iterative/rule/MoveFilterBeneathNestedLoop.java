@@ -63,6 +63,6 @@ public final class MoveFilterBeneathNestedLoop implements Rule<Filter> {
                              NodeContext nodeCtx,
                              Lookup lookup) {
         NestedLoopJoin join = captures.get(joinCapture);
-        return moveQueryBelowJoin(filter.query(), join, txnCtx.idAllocator());
+        return moveQueryBelowJoin(filter.query(), join, txnCtx.idAllocator(), lookup);
     }
 }

@@ -35,6 +35,7 @@ import io.crate.metadata.RelationName;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.LogicalPlanIdAllocator;
+import io.crate.planner.optimizer.iterative.Lookup;
 
 final class FilterOnJoinsUtil {
 
@@ -45,11 +46,11 @@ final class FilterOnJoinsUtil {
         return splitQuery == null ? source : new Filter(source, splitQuery, idAllocator.nextId());
     }
 
-    static LogicalPlan moveQueryBelowJoin(Symbol query, LogicalPlan join, LogicalPlanIdAllocator idAllocator) {
+    static LogicalPlan moveQueryBelowJoin(Symbol query, LogicalPlan join, LogicalPlanIdAllocator idAllocator, Lookup lookup) {
         if (!WhereClause.canMatch(query)) {
             return join.replaceSources(List.of(
-                getNewSource(query, join.sources().get(0), idAllocator),
-                getNewSource(query, join.sources().get(1), idAllocator)
+                getNewSource(query, lookup.resolve(join.sources().get(0)), idAllocator),
+                getNewSource(query, lookup.resolve(join.sources().get(1)), idAllocator)
             ));
         }
         Map<Set<RelationName>, Symbol> splitQuery = QuerySplitter.split(query);

@@ -65,7 +65,7 @@ public final class MoveOrderBeneathFetchOrEval implements Rule<Order> {
         List<Symbol> orderBySymbols = plan.orderBy().orderBySymbols();
         if (outputsOfSourceOfFetch.containsAll(orderBySymbols)
             || outputsOfSourceOfFetch.containsAll(extractColumns(orderBySymbols))) {
-            return transpose(plan, eval);
+            return transpose(plan, eval, lookup);
         }
         return null;
     }

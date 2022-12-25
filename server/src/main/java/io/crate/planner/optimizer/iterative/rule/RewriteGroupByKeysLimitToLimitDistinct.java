@@ -168,7 +168,7 @@ public final class RewriteGroupByKeysLimitToLimitDistinct implements Rule<Limit>
             return null;
         }
         return new LimitDistinct(
-            groupBy.source(),
+            lookup.resolve(groupBy.source()),
             limit.limit(),
             limit.offset(),
             groupBy.outputs(),

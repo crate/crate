@@ -95,7 +95,7 @@ public final class MoveFilterBeneathGroupBy implements Rule<Filter> {
         }
         GroupHashAggregate groupBy = captures.get(groupByCapture);
         if (withoutAggregates.size() == parts.size()) {
-            return transpose(filter, groupBy);
+            return  transpose(filter, groupBy, lookup);
         }
 
         /* HAVING `count(*) > 1 AND x = 10`
@@ -115,7 +115,7 @@ public final class MoveFilterBeneathGroupBy implements Rule<Filter> {
          * Filter (x = 10)
          */
         LogicalPlan newGroupBy = groupBy.replaceSources(
-            List.of(new Filter(groupBy.source(), AndOperator.join(withoutAggregates), txnCtx.idAllocator().nextId()))
+            List.of(new Filter(lookup.resolve(groupBy.source()), AndOperator.join(withoutAggregates), txnCtx.idAllocator().nextId()))
         );
         return new Filter(newGroupBy, AndOperator.join(withAggregates), filter.id());
     }

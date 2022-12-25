@@ -57,6 +57,6 @@ public class MoveLimitBeneathRename implements Rule<Limit> {
                              NodeContext nodeCtx,
                              Lookup lookup) {
         Rename rename = captures.get(renameCapture);
-        return transpose(limit, rename);
+        return transpose(limit, rename, lookup);
     }
 }
