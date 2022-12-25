@@ -30,6 +30,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
 
 import org.elasticsearch.Version;
 
@@ -78,32 +79,33 @@ import io.crate.planner.SubqueryPlanner;
 import io.crate.planner.SubqueryPlanner.SubQueries;
 import io.crate.planner.consumer.InsertFromSubQueryPlanner;
 import io.crate.planner.optimizer.Optimizer;
-import io.crate.planner.optimizer.rule.DeduplicateOrder;
-import io.crate.planner.optimizer.rule.MergeAggregateAndCollectToCount;
-import io.crate.planner.optimizer.rule.MergeAggregateRenameAndCollectToCount;
-import io.crate.planner.optimizer.rule.MergeFilterAndCollect;
-import io.crate.planner.optimizer.rule.MergeFilters;
-import io.crate.planner.optimizer.rule.MoveConstantJoinConditionsBeneathNestedLoop;
-import io.crate.planner.optimizer.rule.MoveFilterBeneathFetchOrEval;
-import io.crate.planner.optimizer.rule.MoveFilterBeneathGroupBy;
-import io.crate.planner.optimizer.rule.MoveFilterBeneathHashJoin;
-import io.crate.planner.optimizer.rule.MoveFilterBeneathNestedLoop;
-import io.crate.planner.optimizer.rule.MoveFilterBeneathOrder;
-import io.crate.planner.optimizer.rule.MoveFilterBeneathProjectSet;
-import io.crate.planner.optimizer.rule.MoveFilterBeneathRename;
-import io.crate.planner.optimizer.rule.MoveFilterBeneathUnion;
-import io.crate.planner.optimizer.rule.MoveFilterBeneathWindowAgg;
-import io.crate.planner.optimizer.rule.MoveLimitBeneathEval;
-import io.crate.planner.optimizer.rule.MoveLimitBeneathRename;
-import io.crate.planner.optimizer.rule.MoveOrderBeneathFetchOrEval;
-import io.crate.planner.optimizer.rule.MoveOrderBeneathNestedLoop;
-import io.crate.planner.optimizer.rule.MoveOrderBeneathRename;
-import io.crate.planner.optimizer.rule.MoveOrderBeneathUnion;
-import io.crate.planner.optimizer.rule.OptimizeCollectWhereClauseAccess;
-import io.crate.planner.optimizer.rule.RemoveRedundantFetchOrEval;
-import io.crate.planner.optimizer.rule.RewriteFilterOnOuterJoinToInnerJoin;
-import io.crate.planner.optimizer.rule.RewriteGroupByKeysLimitToLimitDistinct;
-import io.crate.planner.optimizer.rule.RewriteToQueryThenFetch;
+import io.crate.planner.optimizer.iterative.IterativeOptimizer;
+import io.crate.planner.optimizer.iterative.rule.DeduplicateOrder;
+import io.crate.planner.optimizer.iterative.rule.MergeAggregateAndCollectToCount;
+import io.crate.planner.optimizer.iterative.rule.MergeAggregateRenameAndCollectToCount;
+import io.crate.planner.optimizer.iterative.rule.MergeFilterAndCollect;
+import io.crate.planner.optimizer.iterative.rule.MergeFilters;
+import io.crate.planner.optimizer.iterative.rule.MoveConstantJoinConditionsBeneathNestedLoop;
+import io.crate.planner.optimizer.iterative.rule.MoveFilterBeneathFetchOrEval;
+import io.crate.planner.optimizer.iterative.rule.MoveFilterBeneathGroupBy;
+import io.crate.planner.optimizer.iterative.rule.MoveFilterBeneathHashJoin;
+import io.crate.planner.optimizer.iterative.rule.MoveFilterBeneathNestedLoop;
+import io.crate.planner.optimizer.iterative.rule.MoveFilterBeneathOrder;
+import io.crate.planner.optimizer.iterative.rule.MoveFilterBeneathProjectSet;
+import io.crate.planner.optimizer.iterative.rule.MoveFilterBeneathRename;
+import io.crate.planner.optimizer.iterative.rule.MoveFilterBeneathUnion;
+import io.crate.planner.optimizer.iterative.rule.MoveFilterBeneathWindowAgg;
+import io.crate.planner.optimizer.iterative.rule.MoveLimitBeneathEval;
+import io.crate.planner.optimizer.iterative.rule.MoveLimitBeneathRename;
+import io.crate.planner.optimizer.iterative.rule.MoveOrderBeneathFetchOrEval;
+import io.crate.planner.optimizer.iterative.rule.MoveOrderBeneathNestedLoop;
+import io.crate.planner.optimizer.iterative.rule.MoveOrderBeneathRename;
+import io.crate.planner.optimizer.iterative.rule.MoveOrderBeneathUnion;
+import io.crate.planner.optimizer.iterative.rule.OptimizeCollectWhereClauseAccess;
+import io.crate.planner.optimizer.iterative.rule.RemoveRedundantFetchOrEval;
+import io.crate.planner.optimizer.iterative.rule.RewriteFilterOnOuterJoinToInnerJoin;
+import io.crate.planner.optimizer.iterative.rule.RewriteGroupByKeysLimitToLimitDistinct;
+import io.crate.planner.optimizer.iterative.rule.RewriteToQueryThenFetch;
 import io.crate.statistics.TableStats;
 import io.crate.types.DataTypes;
 
@@ -112,18 +114,17 @@ import io.crate.types.DataTypes;
  */
 public class LogicalPlanner {
 
-    private final Optimizer optimizer;
+    private final IterativeOptimizer optimizer;
     private final TableStats tableStats;
     private final Visitor statementVisitor = new Visitor();
     private final Optimizer writeOptimizer;
-    private final Optimizer fetchOptimizer;
+    private final IterativeOptimizer fetchOptimizer;
 
     public LogicalPlanner(NodeContext nodeCtx,
                           TableStats tableStats,
                           Supplier<Version> minNodeVersionInCluster) {
-        this.optimizer = new Optimizer(
+        this.optimizer = new IterativeOptimizer(
             nodeCtx,
-            minNodeVersionInCluster,
             List.of(
                 new RemoveRedundantFetchOrEval(),
                 new MergeAggregateAndCollectToCount(),
@@ -152,9 +153,8 @@ public class LogicalPlanner {
                 new MoveConstantJoinConditionsBeneathNestedLoop()
             )
         );
-        this.fetchOptimizer = new Optimizer(
+        this.fetchOptimizer = new IterativeOptimizer(
             nodeCtx,
-            minNodeVersionInCluster,
             List.of(new RewriteToQueryThenFetch())
         );
         this.writeOptimizer = new Optimizer(
@@ -271,7 +271,11 @@ public class LogicalPlanner {
         //
         // The reason for this is that some plans are cheaper to execute as fetch
         // even if there is no operator that reduces the number of records
-        return RewriteToQueryThenFetch.tryRewrite(relation, fetchOptimized, tableStats, plannerContext.transactionContext().idAllocator());
+        return RewriteToQueryThenFetch.tryRewrite(relation,
+                                                  fetchOptimized,
+                                                  tableStats,
+                                                  plannerContext.transactionContext().idAllocator(),
+                                                  node -> Stream.of(node));
     }
 
     static class PlanBuilder extends AnalyzedRelationVisitor<List<Symbol>, LogicalPlan> {
