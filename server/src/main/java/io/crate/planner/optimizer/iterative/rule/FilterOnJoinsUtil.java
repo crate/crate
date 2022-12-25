@@ -59,8 +59,8 @@ final class FilterOnJoinsUtil {
             return null;
         }
         assert join.sources().size() == 2 : "Join operator must only have 2 children, LHS and RHS";
-        LogicalPlan lhs = join.sources().get(0);
-        LogicalPlan rhs = join.sources().get(1);
+        LogicalPlan lhs = lookup.resolve(join.sources().get(0));
+        LogicalPlan rhs = lookup.resolve(join.sources().get(1));
         Set<RelationName> leftName = lhs.getRelationNames();
         Set<RelationName> rightName = rhs.getRelationNames();
         Symbol queryForLhs = splitQuery.remove(leftName);
