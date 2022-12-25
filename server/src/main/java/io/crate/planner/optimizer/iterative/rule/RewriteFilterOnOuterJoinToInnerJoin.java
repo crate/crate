@@ -125,8 +125,8 @@ public final class RewriteFilterOnOuterJoinToInnerJoin implements Rule<Filter> {
         if (splitQueries.size() == 1 && splitQueries.keySet().iterator().next().size() > 1) {
             return null;
         }
-        LogicalPlan lhs = nl.sources().get(0);
-        LogicalPlan rhs = nl.sources().get(1);
+        LogicalPlan lhs = lookup.resolve(nl.sources().get(0));
+        LogicalPlan rhs = lookup.resolve(nl.sources().get(1));
         Set<RelationName> leftName = lhs.getRelationNames();
         Set<RelationName> rightName = rhs.getRelationNames();
 
@@ -149,7 +149,7 @@ public final class RewriteFilterOnOuterJoinToInnerJoin implements Rule<Filter> {
                  * |   1 | NULL |
                  * +-----+------+
                  */
-                newLhs = getNewSource(leftQuery, lhs, txnCtx.idAllocator());
+                newLhs = getNewSource(leftQuery, lhs, txnCtx.idAllocator(), lookup);
                 if (rightQuery == null) {
                     newRhs = rhs;
                     newJoinIsInnerJoin = false;
@@ -158,7 +158,7 @@ public final class RewriteFilterOnOuterJoinToInnerJoin implements Rule<Filter> {
                     newJoinIsInnerJoin = false;
                     splitQueries.put(rightName, rightQuery);
                 } else {
-                    newRhs = getNewSource(rightQuery, rhs, txnCtx.idAllocator());
+                    newRhs = getNewSource(rightQuery, rhs, txnCtx.idAllocator(), lookup);
                     newJoinIsInnerJoin = true;
                 }
                 break;
@@ -182,10 +182,10 @@ public final class RewriteFilterOnOuterJoinToInnerJoin implements Rule<Filter> {
                     newJoinIsInnerJoin = false;
                     splitQueries.put(leftName, leftQuery);
                 } else {
-                    newLhs = getNewSource(leftQuery, lhs, txnCtx.idAllocator());
+                    newLhs = getNewSource(leftQuery, lhs, txnCtx.idAllocator(), lookup);
                     newJoinIsInnerJoin = true;
                 }
-                newRhs = getNewSource(rightQuery, rhs, txnCtx.idAllocator());
+                newRhs = getNewSource(rightQuery, rhs, txnCtx.idAllocator(), lookup);
                 break;
             case FULL:
                 /*
@@ -203,7 +203,7 @@ public final class RewriteFilterOnOuterJoinToInnerJoin implements Rule<Filter> {
                 if (couldMatchOnNull(leftQuery, symbolEvaluator)) {
                     newLhs = lhs;
                 } else {
-                    newLhs = getNewSource(leftQuery, lhs, txnCtx.idAllocator());
+                    newLhs = getNewSource(leftQuery, lhs, txnCtx.idAllocator(), lookup);
                     if (leftQuery != null) {
                         splitQueries.put(leftName, leftQuery);
                     }
@@ -211,7 +211,7 @@ public final class RewriteFilterOnOuterJoinToInnerJoin implements Rule<Filter> {
                 if (couldMatchOnNull(rightQuery, symbolEvaluator)) {
                     newRhs = rhs;
                 } else {
-                    newRhs = getNewSource(rightQuery, rhs, txnCtx.idAllocator());
+                    newRhs = getNewSource(rightQuery, rhs, txnCtx.idAllocator(), lookup);
                 }
 
                 /*

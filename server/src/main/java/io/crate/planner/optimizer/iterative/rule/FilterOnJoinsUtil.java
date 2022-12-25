@@ -42,15 +42,19 @@ final class FilterOnJoinsUtil {
     private FilterOnJoinsUtil() {
     }
 
-    static LogicalPlan getNewSource(@Nullable Symbol splitQuery, LogicalPlan source, LogicalPlanIdAllocator idAllocator) {
-        return splitQuery == null ? source : new Filter(source, splitQuery, idAllocator.nextId());
+    static LogicalPlan getNewSource(@Nullable Symbol splitQuery,
+                                    LogicalPlan source,
+                                    LogicalPlanIdAllocator idAllocator,
+                                    Lookup lookup) {
+        LogicalPlan newSource = lookup.resolve(source);
+        return splitQuery == null ? newSource : new Filter(newSource, splitQuery, idAllocator.nextId());
     }
 
     static LogicalPlan moveQueryBelowJoin(Symbol query, LogicalPlan join, LogicalPlanIdAllocator idAllocator, Lookup lookup) {
         if (!WhereClause.canMatch(query)) {
             return join.replaceSources(List.of(
-                getNewSource(query, lookup.resolve(join.sources().get(0)), idAllocator),
-                getNewSource(query, lookup.resolve(join.sources().get(1)), idAllocator)
+                getNewSource(query, lookup.resolve(join.sources().get(0)), idAllocator, lookup),
+                getNewSource(query, lookup.resolve(join.sources().get(1)), idAllocator, lookup)
             ));
         }
         Map<Set<RelationName>, Symbol> splitQuery = QuerySplitter.split(query);
@@ -65,8 +69,8 @@ final class FilterOnJoinsUtil {
         Set<RelationName> rightName = rhs.getRelationNames();
         Symbol queryForLhs = splitQuery.remove(leftName);
         Symbol queryForRhs = splitQuery.remove(rightName);
-        LogicalPlan newLhs = getNewSource(queryForLhs, lhs, idAllocator);
-        LogicalPlan newRhs = getNewSource(queryForRhs, rhs, idAllocator);
+        LogicalPlan newLhs = getNewSource(queryForLhs, lhs, idAllocator, lookup);
+        LogicalPlan newRhs = getNewSource(queryForRhs, rhs, idAllocator, lookup);
         LogicalPlan newJoin = join.replaceSources(List.of(newLhs, newRhs));
         if (splitQuery.isEmpty()) {
             return newJoin;

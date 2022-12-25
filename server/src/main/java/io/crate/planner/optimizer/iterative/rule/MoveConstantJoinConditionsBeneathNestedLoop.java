@@ -96,8 +96,8 @@ public class MoveConstantJoinConditionsBeneathNestedLoop implements Rule<NestedL
             var rhs = lookup.resolve(nl.rhs());
             var queryForLhs = constantConditions.remove(lhs.getRelationNames());
             var queryForRhs = constantConditions.remove(rhs.getRelationNames());
-            var newLhs = getNewSource(queryForLhs, lhs, txnCtx.idAllocator());
-            var newRhs = getNewSource(queryForRhs, rhs, txnCtx.idAllocator());
+            var newLhs = getNewSource(queryForLhs, lhs, txnCtx.idAllocator(), lookup);
+            var newRhs = getNewSource(queryForRhs, rhs, txnCtx.idAllocator(), lookup);
             return new HashJoin(
                 newLhs,
                 newRhs,
