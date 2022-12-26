@@ -117,7 +117,7 @@ public class GroupReference implements LogicalPlan {
                                @Nullable Integer pageSizeHint,
                                Row params,
                                SubQueryResults subQueryResults) {
-        return null;
+        throw new UnsupportedOperationException();
     }
 
     @Override
