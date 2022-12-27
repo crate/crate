@@ -48,6 +48,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.CollectionUtils;
 import org.elasticsearch.index.IndexNotFoundException;
+import org.elasticsearch.node.NodeClosedException;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
@@ -201,7 +202,7 @@ public class TransportClusterHealthAction extends TransportMasterNodeReadAction<
 
                 @Override
                 public void onClusterServiceClose() {
-                    listener.onFailure(new IllegalStateException("ClusterService was close during health call"));
+                    listener.onFailure(new NodeClosedException(clusterService.localNode()));
                 }
 
                 @Override

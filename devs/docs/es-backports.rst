@@ -102,6 +102,7 @@ should be crossed out as well.
 - [ ] 8499924e51e InternalSnapshotsInfoService should also removed failed snapshot shard size infos (#63492) (#63592)
 - [ ] 9e52513c7bf Add support for missing value fetchers. (#63585)
 - [x] 56092b1a9fd Flush translog writer before adding new operation (#63505)
+- [x] ab9b37a82c7 Fix test timeout for health on master failover (#63455)
 - [ ] ae2fc4118d2 Add factory methods for common value fetchers. (#63438)
 - [ ] c6b915c8e67 Make TextFieldMapper.FAST_PHRASE_SUFFIX private.
 - [ ] c4726a2cece Don't emit separate warnings for type filters (#63391)
@@ -135,7 +136,7 @@ should be crossed out as well.
 - [ ] 0d5250c99b1 Add Trace Logging to File Restore (#62755) (#62761)
 - [ ] 13e28b85ff5 Speed up RepositoryData Serialization (#62684) (#62703)
 - [ ] 803f78ef055 Add field type for version strings (#59773) (#62692)
-- [ ] 9a77f41e554 Fix cluster health when closing (#61709)
+- [x] 9a77f41e554 Fix cluster health when closing (#61709)
 - [s] 6a298970fdd [7.x] Allow metadata fields in the _source (#62616)
 - [s] 17aabaed155 Fix warning on boost docs and warning message on non-implementing fieldmappers
 - [s] 43ace5f80d7 Emit deprecation warnings when boosts are defined in mappings (#62623)
@@ -439,6 +440,7 @@ should be crossed out as well.
 - [x] 9392fca36a0 Improve Snapshot Abort Behavior (#54256) (#54410)
 - [x] 2ccddbfa88e Move transport decoding and aggregation to server (#54360)
 - [x] 14b5daad7c9 Fix Snapshot Completion Listener Lost on Master Failover (#54286) (#54330)
+- [x] 32fa90c9bac Fix ClusterHealthIT.testHealthOnMasterFailover (#54170) (#54177)
 - [x] 0d30b48613a Disallow negative TimeValues (#53913)
 - [s] 3b4751bdb72 Avoid I/O operations when rewriting shard search request (#54044) (#54139)
 - [s] 381d7586e40 Introduce formal role for remote cluster client (#54138)

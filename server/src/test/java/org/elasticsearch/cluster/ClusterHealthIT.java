@@ -20,6 +20,7 @@
 package org.elasticsearch.cluster;
 
 import static io.crate.testing.SQLTransportExecutor.REQUEST_TIMEOUT;
+import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertAcked;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertFalse;
@@ -28,14 +29,20 @@ import static org.junit.Assert.assertThat;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import io.crate.common.unit.TimeValue;
+import io.crate.testing.UseRandomizedSchema;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
+import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.test.TestCluster;
 import org.junit.Test;
@@ -250,14 +257,34 @@ public class ClusterHealthIT extends IntegTestCase {
     }
 
     @Test
+    @UseRandomizedSchema(random = false)
     public void testHealthOnMasterFailover() throws Exception {
         final String node = internalCluster().startDataOnlyNode();
+        boolean withIndex = randomBoolean();
+        String indexName = null;
+        if (withIndex) {
+            // Create index with many shards to provoke the health request to wait (for green) while master is being shut down.
+            // Notice that this is set to 0 after the test completed starting a number of health requests and master restarts.
+            // This ensures that the cluster is yellow when the health request is made, making the health request wait on the observer,
+            // triggering a call to observer.onClusterServiceClose when master is shutdown.
+            indexName = "test";
+            int replicas = randomIntBetween(0, 10);
+            execute(String.format(Locale.ENGLISH,
+                "create table %s(x text) with (number_of_replicas = %d, \"unassigned.node_left.delayed_timeout\" = '5m')", indexName, replicas)
+            );
+        }
         final List<CompletableFuture<ClusterHealthResponse>> responseFutures = new ArrayList<>();
         // Run a few health requests concurrent to master fail-overs against a data-node to make sure master failover is handled
         // without exceptions
-        for (int i = 0; i < 20; ++i) {
-            responseFutures.add(client(node).admin().cluster().health(new ClusterHealthRequest().waitForEvents(Priority.LANGUID)));
+        final int iterations = withIndex ? 10 : 20;
+        for (int i = 0; i < iterations; ++i) {
+            responseFutures.add(client(node).admin().cluster().health(new ClusterHealthRequest().waitForEvents(Priority.LANGUID)
+                .waitForGreenStatus().masterNodeTimeout(TimeValue.timeValueMinutes(1))));
             internalCluster().restartNode(internalCluster().getMasterName(), TestCluster.EMPTY_CALLBACK);
+        }
+        if (withIndex) {
+            assertAcked(client().admin().indices().updateSettings(
+                new UpdateSettingsRequest(indexName).settings(Settings.builder().put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 0))).get());
         }
         for (var responseFuture : responseFutures) {
             assertSame(responseFuture.get().getStatus(), ClusterHealthStatus.GREEN);
