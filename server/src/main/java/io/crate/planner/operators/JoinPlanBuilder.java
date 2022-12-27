@@ -21,7 +21,6 @@
 
 package io.crate.planner.operators;
 
-import static io.crate.planner.operators.EquiJoinDetector.isHashJoinPossible;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -132,7 +131,6 @@ public class JoinPlanBuilder {
                 lhs,
                 subQueries,
                 query,
-                hashJoinEnabled,
                 logicalPlanIdAllocator);
         } else {
             lhsPlan = subQueries.applyCorrelatedJoin(lhsPlan, logicalPlanIdAllocator);
@@ -143,7 +141,6 @@ public class JoinPlanBuilder {
                 joinCondition,
                 lhs,
                 query,
-                hashJoinEnabled,
                 logicalPlanIdAllocator);
         }
 
@@ -201,7 +198,6 @@ public class JoinPlanBuilder {
         AnalyzedRelation lhs,
         SubQueries subQueries,
         Symbol query,
-        boolean hashJoinEnabled,
         LogicalPlanIdAllocator logicalPlanIdAllocator
     ) {
         var validJoinConditions = new ArrayList<Symbol>();
@@ -222,7 +218,6 @@ public class JoinPlanBuilder {
             AndOperator.join(validJoinConditions),
             lhs,
             query,
-            hashJoinEnabled,
             logicalPlanIdAllocator);
 
         joinPlan = subQueries.applyCorrelatedJoin(joinPlan, logicalPlanIdAllocator);
@@ -252,26 +247,16 @@ public class JoinPlanBuilder {
                                               Symbol joinCondition,
                                               AnalyzedRelation lhs,
                                               Symbol query,
-                                              boolean hashJoinEnabled,
                                               LogicalPlanIdAllocator logicalPlanIdAllocator) {
-        if (hashJoinEnabled && isHashJoinPossible(joinType, joinCondition)) {
-            return new HashJoin(
-                lhsPlan,
-                rhsPlan,
-                joinCondition,
-                logicalPlanIdAllocator.nextId()
-            );
-        } else {
-            return new NestedLoopJoin(
-                lhsPlan,
-                rhsPlan,
-                joinType,
-                joinCondition,
-                !query.symbolType().isValueSymbol(),
-                lhs,
-                false,
-                logicalPlanIdAllocator.nextId());
-        }
+        return new NestedLoopJoin(
+            lhsPlan,
+            rhsPlan,
+            joinType,
+            joinCondition,
+            !query.symbolType().isValueSymbol(),
+            lhs,
+            false,
+            logicalPlanIdAllocator.nextId());
     }
 
     private static JoinType maybeInvertPair(RelationName rhsName, JoinPair pair) {
@@ -322,7 +307,6 @@ public class JoinPlanBuilder {
                 condition,
                 leftRelation,
                 query,
-                hashJoinEnabled,
                 logicalPlanIdAllocator),
             query,
             logicalPlanIdAllocator.nextId()

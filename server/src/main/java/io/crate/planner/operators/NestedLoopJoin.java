@@ -80,6 +80,7 @@ public class NestedLoopJoin implements LogicalPlan {
     private boolean rewriteFilterOnOuterJoinToInnerJoinDone = false;
     private final boolean joinConditionOptimised;
     private final LogicalPlanId id;
+    private final boolean isOptimized;
 
     NestedLoopJoin(LogicalPlan lhs,
                    LogicalPlan rhs,
@@ -88,6 +89,7 @@ public class NestedLoopJoin implements LogicalPlan {
                    boolean isFiltered,
                    AnalyzedRelation topMostLeftRelation,
                    boolean joinConditionOptimised,
+                   boolean isOptimized,
                    LogicalPlanId id) {
         this.joinType = joinType;
         this.isFiltered = isFiltered || joinCondition != null;
@@ -103,6 +105,7 @@ public class NestedLoopJoin implements LogicalPlan {
         this.joinCondition = joinCondition;
         this.dependencies = Maps.concat(lhs.dependencies(), rhs.dependencies());
         this.joinConditionOptimised = joinConditionOptimised;
+        this.isOptimized = isOptimized;
         this.id = id;
     }
 
@@ -115,8 +118,17 @@ public class NestedLoopJoin implements LogicalPlan {
                           boolean orderByWasPushedDown,
                           boolean rewriteFilterOnOuterJoinToInnerJoinDone,
                           boolean joinConditionOptimised,
+                          boolean isOptimized,
                           LogicalPlanId id) {
-        this(lhs, rhs, joinType, joinCondition, isFiltered, topMostLeftRelation, joinConditionOptimised, id);
+        this(lhs,
+             rhs,
+             joinType,
+             joinCondition,
+             isFiltered,
+             topMostLeftRelation,
+             joinConditionOptimised,
+             isOptimized,
+             id);
         this.orderByWasPushedDown = orderByWasPushedDown;
         this.rewriteFilterOnOuterJoinToInnerJoinDone = rewriteFilterOnOuterJoinToInnerJoinDone;
     }
@@ -132,6 +144,10 @@ public class NestedLoopJoin implements LogicalPlan {
 
     public LogicalPlan rhs() {
         return rhs;
+    }
+
+    public boolean isOptimized() {
+        return isOptimized;
     }
 
     public boolean isJoinConditionOptimised() {

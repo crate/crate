@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import org.elasticsearch.test.IntegTestCase;
+import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.junit.Test;
 
 import io.crate.testing.TestingHelpers;
@@ -311,6 +312,8 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
 
     }
 
+
+    @TestLogging("io.crate:DEBUG")
     @Test
     public void test_correlated_subquery_without_table_alias_within_join_condition_and_additional_condition() {
         var stmt = """

@@ -79,6 +79,7 @@ import io.crate.planner.SubqueryPlanner.SubQueries;
 import io.crate.planner.consumer.InsertFromSubQueryPlanner;
 import io.crate.planner.optimizer.Optimizer;
 import io.crate.planner.optimizer.iterative.IterativeOptimizer;
+import io.crate.planner.optimizer.iterative.rule.OptimizeNestedLoopJoinToHashJoin;
 import io.crate.planner.optimizer.iterative.rule.DeduplicateOrder;
 import io.crate.planner.optimizer.iterative.rule.MergeAggregateAndCollectToCount;
 import io.crate.planner.optimizer.iterative.rule.MergeAggregateRenameAndCollectToCount;
@@ -183,7 +184,8 @@ public class LogicalPlanner {
                 new DeduplicateOrder(),
                 new OptimizeCollectWhereClauseAccess(),
                 new RewriteGroupByKeysLimitToLimitDistinct(),
-                new MoveConstantJoinConditionsBeneathNestedLoop()
+                new MoveConstantJoinConditionsBeneathNestedLoop(),
+                new OptimizeNestedLoopJoinToHashJoin()
             )
         );
         this.fetchOptimizer = new Optimizer(
