@@ -100,17 +100,7 @@ public final class Randomness {
      *                               running but tests.seed is not set
      */
     public static Random get() {
-        if (CURRENT_METHOD != null && GET_RANDOM_METHOD != null) {
-            try {
-                Object randomizedContext = CURRENT_METHOD.invoke(null);
-                return (Random) GET_RANDOM_METHOD.invoke(randomizedContext);
-            } catch (ReflectiveOperationException e) {
-                // unexpected, bail
-                throw new IllegalStateException("running tests but failed to invoke RandomizedContext#getRandom", e);
-            }
-        } else {
             return getWithoutSeed();
-        }
     }
 
     /**

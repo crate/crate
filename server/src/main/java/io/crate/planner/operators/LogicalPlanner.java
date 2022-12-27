@@ -30,7 +30,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
-import java.util.stream.Stream;
 
 import org.elasticsearch.Version;
 
@@ -114,7 +113,9 @@ import io.crate.types.DataTypes;
  */
 public class LogicalPlanner {
 
-    private final IterativeOptimizer optimizer;
+    public static boolean useIterativeOptimizer = true;
+    private final IterativeOptimizer iterativeOptimizer;
+    private final Optimizer optimizer;
     private final TableStats tableStats;
     private final Visitor statementVisitor = new Visitor();
     private final Optimizer writeOptimizer;
@@ -123,7 +124,39 @@ public class LogicalPlanner {
     public LogicalPlanner(NodeContext nodeCtx,
                           TableStats tableStats,
                           Supplier<Version> minNodeVersionInCluster) {
-        this.optimizer = new IterativeOptimizer(
+        this.optimizer = new Optimizer(
+            nodeCtx,
+            minNodeVersionInCluster,
+            List.of(
+                new io.crate.planner.optimizer.rule.RemoveRedundantFetchOrEval(),
+                new io.crate.planner.optimizer.rule.MergeAggregateAndCollectToCount(),
+                new io.crate.planner.optimizer.rule.MergeAggregateRenameAndCollectToCount(),
+                new io.crate.planner.optimizer.rule.MergeFilters(),
+                new io.crate.planner.optimizer.rule.MoveFilterBeneathRename(),
+                new io.crate.planner.optimizer.rule.MoveFilterBeneathFetchOrEval(),
+                new io.crate.planner.optimizer.rule.MoveFilterBeneathOrder(),
+                new io.crate.planner.optimizer.rule.MoveFilterBeneathProjectSet(),
+                new io.crate.planner.optimizer.rule.MoveFilterBeneathHashJoin(),
+                new io.crate.planner.optimizer.rule.MoveFilterBeneathNestedLoop(),
+                new io.crate.planner.optimizer.rule.MoveFilterBeneathUnion(),
+                new io.crate.planner.optimizer.rule.MoveFilterBeneathGroupBy(),
+                new io.crate.planner.optimizer.rule.MoveFilterBeneathWindowAgg(),
+                new io.crate.planner.optimizer.rule.MoveLimitBeneathRename(),
+                new io.crate.planner.optimizer.rule.MoveLimitBeneathEval(),
+                new io.crate.planner.optimizer.rule.MergeFilterAndCollect(),
+                new io.crate.planner.optimizer.rule.RewriteFilterOnOuterJoinToInnerJoin(),
+                new io.crate.planner.optimizer.rule.MoveOrderBeneathUnion(),
+                new io.crate.planner.optimizer.rule.MoveOrderBeneathNestedLoop(),
+                new io.crate.planner.optimizer.rule.MoveOrderBeneathFetchOrEval(),
+                new io.crate.planner.optimizer.rule.MoveOrderBeneathRename(),
+                new io.crate.planner.optimizer.rule.DeduplicateOrder(),
+                new io.crate.planner.optimizer.rule.OptimizeCollectWhereClauseAccess(),
+                new io.crate.planner.optimizer.rule.RewriteGroupByKeysLimitToLimitDistinct(),
+                new io.crate.planner.optimizer.rule.MoveConstantJoinConditionsBeneathNestedLoop()
+            )
+        );
+
+        this.iterativeOptimizer = new IterativeOptimizer(
             nodeCtx,
             List.of(
                 new RemoveRedundantFetchOrEval(),
@@ -209,7 +242,16 @@ public class LogicalPlanner {
         LogicalPlan plan = relation.accept(planBuilder, relation.outputs());
 
         plan = tryOptimizeForInSubquery(selectSymbol, relation, plan, txnCtx.idAllocator());
-        LogicalPlan optimizedPlan = optimizer.optimize(maybeApplySoftLimit.apply(plan), tableStats, txnCtx);
+        LogicalPlan optimizedPlan = null;
+        if (useIterativeOptimizer) {
+            optimizedPlan = iterativeOptimizer.optimize(maybeApplySoftLimit.apply(plan),
+                                                        tableStats,
+                                                        txnCtx);
+        } else {
+            optimizedPlan = optimizer.optimize(maybeApplySoftLimit.apply(plan),
+                                               tableStats,
+                                               txnCtx);
+        }
         return new RootRelationBoundary(optimizedPlan, plannerContext.transactionContext().idAllocator().nextId());
     }
 
@@ -253,7 +295,12 @@ public class LogicalPlanner {
             plannerContext.transactionContext().idAllocator()
         );
         LogicalPlan logicalPlan = relation.accept(planBuilder, relation.outputs());
-        LogicalPlan optimizedPlan = optimizer.optimize(logicalPlan, tableStats, coordinatorTxnCtx);
+        LogicalPlan optimizedPlan = null;
+        if (useIterativeOptimizer) {
+            optimizedPlan = iterativeOptimizer.optimize(logicalPlan, tableStats, coordinatorTxnCtx);
+        } else {
+            optimizedPlan = optimizer.optimize(logicalPlan, tableStats, coordinatorTxnCtx);
+        }
         assert logicalPlan.outputs().equals(optimizedPlan.outputs()) : "Optimized plan must have the same outputs as original plan";
         LogicalPlan prunedPlan = optimizedPlan.pruneOutputsExcept(tableStats, relation.outputs());
         assert logicalPlan.outputs().equals(optimizedPlan.outputs()) : "Pruned plan must have the same outputs as original plan";
