@@ -119,7 +119,7 @@ should be crossed out as well.
 - [ ] 5c3a4c13ddd Clone Snapshot API (#61839) (#63291)
 - [ ] e91936512aa Refactor SnapshotsInProgress State Transitions (#60517) (#63266)
 - [ ] 860791260df Implement Shard Snapshot Clone Logic (#62771) (#63260)
-- [ ] cf75abb021f Optimize XContentParserUtils.ensureExpectedToken (#62691) (#63253)
+- [x] cf75abb021f Optimize XContentParserUtils.ensureExpectedToken (#62691) (#63253)
 - [ ] 51d0ed1bf30 Prepare Snapshot Shard State Update Logic For Clone Logic (#62617) (#63255)
 - [x] 89de9fdcf77 Cleanup Blobstore Repository Metadata Serialization (#62727) (#63249)
 - [x] d13c1f50581 Fix Overly Strict Assertion in BlobStoreRepository (#63061) (#63236)

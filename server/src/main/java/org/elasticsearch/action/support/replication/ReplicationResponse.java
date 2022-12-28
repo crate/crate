@@ -253,7 +253,7 @@ public class ReplicationResponse extends TransportResponse {
 
             public static Failure fromXContent(XContentParser parser) throws IOException {
                 XContentParser.Token token = parser.currentToken();
-                ensureExpectedToken(XContentParser.Token.START_OBJECT, token, parser::getTokenLocation);
+                ensureExpectedToken(XContentParser.Token.START_OBJECT, token, parser);
 
                 String shardIndex = null, nodeId = null;
                 int shardId = -1;
