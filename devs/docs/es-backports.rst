@@ -121,7 +121,7 @@ should be crossed out as well.
 - [ ] 860791260df Implement Shard Snapshot Clone Logic (#62771) (#63260)
 - [ ] cf75abb021f Optimize XContentParserUtils.ensureExpectedToken (#62691) (#63253)
 - [ ] 51d0ed1bf30 Prepare Snapshot Shard State Update Logic For Clone Logic (#62617) (#63255)
-- [ ] 89de9fdcf77 Cleanup Blobstore Repository Metadata Serialization (#62727) (#63249)
+- [x] 89de9fdcf77 Cleanup Blobstore Repository Metadata Serialization (#62727) (#63249)
 - [x] d13c1f50581 Fix Overly Strict Assertion in BlobStoreRepository (#63061) (#63236)
 - [x] b4a1199e871 Uniquely associate term with update task during election (#62212)
 - [x] c9baadd19bf Fix to actually throttle indexing when throttling is activated (#61768)
