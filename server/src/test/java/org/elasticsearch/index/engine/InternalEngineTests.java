@@ -3254,7 +3254,6 @@ public class InternalEngineTests extends EngineTestCase {
 
         EngineConfig brokenConfig = new EngineConfig(
             shardId,
-            allocationId.getId(),
             threadPool,
             config.getIndexSettings(),
             store,

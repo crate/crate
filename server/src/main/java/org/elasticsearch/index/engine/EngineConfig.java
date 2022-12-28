@@ -56,7 +56,6 @@ import java.util.function.Supplier;
  */
 public final class EngineConfig {
     private final ShardId shardId;
-    private final String allocationId;
     private final IndexSettings indexSettings;
     private final ByteSizeValue indexingBufferSize;
     private volatile boolean enableGcDeletes = true;
@@ -119,7 +118,6 @@ public final class EngineConfig {
      * Creates a new {@link org.elasticsearch.index.engine.EngineConfig}
      */
     public EngineConfig(ShardId shardId,
-                        String allocationId,
                         ThreadPool threadPool,
                         IndexSettings indexSettings,
                         Store store,
@@ -139,7 +137,6 @@ public final class EngineConfig {
                         LongSupplier primaryTermSupplier,
                         TombstoneDocSupplier tombstoneDocSupplier) {
         this.shardId = shardId;
-        this.allocationId = allocationId;
         this.indexSettings = indexSettings;
         this.threadPool = threadPool;
         this.store = store;
@@ -271,15 +268,6 @@ public final class EngineConfig {
      */
     public ShardId getShardId() {
         return shardId;
-    }
-
-    /**
-     * Returns the allocation ID for the shard.
-     *
-     * @return the allocation ID
-     */
-    public String getAllocationId() {
-        return allocationId;
     }
 
     /**
