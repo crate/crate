@@ -126,7 +126,7 @@ should be crossed out as well.
 - [ ] b4a1199e871 Uniquely associate term with update task during election (#62212)
 - [ ] c9baadd19bf Fix to actually throttle indexing when throttling is activated (#61768)
 - [s] ba5574935e2 Remove dependency of Geometry queries with mapped type names (#63077) (#63110)
-- [ ] 8c6e197f510 Remove allocation id from engine (#62680)
+- [x] 8c6e197f510 Remove allocation id from engine (#62680)
 - [s] e28750b001e Add parameter update and conflict tests to MapperTestCase (#62828) (#62902)
 - [s] 862fab06d3a Share same existsQuery impl throughout mappers (#57607)
 - [s] 5ca86d541c5 Move stored flag from TextSearchInfo to MappedFieldType (#62717) (#62770)

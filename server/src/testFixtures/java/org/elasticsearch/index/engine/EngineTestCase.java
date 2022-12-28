@@ -214,7 +214,6 @@ public abstract class EngineTestCase extends ESTestCase {
     public EngineConfig copy(EngineConfig config, LongSupplier globalCheckpointSupplier) {
         return new EngineConfig(
             config.getShardId(),
-            config.getAllocationId(),
             config.getThreadPool(),
             config.getIndexSettings(),
             config.getStore(),
@@ -239,7 +238,6 @@ public abstract class EngineTestCase extends ESTestCase {
     public EngineConfig copy(EngineConfig config, Analyzer analyzer) {
         return new EngineConfig(
             config.getShardId(),
-            config.getAllocationId(),
             config.getThreadPool(),
             config.getIndexSettings(),
             config.getStore(),
@@ -263,7 +261,6 @@ public abstract class EngineTestCase extends ESTestCase {
     public EngineConfig copy(EngineConfig config, MergePolicy mergePolicy) {
         return new EngineConfig(
             config.getShardId(),
-            config.getAllocationId(),
             config.getThreadPool(),
             config.getIndexSettings(),
             config.getStore(),
@@ -695,7 +692,6 @@ public abstract class EngineTestCase extends ESTestCase {
         }
         return new EngineConfig(
             shardId,
-            allocationId.getId(),
             threadPool,
             indexSettings,
             store,
@@ -731,7 +727,6 @@ public abstract class EngineTestCase extends ESTestCase {
             shardId, translogPath, indexSettings, BigArrays.NON_RECYCLING_INSTANCE);
         return new EngineConfig(
             config.getShardId(),
-            config.getAllocationId(),
             config.getThreadPool(),
             indexSettings,
             store,
