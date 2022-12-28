@@ -49,6 +49,14 @@ public final class XContentParserUtils {
     }
 
     /**
+     * @throws ParsingException with a "unknown field found" reason
+     */
+    public static void throwUnknownField(String field, XContentLocation location) {
+        String message = "Failed to parse object: unknown field [%s] found";
+        throw new ParsingException(location, String.format(Locale.ROOT, message, field));
+    }
+
+    /**
      * @throws ParsingException with a "unknown token found" reason
      */
     public static void throwUnknownToken(Token token, XContentLocation location) {
@@ -67,4 +75,6 @@ public final class XContentParserUtils {
             throw new ParsingException(location.get(), String.format(Locale.ROOT, message, expected, actual));
         }
     }
+
+
 }

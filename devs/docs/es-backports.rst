@@ -134,7 +134,7 @@ should be crossed out as well.
 - [s] 3f856d1c81a Prioritise recovery of system index shards (#62640)
 - [s] a0df0fb074b Search - add case insensitive flag for "term" family of queries #61596 (#62661)
 - [ ] 0d5250c99b1 Add Trace Logging to File Restore (#62755) (#62761)
-- [ ] 13e28b85ff5 Speed up RepositoryData Serialization (#62684) (#62703)
+- [x] 13e28b85ff5 Speed up RepositoryData Serialization (#62684) (#62703)
 - [s] 803f78ef055 Add field type for version strings (#59773) (#62692)
 - [x] 9a77f41e554 Fix cluster health when closing (#61709)
 - [s] 6a298970fdd [7.x] Allow metadata fields in the _source (#62616)
