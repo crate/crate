@@ -117,7 +117,7 @@ should be crossed out as well.
 - [ ] d7f6812d788 Improve Snapshot Abort Efficiency (#62173) (#63297)
 - [su] 25fbc014598 Retry CCR shard follow task when no seed node left (#63225)
 - [su] 5c3a4c13ddd Clone Snapshot API (#61839) (#63291)
-- [ ] e91936512aa Refactor SnapshotsInProgress State Transitions (#60517) (#63266)
+- [x] e91936512aa Refactor SnapshotsInProgress State Transitions (#60517) (#63266)
 - [su] 860791260df Implement Shard Snapshot Clone Logic (#62771) (#63260)
 - [x] cf75abb021f Optimize XContentParserUtils.ensureExpectedToken (#62691) (#63253)
 - [su] 51d0ed1bf30 Prepare Snapshot Shard State Update Logic For Clone Logic (#62617) (#63255)
