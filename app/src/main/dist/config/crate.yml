@@ -29,7 +29,7 @@
 
 # Clustering: To avoid split-brain situations and data loss on recovery
 #gateway.expected_nodes: 5              # Total amount of nodes
-#gateway.recover_after_nodes: 3         # More than half of the nodes
+#gateway.recover_after_data_nodes: 3         # More than half of the nodes
 
 # Networking: Bind to an IP address or interface other than localhost.
 # Be careful! Never expose an unprotected node to the internet.
@@ -304,9 +304,9 @@ auth:
 # changes. This data is stored persistently across full cluster restarts
 # and recovered after nodes are started again.
 
-# Defines the number of nodes that need to be started before any cluster
+# Defines the number of data nodes that need to be started before any cluster
 # state recovery will start.
-#gateway.recover_after_nodes: 2
+#gateway.recover_after_data_nodes: 2
 
 # Defines the time to wait before starting the recovery once the number
 # of nodes defined in gateway.recover_after_nodes are started.
