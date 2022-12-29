@@ -28,7 +28,7 @@
 #path.data: /path/to/data1,/path/to/data2
 
 # Clustering: To avoid split-brain situations and data loss on recovery
-#gateway.expected_nodes: 5              # Total amount of nodes
+#gateway.expected_data_nodes: 5              # Total amount of nodes
 #gateway.recover_after_data_nodes: 3         # More than half of the nodes
 
 # Networking: Bind to an IP address or interface other than localhost.
@@ -312,10 +312,10 @@ auth:
 # of nodes defined in gateway.recover_after_nodes are started.
 #gateway.recover_after_time: 5m
 
-# Defines how many nodes should be waited for until the cluster state is
+# Defines how many data nodes should be waited for until the cluster state is
 # recovered immediately. The value should be equal to the number of nodes
 # in the cluster.
-#gateway.expected_nodes: 3
+#gateway.expected_data_nodes: 3
 
 
 ############################ Recovery Throttling #############################
