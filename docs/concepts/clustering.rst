@@ -151,7 +151,7 @@ across the cluster.
    versions 4.x and above `determine quorum size automatically
    <https://crate.io/docs/crate/howtos/en/latest/clustering/multi-node-setup.html#master-node-election>`_.
 
-A minimum number of nodes (referred as a *quorum*) needs to configured
+A minimum number of nodes (referred as a *quorum*) needs to be configured
 to ensure that in case of a
 network partition (when some nodes become unavailable) the cluster
 can elect a master node.
