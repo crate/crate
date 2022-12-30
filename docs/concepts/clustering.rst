@@ -151,8 +151,8 @@ across the cluster.
    versions 4.x and above `determine quorum size automatically
    <https://crate.io/docs/crate/howtos/en/latest/clustering/multi-node-setup.html#master-node-election>`_.
 
-A minimum number of nodes (referred as a *quorum*) needs to configured (using the
-`discovery.zen.minimum_master_nodes`_ setting) to ensure that in case of a
+A minimum number of nodes (referred as a *quorum*) needs to configured
+to ensure that in case of a
 network partition (when some nodes become unavailable) the cluster
 can elect a master node.
 
@@ -319,5 +319,4 @@ will taken out of the load balancing.
 .. _abstract syntax tree: https://en.wikipedia.org/wiki/Abstract_syntax_tree
 .. _POJOs: https://en.wikipedia.org/wiki/Plain_Old_Java_Object
 .. _full mesh: https://en.wikipedia.org/wiki/Network_topology#Mesh
-.. _discovery.zen.minimum_master_nodes: https://crate.io/docs/crate/reference/en/3.3/config/cluster.html#discovery-zen-minimum-master-nodes
 .. _split-brain: https://en.wikipedia.org/wiki/Split-brain_(computing)
