@@ -1260,7 +1260,8 @@ The following settings can be used to configure the behavior of the
   | *Runtime:*  ``no``
 
   The setting ``gateway.expected_nodes`` defines the total number of nodes 
-  expected in the cluster. It is evaluated together with recover_after_nodes
+  expected in the cluster. It is evaluated together with 
+  ``gateway.recover_after_nodes``
   to decide if the cluster can proceed with recovery.
 
   .. CAUTION::
