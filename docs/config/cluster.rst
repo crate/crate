@@ -1298,7 +1298,7 @@ The following settings can be used to configure the behavior of the
 
   The ``gateway.recover_after_nodes`` setting defines the number of nodes that
   need to be started before the cluster state recovery will start.
-  The value must be bigger than the half of the expected
+  The value must be bigger than half the expected
   number of nodes in the cluster.
   Only set this to a number below the total number of nodes in the cluster
   after checking the number of nodes required for quorum and the number of 
@@ -1317,7 +1317,7 @@ The following settings can be used to configure the behavior of the
 
   The ``gateway.recover_after_data_nodes`` setting defines the number of data
   nodes that need to be started before the cluster state recovery will start.
-  The value must be bigger than the half of the expected
+  The value must be bigger than half the expected
   number of data nodes in the cluster.
   Only set this to a number below the total number of data nodes
   after checking the number of nodes required for quorum and the number of 
