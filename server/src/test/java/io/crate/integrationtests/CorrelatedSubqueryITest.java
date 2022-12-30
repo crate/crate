@@ -34,6 +34,7 @@ import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.junit.Test;
 
 import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseHashJoins;
 
 public class CorrelatedSubqueryITest extends IntegTestCase {
 
@@ -263,6 +264,7 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
     }
 
     @Test
+    @UseHashJoins(1)
     public void test_correlated_subquery_without_table_alias_within_join_condition() {
         String stmt = """
             SELECT
@@ -313,8 +315,8 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
     }
 
 
-    @TestLogging("io.crate:DEBUG")
     @Test
+    @UseHashJoins(1)
     public void test_correlated_subquery_without_table_alias_within_join_condition_and_additional_condition() {
         var stmt = """
             SELECT
