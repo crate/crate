@@ -23,6 +23,7 @@ import io.crate.common.SuppressForbidden;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.collect.ImmutableOpenIntMap;
+import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
@@ -151,9 +152,11 @@ public class Version implements Comparable<Version>, ToXContentFragment {
     public static final Version CURRENT = V_5_2_0;
 
     private static final ImmutableOpenIntMap<Version> ID_TO_VERSION;
+    private static final ImmutableOpenMap<String, Version> STRING_TO_VERSION;
 
     static {
         final ImmutableOpenIntMap.Builder<Version> builder = ImmutableOpenIntMap.builder();
+        final ImmutableOpenMap.Builder<String, Version> builderByString = ImmutableOpenMap.builder();
 
         for (final Field declaredField : Version.class.getFields()) {
             if (declaredField.getType().equals(Version.class)) {
@@ -175,6 +178,7 @@ public class Version implements Comparable<Version>, ToXContentFragment {
                                 "expected version [" + fieldName + "] to have id [" + expectedId + "] but was [" + version.internalId + "]";
                     }
                     final Version maybePrevious = builder.put(version.internalId, version);
+                    builderByString.put(version.toString(), version);
                     assert maybePrevious == null :
                             "expected [" + version.internalId + "] to be uniquely mapped but saw [" + maybePrevious + "] and [" + version + "]";
                 } catch (final IllegalAccessException e) {
@@ -186,7 +190,9 @@ public class Version implements Comparable<Version>, ToXContentFragment {
                 + org.apache.lucene.util.Version.LATEST + "] is still set to [" + CURRENT.luceneVersion + "]";
 
         builder.put(V_EMPTY_ID, V_EMPTY);
+        builderByString.put(V_EMPTY.toString(), V_EMPTY);
         ID_TO_VERSION = builder.build();
+        STRING_TO_VERSION = builderByString.build();
     }
 
     public static Version readVersion(StreamInput in) throws IOException {
@@ -282,6 +288,14 @@ public class Version implements Comparable<Version>, ToXContentFragment {
         if (!Strings.hasLength(version)) {
             return Version.CURRENT;
         }
+        final Version cached = STRING_TO_VERSION.get(version);
+        if (cached != null) {
+            return cached;
+        }
+        return fromStringSlow(version);
+    }
+
+    private static Version fromStringSlow(String version) {
         final boolean snapshot; // this is some BWC for 2.x and before indices
         if (snapshot = version.endsWith("-SNAPSHOT")) {
             version = version.substring(0, version.length() - 9);

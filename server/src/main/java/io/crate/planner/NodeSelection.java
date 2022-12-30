@@ -35,7 +35,7 @@ public final class NodeSelection {
         if (nodes.nodeExists(nodeIdOrName)) {
             return nodeIdOrName;
         }
-        for (DiscoveryNode node : nodes.get()) {
+        for (DiscoveryNode node : nodes) {
             if (nodeIdOrName.equalsIgnoreCase(node.getName())) {
                 return node.getId();
             }

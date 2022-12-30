@@ -2636,7 +2636,6 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
     private EngineConfig newEngineConfig(LongSupplier globalCheckpointSupplier) {
         return new EngineConfig(
             shardId,
-            shardRouting.allocationId().getId(),
             threadPool,
             indexSettings,
             store,

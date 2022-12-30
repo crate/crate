@@ -937,7 +937,7 @@ public class IndexShardTests extends IndexShardTestCase {
         closeShards(newShard);
 
         assertThat(
-            requestedMappingUpdates.get("default").get().source().string(),
+            requestedMappingUpdates.get("default").source().string(),
             is("{\"properties\":{\"foo\":{\"type\":\"text\",\"position\":1}}}")
         );
         closeShards(sourceShard, targetShard);
