@@ -10,6 +10,7 @@ All current applied cluster settings can be read by querying the
 :ref:`sys.cluster.settings <sys-cluster-settings>` column. Most
 cluster settings can be :ref:`changed at runtime
 <administration-runtime-config>`. This is documented at each setting.
+
 .. rubric:: Table of contents
 
 .. contents::
