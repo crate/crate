@@ -652,7 +652,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             .setTableStats(tableStats)
             .build();
 
-        Join outerNl = e.plan("select" +
+        Merge merge = e.plan("select" +
                                     "  u1.id as u1, " +
                                     "  u2.id as u2, " +
                                     "  u3.id as u3 " +
@@ -664,6 +664,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
                                     "  u1.name = 'Arthur'" +
                                     "  and u2.id = u1.id" +
                                     "  and u2.name = u1.name");
+        Join outerNl = (Join) merge.subPlan();
         Join innerNl = (Join) outerNl.left();
 
         Asserts.assertThat(innerNl.joinPhase().joinCondition()).isSQL("((INPUT(0) = INPUT(2)) AND (INPUT(1) = INPUT(3)))");
@@ -828,7 +829,8 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .build();
 
-        Join nl = e.plan("select * from users t1, users t2 WHERE 1=2");
+        Merge merge = e.plan("select * from users t1, users t2 WHERE 1=2");
+        Join nl = (Join) merge.subPlan();
         assertThat(nl.left(), instanceOf(Collect.class));
         assertThat(nl.right(), instanceOf(Collect.class));
         Asserts.assertThat(((RoutedCollectPhase)((Collect)nl.left()).collectPhase()).where()).isSQL("false");
@@ -856,11 +858,11 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             .build();
 
         Merge merge = e.plan("select count(*) from users t1, users t2 WHERE 1=2");
-        System.out.println("merge = " + merge);
-//        assertThat(nl.left(), instanceOf(Collect.class));
-//        assertThat(nl.right(), instanceOf(Collect.class));
-//        Asserts.assertThat(((RoutedCollectPhase)((Collect)nl.left()).collectPhase()).where()).isLiteral(false);
-//        Asserts.assertThat(((RoutedCollectPhase)((Collect)nl.right()).collectPhase()).where()).isLiteral(false);
+        Join join = (Join) merge.subPlan();
+        assertThat(join.left(), instanceOf(Collect.class));
+        assertThat(join.right(), instanceOf(Collect.class));
+        Asserts.assertThat(((RoutedCollectPhase)((Collect)join.left()).collectPhase()).where()).isLiteral(false);
+        Asserts.assertThat(((RoutedCollectPhase)((Collect)join.right()).collectPhase()).where()).isLiteral(false);
     }
 
     @Test
@@ -869,7 +871,8 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .build();
 
-        Join outer = e.plan("select count(*) from users t1, users t2, users t3 WHERE 1=2");
+        Merge merge = e.plan("select count(*) from users t1, users t2, users t3 WHERE 1=2");
+        Join outer = (Join) merge.subPlan();
         Join inner = (Join) outer.left();
         Asserts.assertThat(((RoutedCollectPhase)((Collect)outer.right()).collectPhase()).where()).isLiteral(false);
         Asserts.assertThat(((RoutedCollectPhase)((Collect)inner.left()).collectPhase()).where()).isLiteral(false);
