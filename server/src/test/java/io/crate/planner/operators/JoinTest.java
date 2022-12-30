@@ -327,7 +327,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
                    contains(TEST_DOC_LOCATIONS_TABLE_IDENT));
 
         Join join = buildJoin(hashjoin);
-        Asserts.assertThat(((Collect) join.left()).collectPhase().toCollect().get(1)).isReference("other_id");
+        Asserts.assertThat(((Collect) join.left()).collectPhase().toCollect().get(1)).isReference("id");
     }
 
     @Test
@@ -349,7 +349,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
                    contains(TEST_DOC_LOCATIONS_TABLE_IDENT));
 
         var join = buildJoin(hashjoin);
-       // Asserts.assertThat(((Collect) join.left()).collectPhase().toCollect().get(1)).isReference("loc");
+        Asserts.assertThat(((Collect) join.left()).collectPhase().toCollect().get(1)).isReference("loc");
     }
 
     @Test
@@ -376,11 +376,12 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
                                               "left join t3 on t3.c = t2.b");
 
         LogicalPlan operator = createLogicalPlan(mss, new TableStats());
-        assertThat(operator, instanceOf(NestedLoopJoin.class));
-        LogicalPlan leftPlan = ((NestedLoopJoin) operator).lhs;
+        LogicalPlan nl = operator.sources().get(0).sources().get(0);
+        assertThat(nl, instanceOf(NestedLoopJoin.class));
+        LogicalPlan leftPlan = ((NestedLoopJoin) nl).lhs;
         assertThat(leftPlan, instanceOf(HashJoin.class));
 
-        Join join = buildJoin(operator);
+        Join join = buildJoin(nl);
         assertThat(join.joinPhase(), instanceOf(NestedLoopPhase.class));
         assertThat(join.left(), instanceOf(Join.class));
         assertThat(((Join)join.left()).joinPhase(), instanceOf(HashJoinPhase.class));
@@ -431,6 +432,9 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
         Join join = buildJoin(nl);
         assertThat(join.joinPhase(), instanceOf(NestedLoopPhase.class));
+        NestedLoopPhase joinPhase = (NestedLoopPhase) join.joinPhase();
+        assertThat(joinPhase.blockNestedLoop, is(true));
+
 
         assertThat(join.left(), instanceOf(Collect.class));
         // no table switch should have been made
