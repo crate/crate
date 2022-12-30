@@ -21,6 +21,7 @@
 
 package io.crate.planner;
 
+import static io.crate.planner.operators.LogicalPlannerTest.printPlan;
 import static io.crate.testing.Asserts.assertSQL;
 import static io.crate.testing.Asserts.exactlyInstanceOf;
 import static io.crate.testing.Asserts.isFunction;
@@ -90,8 +91,8 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
             exactlyInstanceOf(EvalProjection.class),
             isLimitAndOffset(10, 0),
             exactlyInstanceOf(OrderedLimitAndOffsetProjection.class),
-            exactlyInstanceOf(EvalProjection.class),
-            isLimitAndOffset(3, 0)
+            isLimitAndOffset(3, 0),
+            exactlyInstanceOf(EvalProjection.class)
         );
         assertSQL(projections.get(0).outputs(), "INPUT(0)");
         assertSQL(projections.get(4).outputs(), "INPUT(0)");
