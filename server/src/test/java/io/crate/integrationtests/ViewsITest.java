@@ -32,10 +32,12 @@ import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.crate.testing.UseJdbc;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.test.IntegTestCase;
 import org.hamcrest.Matchers;
@@ -60,6 +62,30 @@ public class ViewsITest extends IntegTestCase {
             execute(String.format("DROP VIEW %s", views));
         }
     }
+
+    @Test
+    public void debug_test_to_be_removed() {
+        execute("CREATE TABLE test1 (testid  INTEGER,  category INTEGER)");
+        execute("INSERT INTO  test1 (testid, category) VALUES (1,1), (2,2)");
+
+        execute("CREATE TABLE testcategories (category INTEGER,description TEXT)");
+        execute("INSERT INTO testcategories VALUES (1,'a'),(2,'b')");
+
+        refresh();
+
+        execute("CREATE VIEW vw_test AS\n" +
+            "SELECT test1.testid\n" +
+            "\t,testcategories.category AS aliasedcategoryid\n" +
+            "\t,testcategories.description\n" +
+            "FROM test1\n" +
+            "INNER JOIN testcategories ON test1.category = testcategories.category;");
+//        execute("SELECT * FROM GENERATE_SERIES(1, 2) CROSS JOIN vw_test LIMIT 100");
+//        assertThat(response.rowCount()).isEqualTo(4L);
+        execute("explain SELECT * FROM GENERATE_SERIES(1, 2) CROSS JOIN vw_test LIMIT 100");
+        assertThat(response.rows()).isEqualTo("ds");
+    }
+
+
 
     @Test
     public void testViewCanBeCreatedSelectedAndThenDropped() {
