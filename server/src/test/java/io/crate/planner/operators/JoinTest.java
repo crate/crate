@@ -349,7 +349,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
                    contains(TEST_DOC_LOCATIONS_TABLE_IDENT));
 
         var join = buildJoin(hashjoin);
-        Asserts.assertThat(((Collect) join.left()).collectPhase().toCollect().get(1)).isReference("loc");
+        Asserts.assertThat(((Collect) join.left()).collectPhase().toCollect().get(0)).isReference("id");
     }
 
     @Test
