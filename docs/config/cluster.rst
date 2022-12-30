@@ -1302,7 +1302,7 @@ The following settings can be used to configure the behavior of the
   number of nodes in the cluster.
   Only set this to a number below the total number of nodes in the cluster
   after checking the number of nodes required for quorum and the number of 
-  replicas configured in your tables. However, 
+  replicas configured in your tables.
 
   .. CAUTION::
 
