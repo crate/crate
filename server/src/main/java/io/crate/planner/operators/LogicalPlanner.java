@@ -460,7 +460,6 @@ public class LogicalPlanner {
                         return rel.accept(this, List.copyOf(toCollect));
                     }
                 },
-                txnCtx.sessionSettings().hashJoinsEnabled(),
                 idAllocator
             );
             Symbol having = relation.having();

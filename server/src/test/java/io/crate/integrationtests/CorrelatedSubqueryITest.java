@@ -297,7 +297,7 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
             "        │  └ SubPlan\n" +
             "        │    └ Eval[oid]\n" +
             "        │      └ Limit[2::bigint;0::bigint]\n" +
-            "        │        └ NestedLoopJoin[INNER | (oid = relnamespace)]\n" +
+            "        │        └ HashJoin[(oid = relnamespace)]\n" +
             "        │          ├ Collect[pg_catalog.pg_class | [oid, relnamespace, relname] | (relname = table_name)]\n" +
             "        │          └ Collect[pg_catalog.pg_namespace | [oid, nspname] | (nspname = table_schema)]\n" +
             "        └ Rename[attname, attrelid] AS col_attr\n" +
@@ -354,7 +354,7 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
             "            └ SubPlan\n" +
             "              └ Eval[oid]\n" +
             "                └ Limit[2::bigint;0::bigint]\n" +
-            "                  └ NestedLoopJoin[INNER | (oid = relnamespace)]\n" +
+            "                  └ HashJoin[(oid = relnamespace)]\n" +
             "                    ├ Collect[pg_catalog.pg_class | [oid, relnamespace, relname] | (relname = table_name)]\n" +
             "                    └ Collect[pg_catalog.pg_namespace | [oid, nspname] | (nspname = table_schema)]\n" +
             "          └ SubPlan\n" +

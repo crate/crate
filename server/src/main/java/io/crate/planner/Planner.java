@@ -160,7 +160,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
 
     private final ClusterService clusterService;
     private final TableStats tableStats;
-    private final LogicalPlanner logicalPlanner;
+    public final LogicalPlanner logicalPlanner;
     private final NumberOfShards numberOfShards;
     private final TableCreator tableCreator;
     private final Schemas schemas;

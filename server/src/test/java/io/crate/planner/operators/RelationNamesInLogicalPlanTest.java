@@ -102,6 +102,7 @@ public class RelationNamesInLogicalPlanTest extends CrateDummyClusterServiceUnit
                                                 false,
                                                 t1Relation,
                                                 false,
+                                                false,
                                                 idAllocator.nextId());
         assertThat(nestedLoopJoin.baseTables(), containsInAnyOrder(t1Relation, t2Relation));
         assertThat(nestedLoopJoin.getRelationNames(), containsInAnyOrder(t1RenamedRelationName, t2RenamedRelationName));

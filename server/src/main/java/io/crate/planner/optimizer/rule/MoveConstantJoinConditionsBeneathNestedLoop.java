@@ -88,7 +88,8 @@ public class MoveConstantJoinConditionsBeneathNestedLoop implements Rule<NestedL
                 nl.topMostLeftRelation(),
                 nl.orderByWasPushedDown(),
                 nl.isRewriteFilterOnOuterJoinToInnerJoinDone(),
-                true, // Mark joinConditionOptimised = true
+                true, // Mark joinConditionOptimised = true,
+                nl.isFinalized(),
                 nl.id()
             );
         } else {

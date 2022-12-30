@@ -34,7 +34,8 @@ import io.crate.statistics.TableStats;
 
 public class OptimizeNestedLoopJoinToHashJoin implements Rule<NestedLoopJoin> {
 
-    private final Pattern<NestedLoopJoin> pattern = typeOf(NestedLoopJoin.class).with(nl -> nl.isOptimized() == false);
+    private final Pattern<NestedLoopJoin> pattern = typeOf(NestedLoopJoin.class)
+        .with(nl -> nl.isFinalized() == false);
 
     @Override
     public Pattern<NestedLoopJoin> pattern() {

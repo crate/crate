@@ -68,7 +68,6 @@ public class JoinPlanBuilder {
                                      List<JoinPair> joinPairs,
                                      SubQueries subQueries,
                                      Function<AnalyzedRelation, LogicalPlan> plan,
-                                     boolean hashJoinEnabled,
                                      LogicalPlanIdAllocator logicalPlanIdAllocator) {
         if (from.size() == 1) {
             LogicalPlan source = subQueries.applyCorrelatedJoin(plan.apply(from.get(0)), logicalPlanIdAllocator);
@@ -155,7 +154,6 @@ public class JoinPlanBuilder {
                 joinPairsByRelations,
                 queryParts,
                 lhs,
-                hashJoinEnabled,
                 logicalPlanIdAllocator
             );
             joinNames.add(nextRel.relationName());
@@ -256,6 +254,7 @@ public class JoinPlanBuilder {
             !query.symbolType().isValueSymbol(),
             lhs,
             false,
+            false,
             logicalPlanIdAllocator.nextId());
     }
 
@@ -277,7 +276,6 @@ public class JoinPlanBuilder {
                                             Map<Set<RelationName>, JoinPair> joinPairs,
                                             Map<Set<RelationName>, Symbol> queryParts,
                                             AnalyzedRelation leftRelation,
-                                            boolean hashJoinEnabled,
                                             LogicalPlanIdAllocator logicalPlanIdAllocator) {
         RelationName nextName = nextRel.relationName();
 

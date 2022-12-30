@@ -80,7 +80,7 @@ public class NestedLoopJoin implements LogicalPlan {
     private boolean rewriteFilterOnOuterJoinToInnerJoinDone = false;
     private final boolean joinConditionOptimised;
     private final LogicalPlanId id;
-    private final boolean isOptimized;
+    private final boolean isFinalized;
 
     NestedLoopJoin(LogicalPlan lhs,
                    LogicalPlan rhs,
@@ -89,7 +89,7 @@ public class NestedLoopJoin implements LogicalPlan {
                    boolean isFiltered,
                    AnalyzedRelation topMostLeftRelation,
                    boolean joinConditionOptimised,
-                   boolean isOptimized,
+                   boolean isFinalized,
                    LogicalPlanId id) {
         this.joinType = joinType;
         this.isFiltered = isFiltered || joinCondition != null;
@@ -105,7 +105,7 @@ public class NestedLoopJoin implements LogicalPlan {
         this.joinCondition = joinCondition;
         this.dependencies = Maps.concat(lhs.dependencies(), rhs.dependencies());
         this.joinConditionOptimised = joinConditionOptimised;
-        this.isOptimized = isOptimized;
+        this.isFinalized = isFinalized;
         this.id = id;
     }
 
@@ -118,7 +118,7 @@ public class NestedLoopJoin implements LogicalPlan {
                           boolean orderByWasPushedDown,
                           boolean rewriteFilterOnOuterJoinToInnerJoinDone,
                           boolean joinConditionOptimised,
-                          boolean isOptimized,
+                          boolean isFinalized,
                           LogicalPlanId id) {
         this(lhs,
              rhs,
@@ -127,7 +127,7 @@ public class NestedLoopJoin implements LogicalPlan {
              isFiltered,
              topMostLeftRelation,
              joinConditionOptimised,
-             isOptimized,
+             isFinalized,
              id);
         this.orderByWasPushedDown = orderByWasPushedDown;
         this.rewriteFilterOnOuterJoinToInnerJoinDone = rewriteFilterOnOuterJoinToInnerJoinDone;
@@ -146,8 +146,8 @@ public class NestedLoopJoin implements LogicalPlan {
         return rhs;
     }
 
-    public boolean isOptimized() {
-        return isOptimized;
+    public boolean isFinalized() {
+        return isFinalized;
     }
 
     public boolean isJoinConditionOptimised() {
@@ -214,8 +214,10 @@ public class NestedLoopJoin implements LogicalPlan {
 
         LogicalPlan leftLogicalPlan = lhs;
         LogicalPlan rightLogicalPlan = rhs;
-        isDistributed = isDistributed &&
-                        (!left.resultDescription().nodeIds().isEmpty() && !right.resultDescription().nodeIds().isEmpty());
+        var leftNodeIds = left.resultDescription().nodeIds();
+        var rightNodeIds = right.resultDescription().nodeIds();
+        boolean isSingleNode = leftNodeIds.size() == 1 && rightNodeIds.size() == 1 && leftNodeIds.equals(rightNodeIds);
+        isDistributed = isDistributed && isSingleNode == false;
         boolean blockNlPossible = !isDistributed && isBlockNlPossible(left, right);
 
         JoinType joinType = this.joinType;
@@ -305,6 +307,7 @@ public class NestedLoopJoin implements LogicalPlan {
             orderByWasPushedDown,
             rewriteFilterOnOuterJoinToInnerJoinDone,
             joinConditionOptimised,
+            isFinalized,
             id
         );
     }
@@ -336,6 +339,7 @@ public class NestedLoopJoin implements LogicalPlan {
             orderByWasPushedDown,
             rewriteFilterOnOuterJoinToInnerJoinDone,
             joinConditionOptimised,
+            isFinalized,
             id
         );
     }
@@ -373,6 +377,7 @@ public class NestedLoopJoin implements LogicalPlan {
                 orderByWasPushedDown,
                 rewriteFilterOnOuterJoinToInnerJoinDone,
                 joinConditionOptimised,
+                isFinalized,
                 id
             )
         );

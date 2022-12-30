@@ -257,6 +257,7 @@ public final class RewriteFilterOnOuterJoinToInnerJoin implements Rule<Filter> {
             nl.orderByWasPushedDown(),
             true,
             false,
+            false,
             nl.id()
         );
         assert newJoin.outputs().equals(nl.outputs()) : "Outputs after rewrite must be the same as before";

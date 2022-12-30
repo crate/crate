@@ -64,7 +64,7 @@ public final class MoveOrderBeneathNestedLoop implements Rule<Order> {
             .with(source(),
                 typeOf(NestedLoopJoin.class)
                     .capturedAs(nlCapture)
-                    .with(nl -> !nl.joinType().isOuter())
+                    .with(nl -> !nl.joinType().isOuter() && nl.isFinalized())
             );
     }
 
@@ -105,6 +105,7 @@ public final class MoveOrderBeneathNestedLoop implements Rule<Order> {
                     true,
                     nestedLoop.isRewriteFilterOnOuterJoinToInnerJoinDone(),
                     false,
+                    nestedLoop.isFinalized(),
                     nestedLoop.id()
                 );
             }
