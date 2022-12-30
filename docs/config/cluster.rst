@@ -1276,7 +1276,7 @@ The following settings can be used to configure the behavior of the
 
   The setting ``gateway.expected_data_nodes`` defines the total number of
   data nodes expected in the cluster. It is evaluated together with 
-  recover_after_data_nodes
+  ``gateway.recover_after_data_nodes``
   to decide if the cluster can proceed with recovery.
 
 .. _gateway.recover_after_time:
