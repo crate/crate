@@ -834,7 +834,7 @@ Recovery expected data nodes
 
 The check for the
 :ref:`gateway.expected_data_nodes <gateway.expected_data_nodes>` setting checks
-if the setting match the actual number of data nodes present in the cluster.
+if the setting matches the actual number of data nodes present in the cluster.
 The value of this settings is checked against 
 :ref:`gateway.recover_after_data_nodes
 <gateway.recover_after_data_nodes>` (or 
