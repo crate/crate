@@ -1283,7 +1283,8 @@ The following settings can be used to configure the behavior of the
 .. _gateway.recover_after_time:
 
 **gateway.recover_after_time**
-  | *Default:*   ``5m`` if ``expected_nodes`` or ``expected_data_nodes`` are set,  ``0ms`` otherwise
+  | *Default:*   ``5m`` if `expected_nodes` or `expected_data_nodes` are set, 
+  ``0ms`` otherwise
   | *Runtime:*  ``no``
 
   The ``gateway.recover_after_time`` setting defines the time to wait before
