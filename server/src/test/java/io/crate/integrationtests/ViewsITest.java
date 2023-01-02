@@ -85,6 +85,16 @@ public class ViewsITest extends IntegTestCase {
         assertThat(response.rows()).isEqualTo("ds");
     }
 
+    @Test
+    public void debug_test2_to_be_removed() {
+        execute("CREATE TABLE t (a INTEGER, b INTEGER)");
+        execute("INSERT INTO t (a, b) VALUES (1, 1), (2, 2)");
+        refresh();
+        execute("explain select  * from t, (select a as al,b from t) t2 order by t2.al limit 10");
+
+        assertThat(response.rows()).isEqualTo("ds");
+    }
+
 
 
     @Test
