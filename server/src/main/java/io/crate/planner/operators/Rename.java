@@ -135,7 +135,7 @@ public final class Rename extends ForwardingLogicalPlan implements FieldResolver
         for (int i = 0; i < outputs.size(); i++) {
             var src = source.outputs().get(i);
             var unwrapped  = source.outputs().get(i).accept(AliasResolver.INSTANCE, null);
-            parentToChildMap.put(outputs.get(i), source.outputs().get(i));
+            parentToChildMap.put(outputs.get(i), unwrapped);
 
             childToParentMap.put(unwrapped, outputs.get(i));
         }
@@ -160,10 +160,10 @@ public final class Rename extends ForwardingLogicalPlan implements FieldResolver
                 newOutputs.add(newMarker);
                 childToParentMap.put(marker, newMarker);
             } else {
-                var outputWithResolvedAlias  = output.accept(AliasResolver.INSTANCE, null);
-                var mapped = childToParentMap.get(outputWithResolvedAlias);
+                var x  = output;
+                var mapped = childToParentMap.get(output);
                 Symbol mappedOutput = requireNonNull(
-                    childToParentMap.get(outputWithResolvedAlias),
+                    childToParentMap.get(output),
                     () -> "Mapping1 must exist for output from source. `" + output + "` is missing in " + childToParentMap
                 );
                 newOutputs.add(mappedOutput);
