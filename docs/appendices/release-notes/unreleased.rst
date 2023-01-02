@@ -197,3 +197,7 @@ Fixes
   consume invalid table names provided in a double-quoted string format
   containing ``.`` such as ``"table.t"`` by mis-interpreting it as
   ``"table"."t"``, which is a two double-quoted strings joined by a ``.``.
+
+- Fixed an issue that caused failures of queries having virtual tables, aliased
+  columns and ``LIMIT`` operators to fail.
+

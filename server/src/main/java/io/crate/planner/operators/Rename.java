@@ -26,7 +26,11 @@ import io.crate.analyze.relations.FieldResolver;
 import io.crate.common.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
-import io.crate.expression.symbol.*;
+import io.crate.expression.symbol.AliasResolver;
+import io.crate.expression.symbol.FetchMarker;
+import io.crate.expression.symbol.ScopedSymbol;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.metadata.RelationName;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
@@ -133,11 +137,10 @@ public final class Rename extends ForwardingLogicalPlan implements FieldResolver
         IdentityHashMap<Symbol, Symbol> parentToChildMap = new IdentityHashMap<>(outputs.size());
         IdentityHashMap<Symbol, Symbol> childToParentMap = new IdentityHashMap<>(outputs.size());
         for (int i = 0; i < outputs.size(); i++) {
-            var src = source.outputs().get(i);
-            var unwrapped  = source.outputs().get(i).accept(AliasResolver.INSTANCE, null);
-            parentToChildMap.put(outputs.get(i), unwrapped);
-
-            childToParentMap.put(unwrapped, outputs.get(i));
+            // unwrappedSource cannot be null as AliasResolver returns same symbol if it's not an alias.
+            var unwrappedSource= source.outputs().get(i).accept(AliasResolver.INSTANCE, null);
+            parentToChildMap.put(outputs.get(i), unwrappedSource);
+            childToParentMap.put(unwrappedSource, outputs.get(i));
         }
         ArrayList<Symbol> mappedUsedColumns = new ArrayList<>();
         for (Symbol usedColumn : usedColumns) {
@@ -160,11 +163,9 @@ public final class Rename extends ForwardingLogicalPlan implements FieldResolver
                 newOutputs.add(newMarker);
                 childToParentMap.put(marker, newMarker);
             } else {
-                var x  = output;
-                var mapped = childToParentMap.get(output);
                 Symbol mappedOutput = requireNonNull(
                     childToParentMap.get(output),
-                    () -> "Mapping1 must exist for output from source. `" + output + "` is missing in " + childToParentMap
+                    () -> "Mapping must exist for output from source. `" + output + "` is missing in " + childToParentMap
                 );
                 newOutputs.add(mappedOutput);
             }
@@ -172,12 +173,12 @@ public final class Rename extends ForwardingLogicalPlan implements FieldResolver
         LinkedHashMap<Symbol, Symbol> replacedOutputs = new LinkedHashMap<>();
         Function<Symbol, Symbol> convertChildrenToScopedSymbols = s -> MapBackedSymbolReplacer.convert(s, childToParentMap);
         for (var entry : fetchRewrite.replacedOutputs().entrySet()) {
+            // Replaced outputs can have unresolved aliases. Resolving them to sync with childToParentMap keys.
             Symbol key = entry.getKey().accept(AliasResolver.INSTANCE, null);
             Symbol value = entry.getValue();
-            var tt =  childToParentMap.get(key);
             Symbol parentSymbolForKey = requireNonNull(
                 childToParentMap.get(key),
-                () -> "Mapping2 must exist for output from source. `" + key + "` is missing in " + childToParentMap
+                () -> "Mapping must exist for output from source. `" + key + "` is missing in " + childToParentMap
             );
             replacedOutputs.put(parentSymbolForKey, convertChildrenToScopedSymbols.apply(value));
         }
