@@ -147,8 +147,9 @@ across the cluster.
 
 .. NOTE::
 
-   Special settings and considerations applied prior to CrateDB version 4.0.0 
-   <https://crate.io/docs/crate/reference/en/5.1/concepts/clustering.html#master-node-election>`_.
+   Special `settings and considerations 
+   <https://crate.io/docs/crate/reference/en/5.1/concepts/clustering.html#master-node-election>`_
+   applied prior to CrateDB version 4.0.0.
 
 .. _concept-discovery:
 
