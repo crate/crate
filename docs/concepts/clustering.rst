@@ -147,39 +147,8 @@ across the cluster.
 
 .. NOTE::
 
-   The following only applies to CrateDB versions 3.x and below. CrateDB
-   versions 4.x and above `determine quorum size automatically
-   <https://crate.io/docs/crate/howtos/en/latest/clustering/multi-node-setup.html#master-node-election>`_.
-
-A minimum number of nodes (referred as a *quorum*) needs to be configured
-to ensure that in case of a
-network partition (when some nodes become unavailable) the cluster
-can elect a master node.
-
-If the quorum is smaller than half the expected nodes in the cluster, and the
-cluster is split in half by a network partition, neither partition will be able to
-elect a new master node.
-
-If the quorum is exactly half the expected nodes in the cluster, and the
-cluster is split in half, both sides of the partition will be able to elect a
-master node. This is known as a `split-brain` scenario, and can lead to data
-loss because the master nodes may disagree with each other when the full
-cluster is restored.
-
-To avoid both of these problems, the quorum must be greater than half the
-expected nodes in the cluster:
-
-  .. code-block:: mathematica
-
-    q = FLOOR(n / 2) + 1
-
-It also helps if your cluster has an odd nodes. That way, no matter how the
-cluster gets split, one side of the split will be able to elect a master node.
-
-For example: a five node cluster should have a quorum set at three. The largest
-network partition would split the cluster into three nodes and two nodes. In
-this scenario, the three node cluster would elect a master node and the two
-node cluster would not.
+   Special settings and considerations applied prior to CrateDB version 4.0.0 
+   <https://crate.io/docs/crate/reference/en/5.1/concepts/clustering.html#master-node-election>`_.
 
 .. _concept-discovery:
 
