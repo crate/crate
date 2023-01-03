@@ -42,8 +42,8 @@
 #    - host2
 
 # Bootstrap the cluster using an initial set of master-eligible nodes. All
-# master-eligible nodes must be set here for new (or upgraded from CrateDB < 4.x)
-# production (non loop-back bound) clusters otherwise the cluster is not able to
+# master-eligible nodes must be set here for clusters upgraded from CrateDB <
+# 4.x which are non loop-back bound, otherwise the cluster is not able to
 # initially vote an initial master node:
 #
 #cluster.initial_master_nodes:
@@ -374,8 +374,8 @@ auth:
 # 'config/log4j2.properties' to help you doing so.
 
 # Bootstrap the cluster using an initial set of master-eligible nodes. All
-# master-eligible nodes must be set here for new (or upgraded from CrateDB < 4.x)
-# production (non loop-back bound) clusters otherwise the cluster is not able to
+# master-eligible nodes must be set here for clusters upgraded from CrateDB <
+# 4.x which are non loop-back bound, otherwise the cluster is not able to
 # initially vote an initial master node:
 #
 #cluster.initial_master_nodes: ["host1", "host2"]
