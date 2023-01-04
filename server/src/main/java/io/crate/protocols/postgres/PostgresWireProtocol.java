@@ -190,8 +190,8 @@ public class PostgresWireProtocol {
     private static final Logger LOGGER = LogManager.getLogger(PostgresWireProtocol.class);
     private static final String PASSWORD_AUTH_NAME = "password";
 
-    public static int SERVER_VERSION_NUM = 110000;
-    public static String PG_SERVER_VERSION = "11.0";
+    public static int SERVER_VERSION_NUM = 140000;
+    public static String PG_SERVER_VERSION = "14.0";
 
     final PgDecoder decoder;
     final MessageHandler handler;

@@ -54,8 +54,12 @@ None
 Changes
 =======
 
+- Bumped the version of PostgreSQL wire protocol to ``14`` since ``10`` has been
+  deprecated.
+
 - Allow casts in both forms: ``CAST(<literal or parameter> AS <datatype>)`` and
   ``<literal or parameter>::<datatype>`` for ``LIMIT`` and ``OFFSET`` clauses,
+
   e.g.::
 
     SELECT * FROM test OFFSET CAST(? AS long) LIMIT '20'::int
