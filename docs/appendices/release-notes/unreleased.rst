@@ -67,6 +67,9 @@ Changes
 
 - Allowed schema and table names to start with ``_``.
 
+- Improved the performance of queries using a correlated sub-query inside the
+  ``WHERE`` clause in conjunction with a non-correlated filter clause.
+
 Fixes
 =====
 
