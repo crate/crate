@@ -90,7 +90,7 @@ should be crossed out as well.
 - [ ] 33f703ef1f8 Fix up roles after rolling upgrade (#64693)
 - [s] 51e9d6f2275 Revert Serializing Outbound Transport Messages on IO Threads (#64632) (#64654)
 - [ ] dad3b26560c Fix Typo in Repository Exception Message (#64412) (#64434)
-- [ ] 2983584ef6e Fix #invariant Assertion in CacheFile (#64180) (#64264)
+- [su] 2983584ef6e Fix #invariant Assertion in CacheFile (#64180) (#64264)
 - [ ] a697d5edae1 Don't Generate an Index Setting History UUID unless it's Supported (#64164) (#64213)
 - [su] e02561476ea Fix Broken Clone Snapshot CS Update (#64116) (#64159)
 - [su] bdea16301d7 Fix testMasterFailoverDuringCloneStep1 (#63580) (#64127)
