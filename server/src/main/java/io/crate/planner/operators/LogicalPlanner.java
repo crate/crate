@@ -85,6 +85,7 @@ import io.crate.planner.optimizer.rule.MergeAggregateRenameAndCollectToCount;
 import io.crate.planner.optimizer.rule.MergeFilterAndCollect;
 import io.crate.planner.optimizer.rule.MergeFilters;
 import io.crate.planner.optimizer.rule.MoveConstantJoinConditionsBeneathNestedLoop;
+import io.crate.planner.optimizer.rule.MoveFilterBeneathCorrelatedJoin;
 import io.crate.planner.optimizer.rule.MoveFilterBeneathFetchOrEval;
 import io.crate.planner.optimizer.rule.MoveFilterBeneathGroupBy;
 import io.crate.planner.optimizer.rule.MoveFilterBeneathJoin;
@@ -132,6 +133,7 @@ public class LogicalPlanner {
                 new MoveFilterBeneathOrder(),
                 new MoveFilterBeneathProjectSet(),
                 new MoveFilterBeneathJoin(),
+                new MoveFilterBeneathCorrelatedJoin(),
                 new MoveFilterBeneathUnion(),
                 new MoveFilterBeneathGroupBy(),
                 new MoveFilterBeneathWindowAgg(),
