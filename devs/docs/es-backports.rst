@@ -115,7 +115,7 @@ should be crossed out as well.
 - [ ] ca68298e89c Remove MapperService argument from IndexFieldData.Builder#build (#63197) (#63311)
 - [ ] 7405af8060b Convert TypeFieldType to a constant field type (#63214)
 - [ ] d7f6812d788 Improve Snapshot Abort Efficiency (#62173) (#63297)
-- [ ] 25fbc014598 Retry CCR shard follow task when no seed node left (#63225)
+- [su] 25fbc014598 Retry CCR shard follow task when no seed node left (#63225)
 - [su] 5c3a4c13ddd Clone Snapshot API (#61839) (#63291)
 - [ ] e91936512aa Refactor SnapshotsInProgress State Transitions (#60517) (#63266)
 - [su] 860791260df Implement Shard Snapshot Clone Logic (#62771) (#63260)
