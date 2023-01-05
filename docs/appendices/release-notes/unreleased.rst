@@ -93,3 +93,8 @@ Fixes
   consume invalid table names provided in a double-quoted string format
   containing ``.`` such as ``"table.t"`` by mis-interpreting it as
   ``"table"."t"``, which is a two double-quoted strings joined by a ``.``.
+
+- Fixed an issue that caused failure of the statements containing comparison of
+  :ref:`bit <data-type-bit>` strings with different length. An example::
+
+     SELECT B'01' = B'1'
