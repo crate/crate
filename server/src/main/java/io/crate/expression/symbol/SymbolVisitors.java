@@ -144,10 +144,11 @@ public class SymbolVisitors {
 
         @Override
         public Void visitAlias(AliasSymbol aliasSymbol, Void context) {
-            if (haystack.contains(aliasSymbol)) {
+            if (haystack.contains(aliasSymbol) || haystack.contains(aliasSymbol.symbol())) {
+                // We want consumer to receive original AliasSymbol.
+                // We check aliasSymbol.symbol() containing here as well to avoid auto-unwrapping of the alias.
+                // Calling aliasSymbol.symbol().accept(this, context) would lead consumer to take unwrapped symbol in the visitSymbol().
                 consumer.accept((T) aliasSymbol);
-            } else {
-                aliasSymbol.symbol().accept(this, context);
             }
             return null;
         }
