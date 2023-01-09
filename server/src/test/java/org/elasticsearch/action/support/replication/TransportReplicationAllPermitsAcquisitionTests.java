@@ -613,11 +613,6 @@ public class TransportReplicationAllPermitsAcquisitionTests extends IndexShardTe
         return new TransportChannel() {
 
             @Override
-            public String getProfileName() {
-                return "";
-            }
-
-            @Override
             public void sendResponse(TransportResponse response) throws IOException {
                 listener.onResponse(((Response) response));
             }

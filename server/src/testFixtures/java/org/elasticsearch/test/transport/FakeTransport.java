@@ -19,6 +19,9 @@
 
 package org.elasticsearch.test.transport;
 
+import java.util.Collections;
+import java.util.List;
+
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
@@ -31,10 +34,6 @@ import org.elasticsearch.transport.TransportMessageListener;
 import org.elasticsearch.transport.TransportRequest;
 import org.elasticsearch.transport.TransportRequestOptions;
 import org.elasticsearch.transport.TransportStats;
-
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
 
 /**
  * A transport that does nothing. Normally wrapped by {@link StubbableTransport}.
@@ -55,11 +54,6 @@ public class FakeTransport extends AbstractLifecycleComponent implements Transpo
 
     @Override
     public BoundTransportAddress boundAddress() {
-        return null;
-    }
-
-    @Override
-    public Map<String, BoundTransportAddress> profileBoundAddresses() {
         return null;
     }
 

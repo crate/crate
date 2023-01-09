@@ -206,7 +206,6 @@ public class PgClient extends AbstractClient {
         Netty4TcpChannel nettyChannel = new Netty4TcpChannel(
             channel,
             false,
-            "default",
             connectFuture
         );
         channel.attr(Netty4Transport.CHANNEL_KEY).set(nettyChannel);

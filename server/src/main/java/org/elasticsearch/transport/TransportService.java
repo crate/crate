@@ -211,9 +211,6 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
         transport.start();
         if (transport.boundAddress() != null && LOGGER.isInfoEnabled()) {
             LOGGER.info("{}", transport.boundAddress());
-            for (Map.Entry<String, BoundTransportAddress> entry : transport.profileBoundAddresses().entrySet()) {
-                LOGGER.info("profile [{}]: {}", entry.getKey(), entry.getValue());
-            }
         }
         localNode = localNodeFactory.apply(transport.boundAddress());
     }
@@ -1079,11 +1076,6 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
             this.requestId = requestId;
             this.service = service;
             this.threadPool = threadPool;
-        }
-
-        @Override
-        public String getProfileName() {
-            return DIRECT_RESPONSE_PROFILE;
         }
 
         @Override

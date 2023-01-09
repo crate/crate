@@ -19,17 +19,6 @@
 
 package org.elasticsearch.transport;
 
-import io.crate.common.collections.MapBuilder;
-import org.elasticsearch.Version;
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.component.LifecycleComponent;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Setting.Property;
-import org.elasticsearch.common.transport.BoundTransportAddress;
-import org.elasticsearch.common.transport.TransportAddress;
-import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
-
 import java.io.Closeable;
 import java.io.IOException;
 import java.net.UnknownHostException;
@@ -40,6 +29,18 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.common.component.LifecycleComponent;
+import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Setting.Property;
+import org.elasticsearch.common.transport.BoundTransportAddress;
+import org.elasticsearch.common.transport.TransportAddress;
+import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
+
+import io.crate.common.collections.MapBuilder;
 
 public interface Transport extends LifecycleComponent {
 
@@ -58,12 +59,6 @@ public interface Transport extends LifecycleComponent {
      * The address the transport is bound on.
      */
     BoundTransportAddress boundAddress();
-
-    /**
-     * Further profile bound addresses
-     * @return <code>null</code> iff profiles are unsupported, otherwise a map with name of profile and its bound transport address
-     */
-    Map<String, BoundTransportAddress> profileBoundAddresses();
 
     /**
      * Returns an address from its string representation.

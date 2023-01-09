@@ -19,11 +19,11 @@
 
 package org.elasticsearch.transport;
 
-import org.elasticsearch.Version;
-import org.elasticsearch.common.lease.Releasable;
-
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.common.lease.Releasable;
 
 public final class TcpTransportChannel implements TransportChannel {
 
@@ -53,11 +53,6 @@ public final class TcpTransportChannel implements TransportChannel {
         this.compressResponse = compressResponse;
         this.isHandshake = isHandshake;
         this.breakerRelease = breakerRelease;
-    }
-
-    @Override
-    public String getProfileName() {
-        return channel.getProfile();
     }
 
     @Override

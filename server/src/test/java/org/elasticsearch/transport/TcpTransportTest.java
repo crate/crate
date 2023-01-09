@@ -116,33 +116,6 @@ public class TcpTransportTest extends ESTestCase {
             "127.0.0.1:4300", "127.0.0.1:4301", "127.0.0.1:4302"));
     }
 
-    public void testDefaultSeedAddressesWithNonstandardProfilePortRange() {
-        testDefaultSeedAddresses(Settings.builder()
-                                     .put(TransportSettings.PORT_PROFILE.getConcreteSettingForNamespace(TransportSettings.DEFAULT_PROFILE).getKey(), "4500-4600")
-                                     .build(),
-                                 containsInAnyOrder(
-                                     "[::1]:4500", "[::1]:4501", "[::1]:4502", "[::1]:4503", "[::1]:4504", "[::1]:4505",
-                                     "127.0.0.1:4500", "127.0.0.1:4501", "127.0.0.1:4502", "127.0.0.1:4503", "127.0.0.1:4504", "127.0.0.1:4505"));
-    }
-
-    public void testDefaultSeedAddressesWithSmallProfilePortRange() {
-        testDefaultSeedAddresses(Settings.builder()
-                                     .put(TransportSettings.PORT_PROFILE.getConcreteSettingForNamespace(TransportSettings.DEFAULT_PROFILE).getKey(), "4300-4302")
-                                     .build(),
-                                 containsInAnyOrder(
-                                     "[::1]:4300", "[::1]:4301", "[::1]:4302",
-                                     "127.0.0.1:4300", "127.0.0.1:4301", "127.0.0.1:4302"));
-    }
-
-    public void testDefaultSeedAddressesPrefersProfileSettingToGlobalSetting() {
-        testDefaultSeedAddresses(Settings.builder()
-                                     .put(TransportSettings.PORT_PROFILE.getConcreteSettingForNamespace(TransportSettings.DEFAULT_PROFILE).getKey(), "4300-4302")
-                                     .put(TransportSettings.PORT.getKey(), "4500-4600")
-                                     .build(),
-                                 containsInAnyOrder(
-                                     "[::1]:4300", "[::1]:4301", "[::1]:4302",
-                                     "127.0.0.1:4300", "127.0.0.1:4301", "127.0.0.1:4302"));
-    }
 
     public void testDefaultSeedAddressesWithNonstandardSinglePort() {
         testDefaultSeedAddresses(Settings.builder().put(TransportSettings.PORT.getKey(), "4500").build(),
@@ -186,7 +159,7 @@ public class TcpTransportTest extends ESTestCase {
                                                                new NetworkService(Collections.emptyList())) {
 
                 @Override
-                protected TcpServerChannel bind(String name, InetSocketAddress address) {
+                protected TcpServerChannel bind(InetSocketAddress address) {
                     throw new UnsupportedOperationException();
                 }
 
