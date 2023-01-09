@@ -21,7 +21,6 @@ package org.elasticsearch.cluster;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -119,11 +118,11 @@ public class ClusterModule extends AbstractModule {
         return entries;
     }
 
-    static final Set<String> PRE_6_3_METADATA_CUSTOMS_WHITE_LIST = Collections.unmodifiableSet(Set.of(
-        IndexGraveyard.TYPE, RepositoriesMetadata.TYPE));
+    static final Set<String> PRE_6_3_METADATA_CUSTOMS_WHITE_LIST = Set.of(
+        IndexGraveyard.TYPE, RepositoriesMetadata.TYPE);
 
-    static final Set<String> PRE_6_3_CLUSTER_CUSTOMS_WHITE_LIST = Collections.unmodifiableSet(Set.of(
-        RestoreInProgress.TYPE, SnapshotDeletionsInProgress.TYPE, SnapshotsInProgress.TYPE));
+    static final Set<String> PRE_6_3_CLUSTER_CUSTOMS_WHITE_LIST = Set.of(
+        RestoreInProgress.TYPE, SnapshotDeletionsInProgress.TYPE, SnapshotsInProgress.TYPE);
 
     /**
      * For interoperability with transport clients older than 6.3, we need to strip customs
