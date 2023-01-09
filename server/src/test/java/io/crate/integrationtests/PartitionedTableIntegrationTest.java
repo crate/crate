@@ -26,6 +26,7 @@ import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
 import static io.crate.Constants.DEFAULT_MAPPING_TYPE;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.protocols.postgres.PGErrorStatus.UNIQUE_VIOLATION;
+import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.printedTable;
@@ -208,13 +209,14 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
     @Test
     public void testSelectFromClosedPartition() throws Exception {
         execute("create table t (n integer) partitioned by (n)");
-        ensureGreen();
         execute("insert into t (n) values (1)");
         refresh();
 
         execute("alter table t partition (n = 1) close");
-        waitNoPendingTasksOnAll(); // ensure close got processed on all shard copies
-
+        assertBusy(() -> {
+            assertThat(execute("select closed from information_schema.table_partitions where table_name = 't'"))
+                .hasRows($(true));
+        });
         execute("select count(*) from t");
         assertEquals(0L, response.rows()[0][0]);
     }
