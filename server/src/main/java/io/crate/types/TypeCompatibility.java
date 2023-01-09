@@ -100,15 +100,13 @@ public final class TypeCompatibility {
                 }
             }
             return null;
-        } else {
-            if ((fromType.id() == StringType.ID && toType.id() == StringType.ID)
-                || (fromType.id() == CharacterType.ID && toType.id() == CharacterType.ID)) {
-                if (((StringType) fromType).lengthLimit() > ((StringType) toType).lengthLimit()) {
-                    return fromType;
-                } else {
-                    return toType;
-                }
+        } else if (fromType.id() == toType.id() 
+                   && fromType.characterMaximumLength() != null 
+                   && toType.characterMaximumLength() != null) {
+            if (fromType.characterMaximumLength() > toType.characterMaximumLength()) {
+                return fromType;
             }
+            return toType;
         }
 
         for (int i = 0; i < fromTypeParameters.size(); i++) {

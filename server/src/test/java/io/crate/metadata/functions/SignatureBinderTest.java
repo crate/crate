@@ -38,6 +38,7 @@ import javax.annotation.Nullable;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
+import io.crate.types.BitStringType;
 import io.crate.types.CharacterType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -307,6 +308,20 @@ public class SignatureBinderTest extends ESTestCase {
             .boundTo(CharacterType.of(1), CharacterType.of(2))
             .produces(new BoundVariables(
                 Map.of("E", type(CharacterType.of(2).getTypeSignature().toString()))));
+    }
+
+    @Test
+    public void test_bind_type_bit_types_binds_type_with_highest_length() {
+        var signature = functionSignature()
+            .argumentTypes(parseTypeSignature("E"), parseTypeSignature("E"))
+            .returnType(DataTypes.BOOLEAN.getTypeSignature())
+            .typeVariableConstraints(List.of(typeVariable("E")))
+            .build();
+
+        assertThatSignature(signature)
+            .boundTo(new BitStringType(1), new BitStringType(2))
+            .produces(new BoundVariables(
+                Map.of("E", type(new BitStringType(2).getTypeSignature().toString()))));
     }
 
     @Test
