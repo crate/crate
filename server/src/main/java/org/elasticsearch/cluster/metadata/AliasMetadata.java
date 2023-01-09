@@ -36,7 +36,6 @@ import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentParser;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 
@@ -63,7 +62,7 @@ public class AliasMetadata extends AbstractDiffable<AliasMetadata> implements To
         this.indexRouting = indexRouting;
         this.searchRouting = searchRouting;
         if (searchRouting != null) {
-            searchRoutingValues = Collections.unmodifiableSet(Set.of(Strings.splitStringByCommaToArray(searchRouting)));
+            searchRoutingValues = Set.of(Strings.splitStringByCommaToArray(searchRouting));
         } else {
             searchRoutingValues = emptySet();
         }
@@ -184,7 +183,7 @@ public class AliasMetadata extends AbstractDiffable<AliasMetadata> implements To
         }
         if (in.readBoolean()) {
             searchRouting = in.readString();
-            searchRoutingValues = Collections.unmodifiableSet(Set.of(Strings.splitStringByCommaToArray(searchRouting)));
+            searchRoutingValues = Set.of(Strings.splitStringByCommaToArray(searchRouting));
         } else {
             searchRouting = null;
             searchRoutingValues = emptySet();
