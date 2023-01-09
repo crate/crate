@@ -41,7 +41,6 @@ import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.MasterNodeRequest;
 import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -62,9 +61,7 @@ import io.crate.Constants;
  */
 public class PutIndexTemplateRequest extends MasterNodeRequest<PutIndexTemplateRequest> implements IndicesRequest {
 
-    private String name;
-
-    private String cause = "";
+    private final String name;
 
     private List<String> indexPatterns;
 
@@ -80,22 +77,11 @@ public class PutIndexTemplateRequest extends MasterNodeRequest<PutIndexTemplateR
 
     private Integer version;
 
-    public PutIndexTemplateRequest() {
-    }
-
     /**
      * Constructs a new put index template request with the provided name.
      */
     public PutIndexTemplateRequest(String name) {
         this.name = name;
-    }
-
-    /**
-     * Sets the name of the index template.
-     */
-    public PutIndexTemplateRequest name(String name) {
-        this.name = name;
-        return this;
     }
 
     /**
@@ -188,45 +174,6 @@ public class PutIndexTemplateRequest extends MasterNodeRequest<PutIndexTemplateR
     }
 
     /**
-     * The cause for this index template creation.
-     */
-    public PutIndexTemplateRequest cause(String cause) {
-        this.cause = cause;
-        return this;
-    }
-
-    public String cause() {
-        return this.cause;
-    }
-
-    /**
-     * Adds mapping that will be added when the index gets created.
-     *
-     * @param type   The mapping type
-     * @param source The mapping source
-     */
-    public PutIndexTemplateRequest mapping(XContentBuilder source) {
-        return mapping(BytesReference.bytes(source), source.contentType());
-    }
-
-    /**
-     * Adds mapping that will be added when the index gets created.
-     *
-     * @param type   The mapping type
-     * @param source The mapping source
-     * @param xContentType the source content type
-     */
-    public PutIndexTemplateRequest mapping(BytesReference source, XContentType xContentType) {
-        Objects.requireNonNull(xContentType);
-        try {
-            mapping = XContentHelper.convertToJson(source, xContentType);
-            return this;
-        } catch (IOException e) {
-            throw new UncheckedIOException("failed to convert source to json", e);
-        }
-    }
-
-    /**
      * Adds mapping that will be added when the index gets created.
      *
      * @param type   The mapping type
@@ -240,7 +187,14 @@ public class PutIndexTemplateRequest extends MasterNodeRequest<PutIndexTemplateR
         try {
             XContentBuilder builder = XContentFactory.contentBuilder(XContentType.JSON);
             builder.map(source);
-            return mapping(builder);
+            XContentType xContentType = builder.contentType();
+            Objects.requireNonNull(xContentType);
+            try {
+                mapping = XContentHelper.convertToJson(BytesReference.bytes(builder), xContentType);
+                return this;
+            } catch (IOException e) {
+                throw new UncheckedIOException("failed to convert source to json", e);
+            }
         } catch (IOException e) {
             throw new ElasticsearchGenerationException("Failed to generate [" + source + "]", e);
         }
@@ -326,20 +280,6 @@ public class PutIndexTemplateRequest extends MasterNodeRequest<PutIndexTemplateR
     /**
      * Sets the aliases that will be associated with the index when it gets created
      */
-    public PutIndexTemplateRequest aliases(XContentBuilder source) {
-        return aliases(BytesReference.bytes(source));
-    }
-
-    /**
-     * Sets the aliases that will be associated with the index when it gets created
-     */
-    public PutIndexTemplateRequest aliases(String source) {
-        return aliases(new BytesArray(source));
-    }
-
-    /**
-     * Sets the aliases that will be associated with the index when it gets created
-     */
     public PutIndexTemplateRequest aliases(BytesReference source) {
         // EMPTY is safe here because we never call namedObject
         try (XContentParser parser = XContentHelper
@@ -378,7 +318,9 @@ public class PutIndexTemplateRequest extends MasterNodeRequest<PutIndexTemplateR
 
     public PutIndexTemplateRequest(StreamInput in) throws IOException {
         super(in);
-        cause = in.readString();
+        if (in.getVersion().before(Version.V_5_2_0)) {
+            in.readString(); // cause
+        }
         name = in.readString();
 
         indexPatterns = in.readList(StreamInput::readString);
@@ -405,7 +347,10 @@ public class PutIndexTemplateRequest extends MasterNodeRequest<PutIndexTemplateR
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        out.writeString(cause);
+        if (out.getVersion().before(Version.V_5_2_0)) {
+            // cause
+            out.writeString("");
+        }
         out.writeString(name);
         out.writeStringCollection(indexPatterns);
         out.writeInt(order);
