@@ -19,6 +19,8 @@
 
 package org.elasticsearch.transport;
 
+import java.io.IOException;
+
 import org.elasticsearch.Version;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesArray;
@@ -29,14 +31,17 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
 
-import java.io.IOException;
-
-abstract class OutboundMessage extends NetworkMessage {
+abstract class OutboundMessage {
 
     private final Writeable message;
+    protected final Version version;
+    protected final long requestId;
+    protected final byte status;
 
     OutboundMessage(Version version, byte status, long requestId, Writeable message) {
-        super(version, status, requestId);
+        this.version = version;
+        this.status = status;
+        this.requestId = requestId;
         this.message = message;
     }
 
