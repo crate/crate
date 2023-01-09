@@ -48,7 +48,6 @@ import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
-import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.NamedWriteableAwareStreamInput;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
@@ -444,15 +443,13 @@ public class ClusterState implements ToXContentFragment, Diffable<ClusterState> 
                 builder.endObject();
 
                 builder.startObject("mappings");
-                for (ObjectObjectCursor<String, CompressedXContent> cursor1 : templateMetadata.mappings()) {
-                    Map<String, Object> mapping = XContentHelper.convertToMap(cursor1.value.uncompressed(), false).map();
-                    if (mapping.size() == 1 && mapping.containsKey(cursor1.key)) {
-                        // the type name is the root value, reduce it
-                        mapping = (Map<String, Object>) mapping.get(cursor1.key);
-                    }
-                    builder.field(cursor1.key);
-                    builder.map(mapping);
+                Map<String, Object> mapping = XContentHelper.convertToMap(templateMetadata.mapping().uncompressed(), false).map();
+                if (mapping.size() == 1 && mapping.containsKey(Constants.DEFAULT_MAPPING_TYPE)) {
+                    // the type name is the root value, reduce it
+                    mapping = (Map<String, Object>) mapping.get(Constants.DEFAULT_MAPPING_TYPE);
                 }
+                builder.field(Constants.DEFAULT_MAPPING_TYPE);
+                builder.map(mapping);
                 builder.endObject();
 
 

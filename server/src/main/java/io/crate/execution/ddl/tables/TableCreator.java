@@ -21,10 +21,11 @@
 
 package io.crate.execution.ddl.tables;
 
-import io.crate.Constants;
-import io.crate.analyze.BoundCreateTable;
-import io.crate.exceptions.Exceptions;
-import io.crate.exceptions.SQLExceptions;
+import java.util.Collections;
+import java.util.concurrent.CompletableFuture;
+
+import javax.annotation.Nullable;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ResourceAlreadyExistsException;
@@ -34,9 +35,9 @@ import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateReque
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
-import javax.annotation.Nullable;
-import java.util.Collections;
-import java.util.concurrent.CompletableFuture;
+import io.crate.analyze.BoundCreateTable;
+import io.crate.exceptions.Exceptions;
+import io.crate.exceptions.SQLExceptions;
 
 @Singleton
 public class TableCreator {
@@ -62,7 +63,7 @@ public class TableCreator {
             )
             : new CreateTableRequest(
                 new PutIndexTemplateRequest(templateName)
-                    .mapping(Constants.DEFAULT_MAPPING_TYPE, createTable.mapping())
+                    .mapping(createTable.mapping())
                     .create(true)
                     .settings(createTable.tableParameter().settings())
                     .patterns(Collections.singletonList(createTable.templatePrefix()))

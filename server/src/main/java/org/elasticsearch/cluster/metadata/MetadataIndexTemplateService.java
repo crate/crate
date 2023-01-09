@@ -25,11 +25,9 @@ import static org.elasticsearch.indices.cluster.IndicesClusterStateService.Alloc
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
@@ -254,21 +252,14 @@ public class MetadataIndexTemplateService {
 
             templateBuilder.settings(templateSettingsBuilder.build());
 
-            Map<String, Map<String, Object>> mappingsForValidation = new HashMap<>();
-            for (Map.Entry<String, String> entry : request.mappings.entrySet()) {
+            if (request.mapping != null) {
                 try {
-                    templateBuilder.putMapping(entry.getKey(), entry.getValue());
+                    templateBuilder.putMapping(request.mapping);
                 } catch (Exception e) {
-                    throw new MapperParsingException("Failed to parse mapping [{}]: {}", e, entry.getKey(), e.getMessage());
+                    throw new MapperParsingException("Failed to parse mapping: {}", e, e.getMessage());
                 }
-                mappingsForValidation.put(entry.getKey(), MapperService.parseMapping(xContentRegistry, entry.getValue()));
+                dummyIndexService.mapperService().merge(MapperService.parseMapping(xContentRegistry, request.mapping), MergeReason.MAPPING_UPDATE);
             }
-            if (mappingsForValidation.isEmpty() == false) {
-                assert mappingsForValidation.size() == 1;
-                String type = mappingsForValidation.keySet().iterator().next();
-                dummyIndexService.mapperService().merge(mappingsForValidation.get(type), MergeReason.MAPPING_UPDATE);
-            }
-
         } finally {
             if (createdIndex != null) {
                 indicesService.removeIndex(createdIndex, NO_LONGER_ASSIGNED, " created for parsing template mapping");
@@ -352,7 +343,7 @@ public class MetadataIndexTemplateService {
         Integer version;
         List<String> indexPatterns;
         Settings settings = Settings.Builder.EMPTY_SETTINGS;
-        Map<String, String> mappings = new HashMap<>();
+        String mapping;
         List<Alias> aliases = new ArrayList<>();
 
         TimeValue masterTimeout = MasterNodeRequest.DEFAULT_MASTER_NODE_TIMEOUT;
@@ -382,18 +373,13 @@ public class MetadataIndexTemplateService {
             return this;
         }
 
-        public PutRequest mappings(Map<String, String> mappings) {
-            this.mappings.putAll(mappings);
+        public PutRequest mapping(String mapping) {
+            this.mapping = mapping;
             return this;
         }
 
         public PutRequest aliases(Set<Alias> aliases) {
             this.aliases.addAll(aliases);
-            return this;
-        }
-
-        public PutRequest putMapping(String mappingType, String mappingSource) {
-            mappings.put(mappingType, mappingSource);
             return this;
         }
 

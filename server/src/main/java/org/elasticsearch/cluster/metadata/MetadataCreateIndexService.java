@@ -70,7 +70,6 @@ import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.ValidationException;
-import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.io.PathUtils;
 import org.elasticsearch.common.logging.DeprecationLogger;
 import org.elasticsearch.common.settings.IndexScopedSettings;
@@ -95,7 +94,6 @@ import org.elasticsearch.threadpool.ThreadPool;
 
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
-import io.crate.Constants;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
@@ -339,16 +337,9 @@ public class MetadataCreateIndexService {
                     // apply templates, merging the mappings into the request mapping if exists
                     for (IndexTemplateMetadata template : templates) {
                         templateNames.add(template.getName());
-                        for (ObjectObjectCursor<String, CompressedXContent> cursor : template.mappings()) {
-                            String mappingString = cursor.value.string();
-                            String mappingType = cursor.key;
-                            if (mappingType.equals(Constants.DEFAULT_MAPPING_TYPE)) {
-                                XContentHelper.mergeDefaults(mapping,
-                                    MapperService.parseMapping(xContentRegistry, mappingString));
-                            } else {
-                                throw new IllegalStateException("Unexpected mapping type: " + mappingType);
-                            }
-                        }
+                        String mappingString = template.mapping().string();
+                        XContentHelper.mergeDefaults(mapping,
+                            MapperService.parseMapping(xContentRegistry, mappingString));
                         //handle aliases
                         for (ObjectObjectCursor<String, AliasMetadata> cursor : template.aliases()) {
                             AliasMetadata aliasMetadata = cursor.value;

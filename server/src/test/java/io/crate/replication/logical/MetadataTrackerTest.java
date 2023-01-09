@@ -150,6 +150,7 @@ public class MetadataTrackerTest extends ESTestCase {
                 .patterns(Collections.singletonList(PartitionName.templatePrefix(relation.schema(), relation.name())))
                 .order(100)
                 .putAlias(AliasMetadata.builder(relation.indexNameOrAlias()))
+                .putMapping("{\"default\": {}}")
                 .build();
 
             clusterState = ClusterState.builder(clusterState)

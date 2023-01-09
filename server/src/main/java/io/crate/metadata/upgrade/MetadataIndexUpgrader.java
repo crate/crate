@@ -104,7 +104,7 @@ public class MetadataIndexUpgrader implements BiFunction<IndexMetadata, IndexTem
      */
     private void upgradeColumnPositions(Map<String, Object> defaultMap, @Nullable IndexTemplateMetadata indexTemplateMetadata) {
         if (indexTemplateMetadata != null) {
-            MetadataMappingService.populateColumnPositions(defaultMap, indexTemplateMetadata.getMappings().get("default"));
+            MetadataMappingService.populateColumnPositions(defaultMap, indexTemplateMetadata.mapping());
         } else {
             IndexTemplateUpgrader.populateColumnPositions(defaultMap);
         }

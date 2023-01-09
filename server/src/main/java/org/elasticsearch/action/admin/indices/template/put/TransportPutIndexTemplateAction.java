@@ -19,6 +19,8 @@
 
 package org.elasticsearch.action.admin.indices.template.put;
 
+import java.io.IOException;
+
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
@@ -35,8 +37,6 @@ import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
-
-import java.io.IOException;
 
 /**
  * Put index template action.
@@ -77,18 +77,14 @@ public class TransportPutIndexTemplateAction extends TransportMasterNodeAction<P
     public void masterOperation(final PutIndexTemplateRequest request,
                                 final ClusterState state,
                                 final ActionListener<AcknowledgedResponse> listener) {
-        String cause = request.cause();
-        if (cause.length() == 0) {
-            cause = "api";
-        }
         final Settings.Builder templateSettingsBuilder = Settings.builder();
         templateSettingsBuilder.put(request.settings()).normalizePrefix(IndexMetadata.INDEX_SETTING_PREFIX);
         indexScopedSettings.validate(templateSettingsBuilder.build(), true); // templates must be consistent with regards to dependencies
-        indexTemplateService.putTemplate(new MetadataIndexTemplateService.PutRequest(cause, request.name())
+        indexTemplateService.putTemplate(new MetadataIndexTemplateService.PutRequest("api", request.name())
                 .patterns(request.patterns())
                 .order(request.order())
                 .settings(templateSettingsBuilder.build())
-                .mappings(request.mappings())
+                .mapping(request.mapping())
                 .aliases(request.aliases())
                 .create(request.create())
                 .masterTimeout(request.masterNodeTimeout())
