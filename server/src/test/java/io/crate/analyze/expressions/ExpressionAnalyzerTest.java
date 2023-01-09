@@ -32,6 +32,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import io.crate.types.BitStringType;
 import org.joda.time.Period;
 import org.junit.Before;
 import org.junit.Test;
@@ -385,6 +386,17 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(eq.arguments()).satisfiesExactly(
             s -> assertThat(s).hasDataType(DataTypes.STRING),
             s -> assertThat(s).hasDataType(DataTypes.STRING));
+    }
+
+    @Test
+    public void test_resolve_eq_function_for_bit_types_with_different_length() throws IOException {
+        var e = SQLExecutor.builder(clusterService)
+            .addTable("create table tbl (b bit(3))")
+            .build();
+        var eq = (Function) e.asSymbol("tbl.b = B'1'");
+        assertThat(eq.arguments()).satisfiesExactly(
+            s -> assertThat(s).hasDataType(new BitStringType(3)),
+            s -> assertThat(s).hasDataType(new BitStringType(3)));
     }
 
     @Test
