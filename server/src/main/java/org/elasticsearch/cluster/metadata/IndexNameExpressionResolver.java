@@ -353,26 +353,16 @@ public class IndexNameExpressionResolver {
 
         private final Metadata metadata;
         private final IndicesOptions options;
-        private final long startTime;
         private final boolean preserveAliases;
         private final boolean resolveToWriteIndex;
 
         Context(Metadata metadata, IndicesOptions options) {
-            this(metadata, options, System.currentTimeMillis());
+            this(metadata, options, false, false);
         }
 
         Context(Metadata metadata, IndicesOptions options, boolean preserveAliases, boolean resolveToWriteIndex) {
-            this(metadata, options, System.currentTimeMillis(), preserveAliases, resolveToWriteIndex);
-        }
-
-        Context(Metadata metadata, IndicesOptions options, long startTime) {
-            this(metadata, options, startTime, false, false);
-        }
-
-        Context(Metadata metadata, IndicesOptions options, long startTime, boolean preserveAliases, boolean resolveToWriteIndex) {
             this.metadata = metadata;
             this.options = options;
-            this.startTime = startTime;
             this.preserveAliases = preserveAliases;
             this.resolveToWriteIndex = resolveToWriteIndex;
         }
@@ -383,10 +373,6 @@ public class IndexNameExpressionResolver {
 
         public IndicesOptions getOptions() {
             return options;
-        }
-
-        public long getStartTime() {
-            return startTime;
         }
 
         /**
