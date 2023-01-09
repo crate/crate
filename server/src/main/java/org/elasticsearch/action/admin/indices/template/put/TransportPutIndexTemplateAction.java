@@ -77,14 +77,10 @@ public class TransportPutIndexTemplateAction extends TransportMasterNodeAction<P
     public void masterOperation(final PutIndexTemplateRequest request,
                                 final ClusterState state,
                                 final ActionListener<AcknowledgedResponse> listener) {
-        String cause = request.cause();
-        if (cause.length() == 0) {
-            cause = "api";
-        }
         final Settings.Builder templateSettingsBuilder = Settings.builder();
         templateSettingsBuilder.put(request.settings()).normalizePrefix(IndexMetadata.INDEX_SETTING_PREFIX);
         indexScopedSettings.validate(templateSettingsBuilder.build(), true); // templates must be consistent with regards to dependencies
-        indexTemplateService.putTemplate(new MetadataIndexTemplateService.PutRequest(cause, request.name())
+        indexTemplateService.putTemplate(new MetadataIndexTemplateService.PutRequest("api", request.name())
                 .patterns(request.patterns())
                 .order(request.order())
                 .settings(templateSettingsBuilder.build())
