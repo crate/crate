@@ -377,14 +377,11 @@ public class InternalClusterInfoService implements ClusterInfoService, ClusterSt
                 }
                 String nodeId = nodeStats.getNode().getId();
                 String nodeName = nodeStats.getNode().getName();
-                if (traceEnabled) {
-                    logger.trace(
-                        "node: [{}], most available: total disk: {}, available disk: {} / least available: total disk: {}, available disk: {}",
-                        nodeId,
-                        mostAvailablePath.getTotal(),
-                        leastAvailablePath.getAvailable(),
-                        leastAvailablePath.getTotal(),
-                        leastAvailablePath.getAvailable());
+                if (logger.isTraceEnabled()) {
+                    logger.trace("node: [{}], most available: total disk: {}," +
+                            " available disk: {} / least available: total disk: {}, available disk: {}",
+                            nodeId, mostAvailablePath.getTotal(), mostAvailablePath.getAvailable(),
+                            leastAvailablePath.getTotal(), leastAvailablePath.getAvailable());
                 }
                 if (leastAvailablePath.getTotal().getBytes() < 0) {
                     if (traceEnabled) {

@@ -21,9 +21,6 @@ package org.elasticsearch.monitor.fs;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.cluster.ClusterInfo;
-import org.elasticsearch.cluster.ClusterInfoService;
-import javax.annotation.Nullable;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
@@ -32,15 +29,13 @@ import org.elasticsearch.common.util.SingleObjectCache;
 import org.elasticsearch.env.NodeEnvironment;
 
 import java.io.IOException;
+import java.util.function.Supplier;
 
 public class FsService {
 
     private static final Logger LOGGER = LogManager.getLogger(FsService.class);
 
-    private final FsProbe probe;
-    private final TimeValue refreshInterval;
-    private final SingleObjectCache<FsInfo> cache;
-    private final ClusterInfoService clusterInfoService;
+    private final Supplier<FsInfo> fsInfoSupplier;
 
     public static final Setting<TimeValue> REFRESH_INTERVAL_SETTING =
         Setting.timeSetting(
@@ -49,39 +44,51 @@ public class FsService {
             TimeValue.timeValueSeconds(1),
             Property.NodeScope);
 
-    public FsService(final Settings settings, final NodeEnvironment nodeEnvironment, ClusterInfoService clusterInfoService) {
-        this.probe = new FsProbe(nodeEnvironment);
-        this.clusterInfoService = clusterInfoService;
-        refreshInterval = REFRESH_INTERVAL_SETTING.get(settings);
-        LOGGER.debug("using refresh_interval [{}]", refreshInterval);
-        cache = new FsInfoCache(refreshInterval, stats(probe, null, LOGGER, null));
+    // permits tests to bypass the refresh interval on the cache; deliberately unregistered since it is only for use in tests
+    public static final Setting<Boolean> ALWAYS_REFRESH_SETTING =
+        Setting.boolSetting("monitor.fs.always_refresh", false, Property.NodeScope);
+
+    public FsService(final Settings settings, final NodeEnvironment nodeEnvironment) {
+        final FsProbe probe = new FsProbe(nodeEnvironment);
+        final FsInfo initialValue = stats(probe, null);
+        if (ALWAYS_REFRESH_SETTING.get(settings)) {
+            assert REFRESH_INTERVAL_SETTING.exists(settings) == false;
+            LOGGER.debug("bypassing refresh_interval");
+            fsInfoSupplier = () -> stats(probe, initialValue);
+        } else {
+            final TimeValue refreshInterval = REFRESH_INTERVAL_SETTING.get(settings);
+            LOGGER.debug("using refresh_interval [{}]", refreshInterval);
+            fsInfoSupplier = new FsInfoCache(refreshInterval, initialValue, probe)::getOrRefresh;
+        }
     }
 
     public FsInfo stats() {
-        return cache.getOrRefresh();
+        return fsInfoSupplier.get();
     }
 
-    private static FsInfo stats(FsProbe probe, FsInfo initialValue, Logger logger, @Nullable ClusterInfo clusterInfo) {
+    private static FsInfo stats(FsProbe probe, FsInfo initialValue) {
         try {
-            return probe.stats(initialValue, clusterInfo);
+            return probe.stats(initialValue);
         } catch (IOException e) {
-            logger.debug("unexpected exception reading filesystem info", e);
+            LOGGER.debug("unexpected exception reading filesystem info", e);
             return null;
         }
     }
 
-    private class FsInfoCache extends SingleObjectCache<FsInfo> {
+    private static class FsInfoCache extends SingleObjectCache<FsInfo> {
 
         private final FsInfo initialValue;
+        private final FsProbe probe;
 
-        FsInfoCache(TimeValue interval, FsInfo initialValue) {
+        FsInfoCache(TimeValue interval, FsInfo initialValue, FsProbe probe) {
             super(interval, initialValue);
             this.initialValue = initialValue;
+            this.probe = probe;
         }
 
         @Override
         protected FsInfo refresh() {
-            return stats(probe, initialValue, LOGGER, clusterInfoService.getClusterInfo());
+            return stats(probe, initialValue);
         }
 
     }
