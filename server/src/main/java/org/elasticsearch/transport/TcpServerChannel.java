@@ -19,9 +19,9 @@
 
 package org.elasticsearch.transport;
 
-import org.elasticsearch.common.network.CloseableChannel;
-
 import java.net.InetSocketAddress;
+
+import org.elasticsearch.common.network.CloseableChannel;
 
 
 /**
@@ -30,11 +30,6 @@ import java.net.InetSocketAddress;
  * implementations must return server channels that adhere to the required method contracts.
  */
 public interface TcpServerChannel extends CloseableChannel {
-
-    /**
-     * This returns the profile for this channel.
-     */
-    String getProfile();
 
     /**
      * Returns the local address for this channel.

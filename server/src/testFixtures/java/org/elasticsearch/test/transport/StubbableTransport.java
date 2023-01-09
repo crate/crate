@@ -19,6 +19,12 @@
 
 package org.elasticsearch.test.transport;
 
+import java.io.IOException;
+import java.net.UnknownHostException;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -36,12 +42,6 @@ import org.elasticsearch.transport.TransportRequest;
 import org.elasticsearch.transport.TransportRequestHandler;
 import org.elasticsearch.transport.TransportRequestOptions;
 import org.elasticsearch.transport.TransportStats;
-
-import java.io.IOException;
-import java.net.UnknownHostException;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class StubbableTransport implements Transport {
 
@@ -212,11 +212,6 @@ public class StubbableTransport implements Transport {
     @Override
     public void close() {
         delegate.close();
-    }
-
-    @Override
-    public Map<String, BoundTransportAddress> profileBoundAddresses() {
-        return delegate.profileBoundAddresses();
     }
 
     public class WrappedConnection implements Transport.Connection {

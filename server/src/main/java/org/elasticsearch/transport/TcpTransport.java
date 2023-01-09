@@ -19,10 +19,32 @@
 
 package org.elasticsearch.transport;
 
-import com.carrotsearch.hppc.IntHashSet;
-import com.carrotsearch.hppc.IntSet;
-import io.crate.common.annotations.VisibleForTesting;
-import io.crate.common.unit.TimeValue;
+import java.io.IOException;
+import java.io.StreamCorruptedException;
+import java.net.BindException;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.UnknownHostException;
+import java.nio.channels.CancelledKeyException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.EnumMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Supplier;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
@@ -44,9 +66,9 @@ import org.elasticsearch.common.network.CloseableChannel;
 import org.elasticsearch.common.network.NetworkAddress;
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.network.NetworkUtils;
-import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.BoundTransportAddress;
+import org.elasticsearch.common.transport.NetworkExceptionHelper;
 import org.elasticsearch.common.transport.PortsRange;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.unit.ByteSizeValue;
@@ -60,39 +82,11 @@ import org.elasticsearch.node.Node;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import java.io.IOException;
-import java.io.StreamCorruptedException;
-import java.net.BindException;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.UnknownHostException;
-import java.nio.channels.CancelledKeyException;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.EnumMap;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.function.Supplier;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
+import com.carrotsearch.hppc.IntHashSet;
+import com.carrotsearch.hppc.IntSet;
 
-import static java.util.Collections.unmodifiableMap;
-import static org.elasticsearch.common.transport.NetworkExceptionHelper.isCloseConnectionException;
-import static org.elasticsearch.common.transport.NetworkExceptionHelper.isConnectException;
-import static org.elasticsearch.common.util.concurrent.ConcurrentCollections.newConcurrentMap;
+import io.crate.common.annotations.VisibleForTesting;
+import io.crate.common.unit.TimeValue;
 
 public abstract class TcpTransport extends AbstractLifecycleComponent implements Transport {
 
@@ -112,13 +106,9 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
     protected final ThreadPool threadPool;
     protected final PageCacheRecycler pageCacheRecycler;
     protected final NetworkService networkService;
-    protected final Set<ProfileSettings> profileSettings;
     private final CircuitBreakerService circuitBreakerService;
 
-    private final ConcurrentMap<String, BoundTransportAddress> profileBoundAddresses = newConcurrentMap();
-
-    // node id to actual channel
-    private final Map<String, List<TcpServerChannel>> serverChannels = newConcurrentMap();
+    private final List<TcpServerChannel> serverChannels = new ArrayList<>();
     private final Set<TcpChannel> acceptedChannels = ConcurrentCollections.newConcurrentSet();
 
     // this lock is here to make sure we close this transport and disconnect all the client nodes
@@ -142,7 +132,6 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
                         NamedWriteableRegistry namedWriteableRegistry,
                         NetworkService networkService) {
         this.settings = settings;
-        this.profileSettings = getProfileSettings(settings);
         this.version = version;
         this.threadPool = threadPool;
         this.pageCacheRecycler = pageCacheRecycler;
@@ -334,11 +323,6 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
     }
 
     @Override
-    public Map<String, BoundTransportAddress> profileBoundAddresses() {
-        return unmodifiableMap(new HashMap<>(profileBoundAddresses));
-    }
-
-    @Override
     public List<String> getDefaultSeedAddresses() {
         List<String> local = new ArrayList<>();
         local.add("127.0.0.1");
@@ -355,14 +339,17 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
             .collect(Collectors.toList());
     }
 
-    protected void bindServer(ProfileSettings profileSettings) {
+    protected void bindServer(Settings settings) {
         // Bind and start to accept incoming connections.
         InetAddress[] hostAddresses;
-        List<String> profileBindHosts = profileSettings.bindHosts;
+        List<String> transportBindHosts = TransportSettings.BIND_HOST.get(settings);
+        List<String> bindHosts = transportBindHosts.isEmpty()
+            ? NetworkService.GLOBAL_NETWORK_BIND_HOST_SETTING.get(settings)
+            : transportBindHosts;
         try {
-            hostAddresses = networkService.resolveBindHostAddresses(profileBindHosts.toArray(Strings.EMPTY_ARRAY));
+            hostAddresses = networkService.resolveBindHostAddresses(bindHosts.toArray(Strings.EMPTY_ARRAY));
         } catch (IOException e) {
-            throw new BindTransportException("Failed to resolve host " + profileBindHosts, e);
+            throw new BindTransportException("Failed to resolve host " + bindHosts, e);
         }
         if (logger.isDebugEnabled()) {
             String[] addresses = new String[hostAddresses.length];
@@ -376,19 +363,12 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
 
         List<InetSocketAddress> boundAddresses = new ArrayList<>();
         for (InetAddress hostAddress : hostAddresses) {
-            boundAddresses.add(bindToPort(profileSettings.profileName, hostAddress, profileSettings.portOrRange));
+            boundAddresses.add(bindToPort(hostAddress, TransportSettings.PORT.get(settings)));
         }
-
-        final BoundTransportAddress boundTransportAddress = createBoundTransportAddress(profileSettings, boundAddresses);
-
-        if (profileSettings.isDefaultProfile) {
-            this.boundAddress = boundTransportAddress;
-        } else {
-            profileBoundAddresses.put(profileSettings.profileName, boundTransportAddress);
-        }
+        this.boundAddress = createBoundTransportAddress(settings, boundAddresses);
     }
 
-    private InetSocketAddress bindToPort(final String name, final InetAddress hostAddress, String port) {
+    private InetSocketAddress bindToPort(final InetAddress hostAddress, String port) {
         PortsRange portsRange = new PortsRange(port);
         final AtomicReference<Exception> lastException = new AtomicReference<>();
         final AtomicReference<InetSocketAddress> boundSocket = new AtomicReference<>();
@@ -400,8 +380,8 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
             }
             boolean success = portsRange.iterate(portNumber -> {
                 try {
-                    TcpServerChannel channel = bind(name, new InetSocketAddress(hostAddress, portNumber));
-                    serverChannels.computeIfAbsent(name, k -> new ArrayList<>()).add(channel);
+                    TcpServerChannel channel = bind(new InetSocketAddress(hostAddress, portNumber));
+                    serverChannels.add(channel);
                     boundSocket.set(channel.getLocalAddress());
                 } catch (Exception e) {
                     lastException.set(e);
@@ -419,14 +399,13 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
             closeLock.writeLock().unlock();
         }
         if (logger.isDebugEnabled()) {
-            logger.debug("Bound profile [{}] to address {{}}", name, NetworkAddress.format(boundSocket.get()));
+            logger.debug("Bound to address {{}}", NetworkAddress.format(boundSocket.get()));
         }
 
         return boundSocket.get();
     }
 
-    private BoundTransportAddress createBoundTransportAddress(ProfileSettings profileSettings,
-                                                              List<InetSocketAddress> boundAddresses) {
+    private BoundTransportAddress createBoundTransportAddress(Settings settings, List<InetSocketAddress> boundAddresses) {
         String[] boundAddressesHostStrings = new String[boundAddresses.size()];
         TransportAddress[] transportBoundAddresses = new TransportAddress[boundAddresses.size()];
         for (int i = 0; i < boundAddresses.size(); i++) {
@@ -435,10 +414,7 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
             transportBoundAddresses[i] = new TransportAddress(boundAddress);
         }
 
-        List<String> publishHosts = profileSettings.publishHosts;
-        if (profileSettings.isDefaultProfile == false && publishHosts.isEmpty()) {
-            publishHosts = Arrays.asList(boundAddressesHostStrings);
-        }
+        List<String> publishHosts = TransportSettings.PUBLISH_HOST.get(settings);
         if (publishHosts.isEmpty()) {
             publishHosts = NetworkService.GLOBAL_NETWORK_PUBLISH_HOST_SETTING.get(settings);
         }
@@ -450,15 +426,16 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
             throw new BindTransportException("Failed to resolve publish address", e);
         }
 
-        final int publishPort = resolvePublishPort(profileSettings, boundAddresses, publishInetAddress);
+        final int publishPort = resolvePublishPort(settings, boundAddresses, publishInetAddress);
         final TransportAddress publishAddress = new TransportAddress(new InetSocketAddress(publishInetAddress, publishPort));
         return new BoundTransportAddress(transportBoundAddresses, publishAddress);
     }
 
     // package private for tests
-    public static int resolvePublishPort(ProfileSettings profileSettings, List<InetSocketAddress> boundAddresses,
+    public static int resolvePublishPort(Settings settings,
+                                         List<InetSocketAddress> boundAddresses,
                                          InetAddress publishInetAddress) {
-        int publishPort = profileSettings.publishPort;
+        int publishPort = TransportSettings.PUBLISH_PORT.get(settings);
 
         // if port not explicitly provided, search for port of address in boundAddresses that matches publishInetAddress
         if (publishPort < 0) {
@@ -483,8 +460,7 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
         }
 
         if (publishPort < 0) {
-            String profileExplanation = profileSettings.isDefaultProfile ? "" : " for profile " + profileSettings.profileName;
-            throw new BindTransportException("Failed to auto-resolve publish port" + profileExplanation + ", multiple bound addresses " +
+            throw new BindTransportException("Failed to auto-resolve publish port, multiple bound addresses " +
                 boundAddresses + " with distinct ports and none of them matched the publish address (" + publishInetAddress + "). " +
                 "Please specify a unique port by setting " + TransportSettings.PORT.getKey() + " or " +
                  TransportSettings.PUBLISH_PORT.getKey());
@@ -498,12 +474,8 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
     }
 
     private int[] defaultPortRange() {
-        return new PortsRange(
-            settings.get(
-                TransportSettings.PORT_PROFILE.getConcreteSettingForNamespace(TransportSettings.DEFAULT_PROFILE).getKey(),
-                TransportSettings.PORT.get(settings)
-            )
-        ).ports();
+        String portRange = TransportSettings.PORT.get(settings);
+        return new PortsRange(portRange).ports();
     }
 
     // this code is a take on guava's HostAndPort, like a HostAndPortRange
@@ -569,16 +541,12 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
             keepAlive.close();
 
             // first stop to accept any incoming connections so nobody can connect to this transport
-            for (Map.Entry<String, List<TcpServerChannel>> entry : serverChannels.entrySet()) {
-                String profile = entry.getKey();
-                List<TcpServerChannel> channels = entry.getValue();
-                ActionListener<Void> closeFailLogger = ActionListener.wrap(
-                    c -> {},
-                    e -> logger.warn(() -> new ParameterizedMessage("Error closing serverChannel for profile [{}]", profile), e)
-                );
-                channels.forEach(c -> c.addCloseListener(closeFailLogger));
-                CloseableChannel.closeChannels(channels, true);
-            }
+            ActionListener<Void> closeFailLogger = ActionListener.wrap(
+                c -> {},
+                e -> logger.warn(() -> new ParameterizedMessage("Error closing serverChannel"), e)
+            );
+            serverChannels.forEach(c -> c.addCloseListener(closeFailLogger));
+            CloseableChannel.closeChannels(serverChannels, true);
             serverChannels.clear();
 
             // close all of the incoming channels.
@@ -603,12 +571,12 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
             return;
         }
 
-        if (isCloseConnectionException(e)) {
+        if (NetworkExceptionHelper.isCloseConnectionException(e)) {
             logger.debug(() -> new ParameterizedMessage(
                     "close connection exception caught on transport layer [{}], disconnecting from relevant node", channel), e);
             // close the channel, which will cause a node to be disconnected if relevant
             CloseableChannel.closeChannel(channel, false);
-        } else if (isConnectException(e)) {
+        } else if (NetworkExceptionHelper.isConnectException(e)) {
             logger.debug(() -> new ParameterizedMessage("connect exception caught on transport layer [{}]", channel), e);
             // close the channel as safe measure, which will cause a node to be disconnected if relevant
             CloseableChannel.closeChannel(channel, false);
@@ -657,10 +625,9 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
     /**
      * Binds to the given {@link InetSocketAddress}
      *
-     * @param name    the profile name
      * @param address the address to bind to
      */
-    protected abstract TcpServerChannel bind(String name, InetSocketAddress address) throws IOException;
+    protected abstract TcpServerChannel bind(InetSocketAddress address) throws IOException;
 
     /**
      * Initiate a single tcp socket channel.
@@ -837,62 +804,6 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
         final long bytesRead = statsTracker.getBytesRead();
         return new TransportStats(acceptedChannels.size(), outboundConnectionCount.get(),
                 messagesReceived, bytesRead, messagesSent, bytesWritten);
-    }
-
-    /**
-     * Returns all profile settings for the given settings object
-     */
-    public static Set<ProfileSettings> getProfileSettings(Settings settings) {
-        HashSet<ProfileSettings> profiles = new HashSet<>();
-        boolean isDefaultSet = false;
-        for (String profile : settings.getGroups("transport.profiles.", true).keySet()) {
-            profiles.add(new ProfileSettings(settings, profile));
-            if (TransportSettings.DEFAULT_PROFILE.equals(profile)) {
-                isDefaultSet = true;
-            }
-        }
-        if (isDefaultSet == false) {
-            profiles.add(new ProfileSettings(settings, TransportSettings.DEFAULT_PROFILE));
-        }
-        return Collections.unmodifiableSet(profiles);
-    }
-
-    /**
-     * Representation of a transport profile settings for a {@code transport.profiles.$profilename.*}
-     */
-    public static final class ProfileSettings {
-        public final String profileName;
-        public final boolean tcpNoDelay;
-        public final boolean tcpKeepAlive;
-        public final boolean reuseAddress;
-        public final ByteSizeValue sendBufferSize;
-        public final ByteSizeValue receiveBufferSize;
-        public final List<String> bindHosts;
-        public final List<String> publishHosts;
-        public final String portOrRange;
-        public final int publishPort;
-        public final boolean isDefaultProfile;
-
-        public ProfileSettings(Settings settings, String profileName) {
-            this.profileName = profileName;
-            isDefaultProfile = TransportSettings.DEFAULT_PROFILE.equals(profileName);
-            tcpKeepAlive = TransportSettings.TCP_KEEP_ALIVE_PROFILE.getConcreteSettingForNamespace(profileName).get(settings);
-            tcpNoDelay = TransportSettings.TCP_NO_DELAY_PROFILE.getConcreteSettingForNamespace(profileName).get(settings);
-            reuseAddress = TransportSettings.TCP_REUSE_ADDRESS_PROFILE.getConcreteSettingForNamespace(profileName).get(settings);
-            sendBufferSize = TransportSettings.TCP_SEND_BUFFER_SIZE_PROFILE.getConcreteSettingForNamespace(profileName).get(settings);
-            receiveBufferSize = TransportSettings.TCP_RECEIVE_BUFFER_SIZE_PROFILE.getConcreteSettingForNamespace(profileName).get(settings);
-            List<String> profileBindHosts = TransportSettings.BIND_HOST_PROFILE.getConcreteSettingForNamespace(profileName).get(settings);
-            bindHosts = (profileBindHosts.isEmpty() ? NetworkService.GLOBAL_NETWORK_BIND_HOST_SETTING.get(settings)
-                : profileBindHosts);
-            publishHosts = TransportSettings.PUBLISH_HOST_PROFILE.getConcreteSettingForNamespace(profileName).get(settings);
-            Setting<String> concretePort = TransportSettings.PORT_PROFILE.getConcreteSettingForNamespace(profileName);
-            if (concretePort.exists(settings) == false && isDefaultProfile == false) {
-                throw new IllegalStateException("profile [" + profileName + "] has no port configured");
-            }
-            portOrRange = TransportSettings.PORT_PROFILE.getConcreteSettingForNamespace(profileName).get(settings);
-            publishPort = isDefaultProfile ? TransportSettings.PUBLISH_PORT.get(settings) :
-                TransportSettings.PUBLISH_PORT_PROFILE.getConcreteSettingForNamespace(profileName).get(settings);
-        }
     }
 
     @Override

@@ -21,11 +21,10 @@ package org.elasticsearch.transport.netty4;
 
 import static org.elasticsearch.common.settings.Setting.byteSizeSetting;
 import static org.elasticsearch.common.settings.Setting.intSetting;
-import static org.elasticsearch.common.util.concurrent.ConcurrentCollections.newConcurrentMap;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.util.Map;
+import java.util.List;
 
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.ExceptionsHelper;
@@ -101,7 +100,7 @@ public class Netty4Transport extends TcpTransport {
     private final ByteSizeValue receivePredictorMin;
     private final ByteSizeValue receivePredictorMax;
     private volatile Bootstrap clientBootstrap;
-    private final Map<String, ServerBootstrap> serverBootstraps = newConcurrentMap();
+    private volatile ServerBootstrap serverBootstrap;
     private final NettyBootstrap nettyBootstrap;
     private final SslContextProvider sslContextProvider;
     private final Authentication authentication;
@@ -143,10 +142,8 @@ public class Netty4Transport extends TcpTransport {
             var eventLoopGroup = nettyBootstrap.getSharedEventLoopGroup();
             clientBootstrap = createClientBootstrap(eventLoopGroup);
             if (NetworkService.NETWORK_SERVER.get(settings)) {
-                for (ProfileSettings profileSettings : profileSettings) {
-                    createServerBootstrap(profileSettings, eventLoopGroup);
-                    bindServer(profileSettings);
-                }
+                createServerBootstrap(settings, eventLoopGroup);
+                bindServer(settings);
             }
             super.doStart();
             success = true;
@@ -183,41 +180,52 @@ public class Netty4Transport extends TcpTransport {
         return bootstrap;
     }
 
-    private void createServerBootstrap(ProfileSettings profileSettings, EventLoopGroup eventLoopGroup) {
-        String name = profileSettings.profileName;
+    private void createServerBootstrap(Settings settings, EventLoopGroup eventLoopGroup) {
+        List<String> transportBindHosts = TransportSettings.BIND_HOST.get(settings);
+        List<String> bindHosts = transportBindHosts.isEmpty()
+            ? NetworkService.GLOBAL_NETWORK_BIND_HOST_SETTING.get(settings)
+            : transportBindHosts;
+        List<String> publishHosts = TransportSettings.PUBLISH_HOST.get(settings);
+        String portOrRange = TransportSettings.PORT.get(settings);
+
         if (logger.isDebugEnabled()) {
-            logger.debug("using profile[{}], port[{}], bind_host[{}], publish_host[{}], "
-                    + "receive_predictor[{}->{}]",
-                name, profileSettings.portOrRange, profileSettings.bindHosts, profileSettings.publishHosts,
-                receivePredictorMin, receivePredictorMax);
+            logger.debug(
+                "port[{}], bind_host[{}], publish_host[{}], receive_predictor[{}->{}]",
+                portOrRange,
+                bindHosts,
+                publishHosts,
+                receivePredictorMin,
+                receivePredictorMax);
         }
 
         final ServerBootstrap serverBootstrap = new ServerBootstrap();
         serverBootstrap.group(eventLoopGroup);
         serverBootstrap.channel(NettyBootstrap.serverChannel());
 
-        serverBootstrap.childHandler(new ServerChannelInitializer(name));
+        serverBootstrap.childHandler(new ServerChannelInitializer());
         serverBootstrap.handler(new ServerChannelExceptionHandler());
 
-        serverBootstrap.childOption(ChannelOption.TCP_NODELAY, profileSettings.tcpNoDelay);
-        serverBootstrap.childOption(ChannelOption.SO_KEEPALIVE, profileSettings.tcpKeepAlive);
+        serverBootstrap.childOption(ChannelOption.TCP_NODELAY, TransportSettings.TCP_NO_DELAY.get(settings));
+        serverBootstrap.childOption(ChannelOption.SO_KEEPALIVE, TransportSettings.TCP_KEEP_ALIVE.get(settings));
 
-        if (profileSettings.sendBufferSize.getBytes() != -1) {
-            serverBootstrap.childOption(ChannelOption.SO_SNDBUF, Math.toIntExact(profileSettings.sendBufferSize.getBytes()));
+        long sendBufferBytes = TransportSettings.TCP_SEND_BUFFER_SIZE.get(settings).getBytes();
+        if (sendBufferBytes != -1) {
+            serverBootstrap.childOption(ChannelOption.SO_SNDBUF, Math.toIntExact(sendBufferBytes));
         }
-
-        if (profileSettings.receiveBufferSize.getBytes() != -1) {
-            serverBootstrap.childOption(ChannelOption.SO_RCVBUF, Math.toIntExact(profileSettings.receiveBufferSize.getBytes()));
+        long receiveBufferBytes = TransportSettings.TCP_RECEIVE_BUFFER_SIZE.get(settings).getBytes();
+        if (receiveBufferBytes != -1) {
+            serverBootstrap.childOption(ChannelOption.SO_RCVBUF, Math.toIntExact(receiveBufferBytes));
         }
 
         serverBootstrap.option(ChannelOption.RCVBUF_ALLOCATOR, recvByteBufAllocator);
         serverBootstrap.childOption(ChannelOption.RCVBUF_ALLOCATOR, recvByteBufAllocator);
 
-        serverBootstrap.option(ChannelOption.SO_REUSEADDR, profileSettings.reuseAddress);
-        serverBootstrap.childOption(ChannelOption.SO_REUSEADDR, profileSettings.reuseAddress);
+        Boolean reuseAddress = TransportSettings.TCP_REUSE_ADDRESS.get(settings);
+        serverBootstrap.option(ChannelOption.SO_REUSEADDR, reuseAddress);
+        serverBootstrap.childOption(ChannelOption.SO_REUSEADDR, reuseAddress);
         serverBootstrap.validate();
 
-        serverBootstraps.put(name, serverBootstrap);
+        this.serverBootstrap = serverBootstrap;
     }
 
     public static final AttributeKey<Netty4TcpChannel> CHANNEL_KEY = AttributeKey.newInstance("es-channel");
@@ -238,16 +246,16 @@ public class Netty4Transport extends TcpTransport {
         }
         addClosedExceptionLogger(channel);
 
-        Netty4TcpChannel nettyChannel = new Netty4TcpChannel(channel, false, "default", connectFuture);
+        Netty4TcpChannel nettyChannel = new Netty4TcpChannel(channel, false, connectFuture);
         channel.attr(CHANNEL_KEY).set(nettyChannel);
 
         return nettyChannel;
     }
 
     @Override
-    protected Netty4TcpServerChannel bind(String name, InetSocketAddress address) {
-        Channel channel = serverBootstraps.get(name).bind(address).syncUninterruptibly().channel();
-        Netty4TcpServerChannel esChannel = new Netty4TcpServerChannel(channel, name);
+    protected Netty4TcpServerChannel bind(InetSocketAddress address) {
+        Channel channel = serverBootstrap.bind(address).syncUninterruptibly().channel();
+        Netty4TcpServerChannel esChannel = new Netty4TcpServerChannel(channel);
         channel.attr(SERVER_CHANNEL_KEY).set(esChannel);
         return esChannel;
     }
@@ -256,7 +264,7 @@ public class Netty4Transport extends TcpTransport {
     @SuppressForbidden(reason = "debug")
     protected void stopInternal() {
         Releasables.close(() -> {
-            serverBootstraps.clear();
+            serverBootstrap = null;
             clientBootstrap = null;
         });
     }
@@ -290,10 +298,7 @@ public class Netty4Transport extends TcpTransport {
 
     protected class ServerChannelInitializer extends ChannelInitializer<Channel> {
 
-        protected final String name;
-
-        protected ServerChannelInitializer(String name) {
-            this.name = name;
+        protected ServerChannelInitializer() {
         }
 
         @Override
@@ -309,7 +314,7 @@ public class Netty4Transport extends TcpTransport {
                 ch.pipeline().addLast("hba", new HostBasedAuthHandler(authentication));
             }
             addClosedExceptionLogger(ch);
-            Netty4TcpChannel nettyTcpChannel = new Netty4TcpChannel(ch, true, name, ch.newSucceededFuture());
+            Netty4TcpChannel nettyTcpChannel = new Netty4TcpChannel(ch, true, ch.newSucceededFuture());
             ch.attr(CHANNEL_KEY).set(nettyTcpChannel);
             serverAcceptedChannel(nettyTcpChannel);
             ch.pipeline().addLast("logging", loggingHandler);

@@ -36,15 +36,13 @@ public class Netty4TcpChannel implements TcpChannel {
 
     private final Channel channel;
     private final boolean isServer;
-    private final String profile;
     private final CompletableFuture<Void> connectContext = new CompletableFuture<>();
     private final CompletableFuture<Void> closeContext = new CompletableFuture<>();
     private final ChannelStats stats = new ChannelStats();
 
-    public Netty4TcpChannel(Channel channel, boolean isServer, String profile, ChannelFuture connectFuture) {
+    public Netty4TcpChannel(Channel channel, boolean isServer, ChannelFuture connectFuture) {
         this.channel = channel;
         this.isServer = isServer;
-        this.profile = profile;
         this.channel.closeFuture().addListener(f -> {
             if (f.isSuccess()) {
                 closeContext.complete(null);
@@ -82,11 +80,6 @@ public class Netty4TcpChannel implements TcpChannel {
     @Override
     public boolean isServerChannel() {
         return isServer;
-    }
-
-    @Override
-    public String getProfile() {
-        return profile;
     }
 
     @Override

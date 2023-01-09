@@ -34,9 +34,6 @@ import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
-import com.carrotsearch.hppc.IntHashSet;
-import com.carrotsearch.hppc.IntSet;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
@@ -57,6 +54,9 @@ import org.elasticsearch.transport.netty4.Netty4MessageChannelHandler;
 import org.elasticsearch.transport.netty4.Netty4OpenChannelsHandler;
 import org.elasticsearch.transport.netty4.Netty4TcpChannel;
 import org.elasticsearch.transport.netty4.Netty4Transport;
+
+import com.carrotsearch.hppc.IntHashSet;
+import com.carrotsearch.hppc.IntSet;
 
 import io.crate.action.sql.Sessions;
 import io.crate.auth.Authentication;
@@ -171,7 +171,7 @@ public class PostgresNetty extends AbstractLifecycleComponent {
                     sqlOperations,
                     userManager::getAccessControl,
                     chPipeline -> {
-                        var nettyTcpChannel = new Netty4TcpChannel(ch, true, "default", ch.newSucceededFuture());
+                        var nettyTcpChannel = new Netty4TcpChannel(ch, true, ch.newSucceededFuture());
                         ch.attr(Netty4Transport.CHANNEL_KEY).set(nettyTcpChannel);
                         chPipeline.addLast("dispatcher", new Netty4MessageChannelHandler(pageCacheRecycler, transport));
                     },

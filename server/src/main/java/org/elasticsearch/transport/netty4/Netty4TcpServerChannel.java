@@ -31,12 +31,10 @@ import io.netty.channel.Channel;
 public class Netty4TcpServerChannel implements TcpServerChannel {
 
     private final Channel channel;
-    private final String profile;
     private final CompletableFuture<Void> closeContext = new CompletableFuture<>();
 
-    Netty4TcpServerChannel(Channel channel, String profile) {
+    Netty4TcpServerChannel(Channel channel) {
         this.channel = channel;
-        this.profile = profile;
         this.channel.closeFuture().addListener(f -> {
             if (f.isSuccess()) {
                 closeContext.complete(null);
@@ -50,11 +48,6 @@ public class Netty4TcpServerChannel implements TcpServerChannel {
                 }
             }
         });
-    }
-
-    @Override
-    public String getProfile() {
-        return profile;
     }
 
     @Override
