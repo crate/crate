@@ -193,12 +193,14 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
     @Test
     public void testInsertIntoClosedPartition() throws Exception {
         execute("create table t (a integer, b string) partitioned by (a)");
-        ensureGreen();
         execute("insert into t (a, b) values (1, 'foo')");
         refresh();
 
         execute("alter table t partition (a = 1) close");
-        waitNoPendingTasksOnAll(); // ensure close got processed on all shard copies
+        assertBusy(() -> {
+            assertThat(execute("select closed from information_schema.table_partitions where table_name = 't'"))
+                .hasRows($(true));
+        });
 
         execute("insert into t (a, b) values (1, 'bar')");
         assertThat(response.rowCount(), is(0L));
