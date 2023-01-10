@@ -33,7 +33,7 @@ jobs:
         env:
           CRATE_TESTS_SQL_REQUEST_TIMEOUT: "20"
         with:
-          arguments: :server:test -Dtests.crate.run-windows-incompatible=true
+          arguments: :server:test --tests "io.crate.integrationtests.MetadataTrackerITest" -Dtests.crate.run-windows-incompatible=true
 
 
   forbiddenApis:

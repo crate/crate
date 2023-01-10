@@ -21,15 +21,19 @@
 
 package io.crate.replication.logical.seqno;
 
-import io.crate.exceptions.Exceptions;
-import io.crate.exceptions.SQLExceptions;
+import java.util.concurrent.CompletableFuture;
+
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.index.seqno.RetentionLeaseActions;
+import org.elasticsearch.index.seqno.RetentionLeaseActions.Response;
 import org.elasticsearch.index.seqno.RetentionLeaseAlreadyExistsException;
 import org.elasticsearch.index.shard.ShardId;
+
+import io.crate.exceptions.Exceptions;
+import io.crate.exceptions.SQLExceptions;
 
 /*
  * Derived from org.opensearch.replication.seqno.RemoteClusterRetentionLeaseHelper
@@ -76,7 +80,7 @@ public class RetentionLeaseHelper {
                         }
                         // Only one retention lease should exists for the follower shard
                         // Ideally, this should have got cleaned-up
-                        renewRetentionLease(shardId, seqNo, subscriberClusterName, client, listener);
+                        renewRetentionLease(shardId, seqNo, subscriberClusterName, client).whenComplete(listener);
                     } else {
                         listener.onFailure(Exceptions.toException(t));
                     }
@@ -84,11 +88,10 @@ public class RetentionLeaseHelper {
             });
     }
 
-    public static void renewRetentionLease(ShardId shardId,
-                                           long seqNo,
-                                           String subscriberClusterName,
-                                           Client client,
-                                           ActionListener<RetentionLeaseActions.Response> listener) {
+    public static CompletableFuture<Response> renewRetentionLease(ShardId shardId,
+                                                                  long seqNo,
+                                                                  String subscriberClusterName,
+                                                                  Client client) {
         var retentionLeaseId = retentionLeaseIdForShard(subscriberClusterName, shardId);
         var request = new RetentionLeaseActions.AddOrRenewRequest(
             shardId,
@@ -96,7 +99,7 @@ public class RetentionLeaseHelper {
             seqNo,
             retentionLeaseSource(subscriberClusterName)
         );
-        client.execute(RetentionLeaseActions.Renew.INSTANCE, request).whenComplete(listener);
+        return client.execute(RetentionLeaseActions.Renew.INSTANCE, request);
     }
 
     public static void attemptRetentionLeaseRemoval(ShardId shardId,

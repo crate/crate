@@ -330,47 +330,46 @@ public class ShardReplicationChangesTracker implements Closeable {
         // has data until then.
         // Method is called inside a transport thread (response listener), so dispatch away
         threadPool.executor(ThreadPool.Names.LOGICAL_REPLICATION).execute(() ->
-            shardReplicationService.getRemoteClusterClient(shardId.getIndex(), subscriptionName).thenAccept(remoteClient ->
-                RetentionLeaseHelper.renewRetentionLease(
+            shardReplicationService.getRemoteClusterClient(shardId.getIndex(), subscriptionName)
+                .thenCompose(remoteClient -> RetentionLeaseHelper.renewRetentionLease(
                     shardId,
                     toSeqNoReceived,
                     clusterName,
-                    remoteClient,
-                    ActionListener.wrap(
-                        r -> {
-                            if (!closed) {
-                                cancellable = threadPool.scheduleUnlessShuttingDown(
-                                    replicationSettings.pollDelay(),
-                                    ThreadPool.Names.LOGICAL_REPLICATION,
-                                    newRunnable()
-                                );
-                            }
-                        },
-                        e -> {
-                            var t = SQLExceptions.unwrap(e);
-                            boolean isClosed = closed; // one volatile read
-                            if (!isClosed && SQLExceptions.maybeTemporary(t)) {
-                                LOGGER.info(
-                                    "[{}] Temporary error during renewal of retention leases for subscription '{}'. Retrying: {}:{}",
-                                    shardId,
-                                    subscriptionName,
-                                    t.getClass().getSimpleName(),
-                                    t.getMessage()
-                                );
-                                cancellable = threadPool.scheduleUnlessShuttingDown(
-                                    replicationSettings.pollDelay(),
-                                    ThreadPool.Names.LOGICAL_REPLICATION,
-                                    () -> renewLeasesThenReschedule(toSeqNoReceived)
-                                );
-                            } else if (isClosed) {
-                                LOGGER.debug("Exception renewing retention lease. Stopping tracking (closed=true)");
-                            } else {
-                                LOGGER.warn("Exception renewing retention lease. Stopping tracking (closed=false)");
-                            }
+                    remoteClient
+                ).whenComplete((resp, err) -> {
+                    if (err == null) {
+                        if (!closed) {
+                            cancellable = threadPool.scheduleUnlessShuttingDown(
+                                replicationSettings.pollDelay(),
+                                ThreadPool.Names.LOGICAL_REPLICATION,
+                                newRunnable()
+                            );
                         }
-                    )
-                )
-            ));
+                    } else {
+                        var t = SQLExceptions.unwrap(err);
+                        boolean isClosed = closed; // one volatile read
+                        if (!isClosed && SQLExceptions.maybeTemporary(t)) {
+                            LOGGER.info(
+                                "[{}] Temporary error during renewal of retention leases for subscription '{}'. Retrying: {}:{}",
+                                shardId,
+                                subscriptionName,
+                                t.getClass().getSimpleName(),
+                                t.getMessage()
+                            );
+                            cancellable = threadPool.scheduleUnlessShuttingDown(
+                                replicationSettings.pollDelay(),
+                                ThreadPool.Names.LOGICAL_REPLICATION,
+                                () -> renewLeasesThenReschedule(toSeqNoReceived)
+                            );
+                        } else if (isClosed) {
+                            LOGGER.debug("Exception renewing retention lease. Stopping tracking (closed=true, err={})", t.getClass().getSimpleName());
+                        } else {
+                            LOGGER.warn("Exception renewing retention lease. Stopping tracking (closed=false, err={})", t);
+                        }
+                    }
+                }
+            ))
+        );
     }
 
     @Override
