@@ -364,7 +364,7 @@ public class ShardReplicationChangesTracker implements Closeable {
                         } else if (isClosed) {
                             LOGGER.debug("Exception renewing retention lease. Stopping tracking (closed=true, err={})", t.getClass().getSimpleName());
                         } else {
-                            LOGGER.warn("Exception renewing retention lease. Stopping tracking (closed=false, err={})", t);
+                            LOGGER.warn("Exception renewing retention lease. Stopping tracking (closed=false)", t);
                         }
                     }
                 }

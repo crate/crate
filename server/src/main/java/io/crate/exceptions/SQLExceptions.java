@@ -41,6 +41,7 @@ import org.elasticsearch.common.util.concurrent.UncategorizedExecutionException;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.engine.EngineException;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
+import org.elasticsearch.index.seqno.RetentionLeaseNotFoundException;
 import org.elasticsearch.index.shard.IllegalIndexShardStateException;
 import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.elasticsearch.indices.InvalidIndexNameException;
@@ -143,7 +144,8 @@ public class SQLExceptions {
             || t instanceof IndexNotFoundException
             || t instanceof NoShardAvailableActionException
             || t instanceof AlreadyClosedException
-            || t instanceof ElasticsearchTimeoutException;
+            || t instanceof ElasticsearchTimeoutException
+            || t instanceof RetentionLeaseNotFoundException;
     }
 
     public static RuntimeException prepareForClientTransmission(AccessControl accessControl, Throwable e) {
