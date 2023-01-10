@@ -78,6 +78,9 @@ public class HasDatabasePrivilegeFunction extends HasPrivilegeFunction {
     }
 
     private static boolean hasCreatePrivilege(User user) {
+        if (user.isSuperUser()) {
+            return true;
+        }
         for (Privilege p : user.privileges()) {
             if (p.ident().type() == Privilege.Type.DDL &&
                 (p.ident().clazz() == Privilege.Clazz.SCHEMA || p.ident().clazz() == Privilege.Clazz.CLUSTER)) {
