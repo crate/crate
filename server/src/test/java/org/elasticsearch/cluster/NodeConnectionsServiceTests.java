@@ -520,11 +520,6 @@ public class NodeConnectionsServiceTests extends ESTestCase {
         }
 
         @Override
-        public Map<String, BoundTransportAddress> profileBoundAddresses() {
-            return null;
-        }
-
-        @Override
         public TransportAddress[] addressesFromString(String address) {
             return new TransportAddress[0];
         }

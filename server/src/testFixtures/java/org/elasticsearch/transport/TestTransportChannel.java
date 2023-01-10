@@ -30,11 +30,6 @@ public class TestTransportChannel implements TransportChannel {
     }
 
     @Override
-    public String getProfileName() {
-        return "default";
-    }
-
-    @Override
     public void sendResponse(TransportResponse response) {
         listener.onResponse(response);
     }

@@ -20,9 +20,9 @@
 package org.elasticsearch.common.transport;
 
 
-import com.carrotsearch.hppc.IntArrayList;
-
 import java.util.StringTokenizer;
+
+import com.carrotsearch.hppc.IntArrayList;
 
 public class PortsRange {
 

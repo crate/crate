@@ -76,11 +76,6 @@ public class FakeTcpChannel implements TcpChannel {
     }
 
     @Override
-    public String getProfile() {
-        return profile;
-    }
-
-    @Override
     public InetSocketAddress getLocalAddress() {
         return localAddress;
     }

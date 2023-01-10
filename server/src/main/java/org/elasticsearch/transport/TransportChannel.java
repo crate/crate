@@ -19,16 +19,14 @@
 
 package org.elasticsearch.transport;
 
-import org.elasticsearch.Version;
-
 import java.io.IOException;
+
+import org.elasticsearch.Version;
 
 /**
  * A transport channel allows to send a response to a request on the channel.
  */
 public interface TransportChannel {
-
-    String getProfileName();
 
     String getChannelType();
 

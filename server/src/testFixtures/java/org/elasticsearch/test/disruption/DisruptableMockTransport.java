@@ -18,6 +18,14 @@
  */
 package org.elasticsearch.test.disruption;
 
+import static org.elasticsearch.test.ESTestCase.copyWriteable;
+
+import java.io.IOException;
+import java.util.Optional;
+import java.util.function.Function;
+
+import javax.annotation.Nullable;
+
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.action.ActionListener;
@@ -38,13 +46,6 @@ import org.elasticsearch.transport.TransportRequest;
 import org.elasticsearch.transport.TransportRequestOptions;
 import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportService;
-
-import javax.annotation.Nullable;
-import java.io.IOException;
-import java.util.Optional;
-import java.util.function.Function;
-
-import static org.elasticsearch.test.ESTestCase.copyWriteable;
 
 public abstract class DisruptableMockTransport extends MockTransport {
     private final DiscoveryNode localNode;
@@ -177,10 +178,6 @@ public abstract class DisruptableMockTransport extends MockTransport {
         final String requestDescription = getRequestDescription(requestId, action, destination);
 
         final TransportChannel transportChannel = new TransportChannel() {
-            @Override
-            public String getProfileName() {
-                return "default";
-            }
 
             @Override
             public String getChannelType() {

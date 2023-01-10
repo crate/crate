@@ -41,11 +41,6 @@ public interface TcpChannel extends CloseableChannel {
     boolean isServerChannel();
 
     /**
-     * This returns the profile for this channel.
-     */
-    String getProfile();
-
-    /**
      * Returns the local address for this channel.
      *
      * @return the local address of this channel.
