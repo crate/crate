@@ -34,6 +34,7 @@ import java.util.Collections;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.network.CloseableChannel;
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
@@ -159,7 +160,7 @@ public class TcpTransportTest extends ESTestCase {
                                                                new NetworkService(Collections.emptyList())) {
 
                 @Override
-                protected TcpServerChannel bind(InetSocketAddress address) {
+                protected CloseableChannel bind(InetSocketAddress address) {
                     throw new UnsupportedOperationException();
                 }
 

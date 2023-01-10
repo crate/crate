@@ -108,7 +108,7 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
     protected final NetworkService networkService;
     private final CircuitBreakerService circuitBreakerService;
 
-    private final List<TcpServerChannel> serverChannels = new ArrayList<>();
+    private final List<CloseableChannel> serverChannels = new ArrayList<>();
     private final Set<TcpChannel> acceptedChannels = ConcurrentCollections.newConcurrentSet();
 
     // this lock is here to make sure we close this transport and disconnect all the client nodes
@@ -380,7 +380,7 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
             }
             boolean success = portsRange.iterate(portNumber -> {
                 try {
-                    TcpServerChannel channel = bind(new InetSocketAddress(hostAddress, portNumber));
+                    CloseableChannel channel = bind(new InetSocketAddress(hostAddress, portNumber));
                     serverChannels.add(channel);
                     boundSocket.set(channel.getLocalAddress());
                 } catch (Exception e) {
@@ -605,7 +605,7 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
         }
     }
 
-    protected void onServerException(TcpServerChannel channel, Exception e) {
+    protected void onServerException(CloseableChannel channel, Exception e) {
         if (e instanceof BindException) {
             logger.debug(() -> new ParameterizedMessage("bind exception from server channel caught on transport layer [{}]", channel), e);
         } else {
@@ -627,7 +627,7 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
      *
      * @param address the address to bind to
      */
-    protected abstract TcpServerChannel bind(InetSocketAddress address) throws IOException;
+    protected abstract CloseableChannel bind(InetSocketAddress address) throws IOException;
 
     /**
      * Initiate a single tcp socket channel.
