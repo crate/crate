@@ -98,3 +98,14 @@ Fixes
   :ref:`bit <data-type-bit>` strings with different length. An example::
 
      SELECT B'01' = B'1'
+
+- Fixed an issue that caused failures of queries joining a table to a virtual
+  table where virtual table is another ``JOIN`` on aliased column and having a
+  ``LIMIT`` clause. An example::
+
+     CREATE TABLE t1 (x INTEGER, i INTEGER);
+     CREATE TABLE t2 (y INTEGER);
+     SELECT * from GENERATE_SERIES(1, 2)
+     CROSS JOIN
+     (SELECT t1.i, t2.y AS aliased from t1 inner join t2 on t1.x = t2.y) v
+     LIMIT 10
