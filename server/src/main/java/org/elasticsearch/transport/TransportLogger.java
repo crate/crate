@@ -19,7 +19,8 @@
 
 package org.elasticsearch.transport;
 
-import io.crate.common.io.IOUtils;
+import java.io.IOException;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
@@ -27,16 +28,17 @@ import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.compress.CompressorFactory;
 import org.elasticsearch.common.io.stream.InputStreamStreamInput;
 import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.network.CloseableChannel;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
 
-import java.io.IOException;
+import io.crate.common.io.IOUtils;
 
 public final class TransportLogger {
 
     private static final Logger LOGGER = LogManager.getLogger(TransportLogger.class);
     private static final int HEADER_SIZE = TcpHeader.MARKER_BYTES_SIZE + TcpHeader.MESSAGE_LENGTH_SIZE;
 
-    static void logInboundMessage(TcpChannel channel, InboundMessage message) {
+    static void logInboundMessage(CloseableChannel channel, InboundMessage message) {
         if (LOGGER.isTraceEnabled()) {
             try {
                 String logMessage = format(channel, message, "READ");
@@ -47,7 +49,7 @@ public final class TransportLogger {
         }
     }
 
-    private static String format(TcpChannel channel, BytesReference message, String event) throws IOException {
+    private static String format(CloseableChannel channel, BytesReference message, String event) throws IOException {
         final StringBuilder sb = new StringBuilder();
         sb.append(channel);
         int messageLengthWithHeader = HEADER_SIZE + message.length();
@@ -100,7 +102,7 @@ public final class TransportLogger {
         return sb.toString();
     }
 
-    private static String format(TcpChannel channel, InboundMessage message, String event) throws IOException {
+    private static String format(CloseableChannel channel, InboundMessage message, String event) throws IOException {
         final StringBuilder sb = new StringBuilder();
         sb.append(channel);
 

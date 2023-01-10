@@ -19,21 +19,17 @@
 
 package org.elasticsearch.transport;
 
-import static org.hamcrest.Matchers.instanceOf;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.InetSocketAddress;
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
-import io.crate.common.unit.TimeValue;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -48,15 +44,21 @@ import org.elasticsearch.common.io.stream.InputStreamStreamInput;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.network.CloseableChannel;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.MockLogAppender;
 import org.elasticsearch.test.VersionUtils;
 import org.elasticsearch.threadpool.TestThreadPool;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.transport.netty4.Netty4Utils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+
+import io.crate.common.unit.TimeValue;
+import io.netty.buffer.ByteBuf;
+import io.netty.channel.embedded.EmbeddedChannel;
 
 public class InboundHandlerTests extends ESTestCase {
 
@@ -66,15 +68,31 @@ public class InboundHandlerTests extends ESTestCase {
     private Transport.ResponseHandlers responseHandlers;
     private Transport.RequestHandlers requestHandlers;
     private InboundHandler handler;
-    private FakeTcpChannel channel;
+    private CloseableChannel channel;
+    private EmbeddedChannel embeddedChannel;
 
     @Before
     public void setUp() throws Exception {
         super.setUp();
-        channel = new FakeTcpChannel(randomBoolean(), buildNewFakeTransportAddress().address(), buildNewFakeTransportAddress().address());
+        boolean isServer = randomBoolean();
+        embeddedChannel = new EmbeddedChannel();
+        InetSocketAddress localAddress = buildNewFakeTransportAddress().address();
+        InetSocketAddress remoteAddress = buildNewFakeTransportAddress().address();
+        channel = new CloseableChannel(embeddedChannel, isServer) {
+
+            @Override
+            public InetSocketAddress getRemoteAddress() {
+                return remoteAddress;
+            }
+
+            @Override
+            public InetSocketAddress getLocalAddress() {
+                return localAddress;
+            }
+        };
         NamedWriteableRegistry namedWriteableRegistry = new NamedWriteableRegistry(Collections.emptyList());
         TransportHandshaker handshaker = new TransportHandshaker(version, threadPool, (n, c, r, v) -> {});
-        TransportKeepAlive keepAlive = new TransportKeepAlive(threadPool, TcpChannel::sendMessage);
+        TransportKeepAlive keepAlive = new TransportKeepAlive(threadPool, (c, b) -> channel.writeAndFlush(Netty4Utils.toByteBuf(b)));
         OutboundHandler outboundHandler = new OutboundHandler("node", version, new StatsTracker(), threadPool,
             BigArrays.NON_RECYCLING_INSTANCE);
         requestHandlers = new Transport.RequestHandlers();
@@ -104,9 +122,9 @@ public class InboundHandlerTests extends ESTestCase {
 
         handler.inboundMessage(channel, new InboundMessage(null, true));
         if (channel.isServerChannel()) {
-            BytesReference ping = channel.getMessageCaptor().get();
-            assertEquals('E', ping.get(0));
-            assertEquals(6, ping.length());
+            ByteBuf ping = (ByteBuf) embeddedChannel.outboundMessages().poll();
+            assertEquals('E', ping.getByte(0));
+            assertEquals(6, ping.readableBytes());
         }
     }
 
@@ -166,9 +184,9 @@ public class InboundHandlerTests extends ESTestCase {
         handler.inboundMessage(channel, requestMessage);
 
         TransportChannel transportChannel = channelCaptor.get();
-        assertEquals(Version.CURRENT, transportChannel.getVersion());
-        assertEquals("transport", transportChannel.getChannelType());
-        assertEquals(requestValue, requestCaptor.get().value);
+        assertThat(Version.CURRENT).isEqualTo(transportChannel.getVersion());
+        assertThat("transport").isEqualTo(transportChannel.getChannelType());
+        assertThat(requestValue).isEqualTo(requestCaptor.get().value);
 
         String responseValue = randomAlphaOfLength(10);
         byte responseStatus = TransportStatus.setResponse((byte) 0);
@@ -179,7 +197,8 @@ public class InboundHandlerTests extends ESTestCase {
             transportChannel.sendResponse(new TestResponse(responseValue));
         }
 
-        BytesReference fullResponseBytes = channel.getMessageCaptor().get();
+        ByteBuf fullResponse = (ByteBuf) embeddedChannel.outboundMessages().poll();
+        BytesReference fullResponseBytes = Netty4Utils.toBytesReference(fullResponse);
         BytesReference responseContent = fullResponseBytes.slice(headerSize, fullResponseBytes.length() - headerSize);
         Header responseHeader = new Header(fullRequestBytes.length() - 6, requestId, responseStatus, version);
         InboundMessage responseMessage = new InboundMessage(responseHeader, ReleasableBytesReference.wrap(responseContent), () -> {});
@@ -187,11 +206,11 @@ public class InboundHandlerTests extends ESTestCase {
         handler.inboundMessage(channel, responseMessage);
 
         if (isError) {
-            assertThat(exceptionCaptor.get(), instanceOf(RemoteTransportException.class));
-            assertThat(exceptionCaptor.get().getCause(), instanceOf(ElasticsearchException.class));
-            assertEquals("boom", exceptionCaptor.get().getCause().getMessage());
+            assertThat(exceptionCaptor.get()).isInstanceOf(RemoteTransportException.class);
+            assertThat(exceptionCaptor.get().getCause()).isInstanceOf(ElasticsearchException.class);
+            assertThat("boom").isEqualTo(exceptionCaptor.get().getCause().getMessage());
         } else {
-            assertEquals(responseValue, responseCaptor.get().value);
+            assertThat(responseValue).isEqualTo(responseCaptor.get().value);
         }
     }
 
@@ -211,10 +230,11 @@ public class InboundHandlerTests extends ESTestCase {
         requestHeader.bwcNeedsToReadVariableHeader = false;
         handler.inboundMessage(channel, requestMessage);
 
-        final BytesReference responseBytesReference = channel.getMessageCaptor().get();
+        ByteBuf msg = (ByteBuf) embeddedChannel.outboundMessages().poll();
+        final BytesReference responseBytesReference = Netty4Utils.toBytesReference(msg);
         final Header responseHeader = InboundDecoder.readHeader(remoteVersion, responseBytesReference.length(), responseBytesReference);
-        assertTrue(responseHeader.isResponse());
-        assertTrue(responseHeader.isError());
+        assertThat(responseHeader.isResponse()).isTrue();
+        assertThat(responseHeader.isError()).isTrue();
     }
 
 
@@ -239,7 +259,7 @@ public class InboundHandlerTests extends ESTestCase {
 
         try {
             final AtomicBoolean isClosed = new AtomicBoolean();
-            channel.addCloseListener(ActionListener.wrap(() -> assertTrue(isClosed.compareAndSet(false, true))));
+            channel.addCloseListener(ActionListener.wrap(() -> assertThat(isClosed.compareAndSet(false, true)).isTrue()));
 
             final Version remoteVersion = Version.fromId(randomIntBetween(0, version.minimumCompatibilityVersion().internalId - 1));
             final long requestId = randomNonNegativeLong();
@@ -249,8 +269,9 @@ public class InboundHandlerTests extends ESTestCase {
             final InboundMessage requestMessage = unreadableInboundHandshake(remoteVersion, requestHeader);
             requestHeader.actionName = TransportHandshaker.HANDSHAKE_ACTION_NAME;
             handler.inboundMessage(channel, requestMessage);
-            assertTrue(isClosed.get());
-            assertNull(channel.getMessageCaptor().get());
+            assertThat(isClosed.get()).isTrue();
+            assertThat(embeddedChannel.outboundMessages().poll()).isNull();
+            assertThat(embeddedChannel.inboundMessages().poll()).isNull();
             mockAppender.assertAllExpectationsMatched();
         } finally {
             Loggers.removeAppender(inboundHandlerLogger, mockAppender);
@@ -289,7 +310,9 @@ public class InboundHandlerTests extends ESTestCase {
             // in handler.inboundMessage -> handler.messageReceived() calls below
             requestHeader.bwcNeedsToReadVariableHeader = false;
             handler.inboundMessage(channel, requestMessage);
-            assertNotNull(channel.getMessageCaptor().get());
+
+            Object msg = embeddedChannel.outboundMessages().poll();
+            assertThat(msg).isNotNull();
             mockAppender.assertAllExpectationsMatched();
         } finally {
             Loggers.removeAppender(inboundHandlerLogger, mockAppender);
@@ -312,5 +335,4 @@ public class InboundHandlerTests extends ESTestCase {
             }
         };
     }
-
 }

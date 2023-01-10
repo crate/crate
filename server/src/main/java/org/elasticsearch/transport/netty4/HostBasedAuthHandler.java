@@ -51,7 +51,7 @@ public class HostBasedAuthHandler extends ChannelInboundHandlerAdapter {
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         if (authError != null) {
             ReferenceCountUtil.release(msg);
-            Netty4TcpChannel tcpChannel = ctx.channel().attr(Netty4Transport.CHANNEL_KEY).get();
+            CloseableChannel tcpChannel = ctx.channel().attr(Netty4Transport.CHANNEL_KEY).get();
             CloseableChannel.closeChannel(tcpChannel, true);
             throw authError;
         }
@@ -68,7 +68,7 @@ public class HostBasedAuthHandler extends ChannelInboundHandlerAdapter {
         if (authMethod == null) {
             ReferenceCountUtil.release(msg);
             authError = new AuthenticationException("No valid auth.host_based entry found for: " + remoteAddress);
-            Netty4TcpChannel tcpChannel = ctx.channel().attr(Netty4Transport.CHANNEL_KEY).get();
+            CloseableChannel tcpChannel = ctx.channel().attr(Netty4Transport.CHANNEL_KEY).get();
             CloseableChannel.closeChannel(tcpChannel, true);
             throw authError;
         }
@@ -79,7 +79,7 @@ public class HostBasedAuthHandler extends ChannelInboundHandlerAdapter {
         } catch (Exception e) {
             ReferenceCountUtil.release(msg);
             authError = e;
-            Netty4TcpChannel tcpChannel = ctx.channel().attr(Netty4Transport.CHANNEL_KEY).get();
+            CloseableChannel tcpChannel = ctx.channel().attr(Netty4Transport.CHANNEL_KEY).get();
             CloseableChannel.closeChannel(tcpChannel, true);
             throw e;
         }

@@ -165,7 +165,7 @@ public class TcpTransportTest extends ESTestCase {
                 }
 
                 @Override
-                protected TcpChannel initiateChannel(DiscoveryNode node) {
+                protected ConnectResult initiateChannel(DiscoveryNode node) {
                     throw new UnsupportedOperationException();
                 }
 

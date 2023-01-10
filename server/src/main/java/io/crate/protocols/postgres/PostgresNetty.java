@@ -39,6 +39,7 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.network.CloseableChannel;
 import org.elasticsearch.common.network.NetworkAddress;
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Setting;
@@ -52,7 +53,6 @@ import org.elasticsearch.node.Node;
 import org.elasticsearch.transport.BindTransportException;
 import org.elasticsearch.transport.netty4.Netty4MessageChannelHandler;
 import org.elasticsearch.transport.netty4.Netty4OpenChannelsHandler;
-import org.elasticsearch.transport.netty4.Netty4TcpChannel;
 import org.elasticsearch.transport.netty4.Netty4Transport;
 
 import com.carrotsearch.hppc.IntHashSet;
@@ -171,7 +171,7 @@ public class PostgresNetty extends AbstractLifecycleComponent {
                     sqlOperations,
                     userManager::getAccessControl,
                     chPipeline -> {
-                        var nettyTcpChannel = new Netty4TcpChannel(ch, true, ch.newSucceededFuture());
+                        var nettyTcpChannel = new CloseableChannel(ch, true);
                         ch.attr(Netty4Transport.CHANNEL_KEY).set(nettyTcpChannel);
                         chPipeline.addLast("dispatcher", new Netty4MessageChannelHandler(pageCacheRecycler, transport));
                     },

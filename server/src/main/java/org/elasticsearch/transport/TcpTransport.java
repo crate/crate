@@ -87,6 +87,8 @@ import com.carrotsearch.hppc.IntSet;
 
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.unit.TimeValue;
+import io.crate.exceptions.Exceptions;
+import io.netty.channel.ChannelFuture;
 
 public abstract class TcpTransport extends AbstractLifecycleComponent implements Transport {
 
@@ -109,7 +111,7 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
     private final CircuitBreakerService circuitBreakerService;
 
     private final List<CloseableChannel> serverChannels = new ArrayList<>();
-    private final Set<TcpChannel> acceptedChannels = ConcurrentCollections.newConcurrentSet();
+    private final Set<CloseableChannel> acceptedChannels = ConcurrentCollections.newConcurrentSet();
 
     // this lock is here to make sure we close this transport and disconnect all the client nodes
     // connections while no connect operations is going on
@@ -184,13 +186,13 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
 
     public final class NodeChannels extends CloseableConnection {
         private final Map<TransportRequestOptions.Type, ConnectionProfile.ConnectionTypeHandle> typeMapping;
-        private final List<TcpChannel> channels;
+        private final List<CloseableChannel> channels;
         private final DiscoveryNode node;
         private final Version version;
         private final boolean compress;
         private final AtomicBoolean isClosing = new AtomicBoolean(false);
 
-        NodeChannels(DiscoveryNode node, List<TcpChannel> channels, ConnectionProfile connectionProfile, Version handshakeVersion) {
+        NodeChannels(DiscoveryNode node, List<CloseableChannel> channels, ConnectionProfile connectionProfile, Version handshakeVersion) {
             this.node = node;
             this.channels = Collections.unmodifiableList(channels);
             assert channels.size() == connectionProfile.getNumConnections() : "expected channels size to be == "
@@ -209,11 +211,11 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
             return version;
         }
 
-        public List<TcpChannel> getChannels() {
+        public List<CloseableChannel> getChannels() {
             return channels;
         }
 
-        public TcpChannel channel(TransportRequestOptions.Type type) {
+        public CloseableChannel channel(TransportRequestOptions.Type type) {
             ConnectionProfile.ConnectionTypeHandle connectionTypeHandle = typeMapping.get(type);
             if (connectionTypeHandle == null) {
                 throw new IllegalArgumentException("no type channel for [" + type + "]");
@@ -245,7 +247,7 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
             if (isClosing.get()) {
                 throw new NodeNotConnectedException(node, "connection already closed");
             }
-            TcpChannel channel = channel(options.type());
+            CloseableChannel channel = channel(options.type());
             outboundHandler.sendRequest(node, channel, requestId, action, request, options, getVersion(), compress, false);
         }
 
@@ -283,18 +285,21 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
         }
     }
 
-    private List<TcpChannel> initiateConnection(DiscoveryNode node,
-                                                ConnectionProfile connectionProfile,
-                                                ActionListener<Transport.Connection> listener) {
+    private List<CloseableChannel> initiateConnection(DiscoveryNode node,
+                                                      ConnectionProfile connectionProfile,
+                                                      ActionListener<Transport.Connection> listener) {
         int numConnections = connectionProfile.getNumConnections();
         assert numConnections > 0 : "A connection profile must be configured with at least one connection";
 
-        final List<TcpChannel> channels = new ArrayList<>(numConnections);
+        final List<CloseableChannel> channels = new ArrayList<>(numConnections);
+        final List<ChannelFuture> connectFutures = new ArrayList<>(numConnections);
         for (int i = 0; i < numConnections; ++i) {
             try {
-                TcpChannel channel = initiateChannel(node);
+                ConnectResult initiateChannel = initiateChannel(node);
+                CloseableChannel channel = initiateChannel.channel();
                 logger.trace(() -> new ParameterizedMessage("Tcp transport client channel opened: {}", channel));
                 channels.add(channel);
+                connectFutures.add(initiateChannel.connectFuture());
             } catch (ConnectTransportException e) {
                 CloseableChannel.closeChannels(channels, false);
                 listener.onFailure(e);
@@ -312,10 +317,15 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
             new ThreadedActionListener<>(logger, threadPool, ThreadPool.Names.GENERIC, listener, false)
         );
 
-        for (TcpChannel channel : channels) {
-            channel.addConnectListener(channelsConnectedListener);
+        for (var connectFuture : connectFutures) {
+            connectFuture.addListener(f -> {
+                if (f.isSuccess()) {
+                    channelsConnectedListener.onResponse(null);
+                } else {
+                    channelsConnectedListener.onFailure(Exceptions.toException(f.cause()));
+                }
+            });
         }
-
         TimeValue connectTimeout = connectionProfile.getConnectTimeout();
         threadPool.schedule(channelsConnectedListener::onTimeout, connectTimeout, ThreadPool.Names.GENERIC);
         return channels;
@@ -564,12 +574,12 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
         }
     }
 
-    public void onException(TcpChannel channel, Exception e) {
+    public void onException(CloseableChannel channel, Exception e) {
         handleException(logger, channel, e, lifecycle, outboundHandler);
     }
 
     @VisibleForTesting
-    static void handleException(Logger logger, TcpChannel channel, Exception e, Lifecycle lifecycle, OutboundHandler outboundHandler) {
+    static void handleException(Logger logger, CloseableChannel channel, Exception e, Lifecycle lifecycle, OutboundHandler outboundHandler) {
         if (!lifecycle.started()) {
             // just close and ignore - we are already stopped and just need to make sure we release all resources
             CloseableChannel.closeChannel(channel, false);
@@ -598,7 +608,12 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
             // in case we are able to return data, serialize the exception content and sent it back to the client
             if (channel.isOpen()) {
                 BytesArray message = new BytesArray(e.getMessage().getBytes(StandardCharsets.UTF_8));
-                outboundHandler.sendBytes(channel, message, ActionListener.wrap(() -> CloseableChannel.closeChannel(channel)));
+                var future = outboundHandler.sendBytes(channel, message);
+                future.addListener(f -> {
+                    if (f.isSuccess()) {
+                        channel.close();
+                    }
+                });
             }
         } else if (e instanceof StreamCorruptedException) {
             logger.warn(() -> new ParameterizedMessage("{}, [{}], closing connection", e.getMessage(), channel));
@@ -618,7 +633,7 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
         }
     }
 
-    protected void serverAcceptedChannel(TcpChannel channel) {
+    protected void serverAcceptedChannel(CloseableChannel channel) {
         boolean addedOnThisCall = acceptedChannels.add(channel);
         assert addedOnThisCall : "Channel should only be added to accepted channel set once";
         // Mark the channel init time
@@ -634,6 +649,10 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
      */
     protected abstract CloseableChannel bind(InetSocketAddress address) throws IOException;
 
+
+    public record ConnectResult(CloseableChannel channel, ChannelFuture connectFuture) {
+    }
+
     /**
      * Initiate a single tcp socket channel.
      *
@@ -641,7 +660,7 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
      * @return the pending connection
      * @throws IOException if an I/O exception occurs while opening the channel
      */
-    protected abstract TcpChannel initiateChannel(DiscoveryNode node) throws IOException;
+    protected abstract ConnectResult initiateChannel(DiscoveryNode node) throws IOException;
 
     /**
      * Called to tear down internal resources
@@ -654,7 +673,7 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
      * @param channel the channel the message is from
      * @param message the message
      */
-    public void inboundMessage(TcpChannel channel, InboundMessage message) {
+    public void inboundMessage(CloseableChannel channel, InboundMessage message) {
         try {
             inboundHandler.inboundMessage(channel, message);
         } catch (Exception e) {
@@ -770,7 +789,7 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
     }
 
     public void executeHandshake(DiscoveryNode node,
-                                 TcpChannel channel,
+                                 CloseableChannel channel,
                                  ConnectionProfile profile,
                                  ActionListener<Version> listener) {
         long requestId = responseHandlers.newRequestId();
@@ -829,13 +848,13 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
 
         private final DiscoveryNode node;
         private final ConnectionProfile connectionProfile;
-        private final List<TcpChannel> channels;
+        private final List<CloseableChannel> channels;
         private final ActionListener<Transport.Connection> listener;
         private final CountDown countDown;
 
         private ChannelsConnectedListener(DiscoveryNode node,
                                           ConnectionProfile connectionProfile,
-                                          List<TcpChannel> channels,
+                                          List<CloseableChannel> channels,
                                           ActionListener<Transport.Connection> listener) {
             this.node = node;
             this.connectionProfile = connectionProfile;
@@ -848,7 +867,7 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
         public void onResponse(Void v) {
             // Returns true if all connections have completed successfully
             if (countDown.countDown()) {
-                final TcpChannel handshakeChannel = channels.get(0);
+                final CloseableChannel handshakeChannel = channels.get(0);
                 try {
                     executeHandshake(node, handshakeChannel, connectionProfile, ActionListener.wrap(version -> {
                         final long connectionId = outboundConnectionCount.incrementAndGet();

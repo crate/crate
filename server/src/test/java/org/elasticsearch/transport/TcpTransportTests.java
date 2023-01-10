@@ -19,11 +19,10 @@
 
 package org.elasticsearch.transport;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -60,6 +59,9 @@ import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.elasticsearch.threadpool.TestThreadPool;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.hamcrest.Matcher;
+import org.junit.Test;
+
+import io.netty.channel.embedded.EmbeddedChannel;
 
 /** Unit tests for {@link TcpTransport} */
 public class TcpTransportTests extends ESTestCase {
@@ -162,7 +164,7 @@ public class TcpTransportTests extends ESTestCase {
                 }
 
                 @Override
-                protected TcpChannel initiateChannel(DiscoveryNode node) {
+                protected ConnectResult initiateChannel(DiscoveryNode node) {
                     throw new UnsupportedOperationException();
                 }
 
@@ -327,8 +329,9 @@ public class TcpTransportTests extends ESTestCase {
     }
 
     @TestLogging(value = "org.elasticsearch.transport.TcpTransport:DEBUG")
+    @Test
     public void testExceptionHandling() throws IllegalAccessException {
-        testExceptionHandling(false, new ElasticsearchException("simulated"), true,
+        testExceptionHandling(false, new ElasticsearchException("simulated"),
             new MockLogAppender.UnseenEventExpectation("message", "org.elasticsearch.transport.TcpTransport", Level.ERROR, "*"),
             new MockLogAppender.UnseenEventExpectation("message", "org.elasticsearch.transport.TcpTransport", Level.WARN, "*"),
             new MockLogAppender.UnseenEventExpectation("message", "org.elasticsearch.transport.TcpTransport", Level.INFO, "*"),
@@ -348,7 +351,7 @@ public class TcpTransportTests extends ESTestCase {
         testExceptionHandling(new CancelledKeyException(),
             new MockLogAppender.SeenEventExpectation("message", "org.elasticsearch.transport.TcpTransport",
                 Level.DEBUG, "cancelled key exception caught on transport layer [*], disconnecting from relevant node"));
-        testExceptionHandling(true, new TcpTransport.HttpRequestOnTransportException("test"), false,
+        testExceptionHandling(true, new TcpTransport.HttpRequestOnTransportException("test"),
             new MockLogAppender.UnseenEventExpectation("message", "org.elasticsearch.transport.TcpTransport", Level.ERROR, "*"),
             new MockLogAppender.UnseenEventExpectation("message", "org.elasticsearch.transport.TcpTransport", Level.WARN, "*"),
             new MockLogAppender.UnseenEventExpectation("message", "org.elasticsearch.transport.TcpTransport", Level.INFO, "*"),
@@ -360,10 +363,11 @@ public class TcpTransportTests extends ESTestCase {
 
     private void testExceptionHandling(Exception exception,
                                        MockLogAppender.LoggingExpectation... expectations) throws IllegalAccessException {
-        testExceptionHandling(true, exception, true, expectations);
+        testExceptionHandling(true, exception, expectations);
     }
 
-    private void testExceptionHandling(boolean startTransport, Exception exception, boolean expectClosed,
+    private void testExceptionHandling(boolean startTransport,
+                                       Exception exception,
                                        MockLogAppender.LoggingExpectation... expectations) throws IllegalAccessException {
         final TestThreadPool testThreadPool = new TestThreadPool("test");
         MockLogAppender appender = new MockLogAppender();
@@ -382,21 +386,23 @@ public class TcpTransportTests extends ESTestCase {
                 lifecycle.moveToStarted();
             }
 
-            final FakeTcpChannel channel = new FakeTcpChannel();
+            EmbeddedChannel embeddedChannel = new EmbeddedChannel();
+            CloseableChannel channel = new CloseableChannel(embeddedChannel, false);
             final PlainActionFuture<Void> listener = new PlainActionFuture<>();
             channel.addCloseListener(listener);
 
             var logger = Loggers.getLogger(TcpTransport.class);
-            TcpTransport.handleException(logger, channel, exception, lifecycle,
-                new OutboundHandler(randomAlphaOfLength(10), Version.CURRENT, new StatsTracker(), testThreadPool,
-                    BigArrays.NON_RECYCLING_INSTANCE));
+            var outputHandler = new OutboundHandler(
+                randomAlphaOfLength(10),
+                Version.CURRENT,
+                new StatsTracker(),
+                testThreadPool,
+                BigArrays.NON_RECYCLING_INSTANCE
+            );
+            TcpTransport.handleException(logger, channel, exception, lifecycle, outputHandler);
 
-            if (expectClosed) {
-                assertTrue(listener.isDone());
-                assertThat(listener.actionGet(), nullValue());
-            } else {
-                assertFalse(listener.isDone());
-            }
+            assertThat(listener.isDone()).isTrue();
+            assertThat(listener.actionGet()).isNull();
 
             appender.assertAllExpectationsMatched();
 
