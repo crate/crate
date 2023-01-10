@@ -126,7 +126,9 @@ public final class Eval extends ForwardingLogicalPlan {
         }
         for (Symbol output : outputs) {
             newReplacedOutputs.put(output, mapToFetchStubs.apply(output));
-            SymbolVisitors.intersection(output, newSource.outputs(), newOutputs::add);
+            if (SymbolVisitors.any(newSource.outputs()::contains, output)) {
+                newOutputs.add(output);
+            }
         }
         return new FetchRewrite(newReplacedOutputs, Eval.create(newSource, newOutputs));
     }

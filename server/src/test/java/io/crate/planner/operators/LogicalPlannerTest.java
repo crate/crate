@@ -490,6 +490,33 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
             "      └ Collect[doc.t1 | [x, a] | true]"));
     }
 
+    @Test
+    public void test_eval_qtf_doesnt_unwrap_non_fetchable_aliases() {
+        // To reproduce https://github.com/crate/crate/issues/13414  we need:
+        // 1. select at least one fetchable column (t1.i) to really kick in Query-Then-Fetch execution, just limit is not enough.
+        // 2. select used in join aliased column
+        // 3. use virtual table (view or subselect)
+        // 4. use limit on the whole query
+        LogicalPlan plan = plan("""
+            select * from generate_series(1, 2)
+            cross join
+            (select t1.i, t2.y AS aliased from t1 inner join t2 on t1.x = t2.y) v
+            limit 10
+            """);
+        assertThat(plan, isPlan(
+            """
+                Fetch[generate_series, i, aliased]
+                  └ Limit[10::bigint;0]
+                    └ NestedLoopJoin[CROSS]
+                      ├ TableFunction[generate_series | [generate_series] | true]
+                      └ Rename[v._fetchid, aliased] AS v
+                        └ Eval[_fetchid, y AS aliased]
+                          └ HashJoin[(x = y)]
+                            ├ Collect[doc.t1 | [_fetchid, x] | true]
+                            └ Collect[doc.t2 | [y] | true]"""
+        ));
+    }
+
     public static String printPlan(LogicalPlan logicalPlan) {
         var printContext = new PrintContext();
         logicalPlan.print(printContext);
