@@ -32,6 +32,7 @@ import org.elasticsearch.Version;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.lease.Releasables;
+import org.elasticsearch.common.network.CloseableChannel;
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
@@ -228,11 +229,11 @@ public class Netty4Transport extends TcpTransport {
         this.serverBootstrap = serverBootstrap;
     }
 
-    public static final AttributeKey<Netty4TcpChannel> CHANNEL_KEY = AttributeKey.newInstance("es-channel");
-    static final AttributeKey<Netty4TcpServerChannel> SERVER_CHANNEL_KEY = AttributeKey.newInstance("es-server-channel");
+    public static final AttributeKey<CloseableChannel> CHANNEL_KEY = AttributeKey.newInstance("es-channel");
+    static final AttributeKey<CloseableChannel> SERVER_CHANNEL_KEY = AttributeKey.newInstance("es-server-channel");
 
     @Override
-    protected Netty4TcpChannel initiateChannel(DiscoveryNode node) throws IOException {
+    protected ConnectResult initiateChannel(DiscoveryNode node) throws IOException {
         InetSocketAddress address = node.getAddress().address();
         Bootstrap bootstrapWithHandler = clientBootstrap.clone();
         bootstrapWithHandler.handler(new ClientChannelInitializer());
@@ -246,16 +247,16 @@ public class Netty4Transport extends TcpTransport {
         }
         addClosedExceptionLogger(channel);
 
-        Netty4TcpChannel nettyChannel = new Netty4TcpChannel(channel, false, connectFuture);
+        CloseableChannel nettyChannel = new CloseableChannel(channel, false);
         channel.attr(CHANNEL_KEY).set(nettyChannel);
 
-        return nettyChannel;
+        return new ConnectResult(nettyChannel, connectFuture);
     }
 
     @Override
-    protected Netty4TcpServerChannel bind(InetSocketAddress address) {
+    protected CloseableChannel bind(InetSocketAddress address) {
         Channel channel = serverBootstrap.bind(address).syncUninterruptibly().channel();
-        Netty4TcpServerChannel esChannel = new Netty4TcpServerChannel(channel);
+        CloseableChannel esChannel = new CloseableChannel(channel, true);
         channel.attr(SERVER_CHANNEL_KEY).set(esChannel);
         return esChannel;
     }
@@ -314,7 +315,7 @@ public class Netty4Transport extends TcpTransport {
                 ch.pipeline().addLast("hba", new HostBasedAuthHandler(authentication));
             }
             addClosedExceptionLogger(ch);
-            Netty4TcpChannel nettyTcpChannel = new Netty4TcpChannel(ch, true, ch.newSucceededFuture());
+            CloseableChannel nettyTcpChannel = new CloseableChannel(ch, true);
             ch.attr(CHANNEL_KEY).set(nettyTcpChannel);
             serverAcceptedChannel(nettyTcpChannel);
             ch.pipeline().addLast("logging", loggingHandler);
@@ -342,7 +343,7 @@ public class Netty4Transport extends TcpTransport {
         @Override
         public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
             ExceptionsHelper.maybeDieOnAnotherThread(cause);
-            Netty4TcpServerChannel serverChannel = ctx.channel().attr(SERVER_CHANNEL_KEY).get();
+            CloseableChannel serverChannel = ctx.channel().attr(SERVER_CHANNEL_KEY).get();
             if (cause instanceof Error) {
                 onServerException(serverChannel, new Exception(cause));
             } else {

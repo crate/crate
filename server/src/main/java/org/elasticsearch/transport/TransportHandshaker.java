@@ -19,7 +19,12 @@
 
 package org.elasticsearch.transport;
 
-import io.crate.common.unit.TimeValue;
+import java.io.EOFException;
+import java.io.IOException;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -28,13 +33,10 @@ import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.metrics.CounterMetric;
+import org.elasticsearch.common.network.CloseableChannel;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import java.io.EOFException;
-import java.io.IOException;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicBoolean;
+import io.crate.common.unit.TimeValue;
 
 /**
  * Sends and receives transport-level connection handshakes. This class will send the initial handshake,
@@ -56,7 +58,7 @@ final class TransportHandshaker {
         this.handshakeRequestSender = handshakeRequestSender;
     }
 
-    void sendHandshake(long requestId, DiscoveryNode node, TcpChannel channel, TimeValue timeout, ActionListener<Version> listener) {
+    void sendHandshake(long requestId, DiscoveryNode node, CloseableChannel channel, TimeValue timeout, ActionListener<Version> listener) {
         numHandshakes.inc();
         final HandshakeResponseHandler handler = new HandshakeResponseHandler(requestId, version, listener);
         pendingHandshakes.put(requestId, handler);
@@ -223,6 +225,6 @@ final class TransportHandshaker {
     @FunctionalInterface
     interface HandshakeRequestSender {
 
-        void sendRequest(DiscoveryNode node, TcpChannel channel, long requestId, Version version) throws IOException;
+        void sendRequest(DiscoveryNode node, CloseableChannel channel, long requestId, Version version) throws IOException;
     }
 }

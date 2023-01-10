@@ -46,12 +46,14 @@ import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.bytes.ReleasableBytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.lease.Releasable;
+import org.elasticsearch.common.network.CloseableChannel;
 import org.elasticsearch.common.util.PageCacheRecycler;
 import org.elasticsearch.test.ESTestCase;
 
 import io.crate.common.collections.Tuple;
 import io.crate.common.io.Streams;
 import io.crate.common.unit.TimeValue;
+import io.netty.channel.embedded.EmbeddedChannel;
 
 public class InboundPipelineTests extends ESTestCase {
 
@@ -61,7 +63,7 @@ public class InboundPipelineTests extends ESTestCase {
         final List<Tuple<MessageData, Exception>> expected = new ArrayList<>();
         final List<Tuple<MessageData, Exception>> actual = new ArrayList<>();
         final List<ReleasableBytesReference> toRelease = new ArrayList<>();
-        final BiConsumer<TcpChannel, InboundMessage> messageHandler = (c, m) -> {
+        final BiConsumer<CloseableChannel, InboundMessage> messageHandler = (c, m) -> {
             try {
                 final Header header = m.getHeader();
                 final MessageData actualData;
@@ -94,7 +96,7 @@ public class InboundPipelineTests extends ESTestCase {
         circuitBreaker.startBreaking();
         final InboundAggregator aggregator = new InboundAggregator(() -> circuitBreaker, canTripBreaker);
         final InboundPipeline pipeline = new InboundPipeline(statsTracker, millisSupplier, decoder, aggregator, messageHandler);
-        final FakeTcpChannel channel = new FakeTcpChannel();
+        final CloseableChannel channel = fakeChannel();
 
         final int iterations = randomIntBetween(100, 500);
         long totalMessages = 0;
@@ -180,7 +182,7 @@ public class InboundPipelineTests extends ESTestCase {
     }
 
     public void testDecodeExceptionIsPropagated() throws IOException {
-        BiConsumer<TcpChannel, InboundMessage> messageHandler = (c, m) -> {};
+        BiConsumer<CloseableChannel, InboundMessage> messageHandler = (c, m) -> {};
         final StatsTracker statsTracker = new StatsTracker();
         final LongSupplier millisSupplier = () -> TimeValue.nsecToMSec(System.nanoTime());
         final InboundDecoder decoder = new InboundDecoder(Version.CURRENT, PageCacheRecycler.NON_RECYCLING_INSTANCE);
@@ -206,18 +208,18 @@ public class InboundPipelineTests extends ESTestCase {
 
             final BytesReference reference = message.serialize(streamOutput);
             try (ReleasableBytesReference releasable = ReleasableBytesReference.wrap(reference)) {
-                expectThrows(IllegalStateException.class, () -> pipeline.handleBytes(new FakeTcpChannel(), releasable));
+                expectThrows(IllegalStateException.class, () -> pipeline.handleBytes(fakeChannel(), releasable));
             }
 
             // Pipeline cannot be reused after uncaught exception
             final IllegalStateException ise = expectThrows(IllegalStateException.class,
-                () -> pipeline.handleBytes(new FakeTcpChannel(), ReleasableBytesReference.wrap(BytesArray.EMPTY)));
+                () -> pipeline.handleBytes(fakeChannel(), ReleasableBytesReference.wrap(BytesArray.EMPTY)));
             assertEquals("Pipeline state corrupted by uncaught exception", ise.getMessage());
         }
     }
 
     public void testEnsureBodyIsNotPrematurelyReleased() throws IOException {
-        BiConsumer<TcpChannel, InboundMessage> messageHandler = (c, m) -> {};
+        BiConsumer<CloseableChannel, InboundMessage> messageHandler = (c, m) -> {};
         final StatsTracker statsTracker = new StatsTracker();
         final LongSupplier millisSupplier = () -> TimeValue.nsecToMSec(System.nanoTime());
         final InboundDecoder decoder = new InboundDecoder(Version.CURRENT, PageCacheRecycler.NON_RECYCLING_INSTANCE);
@@ -248,7 +250,7 @@ public class InboundPipelineTests extends ESTestCase {
             final AtomicBoolean bodyReleased = new AtomicBoolean(false);
             for (int i = 0; i < totalHeaderSize - 1; ++i) {
                 try (ReleasableBytesReference slice = ReleasableBytesReference.wrap(reference.slice(i, 1))) {
-                    pipeline.handleBytes(new FakeTcpChannel(), slice);
+                    pipeline.handleBytes(fakeChannel(), slice);
                 }
             }
 
@@ -256,14 +258,18 @@ public class InboundPipelineTests extends ESTestCase {
             final int from = totalHeaderSize - 1;
             final BytesReference partHeaderPartBody = reference.slice(from, reference.length() - from - 1);
             try (ReleasableBytesReference slice = new ReleasableBytesReference(partHeaderPartBody, releasable)) {
-                pipeline.handleBytes(new FakeTcpChannel(), slice);
+                pipeline.handleBytes(fakeChannel(), slice);
             }
             assertFalse(bodyReleased.get());
             try (ReleasableBytesReference slice = new ReleasableBytesReference(reference.slice(reference.length() - 1, 1), releasable)) {
-                pipeline.handleBytes(new FakeTcpChannel(), slice);
+                pipeline.handleBytes(fakeChannel(), slice);
             }
             assertTrue(bodyReleased.get());
         }
+    }
+
+    private static CloseableChannel fakeChannel() {
+        return new CloseableChannel(new EmbeddedChannel(), false);
     }
 
     private static class MessageData {

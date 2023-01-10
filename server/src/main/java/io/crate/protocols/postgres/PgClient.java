@@ -59,7 +59,6 @@ import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportService;
 import org.elasticsearch.transport.TransportSettings;
 import org.elasticsearch.transport.netty4.Netty4MessageChannelHandler;
-import org.elasticsearch.transport.netty4.Netty4TcpChannel;
 import org.elasticsearch.transport.netty4.Netty4Transport;
 import org.elasticsearch.transport.netty4.Netty4Utils;
 
@@ -203,10 +202,9 @@ public class PgClient extends AbstractClient {
             }
             return null;
         });
-        Netty4TcpChannel nettyChannel = new Netty4TcpChannel(
+        CloseableChannel nettyChannel = new CloseableChannel(
             channel,
-            false,
-            connectFuture
+            false
         );
         channel.attr(Netty4Transport.CHANNEL_KEY).set(nettyChannel);
         connectFuture.addListener(f -> {
@@ -226,11 +224,9 @@ public class PgClient extends AbstractClient {
                 }
                 channel.writeAndFlush(buffer);
             } else {
-                Throwable cause = f.cause();
-                future.completeExceptionally(cause);
+                future.completeExceptionally(f.cause());
             }
         });
-
         return future;
     }
 
@@ -373,7 +369,7 @@ public class PgClient extends AbstractClient {
 
             var handler = new Netty4MessageChannelHandler(pageCacheRecycler, transport);
             channel.pipeline().addLast("dispatcher", handler);
-            Netty4TcpChannel tcpChannel = channel.attr(Netty4Transport.CHANNEL_KEY).get();
+            CloseableChannel tcpChannel = channel.attr(Netty4Transport.CHANNEL_KEY).get();
 
             ActionListener<Version> onHandshakeResponse = ActionListener.wrap(
                 version -> {
@@ -563,7 +559,7 @@ public class PgClient extends AbstractClient {
     public static class TunneledConnection extends CloseableConnection {
 
         private final DiscoveryNode node;
-        private final Netty4TcpChannel channel;
+        private final CloseableChannel channel;
         private final ConnectionProfile connectionProfile;
         private final Version version;
         private final OutboundHandler outboundHandler;
@@ -571,7 +567,7 @@ public class PgClient extends AbstractClient {
 
         public TunneledConnection(OutboundHandler outboundHandler,
                                   DiscoveryNode node,
-                                  Netty4TcpChannel channel,
+                                  CloseableChannel channel,
                                   ConnectionProfile connectionProfile,
                                   Version version) {
             this.outboundHandler = outboundHandler;

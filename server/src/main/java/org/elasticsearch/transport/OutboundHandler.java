@@ -23,19 +23,17 @@ import java.io.IOException;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.Version;
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.NotifyOnceListener;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.ReleasableBytesStreamOutput;
-import org.elasticsearch.common.lease.Releasable;
-import org.elasticsearch.common.lease.Releasables;
 import org.elasticsearch.common.network.CloseableChannel;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.transport.netty4.Netty4Utils;
+
+import io.netty.channel.ChannelFuture;
 
 
 public final class OutboundHandler {
@@ -62,15 +60,20 @@ public final class OutboundHandler {
         this.bigArrays = bigArrays;
     }
 
-    void sendBytes(TcpChannel channel, BytesReference bytes, ActionListener<Void> listener) {
+    ChannelFuture sendBytes(CloseableChannel channel, BytesReference bytes) {
         channel.getChannelStats().markAccessed(threadPool.relativeTimeInMillis());
-        SendContext sendContext = new SendContext(channel, listener, null);
         try {
-            sendContext.messageSize = bytes.length();
-            channel.sendMessage(bytes, sendContext);
+            ChannelFuture future = channel.writeAndFlush(Netty4Utils.toByteBuf(bytes));
+            future.addListener(f -> {
+                if (f.isSuccess()) {
+                    statsTracker.markBytesWritten(bytes.length());
+                } else {
+                    LOGGER.warn("send message failed [channel: {}]", channel, f.cause());
+                }
+            });
+            return future;
         } catch (RuntimeException ex) {
-            sendContext.onFailure(ex);
-            CloseableChannel.closeChannel(channel);
+            channel.close();
             throw ex;
         }
     }
@@ -80,7 +83,7 @@ public final class OutboundHandler {
      * objects back to the caller.
      */
     public void sendRequest(final DiscoveryNode node,
-                            final TcpChannel channel,
+                            final CloseableChannel channel,
                             final long requestId,
                             final String action,
                             final TransportRequest request,
@@ -97,9 +100,8 @@ public final class OutboundHandler {
             isHandshake,
             compressRequest
         );
-        ActionListener<Void> listener = ActionListener.wrap(() ->
-            messageListener.onRequestSent(node, requestId, action, request, options));
-        sendMessage(channel, message, listener);
+        ChannelFuture future = sendMessage(channel, message);
+        future.addListener(f -> messageListener.onRequestSent(node, requestId, action, request, options));
     }
 
     /**
@@ -108,7 +110,7 @@ public final class OutboundHandler {
      *
      */
     void sendResponse(final Version nodeVersion,
-                      final TcpChannel channel,
+                      final CloseableChannel channel,
                       final long requestId,
                       final String action,
                       final TransportResponse response,
@@ -122,17 +124,15 @@ public final class OutboundHandler {
             isHandshake,
             compress
         );
-        ActionListener<Void> listener = ActionListener.wrap(
-            () -> messageListener.onResponseSent(requestId, action, response)
-        );
-        sendMessage(channel, message, listener);
+        ChannelFuture future = sendMessage(channel, message);
+        future.addListener(f -> messageListener.onResponseSent(requestId, action, response));
     }
 
     /**
      * Sends back an error response to the caller via the given channel
      */
     void sendErrorResponse(final Version nodeVersion,
-                           final TcpChannel channel,
+                           final CloseableChannel channel,
                            final long requestId,
                            final String action,
                            final Exception error) throws IOException {
@@ -146,22 +146,28 @@ public final class OutboundHandler {
             false,
             false
         );
-        ActionListener<Void> listener = ActionListener.wrap(() -> messageListener.onResponseSent(requestId, action, error));
-        sendMessage(channel, message, listener);
+        ChannelFuture future = sendMessage(channel, message);
+        future.addListener(f -> messageListener.onResponseSent(requestId, action, error));
     }
 
-    private void sendMessage(TcpChannel channel, OutboundMessage networkMessage, ActionListener<Void> listener) throws IOException {
+    private ChannelFuture sendMessage(CloseableChannel channel, OutboundMessage networkMessage) throws IOException {
         channel.getChannelStats().markAccessed(threadPool.relativeTimeInMillis());
 
         var bytesStreamOutput = new ReleasableBytesStreamOutput(bigArrays);
-        SendContext sendContext = new SendContext(channel, listener, bytesStreamOutput);
         try {
             BytesReference msg = networkMessage.serialize(bytesStreamOutput);
-            sendContext.messageSize = msg.length();
-            channel.sendMessage(msg, sendContext);
+            ChannelFuture future = channel.writeAndFlush(Netty4Utils.toByteBuf(msg));
+            future.addListener(f -> {
+                statsTracker.markBytesWritten(msg.length());
+                bytesStreamOutput.close();
+                if (!f.isSuccess()) {
+                    LOGGER.warn("send message failed [channel: {}]", channel, f.cause());
+                }
+            });
+            return future;
         } catch (RuntimeException ex) {
-            sendContext.onFailure(ex);
-            CloseableChannel.closeChannel(channel);
+            bytesStreamOutput.close();
+            channel.close();
             throw ex;
         }
     }
@@ -171,39 +177,6 @@ public final class OutboundHandler {
             messageListener = listener;
         } else {
             throw new IllegalStateException("Cannot set message listener twice");
-        }
-    }
-
-    private class SendContext extends NotifyOnceListener<Void> {
-
-        private final TcpChannel channel;
-        private final ActionListener<Void> listener;
-        private final Releasable optionalReleasable;
-        private long messageSize = -1;
-
-        private SendContext(TcpChannel channel,
-                            ActionListener<Void> listener,
-                            Releasable optionalReleasable) {
-            this.channel = channel;
-            this.listener = listener;
-            this.optionalReleasable = optionalReleasable;
-        }
-
-        @Override
-        protected void innerOnResponse(Void v) {
-            assert messageSize != -1 : "If onResponse is being called, the message should have been serialized";
-            statsTracker.markBytesWritten(messageSize);
-            closeAndCallback(() -> listener.onResponse(v));
-        }
-
-        @Override
-        protected void innerOnFailure(Exception e) {
-            LOGGER.warn(() -> new ParameterizedMessage("send message failed [channel: {}]", channel), e);
-            closeAndCallback(() -> listener.onFailure(e));
-        }
-
-        private void closeAndCallback(Runnable runnable) {
-            Releasables.close(optionalReleasable, runnable::run);
         }
     }
 }
