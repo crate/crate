@@ -165,7 +165,8 @@ public class ShardReplicationChangesTracker implements Closeable {
                 updateBatchFetched(true, fromSeqNo, toSeqNo, lastSeqNo, pendingChanges.lastSyncedGlobalCheckpoint());
             } else {
                 var t = SQLExceptions.unwrap(e);
-                if (!closed && SQLExceptions.maybeTemporary(t)) {
+                boolean isClosed = closed;
+                if (!isClosed && SQLExceptions.maybeTemporary(t)) {
                     if (LOGGER.isInfoEnabled()) {
                         LOGGER.info(
                             "[{}] Temporary error during tracking of upstream shard changes for subscription '{}'. Retrying: {}:{}",
@@ -182,9 +183,10 @@ public class ShardReplicationChangesTracker implements Closeable {
                     }
                 } else {
                     LOGGER.warn(
-                        "[{}] Error during tracking of upstream shard changes for subscription '{}'. Tracking stopped: {}",
+                        "[{}] Error during tracking of upstream shard changes. subscription={} isClosed={} error={}",
                         shardId,
                         subscriptionName,
+                        isClosed,
                         t
                     );
                 }
