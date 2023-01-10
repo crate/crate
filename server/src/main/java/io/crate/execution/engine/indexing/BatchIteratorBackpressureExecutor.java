@@ -37,11 +37,11 @@ import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
 
-import io.crate.exceptions.JobKilledException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import io.crate.data.BatchIterator;
+import io.crate.exceptions.JobKilledException;
 
 /**
  * Consumes a BatchIterator, concurrently invoking {@link #execute} on
@@ -188,13 +188,13 @@ public class BatchIteratorBackpressureExecutor<T, R> {
             if (batchIterator.allLoaded()) {
                 semaphore.release();
                 consumptionFinished = true;
-                continueConsumptionOrFinish.accept(null, null);
+                continueConsumptionOrFinish(null, null);
             } else {
                 batchIterator.loadNextBatch()
                     // consumption can only be continued after loadNextBatch completes; so keep permit until then.
                     .whenComplete((r, f) -> {
                         semaphore.release();
-                        continueConsumptionOrFinish.accept(null, f);
+                        continueConsumptionOrFinish(null, f);
                     });
             }
         } catch (Throwable t) {

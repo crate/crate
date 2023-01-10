@@ -19,7 +19,17 @@
 
 package org.elasticsearch.cluster.metadata;
 
-import io.crate.common.annotations.VisibleForTesting;
+import static io.crate.metadata.doc.DocIndexMetadata.furtherColumnProperties;
+import static org.elasticsearch.indices.cluster.IndicesClusterStateService.AllocatedIndices.IndexRemovalReason.NO_LONGER_ASSIGNED;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Nullable;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
@@ -32,18 +42,9 @@ import org.elasticsearch.cluster.ClusterStateTaskExecutor;
 import org.elasticsearch.cluster.ack.ClusterStateUpdateResponse;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
-import javax.annotation.Nullable;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.inject.Inject;
-
-import io.crate.Constants;
-import io.crate.common.collections.Maps;
-import io.crate.common.unit.TimeValue;
-import io.crate.common.io.IOUtils;
-import io.crate.metadata.IndexParts;
-import io.crate.metadata.PartitionName;
-
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexService;
@@ -52,14 +53,12 @@ import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.mapper.MapperService.MergeReason;
 import org.elasticsearch.indices.IndicesService;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import static io.crate.metadata.doc.DocIndexMetadata.furtherColumnProperties;
-import static org.elasticsearch.indices.cluster.IndicesClusterStateService.AllocatedIndices.IndexRemovalReason.NO_LONGER_ASSIGNED;
+import io.crate.common.annotations.VisibleForTesting;
+import io.crate.common.collections.Maps;
+import io.crate.common.io.IOUtils;
+import io.crate.common.unit.TimeValue;
+import io.crate.metadata.IndexParts;
+import io.crate.metadata.PartitionName;
 
 /**
  * Service responsible for submitting mapping changes
@@ -281,10 +280,8 @@ public class MetadataMappingService {
                     String partitionName = PartitionName.templateName(index.getName());
                     IndexTemplateMetadata indexTemplateMetadata = currentState.metadata().templates().get(partitionName);
                     updatedSourceMap = XContentHelper.convertToMap(mappingUpdateSource.compressedReference(), true).map();
-                    populateColumnPositions(updatedSourceMap,
-                                            // if partitioned, template-mapping should contain the latest column positions
-                                            indexTemplateMetadata.mappings().get(Constants.DEFAULT_MAPPING_TYPE)
-                    );
+                    // if partitioned, template-mapping should contain the latest column positions
+                    populateColumnPositions(updatedSourceMap, indexTemplateMetadata.mapping());
                 }
 
 

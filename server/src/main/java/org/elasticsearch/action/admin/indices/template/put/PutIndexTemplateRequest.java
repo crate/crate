@@ -19,17 +19,29 @@
 
 package org.elasticsearch.action.admin.indices.template.put;
 
+import static org.elasticsearch.common.settings.Settings.readSettingsFromStream;
+import static org.elasticsearch.common.settings.Settings.writeSettingsToStream;
+import static org.elasticsearch.common.settings.Settings.Builder.EMPTY_SETTINGS;
+
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.elasticsearch.ElasticsearchGenerationException;
 import org.elasticsearch.ElasticsearchParseException;
+import org.elasticsearch.Version;
 import org.elasticsearch.action.IndicesRequest;
 import org.elasticsearch.action.admin.indices.alias.Alias;
-import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.MasterNodeRequest;
 import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
-import io.crate.common.collections.MapBuilder;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
@@ -42,29 +54,14 @@ import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.common.xcontent.support.XContentMapValues;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import static org.elasticsearch.common.settings.Settings.Builder.EMPTY_SETTINGS;
-import static org.elasticsearch.common.settings.Settings.readSettingsFromStream;
-import static org.elasticsearch.common.settings.Settings.writeSettingsToStream;
+import io.crate.Constants;
 
 /**
  * A request to create an index template.
  */
 public class PutIndexTemplateRequest extends MasterNodeRequest<PutIndexTemplateRequest> implements IndicesRequest {
 
-    private String name;
-
-    private String cause = "";
+    private final String name;
 
     private List<String> indexPatterns;
 
@@ -74,28 +71,17 @@ public class PutIndexTemplateRequest extends MasterNodeRequest<PutIndexTemplateR
 
     private Settings settings = EMPTY_SETTINGS;
 
-    private Map<String, String> mappings = new HashMap<>();
+    private String mapping;
 
     private final Set<Alias> aliases = new HashSet<>();
 
     private Integer version;
-
-    public PutIndexTemplateRequest() {
-    }
 
     /**
      * Constructs a new put index template request with the provided name.
      */
     public PutIndexTemplateRequest(String name) {
         this.name = name;
-    }
-
-    /**
-     * Sets the name of the index template.
-     */
-    public PutIndexTemplateRequest name(String name) {
-        this.name = name;
-        return this;
     }
 
     /**
@@ -192,93 +178,30 @@ public class PutIndexTemplateRequest extends MasterNodeRequest<PutIndexTemplateR
      *
      * @param type   The mapping type
      * @param source The mapping source
-     * @param xContentType The type of content contained within the source
      */
-    public PutIndexTemplateRequest mapping(String type, String source, XContentType xContentType) {
-        return mapping(type, new BytesArray(source), xContentType);
-    }
-
-    /**
-     * The cause for this index template creation.
-     */
-    public PutIndexTemplateRequest cause(String cause) {
-        this.cause = cause;
-        return this;
-    }
-
-    public String cause() {
-        return this.cause;
-    }
-
-    /**
-     * Adds mapping that will be added when the index gets created.
-     *
-     * @param type   The mapping type
-     * @param source The mapping source
-     */
-    public PutIndexTemplateRequest mapping(String type, XContentBuilder source) {
-        return mapping(type, BytesReference.bytes(source), source.contentType());
-    }
-
-    /**
-     * Adds mapping that will be added when the index gets created.
-     *
-     * @param type   The mapping type
-     * @param source The mapping source
-     * @param xContentType the source content type
-     */
-    public PutIndexTemplateRequest mapping(String type, BytesReference source, XContentType xContentType) {
-        Objects.requireNonNull(xContentType);
-        try {
-            mappings.put(type, XContentHelper.convertToJson(source, xContentType));
-            return this;
-        } catch (IOException e) {
-            throw new UncheckedIOException("failed to convert source to json", e);
-        }
-    }
-
-    /**
-     * Adds mapping that will be added when the index gets created.
-     *
-     * @param type   The mapping type
-     * @param source The mapping source
-     */
-    public PutIndexTemplateRequest mapping(String type, Map<String, Object> source) {
+    public PutIndexTemplateRequest mapping(Map<String, Object> source) {
         // wrap it in a type map if its not
-        if (source.size() != 1 || !source.containsKey(type)) {
-            source = MapBuilder.<String, Object>newMapBuilder().put(type, source).map();
+        if (source.size() != 1 || !source.containsKey(Constants.DEFAULT_MAPPING_TYPE)) {
+            source = Map.of(Constants.DEFAULT_MAPPING_TYPE, source);
         }
         try {
             XContentBuilder builder = XContentFactory.contentBuilder(XContentType.JSON);
             builder.map(source);
-            return mapping(type, builder);
+            XContentType xContentType = builder.contentType();
+            Objects.requireNonNull(xContentType);
+            try {
+                mapping = XContentHelper.convertToJson(BytesReference.bytes(builder), xContentType);
+                return this;
+            } catch (IOException e) {
+                throw new UncheckedIOException("failed to convert source to json", e);
+            }
         } catch (IOException e) {
             throw new ElasticsearchGenerationException("Failed to generate [" + source + "]", e);
         }
     }
 
-    /**
-     * A specialized simplified mapping source method, takes the form of simple properties definition:
-     * ("field1", "type=string,store=true").
-     */
-    public PutIndexTemplateRequest mapping(String type, Object... source) {
-        mapping(type, PutMappingRequest.buildFromSimplifiedDef(type, source));
-        return this;
-    }
-
-    public Map<String, String> mappings() {
-        return this.mappings;
-    }
-
-    /**
-     * The template source definition.
-     */
-    public PutIndexTemplateRequest source(XContentBuilder templateBuilder) {
-        try {
-            return source(BytesReference.bytes(templateBuilder), templateBuilder.contentType());
-        } catch (Exception e) {
-            throw new IllegalArgumentException("Failed to build json for template request", e);
-        }
+    public String mapping() {
+        return this.mapping;
     }
 
     /**
@@ -318,7 +241,7 @@ public class PutIndexTemplateRequest extends MasterNodeRequest<PutIndexTemplateR
                             "Malformed [mappings] section for type [" + entry1.getKey() +
                                 "], should include an inner object describing the mapping");
                     }
-                    mapping(entry1.getKey(), (Map<String, Object>) entry1.getValue());
+                    mapping((Map<String, Object>) entry1.getValue());
                 }
             } else if (name.equals("aliases")) {
                 aliases((Map<String, Object>) entry.getValue());
@@ -327,27 +250,6 @@ public class PutIndexTemplateRequest extends MasterNodeRequest<PutIndexTemplateR
             }
         }
         return this;
-    }
-
-    /**
-     * The template source definition.
-     */
-    public PutIndexTemplateRequest source(String templateSource, XContentType xContentType) {
-        return source(XContentHelper.convertToMap(xContentType.xContent(), templateSource, true));
-    }
-
-    /**
-     * The template source definition.
-     */
-    public PutIndexTemplateRequest source(byte[] source, XContentType xContentType) {
-        return source(source, 0, source.length, xContentType);
-    }
-
-    /**
-     * The template source definition.
-     */
-    public PutIndexTemplateRequest source(byte[] source, int offset, int length, XContentType xContentType) {
-        return source(new BytesArray(source, offset, length), xContentType);
     }
 
     /**
@@ -373,20 +275,6 @@ public class PutIndexTemplateRequest extends MasterNodeRequest<PutIndexTemplateR
         } catch (IOException e) {
             throw new ElasticsearchGenerationException("Failed to generate [" + source + "]", e);
         }
-    }
-
-    /**
-     * Sets the aliases that will be associated with the index when it gets created
-     */
-    public PutIndexTemplateRequest aliases(XContentBuilder source) {
-        return aliases(BytesReference.bytes(source));
-    }
-
-    /**
-     * Sets the aliases that will be associated with the index when it gets created
-     */
-    public PutIndexTemplateRequest aliases(String source) {
-        return aliases(new BytesArray(source));
     }
 
     /**
@@ -430,18 +318,24 @@ public class PutIndexTemplateRequest extends MasterNodeRequest<PutIndexTemplateR
 
     public PutIndexTemplateRequest(StreamInput in) throws IOException {
         super(in);
-        cause = in.readString();
+        if (in.getVersion().before(Version.V_5_2_0)) {
+            in.readString(); // cause
+        }
         name = in.readString();
 
         indexPatterns = in.readList(StreamInput::readString);
         order = in.readInt();
         create = in.readBoolean();
         settings = readSettingsFromStream(in);
-        int size = in.readVInt();
-        for (int i = 0; i < size; i++) {
-            final String type = in.readString();
-            String mappingSource = in.readString();
-            mappings.put(type, mappingSource);
+        if (in.getVersion().onOrAfter(Version.V_5_2_0)) {
+            mapping = in.readString();
+        } else {
+            int size = in.readVInt();
+            for (int i = 0; i < size; i++) {
+                in.readString(); // always "default"
+                String mappingSource = in.readString();
+                mapping = mappingSource;
+            }
         }
         int aliasesSize = in.readVInt();
         for (int i = 0; i < aliasesSize; i++) {
@@ -453,16 +347,21 @@ public class PutIndexTemplateRequest extends MasterNodeRequest<PutIndexTemplateR
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        out.writeString(cause);
+        if (out.getVersion().before(Version.V_5_2_0)) {
+            // cause
+            out.writeString("");
+        }
         out.writeString(name);
         out.writeStringCollection(indexPatterns);
         out.writeInt(order);
         out.writeBoolean(create);
         writeSettingsToStream(settings, out);
-        out.writeVInt(mappings.size());
-        for (Map.Entry<String, String> entry : mappings.entrySet()) {
-            out.writeString(entry.getKey());
-            out.writeString(entry.getValue());
+        if (out.getVersion().onOrAfter(Version.V_5_2_0)) {
+            out.writeString(mapping);
+        } else {
+            out.writeVInt(1);
+            out.writeString(Constants.DEFAULT_MAPPING_TYPE);
+            out.writeString(mapping);
         }
         out.writeVInt(aliases.size());
         for (Alias alias : aliases) {

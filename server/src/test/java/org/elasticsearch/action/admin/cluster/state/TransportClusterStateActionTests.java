@@ -39,32 +39,43 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESTestCase;
+import org.junit.Before;
 import org.junit.Test;
 
 public class TransportClusterStateActionTests extends ESTestCase {
 
     private final Logger logger = Loggers.getLogger(getClass());
 
-    private static final ClusterState CLUSTER_STATE = ClusterState.builder(new ClusterName("test"))
-        .metadata(Metadata.builder()
-                      .persistentSettings(Settings.builder().put("setting1", "bar").build())
-                      .put(IndexTemplateMetadata.builder("template1").patterns(List.of("*")).build())
-                      .put(IndexMetadata.builder("index1")
-                               .settings(settings(Version.CURRENT))
-                               .numberOfShards(1)
-                               .numberOfReplicas(0)
-                               .build(),
-                           true
-                      )
-                      .build())
-        .build();
+    private ClusterState clusterState;
+
+
+    @Before
+    public void setup() throws Throwable {
+        clusterState = ClusterState.builder(new ClusterName("test"))
+            .metadata(Metadata.builder()
+                .persistentSettings(Settings.builder().put("setting1", "bar").build())
+                .put(IndexTemplateMetadata.builder("template1")
+                    .patterns(List.of("*"))
+                    .putMapping("{\"default\": {}}")
+                    .build())
+                .put(IndexMetadata.builder("index1")
+                         .settings(settings(Version.CURRENT))
+                         .numberOfShards(1)
+                         .numberOfReplicas(0)
+                         .build(),
+                     true
+                )
+                .build()
+            )
+            .build();
+    }
 
     @Test
     public void test_response_contains_complete_metadata_if_no_indices_or_templates_requested() {
         var request = new ClusterStateRequest();
         request.metadata(true);
 
-        var response = buildResponse(request, CLUSTER_STATE, logger);
+        var response = buildResponse(request, clusterState, logger);
         assertThat(response.getState().metadata().templates().get("template1"), notNullValue());
         assertThat(response.getState().metadata().hasIndex("index1"), is(true));
         assertThat(response.getState().metadata().persistentSettings().get("setting1"), is("bar"));
@@ -76,7 +87,7 @@ public class TransportClusterStateActionTests extends ESTestCase {
         request.metadata(true);
         request.templates("template1");
 
-        var response = buildResponse(request, CLUSTER_STATE, logger);
+        var response = buildResponse(request, clusterState, logger);
         assertThat(response.getState().metadata().templates().get("template1"), notNullValue());
         assertThat(response.getState().metadata().hasIndex("index1"), is(false));
         assertThat(response.getState().metadata().persistentSettings().get("setting1"), nullValue());
@@ -88,7 +99,7 @@ public class TransportClusterStateActionTests extends ESTestCase {
         request.metadata(true);
         request.indices("index1");
 
-        var response = buildResponse(request, CLUSTER_STATE, logger);
+        var response = buildResponse(request, clusterState, logger);
         assertThat(response.getState().metadata().templates().get("template1"), nullValue());
         assertThat(response.getState().metadata().hasIndex("index1"), is(true));
         assertThat(response.getState().metadata().persistentSettings().get("setting1"), nullValue());
@@ -101,7 +112,7 @@ public class TransportClusterStateActionTests extends ESTestCase {
         request.templates("template1");
         request.indices("index1");
 
-        var response = buildResponse(request, CLUSTER_STATE, logger);
+        var response = buildResponse(request, clusterState, logger);
         assertThat(response.getState().metadata().templates().get("template1"), notNullValue());
         assertThat(response.getState().metadata().hasIndex("index1"), is(true));
         assertThat(response.getState().metadata().persistentSettings().get("setting1"), nullValue());

@@ -21,11 +21,18 @@
 
 package org.elasticsearch.action.admin.indices.create;
 
-import com.carrotsearch.hppc.cursors.ObjectCursor;
-import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
-import io.crate.common.collections.Iterables;
-import io.crate.common.annotations.VisibleForTesting;
-import io.crate.metadata.PartitionName;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_WAIT_FOR_ACTIVE_SHARDS;
+import static org.elasticsearch.cluster.metadata.MetadataCreateIndexService.setIndexVersionCreatedSetting;
+import static org.elasticsearch.cluster.metadata.MetadataCreateIndexService.validateSoftDeletesSetting;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.lucene.util.CollectionUtil;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ResourceAlreadyExistsException;
@@ -52,7 +59,6 @@ import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.UUIDs;
-import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -77,17 +83,12 @@ import org.elasticsearch.transport.TransportService;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import com.carrotsearch.hppc.cursors.ObjectCursor;
+import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
-import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING;
-import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_WAIT_FOR_ACTIVE_SHARDS;
-import static org.elasticsearch.cluster.metadata.MetadataCreateIndexService.setIndexVersionCreatedSetting;
-import static org.elasticsearch.cluster.metadata.MetadataCreateIndexService.validateSoftDeletesSetting;
+import io.crate.common.annotations.VisibleForTesting;
+import io.crate.common.collections.Iterables;
+import io.crate.metadata.PartitionName;
 
 
 /**
@@ -197,12 +198,12 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
                 return currentState;
             }
 
-            Map<String, Map<String, Object>> mappings = new HashMap<>();
+            Map<String, Object> mapping = new HashMap<>();
             Map<String, AliasMetadata> templatesAliases = new HashMap<>();
             List<String> templateNames = new ArrayList<>();
 
             List<IndexTemplateMetadata> templates = findTemplates(request, currentState);
-            applyTemplates(mappings, templatesAliases, templateNames, templates);
+            applyTemplates(mapping, templatesAliases, templateNames, templates);
 
             Metadata.Builder newMetadataBuilder = Metadata.builder(currentState.metadata());
             for (String index : indicesToCreate) {
@@ -228,11 +229,9 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
 
                 // now add the mappings
                 MapperService mapperService = indexService.mapperService();
-                if (!mappings.isEmpty()) {
-                    assert mappings.size() == 1 : "Must have at most 1 mapping type";
-                    var entry = mappings.entrySet().iterator().next();
+                if (!mapping.isEmpty()) {
                     try {
-                        mapperService.merge(entry.getValue(), MapperService.MergeReason.MAPPING_UPDATE);
+                        mapperService.merge(mapping, MapperService.MergeReason.MAPPING_UPDATE);
                     } catch (MapperParsingException mpe) {
                         removalReasons.add("failed on parsing mappings on index creation");
                         throw mpe;
@@ -268,8 +267,8 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
                 }
 
 
-                logger.info("[{}] creating index, cause [bulk], templates {}, shards [{}]/[{}], mappings {}",
-                    index, templateNames, indexMetadata.getNumberOfShards(), indexMetadata.getNumberOfReplicas(), mappings.keySet());
+                logger.info("[{}] creating index, cause [bulk], templates {}, shards [{}]/[{}]",
+                    index, templateNames, indexMetadata.getNumberOfShards(), indexMetadata.getNumberOfReplicas());
 
                 indexService.getIndexEventListener().beforeIndexAddedToCluster(
                     indexMetadata.getIndex(), indexMetadata.getSettings());
@@ -351,20 +350,14 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
         return indexSettingsBuilder.build();
     }
 
-    private void applyTemplates(Map<String, Map<String, Object>> mappings,
+    private void applyTemplates(Map<String, Object> mapping,
                                 Map<String, AliasMetadata> templatesAliases,
                                 List<String> templateNames,
                                 List<IndexTemplateMetadata> templates) throws Exception {
 
         for (IndexTemplateMetadata template : templates) {
             templateNames.add(template.getName());
-            for (ObjectObjectCursor<String, CompressedXContent> cursor : template.mappings()) {
-                if (mappings.containsKey(cursor.key)) {
-                    XContentHelper.mergeDefaults(mappings.get(cursor.key), parseMapping(cursor.value.string()));
-                } else {
-                    mappings.put(cursor.key, parseMapping(cursor.value.string()));
-                }
-            }
+            XContentHelper.mergeDefaults(mapping, parseMapping(template.mapping().string()));
             //handle aliases
             for (ObjectObjectCursor<String, AliasMetadata> cursor : template.aliases()) {
                 AliasMetadata aliasMetadata = cursor.value;

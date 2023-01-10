@@ -388,7 +388,7 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
             .get();
         assertThat(response.getIndexTemplates().size(), is(1));
         IndexTemplateMetadata template = response.getIndexTemplates().get(0);
-        CompressedXContent mappingStr = template.mappings().get(Constants.DEFAULT_MAPPING_TYPE);
+        CompressedXContent mappingStr = template.mapping();
         assertThat(mappingStr, is(notNullValue()));
         ParsedXContent typeAndMap =
             XContentHelper.convertToMap(mappingStr.compressedReference(), false, XContentType.JSON);
@@ -427,7 +427,7 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
             .get();
         assertThat(response.getIndexTemplates().size(), is(1));
         IndexTemplateMetadata template = response.getIndexTemplates().get(0);
-        CompressedXContent mappingStr = template.mappings().get(Constants.DEFAULT_MAPPING_TYPE);
+        CompressedXContent mappingStr = template.mapping();
         assertThat(mappingStr, is(notNullValue()));
         ParsedXContent typeAndMap = XContentHelper.convertToMap(mappingStr.compressedReference(), false);
         @SuppressWarnings("unchecked")
@@ -464,7 +464,7 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
             .get();
         assertThat(templateResponse.getIndexTemplates().size(), is(1));
         IndexTemplateMetadata template = templateResponse.getIndexTemplates().get(0);
-        CompressedXContent mappingStr = template.mappings().get(Constants.DEFAULT_MAPPING_TYPE);
+        CompressedXContent mappingStr = template.mapping();
         assertThat(mappingStr, is(notNullValue()));
         ParsedXContent typeAndMap = XContentHelper.convertToMap(mappingStr.compressedReference(), false);
         @SuppressWarnings("unchecked")
@@ -589,7 +589,7 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
             .get();
         assertThat(response.getIndexTemplates().size(), is(1));
         IndexTemplateMetadata template = response.getIndexTemplates().get(0);
-        CompressedXContent mappingStr = template.mappings().get(Constants.DEFAULT_MAPPING_TYPE);
+        CompressedXContent mappingStr = template.mapping();
         assertThat(mappingStr, is(notNullValue()));
         ParsedXContent typeAndMap =
             XContentHelper.convertToMap(mappingStr.compressedReference(), false, XContentType.JSON);
