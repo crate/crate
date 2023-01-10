@@ -24,11 +24,11 @@ import java.util.concurrent.CompletableFuture;
 
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.transport.TcpServerChannel;
+import org.elasticsearch.common.network.CloseableChannel;
 
 import io.netty.channel.Channel;
 
-public class Netty4TcpServerChannel implements TcpServerChannel {
+public class Netty4TcpServerChannel implements CloseableChannel {
 
     private final Channel channel;
     private final CompletableFuture<Void> closeContext = new CompletableFuture<>();

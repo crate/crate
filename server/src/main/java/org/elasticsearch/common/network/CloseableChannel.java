@@ -21,6 +21,7 @@ package org.elasticsearch.common.network;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -60,6 +61,11 @@ public interface CloseableChannel extends Closeable {
      * @return boolean indicating if channel is open
      */
     boolean isOpen();
+
+    /**
+     * @return the local address of this channel.
+     */
+    InetSocketAddress getLocalAddress();
 
     /**
      * Closes the channel without blocking.

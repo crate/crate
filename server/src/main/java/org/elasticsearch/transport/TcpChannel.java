@@ -41,13 +41,6 @@ public interface TcpChannel extends CloseableChannel {
     boolean isServerChannel();
 
     /**
-     * Returns the local address for this channel.
-     *
-     * @return the local address of this channel.
-     */
-    InetSocketAddress getLocalAddress();
-
-    /**
      * Returns the remote address for this channel. Can be null if channel does not have a remote address.
      *
      * @return the remote address of this channel.
