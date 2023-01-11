@@ -24,6 +24,7 @@ package io.crate.integrationtests;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_COLUMN;
 import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_TABLE;
+import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.crate.testing.TestingHelpers.resolveCanonicalString;
@@ -451,7 +452,9 @@ public class SysShardsTest extends IntegTestCase {
         execute("create table doc.tbl (x int)");
         execute("insert into doc.tbl values(1)");
         execute("alter table doc.tbl close");
-        waitNoPendingTasksOnAll(); // ensure close is processed
+        assertBusy(() ->
+            assertThat(execute("select closed from information_schema.tables where table_name = 'tbl'")).hasRows("true\n")
+        );
         assertThatThrownBy(() -> execute("select * from doc.tbl"))
             .satisfiesAnyOf(
                 e -> Asserts.assertThat(e)
