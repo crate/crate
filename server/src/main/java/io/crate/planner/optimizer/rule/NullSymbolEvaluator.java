@@ -32,7 +32,7 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
 
-final class NullSymbolEvaluator extends BaseImplementationSymbolVisitor<Void> {
+public final class NullSymbolEvaluator extends BaseImplementationSymbolVisitor<Void> {
 
     public NullSymbolEvaluator(TransactionContext txnCtx, NodeContext nodeCtx) {
         super(txnCtx, nodeCtx);
