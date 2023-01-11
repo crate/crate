@@ -54,7 +54,8 @@ None
 Changes
 =======
 
-None
+- Optimized the evaluation of ``CASE`` expressions to prevent stack overflows
+  for very large expressions.
 
 
 Fixes

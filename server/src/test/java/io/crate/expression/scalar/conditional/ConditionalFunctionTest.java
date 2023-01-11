@@ -177,4 +177,50 @@ public class ConditionalFunctionTest extends ScalarTestCase {
         assertEvaluate("CASE 45 WHEN 38 THEN 38 WHEN 34 THEN 34 WHEN 80 THEN 80 ELSE '40' END",40);
         assertEvaluate("CASE 34 WHEN 38 THEN 38 WHEN 34 THEN 34 WHEN 80 THEN 80 ELSE '40' END",34);
     }
+
+    /*
+     * https://github.com/crate/crate/issues/12674
+     */
+    @Test
+    public void test_large_search_case_results_not_in_stackoverflow() throws Exception {
+        StringBuilder sb = new StringBuilder();
+        sb.append("CASE \n");
+        int n = 10000;
+        for (int i = 0; i < n; i++) {
+            sb.append(String.format("WHEN %s THEN %s \n", i, i));
+        }
+        sb.append(String.format("ELSE '%s' END", n));
+        assertEvaluate(sb.toString(), 1);
+    }
+
+    /*
+     * https://github.com/crate/crate/issues/12674
+     */
+    @Test
+    public void test_large_simple_case_results_not_in_stackoverflow() throws Exception {
+        StringBuilder sb = new StringBuilder();
+        sb.append("CASE 10 - 1 \n");
+        int n = 10000;
+        for (int i = 0; i < n; i++) {
+            sb.append(String.format("WHEN %s THEN %s \n", i, i));
+        }
+        sb.append(String.format("ELSE '%s' END", n));
+        assertEvaluate(sb.toString(), 9);
+    }
+
+    @Test
+    public void test_null_in_case() throws Exception {
+        assertEvaluate("CASE WHEN NULL THEN false WHEN a > 5 THEN true END", true, Literal.of(6));
+    }
+
+    @Test
+    public void test_in_case_only_true_conditions_should_be_evaluated() {
+        assertEvaluate("case when a <= 5 then 0 when a > 5 then 1 / (a - 10) end", 0, Literal.of(4), Literal.of(4), Literal.of(10));
+    }
+
+    @Test
+    public void test_in_case_default_clause_should_not_be_evaluated() {
+        assertEvaluate("case when a <= 5 then 0 else 1 / (a - 10) end", 0, Literal.of(4), Literal.of(10));
+    }
+
 }

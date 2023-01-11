@@ -27,10 +27,8 @@ import static io.crate.sql.tree.IntervalLiteral.IntervalField.MINUTE;
 import static io.crate.sql.tree.IntervalLiteral.IntervalField.MONTH;
 import static io.crate.sql.tree.IntervalLiteral.IntervalField.SECOND;
 import static io.crate.sql.tree.IntervalLiteral.IntervalField.YEAR;
-import static java.util.stream.Collectors.toList;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -84,6 +82,7 @@ import io.crate.expression.scalar.arithmetic.MapFunction;
 import io.crate.expression.scalar.arithmetic.NegateFunctions;
 import io.crate.expression.scalar.cast.CastMode;
 import io.crate.expression.scalar.conditional.IfFunction;
+import io.crate.expression.scalar.conditional.CaseFunction;
 import io.crate.expression.scalar.timestamp.CurrentTimeFunction;
 import io.crate.expression.scalar.timestamp.CurrentTimestampFunction;
 import io.crate.expression.symbol.Function;
@@ -506,75 +505,54 @@ public class ExpressionAnalyzer {
 
         @Override
         protected Symbol visitSimpleCaseExpression(SimpleCaseExpression node, ExpressionAnalysisContext context) {
-            /* CASE caseOperand
-             *   WHEN whenOperand1 THEN result1
-             *   WHEN whenOperand2 THEN result2
-             *   ELSE default
-             * END
-             * ---
-             * operands: [eq(caseOperand, whenOperand1), eq(caseOperand, whenOperand2)]
-             * results:  [result1, result2]
-             */
-            List<WhenClause> whenClauses = node.getWhenClauses();
-            List<Symbol> operands = new ArrayList<>(whenClauses.size());
-            List<Symbol> results = new ArrayList<>(whenClauses.size());
-            Symbol caseOperand = convert(node.getOperand(), context);
-            for (WhenClause whenClause : whenClauses) {
-                Symbol whenOperand = convert(whenClause.getOperand(), context);
-                operands.add(allocateFunction(EqOperator.NAME, List.of(caseOperand, whenOperand), context));
-                results.add(convert(whenClause.getResult(), context));
+            var whenClauses = node.getWhenClauses();
+            // For each whenClause we create two values `boolean, T` and two more for the default value.
+            var arguments = new ArrayList<Symbol>(whenClauses.size() * 2 + 2);
+
+            var defaultValue = node.getDefaultValue();
+            // See {@link CaseFunction} for why true
+            arguments.add(BooleanLiteral.TRUE_LITERAL.accept(this, context));
+
+            if (defaultValue == null) {
+                arguments.add(convert(NullLiteral.INSTANCE, context));
+            } else {
+                arguments.add(convert(defaultValue, context));
             }
-            ensureResultTypesMatch(results);
-            Expression defaultValue = node.getDefaultValue();
-            return createChain(
-                operands,
-                results,
-                defaultValue == null ? null : convert(defaultValue, context),
-                context
-            );
+
+            for (WhenClause whenClause : whenClauses) {
+                arguments.add(allocateFunction(
+                    EqOperator.NAME,
+                    List.of(convert(node.getOperand(), context), convert(whenClause.getOperand(), context)),
+                    context)
+                );
+                arguments.add(whenClause.getResult().accept(this, context));
+            }
+            ensureResultTypesMatch(arguments);
+            return allocateFunction(CaseFunction.NAME, arguments, context);
         }
 
         @Override
         protected Symbol visitSearchedCaseExpression(SearchedCaseExpression node, ExpressionAnalysisContext context) {
-            List<WhenClause> whenClauses = node.getWhenClauses();
-            List<Symbol> operands = new ArrayList<>(whenClauses.size());
-            List<Symbol> results = new ArrayList<>(whenClauses.size());
-            for (WhenClause whenClause : whenClauses) {
-                operands.add(whenClause.getOperand().accept(innerAnalyzer, context));
-                results.add(whenClause.getResult().accept(innerAnalyzer, context));
-            }
-            ensureResultTypesMatch(results);
-            Expression defaultValue = node.getDefaultValue();
-            return createChain(operands, results, defaultValue == null ? null : convert(defaultValue, context), context);
-        }
+            var whenClauses = node.getWhenClauses();
+            // For each whenClause we create two values `boolean, T` and two more for the default value.
+            var arguments = new ArrayList<Symbol>(whenClauses.size() * 2 + 2);
 
-        /**
-         * Create a chain of if functions by the given list of operands and results.
-         *
-         * @param operands              List of condition symbols, all must result in a boolean value.
-         * @param results               List of result symbols to return if corresponding condition evaluates to true.
-         * @param defaultValueSymbol    Default symbol to return if all conditions evaluates to false.
-         * @param context               The ExpressionAnalysisContext
-         * @return                      Returns the first {@link IfFunction} of the chain.
-         */
-        private Symbol createChain(List<Symbol> operands,
-                                   List<Symbol> results,
-                                   @Nullable Symbol defaultValueSymbol,
-                                   ExpressionAnalysisContext context) {
-            Symbol lastSymbol = defaultValueSymbol;
-            // process operands in reverse order
-            for (int i = operands.size() - 1 ; i >= 0; i--) {
-                Symbol operand = operands.get(i);
-                Symbol result = results.get(i);
-                List<Symbol> arguments = new ArrayList<>();
-                arguments.add(operand);
-                arguments.add(result);
-                if (lastSymbol != null) {
-                    arguments.add(lastSymbol);
-                }
-                lastSymbol = allocateFunction(IfFunction.NAME, arguments, context);
+            var defaultValue = node.getDefaultValue();
+            // See {@link CaseFunction} for why true
+            arguments.add(BooleanLiteral.TRUE_LITERAL.accept(this, context));
+
+            if (defaultValue == null) {
+                arguments.add(NullLiteral.INSTANCE.accept(this, context));
+            } else {
+                arguments.add(convert(defaultValue, context));
             }
-            return lastSymbol;
+
+            for (var whenClause : whenClauses) {
+                arguments.add(whenClause.getOperand().accept(innerAnalyzer, context));
+                arguments.add(whenClause.getResult().accept(innerAnalyzer, context));
+            }
+            ensureResultTypesMatch(arguments);
+            return allocateFunction(CaseFunction.NAME, arguments, context);
         }
 
         @Override
@@ -1264,15 +1242,22 @@ public class ExpressionAnalyzer {
         }
     }
 
-    private static void ensureResultTypesMatch(Collection<? extends Symbol> results) {
-        HashSet<DataType<?>> resultTypes = new HashSet<>(results.size());
-        for (Symbol result : results) {
-            resultTypes.add(result.valueType());
+    private static void ensureResultTypesMatch(List<? extends Symbol> results) {
+        // Structure is [true, default T, condition1 Boolean, value T, condition2 Boolean, value T ...]
+        // Skip first pair [true, default T] and then only validate the values
+        var resultTypes = new HashSet<>(results.size() / 2);
+        for (int i = 3; i < results.size(); i = i + 2) {
+            var type = results.get(i).valueType();
+            resultTypes.add(type);
         }
-        if (resultTypes.size() == 2 && !resultTypes.contains(DataTypes.UNDEFINED) || resultTypes.size() > 2) {
+        if (resultTypes.size() > 1) {
+            var errorMessage = new ArrayList<DataType<?>>(results.size() / 2);
+            for (int i = 3; i < results.size(); i = i + 2) {
+                errorMessage.add(results.get(i).valueType());
+            }
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
                 "Data types of all result expressions of a CASE statement must be equal, found: %s",
-                results.stream().map(Symbol::valueType).collect(toList())));
+                                                                  errorMessage));
         }
     }
 

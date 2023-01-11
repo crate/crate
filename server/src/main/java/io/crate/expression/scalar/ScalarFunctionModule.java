@@ -47,6 +47,7 @@ import io.crate.expression.scalar.cast.TryCastFunction;
 import io.crate.expression.scalar.conditional.CoalesceFunction;
 import io.crate.expression.scalar.conditional.GreatestFunction;
 import io.crate.expression.scalar.conditional.IfFunction;
+import io.crate.expression.scalar.conditional.CaseFunction;
 import io.crate.expression.scalar.conditional.LeastFunction;
 import io.crate.expression.scalar.conditional.NullIfFunction;
 import io.crate.expression.scalar.formatting.ToCharFunction;
@@ -204,6 +205,7 @@ public class ScalarFunctionModule extends AbstractFunctionModule<FunctionImpleme
         LeastFunction.register(this);
         NullIfFunction.register(this);
         IfFunction.register(this);
+        CaseFunction.register(this);
 
         CurrentSchemaFunction.register(this);
         CurrentSchemasFunction.register(this);
