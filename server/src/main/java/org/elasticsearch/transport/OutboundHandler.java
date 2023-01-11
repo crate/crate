@@ -33,6 +33,7 @@ import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.netty4.Netty4Utils;
 
+import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFuture;
 
 
@@ -60,13 +61,13 @@ public final class OutboundHandler {
         this.bigArrays = bigArrays;
     }
 
-    ChannelFuture sendBytes(CloseableChannel channel, BytesReference bytes) {
+    ChannelFuture sendBytes(CloseableChannel channel, byte[] bytes) {
         channel.getChannelStats().markAccessed(threadPool.relativeTimeInMillis());
         try {
-            ChannelFuture future = channel.writeAndFlush(Netty4Utils.toByteBuf(bytes));
+            ChannelFuture future = channel.writeAndFlush(Unpooled.wrappedBuffer(bytes));
             future.addListener(f -> {
                 if (f.isSuccess()) {
-                    statsTracker.markBytesWritten(bytes.length());
+                    statsTracker.markBytesWritten(bytes.length);
                 } else {
                     LOGGER.warn("send message failed [channel: {}]", channel, f.cause());
                 }
