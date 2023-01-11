@@ -33,8 +33,6 @@ import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import io.crate.common.unit.TimeValue;
-import io.crate.testing.UseRandomizedSchema;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
@@ -44,10 +42,12 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
+import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.test.TestCluster;
 import org.junit.Test;
 
-import org.elasticsearch.test.IntegTestCase;
+import io.crate.common.unit.TimeValue;
+import io.crate.testing.UseRandomizedSchema;
 
 public class ClusterHealthIT extends IntegTestCase {
 
@@ -129,7 +129,7 @@ public class ClusterHealthIT extends IntegTestCase {
         execute("alter table t2 close");
 
         var table_3 = getFqn("t3");
-        execute("create table t3 (id int) with (number_of_replicas = 20)");
+        execute("create table t3 (id int) clustered into 1 shards with (number_of_replicas = 20)");
         waitNoPendingTasksOnAll();
         execute("alter table t3 close");
 
