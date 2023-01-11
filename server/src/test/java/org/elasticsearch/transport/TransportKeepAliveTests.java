@@ -33,7 +33,7 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.function.BiFunction;
 
-import org.elasticsearch.common.bytes.BytesReference;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.network.CloseableChannel;
 import org.elasticsearch.common.settings.Settings;
@@ -50,8 +50,8 @@ import io.netty.channel.embedded.EmbeddedChannel;
 public class TransportKeepAliveTests extends ESTestCase {
 
     private final ConnectionProfile defaultProfile = ConnectionProfile.buildDefaultConnectionProfile(Settings.EMPTY);
-    private BytesReference expectedPingMessage;
-    private BiFunction<CloseableChannel, BytesReference, ChannelFuture> pingSender;
+    private byte[] expectedPingMessage;
+    private BiFunction<CloseableChannel, byte[], ChannelFuture> pingSender;
     private TransportKeepAlive keepAlive;
     private CapturingThreadPool threadPool;
 
@@ -68,7 +68,7 @@ public class TransportKeepAliveTests extends ESTestCase {
     public void setUp() throws Exception {
         super.setUp();
         pingSender = mock(BiFunction.class);
-        when(pingSender.apply(Mockito.any(), Mockito.any())).thenReturn(mock(ChannelFuture.class));
+        when(pingSender.apply(Mockito.any(), Mockito.any(byte[].class))).thenReturn(mock(ChannelFuture.class));
         threadPool = new CapturingThreadPool();
         keepAlive = new TransportKeepAlive(threadPool, pingSender);
 
@@ -76,7 +76,9 @@ public class TransportKeepAliveTests extends ESTestCase {
             out.writeByte((byte) 'E');
             out.writeByte((byte) 'S');
             out.writeInt(-1);
-            expectedPingMessage = out.bytes();
+            expectedPingMessage = new byte[6];
+            BytesRef bytesRef = out.bytes().toBytesRef();
+            System.arraycopy(bytesRef.bytes, bytesRef.offset, expectedPingMessage, 0, bytesRef.length);
         } catch (IOException e) {
             throw new AssertionError(e.getMessage(), e); // won't happen
         }
