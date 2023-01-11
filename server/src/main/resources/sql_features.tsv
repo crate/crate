@@ -39,12 +39,12 @@ E011	Numeric data types	4	Arithmetic operators	YES
 E011	Numeric data types	5	Numeric comparison	YES		
 E011	Numeric data types	6	Implicit casting among the numeric data types	YES		
 E021	Character data types			NO		Type 'string'
-E021	Character string types	1	CHARACTER data type	NO		
+E021	Character string types	1	CHARACTER data type	YES		
 E021	Character string types	2	CHARACTER VARYING data type	YES		
 E021	Character string types	3	Character literals	YES		Only simple ' quoting
 E021	Character string types	4	CHARACTER_LENGTH function	YES		char_length only
 E021	Character string types	5	OCTET_LENGTH function	YES		
-E021	Character string types	6	SUBSTRING function	NO		substr scalar
+E021	Character string types	6	SUBSTRING function	YES		substr scalar
 E021	Character string types	7	Character concatenation	YES		
 E021	Character string types	8	UPPER and LOWER functions	YES		
 E021	Character string types	9	TRIM function	YES		
@@ -55,7 +55,7 @@ E031	Identifiers			YES
 E031	Identifiers	1	Delimited identifiers	YES		
 E031	Identifiers	2	Lower case identifiers	YES		
 E031	Identifiers	3	Trailing underscore	YES		
-E051	Basic query specification			NO		
+E051	Basic query specification			YES		
 E051	Basic query specification	1	SELECT DISTINCT	YES		
 E051	Basic query specification	2	GROUP BY clause	YES		
 E051	Basic query specification	4	GROUP BY can contain columns not in <select list>	YES		
@@ -95,13 +95,13 @@ E081	Basic Privileges	7	REFERENCES privilege at the column level	NO
 E081	Basic Privileges	8	WITH GRANT OPTION	NO		
 E081	Basic Privileges	9	USAGE privilege	NO		
 E081	Basic Privileges	10	EXECUTE privilege	NO		
-E091	Set functions			NO		
+E091	Set functions			YES		
 E091	Set functions	1	AVG	YES		
 E091	Set functions	2	COUNT	YES		
 E091	Set functions	3	MAX	YES		
 E091	Set functions	4	MIN	YES		
 E091	Set functions	5	SUM	YES		
-E091	Set functions	6	ALL quantifier	NO		
+E091	Set functions	6	ALL quantifier	YES		
 E091	Set functions	7	DISTINCT quantifier	YES		
 E101	Basic data manipulation			YES		
 E101	Basic data manipulation	1	INSERT statement	YES		
@@ -159,7 +159,7 @@ F034	Extended REVOKE statement			YES
 F034	Extended REVOKE statement	1	REVOKE statement performed by other than the owner of a schema object	YES		
 F034	Extended REVOKE statement	2	REVOKE statement: GRANT OPTION FOR clause	NO		
 F034	Extended REVOKE statement	3	REVOKE statement to revoke a privilege that the grantee has WITH GRANT OPTION	NO		
-F041	Basic joined table			NO		
+F041	Basic joined table			YES		
 F041	Basic joined table	1	Inner join (but not necessarily the INNER keyword)	YES		
 F041	Basic joined table	2	INNER keyword	YES		
 F041	Basic joined table	3	LEFT OUTER JOIN	YES		
@@ -167,7 +167,7 @@ F041	Basic joined table	4	RIGHT OUTER JOIN	YES
 F041	Basic joined table	5	Outer joins can be nested	YES		
 F041	Basic joined table	7	The inner table in a left or right outer join can also be used in an inner join	YES		
 F041	Basic joined table	8	All comparison operators are supported (rather than just =)	YES		
-F051	Basic date and time			NO		only timestamp type
+F051	Basic date and time			NO		time type not supported
 F051	Basic date and time	1	DATE data type (including support of DATE literal)	YES		
 F051	Basic date and time	2	TIME data type (including support of TIME literal) with fractional seconds precision of at least 0	NO		
 F051	Basic date and time	3	TIMESTAMP data type (including support of TIMESTAMP literal) with fractional seconds precision of at least 0 and 6	YES		
@@ -227,7 +227,7 @@ F304	EXCEPT ALL table operator			NO
 F311	Schema definition statement			NO		
 F311	Schema definition statement	1	CREATE SCHEMA	NO		will be explicitly defined with table
 F311	Schema definition statement	2	CREATE TABLE for persistent base tables	YES		
-F311	Schema definition statement	3	CREATE VIEW	NO		
+F311	Schema definition statement	3	CREATE VIEW	YES		
 F311	Schema definition statement	4	CREATE VIEW: WITH CHECK OPTION	NO		
 F311	Schema definition statement	5	GRANT statement	NO		
 F312	MERGE statement			NO		
@@ -236,17 +236,17 @@ F314	MERGE statement with DELETE branch			NO
 F321	User authorization			NO		
 F341	Usage tables			NO		
 F361	Subprogram support			NO		
-F381	Extended schema manipulation			NO		
-F381	Extended schema manipulation	1	ALTER TABLE statement: ALTER COLUMN clause	NO		
-F381	Extended schema manipulation	2	ALTER TABLE statement: ADD CONSTRAINT clause	NO		
-F381	Extended schema manipulation	3	ALTER TABLE statement: DROP CONSTRAINT clause	NO		
+F381	Extended schema manipulation			YES		
+F381	Extended schema manipulation	1	ALTER TABLE statement: ALTER COLUMN clause	YES		
+F381	Extended schema manipulation	2	ALTER TABLE statement: ADD CONSTRAINT clause	YES		
+F381	Extended schema manipulation	3	ALTER TABLE statement: DROP CONSTRAINT clause	YES		
 F382	Alter column data type			NO		
 F383	Set column not null clause			NO		
 F384	Drop identity property clause			NO		
 F385	Drop column generation expression clause			NO		
 F386	Set identity column generation clause			NO		
 F391	Long identifiers			YES		
-F392	Unicode escapes in identifiers			NO		
+F392	Unicode escapes in identifiers			YES		
 F393	Unicode escapes in literals			NO		
 F394	Optional normal form specification			NO		
 F401	Extended joined table			NO		
@@ -324,7 +324,7 @@ F846	Octet support in regular expression operators			NO
 F847	Nonconstant regular expressions			NO		
 F850	Top-level <order by clause> in <query expression>			YES		
 F851	<order by clause> in subqueries			YES		
-F852	Top-level <order by clause> in views			NO		
+F852	Top-level <order by clause> in views			YES		
 F855	Nested <order by clause> in <query expression>			YES		
 F856	Nested <fetch first clause> in <query expression>			YES		
 F857	Top-level <fetch first clause> in <query expression>			YES		
@@ -410,8 +410,8 @@ T061	UCS support			NO
 T071	BIGINT data type			YES		
 T101	Enhanced nullability determination			NO		
 T111	Updatable joins, unions, and columns			NO		
-T121	WITH (excluding RECURSIVE) in query expression			NO		
-T122	WITH (excluding RECURSIVE) in subquery			NO		
+T121	WITH (excluding RECURSIVE) in query expression			YES		
+T122	WITH (excluding RECURSIVE) in subquery			YES		
 T131	Recursive query			NO		
 T132	Recursive query in subquery			NO		
 T141	SIMILAR predicate			NO		
@@ -441,7 +441,7 @@ T211	Basic trigger capability	8	Multiple triggers for the same event are execute
 T212	Enhanced trigger capability			NO		
 T213	INSTEAD OF triggers			NO		
 T231	Sensitive cursors			NO		
-T241	START TRANSACTION statement			NO		
+T241	START TRANSACTION statement			YES		Is ignored
 T251	SET TRANSACTION statement: LOCAL option			NO		
 T261	Chained transactions			NO		
 T271	Savepoints			NO		
@@ -466,7 +466,7 @@ T326	Table functions			NO
 T331	Basic roles			NO		
 T332	Extended roles			NO		
 T341	Overloading of SQL-invoked functions and procedures			NO		
-T351	Bracketed SQL comments (/*...*/ comments)			NO		
+T351	Bracketed SQL comments (/*...*/ comments)			YES		
 T431	Extended grouping capabilities			NO		
 T432	Nested and concatenated GROUPING SETS			NO		
 T433	Multiargument GROUPING function			NO		
@@ -500,7 +500,7 @@ T617	FIRST_VALUE and LAST_VALUE function			YES
 T618	NTH_VALUE function			YES		
 T619	Nested window functions			NO		
 T620	WINDOW clause: GROUPS option			NO		
-T621	Enhanced numeric functions			NO		missing: exp, power
+T621	Enhanced numeric functions			YES		
 T631	IN predicate with one list element			YES		
 T641	Multiple column assignment			NO		
 T651	SQL-schema statements in SQL routines			NO		
