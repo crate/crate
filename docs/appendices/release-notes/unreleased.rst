@@ -174,50 +174,5 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
-- Fixed an issue that led to table not being dropped when
-  :ref:`swapping two tables <alter_cluster_swap_table>` with
-  ``drop_source = true``, when either or both source and target tables were
-  partitioned.
+None
 
-- Fixed an issue that allowed users without the related privileges to check
-  other users' privileges by calling
-  :ref:`has_schema_privilege <scalar-has-schema-priv>` function.
-
-- Fixed an issue that prevented :ref:`UDFs <user-defined-functions>` from
-  accessing nested objects.
-
-- Fixed an issue that caused ``SELECT *`` statements to fail if a table has an
-  object with inner null object and a sibling column with the same name with
-  one of the sub-columns. An example::
-
-    CREATE TABLE IF NOT EXISTS "t" (
-      "obj1" OBJECT(DYNAMIC) AS (
-       "target" text,
-       "obj2" OBJECT(DYNAMIC) AS (
-          "target" REAL
-       )
-      )
-    );
-    INSERT INTO t VALUES ('{"obj2": null, "target": "Sensor"}');
-    SELECT * FROM t;
-
-- Fixed an issue that caused :ref:`swap table <alter_cluster_swap_table>` to
-  consume invalid table names provided in a double-quoted string format
-  containing ``.`` such as ``"table.t"`` by mis-interpreting it as
-  ``"table"."t"``, which is a two double-quoted strings joined by a ``.``.
-
-- Fixed an issue that caused failure of the statements containing comparison of
-  :ref:`bit <data-type-bit>` strings with different length. An example::
-
-     SELECT B'01' = B'1'
-
-- Fixed an issue that caused failures of queries joining a table to a virtual
-  table where virtual table is another ``JOIN`` on aliased column and having a
-  ``LIMIT`` clause. An example::
-
-     CREATE TABLE t1 (x INTEGER, i INTEGER);
-     CREATE TABLE t2 (y INTEGER);
-     SELECT * from GENERATE_SERIES(1, 2)
-     CROSS JOIN
-     (SELECT t1.i, t2.y AS aliased from t1 inner join t2 on t1.x = t2.y) v
-     LIMIT 10
