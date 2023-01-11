@@ -56,7 +56,7 @@ Breaking Changes
   with result type ``TIMESTAMP`` which was wrong and led to issues with several
   PostgreSQL compliant clients. Instead of just fixing the result type, and
   change it to ``LONG``, the subtraction of timestamps was changed to return an
-  ``INTERVAL`` and be compliant with PostgreSQL behaviour.
+  ``INTERVAL`` and be 100% compliant with PostgreSQL behaviour.
 
   Before::
 
@@ -96,6 +96,19 @@ None
 Changes
 =======
 
+SQL Statements
+--------------
+
+- Added support for adding multiple columns in a single
+  :ref:`ALTER TABLE ADD COLUMN <sql-alter-table-add-column>` statement.
+
+- Extended the syntax for ``CREATE VIEW`` to allow parenthesis surrounding the
+  query.
+
+
+SQL Standard And PostgreSQL Schema Compatibility
+------------------------------------------------
+
 - Bumped the version of PostgreSQL wire protocol to ``11`` since ``10`` has been
   deprecated.
 
@@ -103,29 +116,10 @@ Changes
   which checks whether user (or current user if not specified) has specific
   privilege(s) for the database.
 
-- Added support for :ref:`EXTRACT(field FROM interval) <scalar-extract>`.
-  e.g.::
-
-    SELECT EXTRACT(MINUTE FROM INTERVAL '49 hours 127 minutes')
-
-
-- Added support for :ref:`SUM() <aggregation-sum>` aggregations on
-  :ref:`INTERVAL type <type-interval>`. e.g.::
-
-    SELECT SUM(tsEnd - tsStart) FROM test
-
-
-- Exposed the ``require``, ``include`` and ``exclude`` ``routing.allocation``
-  settings per partition within ``information_schema.table_partitions``.
-
-- ``cancel`` messages sent from a client via the PostgreSQL wire protocol are
-  now internally forwarded to other nodes to support setups with load-balancers.
-
-- Extended the syntax for ``CREATE VIEW`` to allow parenthesis surrounding the
-  query.
-
-- Added ``attributes`` column to :ref:`sys.nodes <sys-nodes>` table to expose
-  :ref:`custom node settings <conf-node-attributes>`.
+- Added a :ref:`datestyle <conf-session-datestyle>` session setting that shows
+  the display format for date and time values. Only the ``ISO`` style is
+  supported. Optionally provided pattern conventions for the order of date
+  parts (Day, Month, Year) are ignored.
 
 - Added support for ``SCROLL`` and backward movement to cursors. See
   :ref:`DECLARE <sql-declare>` and :ref:`FETCH <sql-fetch>`.
@@ -136,36 +130,59 @@ Changes
 - Added support for :ref:`bit operators <bit-operators>` on integral and
   ``BIT`` types.
 
-- Added a :ref:`WITH clause <sql-copy-from-with>` option :ref:`SKIP
-  <sql-copy-from-skip>` for :ref:`COPY FROM <sql-copy-from>` which allows
-  skipping rows from the beginning while copying data.
-
-- Updated to Admin UI 1.24.1, which added Italian translations, updated some
-  dependency packages across the board, and its tool chain.
-
 - Added support for dollar quoted strings,
   see :ref:`String Literal <string_literal>` for further details.
 
-- Added a :ref:`datestyle <conf-session-datestyle>` session setting that shows 
-  the display format for date and time values. Only the ``ISO`` style is 
-  supported. Optionally provided pattern conventions for the order of date 
-  parts (Day, Month, Year) are ignored.
+- ``cancel`` messages sent from a client via the PostgreSQL wire protocol are
+  now internally forwarded to other nodes to support setups with load-balancers.
 
-- Added support for adding multiple columns in a single
-  :ref:`ALTER TABLE ADD COLUMN <sql-alter-table-add-column>` statement.
+- Added support for :ref:`SUM() <aggregation-sum>` aggregations on
+  :ref:`INTERVAL type <type-interval>`. e.g.::
+
+    SELECT SUM(tsEnd - tsStart) FROM test
+
+
+Scalar Functions
+----------------
 
 - Added the :ref:`concat(object, object) <scalar-concat-object>` scalar function
   which combines two objects into a new object containing the union of their
   first level properties, taking the second object's values for duplicate
   properties.
 
-- Added the :ref:`parse_uri(text) <scalar-parse_uri>` scalar function which 
-  parses a valid URI string into an ``object`` containing the URI components, 
+- Added the :ref:`parse_uri(text) <scalar-parse_uri>` scalar function which
+  parses a valid URI string into an ``object`` containing the URI components,
   making it easier to query them.
 
 - Added the :ref:`parse_url(text) <scalar-parse_url>` scalar function which
-  parses a valid URL string into an ``object`` containing the URL components, 
+  parses a valid URL string into an ``object`` containing the URL components,
   including parsed query parameters, making it easier to query them.
+
+- Added support for :ref:`EXTRACT(field FROM interval) <scalar-extract>`.
+  e.g.::
+
+    SELECT EXTRACT(MINUTE FROM INTERVAL '49 hours 127 minutes')
+
+
+Performance Improvements
+------------------------
+
+- Improve performance of
+  :ref:`snapshots related operations <snapshot-restore>`.
+
+Administration and Operations
+-----------------------------
+
+- Added ``attributes`` column to :ref:`sys.nodes <sys-nodes>` table to expose
+  :ref:`custom node settings <conf-node-attributes>`.
+
+- Exposed the ``require``, ``include`` and ``exclude`` ``routing.allocation``
+  settings per partition within
+  :ref:`information_schema.table_partitions <is_table_partitions>`.
+
+- Updated to Admin UI 1.24.1, which added Italian translations, updated some
+  dependency packages across the board, and its tool chain.
+
 
 Fixes
 =====
@@ -175,4 +192,3 @@ Fixes
 .. an automated mergify backport.
 
 None
-
