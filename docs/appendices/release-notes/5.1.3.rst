@@ -1,0 +1,92 @@
+.. _version_5.1.3:
+
+=============
+Version 5.1.3
+=============
+
+Released on 2022-01-11.
+
+.. NOTE::
+
+    If you are upgrading a cluster, you must be running CrateDB 4.0.2 or higher
+    before you upgrade to 5.1.3.
+
+    We recommend that you upgrade to the latest 5.0 release before moving to
+    5.1.3.
+
+    A rolling upgrade from 5.0.x to 5.1.3 is supported.
+    Before upgrading, you should `back up your data`_.
+
+.. WARNING::
+
+    Tables that were created before CrateDB 4.x will not function with 5.x
+    and must be recreated before moving to 5.x.x.
+
+    You can recreate tables using ``COPY TO`` and ``COPY FROM`` or by
+    `inserting the data into a new table`_.
+
+.. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
+.. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
+
+
+
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+See the :ref:`version_5.1.0` release notes for a full list of changes in the
+5.1 series.
+
+Fixes
+=====
+
+- Fixed an issue that led to table not being dropped when
+  :ref:`swapping two tables <alter_cluster_swap_table>` with
+  ``drop_source = true``, when either or both source and target tables were
+  partitioned.
+
+- Fixed an issue that allowed users without the related privileges to check
+  other users' privileges by calling
+  :ref:`has_schema_privilege <scalar-has-schema-priv>` function.
+
+- Fixed an issue that prevented :ref:`UDFs <user-defined-functions>` from
+  accessing nested objects.
+
+- Fixed an issue that caused ``SELECT *`` statements to fail if a table has an
+  object with inner ``null`` object and a sibling column with the same name with
+  one of the sub-columns. An example::
+
+    CREATE TABLE IF NOT EXISTS "t" (
+      "obj1" OBJECT(DYNAMIC) AS (
+       "target" text,
+       "obj2" OBJECT(DYNAMIC) AS (
+          "target" REAL
+       )
+      )
+    );
+    INSERT INTO t VALUES ('{"obj2": null, "target": "Sensor"}');
+    SELECT * FROM t;
+
+- Fixed an issue that caused :ref:`swap table <alter_cluster_swap_table>` to
+  accept invalid table names provided in a double-quoted string format
+  containing ``.`` such as ``"table.t"`` by mis-interpreting it as
+  ``"table"."t"``, which is a two double-quoted strings joined by a ``.``.
+
+- Fixed an issue that caused failure of the statements containing comparison of
+  :ref:`bit <data-type-bit>` strings with different length. An example::
+
+     SELECT B'01' = B'1'
+
+- Fixed an issue that caused failures of queries joining a table to a virtual
+  table where virtual table is another ``JOIN`` on aliased column and having a
+  ``LIMIT`` clause. An example::
+
+     CREATE TABLE t1 (x INTEGER, i INTEGER);
+     CREATE TABLE t2 (y INTEGER);
+
+     SELECT * from GENERATE_SERIES(1, 2)
+     CROSS JOIN
+       (SELECT t1.i, t2.y AS aliased from t1 inner join t2 on t1.x = t2.y) v
+     LIMIT 10
+
