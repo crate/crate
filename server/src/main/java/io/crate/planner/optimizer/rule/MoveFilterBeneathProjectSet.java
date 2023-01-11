@@ -87,8 +87,8 @@ public final class MoveFilterBeneathProjectSet implements Rule<Filter> {
             return transpose(filter, projectSet);
         } else {
             var newProjectSet = projectSet.replaceSources(
-                List.of(new Filter(projectSet.source(), AndOperator.join(toPushDown))));
-            return new Filter(newProjectSet, AndOperator.join(toKeep));
+                List.of(new Filter(txnCtx.idAllocator().nextId(), projectSet.source(), AndOperator.join(toPushDown))));
+            return new Filter(txnCtx.idAllocator().nextId(), newProjectSet, AndOperator.join(toKeep));
         }
     }
 

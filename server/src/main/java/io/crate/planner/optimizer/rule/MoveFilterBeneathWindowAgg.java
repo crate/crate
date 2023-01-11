@@ -139,8 +139,11 @@ public final class MoveFilterBeneathWindowAgg implements Rule<Filter> {
          * Filter (id = 1)
          */
         LogicalPlan newWindowAgg = windowAgg.replaceSources(
-            List.of(new Filter(windowAgg.source(), AndOperator.join(windowPartitionedBasedFilters))));
+            List.of(new Filter(txnCtx.idAllocator().nextId(),
+                               windowAgg.source(),
+                               AndOperator.join(windowPartitionedBasedFilters)
+                               )));
 
-        return new Filter(newWindowAgg, AndOperator.join(remainingFilterSymbols));
+        return new Filter(txnCtx.idAllocator().nextId(), newWindowAgg, AndOperator.join(remainingFilterSymbols));
     }
 }

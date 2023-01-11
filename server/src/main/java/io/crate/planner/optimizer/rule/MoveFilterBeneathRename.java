@@ -62,6 +62,7 @@ public class MoveFilterBeneathRename implements Rule<Filter> {
                              NodeContext nodeCtx) {
         Rename rename = captures.get(renameCapture);
         Filter newFilter = new Filter(
+            txnCtx.idAllocator().nextId(),
             rename.source(),
             FieldReplacer.replaceFields(plan.query(), rename::resolveField)
         );

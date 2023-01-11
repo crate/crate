@@ -57,6 +57,7 @@ public class RelationNamesInLogicalPlanTest extends CrateDummyClusterServiceUnit
     private RelationName t2RenamedRelationName;
     private Rename t1Rename;
     private Rename t2Rename;
+    private LogicalPlanIdAllocator idAllocator = new LogicalPlanIdAllocator();
 
     @Before
     public void setup() throws Exception {
@@ -71,43 +72,45 @@ public class RelationNamesInLogicalPlanTest extends CrateDummyClusterServiceUnit
         t1Relation = new DocTableRelation(t1);
         t1RenamedRelationName = new RelationName("doc", "t1_renamed");
         var t1Alias = new AliasedAnalyzedRelation(t1Relation, t1RenamedRelationName);
-        var t1Collect = new Collect(t1Relation, List.of(x), WhereClause.MATCH_ALL, 1L, DataTypes.INTEGER.fixedSize());
+        var t1Collect = new Collect(idAllocator.nextId(), t1Relation, List.of(x), WhereClause.MATCH_ALL, 1L, DataTypes.INTEGER.fixedSize());
         Symbol t1Output = t1Alias.getField(x.column(), Operation.READ, true);
-        t1Rename = new Rename(List.of(t1Output), t1Alias.relationName(), t1Alias, t1Collect);
+        t1Rename = new Rename(idAllocator.nextId(), List.of(t1Output), t1Alias.relationName(), t1Alias, t1Collect);
 
         DocTableInfo t2 = e.resolveTableInfo("t2");
         Reference y = (Reference) e.asSymbol("y");
         t2Relation = new DocTableRelation(t2);
         t2RenamedRelationName = new RelationName("doc", "t2_renamed");
         var t2Alias = new AliasedAnalyzedRelation(t2Relation, t2RenamedRelationName);
-        var t2Collect = new Collect(t2Relation, List.of(x), WhereClause.MATCH_ALL, 1L, DataTypes.INTEGER.fixedSize());
+        var t2Collect = new Collect(idAllocator.nextId(), t2Relation, List.of(x), WhereClause.MATCH_ALL, 1L, DataTypes.INTEGER.fixedSize());
         Symbol t2Output = t2Alias.getField(y.column(), Operation.READ, true);
-        t2Rename = new Rename(List.of(t2Output), t2Alias.relationName(), t2Alias, t2Collect);
+        t2Rename = new Rename(idAllocator.nextId(), List.of(t2Output), t2Alias.relationName(), t2Alias, t2Collect);
     }
 
     @Test
     public void test_relationnames_are_based_on_sources_in_hashjoin() throws Exception {
-        var hashJoin = new HashJoin(t1Rename, t2Rename, e.asSymbol("x = y"));
+        var hashJoin = new HashJoin(idAllocator.nextId(), t1Rename, t2Rename, e.asSymbol("x = y"));
         assertThat(hashJoin.baseTables(), containsInAnyOrder(t1Relation, t2Relation));
         assertThat(hashJoin.getRelationNames(), containsInAnyOrder(t1RenamedRelationName, t2RenamedRelationName));
     }
 
     @Test
     public void test_relationnames_are_based_on_sources_in_nestedloopjoin() {
-        var nestedLoopJoin = new NestedLoopJoin(t1Rename,
+        var nestedLoopJoin = new NestedLoopJoin(idAllocator.nextId(),
+                                                t1Rename,
                                                 t2Rename,
                                                 JoinType.INNER,
                                                 e.asSymbol("x = y"),
                                                 false,
                                                 t1Relation,
-                                                false);
+                                                false
+                                                );
         assertThat(nestedLoopJoin.baseTables(), containsInAnyOrder(t1Relation, t2Relation));
         assertThat(nestedLoopJoin.getRelationNames(), containsInAnyOrder(t1RenamedRelationName, t2RenamedRelationName));
     }
 
     @Test
     public void test_relationnames_are_based_on_sources_in_union() {
-        var union = new Union(t1Rename, t2Rename, List.of());
+        var union = new Union(idAllocator.nextId(), t1Rename, t2Rename, List.of());
         assertThat(union.baseTables(), containsInAnyOrder(t1Relation, t2Relation));
         assertThat(union.getRelationNames(), containsInAnyOrder(t1RenamedRelationName, t2RenamedRelationName));
     }
@@ -116,21 +119,21 @@ public class RelationNamesInLogicalPlanTest extends CrateDummyClusterServiceUnit
     public void test_relationnames_are_based_on_sources_in_table_function() {
         QueriedSelectRelation relation = e.analyze("select * from abs(1)");
         TableFunctionRelation tableFunctionRelation = (TableFunctionRelation) relation.from().get(0);
-        var tableFunction = new TableFunction(tableFunctionRelation, List.of(), new WhereClause(null));
+        var tableFunction = new TableFunction(idAllocator.nextId(), tableFunctionRelation, List.of(), new WhereClause(null));
         assertThat(tableFunction.baseTables(), containsInAnyOrder());
         assertThat(tableFunction.getRelationNames(), containsInAnyOrder(new RelationName(null, "abs")));
     }
 
     @Test
     public void test_relationnames_are_based_on_sources_in_collect() {
-        var collect = new Collect(t1Relation, List.of(), new WhereClause(null), 1,1);
+        var collect = new Collect(idAllocator.nextId(), t1Relation, List.of(), new WhereClause(null), 1,1);
         assertThat(collect.baseTables(), containsInAnyOrder(t1Relation));
         assertThat(collect.getRelationNames(), containsInAnyOrder(t1Relation.relationName()));
     }
 
     @Test
     public void test_relationnames_are_based_on_sources_in_get() {
-        var get = new Get(t1Relation, new DocKeys(List.of(List.of()), false, false, 1, null), null, List.of(), 1);
+        var get = new Get(idAllocator.nextId(), t1Relation, new DocKeys(List.of(List.of()), false, false, 1, null), null, List.of(), 1);
         assertThat(get.baseTables(), containsInAnyOrder(t1Relation));
         assertThat(get.getRelationNames(), containsInAnyOrder(t1Relation.relationName()));
     }
@@ -139,7 +142,7 @@ public class RelationNamesInLogicalPlanTest extends CrateDummyClusterServiceUnit
     public void test_relationnames_are_based_on_sources_in_count() {
         QueriedSelectRelation relation = e.analyze("select count(1)");
         Function function = (Function) relation.outputs().get(0);
-        var count = new Count(function, t1Relation, new WhereClause(null));
+        var count = new Count(idAllocator.nextId(), function, t1Relation, new WhereClause(null));
         assertThat(count.baseTables(), containsInAnyOrder(t1Relation));
         assertThat(count.getRelationNames(), containsInAnyOrder(t1Relation.relationName()));
     }

@@ -84,11 +84,13 @@ public class MergeAggregateRenameAndCollectToCount implements Rule<HashAggregate
         if (filter != null) {
             var mappedFilter = FieldReplacer.replaceFields(filter, rename::resolveField);
             return new Count(
+                txnCtx.idAllocator().nextId(),
                 countAggregate,
                 collect.relation(),
-                collect.where().add(mappedFilter));
+                collect.where().add(mappedFilter)
+                );
         } else {
-            return new Count(countAggregate, collect.relation(), collect.where());
+            return new Count(txnCtx.idAllocator().nextId(), countAggregate, collect.relation(), collect.where());
         }
     }
 }

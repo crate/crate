@@ -85,7 +85,8 @@ public class PlannerContext {
                           int fetchSize,
                           @Nullable Row params,
                           Cursors cursors,
-                          TransactionState transactionState) {
+                          TransactionState transactionState
+                          ) {
         this.routingProvider = routingProvider;
         this.nodeCtx = nodeCtx;
         this.params = params;
@@ -162,4 +163,5 @@ public class PlannerContext {
     public TransactionState transactionState() {
         return transactionState;
     }
+
 }

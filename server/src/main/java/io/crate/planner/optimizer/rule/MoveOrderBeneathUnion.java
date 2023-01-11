@@ -70,7 +70,7 @@ public final class MoveOrderBeneathUnion implements Rule<Order> {
 
     private static Order updateSources(Order order, LogicalPlan child) {
         List<Symbol> sourceOutputs = order.source().outputs();
-        return new Order(child, order.orderBy().map(s -> {
+        return new Order(order.id(), child, order.orderBy().map(s -> {
             int idx = sourceOutputs.indexOf(s);
             if (idx < 0) {
                 throw new IllegalArgumentException(

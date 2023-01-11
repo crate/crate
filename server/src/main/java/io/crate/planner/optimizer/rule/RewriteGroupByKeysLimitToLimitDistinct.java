@@ -170,6 +170,7 @@ public final class RewriteGroupByKeysLimitToLimitDistinct implements Rule<Limit>
             return null;
         }
         return new LimitDistinct(
+            txnCtx.idAllocator().nextId(),
             groupBy.source(),
             limit.limit(),
             limit.offset(),

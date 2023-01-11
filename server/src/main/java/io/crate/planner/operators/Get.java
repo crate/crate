@@ -70,17 +70,20 @@ import io.crate.statistics.TableStats;
 
 public class Get implements LogicalPlan {
 
+    private final LogicalPlanId id;
     final DocTableRelation tableRelation;
     final DocKeys docKeys;
     final Symbol query;
     final long estimatedSizePerRow;
     private final List<Symbol> outputs;
 
-    public Get(DocTableRelation table,
+    public Get(LogicalPlanId id,
+               DocTableRelation table,
                DocKeys docKeys,
                Symbol query,
                List<Symbol> outputs,
                long estimatedSizePerRow) {
+        this.id = id;
         this.tableRelation = table;
         this.docKeys = docKeys;
         this.query = query;
@@ -250,7 +253,7 @@ public class Get implements LogicalPlan {
             }
         }
         if (excludedAny) {
-            return new Get(tableRelation, docKeys, query, newOutputs, estimatedSizePerRow);
+            return new Get(id, tableRelation, docKeys, query, newOutputs, estimatedSizePerRow);
         }
         return this;
     }
@@ -268,6 +271,11 @@ public class Get implements LogicalPlan {
     @Override
     public long numExpectedRows() {
         return docKeys.size();
+    }
+
+    @Override
+    public LogicalPlanId id() {
+        return id;
     }
 
     @Override

@@ -65,12 +65,12 @@ public final class MoveFilterBeneathUnion implements Rule<Filter> {
         LogicalPlan lhs = union.sources().get(0);
         LogicalPlan rhs = union.sources().get(1);
         return union.replaceSources(List.of(
-            createNewFilter(filter, lhs),
-            createNewFilter(filter, rhs)
+            createNewFilter(filter, lhs, txnCtx),
+            createNewFilter(filter, rhs, txnCtx)
         ));
     }
 
-    private static Filter createNewFilter(Filter filter, LogicalPlan newSource) {
+    private static Filter createNewFilter(Filter filter, LogicalPlan newSource, TransactionContext txnCtx) {
         Symbol newQuery = FieldReplacer.replaceFields(filter.query(), f -> {
             int idx = filter.source().outputs().indexOf(f);
             if (idx < 0) {
@@ -80,6 +80,6 @@ public final class MoveFilterBeneathUnion implements Rule<Filter> {
             }
             return newSource.outputs().get(idx);
         });
-        return new Filter(newSource, newQuery);
+        return new Filter(txnCtx.idAllocator().nextId(), newSource, newQuery);
     }
 }

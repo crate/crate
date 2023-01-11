@@ -86,7 +86,7 @@ public final class MoveOrderBeneathRename implements Rule<Order> {
         Function<? super Symbol, ? extends Symbol> mapField = FieldReplacer.bind(rename::resolveField);
         OrderBy mappedOrderBy = plan.orderBy().map(mapField);
         if (rename.source().outputs().containsAll(mappedOrderBy.orderBySymbols())) {
-            Order newOrder = new Order(rename.source(), mappedOrderBy);
+            Order newOrder = new Order(plan.id(), rename.source(), mappedOrderBy);
             return rename.replaceSources(List.of(newOrder));
         } else {
             return null;

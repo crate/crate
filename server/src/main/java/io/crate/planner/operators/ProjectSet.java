@@ -52,7 +52,7 @@ public class ProjectSet extends ForwardingLogicalPlan {
     final List<Symbol> standalone;
     private final List<Symbol> outputs;
 
-    static LogicalPlan create(LogicalPlan source, List<Function> tableFunctions) {
+    static LogicalPlan create(LogicalPlanId id, LogicalPlan source, List<Function> tableFunctions) {
         if (tableFunctions.isEmpty()) {
             return source;
         }
@@ -93,13 +93,13 @@ public class ProjectSet extends ForwardingLogicalPlan {
             List<Symbol> standalone = result.outputs().stream()
                 .filter(x -> !(x instanceof Function && ((Function) x).signature().getKind() == FunctionType.TABLE))
                 .collect(Collectors.toList());
-            result = new ProjectSet(result, nestedFunctions.get(i), standalone);
+            result = new ProjectSet(id, result, nestedFunctions.get(i), standalone);
         }
         return result;
     }
 
-    private ProjectSet(LogicalPlan source, List<Function> tableFunctions, List<Symbol> standalone) {
-        super(source);
+    private ProjectSet(LogicalPlanId id, LogicalPlan source, List<Function> tableFunctions, List<Symbol> standalone) {
+        super(id, source);
         this.outputs = Lists2.concat(tableFunctions, standalone);
         this.tableFunctions = tableFunctions;
         this.standalone = standalone;
@@ -164,12 +164,12 @@ public class ProjectSet extends ForwardingLogicalPlan {
         if (newSource == source) {
             return this;
         }
-        return new ProjectSet(newSource, tableFunctions, List.copyOf(newStandalone));
+        return new ProjectSet(id, newSource, tableFunctions, List.copyOf(newStandalone));
     }
 
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
-        return new ProjectSet(Lists2.getOnlyElement(sources), tableFunctions, standalone);
+        return new ProjectSet(id, Lists2.getOnlyElement(sources), tableFunctions, standalone);
     }
 
     @Override

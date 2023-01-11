@@ -68,11 +68,12 @@ public final class MergeAggregateAndCollectToCount implements Rule<HashAggregate
         var countAggregate = Lists2.getOnlyElement(aggregate.aggregates());
         if (countAggregate.filter() != null) {
             return new Count(
+                txnCtx.idAllocator().nextId(),
                 countAggregate,
                 collect.relation(),
                 collect.where().add(countAggregate.filter()));
         } else {
-            return new Count(countAggregate, collect.relation(), collect.where());
+            return new Count(txnCtx.idAllocator().nextId(), countAggregate, collect.relation(), collect.where());
         }
     }
 }

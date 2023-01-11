@@ -58,6 +58,8 @@ import io.crate.types.DataTypes;
 
 public class FetchRewriteTest extends CrateDummyClusterServiceUnitTest {
 
+    private static LogicalPlanIdAllocator logicalPlanIdAllocator = new LogicalPlanIdAllocator();
+
     @Test
     public void test_fetch_rewrite_on_eval_removes_eval_and_extends_replaced_outputs() throws Exception {
         SQLExecutor e = SQLExecutor.builder(clusterService)
@@ -67,8 +69,9 @@ public class FetchRewriteTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo tableInfo = e.resolveTableInfo("tbl");
         var x = e.asSymbol("x");
         var relation = new DocTableRelation(tableInfo);
-        var collect = new Collect(relation, List.of(x), WhereClause.MATCH_ALL, 1L, DataTypes.INTEGER.fixedSize());
+        var collect = new Collect(logicalPlanIdAllocator.nextId(), relation, List.of(x), WhereClause.MATCH_ALL, 1L, DataTypes.INTEGER.fixedSize());
         var eval = new Eval(
+            logicalPlanIdAllocator.nextId(),
             collect,
             List.of(
                 new Function(
@@ -102,10 +105,10 @@ public class FetchRewriteTest extends CrateDummyClusterServiceUnitTest {
         Reference x = (Reference) e.asSymbol("x");
         var relation = new DocTableRelation(tableInfo);
         var alias = new AliasedAnalyzedRelation(relation, new RelationName(null, "t1"));
-        var collect = new Collect(relation, List.of(x), WhereClause.MATCH_ALL, 1L, DataTypes.INTEGER.fixedSize());
+        var collect = new Collect(logicalPlanIdAllocator.nextId(),relation, List.of(x), WhereClause.MATCH_ALL, 1L, DataTypes.INTEGER.fixedSize());
         Symbol t1X = alias.getField(x.column(), Operation.READ, true);
         assertThat(t1X, Matchers.notNullValue());
-        var rename = new Rename(List.of(t1X), alias.relationName(), alias, collect);
+        var rename = new Rename(logicalPlanIdAllocator.nextId(), List.of(t1X), alias.relationName(), alias, collect);
 
         FetchRewrite fetchRewrite = rename.rewriteToFetch(new TableStats(), List.of());
         assertThat(fetchRewrite, Matchers.notNullValue());
@@ -141,8 +144,9 @@ public class FetchRewriteTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo tableInfo = e.resolveTableInfo("tbl");
         var x = new AliasSymbol("x_alias", e.asSymbol("x"));
         var relation = new DocTableRelation(tableInfo);
-        var collect = new Collect(relation, List.of(x), WhereClause.MATCH_ALL, 1L, DataTypes.INTEGER.fixedSize());
+        var collect = new Collect(logicalPlanIdAllocator.nextId(), relation, List.of(x), WhereClause.MATCH_ALL, 1L, DataTypes.INTEGER.fixedSize());
         var eval = new Eval(
+            logicalPlanIdAllocator.nextId(),
             collect,
             List.of(x)
         );

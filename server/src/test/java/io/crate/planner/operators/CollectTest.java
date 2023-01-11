@@ -38,6 +38,7 @@ import io.crate.data.Row;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
@@ -48,6 +49,8 @@ import io.crate.types.DataTypes;
 
 public class CollectTest extends CrateDummyClusterServiceUnitTest {
 
+    private CoordinatorTxnCtx txnCtx = CoordinatorTxnCtx.systemTransactionContext();
+
     @Test
     public void test_prune_output_of_collect_updates_estimated_row_size() throws Exception {
         var e = SQLExecutor.builder(clusterService)
@@ -56,6 +59,7 @@ public class CollectTest extends CrateDummyClusterServiceUnitTest {
         TableStats tableStats = new TableStats();
         Symbol x = e.asSymbol("x");
         Collect collect = Collect.create(
+            txnCtx.idAllocator().nextId(),
             new DocTableRelation(e.resolveTableInfo("t")),
             List.of(x, e.asSymbol("y")),
             WhereClause.MATCH_ALL,

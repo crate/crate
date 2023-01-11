@@ -112,7 +112,8 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             mss.joinPairs(),
             new SubQueries(Map.of(), Map.of()),
             rel -> logicalPlanner.plan(rel, plannerCtx, subqueryPlanner, true),
-            txnCtx.sessionSettings().hashJoinsEnabled()
+            txnCtx.sessionSettings().hashJoinsEnabled(),
+            txnCtx.idAllocator()
         );
     }
 
@@ -268,7 +269,8 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             mss.joinPairs(),
             new SubQueries(Map.of(), Map.of()),
             rel -> logicalPlanner.plan(rel, plannerCtx, subqueryPlanner, false),
-            false
+            false,
+            txnCtx.idAllocator()
         );
         Join nl = (Join) operator.build(
             mock(DependencyCarrier.class), context, Set.of(), projectionBuilder, -1, 0, null, null, Row.EMPTY, SubQueryResults.EMPTY);

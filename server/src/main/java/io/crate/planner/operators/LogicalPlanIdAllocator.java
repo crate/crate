@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -21,21 +21,14 @@
 
 package io.crate.planner.operators;
 
-import io.crate.expression.symbol.Symbol;
-import io.crate.statistics.TableStats;
+public class LogicalPlanIdAllocator {
 
-import java.util.Collections;
-import java.util.List;
+    private int nextId;
 
-import static io.crate.planner.operators.GroupHashAggregate.approximateDistinctValues;
+    public LogicalPlanIdAllocator() {}
 
-public final class Distinct {
-
-    public static LogicalPlan create(LogicalPlan source, boolean distinct, List<Symbol> outputs, TableStats tableStats, LogicalPlanId id) {
-        if (!distinct) {
-            return source;
-        }
-        long numExpectedRows = approximateDistinctValues(source.numExpectedRows(), tableStats, outputs);
-        return new GroupHashAggregate(id, source, outputs, Collections.emptyList(), numExpectedRows);
+    public LogicalPlanId nextId() {
+        return new LogicalPlanId(Integer.toString(nextId++));
     }
+
 }

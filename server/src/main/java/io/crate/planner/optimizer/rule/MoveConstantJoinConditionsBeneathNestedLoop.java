@@ -80,6 +80,7 @@ public class MoveConstantJoinConditionsBeneathNestedLoop implements Rule<NestedL
         if (constantConditions.isEmpty() || nonConstantConditions.isEmpty()) {
             // Nothing to optimize, just mark nestedLoopJoin to skip the rule the next time
             return new NestedLoopJoin(
+                nl.id(),
                 nl.lhs(),
                 nl.rhs(),
                 nl.joinType(),
@@ -96,9 +97,10 @@ public class MoveConstantJoinConditionsBeneathNestedLoop implements Rule<NestedL
             var rhs = nl.rhs();
             var queryForLhs = constantConditions.remove(lhs.getRelationNames());
             var queryForRhs = constantConditions.remove(rhs.getRelationNames());
-            var newLhs = getNewSource(queryForLhs, lhs);
-            var newRhs = getNewSource(queryForRhs, rhs);
+            var newLhs = getNewSource(queryForLhs, lhs, txnCtx.idAllocator());
+            var newRhs = getNewSource(queryForRhs, rhs, txnCtx.idAllocator());
             return new HashJoin(
+                nl.id(),
                 newLhs,
                 newRhs,
                 AndOperator.join(nonConstantConditions)

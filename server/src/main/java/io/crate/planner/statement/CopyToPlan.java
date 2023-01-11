@@ -161,6 +161,7 @@ public final class CopyToPlan implements Plan {
             boundedCopyTo.withClauseOptions());
 
         LogicalPlan collect = Collect.create(
+            context.transactionContext().idAllocator().nextId(),
             new DocTableRelation(boundedCopyTo.table()),
             boundedCopyTo.outputs(),
             boundedCopyTo.whereClause(),

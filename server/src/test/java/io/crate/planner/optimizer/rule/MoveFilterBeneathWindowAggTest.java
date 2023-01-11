@@ -47,6 +47,8 @@ import io.crate.testing.SQLExecutor;
 
 public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnitTest {
 
+    private CoordinatorTxnCtx txnCtx = CoordinatorTxnCtx.systemTransactionContext();
+
     private SQLExecutor e;
 
     @Before
@@ -62,10 +64,10 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
         var collect = e.logicalPlan("SELECT id FROM t1");
 
         WindowFunction windowFunction = (WindowFunction) e.asSymbol("ROW_NUMBER() OVER(PARTITION by id)");
-        WindowAgg windowAgg = (WindowAgg) WindowAgg.create(collect, List.of(windowFunction));
+        WindowAgg windowAgg = (WindowAgg) WindowAgg.create(txnCtx.idAllocator(), collect, List.of(windowFunction));
 
         Symbol query = e.asSymbol("ROW_NUMBER() OVER(PARTITION by id) = 2");
-        Filter filter = new Filter(windowAgg, query);
+        Filter filter = new Filter(txnCtx.idAllocator().nextId(), windowAgg, query);
 
         var rule = new MoveFilterBeneathWindowAgg();
         Match<Filter> match = rule.pattern().accept(filter, Captures.empty());
@@ -89,10 +91,10 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
         var collect = e.logicalPlan("SELECT id, x FROM t1");
 
         WindowFunction windowFunction = (WindowFunction) e.asSymbol("ROW_NUMBER() OVER(PARTITION by id)");
-        WindowAgg windowAgg = (WindowAgg) WindowAgg.create(collect, List.of(windowFunction));
+        WindowAgg windowAgg = (WindowAgg) WindowAgg.create(txnCtx.idAllocator(), collect, List.of(windowFunction));
 
         Symbol query = e.asSymbol("x = 1");
-        Filter filter = new Filter(windowAgg, query);
+        Filter filter = new Filter(txnCtx.idAllocator().nextId(), windowAgg, query);
 
         var rule = new MoveFilterBeneathWindowAgg();
         Match<Filter> match = rule.pattern().accept(filter, Captures.empty());
@@ -116,10 +118,10 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
         var collect = e.logicalPlan("SELECT id FROM t1");
 
         WindowFunction windowFunction = (WindowFunction) e.asSymbol("ROW_NUMBER() OVER(PARTITION BY id)");
-        WindowAgg windowAgg = (WindowAgg) WindowAgg.create(collect, List.of(windowFunction));
+        WindowAgg windowAgg = (WindowAgg) WindowAgg.create(txnCtx.idAllocator(), collect, List.of(windowFunction));
 
         Symbol query = e.asSymbol("id = 10");
-        Filter filter = new Filter(windowAgg, query);
+        Filter filter = new Filter(txnCtx.idAllocator().nextId(), windowAgg, query);
 
         var rule = new MoveFilterBeneathWindowAgg();
         Match<Filter> match = rule.pattern().accept(filter, Captures.empty());
@@ -147,10 +149,10 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
         var collect = e.logicalPlan("SELECT id FROM t1");
 
         WindowFunction windowFunction = (WindowFunction) e.asSymbol("ROW_NUMBER() OVER(PARTITION BY id)");
-        WindowAgg windowAgg = (WindowAgg) WindowAgg.create(collect, List.of(windowFunction));
+        WindowAgg windowAgg = (WindowAgg) WindowAgg.create(txnCtx.idAllocator(), collect, List.of(windowFunction));
 
         Symbol query = e.asSymbol("ROW_NUMBER() OVER(PARTITION BY id) = 2 AND id = 10 AND x = 1");
-        Filter filter = new Filter(windowAgg, query);
+        Filter filter = new Filter(txnCtx.idAllocator().nextId(), windowAgg, query);
 
         var rule = new MoveFilterBeneathWindowAgg();
         Match<Filter> match = rule.pattern().accept(filter, Captures.empty());
@@ -179,10 +181,10 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
         var collect = e.logicalPlan("SELECT id FROM t1");
 
         WindowFunction windowFunction = (WindowFunction) e.asSymbol("ROW_NUMBER() OVER(PARTITION BY id)");
-        WindowAgg windowAgg = (WindowAgg) WindowAgg.create(collect, List.of(windowFunction));
+        WindowAgg windowAgg = (WindowAgg) WindowAgg.create(txnCtx.idAllocator(), collect, List.of(windowFunction));
 
         Symbol query = e.asSymbol("ROW_NUMBER() OVER(PARTITION BY id) = 1 OR id = 10");
-        Filter filter = new Filter(windowAgg, query);
+        Filter filter = new Filter(txnCtx.idAllocator().nextId(), windowAgg, query);
 
         var rule = new MoveFilterBeneathWindowAgg();
         Match<Filter> match = rule.pattern().accept(filter, Captures.empty());

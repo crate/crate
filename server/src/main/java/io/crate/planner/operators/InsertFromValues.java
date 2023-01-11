@@ -116,11 +116,14 @@ import io.crate.types.DataType;
 
 public class InsertFromValues implements LogicalPlan {
 
+    private final LogicalPlanId id;
     private final TableFunctionRelation tableFunctionRelation;
     private final ColumnIndexWriterProjection writerProjection;
 
-    InsertFromValues(TableFunctionRelation tableFunctionRelation,
+    InsertFromValues(LogicalPlanId id,
+                     TableFunctionRelation tableFunctionRelation,
                      ColumnIndexWriterProjection writerProjection) {
+        this.id = id;
         this.tableFunctionRelation = tableFunctionRelation;
         this.writerProjection = writerProjection;
     }
@@ -821,6 +824,11 @@ public class InsertFromValues implements LogicalPlan {
     @Override
     public List<Symbol> outputs() {
         return List.of();
+    }
+
+    @Override
+    public LogicalPlanId id() {
+        return id;
     }
 
     @Override

@@ -81,6 +81,7 @@ public final class OptimizeCollectWhereClauseAccess implements Rule<Collect> {
         //noinspection OptionalIsPresent no capturing lambda allocation
         if (docKeys.isPresent()) {
             return new Get(
+                txnCtx.idAllocator().nextId(),
                 relation,
                 docKeys.get(),
                 detailedQuery.query(),

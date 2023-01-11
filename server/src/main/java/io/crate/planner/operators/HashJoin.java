@@ -63,14 +63,17 @@ import io.crate.statistics.TableStats;
 
 public class HashJoin implements LogicalPlan {
 
+    private final LogicalPlanId id;
     private final Symbol joinCondition;
     private final List<Symbol> outputs;
     final LogicalPlan rhs;
     final LogicalPlan lhs;
 
-    public HashJoin(LogicalPlan lhs,
+    public HashJoin(LogicalPlanId id,
+                    LogicalPlan lhs,
                     LogicalPlan rhs,
                     Symbol joinCondition) {
+        this.id = id;
         this.outputs = Lists2.concat(lhs.outputs(), rhs.outputs());
         this.lhs = lhs;
         this.rhs = rhs;
@@ -252,6 +255,7 @@ public class HashJoin implements LogicalPlan {
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
         return new HashJoin(
+            id,
             sources.get(0),
             sources.get(1),
             joinCondition
@@ -274,6 +278,7 @@ public class HashJoin implements LogicalPlan {
             return this;
         }
         return new HashJoin(
+            id,
             newLhs,
             newRhs,
             joinCondition
@@ -302,6 +307,7 @@ public class HashJoin implements LogicalPlan {
         return new FetchRewrite(
             allReplacedOutputs,
             new HashJoin(
+                id,
                 lhsFetchRewrite == null ? lhs : lhsFetchRewrite.newPlan(),
                 rhsFetchRewrite == null ? rhs : rhsFetchRewrite.newPlan(),
                 joinCondition
@@ -327,6 +333,11 @@ public class HashJoin implements LogicalPlan {
     @Override
     public <C, R> R accept(LogicalPlanVisitor<C, R> visitor, C context) {
         return visitor.visitHashJoin(this, context);
+    }
+
+    @Override
+    public LogicalPlanId id() {
+        return id;
     }
 
     @Override

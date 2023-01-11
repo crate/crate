@@ -55,6 +55,8 @@ import io.crate.testing.SQLExecutor;
 
 public class LimitTest extends CrateDummyClusterServiceUnitTest {
 
+    private static LogicalPlanIdAllocator logicalPlanIdAllocator = new LogicalPlanIdAllocator();
+
     @Test
     public void testLimitOnLimitOperator() throws Exception {
         SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
@@ -63,8 +65,11 @@ public class LimitTest extends CrateDummyClusterServiceUnitTest {
         QueriedSelectRelation queriedDocTable = e.analyze("select name from users");
 
         LogicalPlan plan = Limit.create(
+            logicalPlanIdAllocator.nextId(),
             Limit.create(
+                logicalPlanIdAllocator.nextId(),
                 Collect.create(
+                    logicalPlanIdAllocator.nextId(),
                     ((AbstractTableRelation<?>) queriedDocTable.from().get(0)),
                     queriedDocTable.outputs(),
                     new WhereClause(queriedDocTable.where()),
