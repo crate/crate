@@ -56,6 +56,8 @@ import org.elasticsearch.snapshots.SnapshotId;
 import org.elasticsearch.snapshots.SnapshotsInProgressSerializationTests;
 import org.elasticsearch.test.IntegTestCase;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -605,9 +607,14 @@ public class ClusterStateDiffIT extends IntegTestCase {
             @Override
             public IndexTemplateMetadata randomCreate(String name) {
                 IndexTemplateMetadata.Builder builder = IndexTemplateMetadata.builder(name);
-                builder.order(randomInt(1000))
-                        .patterns(Collections.singletonList(randomName("temp")))
-                        .settings(randomSettings(Settings.EMPTY));
+                try {
+                    builder.order(randomInt(1000))
+                            .patterns(Collections.singletonList(randomName("temp")))
+                            .settings(randomSettings(Settings.EMPTY))
+                            .putMapping("{}");
+                } catch (IOException e) {
+                    throw new UncheckedIOException(e);
+                }
                 int aliasCount = randomIntBetween(0, 10);
                 for (int i = 0; i < aliasCount; i++) {
                     builder.putAlias(randomAlias());
