@@ -255,53 +255,10 @@ public class ClusterState implements ToXContentFragment, Diffable<ClusterState> 
     public String toString() {
         StringBuilder sb = new StringBuilder();
         final String TAB = "   ";
-        sb.append("cluster uuid: ").append(metadata.clusterUUID())
-            .append(" [committed: ").append(metadata.clusterUUIDCommitted()).append("]").append("\n");
-        sb.append("version: ").append(version).append("\n");
-        sb.append("state uuid: ").append(stateUUID).append("\n");
-        sb.append("from_diff: ").append(wasReadFromDiff).append("\n");
-        sb.append("meta data version: ").append(metadata.version()).append("\n");
-        sb.append(TAB).append("coordination_metadata:\n");
-        sb.append(TAB).append(TAB).append("term: ").append(coordinationMetadata().term()).append("\n");
-        sb.append(TAB).append(TAB)
-                .append("last_committed_config: ").append(coordinationMetadata().getLastCommittedConfiguration()).append("\n");
-        sb.append(TAB).append(TAB)
-                .append("last_accepted_config: ").append(coordinationMetadata().getLastAcceptedConfiguration()).append("\n");
-        sb.append(TAB).append(TAB)
-                .append("voting tombstones: ").append(coordinationMetadata().getVotingConfigExclusions()).append("\n");
         for (IndexMetadata indexMetadata : metadata) {
-            sb.append(TAB).append(indexMetadata.getIndex());
-            sb.append(": v[").append(indexMetadata.getVersion())
-                    .append("], mv[").append(indexMetadata.getMappingVersion())
-                    .append("], sv[").append(indexMetadata.getSettingsVersion())
-                    .append("]\n");
-            for (int shard = 0; shard < indexMetadata.getNumberOfShards(); shard++) {
-                sb.append(TAB).append(TAB).append(shard).append(": ");
-                sb.append("p_term [").append(indexMetadata.primaryTerm(shard)).append("], ");
-                sb.append("isa_ids ").append(indexMetadata.inSyncAllocationIds(shard)).append("\n");
-            }
+            sb.append(indexMetadata.getAliases().toString());
         }
-        if (metadata.customs().isEmpty() == false) {
-            sb.append("metadata customs:\n");
-            for (final ObjectObjectCursor<String, Metadata.Custom> cursor : metadata.customs()) {
-                final String type = cursor.key;
-                final Metadata.Custom custom = cursor.value;
-                sb.append(TAB).append(type).append(": ").append(custom);
-            }
-            sb.append("\n");
-        }
-        sb.append(blocks());
-        sb.append(nodes());
-        sb.append(routingTable());
-        sb.append(getRoutingNodes());
-        if (customs.isEmpty() == false) {
-            sb.append("customs:\n");
-            for (ObjectObjectCursor<String, Custom> cursor : customs) {
-                final String type = cursor.key;
-                final Custom custom = cursor.value;
-                sb.append(TAB).append(type).append(": ").append(custom);
-            }
-        }
+
         return sb.toString();
     }
 

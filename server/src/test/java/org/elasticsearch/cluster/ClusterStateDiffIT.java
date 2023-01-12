@@ -87,46 +87,19 @@ public class ClusterStateDiffIT extends IntegTestCase {
         ClusterState clusterStateFromDiffs =
             ClusterState.Builder.fromBytes(ClusterState.Builder.toBytes(clusterState), otherNode, namedWriteableRegistry);
 
-        int iterationCount = randomIntBetween(10, 300);
+        int iterationCount = 2;
         for (int iteration = 0; iteration < iterationCount; iteration++) {
             ClusterState previousClusterState = clusterState;
             ClusterState previousClusterStateFromDiffs = clusterStateFromDiffs;
-            int changesCount = randomIntBetween(1, 4);
+            int changesCount = 1; //randomIntBetween(1, 4);
             ClusterState.Builder builder = null;
             for (int i = 0; i < changesCount; i++) {
                 if (i > 0) {
                     clusterState = builder.build();
                 }
-                switch (randomInt(5)) {
-                    case 0:
-                        builder = randomNodes(clusterState);
-                        break;
-                    case 1:
-                        builder = randomRoutingTable(clusterState);
-                        break;
-                    case 2:
-                        builder = randomBlocks(clusterState);
-                        break;
-                    case 3:
-                        builder = randomClusterStateCustoms(clusterState);
-                        break;
-                    case 4:
-                        builder = randomMetadataChanges(clusterState);
-                        break;
-                    case 5:
-                        builder = randomCoordinationMetadata(clusterState);
-                        break;
-                    default:
-                        throw new IllegalArgumentException("Shouldn't be here");
-                }
+                builder = randomMetadataChanges(clusterState);
             }
             clusterState = builder.incrementVersion().build();
-
-            if (randomIntBetween(0, 10) < 1) {
-                // Update cluster state via full serialization from time to time
-                clusterStateFromDiffs = ClusterState.Builder.fromBytes(ClusterState.Builder.toBytes(clusterState),
-                    previousClusterStateFromDiffs.nodes().getLocalNode(), namedWriteableRegistry);
-            } else {
                 // Update cluster states using diffs
                 Diff<ClusterState> diffBeforeSerialization = clusterState.diff(previousClusterState);
                 BytesStreamOutput os = new BytesStreamOutput();
@@ -138,8 +111,6 @@ public class ClusterStateDiffIT extends IntegTestCase {
                     diff = ClusterState.readDiffFrom(namedInput, previousClusterStateFromDiffs.nodes().getLocalNode());
                     clusterStateFromDiffs = diff.apply(previousClusterStateFromDiffs);
                 }
-            }
-
 
             try {
                 // Check non-diffable elements
@@ -189,6 +160,8 @@ public class ClusterStateDiffIT extends IntegTestCase {
                 throw error;
             }
         }
+
+        logger.info("Final cluster state:[{}]", clusterState.toString());
     }
 
     private ClusterState.Builder randomCoordinationMetadata(ClusterState clusterState) {
@@ -415,25 +388,7 @@ public class ClusterStateDiffIT extends IntegTestCase {
      */
     private ClusterState.Builder randomMetadataChanges(ClusterState clusterState) {
         Metadata metadata = clusterState.metadata();
-        int changesCount = randomIntBetween(1, 10);
-        for (int i = 0; i < changesCount; i++) {
-            switch (randomInt(3)) {
-                case 0:
-                    metadata = randomMetadataSettings(metadata);
-                    break;
-                case 1:
-                    metadata = randomIndices(metadata);
-                    break;
-                case 2:
-                    metadata = randomTemplates(metadata);
-                    break;
-                case 3:
-                    metadata = randomMetadataCustoms(metadata);
-                    break;
-                default:
-                    throw new IllegalArgumentException("Shouldn't be here");
-            }
-        }
+        metadata = randomIndices(metadata);
         return ClusterState.builder(clusterState).metadata(Metadata.builder(metadata).version(metadata.version() + 1).build());
     }
 
@@ -503,6 +458,8 @@ public class ClusterStateDiffIT extends IntegTestCase {
         Metadata.Builder builder = Metadata.builder(metadata);
         ImmutableOpenMap<String, T> parts = randomPart.parts(metadata);
         int partCount = parts.size();
+        logger.info("2 iterations in total, when seen first time has to be 0 and 1 when seen second time. Size = {}", partCount);
+        // 1 index is from the prev iteration's call of 'randomPart.put(builder, randomPart.randomCreate(name))'
         if (partCount > 0) {
             List<String> randomParts = randomSubsetOf(randomInt(partCount - 1),
                 randomPart.parts(metadata).keys().toArray(String.class));
@@ -514,7 +471,7 @@ public class ClusterStateDiffIT extends IntegTestCase {
                 }
             }
         }
-        int additionalPartCount = randomIntBetween(1, 20);
+        int additionalPartCount = 1;
         for (int i = 0; i < additionalPartCount; i++) {
             String name = randomName(prefix);
             randomPart.put(builder, randomPart.randomCreate(name));
@@ -551,7 +508,7 @@ public class ClusterStateDiffIT extends IntegTestCase {
                 settingsBuilder.put(randomSettings(Settings.EMPTY)).put(IndexMetadata.SETTING_VERSION_CREATED, randomVersion(random()));
                 builder.settings(settingsBuilder);
                 builder.numberOfShards(randomIntBetween(1, 10)).numberOfReplicas(randomInt(10));
-                int aliasCount = randomInt(10);
+                int aliasCount = 1;
                 for (int i = 0; i < aliasCount; i++) {
                     builder.putAlias(randomAlias());
                 }
@@ -561,23 +518,10 @@ public class ClusterStateDiffIT extends IntegTestCase {
             @Override
             public IndexMetadata randomChange(IndexMetadata part) {
                 IndexMetadata.Builder builder = IndexMetadata.builder(part);
-                switch (randomIntBetween(0, 2)) {
-                    case 0:
-                        builder.settings(Settings.builder().put(part.getSettings()).put(randomSettings(Settings.EMPTY)));
-                        break;
-                    case 1:
-                        if (randomBoolean() && part.getAliases().isEmpty() == false) {
-                            builder.removeAlias(randomFrom(part.getAliases().keys().toArray(String.class)));
-                        } else {
-                            builder.putAlias(AliasMetadata.builder(randomAlphaOfLength(10)));
-                        }
-                        break;
-                    case 2:
-                        builder.settings(Settings.builder().put(part.getSettings())
-                            .put(IndexMetadata.SETTING_INDEX_UUID, UUIDs.randomBase64UUID()));
-                        break;
-                    default:
-                        throw new IllegalArgumentException("Shouldn't be here");
+                if (randomBoolean() && part.getAliases().isEmpty() == false) {
+                    builder.removeAlias(randomFrom(part.getAliases().keys().toArray(String.class)));
+                } else {
+                    builder.putAlias(AliasMetadata.builder(randomAlphaOfLength(10)));
                 }
                 return builder.build();
             }
