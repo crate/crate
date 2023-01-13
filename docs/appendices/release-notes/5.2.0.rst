@@ -12,9 +12,9 @@ Released on 2023-01-12.
     before you upgrade to 5.2.0.
 
     We recommend that you upgrade to the latest 5.0 release before moving to
-    5.3.0.
+    5.2.0.
 
-    A rolling upgrade from 5.0.x to 5.3.0 is supported.
+    A rolling upgrade from 5.0.x to 5.2.0 is supported.
     Before upgrading, you should `back up your data`_.
 
 .. WARNING::
