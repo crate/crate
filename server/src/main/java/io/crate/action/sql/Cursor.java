@@ -172,10 +172,12 @@ public final class Cursor implements AutoCloseable {
                 cursorPosition = count;
                 consumer.accept(bufferedRowOrNone(count - 1), null);
             } else {
-                int steps = count - cursorPosition;
+                int steps = count - cursorPosition + 1;
                 fullResult.move(steps, row -> {}, err -> {
+                    cursorPosition--;
                     if (err == null) {
                         consumer.accept(bufferedRowOrNone(count - 1), null);
+                        cursorPosition = count == rows.size() ? count : count - 1;
                     } else {
                         consumer.accept(null, err);
                     }
@@ -183,11 +185,15 @@ public final class Cursor implements AutoCloseable {
             }
         } else if (moveForward) {
             if (count == 0) {
-                consumer.accept(bufferedRowOrNone(cursorPosition - 1), null);
+                int idx = cursorPosition - 1;
+                if (cursorPosition > rows.size()) {
+                    idx--;
+                }
+                consumer.accept(bufferedRowOrNone(idx), null);
                 return;
             }
             BatchIterator<Row> delegate;
-            if (!scroll || cursorPosition == rows.size()) {
+            if (!scroll || cursorPosition >= rows.size()) {
                 delegate = fullResult;
             } else {
                 // Cursor and resultBatchIterator position can go out of sync due to backward movement
@@ -196,6 +202,9 @@ public final class Cursor implements AutoCloseable {
                 BatchIterator<Row> bufferedBi = biFromItems(items);
                 delegate = CompositeBatchIterator.seqComposite(bufferedBi, fullResult);
             }
+            // There is no moveNext() call to update the position
+            // When rows.size() + 1, last row exceeded and next backwards movement must include the last row
+            cursorPosition = Math.min(cursorPosition + count, rows.size() + 1);
 
             if (count <= Integer.MAX_VALUE) {
                 consumer.accept(LimitingBatchIterator.newInstance(delegate, count), null);
@@ -205,15 +214,20 @@ public final class Cursor implements AutoCloseable {
         } else {
             int start = cursorPosition + count;
             assert start < cursorPosition : "count must be negative";
-            List<Object[]> items = Lists2.reverse(rows.subList(start - 1, cursorPosition - 1));
+            List<Object[]> items = Lists2.reverse(rows.subList(Math.max(start - 1, 0), Math.max(cursorPosition - 1, 0)));
             BatchIterator<Row> bi = biFromItems(items);
-            cursorPosition = start;
+            cursorPosition = Math.max(start, 0);
             consumer.accept(bi, null);
         }
     }
 
     private BatchIterator<Row> biFromItems(List<Object[]> items) {
-        BatchIterator<Object[]> objectRows = InMemoryBatchIterator.of(items, null, false);
+        BatchIterator<Object[]> objectRows;
+        if (items.isEmpty()) {
+            objectRows = InMemoryBatchIterator.empty(null);
+        } else {
+            objectRows = InMemoryBatchIterator.of(items, null, false);
+        }
         return BatchIterators.map(objectRows, cells -> {
             sharedRow.cells(cells);
             return sharedRow;

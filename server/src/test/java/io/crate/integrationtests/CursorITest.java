@@ -61,14 +61,14 @@ public class CursorITest extends IntegTestCase {
             statement.execute(declare);
 
             ResultSet result = statement.executeQuery("fetch from c1");
-            assertThat(result.next()).isEqualTo(true);
+            assertThat(result.next()).isTrue();
             assertThat(result.getInt(1)).isEqualTo(1);
-            assertThat(result.next()).isEqualTo(false);
+            assertThat(result.next()).isFalse();
 
             result = statement.executeQuery("fetch forward 2 from c1");
-            assertThat(result.next()).isEqualTo(true);
+            assertThat(result.next()).isTrue();
             assertThat(result.getInt(1)).isEqualTo(2);
-            assertThat(result.next()).isEqualTo(true);
+            assertThat(result.next()).isTrue();
             assertThat(result.getInt(1)).isEqualTo(3);
 
             statement.execute("close c1");
@@ -84,7 +84,7 @@ public class CursorITest extends IntegTestCase {
             Statement statement = conn.createStatement();
             conn.setAutoCommit(false);
 
-            String declare = "declare c1 no scroll cursor for select * from generate_series(1, 10)";
+            String declare = "declare c1 cursor for select * from generate_series(1, 10)";
             statement.execute(declare);
             ResultSet result = statement.executeQuery("FETCH ALL FROM c1");
             int nextExpectedResult = 1;
@@ -97,10 +97,17 @@ public class CursorITest extends IntegTestCase {
                 .isEqualTo(11);
 
             result = statement.executeQuery("FETCH FROM c1");
-            assertThat(result.next()).isEqualTo(false);
+            assertThat(result.next()).isFalse();
 
             result = statement.executeQuery("FETCH FROM c1");
-            assertThat(result.next()).isEqualTo(false);
+            assertThat(result.next()).isFalse();
+
+            result = statement.executeQuery("FETCH backward 2 FROM c1");
+            assertThat(result.next()).isTrue();
+            assertThat(result.getInt(1)).isEqualTo(10);
+            assertThat(result.next()).isTrue();
+            assertThat(result.getInt(1)).isEqualTo(9);
+            assertThat(result.next()).isFalse();
         }
     }
 
@@ -126,7 +133,7 @@ public class CursorITest extends IntegTestCase {
             assertThat(result.getInt(1)).isEqualTo(1);
             assertThat(result.next()).isFalse();
 
-            result = statement.executeQuery("FETCH ALL FROM c1");
+            statement.executeQuery("FETCH ALL FROM c1");
             result = statement.executeQuery("FETCH 0 FROM c1");
             assertThat(result.next()).isFalse();
         }
@@ -176,6 +183,15 @@ public class CursorITest extends IntegTestCase {
             assertThat(result.next()).isTrue();
             assertThat(result.getInt(1)).isEqualTo(7);
             assertThat(result.next()).isFalse();
+
+            result = statement.executeQuery("FETCH ABSOLUTE 6 FROM c1");
+            assertThat(result.next()).isTrue();
+            assertThat(result.getInt(1)).isEqualTo(6);
+            assertThat(result.next()).isFalse();
+            result = statement.executeQuery("FETCH backward FROM c1");
+            assertThat(result.next()).isTrue();
+            assertThat(result.getInt(1)).isEqualTo(5);
+            assertThat(result.next()).isFalse();
         }
     }
 
@@ -191,7 +207,7 @@ public class CursorITest extends IntegTestCase {
             conn.commit();
 
             ResultSet result = statement.executeQuery("fetch from c1");
-            assertThat(result.next()).isEqualTo(true);
+            assertThat(result.next()).isTrue();
             assertThat(result.getInt(1)).isEqualTo(1);
         }
     }

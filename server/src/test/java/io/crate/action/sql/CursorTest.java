@@ -101,4 +101,29 @@ public class CursorTest {
             "1\n"
         );
     }
+
+    @Test
+    public void test_fetching_backwards_from_cursor_positioned_at_start_returns_empty_result() throws Exception {
+        BatchIterator<Row> rows = TestingBatchIterators.range(1, 5);
+        Cursor cursor = new Cursor(
+            new NoopCircuitBreaker("dummy"),
+            true,
+            Hold.WITHOUT,
+            CompletableFuture.completedFuture(rows),
+            List.of(new InputColumn(0, DataTypes.INTEGER))
+        );
+        TestingRowConsumer consumer = new TestingRowConsumer();
+        cursor.fetch(consumer, ScrollMode.RELATIVE, -5);
+        assertThat(TestingHelpers.printedTable(consumer.getBucket())).isEqualTo("");
+
+        consumer = new TestingRowConsumer();
+        cursor.fetch(consumer, ScrollMode.RELATIVE, 3);
+        assertThat(TestingHelpers.printedTable(consumer.getBucket())).isEqualTo(
+            """
+                1
+                2
+                3
+                """
+        );
+    }
 }
