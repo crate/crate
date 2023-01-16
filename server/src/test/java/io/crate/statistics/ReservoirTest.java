@@ -21,9 +21,8 @@
 
 package io.crate.statistics;
 
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.lang.reflect.Field;
 import java.util.Random;
@@ -35,24 +34,24 @@ public class ReservoirTest {
     @Test
     public void test_sampling() {
         Random random = new Random(42);
-        Reservoir<Integer> samples = new Reservoir<>(5, random);
+        Reservoir samples = new Reservoir(5, random);
         for (int i = 0; i < 100; i++) {
             samples.update(i);
         }
-        assertThat(samples.samples(), contains(83, 50, 13, 18, 38));
+        assertThat(samples.samples().buffer).contains(83, 50, 13, 18, 38);
     }
 
     @Test
     public void test_reservoir_is_protected_against_integer_overflow() throws Exception {
         Random random = new Random(42);
 
-        Reservoir<Long> samples = new Reservoir<>(5, random);
+        Reservoir samples = new Reservoir(5, random);
         Field f1 = samples.getClass().getDeclaredField("itemsSeen");
         f1.setAccessible(true);
         int itemsSeen = Integer.MAX_VALUE;
         f1.set(samples, itemsSeen);
         samples.update(6L);
 
-        assertThat(samples.samples().size(), is(0));
+        assertThat(samples.samples()).isEmpty();
     }
 }

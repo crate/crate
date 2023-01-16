@@ -21,29 +21,28 @@
 
 package io.crate.statistics;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 import java.util.Random;
+
+import com.carrotsearch.hppc.LongArrayList;
 
 /**
  * Reservoir sampling as described in http://rosettacode.org/wiki/Knuth%27s_algorithm_S
  */
-public final class Reservoir<T> {
+public final class Reservoir {
 
-    private final ArrayList<T> samples;
+    private final LongArrayList samples;
     private final int maxSamples;
     private final Random random;
 
     private int itemsSeen = 0;
 
     public Reservoir(int maxSamples, Random random) {
-        this.samples = new ArrayList<>(maxSamples);
+        this.samples = new LongArrayList(maxSamples);
         this.maxSamples = maxSamples;
         this.random = random;
     }
 
-    public boolean update(T item) {
+    public boolean update(long item) {
         if (itemsSeen == Integer.MAX_VALUE) {
             return false;
         }
@@ -56,7 +55,7 @@ public final class Reservoir<T> {
         return true;
     }
 
-    public List<T> samples() {
-        return Collections.unmodifiableList(samples);
+    public LongArrayList samples() {
+        return samples;
     }
 }
