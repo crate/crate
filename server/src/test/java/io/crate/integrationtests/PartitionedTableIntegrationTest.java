@@ -192,9 +192,10 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
 
     @Test
     public void testInsertIntoClosedPartition() throws Exception {
-        execute("create table t (a integer, b string) partitioned by (a)");
+        int numberOfReplicas = numberOfReplicas();
+        execute("create table t (a integer, b string) partitioned by (a) with (number_of_replicas = ?)", $(numberOfReplicas));
         execute("insert into t (a, b) values (1, 'foo')");
-        refresh();
+        ensureGreen();
 
         execute("alter table t partition (a = 1) close");
         assertBusy(() -> {
