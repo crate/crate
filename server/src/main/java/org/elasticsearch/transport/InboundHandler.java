@@ -19,7 +19,10 @@
 
 package org.elasticsearch.transport;
 
-import io.crate.common.unit.TimeValue;
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
@@ -29,12 +32,11 @@ import org.elasticsearch.common.io.stream.ByteBufferStreamInput;
 import org.elasticsearch.common.io.stream.NamedWriteableAwareStreamInput;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.network.CloseableChannel;
 import org.elasticsearch.common.util.concurrent.AbstractRunnable;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
+import io.crate.common.unit.TimeValue;
 
 public class InboundHandler {
 
@@ -83,8 +85,8 @@ public class InboundHandler {
         this.slowLogThresholdMs = slowLogThreshold.getMillis();
     }
 
-    void inboundMessage(TcpChannel channel, InboundMessage message) throws Exception {
-        final long startTime = threadPool.relativeTimeInMillis();
+    void inboundMessage(CloseableChannel channel, InboundMessage message) throws Exception {
+        long startTime = threadPool.relativeTimeInMillis();
         channel.getChannelStats().markAccessed(startTime);
         TransportLogger.logInboundMessage(channel, message);
 
@@ -95,7 +97,7 @@ public class InboundHandler {
         }
     }
 
-    private void messageReceived(TcpChannel channel, InboundMessage message, long startTime) throws IOException {
+    private void messageReceived(CloseableChannel channel, InboundMessage message, long startTime) throws IOException {
         final InetSocketAddress remoteAddress = channel.getRemoteAddress();
         final Header header = message.getHeader();
         assert header.needsToReadVariableHeader() == false;
@@ -154,7 +156,7 @@ public class InboundHandler {
         }
     }
 
-    private <T extends TransportRequest> void handleRequest(TcpChannel channel, Header header, InboundMessage message) throws IOException {
+    private <T extends TransportRequest> void handleRequest(CloseableChannel channel, Header header, InboundMessage message) throws IOException {
         final String action = header.getActionName();
         final long requestId = header.getRequestId();
         final Version version = header.getVersion();
@@ -164,8 +166,16 @@ public class InboundHandler {
             assert message.isShortCircuit() == false;
             final StreamInput stream = namedWriteableStream(message.openOrGetStreamInput());
             assertRemoteVersion(stream, header.getVersion());
-            final TransportChannel transportChannel = new TcpTransportChannel(outboundHandler, channel, action, requestId, version,
-                header.isCompressed(), header.isHandshake(), message.takeBreakerReleaseControl());
+            final TransportChannel transportChannel = new TcpTransportChannel(
+                outboundHandler,
+                channel,
+                action,
+                requestId,
+                version,
+                header.isCompressed(),
+                header.isHandshake(),
+                message.takeBreakerReleaseControl()
+            );
             try {
                 handshaker.handleHandshake(transportChannel, requestId, stream);
             } catch (Exception e) {

@@ -24,12 +24,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.common.lease.Releasable;
+import org.elasticsearch.common.network.CloseableChannel;
 
 public final class TcpTransportChannel implements TransportChannel {
 
     private final AtomicBoolean released = new AtomicBoolean();
     private final OutboundHandler outboundHandler;
-    private final TcpChannel channel;
+    private final CloseableChannel channel;
     private final String action;
     private final long requestId;
     private final Version version;
@@ -38,7 +39,7 @@ public final class TcpTransportChannel implements TransportChannel {
     private final Releasable breakerRelease;
 
     TcpTransportChannel(OutboundHandler outboundHandler,
-                        TcpChannel channel,
+                        CloseableChannel channel,
                         String action,
                         long requestId,
                         Version version,
@@ -96,7 +97,7 @@ public final class TcpTransportChannel implements TransportChannel {
         return version;
     }
 
-    public TcpChannel getChannel() {
+    public CloseableChannel getChannel() {
         return channel;
     }
 }

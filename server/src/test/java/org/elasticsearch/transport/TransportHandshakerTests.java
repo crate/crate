@@ -19,12 +19,11 @@
 
 package org.elasticsearch.transport;
 
-import static org.hamcrest.Matchers.containsString;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -38,18 +37,20 @@ import org.elasticsearch.action.support.PlainActionFuture;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.network.CloseableChannel;
 import org.elasticsearch.tasks.TaskId;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.threadpool.TestThreadPool;
 import org.junit.Test;
 
 import io.crate.common.unit.TimeValue;
+import io.netty.channel.embedded.EmbeddedChannel;
 
 public class TransportHandshakerTests extends ESTestCase {
 
     private TransportHandshaker handshaker;
     private DiscoveryNode node;
-    private TcpChannel channel;
+    private CloseableChannel channel;
     private TestThreadPool threadPool;
     private TransportHandshaker.HandshakeRequestSender requestSender;
 
@@ -57,7 +58,7 @@ public class TransportHandshakerTests extends ESTestCase {
     public void setUp() throws Exception {
         super.setUp();
         String nodeId = "node-id";
-        channel = mock(TcpChannel.class);
+        channel = new CloseableChannel(new EmbeddedChannel(), false);
         requestSender = mock(TransportHandshaker.HandshakeRequestSender.class);
         node = new DiscoveryNode(nodeId, nodeId, nodeId, "host", "host_address", buildNewFakeTransportAddress(), Collections.emptyMap(),
             Collections.emptySet(), Version.CURRENT);
@@ -147,7 +148,7 @@ public class TransportHandshakerTests extends ESTestCase {
 
         assertTrue(versionFuture.isDone());
         IllegalStateException ise = expectThrows(IllegalStateException.class, versionFuture::actionGet);
-        assertThat(ise.getMessage(), containsString("handshake failed"));
+        assertThat(ise.getMessage()).contains("handshake failed");
     }
 
     @Test
@@ -161,7 +162,7 @@ public class TransportHandshakerTests extends ESTestCase {
 
         assertTrue(versionFuture.isDone());
         ConnectTransportException cte = expectThrows(ConnectTransportException.class, versionFuture::actionGet);
-        assertThat(cte.getMessage(), containsString("failure to send internal:tcp/handshake"));
+        assertThat(cte.getMessage()).contains("failure to send internal:tcp/handshake");
         assertNull(handshaker.removeHandlerForHandshake(reqId));
     }
 
@@ -174,7 +175,7 @@ public class TransportHandshakerTests extends ESTestCase {
         verify(requestSender).sendRequest(node, channel, reqId, Version.CURRENT.minimumCompatibilityVersion());
 
         ConnectTransportException cte = expectThrows(ConnectTransportException.class, versionFuture::actionGet);
-        assertThat(cte.getMessage(), containsString("handshake_timeout"));
+        assertThat(cte.getMessage()).contains("handshake_timeout");
 
         assertNull(handshaker.removeHandlerForHandshake(reqId));
     }

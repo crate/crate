@@ -19,18 +19,17 @@
 
 package org.elasticsearch.transport;
 
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.nio.channels.ClosedChannelException;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.LongSupplier;
@@ -39,7 +38,6 @@ import java.util.function.Supplier;
 
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.Version;
-import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
@@ -47,12 +45,14 @@ import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.bytes.ReleasableBytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.network.CloseableChannel;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.util.PageCacheRecycler;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.threadpool.TestThreadPool;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.transport.netty4.Netty4Utils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -60,6 +60,9 @@ import org.junit.Test;
 import io.crate.common.collections.Tuple;
 import io.crate.common.io.Streams;
 import io.crate.common.unit.TimeValue;
+import io.netty.buffer.ByteBuf;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.embedded.EmbeddedChannel;
 
 public class OutboundHandlerTests extends ESTestCase {
 
@@ -68,14 +71,22 @@ public class OutboundHandlerTests extends ESTestCase {
     private final AtomicReference<Tuple<Header, BytesReference>> message = new AtomicReference<>();
     private InboundPipeline pipeline;
     private OutboundHandler handler;
-    private FakeTcpChannel channel;
+    private CloseableChannel channel;
     private DiscoveryNode node;
+    private EmbeddedChannel embeddedChannel;
 
     @Before
     public void setUp() throws Exception {
         super.setUp();
-        channel = new FakeTcpChannel(randomBoolean(), buildNewFakeTransportAddress().address(), buildNewFakeTransportAddress().address());
+        embeddedChannel = new EmbeddedChannel();
         TransportAddress transportAddress = buildNewFakeTransportAddress();
+        channel = new CloseableChannel(embeddedChannel, randomBoolean()) {
+
+            @Override
+            public InetSocketAddress getLocalAddress() {
+                return transportAddress.address();
+            }
+        };
         node = new DiscoveryNode("", transportAddress, Version.CURRENT);
         StatsTracker statsTracker = new StatsTracker();
         handler = new OutboundHandler("node", Version.CURRENT, statsTracker, threadPool, BigArrays.NON_RECYCLING_INSTANCE);
@@ -101,28 +112,20 @@ public class OutboundHandlerTests extends ESTestCase {
         super.tearDown();
     }
 
-    public void testSendRawBytes() {
+    @Test
+    public void testSendRawBytes() throws Throwable {
         BytesArray bytesArray = new BytesArray("message".getBytes(StandardCharsets.UTF_8));
 
-        AtomicBoolean isSuccess = new AtomicBoolean(false);
-        AtomicReference<Exception> exception = new AtomicReference<>();
-        ActionListener<Void> listener = ActionListener.wrap((v) -> isSuccess.set(true), exception::set);
-        handler.sendBytes(channel, bytesArray, listener);
+        ChannelFuture future1 = handler.sendBytes(channel, bytesArray);
+        ByteBuf msg = (ByteBuf) embeddedChannel.outboundMessages().poll();
+        BytesReference reference = Netty4Utils.toBytesReference(msg);
+        assertThat(bytesArray).isEqualTo(reference);
+        assertThat(future1.get(5, TimeUnit.SECONDS));
 
-        BytesReference reference = channel.getMessageCaptor().get();
-        ActionListener<Void> sendListener = channel.getListenerCaptor().get();
-        if (randomBoolean()) {
-            sendListener.onResponse(null);
-            assertTrue(isSuccess.get());
-            assertNull(exception.get());
-        } else {
-            IOException e = new IOException("failed");
-            sendListener.onFailure(e);
-            assertFalse(isSuccess.get());
-            assertSame(e, exception.get());
-        }
-
-        assertEquals(bytesArray, reference);
+        embeddedChannel.disconnect();
+        ChannelFuture future2 = handler.sendBytes(channel, bytesArray);
+        assertThatThrownBy(() -> future2.get(5, TimeUnit.SECONDS))
+            .hasCauseInstanceOf(ClosedChannelException.class);
     }
 
     @Test
@@ -151,13 +154,8 @@ public class OutboundHandlerTests extends ESTestCase {
         });
         handler.sendRequest(node, channel, requestId, action, request, options, version, compress, isHandshake);
 
-        BytesReference reference = channel.getMessageCaptor().get();
-        ActionListener<Void> sendListener = channel.getListenerCaptor().get();
-        if (randomBoolean()) {
-            sendListener.onResponse(null);
-        } else {
-            sendListener.onFailure(new IOException("failed"));
-        }
+        ByteBuf msg = (ByteBuf) embeddedChannel.outboundMessages().poll();
+        BytesReference reference = Netty4Utils.toBytesReference(msg);
         assertEquals(node, nodeRef.get());
         assertEquals(requestId, requestIdRef.get());
         assertEquals(action, actionRef.get());
@@ -209,13 +207,8 @@ public class OutboundHandlerTests extends ESTestCase {
         });
         handler.sendResponse(version, channel, requestId, action, response, compress, isHandshake);
 
-        BytesReference reference = channel.getMessageCaptor().get();
-        ActionListener<Void> sendListener = channel.getListenerCaptor().get();
-        if (randomBoolean()) {
-            sendListener.onResponse(null);
-        } else {
-            sendListener.onFailure(new IOException("failed"));
-        }
+        ByteBuf msg = (ByteBuf) embeddedChannel.outboundMessages().poll();
+        BytesReference reference = Netty4Utils.toBytesReference(msg);
         assertEquals(requestId, requestIdRef.get());
         assertEquals(action, actionRef.get());
         assertEquals(response, responseRef.get());
@@ -265,13 +258,8 @@ public class OutboundHandlerTests extends ESTestCase {
         });
         handler.sendErrorResponse(version, channel, requestId, action, error);
 
-        BytesReference reference = channel.getMessageCaptor().get();
-        ActionListener<Void> sendListener = channel.getListenerCaptor().get();
-        if (randomBoolean()) {
-            sendListener.onResponse(null);
-        } else {
-            sendListener.onFailure(new IOException("failed"));
-        }
+        ByteBuf msg = (ByteBuf) embeddedChannel.outboundMessages().poll();
+        BytesReference reference = Netty4Utils.toBytesReference(msg);
         assertEquals(requestId, requestIdRef.get());
         assertEquals(action, actionRef.get());
         assertEquals(error, responseRef.get());
@@ -290,11 +278,9 @@ public class OutboundHandlerTests extends ESTestCase {
         assertTrue(header.isError());
 
         RemoteTransportException remoteException = tuple.v2().streamInput().readException();
-        assertThat(remoteException.getCause(), instanceOf(ElasticsearchException.class));
+        assertThat(remoteException.getCause()).isInstanceOf(ElasticsearchException.class);
         assertEquals(remoteException.getCause().getMessage(), "boom");
         assertEquals(action, remoteException.action());
         assertEquals(channel.getLocalAddress(), remoteException.address().address());
     }
-
-
 }

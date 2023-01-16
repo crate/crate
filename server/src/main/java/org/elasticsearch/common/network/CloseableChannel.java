@@ -25,25 +25,55 @@ import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
+import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.PlainActionFuture;
+import org.elasticsearch.transport.ChannelStats;
 
 import io.crate.common.io.IOUtils;
+import io.netty.buffer.ByteBuf;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
 
-public interface CloseableChannel extends Closeable {
+public class CloseableChannel implements Closeable {
 
-    /**
-     * Closes the channel. For most implementations, this will be be an asynchronous process. For this
-     * reason, this method does not throw {@link java.io.IOException} There is no guarantee that the channel
-     * will be closed when this method returns. Use the {@link #addCloseListener(ActionListener)} method
-     * to implement logic that depends on knowing when the channel is closed.
-     */
-    @Override
-    void close();
+    private final boolean isServerChannel;
+    private final Channel channel;
+    private final CompletableFuture<Void> closeFuture = new CompletableFuture<>();
+    private final ChannelStats stats;
+
+    public CloseableChannel(Channel channel, boolean isServerChannel) {
+        this.isServerChannel = isServerChannel;
+        this.stats = new ChannelStats();
+        this.channel = channel;
+        this.channel.closeFuture().addListener(f -> {
+            if (f.isSuccess()) {
+                closeFuture.complete(null);
+            } else {
+                Throwable cause = f.cause();
+                closeFuture.completeExceptionally(cause);
+                if (cause instanceof Error) {
+                    ExceptionsHelper.maybeDieOnAnotherThread(cause);
+                }
+            }
+        });
+    }
+
+    public ChannelFuture writeAndFlush(ByteBuf byteBuf) {
+        return channel.writeAndFlush(byteBuf);
+    }
+
+    public boolean isServerChannel() {
+        return isServerChannel;
+    }
+
+    public ChannelStats getChannelStats() {
+        return stats;
+    }
 
     /**
      * Adds a listener that will be executed when the channel is closed. If the channel is still open when
@@ -53,27 +83,33 @@ public interface CloseableChannel extends Closeable {
      *
      * @param listener to be executed
      */
-    void addCloseListener(ActionListener<Void> listener);
+    public void addCloseListener(ActionListener<Void> listener) {
+        closeFuture.whenComplete(listener);
+    }
 
     /**
      * Indicates whether a channel is currently open
      *
      * @return boolean indicating if channel is open
      */
-    boolean isOpen();
+    public boolean isOpen() {
+        return channel.isOpen();
+    }
 
     /**
      * @return the local address of this channel.
      */
-    InetSocketAddress getLocalAddress();
+    public InetSocketAddress getLocalAddress() {
+        return (InetSocketAddress) channel.localAddress();
+    }
 
-    /**
-     * Closes the channel without blocking.
-     *
-     * @param channel to close
-     */
-    static <C extends CloseableChannel> void closeChannel(C channel) {
-        closeChannel(channel, false);
+    public InetSocketAddress getRemoteAddress() {
+        return (InetSocketAddress) channel.remoteAddress();
+    }
+
+    @Override
+    public void close() {
+        channel.close();
     }
 
     /**
@@ -82,7 +118,7 @@ public interface CloseableChannel extends Closeable {
      * @param channel  to close
      * @param blocking indicates if we should block on channel close
      */
-    static <C extends CloseableChannel> void closeChannel(C channel, boolean blocking) {
+    public static void closeChannel(CloseableChannel channel, boolean blocking) {
         closeChannels(Collections.singletonList(channel), blocking);
     }
 
@@ -92,7 +128,7 @@ public interface CloseableChannel extends Closeable {
      * @param channels to close
      * @param blocking indicates if we should block on channel close
      */
-    static <C extends CloseableChannel> void closeChannels(Collection<C> channels, boolean blocking) {
+    public static void closeChannels(Collection<? extends CloseableChannel> channels, boolean blocking) {
         try {
             IOUtils.close(channels);
         } catch (IOException e) {
@@ -101,24 +137,20 @@ public interface CloseableChannel extends Closeable {
         }
         if (blocking) {
             ArrayList<ActionFuture<Void>> futures = new ArrayList<>(channels.size());
-            for (final C channel : channels) {
+            for (var channel : channels) {
                 PlainActionFuture<Void> closeFuture = PlainActionFuture.newFuture();
                 channel.addCloseListener(closeFuture);
                 futures.add(closeFuture);
             }
-            blockOnFutures(futures);
-        }
-    }
-
-    static void blockOnFutures(List<ActionFuture<Void>> futures) {
-        for (ActionFuture<Void> future : futures) {
-            try {
-                future.get();
-            } catch (ExecutionException e) {
-                // Ignore as we are only interested in waiting for the close process to complete. Logging
-                // close exceptions happens elsewhere.
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
+            for (ActionFuture<Void> future : futures) {
+                try {
+                    future.get();
+                } catch (ExecutionException e) {
+                    // Ignore as we are only interested in waiting for the close process to complete. Logging
+                    // close exceptions happens elsewhere.
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
             }
         }
     }

@@ -24,6 +24,7 @@ import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.bytes.ReleasableBytesReference;
 import org.elasticsearch.common.lease.Releasables;
+import org.elasticsearch.common.network.CloseableChannel;
 import org.elasticsearch.common.util.PageCacheRecycler;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.InboundPipeline;
@@ -64,7 +65,7 @@ public final class Netty4MessageChannelHandler extends ChannelDuplexHandler {
         assert msg instanceof ByteBuf : "Expected message type ByteBuf, found: " + msg.getClass();
 
         final ByteBuf buffer = (ByteBuf) msg;
-        Netty4TcpChannel channel = ctx.channel().attr(Netty4Transport.CHANNEL_KEY).get();
+        CloseableChannel channel = ctx.channel().attr(Netty4Transport.CHANNEL_KEY).get();
         final BytesReference wrapped = Netty4Utils.toBytesReference(buffer);
         try (ReleasableBytesReference reference = new ReleasableBytesReference(wrapped, buffer::release)) {
             pipeline.handleBytes(channel, reference);
@@ -76,7 +77,7 @@ public final class Netty4MessageChannelHandler extends ChannelDuplexHandler {
         ExceptionsHelper.maybeDieOnAnotherThread(cause);
         final Throwable unwrapped = ExceptionsHelper.unwrap(cause, ElasticsearchException.class);
         final Throwable newCause = unwrapped != null ? unwrapped : cause;
-        Netty4TcpChannel tcpChannel = ctx.channel().attr(Netty4Transport.CHANNEL_KEY).get();
+        CloseableChannel tcpChannel = ctx.channel().attr(Netty4Transport.CHANNEL_KEY).get();
         if (newCause instanceof Error) {
             transport.onException(tcpChannel, new Exception(newCause));
         } else {
