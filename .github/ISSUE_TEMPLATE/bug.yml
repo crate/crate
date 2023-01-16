@@ -27,7 +27,7 @@ body:
     id: problem_description
     attributes:
       label: Problem description
-      description: Succinct description of the problem
+      description: Concise description of the problem
 
   - type: textarea
     id: repro
