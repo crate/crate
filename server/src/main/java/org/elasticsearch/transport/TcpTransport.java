@@ -55,7 +55,6 @@ import org.elasticsearch.action.support.ThreadedActionListener;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.breaker.CircuitBreaker;
-import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.component.Lifecycle;
@@ -607,8 +606,7 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
         } else if (e instanceof TcpTransport.HttpRequestOnTransportException) {
             // in case we are able to return data, serialize the exception content and sent it back to the client
             if (channel.isOpen()) {
-                BytesArray message = new BytesArray(e.getMessage().getBytes(StandardCharsets.UTF_8));
-                var future = outboundHandler.sendBytes(channel, message);
+                var future = outboundHandler.sendBytes(channel, e.getMessage().getBytes(StandardCharsets.UTF_8));
                 future.addListener(f -> {
                     if (f.isSuccess()) {
                         channel.close();

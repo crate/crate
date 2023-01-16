@@ -20,7 +20,6 @@
 package org.elasticsearch.transport;
 
 import java.io.Closeable;
-import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
@@ -31,9 +30,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.component.Lifecycle;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.metrics.CounterMetric;
 import org.elasticsearch.common.network.CloseableChannel;
 import org.elasticsearch.common.util.concurrent.AbstractLifecycleRunnable;
@@ -52,18 +49,7 @@ final class TransportKeepAlive implements Closeable {
 
     static final int PING_DATA_SIZE = -1;
 
-    private static final BytesReference PING_MESSAGE;
-
-    static {
-        try (BytesStreamOutput out = new BytesStreamOutput()) {
-            out.writeByte((byte) 'E');
-            out.writeByte((byte) 'S');
-            out.writeInt(PING_DATA_SIZE);
-            PING_MESSAGE = out.copyBytes();
-        } catch (IOException e) {
-            throw new AssertionError(e.getMessage(), e); // won't happen
-        }
-    }
+    private static final byte[] PING_MESSAGE = {'E', 'S', -1, -1, -1, -1};
 
     private final Logger logger = LogManager.getLogger(TransportKeepAlive.class);
     private final CounterMetric successfulPings = new CounterMetric();
@@ -71,9 +57,9 @@ final class TransportKeepAlive implements Closeable {
     private final ConcurrentMap<TimeValue, ScheduledPing> pingIntervals = ConcurrentCollections.newConcurrentMap();
     private final Lifecycle lifecycle = new Lifecycle();
     private final ThreadPool threadPool;
-    private final BiFunction<CloseableChannel, BytesReference, ChannelFuture> pingSender;
+    private final BiFunction<CloseableChannel, byte[], ChannelFuture> pingSender;
 
-    TransportKeepAlive(ThreadPool threadPool, BiFunction<CloseableChannel, BytesReference, ChannelFuture> pingSender) {
+    TransportKeepAlive(ThreadPool threadPool, BiFunction<CloseableChannel, byte[], ChannelFuture> pingSender) {
         this.threadPool = threadPool;
         this.pingSender = pingSender;
 

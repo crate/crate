@@ -58,6 +58,7 @@ import org.junit.Test;
 
 import io.crate.common.unit.TimeValue;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.embedded.EmbeddedChannel;
 
 public class InboundHandlerTests extends ESTestCase {
@@ -92,7 +93,7 @@ public class InboundHandlerTests extends ESTestCase {
         };
         NamedWriteableRegistry namedWriteableRegistry = new NamedWriteableRegistry(Collections.emptyList());
         TransportHandshaker handshaker = new TransportHandshaker(version, threadPool, (n, c, r, v) -> {});
-        TransportKeepAlive keepAlive = new TransportKeepAlive(threadPool, (c, b) -> channel.writeAndFlush(Netty4Utils.toByteBuf(b)));
+        TransportKeepAlive keepAlive = new TransportKeepAlive(threadPool, (c, b) -> channel.writeAndFlush(Unpooled.wrappedBuffer(b)));
         OutboundHandler outboundHandler = new OutboundHandler("node", version, new StatsTracker(), threadPool,
             BigArrays.NON_RECYCLING_INSTANCE);
         requestHandlers = new Transport.RequestHandlers();
