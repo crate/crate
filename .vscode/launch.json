@@ -14,6 +14,18 @@
         },
         {
             "type": "java",
+            "request": "launch",
+            "name": "Run CrateDB",
+            "args": "-Cpath.home=${workspaceFolder}/sandbox/crate",
+            "cwd": "${workspaceFolder}/app",
+            "vmArgs": "-Xms2G -Xmx2G",
+            "mainClass": "io.crate.bootstrap.CrateDB",
+            "projectName": "app",
+            "console": "integratedTerminal",
+            "noDebug": true
+        },
+        {
+            "type": "java",
             "request": "attach",
             "name": "Attach to CrateDB",
             "hostName": "127.0.0.1",
