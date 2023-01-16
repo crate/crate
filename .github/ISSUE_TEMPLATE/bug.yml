@@ -1,6 +1,7 @@
 name: 🐞 Bug Report
 description: Tell us about something that's not working the way you think it should
-labels: triage
+labels:
+  - triage
 body:
   - type: input
     id: cratedb_version
@@ -23,6 +24,12 @@ body:
         crate.yml contents:
 
   - type: textarea
+    id: problem_description
+    attributes:
+      label: Problem description
+      description: Succinct description of the problem
+
+  - type: textarea
     id: repro
     attributes:
       label: Steps to Reproduce
@@ -33,12 +40,7 @@ body:
         3. Run the query:
     validations:
       required: true
-  - type: textarea
-    id: expected
-    attributes:
-      label: Expected Result
-    validations:
-      required: true
+
   - type: textarea
     id: actual
     attributes:
@@ -46,9 +48,15 @@ body:
       description: Output? Logs? Enable `Show error trace` in the Admin Console or run ``crash --verbose` to get stack traces for the errors.
     validations:
       required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Result
+    validations:
+      required: true
+
   - type: markdown
     attributes:
       value: |-
         ## Thanks 🙏
-    validations:
-      required: false
