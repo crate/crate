@@ -74,3 +74,6 @@ Fixes
 
 - Fixed an issue that caused wrong rows to be returned when scrolling backwards
   and then forwards through a :ref:`CURSOR <sql-fetch>`.
+
+- Improved error message when :ref:`fetching <sql-fetch>` using ``ABSOLUTE``,
+  past the last row returned by the cursor query.

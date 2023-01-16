@@ -23,6 +23,7 @@ package io.crate.action.sql;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 
 import org.elasticsearch.common.breaker.CircuitBreaker;
@@ -176,8 +177,13 @@ public final class Cursor implements AutoCloseable {
                 fullResult.move(steps, row -> {}, err -> {
                     cursorPosition--;
                     if (err == null) {
-                        consumer.accept(bufferedRowOrNone(count - 1), null);
-                        cursorPosition = count == rows.size() ? count : count - 1;
+                        if (count > rows.size()) {
+                            consumer.accept(null, new IllegalArgumentException(String.format(Locale.ENGLISH,
+                                                  "Cannot return row: %s, total rows: %s", count, rows.size())));
+                        } else {
+                            consumer.accept(bufferedRowOrNone(count - 1), null);
+                            cursorPosition = count == rows.size() ? count : count - 1;
+                        }
                     } else {
                         consumer.accept(null, err);
                     }
