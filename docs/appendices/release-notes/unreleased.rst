@@ -68,4 +68,9 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
-None
+- Fixed an issue that caused ``IndexOutOfBoundsException`` to be thrown when
+  trying to :ref:`FETCH <sql-fetch>` backwards from a ``CURSOR``, past the 1st
+  row.
+
+- Fixed an issue that caused wrong rows to be returned when scrolling backwards
+  and then forwards through a :ref:`CURSOR <sql-fetch>`.
