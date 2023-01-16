@@ -21,10 +21,20 @@
 
 package io.crate.statistics;
 
-import io.crate.breaker.RamAccounting;
-import io.crate.breaker.RowCellsAccountingWithEstimators;
-import io.crate.metadata.Schemas;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import static io.crate.testing.TestingHelpers.createNodeContext;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.io.IOException;
+import java.util.List;
+
 import org.apache.lucene.store.RateLimiter;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
@@ -33,19 +43,12 @@ import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.IOException;
-import java.util.List;
+import com.carrotsearch.hppc.LongArrayList;
 
-import static io.crate.testing.TestingHelpers.createNodeContext;
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.anyInt;
-import static org.mockito.Mockito.anyLong;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import io.crate.breaker.RamAccounting;
+import io.crate.breaker.RowCellsAccountingWithEstimators;
+import io.crate.metadata.Schemas;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 
 public class ReservoirSamplerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -75,7 +78,9 @@ public class ReservoirSamplerTest extends CrateDummyClusterServiceUnitTest {
         RowCellsAccountingWithEstimators rowAccounting = mock(RowCellsAccountingWithEstimators.class);
 
         // FetchId.decodeReaderId(123) returns 0, second List should have an element with index 0.
-        sampler.createRecords(List.of(fetchId), List.of(docIdToRow), RamAccounting.NO_ACCOUNTING, rowAccounting, 1);
+        LongArrayList fetchIds = new LongArrayList();
+        fetchIds.add(fetchId);
+        sampler.createRecords(fetchIds, List.of(docIdToRow), RamAccounting.NO_ACCOUNTING, rowAccounting, 1);
         verify(rateLimiter, never()).pause(anyLong());
     }
 
@@ -94,9 +99,10 @@ public class ReservoirSamplerTest extends CrateDummyClusterServiceUnitTest {
         when(rowAccounting.accountRowBytes(any())).thenReturn(rowSize);
 
         // FetchId.decodeReaderId(1) returns 0, second List should have an element with index 0.
-        sampler.createRecords(List.of(fetchId), List.of(docIdToRow), RamAccounting.NO_ACCOUNTING, rowAccounting, 1);
+        LongArrayList fetchIds = new LongArrayList();
+        fetchIds.add(fetchId);
+        sampler.createRecords(fetchIds, List.of(docIdToRow), RamAccounting.NO_ACCOUNTING, rowAccounting, 1);
 
         verify(rateLimiter, times(1)).pause(anyLong());
     }
-
 }

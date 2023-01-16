@@ -30,9 +30,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
-import java.util.function.Function;
+import java.util.function.IntFunction;
 
-import io.crate.common.annotations.VisibleForTesting;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.index.LeafReaderContext;
@@ -58,11 +57,16 @@ import org.elasticsearch.index.shard.IllegalIndexShardStateException;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
+import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
+
+import com.carrotsearch.hppc.LongArrayList;
+import com.carrotsearch.hppc.cursors.LongCursor;
 
 import io.crate.Streamer;
 import io.crate.breaker.BlockBasedRamAccounting;
 import io.crate.breaker.RamAccounting;
 import io.crate.breaker.RowCellsAccountingWithEstimators;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.RowN;
@@ -83,7 +87,6 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.types.DataTypes;
-import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 
 public final class ReservoirSampler {
 
@@ -200,7 +203,7 @@ public final class ReservoirSampler {
                                List<Engine.Searcher> searchersToRelease,
                                RamAccounting ramAccounting) {
         ramAccounting.addBytes(DataTypes.LONG.fixedSize() * maxSamples);
-        Reservoir<Long> fetchIdSamples = new Reservoir<>(maxSamples, random);
+        Reservoir fetchIdSamples = new Reservoir(maxSamples, random);
         ArrayList<DocIdToRow> docIdToRowsFunctionPerReader = new ArrayList<>();
         long totalNumDocs = 0;
         long totalSizeInBytes = 0;
@@ -263,7 +266,7 @@ public final class ReservoirSampler {
     }
 
     @VisibleForTesting
-    ArrayList<Row> createRecords(List<Long> samples,
+    ArrayList<Row> createRecords(LongArrayList samples,
                                  List<DocIdToRow> docIdToRowsFunctionPerReader,
                                  RamAccounting ramAccounting,
                                  RowCellsAccountingWithEstimators rowAccounting,
@@ -271,7 +274,8 @@ public final class ReservoirSampler {
         ArrayList<Row> records = new ArrayList<>();
         long bytesSinceLastPause = 0;
 
-        for (long fetchId : samples) {
+        for (LongCursor cursor : samples) {
+            long fetchId = cursor.value;
             int readerId = FetchId.decodeReaderId(fetchId);
             DocIdToRow docIdToRow = docIdToRowsFunctionPerReader.get(readerId);
             Object[] row = docIdToRow.apply(FetchId.decodeDocId(fetchId));
@@ -295,7 +299,7 @@ public final class ReservoirSampler {
         return records;
     }
 
-    static class DocIdToRow implements Function<Integer, Object[]> {
+    static class DocIdToRow implements IntFunction<Object[]> {
 
         private final Engine.Searcher searcher;
         private final List<Input<?>> inputs;
@@ -310,7 +314,7 @@ public final class ReservoirSampler {
         }
 
         @Override
-        public Object[] apply(Integer docId) {
+        public Object[] apply(int docId) {
             List<LeafReaderContext> leaves = searcher.getIndexReader().leaves();
             int readerIndex = ReaderUtil.subIndex(docId, leaves);
             LeafReaderContext leafContext = leaves.get(readerIndex);
@@ -334,10 +338,10 @@ public final class ReservoirSampler {
 
     private static class ReservoirCollector implements Collector {
 
-        private final Reservoir<Long> reservoir;
+        private final Reservoir reservoir;
         private int readerIdx;
 
-        ReservoirCollector(Reservoir<Long> reservoir, int readerIdx) {
+        ReservoirCollector(Reservoir reservoir, int readerIdx) {
             this.reservoir = reservoir;
             this.readerIdx = readerIdx;
         }
@@ -355,11 +359,11 @@ public final class ReservoirSampler {
 
     private static class ReservoirLeafCollector implements LeafCollector {
 
-        private final Reservoir<Long> reservoir;
+        private final Reservoir reservoir;
         private final int readerIdx;
         private final LeafReaderContext context;
 
-        ReservoirLeafCollector(Reservoir<Long> reservoir, int readerIdx, LeafReaderContext context) {
+        ReservoirLeafCollector(Reservoir reservoir, int readerIdx, LeafReaderContext context) {
             this.reservoir = reservoir;
             this.readerIdx = readerIdx;
             this.context = context;
