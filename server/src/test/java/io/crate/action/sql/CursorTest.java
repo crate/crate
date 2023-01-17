@@ -144,4 +144,121 @@ public class CursorTest {
                 .isExactlyInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Cannot return row: 6, total rows: 5");
     }
+
+    @Test
+    public void test_scrolling() throws Exception {
+        BatchIterator<Row> rows = TestingBatchIterators.range(1, 6);
+        Cursor cursor = new Cursor(
+                new NoopCircuitBreaker("dummy"),
+                true,
+                Hold.WITHOUT,
+                CompletableFuture.completedFuture(rows),
+                List.of(new InputColumn(0, DataTypes.INTEGER))
+        );
+
+        TestingRowConsumer consumer = new TestingRowConsumer();
+        cursor.fetch(consumer, ScrollMode.RELATIVE, 2);
+        assertThat(TestingHelpers.printedTable(consumer.getBucket())).isEqualTo(
+                """
+                1
+                2
+                """
+        );
+        consumer = new TestingRowConsumer();
+        cursor.fetch(consumer, ScrollMode.RELATIVE, 3);
+        assertThat(TestingHelpers.printedTable(consumer.getBucket())).isEqualTo(
+                """
+                3
+                4
+                5
+                """
+        );
+
+        consumer = new TestingRowConsumer();
+        cursor.fetch(consumer, ScrollMode.RELATIVE, -3);
+        assertThat(TestingHelpers.printedTable(consumer.getBucket())).isEqualTo(
+                """
+                4
+                3
+                2
+                """
+        );
+
+        consumer = new TestingRowConsumer();
+        cursor.fetch(consumer, ScrollMode.ABSOLUTE, 0);
+        assertThat(TestingHelpers.printedTable(consumer.getBucket())).isEqualTo("");
+
+        // Exceed total rows
+        cursor.fetch(consumer, ScrollMode.RELATIVE, 10);
+        assertThat(TestingHelpers.printedTable(consumer.getBucket())).isEqualTo(
+                """
+                1
+                2
+                3
+                4
+                5
+                """
+        );
+        consumer = new TestingRowConsumer();
+        cursor.fetch(consumer, ScrollMode.RELATIVE, -3);
+        assertThat(TestingHelpers.printedTable(consumer.getBucket())).isEqualTo(
+                """
+                5
+                4
+                3
+                """
+        );
+
+        // Negative absolute - next fwd == 1st row
+        consumer = new TestingRowConsumer();
+        cursor.fetch(consumer, ScrollMode.ABSOLUTE, -20);
+        assertThat(TestingHelpers.printedTable(consumer.getBucket())).isEqualTo("");
+        consumer = new TestingRowConsumer();
+        cursor.fetch(consumer, ScrollMode.RELATIVE, 2);
+        assertThat(TestingHelpers.printedTable(consumer.getBucket())).isEqualTo(
+                """
+                1
+                2
+                """
+        );
+
+        // Continue moving fwd
+        consumer = new TestingRowConsumer();
+        cursor.fetch(consumer, ScrollMode.RELATIVE, 2);
+        assertThat(TestingHelpers.printedTable(consumer.getBucket())).isEqualTo(
+                """
+                3
+                4
+                """
+        );
+
+        // Continue moving fwd
+        consumer = new TestingRowConsumer();
+        cursor.fetch(consumer, ScrollMode.RELATIVE, 2);
+        assertThat(TestingHelpers.printedTable(consumer.getBucket())).isEqualTo(
+                """
+                5
+                """
+        );
+
+        // Moving bwd
+        consumer = new TestingRowConsumer();
+        cursor.fetch(consumer, ScrollMode.RELATIVE, -2);
+        assertThat(TestingHelpers.printedTable(consumer.getBucket())).isEqualTo(
+                """
+                5
+                4
+                """
+        );
+
+        // Continue moving bwd
+        consumer = new TestingRowConsumer();
+        cursor.fetch(consumer, ScrollMode.RELATIVE, -2);
+        assertThat(TestingHelpers.printedTable(consumer.getBucket())).isEqualTo(
+                """
+                3
+                2
+                """
+        );
+    }
 }
