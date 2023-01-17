@@ -155,10 +155,10 @@ public abstract class AbstractSnapshotIntegTestCase extends IntegTestCase {
     }
 
     public static void waitForBlock(String node, String repository, TimeValue timeout) throws InterruptedException {
-        long start = System.currentTimeMillis();
+        long start = System.nanoTime();
         RepositoriesService repositoriesService = cluster().getInstance(RepositoriesService.class, node);
         MockRepository mockRepository = (MockRepository) repositoriesService.repository(repository);
-        while (System.currentTimeMillis() - start < timeout.millis()) {
+        while (System.nanoTime() - start < timeout.nanos()) {
             if (mockRepository.blocked()) {
                 return;
             }
@@ -189,6 +189,11 @@ public abstract class AbstractSnapshotIntegTestCase extends IntegTestCase {
         }
         fail("No nodes for the index " + indexName + " found");
         return null;
+    }
+
+    public static void blockDataNode(String repository, String nodeName) {
+        ((MockRepository) cluster().getInstance(RepositoriesService.class, nodeName)
+                .repository(repository)).blockOnDataFiles(true);
     }
 
     public static void blockAllDataNodes(String repository) {
