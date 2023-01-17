@@ -144,53 +144,63 @@ public class CursorITest extends IntegTestCase {
         try (var conn = DriverManager.getConnection(url(), properties)) {
             Statement statement = conn.createStatement();
             conn.setAutoCommit(false);
+            statement.execute("CREATE TABLE t1 AS SELECT * FROM generate_series(1,10,1)");
+            statement.execute("REFRESH TABLE t1");
 
-            String declare = "declare c1 scroll cursor for select * from generate_series(1, 7)";
-            statement.execute(declare);
-            ResultSet result = statement.executeQuery("FETCH 3 FROM c1");
+            statement.execute("DECLARE c1 SCROLL CURSOR FOR SELECT * FROM t1 ORDER BY 1");
+            ResultSet result = statement.executeQuery("FETCH 2 FROM c1");
             assertThat(result.next()).isTrue();
             assertThat(result.getInt(1)).isEqualTo(1);
             assertThat(result.next()).isTrue();
             assertThat(result.getInt(1)).isEqualTo(2);
-            assertThat(result.next()).isTrue();
-            assertThat(result.getInt(1)).isEqualTo(3);
             assertThat(result.next()).isFalse();
 
-            result = statement.executeQuery("FETCH ABSOLUTE 5 FROM c1");
+            result = statement.executeQuery("FETCH 2 FROM c1");
             assertThat(result.next()).isTrue();
-            assertThat(result.getInt(1)).isEqualTo(5);
+            assertThat(result.getInt(1)).isEqualTo(3);
+            assertThat(result.next()).isTrue();
+            assertThat(result.getInt(1)).isEqualTo(4);
+            assertThat(result.next()).isFalse();
+
+            result = statement.executeQuery("FETCH ABSOLUTE 7 FROM c1");
+            assertThat(result.next()).isTrue();
+            assertThat(result.getInt(1)).isEqualTo(7);
             assertThat(result.next()).isFalse();
 
             result = statement.executeQuery("FETCH BACKWARD 2 FROM c1");
             assertThat(result.next()).isTrue();
-            assertThat(result.getInt(1)).isEqualTo(4);
+            assertThat(result.getInt(1)).isEqualTo(6);
             assertThat(result.next()).isTrue();
-            assertThat(result.getInt(1)).isEqualTo(3);
+            assertThat(result.getInt(1)).isEqualTo(5);
             assertThat(result.next()).isFalse();
 
             result = statement.executeQuery("FETCH BACKWARD 0 FROM c1");
             assertThat(result.next()).isTrue();
-            assertThat(result.getInt(1)).isEqualTo(3);
+            assertThat(result.getInt(1)).isEqualTo(5);
             assertThat(result.next()).isFalse();
 
             result = statement.executeQuery("FETCH ALL FROM c1");
             assertThat(result.next()).isTrue();
-            assertThat(result.getInt(1)).isEqualTo(4);
-            assertThat(result.next()).isTrue();
-            assertThat(result.getInt(1)).isEqualTo(5);
-            assertThat(result.next()).isTrue();
             assertThat(result.getInt(1)).isEqualTo(6);
             assertThat(result.next()).isTrue();
             assertThat(result.getInt(1)).isEqualTo(7);
+            assertThat(result.next()).isTrue();
+            assertThat(result.getInt(1)).isEqualTo(8);
+            assertThat(result.next()).isTrue();
+            assertThat(result.getInt(1)).isEqualTo(9);
+            assertThat(result.next()).isTrue();
+            assertThat(result.getInt(1)).isEqualTo(10);
             assertThat(result.next()).isFalse();
 
             result = statement.executeQuery("FETCH ABSOLUTE 6 FROM c1");
             assertThat(result.next()).isTrue();
             assertThat(result.getInt(1)).isEqualTo(6);
             assertThat(result.next()).isFalse();
-            result = statement.executeQuery("FETCH backward FROM c1");
+            result = statement.executeQuery("FETCH backward 2 FROM c1");
             assertThat(result.next()).isTrue();
             assertThat(result.getInt(1)).isEqualTo(5);
+            assertThat(result.next()).isTrue();
+            assertThat(result.getInt(1)).isEqualTo(4);
             assertThat(result.next()).isFalse();
         }
     }
