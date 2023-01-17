@@ -23,7 +23,6 @@ pull_request_rules:
       queue:
         method: rebase
         name: default
-        rebase_fallback: none
 
   - name: backport 5.2
     actions:
