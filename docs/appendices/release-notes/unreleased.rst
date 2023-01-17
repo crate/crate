@@ -77,3 +77,11 @@ Fixes
 
 - Improved error message when :ref:`fetching <sql-fetch>` using ``ABSOLUTE``,
   past the last row returned by the cursor query.
+
+- Fixed an issue that caused :ref:`swap table <alter_cluster_swap_table>` to
+  consume invalid table names provided in a double-quoted string format
+  containing ``.`` such as ``"table.t"`` by mis-interpreting it as
+  ``"table"."t"``, which is a two double-quoted strings joined by a ``.``.
+  This caused metadata corruptions leading to ``StartupExceptions`` and data
+  losses. Corrupted metadata recovery is in place to prevent the exceptions
+  but not all data can be recovered.
