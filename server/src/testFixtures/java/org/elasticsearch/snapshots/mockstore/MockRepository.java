@@ -19,8 +19,23 @@
 
 package org.elasticsearch.snapshots.mockstore;
 
-import com.carrotsearch.randomizedtesting.RandomizedContext;
-import io.crate.analyze.repositories.TypeSettings;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
+import java.nio.file.Path;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.index.CorruptIndexException;
@@ -44,24 +59,12 @@ import org.elasticsearch.repositories.Repository;
 import org.elasticsearch.repositories.blobstore.BlobStoreRepository;
 import org.elasticsearch.repositories.fs.FsRepository;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
-import java.nio.file.Path;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Collectors;
+import com.carrotsearch.randomizedtesting.RandomizedContext;
+
+import io.crate.analyze.repositories.TypeSettings;
 
 public class MockRepository extends FsRepository {
+
     private static final Logger logger = LogManager.getLogger(MockRepository.class);
 
     public static class Plugin extends org.elasticsearch.plugins.Plugin implements RepositoryPlugin {
@@ -72,20 +75,29 @@ public class MockRepository extends FsRepository {
 
 
         @Override
-        public Map<String, Repository.Factory> getRepositories(Environment env, NamedXContentRegistry namedXContentRegistry,
-                                                               ClusterService clusterService, RecoverySettings recoverySettings) {
-            return Map.of("mock", new Repository.Factory() {
+        public Map<String, Repository.Factory> getRepositories(Environment env,
+                                                               NamedXContentRegistry namedXContentRegistry,
+                                                               ClusterService clusterService,
+                                                               RecoverySettings recoverySettings) {
+            Repository.Factory factory = new Repository.Factory() {
 
                 @Override
                 public Repository create(RepositoryMetadata metadata) throws Exception {
-                    return new MockRepository(metadata, env, namedXContentRegistry, clusterService, recoverySettings);
+                    return new MockRepository(
+                        metadata,
+                        env,
+                        namedXContentRegistry,
+                        clusterService,
+                        recoverySettings
+                    );
                 }
 
                 @Override
                 public TypeSettings settings() {
-                    return new TypeSettings(List.of(), optionalSettings());
+                    return new TypeSettings(mandatorySettings(), optionalSettings());
                 }
-            });
+            };
+            return Map.of("mock", factory);
         }
 
         @Override
