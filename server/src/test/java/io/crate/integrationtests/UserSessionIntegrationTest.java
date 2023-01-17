@@ -76,8 +76,8 @@ public class UserSessionIntegrationTest extends BaseUsersIntegrationTest {
 
     private String getNodeByEnterpriseNode(boolean enterpriseEnabled) {
         if (enterpriseEnabled) {
-            return internalCluster().getNodeNames()[0];
+            return cluster().getNodeNames()[0];
         }
-        return internalCluster().getNodeNames()[1];
+        return cluster().getNodeNames()[1];
     }
 }

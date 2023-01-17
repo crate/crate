@@ -84,7 +84,7 @@ public class RetentionLeaseIT extends IntegTestCase  {
     @Test
     public void testRetentionLeasesSyncedOnAdd() throws Exception {
         final int numberOfReplicas = 2 - scaledRandomIntBetween(0, 2);
-        internalCluster().ensureAtLeastNumDataNodes(1 + numberOfReplicas);
+        cluster().ensureAtLeastNumDataNodes(1 + numberOfReplicas);
         execute(
             "create table doc.tbl (x int) clustered into 1 shards " +
             "with (number_of_replicas = ?, \"soft_deletes.enabled\" = true)",
@@ -93,7 +93,7 @@ public class RetentionLeaseIT extends IntegTestCase  {
         ensureGreen("tbl");
         final String primaryShardNodeId = clusterService().state().routingTable().index("tbl").shard(0).primaryShard().currentNodeId();
         final String primaryShardNodeName = clusterService().state().nodes().get(primaryShardNodeId).getName();
-        final IndexShard primary = internalCluster()
+        final IndexShard primary = cluster()
             .getInstance(IndicesService.class, primaryShardNodeName)
             .getShardOrNull(new ShardId(resolveIndex("tbl"), 0));
         // we will add multiple retention leases and expect to see them synced to all replicas
@@ -119,7 +119,7 @@ public class RetentionLeaseIT extends IntegTestCase  {
             for (final ShardRouting replicaShard : clusterService().state().routingTable().index("tbl").shard(0).replicaShards()) {
                 final String replicaShardNodeId = replicaShard.currentNodeId();
                 final String replicaShardNodeName = clusterService().state().nodes().get(replicaShardNodeId).getName();
-                final IndexShard replica = internalCluster()
+                final IndexShard replica = cluster()
                     .getInstance(IndicesService.class, replicaShardNodeName)
                     .getShardOrNull(new ShardId(resolveIndex("tbl"), 0));
                 final Map<String, RetentionLease> retentionLeasesOnReplica =
@@ -136,7 +136,7 @@ public class RetentionLeaseIT extends IntegTestCase  {
     @Test
     public void testRetentionLeaseSyncedOnRemove() throws Exception {
         final int numberOfReplicas = 2 - scaledRandomIntBetween(0, 2);
-        internalCluster().ensureAtLeastNumDataNodes(1 + numberOfReplicas);
+        cluster().ensureAtLeastNumDataNodes(1 + numberOfReplicas);
 
         execute("create table doc.tbl (x int) clustered into 1 shards with (number_of_replicas = ?)",
                 new Object[]{numberOfReplicas});
@@ -144,7 +144,7 @@ public class RetentionLeaseIT extends IntegTestCase  {
         ensureGreen("tbl");
         final String primaryShardNodeId = clusterService().state().routingTable().index("tbl").shard(0).primaryShard().currentNodeId();
         final String primaryShardNodeName = clusterService().state().nodes().get(primaryShardNodeId).getName();
-        final IndexShard primary = internalCluster()
+        final IndexShard primary = cluster()
             .getInstance(IndicesService.class, primaryShardNodeName)
             .getShardOrNull(new ShardId(resolveIndex("tbl"), 0));
         final int length = randomIntBetween(1, 8);
@@ -180,7 +180,7 @@ public class RetentionLeaseIT extends IntegTestCase  {
             for (final ShardRouting replicaShard : clusterService().state().routingTable().index("tbl").shard(0).replicaShards()) {
                 final String replicaShardNodeId = replicaShard.currentNodeId();
                 final String replicaShardNodeName = clusterService().state().nodes().get(replicaShardNodeId).getName();
-                final IndexShard replica = internalCluster()
+                final IndexShard replica = cluster()
                     .getInstance(IndicesService.class, replicaShardNodeName)
                     .getShardOrNull(new ShardId(resolveIndex("tbl"), 0));
                 final Map<String, RetentionLease> retentionLeasesOnReplica =
@@ -197,7 +197,7 @@ public class RetentionLeaseIT extends IntegTestCase  {
     @Test
     public void testRetentionLeasesSyncOnExpiration() throws Exception {
         final int numberOfReplicas = 2 - scaledRandomIntBetween(0, 2);
-        internalCluster().ensureAtLeastNumDataNodes(1 + numberOfReplicas);
+        cluster().ensureAtLeastNumDataNodes(1 + numberOfReplicas);
         final long estimatedTimeIntervalMillis = ThreadPool.ESTIMATED_TIME_INTERVAL_SETTING.get(Settings.EMPTY).millis();
         final TimeValue retentionLeaseTimeToLive =
                 TimeValue.timeValueMillis(randomLongBetween(estimatedTimeIntervalMillis, 2 * estimatedTimeIntervalMillis));
@@ -215,7 +215,7 @@ public class RetentionLeaseIT extends IntegTestCase  {
         ensureGreen("tbl");
         final String primaryShardNodeId = clusterService().state().routingTable().index("tbl").shard(0).primaryShard().currentNodeId();
         final String primaryShardNodeName = clusterService().state().nodes().get(primaryShardNodeId).getName();
-        final IndexShard primary = internalCluster()
+        final IndexShard primary = cluster()
                 .getInstance(IndicesService.class, primaryShardNodeName)
                 .getShardOrNull(new ShardId(resolveIndex("tbl"), 0));
         // we will add multiple retention leases, wait for some to expire, and assert a consistent view between the primary and the replicas
@@ -237,7 +237,7 @@ public class RetentionLeaseIT extends IntegTestCase  {
             for (final ShardRouting replicaShard : clusterService().state().routingTable().index("tbl").shard(0).replicaShards()) {
                 final String replicaShardNodeId = replicaShard.currentNodeId();
                 final String replicaShardNodeName = clusterService().state().nodes().get(replicaShardNodeId).getName();
-                final IndexShard replica = internalCluster()
+                final IndexShard replica = cluster()
                         .getInstance(IndicesService.class, replicaShardNodeName)
                         .getShardOrNull(new ShardId(resolveIndex("tbl"), 0));
                 assertThat(RetentionLeaseUtils.toMapExcludingPeerRecoveryRetentionLeases(replica.getRetentionLeases()).values(),
@@ -258,7 +258,7 @@ public class RetentionLeaseIT extends IntegTestCase  {
                 for (final ShardRouting replicaShard : clusterService().state().routingTable().index("tbl").shard(0).replicaShards()) {
                     final String replicaShardNodeId = replicaShard.currentNodeId();
                     final String replicaShardNodeName = clusterService().state().nodes().get(replicaShardNodeId).getName();
-                    final IndexShard replica = internalCluster()
+                    final IndexShard replica = cluster()
                         .getInstance(IndicesService.class, replicaShardNodeName)
                         .getShardOrNull(new ShardId(resolveIndex("tbl"), 0));
 
@@ -272,7 +272,7 @@ public class RetentionLeaseIT extends IntegTestCase  {
     @Test
     public void testBackgroundRetentionLeaseSync() throws Exception {
         final int numberOfReplicas = 2 - scaledRandomIntBetween(0, 2);
-        internalCluster().ensureAtLeastNumDataNodes(1 + numberOfReplicas);
+        cluster().ensureAtLeastNumDataNodes(1 + numberOfReplicas);
         execute(
             "create table doc.tbl (x int) clustered into 1 shards " +
             "with (" +
@@ -286,7 +286,7 @@ public class RetentionLeaseIT extends IntegTestCase  {
         ensureGreen("tbl");
         final String primaryShardNodeId = clusterService().state().routingTable().index("tbl").shard(0).primaryShard().currentNodeId();
         final String primaryShardNodeName = clusterService().state().nodes().get(primaryShardNodeId).getName();
-        final IndexShard primary = internalCluster()
+        final IndexShard primary = cluster()
                 .getInstance(IndicesService.class, primaryShardNodeName)
                 .getShardOrNull(new ShardId(resolveIndex("tbl"), 0));
         // we will add multiple retention leases and expect to see them synced to all replicas
@@ -318,7 +318,7 @@ public class RetentionLeaseIT extends IntegTestCase  {
                 for (final ShardRouting replicaShard : clusterService().state().routingTable().index("tbl").shard(0).replicaShards()) {
                     final String replicaShardNodeId = replicaShard.currentNodeId();
                     final String replicaShardNodeName = clusterService().state().nodes().get(replicaShardNodeId).getName();
-                    final IndexShard replica = internalCluster()
+                    final IndexShard replica = cluster()
                             .getInstance(IndicesService.class, replicaShardNodeName)
                             .getShardOrNull(new ShardId(resolveIndex("tbl"), 0));
                     assertThat(replica.getRetentionLeases(), equalTo(primary.getRetentionLeases()));
@@ -330,7 +330,7 @@ public class RetentionLeaseIT extends IntegTestCase  {
     @Test
     public void testRetentionLeasesSyncOnRecovery() throws Exception {
         final int numberOfReplicas = 2 - scaledRandomIntBetween(0, 2);
-        internalCluster().ensureAtLeastNumDataNodes(1 + numberOfReplicas);
+        cluster().ensureAtLeastNumDataNodes(1 + numberOfReplicas);
         /*
          * We effectively disable the background sync to ensure that the retention leases are not synced in the background so that the only
          * source of retention leases on the replicas would be from recovery.
@@ -351,7 +351,7 @@ public class RetentionLeaseIT extends IntegTestCase  {
 
         final String primaryShardNodeId = clusterService().state().routingTable().index("tbl").shard(0).primaryShard().currentNodeId();
         final String primaryShardNodeName = clusterService().state().nodes().get(primaryShardNodeId).getName();
-        final IndexShard primary = internalCluster()
+        final IndexShard primary = cluster()
             .getInstance(IndicesService.class, primaryShardNodeName)
             .getShardOrNull(new ShardId(resolveIndex("tbl"), 0));
         final int length = randomIntBetween(1, 8);
@@ -371,13 +371,13 @@ public class RetentionLeaseIT extends IntegTestCase  {
         execute("set global persistent \"indices.recovery.retry_delay_network\" = '100ms'");
         final Semaphore recoveriesToDisrupt = new Semaphore(scaledRandomIntBetween(0, 4));
         final MockTransportService primaryTransportService
-            = (MockTransportService) internalCluster().getInstance(TransportService.class, primaryShardNodeName);
+            = (MockTransportService) cluster().getInstance(TransportService.class, primaryShardNodeName);
         primaryTransportService.addSendBehavior((connection, requestId, action, request, options) -> {
             if (action.equals(PeerRecoveryTargetService.Actions.FINALIZE) && recoveriesToDisrupt.tryAcquire()) {
                 if (randomBoolean()) {
                     // return a ConnectTransportException to the START_RECOVERY action
                     final TransportService replicaTransportService
-                        = internalCluster().getInstance(TransportService.class, connection.getNode().getName());
+                        = cluster().getInstance(TransportService.class, connection.getNode().getName());
                     final DiscoveryNode primaryNode = primaryTransportService.getLocalNode();
                     replicaTransportService.disconnectFromNode(primaryNode);
                     AbstractSimpleTransportTestCase.connectToNode(replicaTransportService, primaryNode);
@@ -397,7 +397,7 @@ public class RetentionLeaseIT extends IntegTestCase  {
         for (final ShardRouting replicaShard : clusterService().state().routingTable().index("tbl").shard(0).replicaShards()) {
             final String replicaShardNodeId = replicaShard.currentNodeId();
             final String replicaShardNodeName = clusterService().state().nodes().get(replicaShardNodeId).getName();
-            final IndexShard replica = internalCluster()
+            final IndexShard replica = cluster()
                 .getInstance(IndicesService.class, replicaShardNodeName)
                 .getShardOrNull(new ShardId(resolveIndex("tbl"), 0));
             final Map<String, RetentionLease> retentionLeasesOnReplica
@@ -482,7 +482,7 @@ public class RetentionLeaseIT extends IntegTestCase  {
 
         final String primaryShardNodeId = clusterService().state().routingTable().index("tbl").shard(0).primaryShard().currentNodeId();
         final String primaryShardNodeName = clusterService().state().nodes().get(primaryShardNodeId).getName();
-        final IndexShard primary = internalCluster()
+        final IndexShard primary = cluster()
             .getInstance(IndicesService.class, primaryShardNodeName)
             .getShardOrNull(new ShardId(resolveIndex("tbl"), 0));
 
@@ -585,7 +585,7 @@ public class RetentionLeaseIT extends IntegTestCase  {
             final long initialRetainingSequenceNumber,
             final BiConsumer<IndexShard, ActionListener<ReplicationResponse>> primaryConsumer,
             final Consumer<IndexShard> afterSync) throws InterruptedException {
-        final int numDataNodes = internalCluster().numDataNodes();
+        final int numDataNodes = cluster().numDataNodes();
         execute(
             "create table doc.tbl (x int) clustered into 1 shards " +
             "with (" +
@@ -604,7 +604,7 @@ public class RetentionLeaseIT extends IntegTestCase  {
 
         final String primaryShardNodeId = clusterService().state().routingTable().index("tbl").shard(0).primaryShard().currentNodeId();
         final String primaryShardNodeName = clusterService().state().nodes().get(primaryShardNodeId).getName();
-        final IndexShard primary = internalCluster()
+        final IndexShard primary = cluster()
                 .getInstance(IndicesService.class, primaryShardNodeName)
                 .getShardOrNull(new ShardId(resolveIndex("tbl"), 0));
 

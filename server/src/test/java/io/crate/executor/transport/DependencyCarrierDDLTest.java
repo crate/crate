@@ -55,7 +55,7 @@ public class DependencyCarrierDDLTest extends IntegTestCase {
 
     @Before
     public void transportSetup() {
-        executor = internalCluster().getInstance(DependencyCarrier.class);
+        executor = cluster().getInstance(DependencyCarrier.class);
     }
 
     @After

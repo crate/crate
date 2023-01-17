@@ -162,9 +162,9 @@ public class RecoveryTests extends BlobIntegrationTestBase {
         final int numberOfRelocations = 1;
         final int numberOfWriters = 2;
 
-        final String node1 = internalCluster().startNode();
+        final String node1 = cluster().startNode();
 
-        BlobAdminClient blobAdminClient = internalCluster().getInstance(BlobAdminClient.class, node1);
+        BlobAdminClient blobAdminClient = cluster().getInstance(BlobAdminClient.class, node1);
 
         logger.trace("--> creating test index ...");
         Settings indexSettings = Settings.builder()
@@ -178,7 +178,7 @@ public class RecoveryTests extends BlobIntegrationTestBase {
         blobAdminClient.createBlobTable("test", indexSettings).get();
 
         logger.trace("--> starting [node2] ...");
-        final String node2 = internalCluster().startNode();
+        final String node2 = cluster().startNode();
         ensureGreen();
 
         final AtomicLong idGenerator = new AtomicLong();
@@ -198,7 +198,7 @@ public class RecoveryTests extends BlobIntegrationTestBase {
                         logger.trace("**** starting blob upload thread {}", indexerId);
                         while (!stop.get()) {
                             long id = idGenerator.incrementAndGet();
-                            String digest = uploadFile(internalCluster().client(node1), genFile(id));
+                            String digest = uploadFile(cluster().client(node1), genFile(id));
                             uploadedDigests.add(digest);
                             indexCounter.incrementAndGet();
                         }
@@ -232,7 +232,7 @@ public class RecoveryTests extends BlobIntegrationTestBase {
             logger.trace("--> START relocate the shard from {} to {}", fromNode, toNode);
 
             execute("alter table blob.test reroute move shard 0 from ? to ?", new Object[] { fromNode, toNode });
-            ClusterHealthResponse clusterHealthResponse = FutureUtils.get(internalCluster().client(node1).admin().cluster()
+            ClusterHealthResponse clusterHealthResponse = FutureUtils.get(cluster().client(node1).admin().cluster()
                 .health(
                     new ClusterHealthRequest()
                         .waitForEvents(Priority.LANGUID)
@@ -241,7 +241,7 @@ public class RecoveryTests extends BlobIntegrationTestBase {
                 ));
 
             assertThat(clusterHealthResponse.isTimedOut(), equalTo(false));
-            clusterHealthResponse = FutureUtils.get(internalCluster().client(node2).admin().cluster()
+            clusterHealthResponse = FutureUtils.get(cluster().client(node2).admin().cluster()
                 .health(
                     new ClusterHealthRequest()
                         .waitForEvents(Priority.LANGUID)
@@ -262,7 +262,7 @@ public class RecoveryTests extends BlobIntegrationTestBase {
         logger.trace("--> expected {} got {}", indexCounter.get(), uploadedDigests.size());
         assertEquals(indexCounter.get(), uploadedDigests.size());
 
-        BlobIndicesService blobIndicesService = internalCluster().getInstance(BlobIndicesService.class, node2);
+        BlobIndicesService blobIndicesService = cluster().getInstance(BlobIndicesService.class, node2);
         for (String digest : uploadedDigests) {
             BlobShard blobShard = blobIndicesService.localBlobShard(BlobIndex.fullIndexName("test"), digest);
             long length = blobShard.blobContainer().getFile(digest).length();

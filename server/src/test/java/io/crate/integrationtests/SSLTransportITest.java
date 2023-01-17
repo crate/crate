@@ -80,7 +80,7 @@ public class SSLTransportITest extends IntegTestCase {
         SslContextProvider sslContextProvider = new SslContextProvider(sslSettings);
         SSLContext sslContext = sslContextProvider.jdkSSLContext();
 
-        for (var transport : internalCluster().getInstances(Transport.class)) {
+        for (var transport : cluster().getInstances(Transport.class)) {
             var publishAddress = transport.boundAddress().publishAddress();
             var address = publishAddress.address();
             ProbeResult probeResult = ConnectionTest.probeSSL(sslContext, address);

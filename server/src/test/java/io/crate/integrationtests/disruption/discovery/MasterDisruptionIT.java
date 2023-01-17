@@ -72,10 +72,10 @@ public class MasterDisruptionIT extends AbstractDisruptionTestCase {
     public void testMasterNodeGCs() throws Exception {
         List<String> nodes = startCluster(3);
 
-        String oldMasterNode = internalCluster().getMasterName();
+        String oldMasterNode = cluster().getMasterName();
         // a very long GC, but it's OK as we remove the disruption when it has had an effect
         SingleNodeDisruption masterNodeDisruption = new IntermittentLongGCDisruption(random(), oldMasterNode, 100, 200, 30000, 60000);
-        internalCluster().setDisruptionScheme(masterNodeDisruption);
+        cluster().setDisruptionScheme(masterNodeDisruption);
         masterNodeDisruption.startDisrupting();
 
         Set<String> oldNonMasterNodesSet = new HashSet<>(nodes);
@@ -97,7 +97,7 @@ public class MasterDisruptionIT extends AbstractDisruptionTestCase {
         ensureStableCluster(3, waitTime, false, oldNonMasterNodes.get(0));
 
         // make sure all nodes agree on master
-        String newMaster = internalCluster().getMasterName();
+        String newMaster = cluster().getMasterName();
         assertThat(newMaster, not(equalTo(oldMasterNode)));
         assertMaster(newMaster, nodes);
     }
@@ -122,7 +122,7 @@ public class MasterDisruptionIT extends AbstractDisruptionTestCase {
                 "(number_of_replicas = " + numberOfReplicas + " )");
         ensureGreen();
 
-        String isolatedNode = internalCluster().getMasterName();
+        String isolatedNode = cluster().getMasterName();
         TwoPartitions partitions = isolateNode(isolatedNode);
         NetworkDisruption networkDisruption = addRandomDisruptionType(partitions);
         networkDisruption.startDisrupting();
@@ -181,7 +181,7 @@ public class MasterDisruptionIT extends AbstractDisruptionTestCase {
      */
     @Test
     public void testVerifyApiBlocksDuringPartition() throws Exception {
-        internalCluster().startNodes(3);
+        cluster().startNodes(3);
 
         logger.info("creating table t with 1 shards and 2 replicas");
         execute("create table t (id int primary key, x string) clustered into 1 shards with " +
@@ -192,7 +192,7 @@ public class MasterDisruptionIT extends AbstractDisruptionTestCase {
         // (waiting for green here, because indexing / search in a yellow index is fine as long as no other nodes go down)
         ensureGreen();
 
-        TwoPartitions partitions = TwoPartitions.random(random(), internalCluster().getNodeNames());
+        TwoPartitions partitions = TwoPartitions.random(random(), cluster().getNodeNames());
         NetworkDisruption networkDisruption = addRandomDisruptionType(partitions);
 
         assertEquals(1, partitions.getMinoritySide().size());
@@ -257,7 +257,7 @@ public class MasterDisruptionIT extends AbstractDisruptionTestCase {
 
     @Test
     public void testMappingNewFieldsTimeoutDoesntAffectCheckpoints() throws Exception {
-        TestCluster internalCluster = internalCluster();
+        TestCluster internalCluster = cluster();
         internalCluster.startNodes(3,
                                    Settings.builder()
                                        .put(SchemaUpdateClient.INDICES_MAPPING_DYNAMIC_TIMEOUT_SETTING.getKey(),
@@ -268,7 +268,7 @@ public class MasterDisruptionIT extends AbstractDisruptionTestCase {
 
         logger.info("creating table t with 1 shards and 1 replica");
         execute("create table t (id int primary key, x object(dynamic)) clustered into 1 shards with " +
-                "(number_of_replicas = 1, \"routing.allocation.exclude._name\" = '" + internalCluster().getMasterName()
+                "(number_of_replicas = 1, \"routing.allocation.exclude._name\" = '" + cluster().getMasterName()
                 + "', \"write.wait_for_active_shards\" = 1)");
         ensureGreen();
         execute("insert into t values (?, ?)", new Object[]{1, Map.of("first field", "first value")});

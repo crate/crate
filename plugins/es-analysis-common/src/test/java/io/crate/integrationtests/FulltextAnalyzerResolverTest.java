@@ -30,6 +30,7 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.endsWith;
 
 import java.io.IOException;
@@ -63,7 +64,7 @@ public class FulltextAnalyzerResolverTest extends IntegTestCase {
 
     @Before
     public void AnalyzerServiceSetup() {
-        fulltextAnalyzerResolver = internalCluster().getInstance(FulltextAnalyzerResolver.class);
+        fulltextAnalyzerResolver = cluster().getInstance(FulltextAnalyzerResolver.class);
     }
 
     @Override

@@ -54,7 +54,7 @@ public class CloseIndexIT extends IntegTestCase {
      */
     @Test
     public void testRelocatedClosedIndexIssue() throws Exception {
-        final List<String> dataNodes = internalCluster().startDataOnlyNodes(2);
+        final List<String> dataNodes = cluster().startDataOnlyNodes(2);
         // allocate shard to first data node
         execute("create table doc.test(x int) clustered into 1 shards with (number_of_replicas=0, \"routing.allocation.include._name\" = ?)", new Object[] {dataNodes.get(0)});
         var numDocs = randomIntBetween(0, 50);
@@ -69,7 +69,7 @@ public class CloseIndexIT extends IntegTestCase {
         execute("alter table doc.test close");
         execute("alter table doc.test set (\"routing.allocation.include._name\" = ?)", new Object[] { dataNodes.get(1) });
         ensureGreen("test");
-        internalCluster().fullRestart();
+        cluster().fullRestart();
         ensureGreen("test");
         assertIndexIsClosed("test");
     }

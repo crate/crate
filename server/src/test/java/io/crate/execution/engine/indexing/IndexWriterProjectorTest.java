@@ -38,6 +38,7 @@ import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Test;
 
@@ -54,7 +55,6 @@ import io.crate.execution.engine.pipeline.TableSettingsResolver;
 import io.crate.execution.jobs.NodeLimits;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
-import org.elasticsearch.test.IntegTestCase;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Functions;
@@ -83,7 +83,7 @@ public class IndexWriterProjectorTest extends IntegTestCase {
         RelationName bulkImportIdent = new RelationName(sqlExecutor.getCurrentSchema(), "bulk_import");
         ClusterState state = clusterService().state();
         Settings tableSettings = TableSettingsResolver.get(state.getMetadata(), bulkImportIdent, false);
-        ThreadPool threadPool = internalCluster().getInstance(ThreadPool.class);
+        ThreadPool threadPool = cluster().getInstance(ThreadPool.class);
         IndexWriterProjector writerProjector = new IndexWriterProjector(
             clusterService(),
             new NodeLimits(new ClusterSettings(Settings.EMPTY, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS)),
@@ -92,11 +92,11 @@ public class IndexWriterProjectorTest extends IntegTestCase {
             threadPool.scheduler(),
             threadPool.executor(ThreadPool.Names.SEARCH),
             CoordinatorTxnCtx.systemTransactionContext(),
-            new NodeContext(internalCluster().getInstance(Functions.class), null),
+            new NodeContext(cluster().getInstance(Functions.class), null),
             Settings.EMPTY,
             IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.get(tableSettings),
             NumberOfReplicas.fromSettings(tableSettings, state.getNodes().getSize()),
-            internalCluster().client(),
+            cluster().client(),
             IndexNameResolver.forTable(bulkImportIdent),
             new SimpleReference(new ReferenceIdent(bulkImportIdent, DocSysColumns.RAW),
                           RowGranularity.DOC,

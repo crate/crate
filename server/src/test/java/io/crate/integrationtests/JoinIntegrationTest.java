@@ -899,7 +899,7 @@ public class JoinIntegrationTest extends IntegTestCase {
 
         long memoryLimit = 6 * 1024 * 1024;
         execute("set global \"indices.breaker.query.limit\" = '" + memoryLimit + "b'");
-        CircuitBreaker queryCircuitBreaker = internalCluster().getInstance(CircuitBreakerService.class).getBreaker(HierarchyCircuitBreakerService.QUERY);
+        CircuitBreaker queryCircuitBreaker = cluster().getInstance(CircuitBreakerService.class).getBreaker(HierarchyCircuitBreakerService.QUERY);
         randomiseAndConfigureJoinBlockSize("t1", 5L, queryCircuitBreaker);
         randomiseAndConfigureJoinBlockSize("t2", 5L, queryCircuitBreaker);
 
@@ -912,7 +912,7 @@ public class JoinIntegrationTest extends IntegTestCase {
     }
 
     private void resetTableStats() {
-        for (TableStats tableStats : internalCluster().getInstances(TableStats.class)) {
+        for (TableStats tableStats : cluster().getInstances(TableStats.class)) {
             tableStats.updateTableStats(new HashMap<>());
         }
     }
@@ -926,7 +926,7 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("insert into t2 (x) values (1), (3), (4), (4), (5), (6)");
         execute("refresh table t1, t2");
 
-        Iterable<TableStats> tableStatsOnAllNodes = internalCluster().getInstances(TableStats.class);
+        Iterable<TableStats> tableStatsOnAllNodes = cluster().getInstances(TableStats.class);
         for (TableStats tableStats : tableStatsOnAllNodes) {
             Map<RelationName, Stats> newStats = new HashMap<>();
             newStats.put(new RelationName(sqlExecutor.getCurrentSchema(), "t1"), new Stats(4L, 16L, Map.of()));
@@ -955,7 +955,7 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("insert into t3 (y) values (0), (1), (2), (3), (4), (5), (6), (7), (8), (9)");
         execute("refresh table t1, t2, t3");
 
-        Iterable<TableStats> tableStatsOnAllNodes = internalCluster().getInstances(TableStats.class);
+        Iterable<TableStats> tableStatsOnAllNodes = cluster().getInstances(TableStats.class);
         for (TableStats tableStats : tableStatsOnAllNodes) {
             Map<RelationName, Stats> newStats = new HashMap<>();
             newStats.put(new RelationName(sqlExecutor.getCurrentSchema(), "t1"), new Stats(2L, 8L, Map.of()));
@@ -979,7 +979,7 @@ public class JoinIntegrationTest extends IntegTestCase {
 
         long memoryLimit = 6 * 1024 * 1024;
         execute("set global \"indices.breaker.query.limit\" = '" + memoryLimit + "b'");
-        CircuitBreaker queryCircuitBreaker = internalCluster().getInstance(CircuitBreakerService.class).getBreaker(HierarchyCircuitBreakerService.QUERY);
+        CircuitBreaker queryCircuitBreaker = cluster().getInstance(CircuitBreakerService.class).getBreaker(HierarchyCircuitBreakerService.QUERY);
         randomiseAndConfigureJoinBlockSize("t1", 10L, queryCircuitBreaker);
 
         execute("select x from t1 left_rel JOIN (select x x2, count(x) from t1 group by x2) right_rel " +
@@ -1006,7 +1006,7 @@ public class JoinIntegrationTest extends IntegTestCase {
         long tableSizeInBytes = new Random().nextInt(3 * (int) availableMemory);
         long rowSizeBytes = tableSizeInBytes / rowsCount;
 
-        for (TableStats tableStats : internalCluster().getInstances(TableStats.class)) {
+        for (TableStats tableStats : cluster().getInstances(TableStats.class)) {
             Map<RelationName, Stats> newStats = new HashMap<>();
             newStats.put(new RelationName(sqlExecutor.getCurrentSchema(), relationName), new Stats(rowsCount, tableSizeInBytes, Map.of()));
             tableStats.updateTableStats(newStats);

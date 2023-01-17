@@ -56,7 +56,7 @@ public class ClusterHealthIT extends IntegTestCase {
         execute("create table test (id int) with (number_of_replicas = 0)");
         ensureGreen(); // master should think it's green now.
 
-        for (final String node : internalCluster().getNodeNames()) {
+        for (final String node : cluster().getNodeNames()) {
             // a very high time out, which should never fire due to the local flag
             logger.info("--> getting cluster health on [{}]", node);
             final ClusterHealthResponse health = FutureUtils.get(client(node).admin().cluster().health(
@@ -224,7 +224,7 @@ public class ClusterHealthIT extends IntegTestCase {
             );
 
         final AtomicBoolean keepSubmittingTasks = new AtomicBoolean(true);
-        final ClusterService clusterService = internalCluster().getInstance(ClusterService.class, internalCluster().getMasterName());
+        final ClusterService clusterService = cluster().getInstance(ClusterService.class, cluster().getMasterName());
         clusterService.submitStateUpdateTask("looping task", new ClusterStateUpdateTask(Priority.LOW) {
                 @Override
                 public ClusterState execute(ClusterState currentState) {
@@ -259,7 +259,7 @@ public class ClusterHealthIT extends IntegTestCase {
     @Test
     @UseRandomizedSchema(random = false)
     public void testHealthOnMasterFailover() throws Exception {
-        final String node = internalCluster().startDataOnlyNode();
+        final String node = cluster().startDataOnlyNode();
         boolean withIndex = randomBoolean();
         String indexName = null;
         if (withIndex) {
@@ -280,7 +280,7 @@ public class ClusterHealthIT extends IntegTestCase {
         for (int i = 0; i < iterations; ++i) {
             responseFutures.add(client(node).admin().cluster().health(new ClusterHealthRequest().waitForEvents(Priority.LANGUID)
                 .waitForGreenStatus().masterNodeTimeout(TimeValue.timeValueMinutes(1))));
-            internalCluster().restartNode(internalCluster().getMasterName(), TestCluster.EMPTY_CALLBACK);
+            cluster().restartNode(cluster().getMasterName(), TestCluster.EMPTY_CALLBACK);
         }
         if (withIndex) {
             assertAcked(client().admin().indices().updateSettings(

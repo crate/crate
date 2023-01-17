@@ -167,7 +167,7 @@ public class DiskDisruptionIT extends AbstractDisruptionTestCase {
         }
 
         logger.info("full cluster restart");
-        internalCluster().fullRestart(new TestCluster.RestartCallback() {
+        cluster().fullRestart(new TestCluster.RestartCallback() {
 
             @Override
             public void onAllNodesStopped() {

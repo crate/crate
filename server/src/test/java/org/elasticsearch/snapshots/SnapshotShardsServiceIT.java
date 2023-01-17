@@ -62,8 +62,8 @@ public class SnapshotShardsServiceIT extends AbstractSnapshotIntegTestCase {
 
     @Test
     public void testRetryPostingSnapshotStatusMessages() throws Exception {
-        String masterNode = internalCluster().startMasterOnlyNode();
-        String dataNode = internalCluster().startDataOnlyNode();
+        String masterNode = cluster().startMasterOnlyNode();
+        String dataNode = cluster().startDataOnlyNode();
 
         logger.info("-->  creating repository");
         var putRepositoryRequest = new PutRepositoryRequest("repo")
@@ -98,14 +98,14 @@ public class SnapshotShardsServiceIT extends AbstractSnapshotIntegTestCase {
         logger.info("--> start disrupting cluster");
         final NetworkDisruption networkDisruption = new NetworkDisruption(new NetworkDisruption.TwoPartitions(masterNode, dataNode),
                                                                           NetworkDisruption.NetworkDelay.random(random()));
-        internalCluster().setDisruptionScheme(networkDisruption);
+        cluster().setDisruptionScheme(networkDisruption);
         networkDisruption.startDisrupting();
 
         logger.info("--> unblocking repository");
         unblockNode("repo", blockedNode);
 
         // Retrieve snapshot status from the data node.
-        SnapshotShardsService snapshotShardsService = internalCluster().getInstance(SnapshotShardsService.class, blockedNode);
+        SnapshotShardsService snapshotShardsService = cluster().getInstance(SnapshotShardsService.class, blockedNode);
         assertBusy(() -> {
             final Snapshot snapshot = new Snapshot("repo", snapshotId);
             List<IndexShardSnapshotStatus.Stage> stages = snapshotShardsService.currentSnapshotShards(snapshot)
@@ -116,7 +116,7 @@ public class SnapshotShardsServiceIT extends AbstractSnapshotIntegTestCase {
 
         logger.info("--> stop disrupting cluster");
         networkDisruption.stopDisrupting();
-        internalCluster().clearDisruptionScheme(true);
+        cluster().clearDisruptionScheme(true);
 
         assertBusy(() -> {
             execute("select state, array_length(failures,0) from sys.snapshots where name='snapshot'");

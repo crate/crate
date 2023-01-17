@@ -707,12 +707,12 @@ public class DDLIntegrationTest extends IntegTestCase {
     public void testDropTable() throws Exception {
         execute("create table test (col1 integer primary key, col2 string)");
 
-        assertThat(internalCluster().clusterService().state().metadata().hasIndex("test"), is(true));
+        assertThat(cluster().clusterService().state().metadata().hasIndex("test"), is(true));
 
         execute("drop table test");
         assertThat(response.rowCount(), is(1L));
 
-        assertThat(internalCluster().clusterService().state().metadata().hasIndex("test"), is(false));
+        assertThat(cluster().clusterService().state().metadata().hasIndex("test"), is(false));
     }
 
     @Test
@@ -733,10 +733,10 @@ public class DDLIntegrationTest extends IntegTestCase {
     public void testDropTableIfExists() {
         execute("create table test (col1 integer primary key, col2 string)");
 
-        assertThat(internalCluster().clusterService().state().metadata().hasIndex("test"), is(true));
+        assertThat(cluster().clusterService().state().metadata().hasIndex("test"), is(true));
         execute("drop table if exists test");
         assertThat(response.rowCount(), is(1L));
-        assertThat(internalCluster().clusterService().state().metadata().hasIndex("test"), is(false));
+        assertThat(cluster().clusterService().state().metadata().hasIndex("test"), is(false));
     }
 
     @Test

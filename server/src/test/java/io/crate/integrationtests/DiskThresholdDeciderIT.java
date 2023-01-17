@@ -21,7 +21,30 @@
 
 package io.crate.integrationtests;
 
-import io.crate.testing.UseRandomizedSchema;
+import static io.crate.testing.SQLTransportExecutor.REQUEST_TIMEOUT;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.elasticsearch.common.util.concurrent.ConcurrentCollections.newConcurrentMap;
+import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertAcked;
+
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.nio.file.DirectoryStream;
+import java.nio.file.FileStore;
+import java.nio.file.FileSystem;
+import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
+import java.nio.file.NotDirectoryException;
+import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
+
 import org.apache.lucene.tests.mockfile.FilterFileStore;
 import org.apache.lucene.tests.mockfile.FilterFileSystemProvider;
 import org.apache.lucene.tests.mockfile.FilterPath;
@@ -58,29 +81,7 @@ import org.elasticsearch.test.InternalSettingsPlugin;
 import org.junit.After;
 import org.junit.Before;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.nio.file.DirectoryStream;
-import java.nio.file.FileStore;
-import java.nio.file.FileSystem;
-import java.nio.file.Files;
-import java.nio.file.NoSuchFileException;
-import java.nio.file.NotDirectoryException;
-import java.nio.file.Path;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ExecutionException;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
-
-import static io.crate.testing.SQLTransportExecutor.REQUEST_TIMEOUT;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.elasticsearch.common.util.concurrent.ConcurrentCollections.newConcurrentMap;
-import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertAcked;
+import io.crate.testing.UseRandomizedSchema;
 
 @IntegTestCase.ClusterScope(scope = IntegTestCase.Scope.TEST, numDataNodes = 0)
 @UseRandomizedSchema(random = false)
@@ -135,16 +136,16 @@ public class DiskThresholdDeciderIT extends IntegTestCase {
     }
 
     public void testHighWatermarkNotExceeded() throws InterruptedException, ExecutionException {
-        internalCluster().startMasterOnlyNode();
-        internalCluster().startDataOnlyNode();
-        final String dataNodeName = internalCluster().startDataOnlyNode();
+        cluster().startMasterOnlyNode();
+        cluster().startDataOnlyNode();
+        final String dataNodeName = cluster().startDataOnlyNode();
 
         final InternalClusterInfoService clusterInfoService
-                = (InternalClusterInfoService) internalCluster().getMasterNodeInstance(ClusterInfoService.class);
-        internalCluster().getMasterNodeInstance(ClusterService.class).addListener(event -> clusterInfoService.refresh());
+                = (InternalClusterInfoService) cluster().getMasterNodeInstance(ClusterInfoService.class);
+        cluster().getMasterNodeInstance(ClusterService.class).addListener(event -> clusterInfoService.refresh());
 
-        final String dataNode0Id = internalCluster().getInstance(NodeEnvironment.class, dataNodeName).nodeId();
-        final Path dataNode0Path = internalCluster().getInstance(Environment.class, dataNodeName).dataFiles()[0];
+        final String dataNode0Id = cluster().getInstance(NodeEnvironment.class, dataNodeName).nodeId();
+        final Path dataNode0Path = cluster().getInstance(Environment.class, dataNodeName).dataFiles()[0];
 
         String indexName = "test";
         execute("create table " + indexName + "(x text) " +
@@ -210,10 +211,10 @@ public class DiskThresholdDeciderIT extends IntegTestCase {
     }
 
     private void refreshDiskUsage() throws ExecutionException, InterruptedException {
-        ((InternalClusterInfoService) internalCluster().getMasterNodeInstance(ClusterInfoService.class)).refresh();
+        ((InternalClusterInfoService) cluster().getMasterNodeInstance(ClusterInfoService.class)).refresh();
         // if the nodes were all under the low watermark already (but unbalanced) then a change in the disk usage doesn't trigger a reroute
         // even though it's now possible to achieve better balance, so we have to do an explicit reroute. TODO fix this?
-        final ClusterInfo clusterInfo = internalCluster().getMasterNodeInstance(ClusterInfoService.class).getClusterInfo();
+        final ClusterInfo clusterInfo = cluster().getMasterNodeInstance(ClusterInfoService.class).getClusterInfo();
         if (StreamSupport.stream(clusterInfo.getNodeMostAvailableDiskUsages().values().spliterator(), false)
             .allMatch(cur -> cur.value.getFreeBytes() > WATERMARK_BYTES)) {
 

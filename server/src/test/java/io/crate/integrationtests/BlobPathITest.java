@@ -74,10 +74,10 @@ public class BlobPathITest extends BlobIntegrationTestBase {
     private void launchNodeAndInitClient(Settings settings) throws Exception {
         // using numDataNodes = 1 to launch the node doesn't work:
         // if globalBlobPath is created within nodeSetting it is sometimes not available for the tests
-        internalCluster().startNode(settings);
-        blobAdminClient = internalCluster().getInstance(BlobAdminClient.class);
+        cluster().startNode(settings);
+        blobAdminClient = cluster().getInstance(BlobAdminClient.class);
 
-        HttpServerTransport httpServerTransport = internalCluster().getInstance(HttpServerTransport.class);
+        HttpServerTransport httpServerTransport = cluster().getInstance(HttpServerTransport.class);
         InetSocketAddress address = httpServerTransport.boundAddress().publishAddress().address();
         client = new BlobHttpClient(address);
     }
@@ -94,7 +94,7 @@ public class BlobPathITest extends BlobIntegrationTestBase {
 
         client.put("b1", "abcdefg");
         assertThat(gatherDigests(data1).size(), is(1));
-        internalCluster().stopRandomDataNode();
+        cluster().stopRandomDataNode();
         assertThat(gatherDigests(data1).size(), is(1));
     }
 

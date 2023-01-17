@@ -33,16 +33,15 @@ import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesService;
-import org.junit.Test;
-
 import org.elasticsearch.test.IntegTestCase;
+import org.junit.Test;
 
 public class RetentionLeaseBackgroundSyncIT extends IntegTestCase {
 
     @Test
     public void testBackgroundRetentionLeaseSync() throws Exception {
         final int numberOfReplicas = 2 - scaledRandomIntBetween(0, 2);
-        internalCluster().ensureAtLeastNumDataNodes(1 + numberOfReplicas);
+        cluster().ensureAtLeastNumDataNodes(1 + numberOfReplicas);
         execute(
             "create table doc.tbl (x int) clustered into 1 shards " +
             "with (" +
@@ -54,7 +53,7 @@ public class RetentionLeaseBackgroundSyncIT extends IntegTestCase {
         ensureGreen("tbl");
         final String primaryShardNodeId = clusterService().state().routingTable().index("tbl").shard(0).primaryShard().currentNodeId();
         final String primaryShardNodeName = clusterService().state().nodes().get(primaryShardNodeId).getName();
-        final IndexShard primary = internalCluster()
+        final IndexShard primary = cluster()
                 .getInstance(IndicesService.class, primaryShardNodeName)
                 .getShardOrNull(new ShardId(resolveIndex("tbl"), 0));
         // we will add multiple retention leases and expect to see them synced to all replicas
@@ -86,7 +85,7 @@ public class RetentionLeaseBackgroundSyncIT extends IntegTestCase {
                 for (final ShardRouting replicaShard : clusterService().state().routingTable().index("tbl").shard(0).replicaShards()) {
                     final String replicaShardNodeId = replicaShard.currentNodeId();
                     final String replicaShardNodeName = clusterService().state().nodes().get(replicaShardNodeId).getName();
-                    final IndexShard replica = internalCluster()
+                    final IndexShard replica = cluster()
                         .getInstance(IndicesService.class, replicaShardNodeName)
                         .getShardOrNull(new ShardId(resolveIndex("tbl"), 0));
                     assertThat(replica.getRetentionLeases(), equalTo(primary.getRetentionLeases()));

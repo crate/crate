@@ -38,8 +38,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.action.sql.Sessions;
 import io.crate.action.sql.Session;
+import io.crate.action.sql.Sessions;
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.testing.SQLResponse;
 import io.crate.user.User;
@@ -79,12 +79,12 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
     @Before
     public void setUp() throws Exception {
         super.setUp();
-        Iterable<UserDefinedFunctionService> udfServices = internalCluster().getInstances(UserDefinedFunctionService.class);
+        Iterable<UserDefinedFunctionService> udfServices = cluster().getInstances(UserDefinedFunctionService.class);
         for (UserDefinedFunctionService udfService : udfServices) {
             udfService.registerLanguage(dummyLang);
         }
-        userLookup = internalCluster().getInstance(UserLookup.class);
-        sqlOperations = internalCluster().getInstance(Sessions.class, null);
+        userLookup = cluster().getInstance(UserLookup.class);
+        sqlOperations = cluster().getInstance(Sessions.class, null);
         executeAsSuperuser("create user " + TEST_USERNAME);
     }
 

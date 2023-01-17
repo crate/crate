@@ -73,7 +73,7 @@ public class CreateTableIntegrationTest extends IntegTestCase {
         client().admin().indices().putMapping(new PutMappingRequest("tbl").source(builder))
             .get(5, TimeUnit.SECONDS);
 
-        assertThat(internalCluster().getInstance(ClusterService.class).state().metadata().hasIndex("tbl"))
+        assertThat(cluster().getInstance(ClusterService.class).state().metadata().hasIndex("tbl"))
             .isTrue();
         assertThrowsMatches(
             () -> execute("select * from doc.tbl"),
@@ -84,7 +84,7 @@ public class CreateTableIntegrationTest extends IntegTestCase {
         execute("drop table doc.tbl");
         execute("select count(*) from information_schema.tables where table_name = 'tbl'");
         assertThat(response.rows()[0][0]).isEqualTo(0L);
-        assertThat(internalCluster().getInstance(ClusterService.class).state().metadata().hasIndex("tbl"))
+        assertThat(cluster().getInstance(ClusterService.class).state().metadata().hasIndex("tbl"))
             .isFalse();
     }
 

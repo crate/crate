@@ -77,7 +77,7 @@ public class SQLTypeMappingTest extends IntegTestCase {
     public void testInsertAtNodeWithoutShard() throws Exception {
         setUpSimple(1);
 
-        try (var session = createSessionOnNode(internalCluster().getNodeNames()[0])) {
+        try (var session = createSessionOnNode(cluster().getNodeNames()[0])) {
             execute(
                 "insert into t1 (id, string_field, timestamp_field, byte_field) values (?, ?, ?, ?)",
                 new Object[]{1, "With", "1970-01-01T00:00:00", 127},
@@ -85,7 +85,7 @@ public class SQLTypeMappingTest extends IntegTestCase {
             );
         }
 
-        try (var session = createSessionOnNode(internalCluster().getNodeNames()[1])) {
+        try (var session = createSessionOnNode(cluster().getNodeNames()[1])) {
             execute(
                 "insert into t1 (id, string_field, timestamp_field, byte_field) values (?, ?, ?, ?)",
                 new Object[] {2, "Without", "1970-01-01T01:00:00", Byte.MIN_VALUE},

@@ -57,7 +57,7 @@ public class ClusterInfoServiceIT extends IntegTestCase {
     @Test
     @UseRandomizedSchema(random = false)
     public void testClusterInfoServiceCollectsInformation() throws Exception {
-        internalCluster().startNodes(2);
+        cluster().startNodes(2);
         assertAcked(client().admin().indices().create(
             new CreateIndexRequest("test", Settings.builder()
                 .put(Store.INDEX_STORE_STATS_REFRESH_INTERVAL_SETTING.getKey(), 0)
@@ -70,7 +70,7 @@ public class ClusterInfoServiceIT extends IntegTestCase {
             execute("alter table test close");
         }
         ensureGreen("test");
-        TestCluster internalTestCluster = internalCluster();
+        TestCluster internalTestCluster = cluster();
         // Get the cluster info service on the master node
         final InternalClusterInfoService infoService = (InternalClusterInfoService) internalTestCluster
             .getInstance(ClusterInfoService.class, internalTestCluster.getMasterName());

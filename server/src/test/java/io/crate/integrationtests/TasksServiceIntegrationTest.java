@@ -78,7 +78,7 @@ public class TasksServiceIntegrationTest extends IntegTestCase {
 
         assertBusy(() -> {
             //noinspection resource
-            for (TasksService tasksService : internalCluster().getInstances(TasksService.class)) {
+            for (TasksService tasksService : cluster().getInstances(TasksService.class)) {
                 Map<UUID, RootTask> tasksByJobId;
                 try {
                     //noinspection unchecked

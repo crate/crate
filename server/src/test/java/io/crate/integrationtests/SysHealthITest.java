@@ -37,7 +37,7 @@ public class SysHealthITest extends IntegTestCase {
     public void testTablesHealth() throws IOException {
         execute("create table doc.t1 (id int) with(number_of_replicas=0)");
         // stopping 1 node so t1 is red (missing primaries)
-        internalCluster().stopRandomDataNode();
+        cluster().stopRandomDataNode();
         // yellow cause missing replicas
         execute("create table doc.t2 (id int) with(number_of_replicas=1, \"write.wait_for_active_shards\"=1)");
         // green, all fine

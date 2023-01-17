@@ -46,7 +46,7 @@ public class DanglingIndicesIntegrationTest extends IntegTestCase {
 
         createIndex(dangling1, dangling2, dangling3);
 
-        ClusterService clusterService = internalCluster().getInstance(ClusterService.class);
+        ClusterService clusterService = cluster().getInstance(ClusterService.class);
         assertThat(clusterService.state().metadata().hasIndex(dangling1), is(true));
         assertThat(clusterService.state().metadata().hasIndex(dangling2), is(true));
         assertThat(clusterService.state().metadata().hasIndex(dangling3), is(true));

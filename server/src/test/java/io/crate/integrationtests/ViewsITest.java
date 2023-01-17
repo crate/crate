@@ -67,7 +67,7 @@ public class ViewsITest extends IntegTestCase {
         execute("insert into t1 (x) values (1)");
         execute("refresh table t1");
         execute("create view v1 as select * from t1 where x > ?", $(0));
-        for (ClusterService clusterService : internalCluster().getInstances(ClusterService.class)) {
+        for (ClusterService clusterService : cluster().getInstances(ClusterService.class)) {
             ViewsMetadata views = clusterService.state().metadata().custom(ViewsMetadata.TYPE);
             assertThat(views, Matchers.notNullValue());
             assertThat(views.contains(RelationName.fromIndexName(sqlExecutor.getCurrentSchema() + ".v1")), is(true));
@@ -78,7 +78,7 @@ public class ViewsITest extends IntegTestCase {
             is("SELECT *\nFROM \"t1\"\nWHERE \"x\" > 0\n\n")
         );
         execute("drop view v1");
-        for (ClusterService clusterService : internalCluster().getInstances(ClusterService.class)) {
+        for (ClusterService clusterService : cluster().getInstances(ClusterService.class)) {
             ViewsMetadata views = clusterService.state().metadata().custom(ViewsMetadata.TYPE);
             assertThat(views.contains(RelationName.fromIndexName(sqlExecutor.getCurrentSchema() + ".v1")), is(false));
         }
@@ -100,7 +100,7 @@ public class ViewsITest extends IntegTestCase {
         assertThat(printedTable(execute("select * from v2").rows()), is("1\n"));
         execute("create or replace view v2 as select 2 from sys.cluster");
         assertThat(printedTable(execute("select * from v2").rows()), is("2\n"));
-        for (ClusterService clusterService : internalCluster().getInstances(ClusterService.class)) {
+        for (ClusterService clusterService : cluster().getInstances(ClusterService.class)) {
             ViewsMetadata views = clusterService.state().metadata().custom(ViewsMetadata.TYPE);
             assertThat(views, Matchers.notNullValue());
             assertThat(views.contains(RelationName.fromIndexName(sqlExecutor.getCurrentSchema() + ".v2")), is(true));

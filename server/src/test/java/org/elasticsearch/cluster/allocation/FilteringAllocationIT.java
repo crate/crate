@@ -66,7 +66,7 @@ public class FilteringAllocationIT extends IntegTestCase {
 
     public void testDecommissionNodeNoReplicas() throws Exception {
         logger.info("--> starting 2 nodes");
-        List<String> nodesIds = internalCluster().startNodes(2);
+        List<String> nodesIds = cluster().startNodes(2);
         final String node_0 = nodesIds.get(0);
         final String node_1 = nodesIds.get(1);
         assertThat(cluster().size(), equalTo(2));
@@ -118,7 +118,7 @@ public class FilteringAllocationIT extends IntegTestCase {
     @Test
     public void testAutoExpandReplicasToFilteredNodes() throws Exception {
         logger.info("--> starting 2 nodes");
-        List<String> nodesIds = internalCluster().startNodes(2);
+        List<String> nodesIds = cluster().startNodes(2);
         final String node_0 = nodesIds.get(0);
         final String node_1 = nodesIds.get(1);
         assertThat(cluster().size(), equalTo(2));
@@ -156,7 +156,7 @@ public class FilteringAllocationIT extends IntegTestCase {
     @Test
     public void testDisablingAllocationFiltering() throws Exception {
         logger.info("--> starting 2 nodes");
-        List<String> nodesIds = internalCluster().startNodes(2);
+        List<String> nodesIds = cluster().startNodes(2);
         final String node_0 = nodesIds.get(0);
         final String node_1 = nodesIds.get(1);
         assertThat(cluster().size(), equalTo(2));
@@ -241,7 +241,7 @@ public class FilteringAllocationIT extends IntegTestCase {
     }
 
     public void testTransientSettingsStillApplied() throws Exception {
-        List<String> nodes = internalCluster().startNodes(6);
+        List<String> nodes = cluster().startNodes(6);
         Set<String> excludeNodes = new HashSet<>(nodes.subList(0, 3));
         Set<String> includeNodes = new HashSet<>(nodes.subList(3, 6));
         String excludeNodeIdsAsString = Strings.collectionToCommaDelimitedString(excludeNodes);

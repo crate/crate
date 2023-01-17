@@ -21,18 +21,18 @@
 
 package io.crate.integrationtests;
 
-import org.apache.lucene.tests.util.TestUtil;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.env.Environment;
-import org.elasticsearch.test.IntegTestCase;
-import org.junit.Test;
+import static io.crate.testing.TestingHelpers.printedTable;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-import static io.crate.testing.TestingHelpers.printedTable;
-import static org.assertj.core.api.Assertions.assertThat;
+import org.apache.lucene.tests.util.TestUtil;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.env.Environment;
+import org.elasticsearch.test.IntegTestCase;
+import org.junit.Test;
 
 @IntegTestCase.ClusterScope(numDataNodes = 0, numClientNodes = 0)
 public class IndexUpgraderTest extends IntegTestCase {
@@ -46,7 +46,7 @@ public class IndexUpgraderTest extends IntegTestCase {
             TestUtil.unzip(stream, indexDir);
         }
         Settings.Builder builder = Settings.builder().put(Environment.PATH_DATA_SETTING.getKey(), indexDir.toAbsolutePath());
-        internalCluster().startNode(builder.build());
+        cluster().startNode(builder.build());
         ensureGreen();
     }
 

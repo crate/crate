@@ -44,15 +44,15 @@ public class RemoveSettingsCommandIT extends IntegTestCase {
 
     @Test
     public void testRemoveSettingsAbortedByUser() throws Exception {
-        internalCluster().setBootstrapMasterNodeIndex(0);
-        String node = internalCluster().startNode();
+        cluster().setBootstrapMasterNodeIndex(0);
+        String node = cluster().startNode();
         execute("set global persistent cluster.routing.allocation.disk.threshold_enabled = false");
-        Settings dataPathSettings = internalCluster().dataPathSettings(node);
+        Settings dataPathSettings = cluster().dataPathSettings(node);
         ensureStableCluster(1);
-        internalCluster().stopRandomDataNode();
+        cluster().stopRandomDataNode();
 
         Environment environment = TestEnvironment.newEnvironment(
-            Settings.builder().put(internalCluster().getDefaultSettings()).put(dataPathSettings).build());
+            Settings.builder().put(cluster().getDefaultSettings()).put(dataPathSettings).build());
         expectThrows(() -> removeSettings(environment, true,
                                           new String[]{ DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_DISK_THRESHOLD_ENABLED_SETTING.getKey() }),
                      ElasticsearchNodeCommand.ABORTED_BY_USER_MSG);
@@ -60,17 +60,17 @@ public class RemoveSettingsCommandIT extends IntegTestCase {
 
     @Test
     public void testRemoveSettingsSuccessful() throws Exception {
-        internalCluster().setBootstrapMasterNodeIndex(0);
-        String node = internalCluster().startNode();
+        cluster().setBootstrapMasterNodeIndex(0);
+        String node = cluster().startNode();
         execute("set global persistent cluster.routing.allocation.disk.threshold_enabled = false");
         assertThat(client().admin().cluster().state(new ClusterStateRequest()).get().getState().metadata().persistentSettings().keySet(),
                    contains(DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_DISK_THRESHOLD_ENABLED_SETTING.getKey()));
-        Settings dataPathSettings = internalCluster().dataPathSettings(node);
+        Settings dataPathSettings = cluster().dataPathSettings(node);
         ensureStableCluster(1);
-        internalCluster().stopRandomDataNode();
+        cluster().stopRandomDataNode();
 
         Environment environment = TestEnvironment.newEnvironment(
-            Settings.builder().put(internalCluster().getDefaultSettings()).put(dataPathSettings).build());
+            Settings.builder().put(cluster().getDefaultSettings()).put(dataPathSettings).build());
         MockTerminal terminal = removeSettings(environment, false,
                                                randomBoolean() ?
                                                    new String[]{ DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_DISK_THRESHOLD_ENABLED_SETTING.getKey() } :
@@ -81,24 +81,24 @@ public class RemoveSettingsCommandIT extends IntegTestCase {
         assertThat(terminal.getOutput(), containsString(
             DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_DISK_THRESHOLD_ENABLED_SETTING.getKey() + ": "  + false));
 
-        internalCluster().startNode(dataPathSettings);
+        cluster().startNode(dataPathSettings);
         assertThat(client().admin().cluster().state(new ClusterStateRequest()).get().getState().metadata().persistentSettings().keySet(),
                    not(contains(DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_DISK_THRESHOLD_ENABLED_SETTING.getKey())));
     }
 
     @Test
     public void testSettingDoesNotMatch() throws Exception {
-        internalCluster().setBootstrapMasterNodeIndex(0);
-        String node = internalCluster().startNode();
+        cluster().setBootstrapMasterNodeIndex(0);
+        String node = cluster().startNode();
         execute("set global persistent cluster.routing.allocation.disk.threshold_enabled = false");
         assertThat(client().admin().cluster().state(new ClusterStateRequest()).get().getState().metadata().persistentSettings().keySet(),
                    contains(DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_DISK_THRESHOLD_ENABLED_SETTING.getKey()));
-        Settings dataPathSettings = internalCluster().dataPathSettings(node);
+        Settings dataPathSettings = cluster().dataPathSettings(node);
         ensureStableCluster(1);
-        internalCluster().stopRandomDataNode();
+        cluster().stopRandomDataNode();
 
         Environment environment = TestEnvironment.newEnvironment(
-            Settings.builder().put(internalCluster().getDefaultSettings()).put(dataPathSettings).build());
+            Settings.builder().put(cluster().getDefaultSettings()).put(dataPathSettings).build());
         UserException ex = expectThrows(UserException.class, () -> removeSettings(environment, false,
                                                                                   new String[]{ "cluster.routing.allocation.disk.bla.*" }));
         assertThat(ex.getMessage(), containsString("No persistent cluster settings matching [cluster.routing.allocation.disk.bla.*] were " +

@@ -43,7 +43,7 @@ public class ShardCollectorProviderTest extends IntegTestCase {
         final Field shards = ShardCollectSource.class.getDeclaredField("shards");
         shards.setAccessible(true);
         final List<ShardCollectSource> shardCollectSources = StreamSupport.stream(
-            internalCluster().getInstances(ShardCollectSource.class).spliterator(), false)
+            cluster().getInstances(ShardCollectSource.class).spliterator(), false)
             .collect(Collectors.toList());
         for (ShardCollectSource shardCollectSource : shardCollectSources) {
             try {

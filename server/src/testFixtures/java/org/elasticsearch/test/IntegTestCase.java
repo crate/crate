@@ -468,9 +468,7 @@ public abstract class IntegTestCase extends ESTestCase {
 
     private void afterInternal(boolean afterClass) throws Exception {
         Scope currentClusterScope = getCurrentClusterScope();
-        if (isInternalCluster()) {
-            internalCluster().clearDisruptionScheme();
-        }
+        cluster().clearDisruptionScheme();
         try {
             TestCluster cluster = cluster();
             if (cluster != null) {
@@ -508,19 +506,8 @@ public abstract class IntegTestCase extends ESTestCase {
         return currentCluster;
     }
 
-    public static boolean isInternalCluster() {
-        return true;
-    }
-
-    public static TestCluster internalCluster() {
-        if (!isInternalCluster()) {
-            throw new UnsupportedOperationException("current test cluster is immutable");
-        }
-        return currentCluster;
-    }
-
     public ClusterService clusterService() {
-        return internalCluster().clusterService();
+        return cluster().clusterService();
     }
 
     public static Client client() {
@@ -529,13 +516,13 @@ public abstract class IntegTestCase extends ESTestCase {
 
     public static Client client(@Nullable String node) {
         if (node != null) {
-            return internalCluster().client(node);
+            return cluster().client(node);
         }
         return cluster().client();
     }
 
     public static Client dataNodeClient() {
-        return internalCluster().dataNodeClient();
+        return cluster().dataNodeClient();
     }
 
     public static Iterable<Client> clients() {
@@ -570,7 +557,7 @@ public abstract class IntegTestCase extends ESTestCase {
 
 
     public void setDisruptionScheme(ServiceDisruptionScheme scheme) {
-        internalCluster().setDisruptionScheme(scheme);
+        cluster().setDisruptionScheme(scheme);
     }
 
     /**
@@ -651,7 +638,7 @@ public abstract class IntegTestCase extends ESTestCase {
      */
     public void allowNodes(String index, int n) {
         assert index != null;
-        internalCluster().ensureAtLeastNumDataNodes(n);
+        cluster().ensureAtLeastNumDataNodes(n);
         Settings.Builder builder = Settings.builder();
         if (n > 0) {
             getExcludeSettings(n, builder);
@@ -664,7 +651,7 @@ public abstract class IntegTestCase extends ESTestCase {
     }
 
     private Settings.Builder getExcludeSettings(int num, Settings.Builder builder) {
-        String exclude = String.join(",", internalCluster().allDataNodesButN(num));
+        String exclude = String.join(",", cluster().allDataNodesButN(num));
         builder.put("index.routing.allocation.exclude._name", exclude);
         return builder;
     }
@@ -928,7 +915,7 @@ public abstract class IntegTestCase extends ESTestCase {
     }
 
     protected void ensureStableCluster(int nodeCount, @Nullable String viaNode) {
-        ensureStableCluster(internalCluster(), nodeCount, viaNode, logger);
+        ensureStableCluster(cluster(), nodeCount, viaNode, logger);
     }
 
     public static void ensureStableCluster(TestCluster cluster,
@@ -939,7 +926,7 @@ public abstract class IntegTestCase extends ESTestCase {
     }
 
     protected void ensureStableCluster(int nodeCount, TimeValue timeValue, boolean local, @Nullable String viaNode) {
-        ensureStableCluster(internalCluster(), nodeCount, timeValue, local, viaNode, logger);
+        ensureStableCluster(cluster(), nodeCount, timeValue, local, viaNode, logger);
     }
 
     public static void ensureStableCluster(TestCluster cluster,
@@ -976,7 +963,7 @@ public abstract class IntegTestCase extends ESTestCase {
      * See {@link NetworkDisruption#ensureFullyConnectedCluster(TestCluster)}
      */
     protected void ensureFullyConnectedCluster() {
-        ensureFullyConnectedCluster(internalCluster());
+        ensureFullyConnectedCluster(cluster());
     }
 
     protected static void ensureFullyConnectedCluster(TestCluster cluster) {
@@ -1397,9 +1384,9 @@ public abstract class IntegTestCase extends ESTestCase {
 
     @Override
     protected NamedXContentRegistry xContentRegistry() {
-        if (isInternalCluster() && cluster().size() > 0) {
+        if (cluster().size() > 0) {
             // If it's internal cluster - using existing registry in case plugin registered custom data
-            return internalCluster().getInstance(NamedXContentRegistry.class);
+            return cluster().getInstance(NamedXContentRegistry.class);
         } else {
             // If it's external cluster - fall back to the standard set
             return new NamedXContentRegistry(ClusterModule.getNamedXWriteables());
@@ -1462,7 +1449,7 @@ public abstract class IntegTestCase extends ESTestCase {
 
                 @Override
                 public String pgUrl() {
-                    PostgresNetty postgresNetty = internalCluster().getInstance(PostgresNetty.class);
+                    PostgresNetty postgresNetty = cluster().getInstance(PostgresNetty.class);
                     BoundTransportAddress boundTransportAddress = postgresNetty.boundAddress();
                     if (boundTransportAddress != null) {
                         InetSocketAddress address = boundTransportAddress.publishAddress().address();
@@ -1474,7 +1461,7 @@ public abstract class IntegTestCase extends ESTestCase {
 
                 @Override
                 public Sessions sqlOperations() {
-                    return internalCluster().getInstance(Sessions.class);
+                    return cluster().getInstance(Sessions.class);
                 }
             }));
     }
@@ -1493,7 +1480,7 @@ public abstract class IntegTestCase extends ESTestCase {
 
                 @Override
                 public String pgUrl() {
-                    PostgresNetty postgresNetty = internalCluster().getInstance(PostgresNetty.class, nodeName);
+                    PostgresNetty postgresNetty = cluster().getInstance(PostgresNetty.class, nodeName);
                     BoundTransportAddress boundTransportAddress = postgresNetty.boundAddress();
                     if (boundTransportAddress != null) {
                         InetSocketAddress address = boundTransportAddress.publishAddress().address();
@@ -1505,7 +1492,7 @@ public abstract class IntegTestCase extends ESTestCase {
 
                 @Override
                 public Sessions sqlOperations() {
-                    return internalCluster().getInstance(Sessions.class);
+                    return cluster().getInstance(Sessions.class);
                 }
             });
     }
@@ -1544,7 +1531,7 @@ public abstract class IntegTestCase extends ESTestCase {
         activeOperationsSb.setAccessible(true);
         try {
             assertBusy(() -> {
-                for (TasksService tasksService : internalCluster().getInstances(TasksService.class)) {
+                for (TasksService tasksService : cluster().getInstances(TasksService.class)) {
                     try {
                         //noinspection unchecked
                         Map<UUID, RootTask> contexts = (Map<UUID, RootTask>) activeTasks.get(tasksService);
@@ -1553,7 +1540,7 @@ public abstract class IntegTestCase extends ESTestCase {
                         throw new RuntimeException(e);
                     }
                 }
-                for (TransportShardUpsertAction action : internalCluster().getInstances(TransportShardUpsertAction.class)) {
+                for (TransportShardUpsertAction action : cluster().getInstances(TransportShardUpsertAction.class)) {
                     try {
                         @SuppressWarnings("unchecked")
                         ConcurrentHashMap<TaskId, KillableCallable<?>> operations = (ConcurrentHashMap<TaskId, KillableCallable<?>>) activeOperationsSb.get(action);
@@ -1562,7 +1549,7 @@ public abstract class IntegTestCase extends ESTestCase {
                         throw new RuntimeException(e);
                     }
                 }
-                for (TransportShardDeleteAction action : internalCluster().getInstances(TransportShardDeleteAction.class)) {
+                for (TransportShardDeleteAction action : cluster().getInstances(TransportShardDeleteAction.class)) {
                     try {
                         @SuppressWarnings("unchecked")
                         ConcurrentHashMap<TaskId, KillableCallable<?>> operations = (ConcurrentHashMap<TaskId, KillableCallable<?>>) activeOperationsSb.get(action);
@@ -1575,16 +1562,16 @@ public abstract class IntegTestCase extends ESTestCase {
         } catch (AssertionError e) {
             StringBuilder errorMessageBuilder = new StringBuilder();
             errorMessageBuilder.append("Open jobs:\n");
-            for (var jobsLogService : internalCluster().getInstances(JobsLogService.class)) {
+            for (var jobsLogService : cluster().getInstances(JobsLogService.class)) {
                 JobsLogs jobsLogs = jobsLogService.get();
                 for (var jobContent : jobsLogs.activeJobs()) {
                     errorMessageBuilder.append(jobContent.toString()).append("\n");
                 }
             }
             errorMessageBuilder.append("Active tasks:\n");
-            String[] nodeNames = internalCluster().getNodeNames();
+            String[] nodeNames = cluster().getNodeNames();
             for (String nodeName : nodeNames) {
-                TasksService tasksService = internalCluster().getInstance(TasksService.class, nodeName);
+                TasksService tasksService = cluster().getInstance(TasksService.class, nodeName);
                 try {
                     //noinspection unchecked
                     Map<UUID, RootTask> contexts = (Map<UUID, RootTask>) activeTasks.get(tasksService);
@@ -1608,7 +1595,7 @@ public abstract class IntegTestCase extends ESTestCase {
     @After
     public void ensureNoInflightRequestsLeft() throws Exception {
         assertBusy(() -> {
-            for (var nodeLimits : internalCluster().getInstances(NodeLimits.class)) {
+            for (var nodeLimits : cluster().getInstances(NodeLimits.class)) {
                 assertThat(nodeLimits.totalNumInflight()).isEqualTo(0L);
             }
         });
@@ -1617,7 +1604,7 @@ public abstract class IntegTestCase extends ESTestCase {
     @After
     public void ensureNoSessionsLeft() throws Exception {
         assertBusy(() -> {
-            for (var sessions : internalCluster().getInstances(Sessions.class)) {
+            for (var sessions : cluster().getInstances(Sessions.class)) {
                 String msg = "Sessions must be closed after test teardown. " +
                     "An exception is one session created by the TableStatsService";
                 assertThat(sessions.getActive())
@@ -1629,19 +1616,19 @@ public abstract class IntegTestCase extends ESTestCase {
 
     @After
     public void ensure_one_node_limit_instance_per_node() {
-        Iterable<NodeLimits> nodeLimitsInstances = internalCluster().getInstances(NodeLimits.class);
+        Iterable<NodeLimits> nodeLimitsInstances = cluster().getInstances(NodeLimits.class);
         int numInstances = 0;
         for (var nodeLimits : nodeLimitsInstances) {
             numInstances++;
         }
         assertThat(numInstances)
                 .as("There must only be as many NodeLimits instances as there are nodes in the cluster")
-                .isEqualTo(internalCluster().numNodes());
+                .isEqualTo(cluster().numNodes());
     }
 
     public void waitUntilShardOperationsFinished() throws Exception {
         assertBusy(() -> {
-            Iterable<IndicesService> indexServices = internalCluster().getInstances(IndicesService.class);
+            Iterable<IndicesService> indexServices = cluster().getInstances(IndicesService.class);
             for (IndicesService indicesService : indexServices) {
                 for (IndexService indexService : indicesService) {
                     for (IndexShard indexShard : indexService) {
@@ -1654,7 +1641,7 @@ public abstract class IntegTestCase extends ESTestCase {
 
     public void waitUntilThreadPoolTasksFinished(final String name) throws Exception {
         assertBusy(() -> {
-            Iterable<ThreadPool> threadPools = internalCluster().getInstances(ThreadPool.class);
+            Iterable<ThreadPool> threadPools = cluster().getInstances(ThreadPool.class);
             for (ThreadPool threadPool : threadPools) {
                 ThreadPoolExecutor executor = (ThreadPoolExecutor) threadPool.executor(name);
                 assertThat(executor.getActiveCount()).isEqualTo(0);
@@ -1672,10 +1659,10 @@ public abstract class IntegTestCase extends ESTestCase {
      * @return          the SQL Response
      */
     public SQLResponse systemExecute(String stmt, @Nullable String schema, String node) {
-        Sessions sqlOperations = internalCluster().getInstance(Sessions.class, node);
+        Sessions sqlOperations = cluster().getInstance(Sessions.class, node);
         UserLookup userLookup;
         try {
-            userLookup = internalCluster().getInstance(UserLookup.class, node);
+            userLookup = cluster().getInstance(UserLookup.class, node);
         } catch (ConfigurationException ignored) {
             // If enterprise is not enabled there is no UserLookup instance bound in guice
             userLookup = () -> List.of(User.CRATE_USER);
@@ -1700,7 +1687,7 @@ public abstract class IntegTestCase extends ESTestCase {
             return response;
         } catch (ElasticsearchTimeoutException e) {
             LOGGER.error("Timeout on SQL statement: {} {}", stmt, e);
-            internalCluster().dumpActiveTasks();
+            cluster().dumpActiveTasks();
             throw e;
         }
     }
@@ -1720,7 +1707,7 @@ public abstract class IntegTestCase extends ESTestCase {
             return response;
         } catch (ElasticsearchTimeoutException e) {
             LOGGER.error("Timeout on SQL statement: {} {}", stmt, e);
-            internalCluster().dumpActiveTasks();
+            cluster().dumpActiveTasks();
             throw e;
         }
     }
@@ -1752,12 +1739,12 @@ public abstract class IntegTestCase extends ESTestCase {
     }
 
     public PlanForNode plan(String stmt) {
-        String[] nodeNames = internalCluster().getNodeNames();
+        String[] nodeNames = cluster().getNodeNames();
         String nodeName = nodeNames[randomIntBetween(1, nodeNames.length) - 1];
 
-        Analyzer analyzer = internalCluster().getInstance(Analyzer.class, nodeName);
-        Planner planner = internalCluster().getInstance(Planner.class, nodeName);
-        NodeContext nodeCtx = internalCluster().getInstance(NodeContext.class, nodeName);
+        Analyzer analyzer = cluster().getInstance(Analyzer.class, nodeName);
+        Planner planner = cluster().getInstance(Planner.class, nodeName);
+        NodeContext nodeCtx = cluster().getInstance(NodeContext.class, nodeName);
 
         CoordinatorSessionSettings sessionSettings = new CoordinatorSessionSettings(
             User.CRATE_USER,
@@ -1789,7 +1776,7 @@ public abstract class IntegTestCase extends ESTestCase {
     }
 
     public TestingRowConsumer execute(PlanForNode planForNode) {
-        DependencyCarrier dependencyCarrier = internalCluster().getInstance(DependencyCarrier.class, planForNode.nodeName);
+        DependencyCarrier dependencyCarrier = cluster().getInstance(DependencyCarrier.class, planForNode.nodeName);
         TestingRowConsumer downstream = new TestingRowConsumer();
         planForNode.plan.execute(
             dependencyCarrier,
@@ -1867,7 +1854,7 @@ public abstract class IntegTestCase extends ESTestCase {
     }
 
     public SQLResponse execute(String stmt, Object[] args, String node, TimeValue timeout) {
-        Sessions sqlOperations = internalCluster().getInstance(Sessions.class, node);
+        Sessions sqlOperations = cluster().getInstance(Sessions.class, node);
         try (Session session = sqlOperations.createSession(sqlExecutor.getCurrentSchema(), User.CRATE_USER)) {
             SQLResponse response = sqlExecutor.exec(stmt, args, session, timeout);
             this.response = response;
@@ -1903,7 +1890,7 @@ public abstract class IntegTestCase extends ESTestCase {
 
     public void waitForMappingUpdateOnAll(final RelationName relationName, final String... fieldNames) throws Exception {
         assertBusy(() -> {
-            Iterable<Schemas> referenceInfosIterable = internalCluster().getInstances(Schemas.class);
+            Iterable<Schemas> referenceInfosIterable = cluster().getInstances(Schemas.class);
             for (Schemas schemas : referenceInfosIterable) {
                 TableInfo tableInfo = schemas.getTableInfo(relationName);
                 assertThat(tableInfo).isNotNull();
@@ -1918,7 +1905,7 @@ public abstract class IntegTestCase extends ESTestCase {
     public void assertFunctionIsCreatedOnAll(String schema, String name, List<DataType<?>> argTypes) throws Exception {
         SearchPath searchPath = SearchPath.pathWithPGCatalogAndDoc();
         assertBusy(() -> {
-            Iterable<Functions> functions = internalCluster().getInstances(Functions.class);
+            Iterable<Functions> functions = cluster().getInstances(Functions.class);
             for (Functions function : functions) {
                 FunctionImplementation func = function.get(
                     schema,
@@ -1933,7 +1920,7 @@ public abstract class IntegTestCase extends ESTestCase {
 
     public void assertFunctionIsDeletedOnAll(String schema, String name, List<Symbol> arguments) throws Exception {
         assertBusy(() -> {
-            Iterable<Functions> functions = internalCluster().getInstances(Functions.class);
+            Iterable<Functions> functions = cluster().getInstances(Functions.class);
             for (Functions function : functions) {
                 try {
                     var func = function.get(schema, name, arguments, SearchPath.createSearchPathFrom(schema));
@@ -2000,7 +1987,7 @@ public abstract class IntegTestCase extends ESTestCase {
      * @return The created session
      */
     protected Session createSessionOnNode(String nodeName) {
-        Sessions sqlOperations = internalCluster().getInstance(Sessions.class, nodeName);
+        Sessions sqlOperations = cluster().getInstance(Sessions.class, nodeName);
         return sqlOperations.createSession(
             sqlExecutor.getCurrentSchema(), User.CRATE_USER);
     }
@@ -2014,7 +2001,7 @@ public abstract class IntegTestCase extends ESTestCase {
      * @return The created session
      */
     protected Session createSession(@Nullable String defaultSchema) {
-        Sessions sqlOperations = internalCluster().getInstance(Sessions.class);
+        Sessions sqlOperations = cluster().getInstance(Sessions.class);
         return sqlOperations.createSession(defaultSchema, User.CRATE_USER);
     }
 
@@ -2131,7 +2118,7 @@ public abstract class IntegTestCase extends ESTestCase {
     }
 
     public static Index resolveIndex(String index) {
-        ClusterService clusterService = internalCluster().getInstance(ClusterService.class);
+        ClusterService clusterService = cluster().getInstance(ClusterService.class);
         IndexMetadata indexMetadata = clusterService.state().metadata().index(index);
         return new Index(index, indexMetadata.getIndexUUID());
     }

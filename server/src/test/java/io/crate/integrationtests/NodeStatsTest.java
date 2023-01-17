@@ -301,7 +301,7 @@ public class NodeStatsTest extends IntegTestCase {
         List data = (List) fs.get("data");
         if (data.size() > 0) {
             // without sigar, no data definition returned
-            int numDataPaths = internalCluster().getInstance(NodeEnvironment.class).nodeDataPaths().length;
+            int numDataPaths = cluster().getInstance(NodeEnvironment.class).nodeDataPaths().length;
             assertThat(data.size(), is(numDataPaths));
             Map<String, Object> someData = (Map<String, Object>) data.get(0);
             assertThat(someData.keySet().size(), is(2));

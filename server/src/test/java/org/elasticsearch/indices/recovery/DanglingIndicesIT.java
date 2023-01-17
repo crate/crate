@@ -55,22 +55,22 @@ public class DanglingIndicesIT extends IntegTestCase {
      */
     public void testDanglingIndicesAreRecoveredWhenSettingIsEnabled() throws Exception {
         final Settings settings = buildSettings(true, true);
-        internalCluster().startNodes(3, settings);
+        cluster().startNodes(3, settings);
 
         execute("create table doc.test(id integer) clustered into 2 shards with(number_of_replicas = 2)");
         ensureGreen("test");
-        assertBusy(() -> internalCluster().getInstances(IndicesService.class).forEach(
+        assertBusy(() -> cluster().getInstances(IndicesService.class).forEach(
             indicesService -> assertTrue(indicesService.allPendingDanglingIndicesWritten())));
 
         boolean refreshIntervalChanged = randomBoolean();
         if (refreshIntervalChanged) {
             execute("alter table doc.test set (refresh_interval = '42s')");
-            assertBusy(() -> internalCluster().getInstances(IndicesService.class).forEach(
+            assertBusy(() -> cluster().getInstances(IndicesService.class).forEach(
                 indicesService -> assertTrue(indicesService.allPendingDanglingIndicesWritten())));
         }
 
         // Restart node, deleting the index in its absence, so that there is a dangling index to recover
-        internalCluster().restartRandomDataNode(new TestCluster.RestartCallback() {
+        cluster().restartRandomDataNode(new TestCluster.RestartCallback() {
 
             @Override
             public Settings onNodeStopped(String nodeName) throws Exception {
@@ -93,16 +93,16 @@ public class DanglingIndicesIT extends IntegTestCase {
      * the cluster when the recovery setting is disabled.
      */
     public void testDanglingIndicesAreNotRecoveredWhenSettingIsDisabled() throws Exception {
-        internalCluster().startNodes(3, buildSettings(false, true));
+        cluster().startNodes(3, buildSettings(false, true));
 
         execute("create table doc.test(id integer) clustered into 2 shards with(number_of_replicas = 2)");
         ensureGreen("test");
 
-        assertBusy(() -> internalCluster().getInstances(IndicesService.class).forEach(
+        assertBusy(() -> cluster().getInstances(IndicesService.class).forEach(
             indicesService -> assertTrue(indicesService.allPendingDanglingIndicesWritten())));
 
         // Restart node, deleting the index in its absence, so that there is a dangling index to recover
-        internalCluster().restartRandomDataNode(new TestCluster.RestartCallback() {
+        cluster().restartRandomDataNode(new TestCluster.RestartCallback() {
 
             @Override
             public Settings onNodeStopped(String nodeName) throws Exception {
