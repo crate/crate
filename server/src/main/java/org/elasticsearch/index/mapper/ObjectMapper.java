@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -288,6 +289,10 @@ public class ObjectMapper extends Mapper implements Cloneable {
         return mappers.get(field);
     }
 
+    public Map<String, Mapper> getMappers() {
+        return Collections.unmodifiableMap(mappers);
+    }
+
     protected void putMapper(Mapper mapper) {
         mappers = mappers.copyAndPut(mapper.simpleName(), mapper);
     }
@@ -296,6 +301,7 @@ public class ObjectMapper extends Mapper implements Cloneable {
     public Iterator<Mapper> iterator() {
         return mappers.values().iterator();
     }
+
 
     public String fullPath() {
         return this.fullPath;

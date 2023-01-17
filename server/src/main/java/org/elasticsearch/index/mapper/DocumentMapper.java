@@ -44,6 +44,7 @@ import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.mapper.MetadataFieldMapper.TypeParser;
 
+import io.crate.exceptions.InvalidArgumentException;
 import io.crate.metadata.doc.DocSysColumns;
 
 
@@ -139,7 +140,12 @@ public class DocumentMapper implements ToXContentFragment {
 
         this.fieldMappers = new DocumentFieldMappers(newFieldMappers);
         Map<String, ObjectMapper> builder = new HashMap<>();
-        for (ObjectMapper objectMapper : newObjectMappers) {
+        for (var objectMapper : newObjectMappers) {
+            for (var objectProperty : objectMapper.getMappers().keySet()) {
+                if (objectProperty.contains("\n")) {
+                    throw new InvalidArgumentException("Invalid object property: " + objectProperty.replace("\n", "\\n"));
+                }
+            }
             ObjectMapper previous = builder.put(objectMapper.fullPath(), objectMapper);
             if (previous != null) {
                 throw new IllegalStateException("duplicate key " + objectMapper.fullPath() + " encountered");

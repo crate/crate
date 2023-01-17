@@ -1711,4 +1711,20 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
                 "   )"
             );
     }
+
+    /*
+     * https://github.com/crate/crate/issues/13486
+     */
+    @Test
+    public void test_invalid_object_property() {
+        execute("CREATE TABLE new_lines (obj OBJECT); ");
+        assertThrowsMatches(
+            () -> execute("INSERT INTO new_lines (obj) VALUES ('{\"a\\nb\":1}');"),
+            isSQLError(is("Invalid object property: a\\nb"),
+                       INTERNAL_ERROR,
+                       BAD_REQUEST,
+                       4000
+            )
+        );
+    }
 }
