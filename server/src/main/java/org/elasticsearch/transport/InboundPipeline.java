@@ -88,7 +88,7 @@ public class InboundPipeline implements Releasable {
     }
 
     public void doHandleBytes(CloseableChannel channel, ReleasableBytesReference reference) throws IOException {
-        channel.getChannelStats().markAccessed(relativeTimeInMillis.getAsLong());
+        channel.markAccessed(relativeTimeInMillis.getAsLong());
         statsTracker.markBytesRead(reference.length());
         pending.add(reference.retain());
 

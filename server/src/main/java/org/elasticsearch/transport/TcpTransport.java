@@ -635,7 +635,7 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
         boolean addedOnThisCall = acceptedChannels.add(channel);
         assert addedOnThisCall : "Channel should only be added to accepted channel set once";
         // Mark the channel init time
-        channel.getChannelStats().markAccessed(threadPool.relativeTimeInMillis());
+        channel.markAccessed(threadPool.relativeTimeInMillis());
         channel.addCloseListener(ActionListener.wrap(() -> acceptedChannels.remove(channel)));
         logger.trace(() -> new ParameterizedMessage("Tcp transport channel accepted: {}", channel));
     }
@@ -874,7 +874,7 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
                         long relativeMillisTime = threadPool.relativeTimeInMillis();
                         nodeChannels.channels.forEach(ch -> {
                             // Mark the channel init time
-                            ch.getChannelStats().markAccessed(relativeMillisTime);
+                            ch.markAccessed(relativeMillisTime);
                             ch.addCloseListener(ActionListener.wrap(nodeChannels::close));
                         });
                         keepAlive.registerNodeConnection(nodeChannels.channels, connectionProfile);

@@ -87,7 +87,7 @@ public class InboundHandler {
 
     void inboundMessage(CloseableChannel channel, InboundMessage message) throws Exception {
         long startTime = threadPool.relativeTimeInMillis();
-        channel.getChannelStats().markAccessed(startTime);
+        channel.markAccessed(startTime);
         TransportLogger.logInboundMessage(channel, message);
 
         if (message.isPing()) {

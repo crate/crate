@@ -62,7 +62,7 @@ public final class OutboundHandler {
     }
 
     ChannelFuture sendBytes(CloseableChannel channel, byte[] bytes) {
-        channel.getChannelStats().markAccessed(threadPool.relativeTimeInMillis());
+        channel.markAccessed(threadPool.relativeTimeInMillis());
         try {
             ChannelFuture future = channel.writeAndFlush(Unpooled.wrappedBuffer(bytes));
             future.addListener(f -> {
@@ -152,7 +152,7 @@ public final class OutboundHandler {
     }
 
     private ChannelFuture sendMessage(CloseableChannel channel, OutboundMessage networkMessage) throws IOException {
-        channel.getChannelStats().markAccessed(threadPool.relativeTimeInMillis());
+        channel.markAccessed(threadPool.relativeTimeInMillis());
 
         var bytesStreamOutput = new ReleasableBytesStreamOutput(bigArrays);
         try {

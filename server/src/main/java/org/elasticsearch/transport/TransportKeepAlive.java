@@ -185,8 +185,7 @@ final class TransportKeepAlive implements Closeable {
         }
 
         private boolean needsKeepAlivePing(CloseableChannel channel) {
-            ChannelStats stats = channel.getChannelStats();
-            long accessedDelta = stats.lastAccessedTime() - lastPingRelativeMillis;
+            long accessedDelta = channel.lastAccessedTime() - lastPingRelativeMillis;
             return accessedDelta <= 0;
         }
     }
