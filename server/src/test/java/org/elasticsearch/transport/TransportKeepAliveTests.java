@@ -101,8 +101,8 @@ public class TransportKeepAliveTests extends ESTestCase {
 
         var channel1 = fakeChannel();
         var channel2 = fakeChannel();
-        channel1.getChannelStats().markAccessed(threadPool.relativeTimeInMillis());
-        channel2.getChannelStats().markAccessed(threadPool.relativeTimeInMillis());
+        channel1.markAccessed(threadPool.relativeTimeInMillis());
+        channel2.markAccessed(threadPool.relativeTimeInMillis());
         keepAlive.registerNodeConnection(Arrays.asList(channel1, channel2), connectionProfile);
 
         assertEquals(1, threadPool.scheduledTasks.size());
@@ -137,8 +137,8 @@ public class TransportKeepAliveTests extends ESTestCase {
 
         var channel1 = fakeChannel();
         var channel2 = fakeChannel();
-        channel1.getChannelStats().markAccessed(threadPool.relativeTimeInMillis());
-        channel2.getChannelStats().markAccessed(threadPool.relativeTimeInMillis());
+        channel1.markAccessed(threadPool.relativeTimeInMillis());
+        channel2.markAccessed(threadPool.relativeTimeInMillis());
         keepAlive.registerNodeConnection(Collections.singletonList(channel1), connectionProfile1);
         keepAlive.registerNodeConnection(Collections.singletonList(channel2), connectionProfile2);
 
@@ -166,8 +166,8 @@ public class TransportKeepAliveTests extends ESTestCase {
 
         var channel1 = fakeChannel();
         var channel2 = fakeChannel();
-        channel1.getChannelStats().markAccessed(threadPool.relativeTimeInMillis());
-        channel2.getChannelStats().markAccessed(threadPool.relativeTimeInMillis());
+        channel1.markAccessed(threadPool.relativeTimeInMillis());
+        channel2.markAccessed(threadPool.relativeTimeInMillis());
         keepAlive.registerNodeConnection(Collections.singletonList(channel1), connectionProfile);
         keepAlive.registerNodeConnection(Collections.singletonList(channel2), connectionProfile);
 
@@ -183,7 +183,7 @@ public class TransportKeepAliveTests extends ESTestCase {
     @Test
     public void testKeepAliveResponseIfServer() {
         var channel = fakeChannel(true);
-        channel.getChannelStats().markAccessed(threadPool.relativeTimeInMillis());
+        channel.markAccessed(threadPool.relativeTimeInMillis());
 
         keepAlive.receiveKeepAlive(channel);
 
@@ -193,7 +193,7 @@ public class TransportKeepAliveTests extends ESTestCase {
     @Test
     public void testNoKeepAliveResponseIfClient() {
         var channel = fakeChannel();
-        channel.getChannelStats().markAccessed(threadPool.relativeTimeInMillis());
+        channel.markAccessed(threadPool.relativeTimeInMillis());
 
         keepAlive.receiveKeepAlive(channel);
 
@@ -209,15 +209,14 @@ public class TransportKeepAliveTests extends ESTestCase {
 
         var channel1 = fakeChannel();
         var channel2 = fakeChannel();
-        channel1.getChannelStats().markAccessed(threadPool.relativeTimeInMillis());
-        channel2.getChannelStats().markAccessed(threadPool.relativeTimeInMillis());
+        channel1.markAccessed(threadPool.relativeTimeInMillis());
+        channel2.markAccessed(threadPool.relativeTimeInMillis());
         keepAlive.registerNodeConnection(Arrays.asList(channel1, channel2), connectionProfile);
 
         Tuple<TimeValue, Runnable> taskTuple = threadPool.scheduledTasks.poll();
         taskTuple.v2().run();
 
-        ChannelStats stats = channel1.getChannelStats();
-        stats.markAccessed(threadPool.relativeTimeInMillis() + (pingInterval.millis() / 2));
+        channel1.markAccessed(threadPool.relativeTimeInMillis() + (pingInterval.millis() / 2));
 
         taskTuple = threadPool.scheduledTasks.poll();
         taskTuple.v2().run();

@@ -381,7 +381,7 @@ public class PgClient extends AbstractClient {
                         version
                     );
                     long relativeMillisTime = this.transport.getThreadPool().relativeTimeInMillis();
-                    tcpChannel.getChannelStats().markAccessed(relativeMillisTime);
+                    tcpChannel.markAccessed(relativeMillisTime);
                     tcpChannel.addCloseListener(ActionListener.wrap(connection::close));
                     result.complete(connection);
                 },

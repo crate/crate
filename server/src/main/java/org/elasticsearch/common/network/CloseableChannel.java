@@ -32,9 +32,9 @@ import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.PlainActionFuture;
-import org.elasticsearch.transport.ChannelStats;
 
 import io.crate.common.io.IOUtils;
+import io.crate.common.unit.TimeValue;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
@@ -44,11 +44,12 @@ public class CloseableChannel implements Closeable {
     private final boolean isServerChannel;
     private final Channel channel;
     private final CompletableFuture<Void> closeFuture = new CompletableFuture<>();
-    private final ChannelStats stats;
+
+    private volatile long lastAccessedTime;
 
     public CloseableChannel(Channel channel, boolean isServerChannel) {
+        this.lastAccessedTime = TimeValue.nsecToMSec(System.nanoTime());
         this.isServerChannel = isServerChannel;
-        this.stats = new ChannelStats();
         this.channel = channel;
         this.channel.closeFuture().addListener(f -> {
             if (f.isSuccess()) {
@@ -71,8 +72,12 @@ public class CloseableChannel implements Closeable {
         return isServerChannel;
     }
 
-    public ChannelStats getChannelStats() {
-        return stats;
+    public void markAccessed(long relativeMillisTime) {
+        lastAccessedTime = relativeMillisTime;
+    }
+
+    public long lastAccessedTime() {
+        return lastAccessedTime;
     }
 
     /**
@@ -153,5 +158,14 @@ public class CloseableChannel implements Closeable {
                 }
             }
         }
+    }
+
+    @Override
+    public String toString() {
+        return "Channel{"
+            + "isServer=" + isServerChannel
+            + ", lastAccess=" + lastAccessedTime
+            + ", netty=" + channel
+            + "}";
     }
 }
