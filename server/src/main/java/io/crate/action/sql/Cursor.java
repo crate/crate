@@ -55,9 +55,9 @@ public final class Cursor implements AutoCloseable {
     private final boolean scroll;
     private final List<Object[]> rows = new ArrayList<>();
     private final ArrayRow sharedRow = new ArrayRow();
+    private final RowAccounting<Object[]> rowAccounting;
     private boolean exhausted = false;
     private int cursorPosition = 0;
-    private RowAccounting<Object[]> rowAccounting;
 
     public Cursor(CircuitBreaker circuitBreaker,
                   boolean scroll,
@@ -89,7 +89,6 @@ public final class Cursor implements AutoCloseable {
                 triggerConsumer(consumer, new BufferingBatchIterator(bi), scrollMode, count);
             } catch (Throwable t) {
                 consumer.accept(null, t);
-                return;
             }
         } else {
             queryIterator.whenComplete((bi, err) -> {
@@ -123,7 +122,6 @@ public final class Cursor implements AutoCloseable {
         public boolean moveNext() {
             boolean moveNext = delegate.moveNext();
             if (moveNext) {
-                cursorPosition++;
                 if (scroll) {
                     Object[] row = currentElement().materialize();
                     rowAccounting.accountForAndMaybeBreak(row);
@@ -170,19 +168,18 @@ public final class Cursor implements AutoCloseable {
             // Absolute jumps to a position and returns that row (or none if before start; after end)
 
             if (count < rows.size()) {
-                cursorPosition = count;
+                cursorPosition = Math.max(count, 0);
                 consumer.accept(bufferedRowOrNone(count - 1), null);
             } else {
                 int steps = count - cursorPosition + 1;
                 fullResult.move(steps, row -> {}, err -> {
-                    cursorPosition--;
                     if (err == null) {
                         if (count > rows.size()) {
                             consumer.accept(null, new IllegalArgumentException(String.format(Locale.ENGLISH,
                                                   "Cannot return row: %s, total rows: %s", count, rows.size())));
                         } else {
                             consumer.accept(bufferedRowOrNone(count - 1), null);
-                            cursorPosition = count == rows.size() ? count : count - 1;
+                            cursorPosition = count;
                         }
                     } else {
                         consumer.accept(null, err);
@@ -208,14 +205,16 @@ public final class Cursor implements AutoCloseable {
                 BatchIterator<Row> bufferedBi = biFromItems(items);
                 delegate = CompositeBatchIterator.seqComposite(bufferedBi, fullResult);
             }
-            // There is no moveNext() call to update the position
-            // When rows.size() + 1, last row exceeded and next backwards movement must include the last row
-            cursorPosition = Math.min(cursorPosition + count, rows.size() + 1);
 
-            if (count <= Integer.MAX_VALUE) {
-                consumer.accept(LimitingBatchIterator.newInstance(delegate, count), null);
+            consumer.accept(LimitingBatchIterator.newInstance(delegate, count), null);
+
+            // When cursorPosition + count >= rows.size() + 1, last row exceeded and
+            // next backwards movement must include the last row
+            long newPosition = (long) cursorPosition + count;
+            if (rows.size() > 0 && newPosition > rows.size()) {
+                cursorPosition = rows.size() + 1;
             } else {
-                consumer.accept(delegate, null);
+                cursorPosition = (int) newPosition;
             }
         } else {
             int start = cursorPosition + count;
