@@ -368,7 +368,7 @@ public class SubSelectIntegrationTest extends IntegTestCase {
         execute("insert into t (x) values (1), (2)");
         execute("refresh table t");
 
-        for (TableStats tableStats : internalCluster().getInstances(TableStats.class)) {
+        for (TableStats tableStats : cluster().getInstances(TableStats.class)) {
             Map<RelationName, Stats> newStats = new HashMap<>();
             newStats.put(
                 new RelationName(sqlExecutor.getCurrentSchema(), "t"),

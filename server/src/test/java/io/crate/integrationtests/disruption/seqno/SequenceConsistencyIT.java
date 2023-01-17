@@ -49,9 +49,9 @@ public class SequenceConsistencyIT extends AbstractDisruptionTestCase {
     @Test
     public void testPrimaryTermIsIncreasedOnReplicaPromotion() throws Throwable {
         logger.info("starting 3 nodes");
-        String masterNodeName = internalCluster().startMasterOnlyNode(DEFAULT_SETTINGS);
-        String firstDataNodeName = internalCluster().startDataOnlyNode(DEFAULT_SETTINGS);
-        String secondDataNodeName = internalCluster().startDataOnlyNode(DEFAULT_SETTINGS);
+        String masterNodeName = cluster().startMasterOnlyNode(DEFAULT_SETTINGS);
+        String firstDataNodeName = cluster().startDataOnlyNode(DEFAULT_SETTINGS);
+        String secondDataNodeName = cluster().startDataOnlyNode(DEFAULT_SETTINGS);
 
         logger.info("wait for all nodes to join the cluster");
         ensureGreen();
@@ -90,7 +90,7 @@ public class SequenceConsistencyIT extends AbstractDisruptionTestCase {
             new NetworkDisruption.TwoPartitions(otherNodes, Set.of(isolatedNode)),
             new NetworkDisruption.NetworkDisconnect()
         );
-        internalCluster().setDisruptionScheme(partition);
+        cluster().setDisruptionScheme(partition);
 
         logger.info("start disrupting network");
         partition.startDisrupting();

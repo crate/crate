@@ -53,7 +53,7 @@ public class SysOperationsTest extends IntegTestCase {
         // but it could be that the collect is finished before the localMerge task is started in which
         // case it is missing.
 
-        assertThat(resp.rowCount(), Matchers.greaterThanOrEqualTo((long) internalCluster().numDataNodes()));
+        assertThat(resp.rowCount(), Matchers.greaterThanOrEqualTo((long) cluster().numDataNodes()));
         List<String> names = new ArrayList<>();
         for (Object[] objects : resp.rows()) {
             names.add((String) objects[0]);

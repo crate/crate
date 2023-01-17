@@ -98,7 +98,7 @@ public class GatewayIndexStateIT extends IntegTestCase {
 
     public void testSimpleOpenClose() throws Exception {
         logger.info("--> starting 2 nodes");
-        internalCluster().startNodes(2);
+        cluster().startNodes(2);
 
         logger.info("--> creating test index");
 
@@ -172,7 +172,7 @@ public class GatewayIndexStateIT extends IntegTestCase {
         assertThat(stateResponse.getState().routingTable().index(tableName), notNullValue());
 
         logger.info("--> restarting nodes...");
-        internalCluster().fullRestart();
+        cluster().fullRestart();
         logger.info("--> waiting for two nodes and green status");
         ensureGreen();
 
@@ -219,7 +219,7 @@ public class GatewayIndexStateIT extends IntegTestCase {
         logger.info("--> cleaning nodes");
 
         logger.info("--> starting 1 master node non data");
-        internalCluster().startNode(Settings.builder().put(Node.NODE_DATA_SETTING.getKey(), false).build());
+        cluster().startNode(Settings.builder().put(Node.NODE_DATA_SETTING.getKey(), false).build());
 
         logger.info("--> create an index");
         execute("create table test (id int) with (number_of_replicas = 0, \"write.wait_for_active_shards\" = 0)",
@@ -228,7 +228,7 @@ public class GatewayIndexStateIT extends IntegTestCase {
         var tableName = getFqn("test");
 
         logger.info("--> restarting master node");
-        internalCluster().fullRestart(new RestartCallback(){
+        cluster().fullRestart(new RestartCallback(){
             @Override
             public Settings onNodeStopped(String nodeName) {
                 return Settings.builder().put(Node.NODE_DATA_SETTING.getKey(), false).build();
@@ -258,8 +258,8 @@ public class GatewayIndexStateIT extends IntegTestCase {
         logger.info("--> cleaning nodes");
 
         logger.info("--> starting 1 master node non data");
-        internalCluster().startNode(Settings.builder().put(Node.NODE_DATA_SETTING.getKey(), false).build());
-        internalCluster().startNode(Settings.builder().put(Node.NODE_MASTER_SETTING.getKey(), false).build());
+        cluster().startNode(Settings.builder().put(Node.NODE_DATA_SETTING.getKey(), false).build());
+        cluster().startNode(Settings.builder().put(Node.NODE_MASTER_SETTING.getKey(), false).build());
 
         logger.info("--> create an index");
         execute("create table test (id int) with (number_of_replicas = 0)");
@@ -272,7 +272,7 @@ public class GatewayIndexStateIT extends IntegTestCase {
         logger.info("--> cleaning nodes");
 
         logger.info("--> starting 2 nodes");
-        internalCluster().startNodes(2);
+        cluster().startNodes(2);
 
         logger.info("--> indexing a simple document");
         var tableName = getFqn("test");
@@ -341,7 +341,7 @@ public class GatewayIndexStateIT extends IntegTestCase {
 
         final List<String> nodes;
         logger.info("--> starting a cluster with " + numNodes + " nodes");
-        nodes = internalCluster().startNodes(numNodes,
+        nodes = cluster().startNodes(numNodes,
             Settings.builder().put(IndexGraveyard.SETTING_MAX_TOMBSTONES.getKey(), randomIntBetween(10, 100)).build());
         logger.info("--> create an index");
         //createIndex(indexName);
@@ -354,7 +354,7 @@ public class GatewayIndexStateIT extends IntegTestCase {
         final String indexUUID = resolveIndex(tableName).getUUID();
 
         logger.info("--> restart a random date node, deleting the index in between stopping and restarting");
-        internalCluster().restartRandomDataNode(new RestartCallback() {
+        cluster().restartRandomDataNode(new RestartCallback() {
             @Override
             public Settings onNodeStopped(final String nodeName) throws Exception {
                 nodes.remove(nodeName);
@@ -370,7 +370,7 @@ public class GatewayIndexStateIT extends IntegTestCase {
 
                     @Override
                     public String pgUrl() {
-                        PostgresNetty postgresNetty = internalCluster().getInstance(PostgresNetty.class, otherNode);
+                        PostgresNetty postgresNetty = cluster().getInstance(PostgresNetty.class, otherNode);
                         BoundTransportAddress boundTransportAddress = postgresNetty.boundAddress();
                         if (boundTransportAddress != null) {
                             InetSocketAddress address = boundTransportAddress.publishAddress().address();
@@ -382,7 +382,7 @@ public class GatewayIndexStateIT extends IntegTestCase {
 
                     @Override
                     public Sessions sqlOperations() {
-                        return internalCluster().getInstance(Sessions.class, otherNode);
+                        return cluster().getInstance(Sessions.class, otherNode);
                     }
                 };
                 var sqlExecutor = new SQLTransportExecutor(clientProvider);
@@ -419,7 +419,7 @@ public class GatewayIndexStateIT extends IntegTestCase {
             // pass
         }
         assertBusy(() -> {
-            final NodeEnvironment nodeEnv = internalCluster().getInstance(NodeEnvironment.class);
+            final NodeEnvironment nodeEnv = cluster().getInstance(NodeEnvironment.class);
             try {
                 assertFalse("index folder " + indexUUID + " should be deleted", nodeEnv.availableIndexFolders().contains(indexUUID));
             } catch (IOException e) {
@@ -437,7 +437,7 @@ public class GatewayIndexStateIT extends IntegTestCase {
     @Test
     public void testRecoverBrokenIndexMetadata() throws Exception {
         logger.info("--> starting one node");
-        internalCluster().startNode();
+        cluster().startNode();
         logger.info("--> indexing a simple document");
         var tableName = getFqn("test");
         execute("create table test (id int) with (number_of_replicas = 0)");
@@ -447,7 +447,7 @@ public class GatewayIndexStateIT extends IntegTestCase {
         if (usually()) {
             ensureYellow();
         } else {
-            internalCluster().startNode();
+            cluster().startNode();
             FutureUtils.get(client().admin().cluster()
                 .health(new ClusterHealthRequest()
                     .waitForGreenStatus()
@@ -508,7 +508,7 @@ public class GatewayIndexStateIT extends IntegTestCase {
     @Test
     public void testRecoverMissingAnalyzer() throws Exception {
         logger.info("--> starting one node");
-        internalCluster().startNode();
+        cluster().startNode();
         var tableName = getFqn("test");
         client().admin().indices().create(
             new CreateIndexRequest(
@@ -538,7 +538,7 @@ public class GatewayIndexStateIT extends IntegTestCase {
         if (usually()) {
             ensureYellow();
         } else {
-            internalCluster().startNode();
+            cluster().startNode();
             FutureUtils.get(client().admin().cluster()
                 .health(new ClusterHealthRequest()
                     .waitForGreenStatus()
@@ -582,7 +582,7 @@ public class GatewayIndexStateIT extends IntegTestCase {
     @Test
     public void testArchiveBrokenClusterSettings() throws Exception {
         logger.info("--> starting one node");
-        internalCluster().startNode();
+        cluster().startNode();
         var tableName = getFqn("test");
         execute("create table test (id int) with (number_of_replicas = 0)");
         execute("insert into test (id) values (1)");
@@ -591,7 +591,7 @@ public class GatewayIndexStateIT extends IntegTestCase {
         if (usually()) {
             ensureYellow();
         } else {
-            internalCluster().startNode();
+            cluster().startNode();
             FutureUtils.get(client().admin().cluster()
                 .health(new ClusterHealthRequest()
                     .waitForGreenStatus()
@@ -632,10 +632,10 @@ public class GatewayIndexStateIT extends IntegTestCase {
     }
 
     private void restartNodesOnBrokenClusterState(ClusterState.Builder clusterStateBuilder) throws Exception {
-        Map<String, PersistedClusterStateService> lucenePersistedStateFactories = Stream.of(internalCluster().getNodeNames())
-            .collect(Collectors.toMap(Function.identity(), nodeName -> internalCluster().getInstance(PersistedClusterStateService.class, nodeName)));
+        Map<String, PersistedClusterStateService> lucenePersistedStateFactories = Stream.of(cluster().getNodeNames())
+            .collect(Collectors.toMap(Function.identity(), nodeName -> cluster().getInstance(PersistedClusterStateService.class, nodeName)));
         final ClusterState clusterState = clusterStateBuilder.build();
-        internalCluster().fullRestart(new RestartCallback() {
+        cluster().fullRestart(new RestartCallback() {
             @Override
             public Settings onNodeStopped(String nodeName) throws Exception {
                 final PersistedClusterStateService lucenePersistedStateFactory = lucenePersistedStateFactories.get(

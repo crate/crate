@@ -50,7 +50,7 @@ public class BulkInsertOnClientNodeTest extends IntegTestCase {
                 @Override
                 public Client client() {
                     // make sure we use a client node (started with client=true)
-                    Client client = internalCluster().client();
+                    Client client = cluster().client();
                     nodeName = client.settings().get("node.name");
                     return client;
                 }
@@ -62,7 +62,7 @@ public class BulkInsertOnClientNodeTest extends IntegTestCase {
 
                 @Override
                 public Sessions sqlOperations() {
-                    return internalCluster().getInstance(Sessions.class, nodeName());
+                    return cluster().getInstance(Sessions.class, nodeName());
                 }
 
                 private String nodeName() {

@@ -37,7 +37,7 @@ public class PromoteStaleReplicaITest extends IntegTestCase {
 
     @Test
     public void test_stale_replica_can_manually_be_promoted() throws Exception {
-        internalCluster().startMasterOnlyNode();
+        cluster().startMasterOnlyNode();
         Settings s1 = Settings.builder()
             .put(Node.NODE_MASTER_SETTING.getKey(), false)
             .put(PATH_DATA_SETTING.getKey(), createTempDir())
@@ -47,17 +47,17 @@ public class PromoteStaleReplicaITest extends IntegTestCase {
             .put(PATH_DATA_SETTING.getKey(), createTempDir())
             .build();
 
-        String n1 = internalCluster().startNode(s1);
-        String n2 = internalCluster().startNode(s2);
+        String n1 = cluster().startNode(s1);
+        String n2 = cluster().startNode(s2);
         execute("create table t1 (x int) " +
                 "clustered into 1 shards with (number_of_replicas = 1, \"write.wait_for_active_shards\" = 1)");
 
         execute("insert into t1 (x) values (1)");
         ensureGreen();
-        internalCluster().stopRandomNode(s -> Node.NODE_NAME_SETTING.get(s).equals(n1));
+        cluster().stopRandomNode(s -> Node.NODE_NAME_SETTING.get(s).equals(n1));
         execute("insert into t1 (x) values (2)");
-        internalCluster().stopRandomNode(s -> Node.NODE_NAME_SETTING.get(s).equals(n2));
-        String newN1 = internalCluster().startNode(s1);
+        cluster().stopRandomNode(s -> Node.NODE_NAME_SETTING.get(s).equals(n2));
+        String newN1 = cluster().startNode(s1);
 
         execute("select shard_id, primary, current_state from sys.allocations order by 1, 2");
         assertThat(

@@ -115,7 +115,7 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
         );
 
         var dummyLang = new UserDefinedFunctionsIntegrationTest.DummyLang();
-        Iterable<UserDefinedFunctionService> udfServices = internalCluster().getInstances(UserDefinedFunctionService.class);
+        Iterable<UserDefinedFunctionService> udfServices = cluster().getInstances(UserDefinedFunctionService.class);
         for (UserDefinedFunctionService udfService : udfServices) {
             udfService.registerLanguage(dummyLang);
         }
@@ -820,9 +820,9 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
     }
 
     private RepositoryData getRepositoryData() throws Exception {
-        RepositoriesService service = internalCluster().getInstance(RepositoriesService.class, internalCluster().getMasterName());
+        RepositoriesService service = cluster().getInstance(RepositoriesService.class, cluster().getMasterName());
         Repository repository = service.repository(REPOSITORY_NAME);
-        ThreadPool threadPool = internalCluster().getInstance(ThreadPool.class, internalCluster().getMasterName());
+        ThreadPool threadPool = cluster().getInstance(ThreadPool.class, cluster().getMasterName());
         final SetOnce<RepositoryData> repositoryData = new SetOnce<>();
         final CountDownLatch latch = new CountDownLatch(1);
         threadPool.executor(ThreadPool.Names.SNAPSHOT).execute(() -> {

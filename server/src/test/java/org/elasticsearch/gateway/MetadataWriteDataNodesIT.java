@@ -35,11 +35,10 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.discovery.Discovery;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.index.Index;
+import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.test.IntegTestCase.ClusterScope;
 import org.elasticsearch.test.IntegTestCase.Scope;
 import org.elasticsearch.test.TestCluster;
-
-import org.elasticsearch.test.IntegTestCase;
 
 
 @ClusterScope(scope = Scope.TEST, numDataNodes = 0)
@@ -47,8 +46,8 @@ public class MetadataWriteDataNodesIT extends IntegTestCase {
 
     public void testMetaWrittenAlsoOnDataNode() throws Exception {
         // this test checks that index state is written on data only nodes if they have a shard allocated
-        String masterNode = internalCluster().startMasterOnlyNode(Settings.EMPTY);
-        String dataNode = internalCluster().startDataOnlyNode(Settings.EMPTY);
+        String masterNode = cluster().startMasterOnlyNode(Settings.EMPTY);
+        String dataNode = cluster().startDataOnlyNode(Settings.EMPTY);
         execute("create table doc.test(x int) with (number_of_replicas = 0)");
         execute("insert into doc.test values(1)");
         ensureGreen("test");
@@ -58,8 +57,8 @@ public class MetadataWriteDataNodesIT extends IntegTestCase {
 
     public void testIndexFilesAreRemovedIfAllShardsFromIndexRemoved() throws Exception {
         // this test checks that the index data is removed from a data only node once all shards have been allocated away from it
-        String masterNode = internalCluster().startMasterOnlyNode(Settings.EMPTY);
-        List<String> nodeNames= internalCluster().startDataOnlyNodes(2);
+        String masterNode = cluster().startMasterOnlyNode(Settings.EMPTY);
+        List<String> nodeNames= cluster().startDataOnlyNodes(2);
         String node1 = nodeNames.get(0);
         String node2 = nodeNames.get(1);
 
@@ -130,7 +129,7 @@ public class MetadataWriteDataNodesIT extends IntegTestCase {
     }
 
     private ImmutableOpenMap<String, IndexMetadata> getIndicesMetadataOnNode(String nodeName) {
-        final Coordinator coordinator = (Coordinator) internalCluster().getInstance(Discovery.class, nodeName);
+        final Coordinator coordinator = (Coordinator) cluster().getInstance(Discovery.class, nodeName);
         return coordinator.getApplierState().getMetadata().getIndices();
     }
 }

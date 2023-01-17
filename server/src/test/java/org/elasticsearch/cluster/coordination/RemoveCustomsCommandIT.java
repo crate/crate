@@ -40,31 +40,31 @@ public class RemoveCustomsCommandIT extends IntegTestCase {
 
     @Test
     public void testRemoveCustomsAbortedByUser() throws Exception {
-        internalCluster().setBootstrapMasterNodeIndex(0);
-        String node = internalCluster().startNode();
-        Settings dataPathSettings = internalCluster().dataPathSettings(node);
+        cluster().setBootstrapMasterNodeIndex(0);
+        String node = cluster().startNode();
+        Settings dataPathSettings = cluster().dataPathSettings(node);
         ensureStableCluster(1);
-        internalCluster().stopRandomDataNode();
+        cluster().stopRandomDataNode();
 
         Environment environment = TestEnvironment.newEnvironment(
-            Settings.builder().put(internalCluster().getDefaultSettings()).put(dataPathSettings).build());
+            Settings.builder().put(cluster().getDefaultSettings()).put(dataPathSettings).build());
         expectThrows(() -> removeCustoms(environment, true, new String[]{ "index-graveyard" }),
             ElasticsearchNodeCommand.ABORTED_BY_USER_MSG);
     }
 
     @Test
     public void testRemoveCustomsSuccessful() throws Exception {
-        internalCluster().setBootstrapMasterNodeIndex(0);
-        String node = internalCluster().startNode();
+        cluster().setBootstrapMasterNodeIndex(0);
+        String node = cluster().startNode();
         createIndex("test");
         client().admin().indices().delete(new DeleteIndexRequest("test")).get();
         assertEquals(1, client().admin().cluster().state(new ClusterStateRequest()).get().getState().metadata().indexGraveyard().getTombstones().size());
-        Settings dataPathSettings = internalCluster().dataPathSettings(node);
+        Settings dataPathSettings = cluster().dataPathSettings(node);
         ensureStableCluster(1);
-        internalCluster().stopRandomDataNode();
+        cluster().stopRandomDataNode();
 
         Environment environment = TestEnvironment.newEnvironment(
-            Settings.builder().put(internalCluster().getDefaultSettings()).put(dataPathSettings).build());
+            Settings.builder().put(cluster().getDefaultSettings()).put(dataPathSettings).build());
         MockTerminal terminal = removeCustoms(environment, false,
             randomBoolean() ?
                 new String[]{ "index-graveyard" } :
@@ -74,23 +74,23 @@ public class RemoveCustomsCommandIT extends IntegTestCase {
         assertThat(terminal.getOutput(), containsString("The following customs will be removed:"));
         assertThat(terminal.getOutput(), containsString("index-graveyard"));
 
-        internalCluster().startNode(dataPathSettings);
+        cluster().startNode(dataPathSettings);
         assertEquals(0, client().admin().cluster().state(new ClusterStateRequest()).get().getState().metadata().indexGraveyard().getTombstones().size());
     }
 
     @Test
     public void testCustomDoesNotMatch() throws Exception {
-        internalCluster().setBootstrapMasterNodeIndex(0);
-        String node = internalCluster().startNode();
+        cluster().setBootstrapMasterNodeIndex(0);
+        String node = cluster().startNode();
         createIndex("test");
         client().admin().indices().delete(new DeleteIndexRequest("test")).get();
         assertEquals(1, client().admin().cluster().state(new ClusterStateRequest()).get().getState().metadata().indexGraveyard().getTombstones().size());
-        Settings dataPathSettings = internalCluster().dataPathSettings(node);
+        Settings dataPathSettings = cluster().dataPathSettings(node);
         ensureStableCluster(1);
-        internalCluster().stopRandomDataNode();
+        cluster().stopRandomDataNode();
 
         Environment environment = TestEnvironment.newEnvironment(
-            Settings.builder().put(internalCluster().getDefaultSettings()).put(dataPathSettings).build());
+            Settings.builder().put(cluster().getDefaultSettings()).put(dataPathSettings).build());
         UserException ex = expectThrows(UserException.class, () -> removeCustoms(environment, false,
             new String[]{ "index-greveyard-with-typos" }));
         assertThat(ex.getMessage(), containsString("No custom metadata matching [index-greveyard-with-typos] were " +

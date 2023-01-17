@@ -68,8 +68,8 @@ public class InternalCountOperationTest extends IntegTestCase {
         execute("insert into t (name) values ('Marvin'), ('Arthur'), ('Trillian')");
         execute("refresh table t");
 
-        CountOperation countOperation = internalCluster().getDataNodeInstance(CountOperation.class);
-        ClusterService clusterService = internalCluster().getDataNodeInstance(ClusterService.class);
+        CountOperation countOperation = cluster().getDataNodeInstance(CountOperation.class);
+        ClusterService clusterService = cluster().getDataNodeInstance(ClusterService.class);
         CoordinatorTxnCtx txnCtx = CoordinatorTxnCtx.systemTransactionContext();
         Metadata metadata = clusterService.state().getMetadata();
         Index index = metadata.index(getFqn("t")).getIndex();
@@ -83,7 +83,7 @@ public class InternalCountOperationTest extends IntegTestCase {
             assertThat(count.get(5, TimeUnit.SECONDS), is(3L));
         }
 
-        Schemas schemas = internalCluster().getInstance(Schemas.class);
+        Schemas schemas = cluster().getInstance(Schemas.class);
         TableInfo tableInfo = schemas.getTableInfo(new RelationName(sqlExecutor.getCurrentSchema(), "t"));
         TableRelation tableRelation = new TableRelation(tableInfo);
         Map<RelationName, AnalyzedRelation> tableSources = Map.of(tableInfo.ident(), tableRelation);
@@ -100,11 +100,11 @@ public class InternalCountOperationTest extends IntegTestCase {
     public void test_handles_recovering_shard_state_for_partitioned_tables() throws Exception {
         execute("create table doc.t (name string, p int) partitioned by (p) clustered into 1 shards with (number_of_replicas = 0)");
         execute("insert into doc.t (name, p) values ('Foo', 1)");
-        ClusterService clusterService = internalCluster().getDataNodeInstance(ClusterService.class);
+        ClusterService clusterService = cluster().getDataNodeInstance(ClusterService.class);
         CoordinatorTxnCtx txnCtx = CoordinatorTxnCtx.systemTransactionContext();
         Metadata metadata = clusterService.state().getMetadata();
         Index index = metadata.index(new PartitionName(new RelationName("doc", "t"), List.of("1")).asIndexName()).getIndex();
-        var countOperation = (InternalCountOperation) internalCluster().getDataNodeInstance(CountOperation.class);
+        var countOperation = (InternalCountOperation) cluster().getDataNodeInstance(CountOperation.class);
         IndexService indexService = mock(IndexService.class);
         IndexShard indexShard = mock(IndexShard.class);
         when(indexShard.acquireSearcher(Mockito.anyString())).thenThrow(new IllegalIndexShardStateException(

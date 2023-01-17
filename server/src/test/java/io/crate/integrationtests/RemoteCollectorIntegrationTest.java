@@ -53,7 +53,7 @@ public class RemoteCollectorIntegrationTest extends IntegTestCase {
 
         PlanForNode plan = plan("update t set x = x * 2");
 
-        ClusterService clusterService = internalCluster().getInstance(ClusterService.class);
+        ClusterService clusterService = cluster().getInstance(ClusterService.class);
         IndexShardRoutingTable t = clusterService.state().routingTable().shardRoutingTable(getFqn("t"), 0);
 
         String sourceNodeId = t.primaryShard().currentNodeId();

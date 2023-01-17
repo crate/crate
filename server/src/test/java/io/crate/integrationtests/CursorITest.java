@@ -41,7 +41,7 @@ public class CursorITest extends IntegTestCase {
 
     private String url() {
         // Tests use JDBC to be able to re-use the same connection to the same node
-        PostgresNetty postgresNetty = internalCluster().getInstance(PostgresNetty.class);
+        PostgresNetty postgresNetty = cluster().getInstance(PostgresNetty.class);
         int port = postgresNetty.boundAddress().publishAddress().getPort();
         return "jdbc:postgresql://127.0.0.1:" + port + '/';
     }

@@ -51,7 +51,7 @@ public class CircuitBreakerIntegrationTest extends IntegTestCase {
         execute("insert into t1 values ('this is some text'), ('other text')");
         refresh();
 
-        CircuitBreakerService circuitBreakerService = internalCluster().getInstance(CircuitBreakerService.class);
+        CircuitBreakerService circuitBreakerService = cluster().getInstance(CircuitBreakerService.class);
         CircuitBreaker queryBreaker = circuitBreakerService.getBreaker(HierarchyCircuitBreakerService.QUERY);
         long breakerBytesUsedBeforeQuery = queryBreaker.getUsed();
 

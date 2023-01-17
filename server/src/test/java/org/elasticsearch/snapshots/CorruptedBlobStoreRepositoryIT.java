@@ -98,7 +98,7 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
 
         logger.info("--> move index-N blob to next generation");
         final RepositoryData repositoryData =
-            getRepositoryData(internalCluster().getMasterNodeInstance(RepositoriesService.class).repository(repoName));
+            getRepositoryData(cluster().getMasterNodeInstance(RepositoriesService.class).repository(repoName));
         Files.move(repo.resolve("index-" + repositoryData.getGenId()), repo.resolve("index-" + (repositoryData.getGenId() + 1)));
 
         assertRepositoryBlocked(client, repoName, snapshot);
@@ -149,7 +149,7 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
         logger.info("--> creating snapshot");
         execute("create snapshot test.snapshot1 table doc.test1, doc.test2 with (wait_for_completion = true)");
 
-        final Repository repository = internalCluster().getCurrentMasterNodeInstance(RepositoriesService.class).repository(repoName);
+        final Repository repository = cluster().getCurrentMasterNodeInstance(RepositoriesService.class).repository(repoName);
 
         logger.info("--> move index-N blob to next generation");
         final RepositoryData repositoryData = getRepositoryData(repository);
@@ -158,7 +158,7 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
 
         logger.info("--> set next generation as pending in the cluster state");
         final PlainActionFuture<Void> csUpdateFuture = PlainActionFuture.newFuture();
-        internalCluster().getCurrentMasterNodeInstance(ClusterService.class).submitStateUpdateTask("set pending generation",
+        cluster().getCurrentMasterNodeInstance(ClusterService.class).submitStateUpdateTask("set pending generation",
             new ClusterStateUpdateTask() {
                 @Override
                 public ClusterState execute(ClusterState currentState) {
@@ -184,10 +184,10 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
         csUpdateFuture.get();
 
         logger.info("--> full cluster restart");
-        internalCluster().fullRestart();
+        cluster().fullRestart();
         ensureGreen();
 
-        Repository repositoryAfterRestart = internalCluster().getCurrentMasterNodeInstance(RepositoriesService.class).repository(repoName);
+        Repository repositoryAfterRestart = cluster().getCurrentMasterNodeInstance(RepositoriesService.class).repository(repoName);
 
         logger.info("--> verify index-N blob is found at the new location");
         assertThat(getRepositoryData(repositoryAfterRestart).getGenId(), is(beforeMoveGen + 1));
@@ -224,7 +224,7 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
             assertThat(createSnapshotResponse.getSnapshotInfo().successfulShards(),
                 equalTo(createSnapshotResponse.getSnapshotInfo().totalShards()));
         }
-        final Repository repository = internalCluster().getCurrentMasterNodeInstance(RepositoriesService.class).repository(repoName);
+        final Repository repository = cluster().getCurrentMasterNodeInstance(RepositoriesService.class).repository(repoName);
         final RepositoryData repositoryData = getRepositoryData(repository);
 
         final SnapshotId snapshotToCorrupt = randomFrom(repositoryData.getSnapshotIds());
@@ -244,8 +244,8 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
                 Version.CURRENT))), StandardOpenOption.TRUNCATE_EXISTING);
 
         logger.info("--> verify that repo is assumed in old metadata format");
-        final SnapshotsService snapshotsService = internalCluster().getCurrentMasterNodeInstance(SnapshotsService.class);
-        final ThreadPool threadPool = internalCluster().getCurrentMasterNodeInstance(ThreadPool.class);
+        final SnapshotsService snapshotsService = cluster().getCurrentMasterNodeInstance(SnapshotsService.class);
+        final ThreadPool threadPool = cluster().getCurrentMasterNodeInstance(ThreadPool.class);
         assertThat(
             FutureUtils.get(threadPool.generic().submit(() ->
                 snapshotsService.minCompatibleVersion(Version.CURRENT, getRepositoryData(repository), null)
@@ -287,7 +287,7 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
             assertThat(createSnapshotResponse.getSnapshotInfo().successfulShards(),
                        equalTo(createSnapshotResponse.getSnapshotInfo().totalShards()));
         }
-        final Repository repository = internalCluster().getCurrentMasterNodeInstance(RepositoriesService.class).repository("repo1");
+        final Repository repository = cluster().getCurrentMasterNodeInstance(RepositoriesService.class).repository("repo1");
         final RepositoryData repositoryData = getRepositoryData(repository);
 
         final SnapshotId snapshotToCorrupt = randomFrom(repositoryData.getSnapshotIds());
@@ -325,7 +325,7 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
             equalTo(createSnapshotResponse.getSnapshotInfo().totalShards()));
 
         logger.info("--> corrupt index-N blob");
-        final Repository repository = internalCluster().getCurrentMasterNodeInstance(RepositoriesService.class).repository(repoName);
+        final Repository repository = cluster().getCurrentMasterNodeInstance(RepositoriesService.class).repository(repoName);
         final RepositoryData repositoryData = getRepositoryData(repository);
         Files.write(repo.resolve("index-" + repositoryData.getGenId()), randomByteArrayOfLength(randomIntBetween(1, 100)));
 
@@ -335,7 +335,7 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
         logger.info("--> mount repository path in a new repository");
         final String otherRepoName = "other-repo";
         execute("CREATE REPOSITORY \"other-repo\" TYPE fs WITH (location = ?, compress = false)", new Object[] { repo.toAbsolutePath().toString() });
-        final Repository otherRepo = internalCluster().getCurrentMasterNodeInstance(RepositoriesService.class).repository(otherRepoName);
+        final Repository otherRepo = cluster().getCurrentMasterNodeInstance(RepositoriesService.class).repository(otherRepoName);
 
         logger.info("--> verify loading repository data from newly mounted repository throws RepositoryException");
         expectThrows(RepositoryException.class, () -> getRepositoryData(otherRepo));

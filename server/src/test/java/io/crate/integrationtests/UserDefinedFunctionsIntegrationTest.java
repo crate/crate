@@ -129,7 +129,7 @@ public class UserDefinedFunctionsIntegrationTest extends IntegTestCase {
         // records reside on two different nodes configured in the test setup.
         // So then it would be possible to test that a function is created and
         // applied on all of nodes.
-        Iterable<UserDefinedFunctionService> udfServices = internalCluster().getInstances(UserDefinedFunctionService.class);
+        Iterable<UserDefinedFunctionService> udfServices = cluster().getInstances(UserDefinedFunctionService.class);
         for (UserDefinedFunctionService udfService : udfServices) {
             udfService.registerLanguage(dummyLang);
         }

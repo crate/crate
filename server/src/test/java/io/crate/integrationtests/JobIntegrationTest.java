@@ -54,7 +54,7 @@ public class JobIntegrationTest extends IntegTestCase {
             new SQLTransportExecutor.ClientProvider() {
                 @Override
                 public Client client() {
-                    return internalCluster().coordOnlyNodeClient();
+                    return cluster().coordOnlyNodeClient();
                 }
 
                 @Nullable
@@ -65,7 +65,7 @@ public class JobIntegrationTest extends IntegTestCase {
 
                 @Override
                 public Sessions sqlOperations() {
-                    return internalCluster().getInstance(Sessions.class);
+                    return cluster().getInstance(Sessions.class);
                 }
             }
         ));

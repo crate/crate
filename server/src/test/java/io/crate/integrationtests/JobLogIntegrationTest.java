@@ -33,8 +33,8 @@ import org.elasticsearch.test.IntegTestCase;
 import org.junit.After;
 import org.junit.Test;
 
-import io.crate.action.sql.Sessions;
 import io.crate.action.sql.Session;
+import io.crate.action.sql.Sessions;
 import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.expression.reference.sys.job.JobContextLog;
@@ -67,7 +67,7 @@ public class JobLogIntegrationTest extends IntegTestCase {
         // So let's just wait for the "set global ... " statement to be recorded here and then move on with our test.
         assertBusy(() -> {
             boolean setStmtFound = false;
-            for (JobsLogService jobsLogService : internalCluster().getDataNodeInstances(JobsLogService.class)) {
+            for (JobsLogService jobsLogService : cluster().getDataNodeInstances(JobsLogService.class)) {
                 // each node must have received the new jobs_log_size setting change instruction
                 assertThat(jobsLogService.jobsLogSize(), is(1));
                 JobsLogs jobsLogs = jobsLogService.get();
@@ -85,14 +85,14 @@ public class JobLogIntegrationTest extends IntegTestCase {
         // Each node can hold only 1 query (the latest one) so in total we should always see 2 queries in
         // the jobs_log. We make sure that we hit both nodes with 2 queries each and then assert that
         // only the latest queries are found in the log.
-        for (Sessions sqlOperations : internalCluster().getDataNodeInstances(Sessions.class)) {
+        for (Sessions sqlOperations : cluster().getDataNodeInstances(Sessions.class)) {
             try (Session session = sqlOperations.newSystemSession()) {
                 execute("select name from sys.cluster", null, session);
             }
         }
         assertJobLogOnNodesHaveOnlyStatement("select name from sys.cluster");
 
-        for (Sessions sqlOperations : internalCluster().getDataNodeInstances(Sessions.class)) {
+        for (Sessions sqlOperations : cluster().getDataNodeInstances(Sessions.class)) {
             try (Session session = sqlOperations.newSystemSession()) {
                 execute("select id from sys.cluster", null, session);
             }
@@ -100,7 +100,7 @@ public class JobLogIntegrationTest extends IntegTestCase {
         assertJobLogOnNodesHaveOnlyStatement("select id from sys.cluster");
 
         execute("set global transient stats.enabled = false");
-        for (JobsLogService jobsLogService : internalCluster().getDataNodeInstances(JobsLogService.class)) {
+        for (JobsLogService jobsLogService : cluster().getDataNodeInstances(JobsLogService.class)) {
             assertBusy(() -> assertThat(jobsLogService.isEnabled(), is(false)));
         }
         execute("select * from sys.jobs_log");
@@ -108,7 +108,7 @@ public class JobLogIntegrationTest extends IntegTestCase {
     }
 
     private void assertJobLogOnNodesHaveOnlyStatement(String statement) throws Exception {
-        for (JobsLogService jobsLogService : internalCluster().getDataNodeInstances(JobsLogService.class)) {
+        for (JobsLogService jobsLogService : cluster().getDataNodeInstances(JobsLogService.class)) {
             assertBusy(() -> {
                 assertThat(jobsLogService.jobsLogSize(), is(1));
                 JobsLogs jobsLogs = jobsLogService.get();

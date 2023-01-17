@@ -96,7 +96,7 @@ public class PostgresITest extends IntegTestCase {
     }
 
     private String url(String nodeName) {
-        PostgresNetty postgresNetty = internalCluster().getInstance(PostgresNetty.class, nodeName);
+        PostgresNetty postgresNetty = cluster().getInstance(PostgresNetty.class, nodeName);
         int port = postgresNetty.boundAddress().publishAddress().getPort();
         if (useIPv6) {
             return "jdbc:postgresql://::1:" + port + '/';
@@ -834,7 +834,7 @@ public class PostgresITest extends IntegTestCase {
             Integer port = resultSet.getInt(1);
 
             ArrayList<Integer> actualPorts = new ArrayList<>();
-            for (PostgresNetty postgresNetty : internalCluster().getInstances(PostgresNetty.class)) {
+            for (PostgresNetty postgresNetty : cluster().getInstances(PostgresNetty.class)) {
                 actualPorts.add(postgresNetty.boundAddress().publishAddress().getPort());
             }
             assertThat(port, Matchers.isOneOf(actualPorts.toArray(new Integer[0])));
@@ -928,7 +928,7 @@ public class PostgresITest extends IntegTestCase {
                 }
             }
         }
-        for (JobsLogService jobsLogService : internalCluster().getDataNodeInstances(JobsLogService.class)) {
+        for (JobsLogService jobsLogService : cluster().getDataNodeInstances(JobsLogService.class)) {
             assertBusy(() -> assertThat(jobsLogService.get().activeJobs(), emptyIterable()));
         }
     }
@@ -1129,7 +1129,7 @@ public class PostgresITest extends IntegTestCase {
 
     private long getNumQueriesFromJobsLogs() {
         long result = 0;
-        Iterable<JobsLogs> jobLogs = internalCluster().getInstances(JobsLogs.class);
+        Iterable<JobsLogs> jobLogs = cluster().getInstances(JobsLogs.class);
         for (JobsLogs jobsLogs : jobLogs) {
             for (var metrics : jobsLogs.metrics()) {
                 result += metrics.totalCount();

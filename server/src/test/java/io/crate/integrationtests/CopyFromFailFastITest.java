@@ -74,8 +74,8 @@ public class CopyFromFailFastITest extends IntegTestCase {
     @UseJdbc(0)
     @Test
     public void test_copy_from_with_fail_fast_with_single_node() throws Exception {
-        internalCluster().startNode();
-        internalCluster().ensureAtLeastNumDataNodes(1);
+        cluster().startNode();
+        cluster().ensureAtLeastNumDataNodes(1);
 
         // a single uri with 'shared = true' implies that one node will be involved at all times.
         Path tmpDir = newTempDir(LifecycleScope.TEST);
@@ -99,9 +99,9 @@ public class CopyFromFailFastITest extends IntegTestCase {
     @TestLogging("io.crate.execution.dml.upsert:DEBUG")
     @Test
     public void test_copy_from_with_fail_fast_with_write_error_on_non_handler_node() throws Exception {
-        internalCluster().startNode();
-        internalCluster().startNode();
-        internalCluster().ensureAtLeastNumDataNodes(2);
+        cluster().startNode();
+        cluster().startNode();
+        cluster().ensureAtLeastNumDataNodes(2);
 
         execute("set global overload_protection.dml.initial_concurrency = 2");
         execute("set global overload_protection.dml.max_concurrency = 2");
@@ -117,7 +117,7 @@ public class CopyFromFailFastITest extends IntegTestCase {
 
             @Override
             public Client client() {
-                return internalCluster().client(nodeNameOfShard0);
+                return cluster().client(nodeNameOfShard0);
             }
 
             @Override
@@ -127,7 +127,7 @@ public class CopyFromFailFastITest extends IntegTestCase {
 
             @Override
             public Sessions sqlOperations() {
-                return internalCluster().getInstance(Sessions.class, nodeNameOfShard0);
+                return cluster().getInstance(Sessions.class, nodeNameOfShard0);
             }
         };
         var handlerNodeExecutor = new SQLTransportExecutor(clientProvider);
@@ -172,9 +172,9 @@ public class CopyFromFailFastITest extends IntegTestCase {
     @TestLogging("io.crate.execution.dml.upsert:DEBUG")
     @Test
     public void test_copy_from_with_fail_fast_with_write_error_on_handler_node() throws Exception {
-        internalCluster().startNode();
-        internalCluster().startNode();
-        internalCluster().ensureAtLeastNumDataNodes(2);
+        cluster().startNode();
+        cluster().startNode();
+        cluster().ensureAtLeastNumDataNodes(2);
 
         execute("set global overload_protection.dml.initial_concurrency = 2");
         execute("set global overload_protection.dml.max_concurrency = 2");
@@ -189,7 +189,7 @@ public class CopyFromFailFastITest extends IntegTestCase {
 
             @Override
             public Client client() {
-                return internalCluster().client(nodeNameOfShard0);
+                return cluster().client(nodeNameOfShard0);
             }
 
             @Override
@@ -199,7 +199,7 @@ public class CopyFromFailFastITest extends IntegTestCase {
 
             @Override
             public Sessions sqlOperations() {
-                return internalCluster().getInstance(Sessions.class, nodeNameOfShard0);
+                return cluster().getInstance(Sessions.class, nodeNameOfShard0);
             }
         };
         var handlerNodeExecutor = new SQLTransportExecutor(clientProvider);
@@ -246,7 +246,7 @@ public class CopyFromFailFastITest extends IntegTestCase {
         // fail_fast = true and fail_fast = false that do not fail take different UpsertResultCollectors.
         // fail_fast = false uses RowCountCollector while fail_fast = true uses newSummaryOnFailOrRowCountOnSuccessCollector
         // and in the case that nothing fail, the collected summary will turn into rowCounts
-        internalCluster().startNode();
+        cluster().startNode();
 
         Path tmpDir = newTempDir(LifecycleScope.TEST);
         Path target = Files.createDirectories(tmpDir.resolve("target"));

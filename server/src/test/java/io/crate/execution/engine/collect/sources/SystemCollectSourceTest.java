@@ -58,7 +58,7 @@ public class SystemCollectSourceTest extends IntegTestCase {
 
     @Test
     public void testOrderBySymbolsDoNotAppearTwiceInRows() throws Exception {
-        SystemCollectSource systemCollectSource = internalCluster().getDataNodeInstance(SystemCollectSource.class);
+        SystemCollectSource systemCollectSource = cluster().getDataNodeInstance(SystemCollectSource.class);
 
         SimpleReference shardId = new SimpleReference(
             new ReferenceIdent(new RelationName("sys", "shards"), "id"),
@@ -102,7 +102,7 @@ public class SystemCollectSourceTest extends IntegTestCase {
 
     @Test
     public void testReadIsolation() throws Exception {
-        SystemCollectSource systemCollectSource = internalCluster().getDataNodeInstance(SystemCollectSource.class);
+        SystemCollectSource systemCollectSource = cluster().getDataNodeInstance(SystemCollectSource.class);
         RoutedCollectPhase collectPhase = new RoutedCollectPhase(
             UUID.randomUUID(),
             1,

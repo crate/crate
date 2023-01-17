@@ -73,7 +73,7 @@ public class SysSnapshotsTest extends IntegTestCase {
         execute("insert into tbl (id) values (?)", bulkArgs);
         execute("refresh table tbl");
 
-        ThreadPool threadPool = internalCluster().getInstance(ThreadPool.class);
+        ThreadPool threadPool = cluster().getInstance(ThreadPool.class);
         execute(
             "CREATE REPOSITORY r1 TYPE fs WITH (location = ?, compress = true)",
             new Object[] { TEMP_FOLDER.newFolder("backup_s1").getAbsolutePath() });

@@ -40,7 +40,7 @@ public class ClientNodeIntegrationTest extends IntegTestCase {
                 @Override
                 public Client client() {
                     // make sure we use a client node (started with client=true)
-                    return internalCluster().coordOnlyNodeClient();
+                    return cluster().coordOnlyNodeClient();
                 }
 
                 @Override
@@ -50,7 +50,7 @@ public class ClientNodeIntegrationTest extends IntegTestCase {
 
                 @Override
                 public Sessions sqlOperations() {
-                    return internalCluster().getInstance(Sessions.class);
+                    return cluster().getInstance(Sessions.class);
                 }
             }
         ));

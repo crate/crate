@@ -42,13 +42,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
-import com.carrotsearch.randomizedtesting.LifecycleScope;
-import io.crate.testing.SQLResponse;
-import io.crate.testing.UseJdbc;
-import org.elasticsearch.test.IntegTestCase;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -68,6 +61,16 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
+
+import org.elasticsearch.test.IntegTestCase;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+
+import com.carrotsearch.randomizedtesting.LifecycleScope;
+
+import io.crate.testing.SQLResponse;
+import io.crate.testing.UseJdbc;
 
 @IntegTestCase.ClusterScope(numDataNodes = 2)
 public class CopyIntegrationTest extends SQLHttpIntegrationTest {
@@ -796,7 +799,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
 
         String filename = "nonexistingfile.json";
         execute("copy t1 from ? return summary", new Object[]{tmpDirStr + filename});
-        assertThat(response.rowCount(), is((long) internalCluster().numDataNodes()));
+        assertThat(response.rowCount(), is((long) cluster().numDataNodes()));
 
         boolean isRunningOnWindows = System.getProperty("os.name").startsWith("Windows");
         String expected = "(No such file or directory)";
@@ -824,7 +827,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         // with shared=true and wildcards all nodes will try to match a file
         filename = "*.json";
         execute("copy t1 from ? with (shared=true) return summary", new Object[] {tmpDirStr + filename});
-        assertThat(response.rowCount(), is((long) internalCluster().numDataNodes()));
+        assertThat(response.rowCount(), is((long) cluster().numDataNodes()));
 
         for (Object[] row : response.rows()) {
             assertThat((String) row[1], endsWith("*.json"));

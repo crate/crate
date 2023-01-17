@@ -56,7 +56,7 @@ public class SysNodeResiliencyIntegrationTest extends IntegTestCase {
         // wait until no master cluster state tasks are pending, otherwise this test may fail due to master task timeouts
         waitNoPendingTasksOnAll();
 
-        String[] nodeNames = internalCluster().getNodeNames();
+        String[] nodeNames = cluster().getNodeNames();
         String n1 = nodeNames[0];
         String n2 = nodeNames[1];
 
@@ -80,7 +80,7 @@ public class SysNodeResiliencyIntegrationTest extends IntegTestCase {
             assertThat(response.rows()[0][3], is(n2));
         } finally {
             partition.stopDisrupting();
-            internalCluster().clearDisruptionScheme(true);
+            cluster().clearDisruptionScheme(true);
             waitNoPendingTasksOnAll();
         }
     }

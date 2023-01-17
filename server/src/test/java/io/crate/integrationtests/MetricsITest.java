@@ -91,7 +91,7 @@ public class MetricsITest extends IntegTestCase {
         // AFTER its execution has returned to this test (because async programming is evil like that).
         assertBusy(() -> {
             long cnt = 0;
-            for (JobsLogService jobsLogService : internalCluster().getInstances(JobsLogService.class)) {
+            for (JobsLogService jobsLogService : cluster().getInstances(JobsLogService.class)) {
                 for (MetricsView metrics: jobsLogService.get().metrics()) {
                     if (metrics.classification().type() == Plan.StatementType.SELECT) {
                         cnt += metrics.totalCount();

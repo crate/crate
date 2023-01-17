@@ -202,7 +202,7 @@ public class ConcurrentSeqNoVersioningIT extends AbstractDisruptionTestCase {
                 } catch (TimeoutException e) {
                     roundBarrier.reset();
                 }
-                internalCluster().clearDisruptionScheme(false);
+                cluster().clearDisruptionScheme(false);
                 // heal cluster faster to reduce test time.
                 ensureFullyConnectedCluster();
             }

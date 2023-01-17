@@ -49,6 +49,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.test.InternalSettingsPlugin;
 import org.elasticsearch.test.TestCluster;
 import org.elasticsearch.test.disruption.NetworkDisruption;
@@ -64,7 +65,6 @@ import org.elasticsearch.transport.TransportSettings;
 import org.junit.Before;
 
 import io.crate.common.unit.TimeValue;
-import org.elasticsearch.test.IntegTestCase;
 
 public abstract class AbstractDisruptionTestCase extends IntegTestCase {
 
@@ -130,14 +130,14 @@ public abstract class AbstractDisruptionTestCase extends IntegTestCase {
     protected void beforeIndexDeletion() throws Exception {
         if (disableBeforeIndexDeletion == false) {
             super.beforeIndexDeletion();
-            internalCluster().assertConsistentHistoryBetweenTranslogAndLuceneIndex();
-            internalCluster().assertSeqNos();
-            internalCluster().assertSameDocIdsOnShards();
+            cluster().assertConsistentHistoryBetweenTranslogAndLuceneIndex();
+            cluster().assertSeqNos();
+            cluster().assertSameDocIdsOnShards();
         }
     }
 
     List<String> startCluster(int numberOfNodes) {
-        TestCluster internalCluster = internalCluster();
+        TestCluster internalCluster = cluster();
         List<String> nodes = internalCluster.startNodes(numberOfNodes);
         ensureStableCluster(numberOfNodes);
         return nodes;
@@ -210,9 +210,9 @@ public abstract class AbstractDisruptionTestCase extends IntegTestCase {
     public ServiceDisruptionScheme addRandomDisruptionScheme() {
         final DisruptedLinks disruptedLinks;
         if (randomBoolean()) {
-            disruptedLinks = TwoPartitions.random(random(), internalCluster().getNodeNames());
+            disruptedLinks = TwoPartitions.random(random(), cluster().getNodeNames());
         } else {
-            disruptedLinks = Bridge.random(random(), internalCluster().getNodeNames());
+            disruptedLinks = Bridge.random(random(), cluster().getNodeNames());
         }
         final NetworkLinkDisruptionType disruptionType;
         switch (randomInt(2)) {
@@ -253,7 +253,7 @@ public abstract class AbstractDisruptionTestCase extends IntegTestCase {
     }
 
     TwoPartitions isolateNode(String isolatedNode) {
-        return isolateNode(internalCluster(), isolatedNode);
+        return isolateNode(cluster(), isolatedNode);
     }
 
     public static TwoPartitions isolateNode(TestCluster cluster, String isolatedNode) {

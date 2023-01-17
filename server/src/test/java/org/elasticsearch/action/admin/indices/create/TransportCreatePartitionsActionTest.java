@@ -56,7 +56,7 @@ public class TransportCreatePartitionsActionTest extends IntegTestCase {
 
     @Before
     public void prepare() {
-        action = internalCluster().getInstance(TransportCreatePartitionsAction.class, internalCluster().getMasterName());
+        action = cluster().getInstance(TransportCreatePartitionsAction.class, cluster().getMasterName());
     }
 
     @Test
@@ -70,14 +70,14 @@ public class TransportCreatePartitionsActionTest extends IntegTestCase {
                 .put("number_of_shards", 1)
                 .put("number_of_replicas", 0)
             );
-        internalCluster().client().execute(PutIndexTemplateAction.INSTANCE, request).get();
+        cluster().client().execute(PutIndexTemplateAction.INSTANCE, request).get();
 
         AcknowledgedResponse response = action.execute(
             new CreatePartitionsRequest(indices, UUID.randomUUID())
         ).get();
         assertThat(response.isAcknowledged(), is(true));
 
-        Metadata indexMetadata = internalCluster().clusterService().state().metadata();
+        Metadata indexMetadata = cluster().clusterService().state().metadata();
         for (String index : indices) {
             assertThat(indexMetadata.hasIndex(index), is(true));
         }
@@ -92,7 +92,7 @@ public class TransportCreatePartitionsActionTest extends IntegTestCase {
                 .put("number_of_shards", 1)
                 .put("number_of_replicas", 0)
             );
-        internalCluster().client().execute(PutIndexTemplateAction.INSTANCE, templateRequest).get();
+        cluster().client().execute(PutIndexTemplateAction.INSTANCE, templateRequest).get();
 
         cluster().client().admin().indices()
             .create(new CreateIndexRequest("index_0")
@@ -121,7 +121,7 @@ public class TransportCreatePartitionsActionTest extends IntegTestCase {
         assertThat("Create indices action did not lead to a new cluster state",
             response.get(5, TimeUnit.SECONDS).isAcknowledged(), is(true));
 
-        ClusterState currentState = internalCluster().clusterService().state();
+        ClusterState currentState = cluster().clusterService().state();
         ImmutableOpenIntMap<IndexShardRoutingTable> newRouting = currentState.routingTable().indicesRouting().get("index_0").getShards();
         assertTrue("[index_0][0] must be started already", newRouting.get(0).primaryShard().started());
     }
@@ -135,13 +135,13 @@ public class TransportCreatePartitionsActionTest extends IntegTestCase {
                 .put("number_of_shards", 1)
                 .put("number_of_replicas", 0)
             );
-        internalCluster().client().execute(PutIndexTemplateAction.INSTANCE, templateRequest).get();
+        cluster().client().execute(PutIndexTemplateAction.INSTANCE, templateRequest).get();
         List<String> indices = Arrays.asList("index1", "index2", "index3", "index1");
         AcknowledgedResponse response = action.execute(
             new CreatePartitionsRequest(indices, UUID.randomUUID())
         ).get();
         assertThat(response.isAcknowledged(), is(true));
-        Metadata indexMetadata = internalCluster().clusterService().state().metadata();
+        Metadata indexMetadata = cluster().clusterService().state().metadata();
         for (String index : indices) {
             assertThat(indexMetadata.hasIndex(index), is(true));
         }
@@ -172,6 +172,6 @@ public class TransportCreatePartitionsActionTest extends IntegTestCase {
             },
             "Invalid index name [invalid/#haha], must not contain the following characters [ , \", *, \\, <, |, ,, >, /, ?]");
         // if one name is invalid no index is created
-        assertThat(internalCluster().clusterService().state().metadata().hasIndex("valid"), is(false));
+        assertThat(cluster().clusterService().state().metadata().hasIndex("valid"), is(false));
     }
 }

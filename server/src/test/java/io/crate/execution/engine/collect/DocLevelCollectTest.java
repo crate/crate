@@ -107,8 +107,8 @@ public class DocLevelCollectTest extends IntegTestCase {
 
     @Before
     public void prepare() {
-        functions = internalCluster().getDataNodeInstance(Functions.class);
-        schemas = internalCluster().getDataNodeInstance(Schemas.class);
+        functions = cluster().getDataNodeInstance(Functions.class);
+        schemas = cluster().getDataNodeInstance(Schemas.class);
 
         execute(String.format(Locale.ENGLISH, "create table %s (" +
                                               "  id integer," +
@@ -232,10 +232,10 @@ public class DocLevelCollectTest extends IntegTestCase {
     }
 
     private Bucket collect(RoutedCollectPhase collectNode) throws Throwable {
-        JobSetup jobSetup = internalCluster().getDataNodeInstance(JobSetup.class);
-        TasksService tasksService = internalCluster().getDataNodeInstance(TasksService.class);
+        JobSetup jobSetup = cluster().getDataNodeInstance(JobSetup.class);
+        TasksService tasksService = cluster().getDataNodeInstance(TasksService.class);
         SharedShardContexts sharedShardContexts = new SharedShardContexts(
-            internalCluster().getDataNodeInstance(IndicesService.class), UnaryOperator.identity());
+            cluster().getDataNodeInstance(IndicesService.class), UnaryOperator.identity());
         RootTask.Builder builder = tasksService.newBuilder(collectNode.jobId());
         NodeOperation nodeOperation = NodeOperation.withDirectResponse(collectNode, mock(ExecutionPhase.class), (byte) 0,
             "remoteNode");

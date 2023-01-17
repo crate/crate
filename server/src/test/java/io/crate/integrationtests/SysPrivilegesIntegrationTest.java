@@ -52,7 +52,7 @@ public class SysPrivilegesIntegrationTest extends BaseUsersIntegrationTest {
             executeAsSuperuser("create user " + userName);
         }
 
-        UserManager userManager = internalCluster().getInstance(UserManager.class);
+        UserManager userManager = cluster().getInstance(UserManager.class);
         Long rowCount = userManager.applyPrivileges(USERNAMES, PRIVILEGES).get(5, TimeUnit.SECONDS);
         assertThat(rowCount, is(6L));
     }

@@ -213,7 +213,7 @@ public class ClusterDisruptionIT extends AbstractDisruptionTestCase {
 
                 logger.info("stopping disruption");
                 disruptionScheme.stopDisrupting();
-                for (String node : internalCluster().getNodeNames()) {
+                for (String node : cluster().getNodeNames()) {
                     ensureStableCluster(nodes.size(), TimeValue.timeValueMillis(disruptionScheme.expectedTimeToHeal().millis() +
                                                                                 DISRUPTION_HEALING_OVERHEAD.millis()), true, node);
                 }
@@ -311,18 +311,18 @@ public class ClusterDisruptionIT extends AbstractDisruptionTestCase {
     @Test
     public void testSendingShardFailure() throws Exception {
         List<String> nodes = startCluster(3);
-        String masterNode = internalCluster().getMasterName();
+        String masterNode = cluster().getMasterName();
         List<String> nonMasterNodes = nodes.stream().filter(node -> !node.equals(masterNode)).collect(Collectors.toList());
         String nonMasterNode = randomFrom(nonMasterNodes);
         execute("create table t (id int primary key, x string) clustered into 3 shards with (number_of_replicas = 2)");
         ensureGreen();
-        String nonMasterNodeId = internalCluster().clusterService(nonMasterNode).localNode().getId();
+        String nonMasterNodeId = cluster().clusterService(nonMasterNode).localNode().getId();
 
         // fail a random shard
         ShardRouting failedShard =
             randomFrom(clusterService().state().getRoutingNodes().node(nonMasterNodeId).shardsWithState(
                 ShardRoutingState.STARTED));
-        ShardStateAction service = internalCluster().getInstance(ShardStateAction.class, nonMasterNode);
+        ShardStateAction service = cluster().getInstance(ShardStateAction.class, nonMasterNode);
         CountDownLatch latch = new CountDownLatch(1);
         AtomicBoolean success = new AtomicBoolean();
 
@@ -358,7 +358,7 @@ public class ClusterDisruptionIT extends AbstractDisruptionTestCase {
         }
 
         // heal the partition
-        networkDisruption.removeAndEnsureHealthy(internalCluster());
+        networkDisruption.removeAndEnsureHealthy(cluster());
 
         // the cluster should stabilize
         ensureStableCluster(3);
@@ -406,17 +406,17 @@ public class ClusterDisruptionIT extends AbstractDisruptionTestCase {
         }
         ensureGreen();
         assertBusy(() -> assertThat(docID.get(), greaterThanOrEqualTo(100)));
-        internalCluster().restartRandomDataNode(new TestCluster.RestartCallback());
+        cluster().restartRandomDataNode(new TestCluster.RestartCallback());
         ensureGreen();
         assertBusy(() -> assertThat(docID.get(), greaterThanOrEqualTo(200)));
         stopped.set(true);
         for (Thread thread : threads) {
             thread.join();
         }
-        ClusterState clusterState = internalCluster().clusterService().state();
+        ClusterState clusterState = cluster().clusterService().state();
         for (ShardRouting shardRouting : clusterState.routingTable().allShards(index)) {
             String nodeName = clusterState.nodes().get(shardRouting.currentNodeId()).getName();
-            IndicesService indicesService = internalCluster().getInstance(IndicesService.class, nodeName);
+            IndicesService indicesService = cluster().getInstance(IndicesService.class, nodeName);
             IndexShard shard = indicesService.getShardOrNull(shardRouting.shardId());
             Set<String> docs = IndexShardTestCase.getShardDocUIDs(shard);
             assertThat("shard [" + shard.routingEntry() + "] docIds [" + docs + "] vs " + " acked docIds [" + ackedDocs + "]",

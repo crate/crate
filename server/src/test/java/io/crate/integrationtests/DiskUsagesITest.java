@@ -85,7 +85,7 @@ public class DiskUsagesITest extends IntegTestCase {
     public void testRerouteOccursOnDiskPassingHighWatermark() throws Exception {
         for (int i = 0; i < 3; i++) {
             // ensure that each node has a single data path
-            internalCluster().startNode(
+            cluster().startNode(
                 Settings.builder()
                     .put(Environment.PATH_DATA_SETTING.getKey(), createTempDir())
                     .put(CLUSTER_ROUTING_ALLOCATION_REROUTE_INTERVAL_SETTING.getKey(), "0ms"));
@@ -148,7 +148,7 @@ public class DiskUsagesITest extends IntegTestCase {
     public void testOnlyMovesEnoughShardsToDropBelowHighWatermark() throws Exception {
         for (int i = 0; i < 3; i++) {
             // ensure that each node has a single data path
-            internalCluster().startNode(
+            cluster().startNode(
                 Settings.builder()
                     .put(Environment.PATH_DATA_SETTING.getKey(), createTempDir())
                     .put(CLUSTER_ROUTING_ALLOCATION_REROUTE_INTERVAL_SETTING.getKey(), "0ms"));
@@ -157,7 +157,7 @@ public class DiskUsagesITest extends IntegTestCase {
 
         var clusterInfoService = getMockInternalClusterInfoService();
         AtomicReference<ClusterState> masterAppliedClusterState = new AtomicReference<>();
-        internalCluster().getCurrentMasterNodeInstance(ClusterService.class).addListener(event -> {
+        cluster().getCurrentMasterNodeInstance(ClusterService.class).addListener(event -> {
             masterAppliedClusterState.set(event.state());
             clusterInfoService.refresh(); // so subsequent reroute sees disk usage according to the current state
         });
@@ -209,7 +209,7 @@ public class DiskUsagesITest extends IntegTestCase {
     public void testDoesNotExceedLowWatermarkWhenRebalancing() {
         for (int i = 0; i < 3; i++) {
             // ensure that each node has a single data path
-            internalCluster().startNode(
+            cluster().startNode(
                 Settings.builder()
                     .put(Environment.PATH_DATA_SETTING.getKey(), createTempDir())
                     .put(CLUSTER_ROUTING_ALLOCATION_REROUTE_INTERVAL_SETTING.getKey(), "1ms"));
@@ -219,7 +219,7 @@ public class DiskUsagesITest extends IntegTestCase {
         var clusterInfoService = getMockInternalClusterInfoService();
 
         AtomicReference<ClusterState> masterAppliedClusterState = new AtomicReference<>();
-        internalCluster().getCurrentMasterNodeInstance(ClusterService.class).addListener(event -> {
+        cluster().getCurrentMasterNodeInstance(ClusterService.class).addListener(event -> {
             assertThat(event.state().getRoutingNodes().node(nodeIds.get(2)).size(), lessThanOrEqualTo(1));
             masterAppliedClusterState.set(event.state());
             clusterInfoService.refresh(); // so a subsequent reroute sees disk usage according to the current state
@@ -276,18 +276,18 @@ public class DiskUsagesITest extends IntegTestCase {
                 pathOverWatermark,
                 createTempDir().toString());
         }
-        internalCluster().startNode(twoPathSettings);
+        cluster().startNode(twoPathSettings);
 
         execute("SELECT id FROM sys.nodes");
         assertThat(response.rows().length, is(1));
         String nodeIdWithTwoPaths = (String) response.rows()[0][0];
 
         // other two nodes have one data path each
-        internalCluster().startNode(
+        cluster().startNode(
             Settings.builder()
                 .put(Environment.PATH_DATA_SETTING.getKey(), createTempDir())
                 .put(CLUSTER_ROUTING_ALLOCATION_REROUTE_INTERVAL_SETTING.getKey(), "1ms"));
-        internalCluster().startNode(
+        cluster().startNode(
             Settings.builder()
                 .put(Environment.PATH_DATA_SETTING.getKey(), createTempDir())
                 .put(CLUSTER_ROUTING_ALLOCATION_REROUTE_INTERVAL_SETTING.getKey(), "1ms"));
@@ -361,7 +361,7 @@ public class DiskUsagesITest extends IntegTestCase {
     public void testAutomaticReleaseOfIndexBlock() throws Exception {
         for (int i = 0; i < 3; i++) {
             // ensure that each node has a single data path
-            internalCluster().startNode(Settings.builder().put(Environment.PATH_DATA_SETTING.getKey(), createTempDir()));
+            cluster().startNode(Settings.builder().put(Environment.PATH_DATA_SETTING.getKey(), createTempDir()));
         }
 
         ClusterStateResponse clusterStateResponse = client().admin().cluster().state(new ClusterStateRequest()).get();
@@ -370,7 +370,7 @@ public class DiskUsagesITest extends IntegTestCase {
 
         // Start with all nodes at 50% usage
         final MockInternalClusterInfoService cis = (MockInternalClusterInfoService)
-            internalCluster().getInstance(ClusterInfoService.class, internalCluster().getMasterName());
+            cluster().getInstance(ClusterInfoService.class, cluster().getMasterName());
         cis.setUpdateFrequency(TimeValue.timeValueMillis(100));
 
         // prevent any effects from in-flight recoveries, since we are only simulating a 100-byte disk
@@ -487,7 +487,7 @@ public class DiskUsagesITest extends IntegTestCase {
     }
 
     private MockInternalClusterInfoService getMockInternalClusterInfoService() {
-        return (MockInternalClusterInfoService) internalCluster().getCurrentMasterNodeInstance(ClusterInfoService.class);
+        return (MockInternalClusterInfoService) cluster().getCurrentMasterNodeInstance(ClusterInfoService.class);
     }
 
     private HashMap<String, Integer> getShardCountByNodeId() {

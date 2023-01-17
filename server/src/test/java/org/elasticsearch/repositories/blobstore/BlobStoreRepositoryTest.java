@@ -58,13 +58,12 @@ import org.elasticsearch.repositories.RepositoryException;
 import org.elasticsearch.repositories.ShardGenerations;
 import org.elasticsearch.snapshots.SnapshotId;
 import org.elasticsearch.snapshots.SnapshotState;
+import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-
-import org.elasticsearch.test.IntegTestCase;
 
 public class BlobStoreRepositoryTest extends IntegTestCase {
 
@@ -233,7 +232,7 @@ public class BlobStoreRepositoryTest extends IntegTestCase {
     }
 
     protected BlobStoreRepository getRepository() throws Exception {
-        RepositoriesService service = internalCluster().getInstance(RepositoriesService.class, internalCluster().getMasterName());
+        RepositoriesService service = cluster().getInstance(RepositoriesService.class, cluster().getMasterName());
         return (BlobStoreRepository) service.repository(REPOSITORY_NAME);
     }
 
