@@ -126,4 +126,22 @@ public class CursorTest {
                 """
         );
     }
+
+    @Test
+    public void test_fetching_absolute_exceeding_last_row() throws Exception {
+        BatchIterator<Row> rows = TestingBatchIterators.range(1, 6);
+        Cursor cursor = new Cursor(
+                new NoopCircuitBreaker("dummy"),
+                true,
+                Hold.WITHOUT,
+                CompletableFuture.completedFuture(rows),
+                List.of(new InputColumn(0, DataTypes.INTEGER))
+        );
+
+        final TestingRowConsumer consumer = new TestingRowConsumer();
+        cursor.fetch(consumer, ScrollMode.ABSOLUTE, 6);
+        assertThatThrownBy(consumer::getBucket)
+                .isExactlyInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Cannot return row: 6, total rows: 5");
+    }
 }
