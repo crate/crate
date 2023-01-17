@@ -32,10 +32,16 @@ import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Predicate;
 
 import org.elasticsearch.action.support.PlainActionFuture;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.ClusterStateObserver;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.node.NodeClosedException;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.repositories.Repository;
@@ -169,21 +175,19 @@ public abstract class AbstractSnapshotIntegTestCase extends IntegTestCase {
 
     public static String blockMasterFromFinalizingSnapshotOnIndexFile(final String repositoryName) {
         final String masterName = cluster().getMasterName();
-        ((MockRepository)cluster().getInstance(RepositoriesService.class, masterName)
-            .repository(repositoryName)).setBlockOnWriteIndexFile(true);
+        mockRepo(repositoryName, masterName).setBlockOnWriteIndexFile(true);
         return masterName;
     }
 
     public static String blockMasterFromFinalizingSnapshotOnSnapFile(final String repositoryName) {
         final String masterName = cluster().getMasterName();
-        ((MockRepository)cluster().getInstance(RepositoriesService.class, masterName)
-            .repository(repositoryName)).setBlockAndFailOnWriteSnapFiles(true);
+        mockRepo(repositoryName, masterName).setBlockAndFailOnWriteSnapFiles(true);
         return masterName;
     }
 
     public static String blockNodeWithIndex(final String repositoryName, final String indexName) {
         for(String node : cluster().nodesInclude(indexName)) {
-            ((MockRepository)cluster().getInstance(RepositoriesService.class, node).repository(repositoryName))
+            mockRepo(repositoryName, node)
                 .blockOnDataFiles(true);
             return node;
         }
@@ -191,9 +195,9 @@ public abstract class AbstractSnapshotIntegTestCase extends IntegTestCase {
         return null;
     }
 
-    public static void blockDataNode(String repository, String nodeName) {
-        ((MockRepository) cluster().getInstance(RepositoriesService.class, nodeName)
-                .repository(repository)).blockOnDataFiles(true);
+    public static MockRepository mockRepo(String repository, String nodeName) {
+        return (MockRepository) cluster().getInstance(RepositoriesService.class, nodeName)
+                .repository(repository);
     }
 
     public static void blockAllDataNodes(String repository) {
@@ -223,6 +227,31 @@ public abstract class AbstractSnapshotIntegTestCase extends IntegTestCase {
     }
 
     public static void unblockNode(final String repository, final String node) {
-        ((MockRepository)cluster().getInstance(RepositoriesService.class, node).repository(repository)).unblock();
+        mockRepo(repository, node).unblock();
+    }
+
+    protected void awaitClusterState(String viaNode, Predicate<ClusterState> statePredicate) throws Exception {
+        ClusterService clusterService = cluster().getInstance(ClusterService.class, viaNode);
+        ClusterStateObserver observer = new ClusterStateObserver(clusterService, logger);
+        if (statePredicate.test(observer.setAndGetObservedState()) == false) {
+            final PlainActionFuture<Void> future = PlainActionFuture.newFuture();
+            observer.waitForNextChange(new ClusterStateObserver.Listener() {
+                @Override
+                public void onNewClusterState(ClusterState state) {
+                    future.onResponse(null);
+                }
+
+                @Override
+                public void onClusterServiceClose() {
+                    future.onFailure(new NodeClosedException(clusterService.localNode()));
+                }
+
+                @Override
+                public void onTimeout(TimeValue timeout) {
+                    future.onFailure(new TimeoutException());
+                }
+            }, statePredicate);
+            future.get(30L, TimeUnit.SECONDS);
+        }
     }
 }
