@@ -146,6 +146,68 @@ public class CursorTest {
     }
 
     @Test
+    public void test_fetch_backward_all() throws Exception {
+        BatchIterator<Row> rows = TestingBatchIterators.range(1, 6);
+        Cursor cursor = new Cursor(
+                new NoopCircuitBreaker("dummy"),
+                true,
+                Hold.WITHOUT,
+                CompletableFuture.completedFuture(rows),
+                List.of(new InputColumn(0, DataTypes.INTEGER))
+        );
+
+        // Move forward to last row
+        TestingRowConsumer consumer = new TestingRowConsumer();
+        cursor.fetch(consumer, ScrollMode.RELATIVE, 5);
+        assertThat(TestingHelpers.printedTable(consumer.getBucket())).isEqualTo(
+                """
+                1
+                2
+                3
+                4
+                5
+                """
+        );
+
+        // FETCH BACKWARD ALL
+        consumer = new TestingRowConsumer();
+        cursor.fetch(consumer, ScrollMode.RELATIVE, - Integer.MAX_VALUE);
+        assertThat(TestingHelpers.printedTable(consumer.getBucket())).isEqualTo(
+                """
+                4
+                3
+                2
+                1
+                """
+        );
+
+        // Move fwd, exceeding last row
+        consumer = new TestingRowConsumer();
+        cursor.fetch(consumer, ScrollMode.RELATIVE, 100);
+        assertThat(TestingHelpers.printedTable(consumer.getBucket())).isEqualTo(
+                """
+                1
+                2
+                3
+                4
+                5
+                """
+        );
+        // FETCH BACKWARD ALL
+        consumer = new TestingRowConsumer();
+        cursor.fetch(consumer, ScrollMode.RELATIVE, - Integer.MAX_VALUE);
+        assertThat(TestingHelpers.printedTable(consumer.getBucket())).isEqualTo(
+                """
+                5
+                4
+                3
+                2
+                1
+                """
+        );
+    }
+
+    @Test
     public void test_scrolling() throws Exception {
         BatchIterator<Row> rows = TestingBatchIterators.range(1, 6);
         Cursor cursor = new Cursor(

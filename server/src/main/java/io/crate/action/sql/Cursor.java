@@ -155,8 +155,8 @@ public final class Cursor implements AutoCloseable {
         if (lCount == Long.MAX_VALUE) {
             lCount = Integer.MAX_VALUE;
         }
-        if (lCount > Integer.MAX_VALUE) {
-            throw new IllegalArgumentException("Count must not exceed " + Integer.MAX_VALUE);
+        if (lCount == - Long.MAX_VALUE) {
+            lCount = - Integer.MAX_VALUE;
         }
         int count = (int) lCount;
         boolean moveForward = mode == ScrollMode.RELATIVE && count >= 0 || mode == ScrollMode.ABSOLUTE && count > cursorPosition;
