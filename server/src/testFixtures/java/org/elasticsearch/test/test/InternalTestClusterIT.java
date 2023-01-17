@@ -34,19 +34,19 @@ import org.elasticsearch.test.TestCluster;
 public class InternalTestClusterIT extends IntegTestCase {
 
     public void testStartingAndStoppingNodes() throws IOException {
-        logger.info("--> cluster has [{}] nodes", internalCluster().size());
-        if (internalCluster().size() < 5) {
-            final int nodesToStart = randomIntBetween(Math.max(2, internalCluster().size() + 1), 5);
+        logger.info("--> cluster has [{}] nodes", cluster().size());
+        if (cluster().size() < 5) {
+            final int nodesToStart = randomIntBetween(Math.max(2, cluster().size() + 1), 5);
             logger.info("--> growing to [{}] nodes", nodesToStart);
-            internalCluster().startNodes(nodesToStart);
+            cluster().startNodes(nodesToStart);
         }
         ensureGreen();
 
-        while (internalCluster().size() > 1) {
-            final int nodesToRemain = randomIntBetween(1, internalCluster().size() - 1);
+        while (cluster().size() > 1) {
+            final int nodesToRemain = randomIntBetween(1, cluster().size() - 1);
             logger.info("--> reducing to [{}] nodes", nodesToRemain);
-            internalCluster().ensureAtMostNumDataNodes(nodesToRemain);
-            assertThat(internalCluster().size(), lessThanOrEqualTo(nodesToRemain));
+            cluster().ensureAtMostNumDataNodes(nodesToRemain);
+            assertThat(cluster().size(), lessThanOrEqualTo(nodesToRemain));
         }
 
         ensureGreen();
@@ -57,30 +57,30 @@ public class InternalTestClusterIT extends IntegTestCase {
         // If the nodes shut down too quickly then this reconfiguration does not have time to occur and the quorum is lost in the 3->2
         // transition, even though in a stable cluster the 3->2 transition requires no special treatment.
 
-        internalCluster().startNodes(5);
+        cluster().startNodes(5);
         ensureGreen();
 
-        while (internalCluster().size() > 1) {
-            internalCluster().stopRandomNode(s -> true);
+        while (cluster().size() > 1) {
+            cluster().stopRandomNode(s -> true);
         }
 
         ensureGreen();
     }
 
     public void testOperationsDuringRestart() throws Exception {
-        internalCluster().startMasterOnlyNode();
-        internalCluster().startDataOnlyNodes(2);
-        internalCluster().restartRandomDataNode(new TestCluster.RestartCallback() {
+        cluster().startMasterOnlyNode();
+        cluster().startDataOnlyNodes(2);
+        cluster().restartRandomDataNode(new TestCluster.RestartCallback() {
             @Override
             public Settings onNodeStopped(String nodeName) throws Exception {
                 ensureGreen();
-                internalCluster().validateClusterFormed();
-                assertNotNull(internalCluster().getInstance(NodeClient.class));
-                internalCluster().restartRandomDataNode(new TestCluster.RestartCallback() {
+                cluster().validateClusterFormed();
+                assertNotNull(cluster().getInstance(NodeClient.class));
+                cluster().restartRandomDataNode(new TestCluster.RestartCallback() {
                     @Override
                     public Settings onNodeStopped(String nodeName) throws Exception {
                         ensureGreen();
-                        internalCluster().validateClusterFormed();
+                        cluster().validateClusterFormed();
                         return super.onNodeStopped(nodeName);
                     }
                 });

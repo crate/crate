@@ -93,7 +93,7 @@ public class AuthenticationIntegrationTest extends IntegTestCase {
 
     @Test
     public void testOptionsRequestDoesNotRequireAuth() throws Exception {
-        HttpServerTransport httpTransport = internalCluster().getInstance(HttpServerTransport.class);
+        HttpServerTransport httpTransport = cluster().getInstance(HttpServerTransport.class);
         InetSocketAddress address = httpTransport.boundAddress().publishAddress().address();
         String uri = String.format(Locale.ENGLISH, "http://%s:%s/", address.getHostName(), address.getPort());
         HttpOptions request = new HttpOptions(uri);

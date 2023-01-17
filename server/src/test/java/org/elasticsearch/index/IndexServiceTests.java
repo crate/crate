@@ -479,6 +479,6 @@ public class IndexServiceTests extends IntegTestCase {
     }
 
     private IndicesService getIndicesService() {
-        return internalCluster().getInstances(IndicesService.class).iterator().next();
+        return cluster().getInstances(IndicesService.class).iterator().next();
     }
 }

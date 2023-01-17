@@ -89,12 +89,12 @@ public abstract class BlobIntegrationTestBase extends IntegTestCase {
             }
         }));
 
-        internalCluster().wipeIndices("_all");
+        cluster().wipeIndices("_all");
         assertBusy(() -> forEachIndicesMap(i -> assertThat(i.keySet()).isEmpty()));
     }
 
     private void forEachIndicesMap(Consumer<Map<String, BlobIndex>> consumer) {
-        Iterable<BlobIndicesService> blobIndicesServices = internalCluster().getInstances(BlobIndicesService.class);
+        Iterable<BlobIndicesService> blobIndicesServices = cluster().getInstances(BlobIndicesService.class);
         for (BlobIndicesService blobIndicesService : blobIndicesServices) {
             try {
                 Map<String, BlobIndex> indices = (Map<String, BlobIndex>) indicesField.get(blobIndicesService);

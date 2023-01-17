@@ -75,13 +75,13 @@ public class BlobStoreIncrementalityIT extends AbstractSnapshotIntegTestCase {
     @UseRandomizedSchema(random = false)
     @Test
     public void testIncrementalBehaviorOnPrimaryFailover() throws Exception {
-        internalCluster().startMasterOnlyNode();
-        final String primaryNode = internalCluster().startDataOnlyNode();
+        cluster().startMasterOnlyNode();
+        final String primaryNode = cluster().startDataOnlyNode();
         final String indexName = "test_index";
         execute("CREATE TABLE " + indexName + "(a string) " +
                 "CLUSTERED INTO 1 SHARDS WITH(number_of_replicas=1,\"unassigned.node_left.delayed_timeout\"=0)");
         ensureYellow();
-        final String newPrimary = internalCluster().startDataOnlyNode();
+        final String newPrimary = cluster().startDataOnlyNode();
         ensureGreen();
 
         logger.info("--> adding some documents to test index");
@@ -121,7 +121,7 @@ public class BlobStoreIncrementalityIT extends AbstractSnapshotIntegTestCase {
         ensureRestoreSingleShardSuccessfully(repo, indexName, snapshot2, documentCountOriginal);
         assertCountInIndexThenDelete(indexName, documentCountOriginal);
 
-        String newNewPrimary = internalCluster().startDataOnlyNode();
+        String newNewPrimary = cluster().startDataOnlyNode();
         ensureGreen();
 
         // Originally the test restores the index with different name, and here it deletes some
@@ -167,8 +167,8 @@ public class BlobStoreIncrementalityIT extends AbstractSnapshotIntegTestCase {
     @UseRandomizedSchema(random = false)
     @Test
     public void testForceMergeCausesFullSnapshot() throws Exception {
-        internalCluster().startMasterOnlyNode();
-        internalCluster().ensureAtLeastNumDataNodes(2);
+        cluster().startMasterOnlyNode();
+        cluster().ensureAtLeastNumDataNodes(2);
         final String indexName = "test_index";
         execute("CREATE TABLE " + indexName + "(a string) CLUSTERED INTO 1 SHARDS");
         ensureGreen();
@@ -205,7 +205,7 @@ public class BlobStoreIncrementalityIT extends AbstractSnapshotIntegTestCase {
         execute("CREATE SNAPSHOT " + repo + "." + snapshot2 + " TABLE " + indexName + " WITH (wait_for_completion = true)");
 
         logger.info("--> asserting that the two snapshots refer to different files in the repository");
-        final RepositoriesService repositoriesService = internalCluster().getInstance(RepositoriesService.class);
+        final RepositoriesService repositoriesService = cluster().getInstance(RepositoriesService.class);
         final SnapshotInfo snapshotInfo2 = client().admin().cluster()
             .execute(GetSnapshotsAction.INSTANCE, new GetSnapshotsRequest(repo, new String[] { snapshot2 }))
             .get()
@@ -241,7 +241,7 @@ public class BlobStoreIncrementalityIT extends AbstractSnapshotIntegTestCase {
         logger.info(
             "--> asserting that snapshots [{}] and [{}] are referring to the same files in the repository", snapshot1, snapshot2);
 
-        final RepositoriesService repositoriesService = internalCluster().getInstance(RepositoriesService.class, dataNode);
+        final RepositoriesService repositoriesService = cluster().getInstance(RepositoriesService.class, dataNode);
         final SnapshotInfo snapshotInfo1 = client().admin().cluster()
             .execute(GetSnapshotsAction.INSTANCE, new GetSnapshotsRequest(repo, new String[] { snapshot1 }))
             .get()

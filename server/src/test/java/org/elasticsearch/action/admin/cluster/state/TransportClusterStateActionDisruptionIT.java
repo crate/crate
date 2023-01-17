@@ -79,7 +79,7 @@ public class TransportClusterStateActionDisruptionIT extends IntegTestCase {
 
     public void testLocalRequestAlwaysSucceeds() throws Exception {
         runRepeatedlyWhileChangingMaster(() -> {
-            final String node = randomFrom(internalCluster().getNodeNames());
+            final String node = randomFrom(cluster().getNodeNames());
             var discoveryNodes = FutureUtils.get(
                 client(node).admin().cluster().state(
                     new ClusterStateRequest()
@@ -100,9 +100,9 @@ public class TransportClusterStateActionDisruptionIT extends IntegTestCase {
     @Test
     public void testNonLocalRequestAlwaysFindsMasterAndWaitsForMetadata() throws Exception {
         runRepeatedlyWhileChangingMaster(() -> {
-            final String node = randomFrom(internalCluster().getNodeNames());
+            final String node = randomFrom(cluster().getNodeNames());
             final long metadataVersion
-                = internalCluster().getInstance(ClusterService.class, node).getClusterApplierService().state().metadata().version();
+                = cluster().getInstance(ClusterService.class, node).getClusterApplierService().state().metadata().version();
             final long waitForMetadataVersion = randomLongBetween(Math.max(1, metadataVersion - 3), metadataVersion + 5);
             var clusterStateRequest = new ClusterStateRequest()
                 .clear()
@@ -127,9 +127,9 @@ public class TransportClusterStateActionDisruptionIT extends IntegTestCase {
 
     public void testLocalRequestWaitsForMetadata() throws Exception {
         runRepeatedlyWhileChangingMaster(() -> {
-            final String node = randomFrom(internalCluster().getNodeNames());
+            final String node = randomFrom(cluster().getNodeNames());
             final long metadataVersion
-                = internalCluster().getInstance(ClusterService.class, node).getClusterApplierService().state().metadata().version();
+                = cluster().getInstance(ClusterService.class, node).getClusterApplierService().state().metadata().version();
             final long waitForMetadataVersion = randomLongBetween(Math.max(1, metadataVersion - 3), metadataVersion + 5);
             final ClusterStateResponse clusterStateResponse = FutureUtils.get(client(node).admin().cluster()
                 .state(
@@ -150,7 +150,7 @@ public class TransportClusterStateActionDisruptionIT extends IntegTestCase {
     }
 
     public void runRepeatedlyWhileChangingMaster(Runnable runnable) throws Exception {
-        internalCluster().startNodes(3);
+        cluster().startNodes(3);
 
         assertBusy(() -> {
             var request = new ClusterStateRequest().clear().metadata(true);
@@ -165,7 +165,7 @@ public class TransportClusterStateActionDisruptionIT extends IntegTestCase {
             assertThat(nodes, hasSize(3));
         });
 
-        final String masterName = internalCluster().getMasterName();
+        final String masterName = cluster().getMasterName();
 
         final AtomicBoolean shutdown = new AtomicBoolean();
         final Thread assertingThread = new Thread(() -> {
@@ -178,7 +178,7 @@ public class TransportClusterStateActionDisruptionIT extends IntegTestCase {
             String value = "none";
             while (shutdown.get() == false) {
                 value = "none".equals(value) ? "all" : "none";
-                final String nonMasterNode = randomValueOtherThan(masterName, () -> randomFrom(internalCluster().getNodeNames()));
+                final String nonMasterNode = randomValueOtherThan(masterName, () -> randomFrom(cluster().getNodeNames()));
 
                 var response = FutureUtils.get(client(nonMasterNode).admin().cluster().execute(
                     ClusterUpdateSettingsAction.INSTANCE,
@@ -190,14 +190,14 @@ public class TransportClusterStateActionDisruptionIT extends IntegTestCase {
         }, "updating thread");
 
         final List<MockTransportService> mockTransportServices
-            = StreamSupport.stream(internalCluster().getInstances(TransportService.class).spliterator(), false)
+            = StreamSupport.stream(cluster().getInstances(TransportService.class).spliterator(), false)
             .map(ts -> (MockTransportService) ts).collect(Collectors.toList());
 
         assertingThread.start();
         updatingThread.start();
 
         final MockTransportService masterTransportService
-            = (MockTransportService) internalCluster().getInstance(TransportService.class, masterName);
+            = (MockTransportService) cluster().getInstance(TransportService.class, masterName);
 
         for (MockTransportService mockTransportService : mockTransportServices) {
             if (masterTransportService != mockTransportService) {
@@ -207,15 +207,15 @@ public class TransportClusterStateActionDisruptionIT extends IntegTestCase {
         }
 
         assertBusy(() -> {
-            final String nonMasterNode = randomValueOtherThan(masterName, () -> randomFrom(internalCluster().getNodeNames()));
-            final String claimedMasterName = internalCluster().getMasterName(nonMasterNode);
+            final String nonMasterNode = randomValueOtherThan(masterName, () -> randomFrom(cluster().getNodeNames()));
+            final String claimedMasterName = cluster().getMasterName(nonMasterNode);
             assertThat(claimedMasterName, not(equalTo(masterName)));
         });
 
         shutdown.set(true);
         assertingThread.join();
         updatingThread.join();
-        internalCluster().close();
+        cluster().close();
     }
 
 }

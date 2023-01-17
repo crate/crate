@@ -39,10 +39,10 @@ import org.junit.Test;
 public class NodeEnvironmentIT extends IntegTestCase {
 
     private IllegalStateException expectThrowsOnRestart(CheckedConsumer<Path[], Exception> onNodeStopped) {
-        internalCluster().startNode();
-        final Path[] dataPaths = internalCluster().getInstance(NodeEnvironment.class).nodeDataPaths();
+        cluster().startNode();
+        final Path[] dataPaths = cluster().getInstance(NodeEnvironment.class).nodeDataPaths();
         return expectThrows(IllegalStateException.class,
-                            () -> internalCluster().restartRandomDataNode(new TestCluster.RestartCallback() {
+                            () -> cluster().restartRandomDataNode(new TestCluster.RestartCallback() {
                                 @Override
                                 public Settings onNodeStopped(String nodeName) {
                                     try {

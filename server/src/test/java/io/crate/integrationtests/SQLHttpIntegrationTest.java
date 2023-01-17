@@ -86,7 +86,7 @@ public abstract class SQLHttpIntegrationTest extends IntegTestCase {
 
     @Before
     public void setup() {
-        HttpServerTransport httpServerTransport = internalCluster().getInstance(HttpServerTransport.class);
+        HttpServerTransport httpServerTransport = cluster().getInstance(HttpServerTransport.class);
         address = httpServerTransport.boundAddress().publishAddress().address();
         httpPost = new HttpPost(String.format(Locale.ENGLISH,
             "%s://%s:%s/_sql?error_trace",

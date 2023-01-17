@@ -61,16 +61,16 @@ public class DiscoveryDisruptionIT extends AbstractDisruptionTestCase {
      */
     @Test
     public void testClusterJoinDespiteOfPublishingIssues() throws Exception {
-        String masterNode = internalCluster().startMasterOnlyNode();
-        String nonMasterNode = internalCluster().startDataOnlyNode();
+        String masterNode = cluster().startMasterOnlyNode();
+        String nonMasterNode = cluster().startDataOnlyNode();
 
-        DiscoveryNodes discoveryNodes = internalCluster().getInstance(ClusterService.class, nonMasterNode).state().nodes();
+        DiscoveryNodes discoveryNodes = cluster().getInstance(ClusterService.class, nonMasterNode).state().nodes();
 
         TransportService masterTranspotService =
-                internalCluster().getInstance(TransportService.class, discoveryNodes.getMasterNode().getName());
+                cluster().getInstance(TransportService.class, discoveryNodes.getMasterNode().getName());
 
         logger.info("blocking requests from non master [{}] to master [{}]", nonMasterNode, masterNode);
-        MockTransportService nonMasterTransportService = (MockTransportService) internalCluster().getInstance(
+        MockTransportService nonMasterTransportService = (MockTransportService) cluster().getInstance(
             TransportService.class,
             nonMasterNode);
         nonMasterTransportService.addFailToSendNoConnectRule(masterTranspotService);
@@ -79,9 +79,9 @@ public class DiscoveryDisruptionIT extends AbstractDisruptionTestCase {
 
         logger.info("blocking cluster state publishing from master [{}] to non master [{}]", masterNode, nonMasterNode);
         MockTransportService masterTransportService =
-                (MockTransportService) internalCluster().getInstance(TransportService.class, masterNode);
+                (MockTransportService) cluster().getInstance(TransportService.class, masterNode);
         TransportService localTransportService =
-                internalCluster().getInstance(TransportService.class, discoveryNodes.getLocalNode().getName());
+                cluster().getInstance(TransportService.class, discoveryNodes.getLocalNode().getName());
         if (randomBoolean()) {
             masterTransportService.addFailToSendNoConnectRule(localTransportService, PublicationTransportHandler.PUBLISH_STATE_ACTION_NAME);
         } else {
@@ -109,7 +109,7 @@ public class DiscoveryDisruptionIT extends AbstractDisruptionTestCase {
 
         // shutting down the nodes, to avoid the leakage check tripping
         // on the states associated with the commit requests we may have dropped
-        internalCluster().stopRandomNonMasterNode();
+        cluster().stopRandomNonMasterNode();
     }
 
     @Test
@@ -118,11 +118,11 @@ public class DiscoveryDisruptionIT extends AbstractDisruptionTestCase {
         SlowClusterStateProcessing disruption = new SlowClusterStateProcessing(random(), 0, 0, 1000, 2000);
 
         // don't wait for initial state, we want to add the disruption while the cluster is forming
-        internalCluster().startNodes(3);
+        cluster().startNodes(3);
 
         logger.info("applying disruption while cluster is forming ...");
 
-        internalCluster().setDisruptionScheme(disruption);
+        cluster().setDisruptionScheme(disruption);
         disruption.startDisrupting();
 
         ensureStableCluster(3);
@@ -130,21 +130,21 @@ public class DiscoveryDisruptionIT extends AbstractDisruptionTestCase {
 
     @Test
     public void testElectMasterWithLatestVersion() throws Exception {
-        final Set<String> nodes = new HashSet<>(internalCluster().startNodes(3));
+        final Set<String> nodes = new HashSet<>(cluster().startNodes(3));
         ensureStableCluster(3);
         ServiceDisruptionScheme isolateAllNodes =
                 new NetworkDisruption(new NetworkDisruption.IsolateAllNodes(nodes), new NetworkDisconnect());
-        internalCluster().setDisruptionScheme(isolateAllNodes);
+        cluster().setDisruptionScheme(isolateAllNodes);
 
         logger.info("--> forcing a complete election to make sure \"preferred\" master is elected");
         isolateAllNodes.startDisrupting();
         for (String node : nodes) {
             assertNoMaster(node);
         }
-        internalCluster().clearDisruptionScheme();
+        cluster().clearDisruptionScheme();
         ensureStableCluster(3);
-        final String preferredMasterName = internalCluster().getMasterName();
-        final DiscoveryNode preferredMaster = internalCluster().clusterService(preferredMasterName).localNode();
+        final String preferredMasterName = cluster().getMasterName();
+        final DiscoveryNode preferredMaster = cluster().clusterService(preferredMasterName).localNode();
         logger.info("--> preferred master is {}", preferredMaster);
         final Set<String> nonPreferredNodes = new HashSet<>(nodes);
         nonPreferredNodes.remove(preferredMasterName);
@@ -153,14 +153,14 @@ public class DiscoveryDisruptionIT extends AbstractDisruptionTestCase {
                         new NetworkDisruption.TwoPartitions(
                                 Collections.singleton(preferredMasterName), nonPreferredNodes),
                         new NetworkDisconnect());
-        internalCluster().setDisruptionScheme(isolatePreferredMaster);
+        cluster().setDisruptionScheme(isolatePreferredMaster);
         isolatePreferredMaster.startDisrupting();
 
         execute("create table t (id int primary key, x string) clustered into 1 shards " +
                 "with (number_of_replicas = 0)", null, randomFrom(nonPreferredNodes));
 
-        internalCluster().clearDisruptionScheme(false);
-        internalCluster().setDisruptionScheme(isolateAllNodes);
+        cluster().clearDisruptionScheme(false);
+        cluster().setDisruptionScheme(isolateAllNodes);
 
         logger.info("--> forcing a complete election again");
         isolateAllNodes.startDisrupting();
@@ -186,23 +186,23 @@ public class DiscoveryDisruptionIT extends AbstractDisruptionTestCase {
     public void testNodeNotReachableFromMaster() throws Exception {
         startCluster(3);
 
-        String masterNode = internalCluster().getMasterName();
+        String masterNode = cluster().getMasterName();
         String nonMasterNode = null;
         while (nonMasterNode == null) {
-            nonMasterNode = randomFrom(internalCluster().getNodeNames());
+            nonMasterNode = randomFrom(cluster().getNodeNames());
             if (nonMasterNode.equals(masterNode)) {
                 nonMasterNode = null;
             }
         }
 
         logger.info("blocking request from master [{}] to [{}]", masterNode, nonMasterNode);
-        MockTransportService masterTransportService = (MockTransportService) internalCluster().getInstance(
+        MockTransportService masterTransportService = (MockTransportService) cluster().getInstance(
             TransportService.class,
             masterNode);
         if (randomBoolean()) {
-            masterTransportService.addUnresponsiveRule(internalCluster().getInstance(TransportService.class, nonMasterNode));
+            masterTransportService.addUnresponsiveRule(cluster().getInstance(TransportService.class, nonMasterNode));
         } else {
-            masterTransportService.addFailToSendNoConnectRule(internalCluster().getInstance(TransportService.class, nonMasterNode));
+            masterTransportService.addFailToSendNoConnectRule(cluster().getInstance(TransportService.class, nonMasterNode));
         }
 
         logger.info("waiting for [{}] to be removed from cluster", nonMasterNode);

@@ -113,7 +113,7 @@ public class SysClusterSettingsTest extends IntegTestCase {
         assertSettingsValue(JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getKey(), 2);
         assertSettingsValue(JobsLogService.STATS_ENABLED_SETTING.getKey(), false);
 
-        internalCluster().fullRestart();
+        cluster().fullRestart();
 
         execute("select settings from sys.cluster");
         assertSettingsDefault(JobsLogService.STATS_JOBS_LOG_SIZE_SETTING);
@@ -128,7 +128,7 @@ public class SysClusterSettingsTest extends IntegTestCase {
         execute("select settings from sys.cluster");
         assertSettingsValue(JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getKey(), 100);
 
-        internalCluster().fullRestart();
+        cluster().fullRestart();
         // the gateway recovery is async and
         // it might take a bit until it reads the persisted cluster state and updates the settings expression
         assertBusy(() -> {
@@ -190,7 +190,7 @@ public class SysClusterSettingsTest extends IntegTestCase {
     @Test
     public void test_set_cluster_info_update_interval() throws Exception {
         execute("set global transient \"cluster.info.update.interval\" = '45s'");
-        var clusterService = internalCluster().getInstance(ClusterInfoService.class);
+        var clusterService = cluster().getInstance(ClusterInfoService.class);
         Field f1 = clusterService.getClass().getDeclaredField("updateFrequency");
         f1.setAccessible(true);
         assertThat(f1.get(clusterService), is(TimeValue.timeValueSeconds(45)));

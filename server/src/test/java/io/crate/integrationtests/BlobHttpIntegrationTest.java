@@ -82,13 +82,13 @@ public abstract class BlobHttpIntegrationTest extends BlobIntegrationTestBase {
 
     @Before
     public void setup() throws ExecutionException, InterruptedException {
-        randomNode = internalCluster().getInstances(HttpServerTransport.class)
+        randomNode = cluster().getInstances(HttpServerTransport.class)
             .iterator().next().boundAddress().publishAddress().address();
-        Iterable<HttpServerTransport> transports = internalCluster().getDataNodeInstances(HttpServerTransport.class);
+        Iterable<HttpServerTransport> transports = cluster().getDataNodeInstances(HttpServerTransport.class);
         Iterator<HttpServerTransport> httpTransports = transports.iterator();
         dataNode1 = httpTransports.next().boundAddress().publishAddress().address();
         dataNode2 = httpTransports.next().boundAddress().publishAddress().address();
-        BlobAdminClient blobAdminClient = internalCluster().getInstance(BlobAdminClient.class);
+        BlobAdminClient blobAdminClient = cluster().getInstance(BlobAdminClient.class);
 
         Settings indexSettings = Settings.builder()
             .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 0)
@@ -110,7 +110,7 @@ public abstract class BlobHttpIntegrationTest extends BlobIntegrationTestBase {
 
     @After
     public void assertNoActiveTransfersRemaining() throws Exception {
-        Iterable<BlobTransferTarget> transferTargets = internalCluster().getInstances(BlobTransferTarget.class);
+        Iterable<BlobTransferTarget> transferTargets = cluster().getInstances(BlobTransferTarget.class);
         final Field activeTransfersField = BlobTransferTarget.class.getDeclaredField("activeTransfers");
         activeTransfersField.setAccessible(true);
         assertBusy(() -> {

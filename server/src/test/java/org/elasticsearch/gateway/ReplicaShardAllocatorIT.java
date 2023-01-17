@@ -79,7 +79,7 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
     @Test
     public void testPreferCopyCanPerformNoopRecovery() throws Exception {
         String indexName = "test";
-        String nodeWithPrimary = internalCluster().startNode();
+        String nodeWithPrimary = cluster().startNode();
         execute("""
             create table doc.test (x int)
             clustered into 1 shards with (
@@ -91,8 +91,8 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
             )
         """);
 
-        String nodeWithReplica = internalCluster().startDataOnlyNode();
-        Settings nodeWithReplicaSettings = internalCluster().dataPathSettings(nodeWithReplica);
+        String nodeWithReplica = cluster().startDataOnlyNode();
+        Settings nodeWithReplicaSettings = cluster().dataPathSettings(nodeWithReplica);
         ensureGreen(indexName);
 
         execute("insert into doc.test (x) values (?)", new Object[]{randomIntBetween(100, 500)});
@@ -102,14 +102,14 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
         }
 
         ensureActivePeerRecoveryRetentionLeasesAdvanced(indexName);
-        internalCluster().stopRandomNode(TestCluster.nameFilter(nodeWithReplica));
+        cluster().stopRandomNode(TestCluster.nameFilter(nodeWithReplica));
         if (randomBoolean()) {
             execute("optimize table doc.test with(flush = true)");
         }
         CountDownLatch blockRecovery = new CountDownLatch(1);
         CountDownLatch recoveryStarted = new CountDownLatch(1);
         MockTransportService transportServiceOnPrimary
-            = (MockTransportService) internalCluster().getInstance(TransportService.class, nodeWithPrimary);
+            = (MockTransportService) cluster().getInstance(TransportService.class, nodeWithPrimary);
         transportServiceOnPrimary.addSendBehavior((connection, requestId, action, request, options) -> {
             if (PeerRecoveryTargetService.Actions.FILES_INFO.equals(action)) {
                 recoveryStarted.countDown();
@@ -122,16 +122,16 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
             connection.sendRequest(requestId, action, request, options);
         });
         try {
-            internalCluster().startDataOnlyNode();
+            cluster().startDataOnlyNode();
             recoveryStarted.await();
-            nodeWithReplica = internalCluster().startDataOnlyNode(nodeWithReplicaSettings);
+            nodeWithReplica = cluster().startDataOnlyNode(nodeWithReplicaSettings);
             // AllocationService only calls GatewayAllocator if there're unassigned shards
             execute("""
                 create table doc.dummy (x int)
                 with ("number_of_replicas" = 1, "write.wait_for_active_shards" = 0)
             """);
             ensureGreen(indexName);
-            assertThat(internalCluster().nodesInclude(indexName), hasItem(nodeWithReplica));
+            assertThat(cluster().nodesInclude(indexName), hasItem(nodeWithReplica));
             assertNoOpRecoveries(indexName);
             blockRecovery.countDown();
         } finally {
@@ -146,7 +146,7 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
     @Test
     public void testRecentPrimaryInformation() throws Exception {
         String indexName = "test";
-        String nodeWithPrimary = internalCluster().startNode();
+        String nodeWithPrimary = cluster().startNode();
 
         execute("""
             create table doc.test (x int)
@@ -158,9 +158,9 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
                 "unassigned.node_left.delayed_timeout" = '1ms'
             )
         """);
-        String nodeWithReplica = internalCluster().startDataOnlyNode();
-        DiscoveryNode discoNodeWithReplica = internalCluster().getInstance(ClusterService.class, nodeWithReplica).localNode();
-        Settings nodeWithReplicaSettings = internalCluster().dataPathSettings(nodeWithReplica);
+        String nodeWithReplica = cluster().startDataOnlyNode();
+        DiscoveryNode discoNodeWithReplica = cluster().getInstance(ClusterService.class, nodeWithReplica).localNode();
+        Settings nodeWithReplicaSettings = cluster().dataPathSettings(nodeWithReplica);
         ensureGreen(indexName);
         execute("insert into doc.test (x) values (?)", new Object[][] {
             new Object[] { randomIntBetween(10, 100) },
@@ -172,7 +172,7 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
                 .get(5, TimeUnit.SECONDS);
             assertThat(syncedFlushResponse.successfulShards(), equalTo(2));
         });
-        internalCluster().stopRandomNode(TestCluster.nameFilter(nodeWithReplica));
+        cluster().stopRandomNode(TestCluster.nameFilter(nodeWithReplica));
         if (randomBoolean()) {
             execute("insert into doc.test (x) values (?)", new Object[][] {
                 new Object[] { randomIntBetween(10, 100) },
@@ -182,7 +182,7 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
         CountDownLatch blockRecovery = new CountDownLatch(1);
         CountDownLatch recoveryStarted = new CountDownLatch(1);
         MockTransportService transportServiceOnPrimary
-            = (MockTransportService) internalCluster().getInstance(TransportService.class, nodeWithPrimary);
+            = (MockTransportService) cluster().getInstance(TransportService.class, nodeWithPrimary);
         transportServiceOnPrimary.addSendBehavior((connection, requestId, action, request, options) -> {
             if (PeerRecoveryTargetService.Actions.FILES_INFO.equals(action)) {
                 recoveryStarted.countDown();
@@ -195,7 +195,7 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
             connection.sendRequest(requestId, action, request, options);
         });
         try {
-            String newNode = internalCluster().startDataOnlyNode();
+            String newNode = cluster().startDataOnlyNode();
             recoveryStarted.await(5, TimeUnit.SECONDS);
             // Index more documents and flush to destroy sync_id and remove the retention lease (as file_based_recovery_threshold reached).
             execute("insert into doc.test (x) values (?)", new Object[][] {
@@ -214,7 +214,7 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
                 create table doc.dummy (x int)
                 with ("number_of_replicas" = 1, "write.wait_for_active_shards" = 0)
             """);
-            internalCluster().startDataOnlyNode(nodeWithReplicaSettings);
+            cluster().startDataOnlyNode(nodeWithReplicaSettings);
             // need to wait for events to ensure the reroute has happened since we perform it async when a new node joins.
             FutureUtils.get(
                 client().admin().cluster().health(
@@ -227,7 +227,7 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
             );
             blockRecovery.countDown();
             ensureGreen(indexName);
-            assertThat(internalCluster().nodesInclude(indexName), hasItem(newNode));
+            assertThat(cluster().nodesInclude(indexName), hasItem(newNode));
 
             execute("select recovery['files'] from sys.shards where table_name = 'test'");
             for (var row : response.rows()) {
@@ -241,7 +241,7 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
     @Test
     public void testFullClusterRestartPerformNoopRecovery() throws Exception {
         int numOfReplicas = randomIntBetween(1, 2);
-        internalCluster().ensureAtLeastNumDataNodes(numOfReplicas + 2);
+        cluster().ensureAtLeastNumDataNodes(numOfReplicas + 2);
         String indexName = "test";
 
         execute("""
@@ -271,7 +271,7 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
             execute("alter table doc.test close");
         }
         execute("set global \"cluster.routing.allocation.enable\" = 'primaries'");
-        internalCluster().fullRestart();
+        cluster().fullRestart();
         ensureYellow(indexName);
         execute("reset global \"cluster.routing.allocation.enable\"");
         ensureGreen(indexName);
@@ -285,8 +285,8 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
      * this behavior by changing the global checkpoint in phase1 to unassigned.
      */
     public void testSimulateRecoverySourceOnOldNode() throws Exception {
-        internalCluster().startMasterOnlyNode();
-        String source = internalCluster().startDataOnlyNode();
+        cluster().startMasterOnlyNode();
+        String source = cluster().startDataOnlyNode();
         String indexName = "test";
 
         execute("""
@@ -305,8 +305,8 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
             execute("optimize table doc.test");
         }
 
-        internalCluster().startDataOnlyNode();
-        MockTransportService transportService = (MockTransportService) internalCluster().getInstance(TransportService.class, source);
+        cluster().startDataOnlyNode();
+        MockTransportService transportService = (MockTransportService) cluster().getInstance(TransportService.class, source);
         Semaphore failRecovery = new Semaphore(1);
         transportService.addSendBehavior((connection, requestId, action, request, options) -> {
             if (action.equals(PeerRecoveryTargetService.Actions.CLEAN_FILES)) {
@@ -333,8 +333,8 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
      */
     @Test
     public void testDoNotCancelRecoveryForBrokenNode() throws Exception {
-        internalCluster().startMasterOnlyNode();
-        String nodeWithPrimary = internalCluster().startDataOnlyNode();
+        cluster().startMasterOnlyNode();
+        String nodeWithPrimary = cluster().startDataOnlyNode();
         String indexName = "test";
 
         execute("""
@@ -349,9 +349,9 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
         ensureGreen(indexName);
         execute("insert into doc.test (x) values (?)", new Object[]{randomIntBetween(200, 500)});
 
-        String brokenNode = internalCluster().startDataOnlyNode();
+        String brokenNode = cluster().startDataOnlyNode();
         MockTransportService transportService =
-            (MockTransportService) internalCluster().getInstance(TransportService.class, nodeWithPrimary);
+            (MockTransportService) cluster().getInstance(TransportService.class, nodeWithPrimary);
         CountDownLatch newNodeStarted = new CountDownLatch(1);
         transportService.addSendBehavior((connection, requestId, action, request, options) -> {
             if (action.equals(PeerRecoveryTargetService.Actions.TRANSLOG_OPS)) {
@@ -367,7 +367,7 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
             connection.sendRequest(requestId, action, request, options);
         });
         execute("alter table doc.test set (number_of_replicas=1)");
-        internalCluster().startDataOnlyNode();
+        cluster().startDataOnlyNode();
         newNodeStarted.countDown();
         ensureGreen(indexName);
         transportService.clearAllRules();

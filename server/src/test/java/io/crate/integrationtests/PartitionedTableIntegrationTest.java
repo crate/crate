@@ -1077,7 +1077,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
             .getTemplates(new GetIndexTemplatesRequest(PartitionName.templateName(Schemas.DOC_SCHEMA_NAME, "quotes"))).get();
         assertThat(getIndexTemplatesResponse.getIndexTemplates().size(), is(0));
 
-        ClusterState state = internalCluster().clusterService().state();
+        ClusterState state = cluster().clusterService().state();
         assertThat(state.metadata().indices().size(), is(0));
         assertThat(state.metadata().hasAlias("quotes"), is(false));
     }

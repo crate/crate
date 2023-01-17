@@ -43,7 +43,7 @@ public class TablesNeedUpgradeSysCheckTest extends IntegTestCase {
             TestUtil.unzip(stream, indexDir);
         }
         Settings.Builder builder = Settings.builder().put(Environment.PATH_DATA_SETTING.getKey(), indexDir.toAbsolutePath());
-        internalCluster().startNode(builder.build());
+        cluster().startNode(builder.build());
         ensureGreen();
     }
 

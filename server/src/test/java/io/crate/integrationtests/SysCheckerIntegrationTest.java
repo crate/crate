@@ -43,8 +43,8 @@ public class SysCheckerIntegrationTest extends IntegTestCase {
 
     @Test
     public void testChecksPresenceAndSeverityLevels() throws Exception {
-        internalCluster().startNode(internalCluster().getDefaultSettings());
-        internalCluster().ensureAtLeastNumDataNodes(1);
+        cluster().startNode(cluster().getDefaultSettings());
+        cluster().ensureAtLeastNumDataNodes(1);
 
         SQLResponse response = execute("select severity, passed from sys.checks order by id asc");
         assertThat(response.rowCount(), equalTo(2L));
@@ -54,8 +54,8 @@ public class SysCheckerIntegrationTest extends IntegTestCase {
 
     @Test
     public void testNumberOfPartitionCheckPassedForDocTablesCustomAndDefaultSchemas() {
-        internalCluster().startNode();
-        internalCluster().ensureAtLeastNumDataNodes(1);
+        cluster().startNode();
+        cluster().ensureAtLeastNumDataNodes(1);
         execute("create table foo.bar (id int) partitioned by (id)");
         execute("create table bar (id int) partitioned by (id)");
         execute("insert into foo.bar (id) values (?)", new Object[]{1});
@@ -66,9 +66,9 @@ public class SysCheckerIntegrationTest extends IntegTestCase {
 
     @Test
     public void testSelectingConcurrentlyFromSysCheckPassesWithoutExceptions() throws Exception {
-        internalCluster().startNode();
-        internalCluster().startNode();
-        internalCluster().ensureAtLeastNumDataNodes(2);
+        cluster().startNode();
+        cluster().startNode();
+        cluster().ensureAtLeastNumDataNodes(2);
 
         List<CompletableFuture<SQLResponse>> responses = new ArrayList<>();
         for (int i = 0; i < 20; i++) {

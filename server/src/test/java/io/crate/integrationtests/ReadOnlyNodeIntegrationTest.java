@@ -58,7 +58,7 @@ public class ReadOnlyNodeIntegrationTest extends IntegTestCase {
                 @Override
                 public Client client() {
                     // make sure we use the read-only client
-                    return internalCluster().client(internalCluster().getNodeNames()[1]);
+                    return cluster().client(cluster().getNodeNames()[1]);
                 }
 
                 @Override
@@ -68,7 +68,7 @@ public class ReadOnlyNodeIntegrationTest extends IntegTestCase {
 
                 @Override
                 public Sessions sqlOperations() {
-                    return internalCluster().getInstance(Sessions.class, internalCluster().getNodeNames()[1]);
+                    return cluster().getInstance(Sessions.class, cluster().getNodeNames()[1]);
                 }
             }
         ));
@@ -100,7 +100,7 @@ public class ReadOnlyNodeIntegrationTest extends IntegTestCase {
                     @Override
                     public Client client() {
                         // make sure we use NOT the read-only client
-                        return internalCluster().client(internalCluster().getNodeNames()[0]);
+                        return cluster().client(cluster().getNodeNames()[0]);
                     }
 
                     @Nullable
@@ -112,7 +112,7 @@ public class ReadOnlyNodeIntegrationTest extends IntegTestCase {
                     @Override
                     public Sessions sqlOperations() {
                         // make sure we use NOT the read-only operations
-                        return internalCluster().getInstance(Sessions.class, internalCluster().getNodeNames()[0]);
+                        return cluster().getInstance(Sessions.class, cluster().getNodeNames()[0]);
                     }
                 }
             );

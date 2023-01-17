@@ -55,26 +55,26 @@ public class VotingConfigurationIT extends IntegTestCase {
     }
 
     public void testAbdicateAfterVotingConfigExclusionAdded() throws ExecutionException, InterruptedException {
-        internalCluster().setBootstrapMasterNodeIndex(0);
-        internalCluster().startNodes(2);
-        final String originalMaster = internalCluster().getMasterName();
+        cluster().setBootstrapMasterNodeIndex(0);
+        cluster().startNodes(2);
+        final String originalMaster = cluster().getMasterName();
 
         logger.info("--> excluding master node {}", originalMaster);
         client().execute(AddVotingConfigExclusionsAction.INSTANCE,
             new AddVotingConfigExclusionsRequest(new String[]{originalMaster})).get();
         FutureUtils.get(client().admin().cluster().health(new ClusterHealthRequest().waitForEvents(Priority.LANGUID)));
-        assertNotEquals(originalMaster, internalCluster().getMasterName());
+        assertNotEquals(originalMaster, cluster().getMasterName());
     }
 
     public void testElectsNodeNotInVotingConfiguration() throws Exception {
-        internalCluster().setBootstrapMasterNodeIndex(0);
-        final List<String> nodeNames = internalCluster().startNodes(4);
+        cluster().setBootstrapMasterNodeIndex(0);
+        final List<String> nodeNames = cluster().startNodes(4);
 
         // a 4-node cluster settles on a 3-node configuration; we then prevent the nodes in the configuration from winning an election
         // by failing at the pre-voting stage, so that the extra node must be elected instead when the master shuts down. This extra node
         // should then add itself into the voting configuration.
 
-        var clusterHealthResponse = FutureUtils.get(internalCluster().client().admin().cluster().health(
+        var clusterHealthResponse = FutureUtils.get(cluster().client().admin().cluster().health(
             new ClusterHealthRequest()
                 .waitForNodes("4")
                 .waitForEvents(Priority.LANGUID)
@@ -82,7 +82,7 @@ public class VotingConfigurationIT extends IntegTestCase {
         assertFalse(clusterHealthResponse.isTimedOut());
 
         String excludedNodeName = null;
-        final ClusterState clusterState = internalCluster().client().admin().cluster().state(
+        final ClusterState clusterState = cluster().client().admin().cluster().state(
             new ClusterStateRequest()
                 .clear()
                 .nodes(true)
@@ -104,9 +104,9 @@ public class VotingConfigurationIT extends IntegTestCase {
                 continue;
             }
             final MockTransportService senderTransportService
-                = (MockTransportService) internalCluster().getInstance(TransportService.class, sender);
+                = (MockTransportService) cluster().getInstance(TransportService.class, sender);
             for (final String receiver : nodeNames) {
-                senderTransportService.addSendBehavior(internalCluster().getInstance(TransportService.class, receiver),
+                senderTransportService.addSendBehavior(cluster().getInstance(TransportService.class, receiver),
                     (connection, requestId, action, request, options) -> {
                         if (action.equals(PreVoteCollector.REQUEST_PRE_VOTE_ACTION_NAME)) {
                             throw new ElasticsearchException("rejected");
@@ -116,15 +116,15 @@ public class VotingConfigurationIT extends IntegTestCase {
             }
         }
 
-        internalCluster().stopCurrentMasterNode();
-        clusterHealthResponse = FutureUtils.get(internalCluster().client().admin().cluster().health(
+        cluster().stopCurrentMasterNode();
+        clusterHealthResponse = FutureUtils.get(cluster().client().admin().cluster().health(
             new ClusterHealthRequest()
                 .waitForNodes("3")
                 .waitForEvents(Priority.LANGUID)
             ));
         assertFalse(clusterHealthResponse.isTimedOut());
 
-        final ClusterState newClusterState = internalCluster().client().admin().cluster().state(
+        final ClusterState newClusterState = cluster().client().admin().cluster().state(
             new ClusterStateRequest()
                 .clear()
                 .nodes(true)

@@ -81,11 +81,11 @@ public abstract class AdminUIHttpIntegrationTest extends IntegTestCase {
 
     @Before
     public void setup() throws IOException {
-        Iterable<HttpServerTransport> transports = internalCluster().getInstances(HttpServerTransport.class);
+        Iterable<HttpServerTransport> transports = cluster().getInstances(HttpServerTransport.class);
         Iterator<HttpServerTransport> httpTransports = transports.iterator();
         address = httpTransports.next().boundAddress().publishAddress().address();
         // place index file
-        final Path indexDirectory = internalCluster().getInstance(Environment.class).libFile().resolve("site");
+        final Path indexDirectory = cluster().getInstance(Environment.class).libFile().resolve("site");
         Files.createDirectories(indexDirectory);
         final Path indexFile = indexDirectory.resolve("index.html");
         Files.write(indexFile, Collections.singletonList("<h1>Crate Admin</h1>"), Charset.forName("UTF-8"));

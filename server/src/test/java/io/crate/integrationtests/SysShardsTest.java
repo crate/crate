@@ -94,7 +94,7 @@ public class SysShardsTest extends IntegTestCase {
         // path + /blobs == blob_path without custom blob path
         assertThat(response.rows()[0][0] + resolveCanonicalString("/blobs"), is(response.rows()[0][1]));
 
-        ClusterService clusterService = internalCluster().getInstance(ClusterService.class);
+        ClusterService clusterService = cluster().getInstance(ClusterService.class);
         Metadata metadata = clusterService.state().getMetadata();
         IndexMetadata index = metadata.index(".blob_b2");
         String indexUUID = index.getIndexUUID();

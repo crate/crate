@@ -36,7 +36,7 @@ public class GCDanglingArtifactsITest extends IntegTestCase {
         execute("create table doc.t1 (x int)");
         createIndex(".resized.foobar");
 
-        ClusterService clusterService = internalCluster().getInstance(ClusterService.class);
+        ClusterService clusterService = cluster().getInstance(ClusterService.class);
         assertThat(clusterService.state().metadata().hasIndex(".resized.foobar"), is(true));
 
         execute("alter cluster gc dangling artifacts");

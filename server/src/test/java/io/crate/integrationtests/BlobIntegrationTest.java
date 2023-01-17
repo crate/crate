@@ -404,7 +404,7 @@ public class BlobIntegrationTest extends BlobHttpIntegrationTest {
 
     @Nullable
     private BlobShard getBlobShard(String digest) {
-        Iterable<BlobIndicesService> services = internalCluster().getInstances(BlobIndicesService.class);
+        Iterable<BlobIndicesService> services = cluster().getInstances(BlobIndicesService.class);
         Iterator<BlobIndicesService> it = services.iterator();
         BlobShard blobShard = null;
         while (it.hasNext()) {

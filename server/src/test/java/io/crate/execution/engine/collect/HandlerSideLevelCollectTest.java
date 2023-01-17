@@ -85,8 +85,8 @@ public class HandlerSideLevelCollectTest extends IntegTestCase {
 
     @Before
     public void prepare() {
-        operation = internalCluster().getDataNodeInstance(MapSideDataCollectOperation.class);
-        functions = internalCluster().getInstance(Functions.class);
+        operation = cluster().getDataNodeInstance(MapSideDataCollectOperation.class);
+        functions = cluster().getInstance(Functions.class);
     }
 
     private RoutedCollectPhase collectNode(Routing routing,
@@ -112,7 +112,7 @@ public class HandlerSideLevelCollectTest extends IntegTestCase {
 
     @Test
     public void testClusterLevel() throws Exception {
-        Schemas schemas = internalCluster().getInstance(Schemas.class);
+        Schemas schemas = cluster().getInstance(Schemas.class);
         TableInfo tableInfo = schemas.getTableInfo(new RelationName("sys", "cluster"));
         Routing routing = tableInfo.getRouting(
             clusterService().state(),
@@ -142,7 +142,7 @@ public class HandlerSideLevelCollectTest extends IntegTestCase {
 
     @Test
     public void testInformationSchemaTables() throws Exception {
-        InformationSchemaInfo schemaInfo = internalCluster().getInstance(InformationSchemaInfo.class);
+        InformationSchemaInfo schemaInfo = cluster().getInstance(InformationSchemaInfo.class);
         TableInfo tablesTableInfo = schemaInfo.getTableInfo("tables");
         Routing routing = tablesTableInfo.getRouting(
             clusterService().state(),
@@ -167,7 +167,7 @@ public class HandlerSideLevelCollectTest extends IntegTestCase {
 
     @Test
     public void testInformationSchemaColumns() throws Exception {
-        InformationSchemaInfo schemaInfo = internalCluster().getInstance(InformationSchemaInfo.class);
+        InformationSchemaInfo schemaInfo = cluster().getInstance(InformationSchemaInfo.class);
         TableInfo tableInfo = schemaInfo.getTableInfo("columns");
         assert tableInfo != null;
         Routing routing = tableInfo.getRouting(

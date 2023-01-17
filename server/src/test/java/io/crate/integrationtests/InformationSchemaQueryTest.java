@@ -85,7 +85,7 @@ public class InformationSchemaQueryTest extends IntegTestCase {
 
     @Test
     public void testConcurrentUnassignedShardsReferenceResolver() throws Exception {
-        internalCluster().ensureAtMostNumDataNodes(1);
+        cluster().ensureAtMostNumDataNodes(1);
         execute("create table t1 (col1 integer) " +
                 "clustered into 1 shards ");
         execute("create table t2 (col1 integer) " +

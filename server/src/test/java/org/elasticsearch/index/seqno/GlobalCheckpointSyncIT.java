@@ -46,12 +46,12 @@ import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.test.InternalSettingsPlugin;
 import org.elasticsearch.test.transport.MockTransportService;
 import org.elasticsearch.transport.TransportService;
 
 import io.crate.common.unit.TimeValue;
-import org.elasticsearch.test.IntegTestCase;
 
 public class GlobalCheckpointSyncIT extends IntegTestCase {
 
@@ -64,7 +64,7 @@ public class GlobalCheckpointSyncIT extends IntegTestCase {
     }
 
     public void testGlobalCheckpointSyncWithAsyncDurability() throws Exception {
-        internalCluster().ensureAtLeastNumDataNodes(2);
+        cluster().ensureAtLeastNumDataNodes(2);
         execute(
             "create table test(id integer) clustered into 1 shards with" +
             "(\"global_checkpoint_sync.interval\" = '1s', \"translog.durability\" = 'ASYNC', \"translog.sync_interval\" = '1s', number_of_replicas = 1)");
@@ -113,9 +113,9 @@ public class GlobalCheckpointSyncIT extends IntegTestCase {
                                 continue;
                             }
                             final MockTransportService senderTransportService =
-                                    (MockTransportService) internalCluster().getInstance(TransportService.class, node.getName());
+                                    (MockTransportService) cluster().getInstance(TransportService.class, node.getName());
                             final MockTransportService receiverTransportService =
-                                    (MockTransportService) internalCluster().getInstance(TransportService.class, other.getName());
+                                    (MockTransportService) cluster().getInstance(TransportService.class, other.getName());
                             senderTransportService.addSendBehavior(receiverTransportService,
                                 (connection, requestId, action, request, options) -> {
                                     if ("indices:admin/seq_no/global_checkpoint_sync[r]".equals(action)) {
@@ -139,9 +139,9 @@ public class GlobalCheckpointSyncIT extends IntegTestCase {
                                 continue;
                             }
                             final MockTransportService senderTransportService =
-                                    (MockTransportService) internalCluster().getInstance(TransportService.class, node.getName());
+                                    (MockTransportService) cluster().getInstance(TransportService.class, node.getName());
                             final MockTransportService receiverTransportService =
-                                    (MockTransportService) internalCluster().getInstance(TransportService.class, other.getName());
+                                    (MockTransportService) cluster().getInstance(TransportService.class, other.getName());
                             senderTransportService.clearOutboundRules(receiverTransportService);
                         }
                     }
@@ -153,7 +153,7 @@ public class GlobalCheckpointSyncIT extends IntegTestCase {
         final BiConsumer<String, Client> beforeIndexing,
         final BiConsumer<String, Client> afterIndexing) throws Exception {
         final int numberOfReplicas = randomIntBetween(1, 4);
-        internalCluster().ensureAtLeastNumDataNodes(1 + numberOfReplicas);
+        cluster().ensureAtLeastNumDataNodes(1 + numberOfReplicas);
         execute(
             "create table test(id integer) clustered into 1 shards with" +
             "(\"global_checkpoint_sync.interval\" = ?, number_of_replicas = ?)",
@@ -221,7 +221,7 @@ public class GlobalCheckpointSyncIT extends IntegTestCase {
     }
 
     public void testPersistGlobalCheckpoint() throws Exception {
-        internalCluster().ensureAtLeastNumDataNodes(2);
+        cluster().ensureAtLeastNumDataNodes(2);
         if (randomBoolean()) {
             execute(
                 "create table test(id integer) clustered into 1 shards with" +
@@ -244,7 +244,7 @@ public class GlobalCheckpointSyncIT extends IntegTestCase {
         }
         ensureGreen(getFqn("test"));
         assertBusy(() -> {
-            for (IndicesService indicesService : internalCluster().getDataNodeInstances(IndicesService.class)) {
+            for (IndicesService indicesService : cluster().getDataNodeInstances(IndicesService.class)) {
                 for (IndexService indexService : indicesService) {
                     for (IndexShard shard : indexService) {
                         final SeqNoStats seqNoStats = shard.seqNoStats();
@@ -258,7 +258,7 @@ public class GlobalCheckpointSyncIT extends IntegTestCase {
     }
 
     public void testPersistLocalCheckpoint() {
-        internalCluster().ensureAtLeastNumDataNodes(2);
+        cluster().ensureAtLeastNumDataNodes(2);
         execute(
             "create table test(id integer) clustered into 1 shards with" +
             "(\"global_checkpoint_sync.interval\" = ?, \"translog.durability\" = ?, number_of_replicas = ?)",
@@ -274,7 +274,7 @@ public class GlobalCheckpointSyncIT extends IntegTestCase {
             maxSeqNo = (long) execute("insert into test(id) values(?) returning _seq_no", new Object[]{i}).rows()[0][0];
             logger.info("got {}", maxSeqNo);
         }
-        for (IndicesService indicesService : internalCluster().getDataNodeInstances(IndicesService.class)) {
+        for (IndicesService indicesService : cluster().getDataNodeInstances(IndicesService.class)) {
             for (IndexService indexService : indicesService) {
                 for (IndexShard shard : indexService) {
                     final SeqNoStats seqNoStats = shard.seqNoStats();

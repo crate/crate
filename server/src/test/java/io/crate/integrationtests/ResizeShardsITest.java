@@ -55,7 +55,7 @@ public class ResizeShardsITest extends IntegTestCase {
 
         execute("refresh table quotes");
 
-        ClusterService clusterService = internalCluster().getInstance(ClusterService.class);
+        ClusterService clusterService = cluster().getInstance(ClusterService.class);
         final String resizeNodeName = getADataNodeName(clusterService.state());
 
         execute("alter table quotes set (\"routing.allocation.require._name\"=?, \"blocks.write\"=?)",
@@ -92,7 +92,7 @@ public class ResizeShardsITest extends IntegTestCase {
         final String resizeIndex = ".resized." + getFqn("quotes");
         createIndex(resizeIndex);
 
-        ClusterService clusterService = internalCluster().getInstance(ClusterService.class);
+        ClusterService clusterService = cluster().getInstance(ClusterService.class);
         assertThat(clusterService.state().metadata().hasIndex(resizeIndex), is(true));
 
         final String resizeNodeName = getADataNodeName(clusterService.state());
@@ -129,7 +129,7 @@ public class ResizeShardsITest extends IntegTestCase {
         );
         execute("refresh table quotes");
 
-        ClusterService clusterService = internalCluster().getInstance(ClusterService.class);
+        ClusterService clusterService = cluster().getInstance(ClusterService.class);
         final String resizeNodeName = getADataNodeName(clusterService.state());
 
         execute("alter table quotes partition (date=1395874800000) " +

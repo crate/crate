@@ -106,7 +106,7 @@ public class PrimaryAllocationIT extends IntegTestCase {
         NetworkDisruption partition = new NetworkDisruption(
             new TwoPartitions(Set.of(master, replicaNode), Collections.singleton(primaryNode)),
             new NetworkDisconnect());
-        internalCluster().setDisruptionScheme(partition);
+        cluster().setDisruptionScheme(partition);
         logger.info("--> partitioning node with primary shard from rest of cluster");
         partition.startDisrupting();
 
@@ -116,8 +116,8 @@ public class PrimaryAllocationIT extends IntegTestCase {
         systemExecute("insert into t values ('value2')", schema, replicaNode);
 
         logger.info("--> shut down node that has new acknowledged document");
-        final Settings inSyncDataPathSettings = internalCluster().dataPathSettings(replicaNode);
-        internalCluster().stopRandomNode(TestCluster.nameFilter(replicaNode));
+        final Settings inSyncDataPathSettings = cluster().dataPathSettings(replicaNode);
+        cluster().stopRandomNode(TestCluster.nameFilter(replicaNode));
 
         ensureStableCluster(1, master);
 
@@ -129,7 +129,7 @@ public class PrimaryAllocationIT extends IntegTestCase {
         logger.info("--> check that old primary shard does not get promoted to primary again");
         // kick reroute and wait for all shard states to be fetched
         client(master).admin().cluster().execute(ClusterRerouteAction.INSTANCE, new ClusterRerouteRequest()).get();
-        assertBusy(() -> assertThat(internalCluster().getInstance(AllocationService.class, master).getNumberOfInFlightFetches(),
+        assertBusy(() -> assertThat(cluster().getInstance(AllocationService.class, master).getNumberOfInFlightFetches(),
             equalTo(0)));
         // kick reroute a second time and check that all shards are unassigned
         var clusterRerouteResponse = client(master).admin().cluster().execute(ClusterRerouteAction.INSTANCE, new ClusterRerouteRequest()).get();
@@ -140,15 +140,15 @@ public class PrimaryAllocationIT extends IntegTestCase {
     @Test
     public void testDoNotAllowStaleReplicasToBePromotedToPrimary() throws Exception {
         logger.info("--> starting 3 nodes, 1 master, 2 data");
-        String master = internalCluster().startMasterOnlyNode(Settings.EMPTY);
-        internalCluster().startDataOnlyNode(Settings.EMPTY);
-        internalCluster().startDataOnlyNode(Settings.EMPTY);
+        String master = cluster().startMasterOnlyNode(Settings.EMPTY);
+        cluster().startDataOnlyNode(Settings.EMPTY);
+        cluster().startDataOnlyNode(Settings.EMPTY);
         execute("create table t (x string) clustered into 1 shards with (number_of_replicas = 1, \"write.wait_for_active_shards\" = 1)");
         ensureGreen();
         final Settings inSyncDataPathSettings = createStaleReplicaScenario(master, schema, indexName);
 
         logger.info("--> starting node that reuses data folder with the up-to-date primary shard");
-        internalCluster().startDataOnlyNode(inSyncDataPathSettings);
+        cluster().startDataOnlyNode(inSyncDataPathSettings);
 
         logger.info("--> check that the up-to-date primary shard gets promoted and that documents are available");
         ensureYellow(indexName);
@@ -158,18 +158,18 @@ public class PrimaryAllocationIT extends IntegTestCase {
 
     @Test
     public void testDoNotRemoveAllocationIdOnNodeLeave() throws Exception {
-        internalCluster().startMasterOnlyNode(Settings.EMPTY);
-        internalCluster().startDataOnlyNode(Settings.EMPTY);
+        cluster().startMasterOnlyNode(Settings.EMPTY);
+        cluster().startDataOnlyNode(Settings.EMPTY);
         execute("create table t (x string) clustered into 1 shards with (number_of_replicas = 1, " +
                 "\"write.wait_for_active_shards\" = 1, \"unassigned.node_left.delayed_timeout\" = 0)");
-        String replicaNode = internalCluster().startDataOnlyNode(Settings.EMPTY);
+        String replicaNode = cluster().startDataOnlyNode(Settings.EMPTY);
         ensureGreen();
-        final Settings inSyncDataPathSettings = internalCluster().dataPathSettings(replicaNode);
-        internalCluster().stopRandomNode(TestCluster.nameFilter(replicaNode));
+        final Settings inSyncDataPathSettings = cluster().dataPathSettings(replicaNode);
+        cluster().stopRandomNode(TestCluster.nameFilter(replicaNode));
         ensureYellow();
         assertEquals(2, client().admin().cluster().state(new ClusterStateRequest()).get().getState().metadata().index(indexName)
             .inSyncAllocationIds(0).size());
-        internalCluster().restartRandomDataNode(new TestCluster.RestartCallback() {
+        cluster().restartRandomDataNode(new TestCluster.RestartCallback() {
             @Override
             public boolean clearData(String nodeName) {
                 return true;
@@ -182,20 +182,20 @@ public class PrimaryAllocationIT extends IntegTestCase {
             .metadata().index(indexName).inSyncAllocationIds(0).size());
 
         logger.info("--> starting node that reuses data folder with the up-to-date shard");
-        internalCluster().startDataOnlyNode(inSyncDataPathSettings);
+        cluster().startDataOnlyNode(inSyncDataPathSettings);
         ensureGreen();
     }
 
     @Test
     public void testRemoveAllocationIdOnWriteAfterNodeLeave() throws Exception {
-        internalCluster().startMasterOnlyNode(Settings.EMPTY);
-        internalCluster().startDataOnlyNode(Settings.EMPTY);
+        cluster().startMasterOnlyNode(Settings.EMPTY);
+        cluster().startDataOnlyNode(Settings.EMPTY);
         execute("create table t (x string) clustered into 1 shards with (number_of_replicas = 1, " +
                 "\"write.wait_for_active_shards\" = 1, \"unassigned.node_left.delayed_timeout\" = 0)");
-        String replicaNode = internalCluster().startDataOnlyNode(Settings.EMPTY);
-        final Settings inSyncDataPathSettings = internalCluster().dataPathSettings(replicaNode);
+        String replicaNode = cluster().startDataOnlyNode(Settings.EMPTY);
+        final Settings inSyncDataPathSettings = cluster().dataPathSettings(replicaNode);
         ensureGreen();
-        internalCluster().stopRandomNode(TestCluster.nameFilter(replicaNode));
+        cluster().stopRandomNode(TestCluster.nameFilter(replicaNode));
         ensureYellow();
         assertEquals(2, client().admin().cluster().state(new ClusterStateRequest()).get().getState()
             .metadata().index(indexName).inSyncAllocationIds(0).size());
@@ -203,7 +203,7 @@ public class PrimaryAllocationIT extends IntegTestCase {
         execute("insert into t values ('value1')");
         assertEquals(1, client().admin().cluster().state(new ClusterStateRequest()).get().getState()
             .metadata().index(indexName).inSyncAllocationIds(0).size());
-        internalCluster().restartRandomDataNode(new TestCluster.RestartCallback() {
+        cluster().restartRandomDataNode(new TestCluster.RestartCallback() {
             @Override
             public boolean clearData(String nodeName) {
                 return true;
@@ -216,7 +216,7 @@ public class PrimaryAllocationIT extends IntegTestCase {
             .metadata().index(indexName).inSyncAllocationIds(0).size());
 
         logger.info("--> starting node that reuses data folder with the up-to-date shard");
-        internalCluster().startDataOnlyNode(inSyncDataPathSettings);
+        cluster().startDataOnlyNode(inSyncDataPathSettings);
         assertBusy(() -> assertTrue(client().admin().cluster().state(new ClusterStateRequest()).get().getState()
             .getRoutingTable().index(indexName).allPrimaryShardsUnassigned()));
     }
@@ -224,7 +224,7 @@ public class PrimaryAllocationIT extends IntegTestCase {
     @Test
     public void testNotWaitForQuorumCopies() throws Exception {
         logger.info("--> starting 3 nodes");
-        List<String> nodes = internalCluster().startNodes(3);
+        List<String> nodes = cluster().startNodes(3);
         int numberOfShards = randomIntBetween(1, 3);
         logger.info("--> creating index with {} primary and 2 replicas", numberOfShards);
         execute("create table t (x string) clustered into " + numberOfShards +
@@ -232,9 +232,9 @@ public class PrimaryAllocationIT extends IntegTestCase {
         ensureGreen();
         execute("insert into t values ('value1')");
         logger.info("--> removing 2 nodes from cluster");
-        internalCluster().stopRandomNode(TestCluster.nameFilter(nodes.get(1), nodes.get(2)));
-        internalCluster().stopRandomNode(TestCluster.nameFilter(nodes.get(1), nodes.get(2)));
-        internalCluster().restartRandomDataNode();
+        cluster().stopRandomNode(TestCluster.nameFilter(nodes.get(1), nodes.get(2)));
+        cluster().stopRandomNode(TestCluster.nameFilter(nodes.get(1), nodes.get(2)));
+        cluster().restartRandomDataNode();
         logger.info("--> checking that index still gets allocated with only 1 shard copy being available");
         ensureYellow();
         execute("select * from t");
@@ -249,13 +249,13 @@ public class PrimaryAllocationIT extends IntegTestCase {
     @Test
     public void testForceAllocatePrimaryOnNoDecision() throws Exception {
         logger.info("--> starting 1 node");
-        final String node = internalCluster().startNode();
+        final String node = cluster().startNode();
         logger.info("--> creating index with 1 primary and 0 replicas");
         execute("create table t (x string) clustered into 1 shards with (number_of_replicas = 0)");
         logger.info("--> update the settings to prevent allocation to the data node");
         execute("set global cluster.routing.allocation.exclude._name = '" + node + "'");
         logger.info("--> full cluster restart");
-        internalCluster().fullRestart();
+        cluster().fullRestart();
         logger.info("--> checking that the primary shard is force allocated to the data node despite being blocked by the exclude filter");
         ensureGreen();
         assertEquals(1, client().admin().cluster().state(new ClusterStateRequest()).get().getState()
@@ -269,13 +269,13 @@ public class PrimaryAllocationIT extends IntegTestCase {
                  "org.elasticsearch.indices.recovery:TRACE, org.elasticsearch.cluster.routing.allocation.allocator:TRACE")
     @Test
     public void testPrimaryReplicaResyncFailed() throws Exception {
-        String master = internalCluster().startMasterOnlyNode(Settings.EMPTY);
+        String master = cluster().startMasterOnlyNode(Settings.EMPTY);
         final int numberOfReplicas = between(2, 3);
-        final String oldPrimary = internalCluster().startDataOnlyNode();
+        final String oldPrimary = cluster().startDataOnlyNode();
         execute("create table t (x string) clustered into 1 shards " +
                 "with (number_of_replicas = " + numberOfReplicas + ", \"write.wait_for_active_shards\" = 1)");
         final ShardId shardId = new ShardId(clusterService().state().metadata().index(indexName).getIndex(), 0);
-        final Set<String> replicaNodes = new HashSet<>(internalCluster().startDataOnlyNodes(numberOfReplicas));
+        final Set<String> replicaNodes = new HashSet<>(cluster().startDataOnlyNodes(numberOfReplicas));
         ensureGreen();
         String timeout = randomFrom("0s", "1s", "2s");
         execute("SET GLOBAL cluster.routing.allocation.enable = 'none'");
@@ -286,7 +286,7 @@ public class PrimaryAllocationIT extends IntegTestCase {
         for (int i = 0; i < numDocs; i++) {
             execute("insert into t values ('" + (numDocs + i) + "')");
         }
-        final IndexShard oldPrimaryShard = internalCluster().getInstance(IndicesService.class, oldPrimary).getShardOrNull(shardId);
+        final IndexShard oldPrimaryShard = cluster().getInstance(IndicesService.class, oldPrimary).getShardOrNull(shardId);
         EngineTestCase.generateNewSeqNo(IndexShardTestCase.getEngine(oldPrimaryShard)); // Make gap in seqno.
         long moreDocs = scaledRandomIntBetween(1, 10);
         for (int i = 0; i < moreDocs; i++) {
@@ -295,10 +295,10 @@ public class PrimaryAllocationIT extends IntegTestCase {
         final Set<String> replicasSide1 = Set.copyOf(randomSubsetOf(between(1, numberOfReplicas - 1), replicaNodes));
         final Set<String> replicasSide2 = Sets.difference(replicaNodes, replicasSide1);
         NetworkDisruption partition = new NetworkDisruption(new TwoPartitions(replicasSide1, replicasSide2), new NetworkDisconnect());
-        internalCluster().setDisruptionScheme(partition);
+        cluster().setDisruptionScheme(partition);
         logger.info("--> isolating some replicas during primary-replica resync");
         partition.startDisrupting();
-        internalCluster().stopRandomNode(TestCluster.nameFilter(oldPrimary));
+        cluster().stopRandomNode(TestCluster.nameFilter(oldPrimary));
         // Checks that we fail replicas in one side but not mark them as stale.
         assertBusy(() -> {
             ClusterState state = client(master).admin().cluster().state(new ClusterStateRequest()).get().getState();
@@ -314,17 +314,17 @@ public class PrimaryAllocationIT extends IntegTestCase {
         }, 1, TimeUnit.MINUTES);
         execute("SET GLOBAL cluster.routing.allocation.enable = 'all'");
         partition.stopDisrupting();
-        partition.ensureHealthy(internalCluster());
+        partition.ensureHealthy(cluster());
         logger.info("--> stop disrupting network and re-enable allocation");
         assertBusy(() -> {
             ClusterState state = client(master).admin().cluster().state(new ClusterStateRequest()).get().getState();
             assertThat(state.routingTable().shardRoutingTable(shardId).activeShards(), hasSize(numberOfReplicas));
             assertThat(state.metadata().index(indexName).inSyncAllocationIds(shardId.id()), hasSize(numberOfReplicas + 1));
             for (String node : replicaNodes) {
-                IndexShard shard = internalCluster().getInstance(IndicesService.class, node).getShardOrNull(shardId);
+                IndexShard shard = cluster().getInstance(IndicesService.class, node).getShardOrNull(shardId);
                 assertThat(shard.getLocalCheckpoint(), equalTo(numDocs + moreDocs));
             }
         }, 30, TimeUnit.SECONDS);
-        internalCluster().assertConsistentHistoryBetweenTranslogAndLuceneIndex();
+        cluster().assertConsistentHistoryBetweenTranslogAndLuceneIndex();
     }
 }

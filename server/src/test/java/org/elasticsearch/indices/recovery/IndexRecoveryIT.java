@@ -167,9 +167,9 @@ public class IndexRecoveryIT extends IntegTestCase {
     @Override
     protected void beforeIndexDeletion() throws Exception {
         super.beforeIndexDeletion();
-        internalCluster().assertConsistentHistoryBetweenTranslogAndLuceneIndex();
-        internalCluster().assertSeqNos();
-        internalCluster().assertSameDocIdsOnShards();
+        cluster().assertConsistentHistoryBetweenTranslogAndLuceneIndex();
+        cluster().assertSeqNos();
+        cluster().assertSameDocIdsOnShards();
     }
 
     private void assertRecoveryStateWithoutStage(RecoveryState state, int shardId, RecoverySource recoverySource, boolean primary,
@@ -278,12 +278,12 @@ public class IndexRecoveryIT extends IntegTestCase {
     @Test
     public void testGatewayRecovery() throws Exception {
         logger.info("--> start nodes");
-        String node = internalCluster().startNode();
+        String node = cluster().startNode();
 
         createAndPopulateIndex(INDEX_NAME, 1, SHARD_COUNT, REPLICA_COUNT);
 
         logger.info("--> restarting cluster");
-        internalCluster().fullRestart();
+        cluster().fullRestart();
         ensureGreen();
 
         logger.info("--> request recoveries");
@@ -305,12 +305,12 @@ public class IndexRecoveryIT extends IntegTestCase {
     @Test
     public void testGatewayRecoveryTestActiveOnly() throws Exception {
         logger.info("--> start nodes");
-        internalCluster().startNode();
+        cluster().startNode();
 
         createAndPopulateIndex(INDEX_NAME, 1, SHARD_COUNT, REPLICA_COUNT);
 
         logger.info("--> restarting cluster");
-        internalCluster().fullRestart();
+        cluster().fullRestart();
         ensureGreen();
 
         logger.info("--> request recoveries");
@@ -321,7 +321,7 @@ public class IndexRecoveryIT extends IntegTestCase {
 
     @Test
     public void testReplicaRecovery() throws Exception {
-        final String nodeA = internalCluster().startNode();
+        final String nodeA = cluster().startNode();
 
         execute("CREATE TABLE " + INDEX_NAME + " (id BIGINT, data TEXT) " +
                 " CLUSTERED INTO " + SHARD_COUNT + " SHARDS WITH (number_of_replicas=" + REPLICA_COUNT + ")");
@@ -353,7 +353,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         }
 
         // force a shard recovery from nodeA to nodeB
-        final String nodeB = internalCluster().startNode();
+        final String nodeB = cluster().startNode();
         execute("ALTER TABLE " + INDEX_NAME + " SET (number_of_replicas=1)");
         ensureGreen();
 
@@ -390,7 +390,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         assertRecoveryState(nodeBRecoveryState, 0, RecoverySource.PeerRecoverySource.INSTANCE, false, RecoveryState.Stage.DONE, nodeA, nodeB);
         validateIndexRecoveryState(nodeBRecoveryState.getIndex());
 
-        internalCluster().stopRandomNode(TestCluster.nameFilter(nodeA));
+        cluster().stopRandomNode(TestCluster.nameFilter(nodeA));
 
         if (closedIndex) {
             execute("ALTER TABLE " + INDEX_NAME + " OPEN");
@@ -402,21 +402,21 @@ public class IndexRecoveryIT extends IntegTestCase {
     @Test
     public void testCancelNewShardRecoveryAndUsesExistingShardCopy() throws Exception {
         logger.info("--> start node A");
-        final String nodeA = internalCluster().startNode();
+        final String nodeA = cluster().startNode();
 
         logger.info("--> create index on node: {}", nodeA);
         createAndPopulateIndex(INDEX_NAME, 1, SHARD_COUNT, REPLICA_COUNT);
 
         logger.info("--> start node B");
         // force a shard recovery from nodeA to nodeB
-        final String nodeB = internalCluster().startNode();
+        final String nodeB = cluster().startNode();
 
         logger.info("--> add replica for {} on node: {}", INDEX_NAME, nodeB);
         execute("ALTER TABLE " + INDEX_NAME + " SET (number_of_replicas=1, \"unassigned.node_left.delayed_timeout\"=0)");
         ensureGreen();
 
         logger.info("--> start node C");
-        final String nodeC = internalCluster().startNode();
+        final String nodeC = cluster().startNode();
 
         // do sync flush to gen sync id
         execute("OPTIMIZE TABLE " + INDEX_NAME);
@@ -425,7 +425,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         // hold peer recovery on phase 2 after nodeB down
         CountDownLatch phase1ReadyBlocked = new CountDownLatch(1);
         CountDownLatch allowToCompletePhase1Latch = new CountDownLatch(1);
-        MockTransportService transportService = (MockTransportService) internalCluster().getInstance(TransportService.class, nodeA);
+        MockTransportService transportService = (MockTransportService) cluster().getInstance(TransportService.class, nodeA);
         transportService.addSendBehavior((connection, requestId, action, request, options) -> {
             if (PeerRecoveryTargetService.Actions.CLEAN_FILES.equals(action)) {
                 phase1ReadyBlocked.countDown();
@@ -439,7 +439,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         });
 
         logger.info("--> restart node B");
-        internalCluster().restartNode(
+        cluster().restartNode(
             nodeB,
             new TestCluster.RestartCallback() {
                 @Override
@@ -481,7 +481,7 @@ public class IndexRecoveryIT extends IntegTestCase {
     @Test
     public void testRerouteRecovery() throws Exception {
         logger.info("--> start node A");
-        final String nodeA = internalCluster().startNode();
+        final String nodeA = cluster().startNode();
 
         logger.info("--> create index on node: {}", nodeA);
         createAndPopulateIndex(INDEX_NAME, 1, SHARD_COUNT, REPLICA_COUNT);
@@ -489,7 +489,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         long shardSize = (long) response.rows()[0][0];
 
         logger.info("--> start node B");
-        final String nodeB = internalCluster().startNode();
+        final String nodeB = cluster().startNode();
 
         ensureGreen();
 
@@ -502,10 +502,10 @@ public class IndexRecoveryIT extends IntegTestCase {
         logger.info("--> waiting for recovery to start both on source and target");
         final Index index = resolveIndex(IndexParts.toIndexName(sqlExecutor.getCurrentSchema(), INDEX_NAME, null));
         assertBusy(() -> {
-            IndicesService indicesService = internalCluster().getInstance(IndicesService.class, nodeA);
+            IndicesService indicesService = cluster().getInstance(IndicesService.class, nodeA);
             assertThat(indicesService.indexServiceSafe(index).getShard(0).recoveryStats().currentAsSource(),
                        equalTo(1));
-            indicesService = internalCluster().getInstance(IndicesService.class, nodeB);
+            indicesService = cluster().getInstance(IndicesService.class, nodeB);
             assertThat(indicesService.indexServiceSafe(index).getShard(0).recoveryStats().currentAsTarget(),
                        equalTo(1));
         });
@@ -528,13 +528,13 @@ public class IndexRecoveryIT extends IntegTestCase {
 
         logger.info("--> request node recovery stats");
 
-        IndicesService indicesServiceNodeA = internalCluster().getInstance(IndicesService.class, nodeA);
+        IndicesService indicesServiceNodeA = cluster().getInstance(IndicesService.class, nodeA);
         var recoveryStatsNodeA = indicesServiceNodeA.indexServiceSafe(index).getShard(0).recoveryStats();
         assertThat("node A should have ongoing recovery as source", recoveryStatsNodeA.currentAsSource(), equalTo(1));
         assertThat("node A should not have ongoing recovery as target", recoveryStatsNodeA.currentAsTarget(), equalTo(0));
         long nodeAThrottling = recoveryStatsNodeA.throttleTime().millis();
 
-        IndicesService indicesServiceNodeB = internalCluster().getInstance(IndicesService.class, nodeB);
+        IndicesService indicesServiceNodeB = cluster().getInstance(IndicesService.class, nodeB);
         var recoveryStatsNodeB = indicesServiceNodeB.indexServiceSafe(index).getShard(0).recoveryStats();
         assertThat("node B should not have ongoing recovery as source", recoveryStatsNodeB.currentAsSource(), equalTo(0));
         assertThat("node B should have ongoing recovery as target", recoveryStatsNodeB.currentAsTarget(), equalTo(1));
@@ -566,7 +566,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         assertRecoveryState(recoveryStates.get(0), 0, RecoverySource.PeerRecoverySource.INSTANCE, true, RecoveryState.Stage.DONE, nodeA, nodeB);
         validateIndexRecoveryState(recoveryStates.get(0).getIndex());
         Consumer<String> assertNodeHasThrottleTimeAndNoRecoveries = nodeName ->  {
-            IndicesService indicesService = internalCluster().getInstance(IndicesService.class, nodeName);
+            IndicesService indicesService = cluster().getInstance(IndicesService.class, nodeName);
             var recoveryStats = indicesService.indexServiceSafe(index).getShard(0).recoveryStats();
             assertThat(recoveryStats.currentAsSource(), equalTo(0));
             assertThat(recoveryStats.currentAsTarget(), equalTo(0));
@@ -590,7 +590,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         assertBusy(() -> assertNodeHasThrottleTimeAndNoRecoveries.accept(nodeB));
 
         logger.info("--> start node C");
-        String nodeC = internalCluster().startNode();
+        String nodeC = cluster().startNode();
         assertFalse(client().admin().cluster().health(new ClusterHealthRequest().waitForNodes("3")).get().isTimedOut());
 
         logger.info("--> slowing down recoveries");
@@ -621,7 +621,7 @@ public class IndexRecoveryIT extends IntegTestCase {
 
         if (randomBoolean()) {
             // shutdown node with relocation source of replica shard and check if recovery continues
-            internalCluster().stopRandomNode(TestCluster.nameFilter(nodeA));
+            cluster().stopRandomNode(TestCluster.nameFilter(nodeA));
             ensureStableCluster(2);
 
             response = client().execute(RecoveryAction.INSTANCE, new RecoveryRequest(index.getName())).get();
@@ -666,7 +666,7 @@ public class IndexRecoveryIT extends IntegTestCase {
     @Test
     public void testSnapshotRecovery() throws Exception {
         logger.info("--> start node A");
-        String nodeA = internalCluster().startNode();
+        String nodeA = cluster().startNode();
 
         logger.info("--> create repository");
         execute("CREATE REPOSITORY " + REPO_NAME + " TYPE FS WITH (location = '" + randomRepoPath() + "', compress=false)");
@@ -698,7 +698,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         var indexName = IndexParts.toIndexName(sqlExecutor.getCurrentSchema(), INDEX_NAME, null);
         RecoveryResponse response = client().execute(RecoveryAction.INSTANCE, new RecoveryRequest(indexName)).get();
 
-        Repository repository = internalCluster().getMasterNodeInstance(RepositoriesService.class).repository(REPO_NAME);
+        Repository repository = cluster().getMasterNodeInstance(RepositoriesService.class).repository(REPO_NAME);
         final RepositoryData repositoryData = PlainActionFuture.get(repository::getRepositoryData);
         for (Map.Entry<String, List<RecoveryState>> indexRecoveryStates : response.shardRecoveryStates().entrySet()) {
 
@@ -726,11 +726,11 @@ public class IndexRecoveryIT extends IntegTestCase {
             .put(RecoverySettings.INDICES_RECOVERY_INTERNAL_ACTION_TIMEOUT_SETTING.getKey(), "10s")
             .build();
         // start a master node
-        internalCluster().startNode(nodeSettings);
+        cluster().startNode(nodeSettings);
 
-        final String blueNodeName = internalCluster()
+        final String blueNodeName = cluster()
             .startNode(Settings.builder().put("node.attr.color", "blue").put(nodeSettings).build());
-        final String redNodeName = internalCluster()
+        final String redNodeName = cluster()
             .startNode(Settings.builder().put("node.attr.color", "red").put(nodeSettings).build());
 
         ClusterHealthResponse response = client().admin().cluster().health(new ClusterHealthRequest().waitForNodes(">=3")).get();
@@ -761,7 +761,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         ensureGreen();
 
         ClusterStateResponse stateResponse = client().admin().cluster().state(new ClusterStateRequest()).get();
-        final String blueNodeId = internalCluster().getInstance(ClusterService.class, blueNodeName).localNode().getId();
+        final String blueNodeId = cluster().getInstance(ClusterService.class, blueNodeName).localNode().getId();
 
         assertFalse(stateResponse.getState().getRoutingNodes().node(blueNodeId).isEmpty());
 
@@ -781,9 +781,9 @@ public class IndexRecoveryIT extends IntegTestCase {
         logger.info("--> will temporarily interrupt recovery action between blue & red on [{}]", recoveryActionToBlock);
 
         MockTransportService blueTransportService =
-            (MockTransportService) internalCluster().getInstance(TransportService.class, blueNodeName);
+            (MockTransportService) cluster().getInstance(TransportService.class, blueNodeName);
         MockTransportService redTransportService =
-            (MockTransportService) internalCluster().getInstance(TransportService.class, redNodeName);
+            (MockTransportService) cluster().getInstance(TransportService.class, redNodeName);
 
         final AtomicBoolean recoveryStarted = new AtomicBoolean(false);
         final AtomicBoolean finalizeReceived = new AtomicBoolean(false);
@@ -908,11 +908,11 @@ public class IndexRecoveryIT extends IntegTestCase {
             .put(NodeConnectionsService.CLUSTER_NODE_RECONNECT_INTERVAL_SETTING.getKey(), "1s")
             .build();
         // start a master node
-        internalCluster().startNode(nodeSettings);
+        cluster().startNode(nodeSettings);
 
-        final String blueNodeName = internalCluster()
+        final String blueNodeName = cluster()
             .startNode(Settings.builder().put("node.attr.color", "blue").put(nodeSettings).build());
-        final String redNodeName = internalCluster()
+        final String redNodeName = cluster()
             .startNode(Settings.builder().put("node.attr.color", "red").put(nodeSettings).build());
 
         ClusterHealthResponse response = client().admin().cluster().health(new ClusterHealthRequest().waitForNodes(">=3")).get();
@@ -933,7 +933,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         ensureGreen();
 
         ClusterStateResponse stateResponse = client().admin().cluster().state(new ClusterStateRequest()).get();
-        final String blueNodeId = internalCluster().getInstance(ClusterService.class, blueNodeName).localNode().getId();
+        final String blueNodeId = cluster().getInstance(ClusterService.class, blueNodeName).localNode().getId();
 
         assertFalse(stateResponse.getState().getRoutingNodes().node(blueNodeId).isEmpty());
 
@@ -955,11 +955,11 @@ public class IndexRecoveryIT extends IntegTestCase {
         logger.info("--> will {} between blue & red on [{}]", dropRequests ? "drop requests" : "break connection", recoveryActionToBlock);
 
         MockTransportService blueMockTransportService =
-            (MockTransportService) internalCluster().getInstance(TransportService.class, blueNodeName);
+            (MockTransportService) cluster().getInstance(TransportService.class, blueNodeName);
         MockTransportService redMockTransportService =
-            (MockTransportService) internalCluster().getInstance(TransportService.class, redNodeName);
-        TransportService redTransportService = internalCluster().getInstance(TransportService.class, redNodeName);
-        TransportService blueTransportService = internalCluster().getInstance(TransportService.class, blueNodeName);
+            (MockTransportService) cluster().getInstance(TransportService.class, redNodeName);
+        TransportService redTransportService = cluster().getInstance(TransportService.class, redNodeName);
+        TransportService blueTransportService = cluster().getInstance(TransportService.class, blueNodeName);
         final CountDownLatch requestFailed = new CountDownLatch(1);
 
         if (randomBoolean()) {
@@ -1045,11 +1045,11 @@ public class IndexRecoveryIT extends IntegTestCase {
             .build();
         TimeValue disconnectAfterDelay = TimeValue.timeValueMillis(randomIntBetween(0, 100));
         // start a master node
-        String masterNodeName = internalCluster().startMasterOnlyNode(nodeSettings);
+        String masterNodeName = cluster().startMasterOnlyNode(nodeSettings);
 
-        final String blueNodeName = internalCluster()
+        final String blueNodeName = cluster()
             .startNode(Settings.builder().put("node.attr.color", "blue").put(nodeSettings).build());
-        final String redNodeName = internalCluster()
+        final String redNodeName = cluster()
             .startNode(Settings.builder().put("node.attr.color", "red").put(nodeSettings).build());
 
         execute("CREATE TABLE test (id int) CLUSTERED INTO 1 SHARDS " +
@@ -1071,11 +1071,11 @@ public class IndexRecoveryIT extends IntegTestCase {
         assertThat((long) searchResponse.rows()[0][0], is((long) numDocs));
 
         MockTransportService masterTransportService =
-            (MockTransportService) internalCluster().getInstance(TransportService.class, masterNodeName);
+            (MockTransportService) cluster().getInstance(TransportService.class, masterNodeName);
         MockTransportService blueMockTransportService =
-            (MockTransportService) internalCluster().getInstance(TransportService.class, blueNodeName);
+            (MockTransportService) cluster().getInstance(TransportService.class, blueNodeName);
         MockTransportService redMockTransportService =
-            (MockTransportService) internalCluster().getInstance(TransportService.class, redNodeName);
+            (MockTransportService) cluster().getInstance(TransportService.class, redNodeName);
 
         redMockTransportService.addSendBehavior(blueMockTransportService, new StubbableTransport.SendRequestBehavior() {
             private final AtomicInteger count = new AtomicInteger();
@@ -1158,7 +1158,7 @@ public class IndexRecoveryIT extends IntegTestCase {
 
     @Test
     public void testHistoryRetention() throws Exception {
-        internalCluster().startNodes(3);
+        cluster().startNodes(3);
 
         final String indexName = IndexParts.toIndexName(sqlExecutor.getCurrentSchema(), "test", null);
         execute("CREATE TABLE test (id int) CLUSTERED INTO 1 SHARDS " +
@@ -1180,12 +1180,12 @@ public class IndexRecoveryIT extends IntegTestCase {
         ensureGreen();
 
 
-        String firstNodeToStop = randomFrom(internalCluster().getNodeNames());
-        Settings firstNodeToStopDataPathSettings = internalCluster().dataPathSettings(firstNodeToStop);
-        internalCluster().stopRandomNode(TestCluster.nameFilter(firstNodeToStop));
-        String secondNodeToStop = randomFrom(internalCluster().getNodeNames());
-        Settings secondNodeToStopDataPathSettings = internalCluster().dataPathSettings(secondNodeToStop);
-        internalCluster().stopRandomNode(TestCluster.nameFilter(secondNodeToStop));
+        String firstNodeToStop = randomFrom(cluster().getNodeNames());
+        Settings firstNodeToStopDataPathSettings = cluster().dataPathSettings(firstNodeToStop);
+        cluster().stopRandomNode(TestCluster.nameFilter(firstNodeToStop));
+        String secondNodeToStop = randomFrom(cluster().getNodeNames());
+        Settings secondNodeToStopDataPathSettings = cluster().dataPathSettings(secondNodeToStop);
+        cluster().stopRandomNode(TestCluster.nameFilter(secondNodeToStop));
 
         final long desyncNanoTime = System.nanoTime();
         //noinspection StatementWithEmptyBody
@@ -1205,7 +1205,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         execute("OPTIMIZE TABLE test");
 
         execute("ALTER TABLE test SET (number_of_replicas = 1)");
-        internalCluster().startNode(randomFrom(firstNodeToStopDataPathSettings, secondNodeToStopDataPathSettings));
+        cluster().startNode(randomFrom(firstNodeToStopDataPathSettings, secondNodeToStopDataPathSettings));
         ensureGreen(indexName);
 
         final RecoveryResponse recoveryResponse = client().admin().indices().recoveries(new RecoveryRequest(indexName)).get();
@@ -1219,7 +1219,7 @@ public class IndexRecoveryIT extends IntegTestCase {
 
     @Test
     public void testDoNotInfinitelyWaitForMapping() {
-        internalCluster().ensureAtLeastNumDataNodes(3);
+        cluster().ensureAtLeastNumDataNodes(3);
         execute("CREATE ANALYZER test_analyzer (" +
                 " TOKENIZER standard," +
                 " TOKEN_FILTERS (test_token_filter)" +
@@ -1236,12 +1236,12 @@ public class IndexRecoveryIT extends IntegTestCase {
 
         Semaphore recoveryBlocked = new Semaphore(1);
         for (DiscoveryNode node : clusterService().state().nodes()) {
-            MockTransportService transportService = (MockTransportService) internalCluster().getInstance(
+            MockTransportService transportService = (MockTransportService) cluster().getInstance(
                 TransportService.class, node.getName());
             transportService.addSendBehavior((connection, requestId, action, request, options) -> {
                 if (action.equals(PeerRecoverySourceService.Actions.START_RECOVERY)) {
                     if (recoveryBlocked.tryAcquire()) {
-                        PluginsService pluginService = internalCluster().getInstance(PluginsService.class, node.getName());
+                        PluginsService pluginService = cluster().getInstance(PluginsService.class, node.getName());
                         for (TestAnalysisPlugin plugin : pluginService.filterPlugins(TestAnalysisPlugin.class)) {
                             plugin.throwParsingError.set(true);
                         }
@@ -1260,12 +1260,12 @@ public class IndexRecoveryIT extends IntegTestCase {
     /** Makes sure the new master does not repeatedly fetch index metadata from recovering replicas */
     @Test
     public void testOngoingRecoveryAndMasterFailOver() throws Exception {
-        internalCluster().startNodes(2);
-        String nodeWithPrimary = internalCluster().startDataOnlyNode();
+        cluster().startNodes(2);
+        String nodeWithPrimary = cluster().startDataOnlyNode();
         execute("CREATE TABLE doc.test (id INT)" +
                 " CLUSTERED INTO 1 SHARDS" +
                 " WITH (number_of_replicas = 0, \"routing.allocation.include._name\" = '" + nodeWithPrimary + "')");
-        MockTransportService transport = (MockTransportService) internalCluster().getInstance(TransportService.class, nodeWithPrimary);
+        MockTransportService transport = (MockTransportService) cluster().getInstance(TransportService.class, nodeWithPrimary);
         CountDownLatch phase1ReadyBlocked = new CountDownLatch(1);
         CountDownLatch allowToCompletePhase1Latch = new CountDownLatch(1);
         Semaphore blockRecovery = new Semaphore(1);
@@ -1281,13 +1281,13 @@ public class IndexRecoveryIT extends IntegTestCase {
             connection.sendRequest(requestId, action, request, options);
         });
         try {
-            String nodeWithReplica = internalCluster().startDataOnlyNode();
+            String nodeWithReplica = cluster().startDataOnlyNode();
             execute("ALTER TABLE doc.test SET (number_of_replicas = 1," +
                     " \"routing.allocation.include._name\"='" + nodeWithPrimary + "," + nodeWithReplica + "')");
             phase1ReadyBlocked.await();
-            internalCluster().restartNode(clusterService().state().nodes().getMasterNode().getName(),
+            cluster().restartNode(clusterService().state().nodes().getMasterNode().getName(),
                                           new TestCluster.RestartCallback());
-            internalCluster().ensureAtLeastNumDataNodes(3);
+            cluster().ensureAtLeastNumDataNodes(3);
             execute("ALTER TABLE doc.test RESET (\"routing.allocation.include._name\")");
             execute("ALTER TABLE doc.test SET (number_of_replicas = 2)");
             assertFalse(client().admin().cluster().health(new ClusterHealthRequest("test").waitForActiveShards(2)).get().isTimedOut());
@@ -1299,7 +1299,7 @@ public class IndexRecoveryIT extends IntegTestCase {
 
     @Test
     public void testRecoveryFlushReplica() throws Exception {
-        internalCluster().ensureAtLeastNumDataNodes(3);
+        cluster().ensureAtLeastNumDataNodes(3);
         String indexName = "test";
         execute("CREATE TABLE doc.test (num INT)" +
                 " CLUSTERED INTO 1 SHARDS" +
@@ -1325,7 +1325,7 @@ public class IndexRecoveryIT extends IntegTestCase {
                 assertThat(commitInfo.maxSeqNo, equalTo(shardStats.getSeqNoStats().getMaxSeqNo()));
             }
         }
-        SyncedFlushUtil.attemptSyncedFlush(logger, internalCluster(), shardId);
+        SyncedFlushUtil.attemptSyncedFlush(logger, cluster(), shardId);
         assertBusy(() -> assertThat(client().execute(SyncedFlushAction.INSTANCE, new SyncedFlushRequest(indexName)).get().failedShards(), equalTo(0)));
         execute("ALTER TABLE doc.test SET (number_of_replicas = 2)");
         ensureGreen(indexName);
@@ -1339,7 +1339,7 @@ public class IndexRecoveryIT extends IntegTestCase {
 
     @Test
     public void testRecoveryUsingSyncedFlushWithoutRetentionLease() throws Exception {
-        internalCluster().ensureAtLeastNumDataNodes(2);
+        cluster().ensureAtLeastNumDataNodes(2);
         String indexName = "test";
         execute("CREATE TABLE doc.test (num INT)" +
                 " CLUSTERED INTO 1 SHARDS" +
@@ -1358,11 +1358,11 @@ public class IndexRecoveryIT extends IntegTestCase {
         ensureGreen(indexName);
 
         final ShardId shardId = new ShardId(resolveIndex(indexName), 0);
-        assertThat(SyncedFlushUtil.attemptSyncedFlush(logger, internalCluster(), shardId).successfulShards(), equalTo(2));
+        assertThat(SyncedFlushUtil.attemptSyncedFlush(logger, cluster(), shardId).successfulShards(), equalTo(2));
 
         final ClusterState clusterState = client().admin().cluster().state(new ClusterStateRequest()).get().getState();
         final ShardRouting shardToResync = randomFrom(clusterState.routingTable().shardRoutingTable(shardId).activeShards());
-        internalCluster().restartNode(
+        cluster().restartNode(
             clusterState.nodes().get(shardToResync.currentNodeId()).getName(),
             new TestCluster.RestartCallback() {
                 @Override
@@ -1381,7 +1381,7 @@ public class IndexRecoveryIT extends IntegTestCase {
 
     @Test
     public void testRecoverLocallyUpToGlobalCheckpoint() throws Exception {
-        internalCluster().ensureAtLeastNumDataNodes(2);
+        cluster().ensureAtLeastNumDataNodes(2);
         List<String> nodes = randomSubsetOf(2, StreamSupport.stream(clusterService().state().nodes().getDataNodes().spliterator(), false)
             .map(node -> node.value.getName()).collect(Collectors.toSet()));
         String indexName = "test";
@@ -1407,10 +1407,10 @@ public class IndexRecoveryIT extends IntegTestCase {
         // first try because the local recovery happens once and its stats is reset when the recovery fails.
         SetOnce<Integer> localRecoveredOps = new SetOnce<>();
         for (String node : nodes) {
-            MockTransportService transportService = (MockTransportService) internalCluster().getInstance(TransportService.class, node);
+            MockTransportService transportService = (MockTransportService) cluster().getInstance(TransportService.class, node);
             transportService.addSendBehavior((connection, requestId, action, request, options) -> {
                 if (action.equals(PeerRecoverySourceService.Actions.START_RECOVERY)) {
-                    final RecoveryState recoveryState = internalCluster().getInstance(IndicesService.class, failingNode)
+                    final RecoveryState recoveryState = cluster().getInstance(IndicesService.class, failingNode)
                         .getShardOrNull(new ShardId(resolveIndex(indexName), 0)).recoveryState();
                     assertThat(recoveryState.getTranslog().recoveredOperations(), equalTo(recoveryState.getTranslog().totalLocal()));
                     if (startRecoveryRequestFuture.isDone()) {
@@ -1423,7 +1423,7 @@ public class IndexRecoveryIT extends IntegTestCase {
                     }
                 }
                 if (action.equals(PeerRecoveryTargetService.Actions.FILE_CHUNK)) {
-                    RetentionLeases retentionLeases = internalCluster().getInstance(IndicesService.class, node)
+                    RetentionLeases retentionLeases = cluster().getInstance(IndicesService.class, node)
                         .indexServiceSafe(resolveIndex(indexName))
                         .getShard(0).getRetentionLeases();
                     throw new AssertionError("expect an operation-based recovery:" +
@@ -1432,7 +1432,7 @@ public class IndexRecoveryIT extends IntegTestCase {
                 connection.sendRequest(requestId, action, request, options);
             });
         }
-        IndexShard shard = internalCluster().getInstance(IndicesService.class, failingNode)
+        IndexShard shard = cluster().getInstance(IndicesService.class, failingNode)
             .getShardOrNull(new ShardId(resolveIndex(indexName), 0));
         final long lastSyncedGlobalCheckpoint = shard.getLastSyncedGlobalCheckpoint();
         final long localCheckpointOfSafeCommit;
@@ -1461,14 +1461,14 @@ public class IndexRecoveryIT extends IntegTestCase {
             }
         }
         for (String node : nodes) {
-            MockTransportService transportService = (MockTransportService) internalCluster().getInstance(TransportService.class, node);
+            MockTransportService transportService = (MockTransportService) cluster().getInstance(TransportService.class, node);
             transportService.clearAllRules();
         }
     }
 
     @Test
     public void testUsesFileBasedRecoveryIfRetentionLeaseMissing() throws Exception {
-        internalCluster().ensureAtLeastNumDataNodes(2);
+        cluster().ensureAtLeastNumDataNodes(2);
 
         String indexName = "test";
         execute("CREATE TABLE doc.test (num INT)" +
@@ -1490,11 +1490,11 @@ public class IndexRecoveryIT extends IntegTestCase {
         final DiscoveryNodes discoveryNodes = clusterService().state().nodes();
         final IndexShardRoutingTable indexShardRoutingTable = clusterService().state().routingTable().shardRoutingTable(shardId);
 
-        final IndexShard primary = internalCluster().getInstance(IndicesService.class,
+        final IndexShard primary = cluster().getInstance(IndicesService.class,
                                                                  discoveryNodes.get(indexShardRoutingTable.primaryShard().currentNodeId()).getName()).getShardOrNull(shardId);
 
         final ShardRouting replicaShardRouting = indexShardRoutingTable.replicaShards().get(0);
-        internalCluster().restartNode(discoveryNodes.get(replicaShardRouting.currentNodeId()).getName(),
+        cluster().restartNode(discoveryNodes.get(replicaShardRouting.currentNodeId()).getName(),
                                       new TestCluster.RestartCallback() {
                                           @Override
                                           public Settings onNodeStopped(String nodeName) throws Exception {
@@ -1523,7 +1523,7 @@ public class IndexRecoveryIT extends IntegTestCase {
 
     @Test
     public void testUsesFileBasedRecoveryIfRetentionLeaseAheadOfGlobalCheckpoint() throws Exception {
-        internalCluster().ensureAtLeastNumDataNodes(2);
+        cluster().ensureAtLeastNumDataNodes(2);
 
         String indexName = "test";
         execute("CREATE TABLE doc.test (num INT)" +
@@ -1545,11 +1545,11 @@ public class IndexRecoveryIT extends IntegTestCase {
         final DiscoveryNodes discoveryNodes = clusterService().state().nodes();
         final IndexShardRoutingTable indexShardRoutingTable = clusterService().state().routingTable().shardRoutingTable(shardId);
 
-        final IndexShard primary = internalCluster().getInstance(IndicesService.class,
+        final IndexShard primary = cluster().getInstance(IndicesService.class,
                                                                  discoveryNodes.get(indexShardRoutingTable.primaryShard().currentNodeId()).getName()).getShardOrNull(shardId);
 
         final ShardRouting replicaShardRouting = indexShardRoutingTable.replicaShards().get(0);
-        internalCluster().restartNode(
+        cluster().restartNode(
             discoveryNodes.get(replicaShardRouting.currentNodeId()).getName(),
             new TestCluster.RestartCallback() {
                 @Override
@@ -1589,7 +1589,7 @@ public class IndexRecoveryIT extends IntegTestCase {
 
     @Test
     public void testUsesFileBasedRecoveryIfOperationsBasedRecoveryWouldBeUnreasonable() throws Exception {
-        internalCluster().ensureAtLeastNumDataNodes(2);
+        cluster().ensureAtLeastNumDataNodes(2);
 
         String indexName = "test";
         var settings = new ArrayList<String>();
@@ -1646,7 +1646,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         indicesStats = client().admin().indices().stats(new IndicesStatsRequest().indices(indexName)).get();
         assertTrue("should have lease for " + replicaShardRouting, indicesStats.getShards()[0].getRetentionLeaseStats()
                        .leases().contains(ReplicationTracker.getPeerRecoveryRetentionLeaseId(replicaShardRouting)));
-        internalCluster().restartNode(discoveryNodes.get(replicaShardRouting.currentNodeId()).getName(),
+        cluster().restartNode(discoveryNodes.get(replicaShardRouting.currentNodeId()).getName(),
                                       new TestCluster.RestartCallback() {
                                           @Override
                                           public Settings onNodeStopped(String nodeName) throws Exception {
@@ -1708,7 +1708,7 @@ public class IndexRecoveryIT extends IntegTestCase {
 
     @Test
     public void testDoesNotCopyOperationsInSafeCommit() throws Exception {
-        internalCluster().ensureAtLeastNumDataNodes(2);
+        cluster().ensureAtLeastNumDataNodes(2);
 
         String indexName = "test";
         execute("CREATE TABLE doc.test (num INT)" +
@@ -1728,7 +1728,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         final DiscoveryNodes discoveryNodes = clusterService().state().nodes();
         final IndexShardRoutingTable indexShardRoutingTable = clusterService().state().routingTable().shardRoutingTable(shardId);
 
-        final IndexShard primary = internalCluster().getInstance(IndicesService.class,
+        final IndexShard primary = cluster().getInstance(IndicesService.class,
                                                                  discoveryNodes.get(indexShardRoutingTable.primaryShard().currentNodeId()).getName()).getShardOrNull(shardId);
         final long maxSeqNoBeforeRecovery = primary.seqNoStats().getMaxSeqNo();
         assertBusy(() -> assertThat(primary.getLastSyncedGlobalCheckpoint(), equalTo(maxSeqNoBeforeRecovery)));

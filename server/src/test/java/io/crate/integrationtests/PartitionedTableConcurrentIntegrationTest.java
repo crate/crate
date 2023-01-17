@@ -122,7 +122,7 @@ public class PartitionedTableConcurrentIntegrationTest extends IntegTestCase {
             Collections.singletonList("a"));
         final String indexName = partitionName.asIndexName();
 
-        ClusterService clusterService = internalCluster().getInstance(ClusterService.class);
+        ClusterService clusterService = cluster().getInstance(ClusterService.class);
         DiscoveryNodes nodes = clusterService.state().nodes();
         List<String> nodeIds = new ArrayList<>(2);
         for (DiscoveryNode node : nodes) {
@@ -237,7 +237,7 @@ public class PartitionedTableConcurrentIntegrationTest extends IntegTestCase {
     @Test
     public void testTableUnknownExceptionIsNotRaisedIfPartitionsAreDeletedAfterPlanSingleNode() throws Exception {
         // with a sinlge node, this test leads to empty shard collectors
-        internalCluster().ensureAtMostNumDataNodes(1);
+        cluster().ensureAtMostNumDataNodes(1);
         Bucket bucket = deletePartitionsAndExecutePlan("select * from t");
         assertThat(bucket.size(), is(0));
     }
