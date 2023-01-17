@@ -211,9 +211,9 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
 
     @Test
     public void testSelectFromClosedPartition() throws Exception {
-        execute("create table t (n integer) partitioned by (n)");
+        execute("create table t (n integer) partitioned by (n) with (number_of_replicas = ?)", $(numberOfReplicas()));
         execute("insert into t (n) values (1)");
-        refresh();
+        ensureGreen();
 
         execute("alter table t partition (n = 1) close");
         assertBusy(() -> {
