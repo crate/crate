@@ -187,6 +187,7 @@ public final class Cursor implements AutoCloseable {
                 });
             }
         } else if (moveForward) {
+            resetCursorToMaxBufferedRowsPlus1();
             if (count == 0) {
                 int idx = cursorPosition - 1;
                 if (cursorPosition > rows.size()) {
@@ -208,21 +209,26 @@ public final class Cursor implements AutoCloseable {
 
             consumer.accept(LimitingBatchIterator.newInstance(delegate, count), null);
 
-            // When cursorPosition + count >= rows.size() + 1, last row exceeded and
-            // next backwards movement must include the last row
-            long newPosition = (long) cursorPosition + count;
-            if (rows.size() > 0 && newPosition > rows.size()) {
-                cursorPosition = rows.size() + 1;
-            } else {
-                cursorPosition = (int) newPosition;
+            cursorPosition = cursorPosition + count;
+            if (cursorPosition < 0) { // overflow
+                cursorPosition = Integer.MAX_VALUE;
             }
         } else {
+            resetCursorToMaxBufferedRowsPlus1();
             int start = cursorPosition + count;
             assert start < cursorPosition : "count must be negative";
             List<Object[]> items = Lists2.reverse(rows.subList(Math.max(start - 1, 0), Math.max(cursorPosition - 1, 0)));
             BatchIterator<Row> bi = biFromItems(items);
             cursorPosition = Math.max(start, 0);
             consumer.accept(bi, null);
+        }
+    }
+
+    // When cursorPosition + count >= rows.size() + 1, last row exceeded and
+    // next backwards movement must include the last row
+    private void resetCursorToMaxBufferedRowsPlus1() {
+        if (cursorPosition > rows.size() + 1) {
+            cursorPosition = rows.size() + 1;
         }
     }
 
