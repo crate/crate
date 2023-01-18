@@ -22,28 +22,27 @@
 package io.crate.statistics;
 
 
-import io.crate.action.sql.BaseResultReceiver;
-import io.crate.action.sql.Sessions;
-import io.crate.action.sql.Session;
-import io.crate.common.annotations.VisibleForTesting;
-import io.crate.common.unit.TimeValue;
-import io.crate.data.Row;
-import io.crate.sql.parser.SqlParser;
-import io.crate.sql.tree.Statement;
+import javax.annotation.Nullable;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.Setting.Property;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.threadpool.Scheduler;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import javax.annotation.Nullable;
+import io.crate.action.sql.BaseResultReceiver;
+import io.crate.action.sql.Session;
+import io.crate.action.sql.Sessions;
+import io.crate.common.annotations.VisibleForTesting;
+import io.crate.common.unit.TimeValue;
+import io.crate.data.Row;
 
 /**
  * Periodically refresh {@link TableStats} based on {@link #refreshInterval}.
@@ -60,7 +59,6 @@ public class TableStatsService implements Runnable {
         "stats.service.max_bytes_per_sec", new ByteSizeValue(40, ByteSizeUnit.MB), Property.NodeScope, Property.Dynamic, Property.Exposed);
 
     static final String STMT = "ANALYZE";
-    private static final Statement PARSED_STMT = SqlParser.createStatement(STMT);
 
     private final ClusterService clusterService;
     private final ThreadPool threadPool;
@@ -113,7 +111,7 @@ public class TableStatsService implements Runnable {
                     LOGGER.error("Error running periodic " + STMT + "", err);
                 }
             });
-            session.quickExec(STMT, stmt -> PARSED_STMT, resultReceiver, Row.EMPTY);
+            session.quickExec(STMT, resultReceiver, Row.EMPTY);
         } catch (Throwable t) {
             LOGGER.error("error retrieving table stats", t);
         }

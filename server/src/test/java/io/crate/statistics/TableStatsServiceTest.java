@@ -32,8 +32,8 @@ import org.mockito.Answers;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 
-import io.crate.action.sql.Sessions;
 import io.crate.action.sql.Session;
+import io.crate.action.sql.Sessions;
 import io.crate.common.unit.TimeValue;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 
@@ -103,7 +103,7 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
         );
         statsService.run();
 
-        Mockito.verify(session, Mockito.times(1)).quickExec(ArgumentMatchers.eq(TableStatsService.STMT), ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any());
+        Mockito.verify(session, Mockito.times(1)).quickExec(ArgumentMatchers.eq(TableStatsService.STMT), ArgumentMatchers.any(), ArgumentMatchers.any());
     }
 
     @Test

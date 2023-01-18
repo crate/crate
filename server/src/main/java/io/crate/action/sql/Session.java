@@ -30,7 +30,6 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
@@ -82,9 +81,9 @@ import io.crate.protocols.postgres.Portal;
 import io.crate.protocols.postgres.RetryOnFailureResultReceiver;
 import io.crate.protocols.postgres.TransactionState;
 import io.crate.sql.parser.SqlParser;
+import io.crate.sql.tree.Declare.Hold;
 import io.crate.sql.tree.DiscardStatement.Target;
 import io.crate.sql.tree.Statement;
-import io.crate.sql.tree.Declare.Hold;
 import io.crate.types.DataType;
 
 /**
@@ -187,22 +186,15 @@ public class Session implements AutoCloseable {
     }
 
     /**
-     * See {@link #quickExec(String, Function, ResultReceiver, Row)}
-     */
-    public void quickExec(String statement, ResultReceiver<?> resultReceiver, Row params) {
-        quickExec(statement, SqlParser::createStatement, resultReceiver, params);
-    }
-
-    /**
      * Execute a query in one step, avoiding the parse/bind/execute/sync procedure.
      * Opposed to using parse/bind/execute/sync this method is thread-safe.
      *
      * @param parse A function to parse the statement; This can be used to cache the parsed statement.
      *              Use {@link #quickExec(String, ResultReceiver, Row)} to use the regular parser
      */
-    public void quickExec(String statement, Function<String, Statement> parse, ResultReceiver<?> resultReceiver, Row params) {
+    public void quickExec(String statement, ResultReceiver<?> resultReceiver, Row params) {
         CoordinatorTxnCtx txnCtx = new CoordinatorTxnCtx(sessionSettings);
-        Statement parsedStmt = parse.apply(statement);
+        Statement parsedStmt = SqlParser.createStatement(statement);
         AnalyzedStatement analyzedStatement = analyzer.analyze(
             parsedStmt,
             sessionSettings,
