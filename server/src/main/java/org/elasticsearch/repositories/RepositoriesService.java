@@ -50,18 +50,20 @@ import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodeRole;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.regex.Regex;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
+import io.crate.common.collections.Lists2;
 import io.crate.common.io.IOUtils;
 
 /**
  * Service responsible for maintaining and providing access to snapshot repositories on nodes.
  */
-public class RepositoriesService implements ClusterStateApplier {
+public class RepositoriesService extends AbstractLifecycleComponent implements ClusterStateApplier {
 
     private static final Logger LOGGER = LogManager.getLogger(RepositoriesService.class);
 
@@ -102,6 +104,8 @@ public class RepositoriesService implements ClusterStateApplier {
      * @param listener register repository listener
      */
     public void registerRepository(final PutRepositoryRequest request, final ActionListener<ClusterStateUpdateResponse> listener) {
+        assert lifecycle.started() : "Trying to register new repository but service is in state [" + lifecycle.state() + "]";
+
         final RepositoryMetadata newRepositoryMetadata = new RepositoryMetadata(request.name(), request.type(), request.settings());
 
         final ActionListener<ClusterStateUpdateResponse> registrationListener;
@@ -521,5 +525,21 @@ public class RepositoriesService implements ClusterStateApplier {
             }
         }
         return false;
+    }
+
+    @Override
+    protected void doStart() {
+
+    }
+
+    @Override
+    protected void doStop() {
+
+    }
+
+    @Override
+    protected void doClose() throws IOException {
+        clusterService.removeApplier(this);
+        IOUtils.close(Lists2.concat(internalRepositories.values(), repositories.values()));
     }
 }
