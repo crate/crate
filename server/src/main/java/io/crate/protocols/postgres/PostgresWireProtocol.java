@@ -443,8 +443,8 @@ public class PostgresWireProtocol {
         assert authContext != null : "finishAuthentication() requires an authContext instance";
         try {
             Role authenticatedUser = authContext.authenticate();
-            String database = properties.getProperty("database");
-            session = sessions.newSession(authContext.connectionProperties(), database, authenticatedUser);
+            String searchPath = properties.getProperty("search_path");
+            session = sessions.newSession(authContext.connectionProperties(), searchPath, authenticatedUser);
             String options = properties.getProperty("options");
             if (options != null) {
                 applyOptions(options);
