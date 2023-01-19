@@ -307,7 +307,7 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
     @Test
     public void testInvalidSnapshotName() throws Exception {
         assertThrowsMatches(() -> execute("CREATE SNAPSHOT my_repo.\"MY_UPPER_SNAPSHOT\" ALL WITH (wait_for_completion=true)"),
-                     isSQLError(containsString("Invalid snapshot name [MY_UPPER_SNAPSHOT], must be lowercase"),
+                     isSQLError(containsString("Invalid snapshot name [\"MY_UPPER_SNAPSHOT\"], must be lowercase"),
                                 INTERNAL_ERROR,
                                 CONFLICT,
                                 4099));

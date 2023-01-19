@@ -72,10 +72,17 @@ public class Identifiers {
         .collect(Collectors.toSet());
 
     /**
-     * quote and escape the given identifier
+     * Identifiers can either be quoted or unquoted. Unquoted idents are quoted and escaped while quoted idents are
+     * returned as-is.
      */
     public static String quote(String identifier) {
-        return "\"" + escape(identifier) + "\"";
+        return isQuoted(identifier) ? identifier : "\"" + escape(identifier) + "\"";
+    }
+
+    public static String unquote(String identifier) {
+        return isQuoted(identifier) ?
+            identifier.substring(1, identifier.length() - 1).replace("\"\"", "\"") :
+            identifier;
     }
 
     /**
@@ -139,11 +146,6 @@ public class Identifiers {
         return isKeyWord(identifier) || !IDENTIFIER.matcher(identifier).matches();
     }
 
-    public static boolean isQuoted(String identifier) {
-        return identifier.length() >= 2 &&
-               identifier.charAt(0) == '"' && identifier.charAt(identifier.length() - 1) == '"';
-    }
-
     public static boolean isKeyWord(String identifier) {
         return RESERVED_KEYWORDS.contains(identifier.toUpperCase(Locale.ENGLISH));
     }
@@ -180,5 +182,10 @@ public class Identifiers {
      */
     public static String escape(String identifier) {
         return ESCAPE_REPLACE_RE.matcher(identifier).replaceAll(ESCAPE_REPLACEMENT);
+    }
+
+    private static boolean isQuoted(String identifier) {
+        return identifier.length() >= 2 &&
+               identifier.charAt(0) == '"' && identifier.charAt(identifier.length() - 1) == '"';
     }
 }

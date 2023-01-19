@@ -1338,7 +1338,7 @@ public final class SqlFormatter {
 
         private static String quoteIdentifierIfNeeded(String identifier) {
             return Arrays.stream(identifier.split("\\."))
-                .map(i -> Identifiers.isQuoted(i) ? i : Identifiers.quote(i))
+                .map(Identifiers::quote)
                 .collect(Collectors.joining("."));
         }
 

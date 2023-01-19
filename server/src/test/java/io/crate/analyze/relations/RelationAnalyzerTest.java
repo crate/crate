@@ -121,7 +121,7 @@ public class RelationAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThatThrownBy(
             () -> executor.analyze("select * from \"invalidCatalog\".doc.t1"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessage("Unexpected catalog name: invalidCatalog. Only available catalog is crate");
+            .hasMessage("Unexpected catalog name: \"invalidCatalog\". Only available catalog is crate");
         assertThatThrownBy(
             () -> executor.analyze("select invalid.doc.t1.a from crate.doc.t1"))
             .isExactlyInstanceOf(IllegalArgumentException.class)

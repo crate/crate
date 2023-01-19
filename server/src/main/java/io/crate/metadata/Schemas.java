@@ -69,6 +69,7 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.view.View;
 import io.crate.metadata.view.ViewMetadata;
 import io.crate.metadata.view.ViewsMetadata;
+import io.crate.sql.Identifiers;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.user.Privilege;
 import io.crate.user.User;
@@ -155,7 +156,9 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
         for (TableInfo table : tables) {
             if (user.hasAnyPrivilege(Privilege.Clazz.TABLE, table.ident().fqn())) {
                 String candidate = table.ident().name();
-                float score = levenshteinDistance.getDistance(tableName.toLowerCase(Locale.ENGLISH), candidate.toLowerCase(Locale.ENGLISH));
+                float score = levenshteinDistance.getDistance(
+                    Identifiers.unquote(tableName.toLowerCase(Locale.ENGLISH)),
+                    Identifiers.unquote(candidate.toLowerCase(Locale.ENGLISH)));
                 if (score > 0.7f) {
                     candidates.add(new Candidate(score, candidate));
                 }
@@ -173,7 +176,9 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
         ArrayList<Candidate> candidates = new ArrayList<>();
         for (String availableSchema : schemas.keySet()) {
             if (user.hasAnyPrivilege(Privilege.Clazz.SCHEMA, availableSchema)) {
-                float score = levenshteinDistance.getDistance(schema.toLowerCase(Locale.ENGLISH), availableSchema.toLowerCase(Locale.ENGLISH));
+                float score = levenshteinDistance.getDistance(
+                    Identifiers.unquote(schema.toLowerCase(Locale.ENGLISH)),
+                    Identifiers.unquote(availableSchema.toLowerCase(Locale.ENGLISH)));
                 if (score > 0.7f) {
                     candidates.add(new Candidate(score, availableSchema));
                 }

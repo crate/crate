@@ -2456,7 +2456,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             .build();
         assertThatThrownBy(() -> executor.analyze("select * from \"Doc\".users"))
             .isExactlyInstanceOf(SchemaUnknownException.class)
-            .hasMessage("Schema 'Doc' unknown. Maybe you meant 'doc'");
+            .hasMessage("Schema '\"Doc\"' unknown. Maybe you meant 'doc'");
     }
 
     @Test
