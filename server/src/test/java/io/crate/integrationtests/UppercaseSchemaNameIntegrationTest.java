@@ -23,36 +23,71 @@ package io.crate.integrationtests;
 
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.assertj.core.api.Assertions.assertThat;
+import static io.crate.testing.Asserts.assertThatThrownBy;
+
+import java.util.List;
 
 import org.elasticsearch.test.IntegTestCase;
+import org.junit.Before;
 import org.junit.Test;
+
+import io.crate.expression.udf.UserDefinedFunctionService;
+import io.crate.expression.udf.UserDefinedFunctionsMetadata;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.view.ViewMetadata;
+import io.crate.metadata.view.ViewsMetadata;
+import io.crate.types.StringType;
 
 public class UppercaseSchemaNameIntegrationTest extends IntegTestCase {
 
+    @Override
+    @Before
+    public void setUp() throws Exception {
+        super.setUp();
+        var dummyLang = new UserDefinedFunctionsIntegrationTest.DummyLang();
+        Iterable<UserDefinedFunctionService> udfServices = cluster().getInstances(UserDefinedFunctionService.class);
+        for (UserDefinedFunctionService udfService : udfServices) {
+            udfService.registerLanguage(dummyLang);
+        }
+    }
+
     @Test
-    public void test_upper_case_schema_name() {
+    public void test_using_schema_names_with_uppercases() {
         execute("create table \"Abc\".t (a int) partitioned by (a)");
-        execute("insert into \"Abc\".t values (1), (2)");
-        execute("create table Abc.t (b boolean) partitioned by (b)");
-        execute("insert into Abc.t values (true), (false)");
-
-        execute("create view v1 as select a from \"Abc\".t");
-        execute("create view v2 as select b from Abc.t");
-
+        execute("insert into \"Abc\".t values (1)");
+        execute("create view \"Abc\".v1 as select a from \"Abc\".t");
+        execute("CREATE FUNCTION \"Abc\".func(string) RETURNS STRING LANGUAGE dummy_lang AS 'DUMMY EATS text'");
         refresh();
 
-        execute("select * from \"Abc\".t order by a");
-        assertThat(printedTable(response.rows())).isEqualTo("1\n2\n");
-        execute("select * from Abc.t order by b");
-        assertThat(printedTable(response.rows())).isEqualTo("false\ntrue\n");
+        // check index/template names
+        var meta = clusterService().state().metadata();
+        meta.indices().keysIt().forEachRemaining(key -> assertThat(key).startsWith("\"Abc\""));
+        meta.templates().keysIt().forEachRemaining(key -> assertThat(key).startsWith("\"Abc\""));
 
-        // views
-        execute("select a from v1 order by a");
-        assertThat(printedTable(response.rows())).isEqualTo("1\n2\n");
-        execute("select b from v2 order by b");
-        assertThat(printedTable(response.rows())).isEqualTo("false\ntrue\n");
+        // check viewMetadata names as well as its target query
+        ViewsMetadata viewsMetadata = meta.custom(ViewsMetadata.TYPE);
+        ViewMetadata viewMetadata = viewsMetadata.getView(new RelationName("\"Abc\"", "v1"));
+        assertThat(viewMetadata).isNotNull();
+        assertThat(viewMetadata.stmt()).isEqualTo(
+            """
+                SELECT "a"
+                FROM "Abc"."t"
+                """
+        );
 
-        // udfs
+        // check udfMetadata for proper schema name
+        UserDefinedFunctionsMetadata userDefinedFunctionsMetadata = meta.custom(UserDefinedFunctionsMetadata.TYPE);
+        assertThat(userDefinedFunctionsMetadata.contains("\"Abc\"", "func", List.of(StringType.INSTANCE))).isTrue();
 
+        // a little more complex scenario involving schema names with upper cases
+        execute("create table Abc.t (b string, c string as \"Abc\".func(b)) partitioned by (c)");
+        execute("insert into Abc.t(b) values ('Abc')");
+        refresh();
+
+        execute("select * from Abc.t");
+        assertThat(printedTable(response.rows())).isEqualTo("Abc| DUMMY EATS text\n");
+
+        assertThatThrownBy(() -> execute("drop function \"Abc\".func(string)"))
+            .hasMessageContaining("Cannot drop function '\"Abc\".func(text)', it is still in use by 'abc.t.c AS \"Abc\".func(b)'");
     }
 }
