@@ -40,6 +40,7 @@ import io.crate.metadata.view.ViewInfo;
 import io.crate.metadata.view.ViewInfoFactory;
 import io.crate.metadata.view.ViewsMetadata;
 import io.crate.replication.logical.metadata.PublicationsMetadata;
+import io.crate.sql.Identifiers;
 
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.metadata.AliasMetadata;
@@ -214,7 +215,7 @@ public class DocSchemaInfo implements SchemaInfo {
 
     @Override
     public String name() {
-        return schemaName;
+        return Identifiers.unquote(schemaName);
     }
 
     @Override
