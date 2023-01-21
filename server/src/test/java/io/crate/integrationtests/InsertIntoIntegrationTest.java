@@ -1711,4 +1711,21 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
                 "   )"
             );
     }
+
+    /*
+     * https://github.com/crate/crate/issues/13486
+     */
+    @Test
+    public void test_inner_column_contains_new_line_character() {
+        execute("CREATE TABLE new_lines (obj OBJECT);");
+        assertThrowsMatches(
+            () -> execute("INSERT INTO new_lines (obj) VALUES ('{\"a\\nb\":1}');"),
+            isSQLError(
+                is("Column name 'a\nb' contains illegal whitespace character"),
+                INTERNAL_ERROR,
+                BAD_REQUEST,
+                4003
+            )
+        );
+    }
 }
