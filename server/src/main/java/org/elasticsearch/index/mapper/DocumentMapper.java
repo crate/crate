@@ -27,6 +27,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Stream;
@@ -44,6 +45,7 @@ import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.mapper.MetadataFieldMapper.TypeParser;
 
+import io.crate.exceptions.InvalidArgumentException;
 import io.crate.metadata.doc.DocSysColumns;
 
 
@@ -140,6 +142,17 @@ public class DocumentMapper implements ToXContentFragment {
         this.fieldMappers = new DocumentFieldMappers(newFieldMappers);
         Map<String, ObjectMapper> builder = new HashMap<>();
         for (ObjectMapper objectMapper : newObjectMappers) {
+            for (var objectProperty : objectMapper.getMappers().keySet()) {
+                if (containsInvalidWhitespaceCharacters(objectProperty)) {
+                    throw new InvalidArgumentException(
+                        String.format(
+                            Locale.ENGLISH,
+                            "Column name '%s' contains illegal whitespace character",
+                            objectProperty
+                        )
+                    );
+                }
+            }
             ObjectMapper previous = builder.put(objectMapper.fullPath(), objectMapper);
             if (previous != null) {
                 throw new IllegalStateException("duplicate key " + objectMapper.fullPath() + " encountered");
@@ -162,6 +175,19 @@ public class DocumentMapper implements ToXContentFragment {
             DocSysColumns.VERSION.name(), DocSysColumns.Names.SEQ_NO, DocSysColumns.Names.PRIMARY_TERM, DocSysColumns.Names.TOMBSTONE);
         this.noopTombstoneMetadataFieldMappers = Stream.of(mapping.metadataMappers)
             .filter(field -> noopTombstoneMetadataFields.contains(field.name())).toArray(MetadataFieldMapper[]::new);
+    }
+
+    private static boolean containsInvalidWhitespaceCharacters(String input) {
+        for (int i = 0; i < input.length(); i++) {
+            switch (input.charAt(i)) {
+                case '\t':
+                case '\n':
+                case '\r':
+                    return true;
+                default:
+            }
+        }
+        return false;
     }
 
     public Mapping mapping() {
