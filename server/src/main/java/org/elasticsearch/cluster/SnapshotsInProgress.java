@@ -92,6 +92,34 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
         return builder.append("]").toString();
     }
 
+    /**
+     * Creates the initial {@link Entry} when starting a snapshot, if no shard-level snapshot work is to be done the resulting entry
+     * will be in state {@link State#SUCCESS} right away otherwise it will be in state {@link State#STARTED}.
+     */
+    public static Entry startedEntry(Snapshot snapshot,
+                                     boolean includeGlobalState,
+                                     boolean partial,
+                                     List<IndexId> indices,
+                                     List<String> templates,
+                                     long startTime,
+                                     long repositoryStateId,
+                                     ImmutableOpenMap<ShardId, ShardSnapshotStatus> shards,
+                                     Version version) {
+        return new SnapshotsInProgress.Entry(
+            snapshot,
+            includeGlobalState,
+            partial,
+            completed(shards.values()) ? State.SUCCESS : State.STARTED,
+            indices,
+            templates,
+            startTime,
+            repositoryStateId,
+            shards,
+            null,
+            version
+        );
+    }
+
     public static class Entry implements Writeable, ToXContent, RepositoryOperation {
         private final State state;
         private final Snapshot snapshot;
@@ -106,10 +134,18 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
         private final Version version;
         @Nullable private final String failure;
 
-        public Entry(Snapshot snapshot, boolean includeGlobalState, boolean partial, State state, List<IndexId> indices,
+        // visible for testing, use #startedEntry and copy constructors in production code
+        public Entry(Snapshot snapshot,
+                     boolean includeGlobalState,
+                     boolean partial,
+                     State state,
+                     List<IndexId> indices,
                      List<String> templates,
-                     long startTime, long repositoryStateId, ImmutableOpenMap<ShardId, ShardSnapshotStatus> shards,
-                     String failure, Version version) {
+                     long startTime,
+                     long repositoryStateId,
+                     ImmutableOpenMap<ShardId, ShardSnapshotStatus> shards,
+                     String failure,
+                     Version version) {
             this.state = state;
             this.snapshot = snapshot;
             this.includeGlobalState = includeGlobalState;
@@ -162,6 +198,9 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
             assert indexNames.equals(indexNamesInShards)
                 : "Indices in shards " + indexNamesInShards + " differ from expected indices " + indexNames +
                   " for state [" + state + "]";
+            final boolean shardsCompleted = completed(shards.values());
+            assert (state.completed() && shardsCompleted) || (state.completed() == false && shardsCompleted == false)
+                : "Completed state must imply all shards completed but saw state [" + state + "] and shards " + shards;
             return true;
         }
 
@@ -198,20 +237,6 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
                 version);
         }
 
-        public Entry(Entry entry, State state, ImmutableOpenMap<ShardId, ShardSnapshotStatus> shards) {
-            this(entry.snapshot, entry.includeGlobalState, entry.partial, state, entry.indices, entry.templates, entry.startTime,
-                entry.repositoryStateId, shards, entry.failure, entry.version);
-        }
-
-        public Entry(Entry entry, State state, ImmutableOpenMap<ShardId, ShardSnapshotStatus> shards, String failure) {
-            this(entry.snapshot, entry.includeGlobalState, entry.partial, state, entry.indices, entry.templates, entry.startTime,
-                entry.repositoryStateId, shards, failure, entry.version);
-        }
-
-        public Entry(Entry entry, ImmutableOpenMap<ShardId, ShardSnapshotStatus> shards) {
-            this(entry, entry.state, shards, entry.failure);
-        }
-
         public Entry withRepoGen(long newRepoGen) {
             assert newRepoGen > repositoryStateId : "Updated repository generation [" + newRepoGen
                     + "] must be higher than current generation [" + repositoryStateId + "]";
@@ -229,7 +254,31 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
                 version);
         }
 
-        public Entry withShards(ImmutableOpenMap<ShardId, ShardSnapshotStatus> shards) {
+        /**
+         * Create a new instance by aborting this instance. Moving all in-progress shards to {@link ShardState#ABORTED} if assigned to a
+         * data node or to {@link ShardState#FAILED} if not assigned to any data node.
+         * If the instance had no in-progress shard snapshots assigned to data nodes it's moved to state {@link State#SUCCESS}, otherwise
+         * it's moved to state {@link State#ABORTED}.
+         *
+         * @return aborted snapshot entry
+         */
+        public Entry abort() {
+            final ImmutableOpenMap.Builder<ShardId, ShardSnapshotStatus> shardsBuilder = ImmutableOpenMap.builder();
+            boolean completed = true;
+            for (ObjectObjectCursor<ShardId, ShardSnapshotStatus> shardEntry : shards) {
+                ShardSnapshotStatus status = shardEntry.value;
+                if (status.state().completed() == false) {
+                    final String nodeId = status.nodeId();
+                    status = new ShardSnapshotStatus(nodeId, nodeId == null ? ShardState.FAILED : ShardState.ABORTED,
+                            "aborted by snapshot deletion", status.generation());
+                }
+                completed &= status.state().completed();
+                shardsBuilder.put(shardEntry.key, status);
+            }
+            return fail(shardsBuilder.build(), completed ? State.SUCCESS : State.ABORTED, "Snapshot was aborted by deletion");
+        }
+
+        public Entry fail(ImmutableOpenMap<ShardId, ShardSnapshotStatus> shards, State state, String failure) {
             return new Entry(
                 snapshot,
                 includeGlobalState,
