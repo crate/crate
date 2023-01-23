@@ -621,17 +621,6 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
         execute("refresh table \"" + name + "\"");
     }
 
-    private void createRepo(String repoName, String type) {
-        execute(
-            "CREATE REPOSITORY \"" + repoName + "\" TYPE \"" + type + "\" WITH (location = ?, compress = ?, chunk_size = ?)",
-            new Object[] {
-                randomRepoPath().toAbsolutePath().toString(),
-                randomBoolean(),
-                randomIntBetween(100, 1000)
-            }
-        );
-    }
-
     private CompletableFuture<AcknowledgedResponse> startDelete(String repoName,
                                                                 String... snapshotNames) {
         return startDelete(cluster().client(), repoName, snapshotNames);

@@ -139,6 +139,13 @@ public class MockRepository extends FsRepository {
     /** Allows blocking on writing the snapshot file at the end of snapshot creation to simulate a died master node */
     private volatile boolean blockAndFailOnWriteSnapFile;
 
+
+    /**
+     * Reading blobs will fail with an {@link AssertionError} once the repository has been blocked once.
+     */
+    private volatile boolean failReadsAfterUnblock;
+    private volatile boolean throwReadErrorAfterUnblock = false;
+
     private volatile boolean blocked = false;
 
     public MockRepository(RepositoryMetadata metadata, Environment environment,
@@ -222,6 +229,10 @@ public class MockRepository extends FsRepository {
         blockOnDeleteIndexN = true;
     }
 
+    public void setFailReadsAfterUnblock(boolean failReadsAfterUnblock) {
+        this.failReadsAfterUnblock = failReadsAfterUnblock;
+    }
+
     public boolean blocked() {
         return blocked;
     }
@@ -240,6 +251,10 @@ public class MockRepository extends FsRepository {
             Thread.currentThread().interrupt();
         }
         logger.debug("[{}] Unblocking execution", metadata.name());
+        if (wasBlocked && failReadsAfterUnblock) {
+            logger.debug("[{}] Next read operations will fail", metadata.name());
+            this.throwReadErrorAfterUnblock = true;
+        }
         return wasBlocked;
     }
 
@@ -267,7 +282,6 @@ public class MockRepository extends FsRepository {
         }
 
         private class MockBlobContainer extends BlobContainerWrapper {
-            private MessageDigest digest;
 
             private boolean shouldFail(String blobName, double probability) {
                 if (probability > 0.0) {
@@ -282,7 +296,7 @@ public class MockRepository extends FsRepository {
 
             private int hashCode(String path) {
                 try {
-                    digest = MessageDigest.getInstance("MD5");
+                    MessageDigest digest = MessageDigest.getInstance("MD5");
                     byte[] bytes = digest.digest(path.getBytes("UTF-8"));
                     int i = 0;
                     return ((bytes[i++] & 0xFF) << 24) | ((bytes[i++] & 0xFF) << 16)
@@ -342,14 +356,28 @@ public class MockRepository extends FsRepository {
                 throw new IOException("exception after block");
             }
 
+            private void maybeReadErrorAfterBlock(final String blobName) {
+                if (throwReadErrorAfterUnblock) {
+                    throw new AssertionError("Read operation are not allowed anymore at this point [blob=" + blobName + "]");
+                }
+            }
+
             MockBlobContainer(BlobContainer delegate) {
                 super(delegate);
             }
 
             @Override
             public InputStream readBlob(String name) throws IOException {
+                maybeReadErrorAfterBlock(name);
                 maybeIOExceptionOrBlock(name);
                 return super.readBlob(name);
+            }
+
+            @Override
+            public InputStream readBlob(String name, long position, long length) throws IOException {
+                maybeReadErrorAfterBlock(name);
+                maybeIOExceptionOrBlock(name);
+                return super.readBlob(name, position, length);
             }
 
             @Override

@@ -140,7 +140,7 @@ should be crossed out as well.
 - [s] 6a298970fdd [7.x] Allow metadata fields in the _source (#62616)
 - [s] 17aabaed155 Fix warning on boost docs and warning message on non-implementing fieldmappers
 - [s] 43ace5f80d7 Emit deprecation warnings when boosts are defined in mappings (#62623)
-- [ ] 9f5e95505bf Also abort ongoing file restores when snapshot restore is aborted (#62441) (#62607)
+- [x] 9f5e95505bf Also abort ongoing file restores when snapshot restore is aborted (#62441) (#62607)
 - [x] 06d5d360f92 Tidy up fillInStackTrace implementations (#62555)
 - [s] 9bb7ce0b229 [7.x] Allocate new indices on "hot" or "content" tier depending on data stream inclusion (#62338) (#62557)
 - [s] 91e23305295 Warn on badly-formed null values for date and IP field mappers (#62487)
