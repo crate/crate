@@ -19,16 +19,19 @@
 
 package org.elasticsearch.cluster;
 
+import java.util.Objects;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Predicate;
+
+import javax.annotation.Nullable;
+
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.cluster.service.ClusterApplierService;
 import org.elasticsearch.cluster.service.ClusterService;
-import javax.annotation.Nullable;
-import io.crate.common.unit.TimeValue;
+import org.elasticsearch.threadpool.ThreadPool;
 
-import java.util.Objects;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Predicate;
+import io.crate.common.unit.TimeValue;
 
 /**
  * A utility class which simplifies interacting with the cluster state in cases where
@@ -42,6 +45,7 @@ public class ClusterStateObserver {
     private final Predicate<ClusterState> MATCH_ALL_CHANGES_PREDICATE = state -> true;
 
     private final ClusterApplierService clusterApplierService;
+    private final ThreadPool threadPool;
     volatile TimeValue timeOutValue;
 
 
@@ -49,7 +53,7 @@ public class ClusterStateObserver {
     final TimeoutClusterStateListener clusterStateListener = new ObserverClusterStateListener();
     // observingContext is not null when waiting on cluster state changes
     final AtomicReference<ObservingContext> observingContext = new AtomicReference<>(null);
-    volatile Long startTimeNS;
+    volatile Long startTimeMS;
     volatile boolean timedOut;
 
 
@@ -83,10 +87,11 @@ public class ClusterStateObserver {
                                 @Nullable TimeValue timeout,
                                 Logger logger) {
         this.clusterApplierService = clusterApplierService;
+        this.threadPool = clusterApplierService.threadPool();
         this.lastObservedState = new AtomicReference<>(new StoredState(initialState));
         this.timeOutValue = timeout;
         if (timeOutValue != null) {
-            this.startTimeNS = System.nanoTime();
+            this.startTimeMS = threadPool.relativeTimeInMillis();
         }
         this.logger = logger;
     }
@@ -134,7 +139,7 @@ public class ClusterStateObserver {
         if (timeOutValue == null) {
             timeOutValue = this.timeOutValue;
             if (timeOutValue != null) {
-                long timeSinceStartMS = TimeValue.nsecToMSec(System.nanoTime() - startTimeNS);
+                long timeSinceStartMS = threadPool.relativeTimeInMillis() - startTimeMS;
                 timeoutTimeLeftMS = timeOutValue.millis() - timeSinceStartMS;
                 if (timeoutTimeLeftMS <= 0L) {
                     // things have timeout while we were busy -> notify
@@ -149,7 +154,7 @@ public class ClusterStateObserver {
                 timeoutTimeLeftMS = null;
             }
         } else {
-            this.startTimeNS = System.nanoTime();
+            this.startTimeMS = threadPool.relativeTimeInMillis();
             this.timeOutValue = timeOutValue;
             timeoutTimeLeftMS = timeOutValue.millis();
             timedOut = false;
@@ -236,8 +241,9 @@ public class ClusterStateObserver {
             ObservingContext context = observingContext.getAndSet(null);
             if (context != null) {
                 clusterApplierService.removeTimeoutListener(this);
-                long timeSinceStartMS = TimeValue.nsecToMSec(System.nanoTime() - startTimeNS);
-                logger.trace("observer: timeout notification from cluster service. timeout setting [{}], time since start [{}]", timeOutValue, new TimeValue(timeSinceStartMS));
+                long timeSinceStartMS = threadPool.relativeTimeInMillis() - startTimeMS;
+                logger.trace("observer: timeout notification from cluster service. timeout setting [{}], time since start [{}]",
+                    timeOutValue, new TimeValue(timeSinceStartMS));
                 // update to latest, in case people want to retry
                 lastObservedState.set(new StoredState(clusterApplierService.state()));
                 timedOut = true;
