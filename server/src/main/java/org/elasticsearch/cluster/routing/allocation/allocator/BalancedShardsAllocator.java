@@ -19,7 +19,19 @@
 
 package org.elasticsearch.cluster.routing.allocation.allocator;
 
-import io.crate.common.collections.Tuple;
+import static org.elasticsearch.cluster.routing.ShardRoutingState.RELOCATING;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.StreamSupport;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.ArrayUtil;
@@ -49,18 +61,7 @@ import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.gateway.PriorityComparator;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.StreamSupport;
-
-import static org.elasticsearch.cluster.routing.ShardRoutingState.RELOCATING;
+import io.crate.common.collections.Tuple;
 
 /**
  * The {@link BalancedShardsAllocator} re-balances the nodes allocations
@@ -783,6 +784,7 @@ public class BalancedShardsAllocator implements ShardsAllocator {
                             shard,
                             ShardRouting.UNAVAILABLE_EXPECTED_SHARD_SIZE,
                             allocation.clusterInfo(),
+                            allocation.snapshotShardSizeInfo(),
                             allocation.metadata(),
                             allocation.routingTable()
                         );
@@ -809,6 +811,7 @@ public class BalancedShardsAllocator implements ShardsAllocator {
                                 shard,
                                 ShardRouting.UNAVAILABLE_EXPECTED_SHARD_SIZE,
                                 allocation.clusterInfo(),
+                                allocation.snapshotShardSizeInfo(),
                                 allocation.metadata(),
                                 allocation.routingTable()
                             );

@@ -37,6 +37,7 @@ import org.elasticsearch.cluster.routing.allocation.decider.AllocationDeciders;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.snapshots.SnapshotsInfoService;
 
 import io.crate.metadata.IndexParts;
 
@@ -48,15 +49,18 @@ public class SysAllocations implements Iterable<SysAllocation> {
     private final AllocationDeciders allocationDeciders;
     private final ShardsAllocator shardAllocator;
     private final AllocationService allocationService;
+    private final SnapshotsInfoService snapshotInfoService;
 
     @Inject
     public SysAllocations(ClusterService clusterService,
                           ClusterInfoService clusterInfoService,
+                          SnapshotsInfoService snapshotInfoService,
                           AllocationDeciders allocationDeciders,
                           ShardsAllocator shardAllocator,
                           AllocationService allocationService) {
         this.clusterService = clusterService;
         this.clusterInfoService = clusterInfoService;
+        this.snapshotInfoService = snapshotInfoService;
         this.allocationDeciders = allocationDeciders;
         this.shardAllocator = shardAllocator;
         this.allocationService = allocationService;
@@ -68,7 +72,13 @@ public class SysAllocations implements Iterable<SysAllocation> {
         final RoutingNodes routingNodes = state.getRoutingNodes();
         final ClusterInfo clusterInfo = clusterInfoService.getClusterInfo();
         final RoutingAllocation allocation = new RoutingAllocation(
-            allocationDeciders, routingNodes, state, clusterInfo, System.nanoTime());
+            allocationDeciders,
+            routingNodes,
+            state,
+            clusterInfo,
+            snapshotInfoService.snapshotShardSizes(),
+            System.nanoTime()
+        );
         return allocation.routingTable().allShards()
             .stream()
             .filter(shardRouting -> !IndexParts.isDangling(shardRouting.getIndexName()))

@@ -172,6 +172,10 @@ public class IndexShardSnapshotStatus {
             indexVersion, failure);
     }
 
+    public long totalSize() {
+        return totalSize;
+    }
+
     public static IndexShardSnapshotStatus newInitializing(String generation) {
         return new IndexShardSnapshotStatus(Stage.INIT, 0L, 0L, 0, 0, 0, 0, 0, 0, null, generation);
     }

@@ -72,11 +72,16 @@ import org.elasticsearch.cluster.routing.allocation.decider.Decision;
 import org.elasticsearch.cluster.routing.allocation.decider.NodeVersionAllocationDecider;
 import org.elasticsearch.cluster.routing.allocation.decider.ReplicaAfterPrimaryActiveAllocationDecider;
 import org.elasticsearch.common.UUIDs;
+import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.Index;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.repositories.IndexId;
+import org.elasticsearch.snapshots.EmptySnapshotsInfoService;
+import org.elasticsearch.snapshots.InternalSnapshotsInfoService;
 import org.elasticsearch.snapshots.Snapshot;
 import org.elasticsearch.snapshots.SnapshotId;
+import org.elasticsearch.snapshots.SnapshotShardSizeInfo;
 import org.elasticsearch.test.VersionUtils;
 import org.elasticsearch.test.gateway.TestGatewayAllocator;
 import org.junit.Test;
@@ -352,13 +357,15 @@ public class NodeVersionAllocationDeciderTests extends ESAllocationTestCase {
             Collections.singleton(new NodeVersionAllocationDecider()));
         AllocationService strategy = new MockAllocationService(
             allocationDeciders,
-            new TestGatewayAllocator(), new BalancedShardsAllocator(Settings.EMPTY), EmptyClusterInfoService.INSTANCE);
+            new TestGatewayAllocator(), new BalancedShardsAllocator(Settings.EMPTY), EmptyClusterInfoService.INSTANCE,
+            EmptySnapshotsInfoService.INSTANCE);
         state = strategy.reroute(state, new AllocationCommands(), true, false).getClusterState();
         // the two indices must stay as is, the replicas cannot move to oldNode2 because versions don't match
         assertThat(state.routingTable().index(shard2.getIndex()).shardsWithState(ShardRoutingState.RELOCATING).size(), equalTo(0));
         assertThat(state.routingTable().index(shard1.getIndex()).shardsWithState(ShardRoutingState.RELOCATING).size(), equalTo(0));
     }
 
+    @Test
     public void testRestoreDoesNotAllocateSnapshotOnOlderNodes() {
         final DiscoveryNode newNode = new DiscoveryNode("newNode", buildNewFakeTransportAddress(), emptyMap(),
                                                         MASTER_DATA_ROLES, Version.CURRENT);
@@ -367,29 +374,42 @@ public class NodeVersionAllocationDeciderTests extends ESAllocationTestCase {
         final DiscoveryNode oldNode2 = new DiscoveryNode("oldNode2", buildNewFakeTransportAddress(), emptyMap(),
                                                          MASTER_DATA_ROLES, VersionUtils.getPreviousVersion());
 
-        int numberOfShards = randomIntBetween(1, 3);
+        final Snapshot snapshot = new Snapshot("rep1", new SnapshotId("snp1", UUIDs.randomBase64UUID()));
+        final IndexId indexId = new IndexId("test", UUIDs.randomBase64UUID(random()));
+
+        final int numberOfShards = randomIntBetween(1, 3);
         final IndexMetadata.Builder indexMetadata = IndexMetadata.builder("test")
-            .settings(settings(Version.CURRENT).put(AutoExpandReplicas.SETTING.getKey(), false))
-            .numberOfShards(numberOfShards).numberOfReplicas(randomIntBetween(0, 3));
+            .settings(
+                settings(Version.CURRENT)
+                    .put(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS, "false")
+            )
+            .numberOfShards(numberOfShards)
+            .numberOfReplicas(randomIntBetween(0, 3));
         for (int i = 0; i < numberOfShards; i++) {
             indexMetadata.putInSyncAllocationIds(i, Collections.singleton("_test_"));
         }
         Metadata metadata = Metadata.builder().put(indexMetadata).build();
 
+        final ImmutableOpenMap.Builder<InternalSnapshotsInfoService.SnapshotShard, Long> snapshotShardSizes =
+            ImmutableOpenMap.builder(numberOfShards);
+        final Index index = metadata.index("test").getIndex();
+        for (int i = 0; i < numberOfShards; i++) {
+            final ShardId shardId = new ShardId(index, i);
+            snapshotShardSizes.put(new InternalSnapshotsInfoService.SnapshotShard(snapshot, indexId, shardId), randomNonNegativeLong());
+        }
+
         ClusterState state = ClusterState.builder(ClusterName.CLUSTER_NAME_SETTING.getDefault(Settings.EMPTY))
             .metadata(metadata)
             .routingTable(RoutingTable.builder().addAsRestore(metadata.index("test"),
-                                                              new SnapshotRecoverySource(
-                                                                  UUIDs.randomBase64UUID(),
-                                                                  new Snapshot("rep1", new SnapshotId("snp1", UUIDs.randomBase64UUID())),
-                                                                  Version.CURRENT, new IndexId("test", UUIDs.randomBase64UUID(random())))).build())
+                new SnapshotRecoverySource(UUIDs.randomBase64UUID(), snapshot, Version.CURRENT, indexId)).build())
             .nodes(DiscoveryNodes.builder().add(newNode).add(oldNode1).add(oldNode2)).build();
         AllocationDeciders allocationDeciders = new AllocationDeciders(Arrays.asList(
             new ReplicaAfterPrimaryActiveAllocationDecider(),
             new NodeVersionAllocationDecider()));
         AllocationService strategy = new MockAllocationService(
             allocationDeciders,
-            new TestGatewayAllocator(), new BalancedShardsAllocator(Settings.EMPTY), EmptyClusterInfoService.INSTANCE);
+            new TestGatewayAllocator(), new BalancedShardsAllocator(Settings.EMPTY), EmptyClusterInfoService.INSTANCE,
+            () -> new SnapshotShardSizeInfo(snapshotShardSizes.build()));
         state = strategy.reroute(state, new AllocationCommands(), true, false).getClusterState();
 
         // Make sure that primary shards are only allocated on the new node
@@ -478,7 +498,7 @@ public class NodeVersionAllocationDeciderTests extends ESAllocationTestCase {
         final ShardRouting replicaShard = clusterState.routingTable().shardRoutingTable(shardId).replicaShards().get(0);
 
         RoutingAllocation routingAllocation = new RoutingAllocation(null, clusterState.getRoutingNodes(), clusterState,
-                                                                    null, 0);
+            null, null, 0);
         routingAllocation.debugDecision(true);
 
         final NodeVersionAllocationDecider allocationDecider = new NodeVersionAllocationDecider();
@@ -521,9 +541,9 @@ public class NodeVersionAllocationDeciderTests extends ESAllocationTestCase {
         final RoutingChangesObserver routingChangesObserver = new RoutingChangesObserver.AbstractRoutingChangesObserver();
         final RoutingNodes routingNodes = new RoutingNodes(clusterState, false);
         final ShardRouting startedPrimary = routingNodes.startShard(logger,
-                                                                    routingNodes.initializeShard(primaryShard, "newNode", null, 0,
-                                                                                                 routingChangesObserver), routingChangesObserver);
-        routingAllocation = new RoutingAllocation(null, routingNodes, clusterState, null, 0);
+            routingNodes.initializeShard(primaryShard, "newNode", null, 0,
+            routingChangesObserver), routingChangesObserver);
+        routingAllocation = new RoutingAllocation(null, routingNodes, clusterState, null, null,0);
         routingAllocation.debugDecision(true);
 
         decision = allocationDecider.canAllocate(replicaShard, oldNode, routingAllocation);
@@ -532,8 +552,8 @@ public class NodeVersionAllocationDeciderTests extends ESAllocationTestCase {
                                                  oldNode.node().getVersion() + "] since this is older than the primary version [" + newNode.node().getVersion() + "]"));
 
         routingNodes.startShard(logger, routingNodes.relocateShard(startedPrimary,
-                                                                   "oldNode", 0, routingChangesObserver).v2(), routingChangesObserver);
-        routingAllocation = new RoutingAllocation(null, routingNodes, clusterState, null, 0);
+            "oldNode", 0, routingChangesObserver).v2(), routingChangesObserver);
+        routingAllocation = new RoutingAllocation(null, routingNodes, clusterState, null, null,0);
         routingAllocation.debugDecision(true);
 
         decision = allocationDecider.canAllocate(replicaShard, newNode, routingAllocation);
@@ -580,7 +600,11 @@ public class NodeVersionAllocationDeciderTests extends ESAllocationTestCase {
             Collections.singleton(new NodeVersionAllocationDecider()));
         AllocationService strategy = new MockAllocationService(
             allocationDeciders,
-            new TestGatewayAllocator(), new BalancedShardsAllocator(Settings.EMPTY), EmptyClusterInfoService.INSTANCE);
+            new TestGatewayAllocator(),
+            new BalancedShardsAllocator(Settings.EMPTY),
+            EmptyClusterInfoService.INSTANCE,
+            EmptySnapshotsInfoService.INSTANCE
+        );
 
         // Test downgrade to same MAJOR.MINOR but lower HOTFIX version
         logger.trace("Downgrade 1st node");
