@@ -114,6 +114,13 @@ public class ChildMemoryCircuitBreaker implements CircuitBreaker {
      */
     @Override
     public double addEstimateBytesAndMaybeBreak(long bytes, String label) throws CircuitBreakingException {
+        if (name.equals("query")) {
+            StringBuffer sb = new StringBuffer();
+            for (StackTraceElement ste : Thread.currentThread().getStackTrace()) {
+                sb.append(ste.toString() + "\n");
+            }
+            logger.fatal(sb.toString());
+        }
         // short-circuit on no data allowed, immediately throwing an exception
         if (memoryBytesLimit == 0) {
             circuitBreak(label, bytes);
@@ -201,6 +208,13 @@ public class ChildMemoryCircuitBreaker implements CircuitBreaker {
      */
     @Override
     public long addWithoutBreaking(long bytes) {
+        if (name.equals("query")) {
+            StringBuffer sb = new StringBuffer();
+            for (StackTraceElement ste : Thread.currentThread().getStackTrace()) {
+                sb.append(ste.toString() + "\n");
+            }
+            logger.fatal(sb.toString());
+        }
         long u = used.addAndGet(bytes);
         if (logger.isTraceEnabled()) {
             logger.trace("[{}] Adjusted breaker by [{}] bytes, now [{}]", this.name, bytes, u);

@@ -52,6 +52,7 @@ public class RamAccountingPageIterator<TKey> implements PagingIterator<TKey, Row
     @Override
     public void finish() {
         delegatePagingIterator.finish();
+        rowAccounting.release();
     }
 
     @Override

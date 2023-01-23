@@ -30,11 +30,11 @@ import java.util.function.Function;
 
 import javax.annotation.concurrent.GuardedBy;
 
-import com.carrotsearch.hppc.IntObjectHashMap;
-
 import org.apache.lucene.search.IndexSearcher;
 import org.elasticsearch.Version;
 import org.elasticsearch.threadpool.ThreadPool;
+
+import com.carrotsearch.hppc.IntObjectHashMap;
 
 import io.crate.breaker.BlockBasedRamAccounting;
 import io.crate.breaker.RamAccounting;
@@ -54,7 +54,6 @@ import io.crate.metadata.TransactionContext;
 
 
 public class CollectTask implements Task {
-
 
     private final CollectPhase collectPhase;
     private final TransactionContext txnCtx;

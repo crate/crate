@@ -30,11 +30,14 @@ import java.sql.Statement;
 import java.util.Properties;
 
 import org.elasticsearch.test.IntegTestCase;
+import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.protocols.postgres.PostgresNetty;
 
+@TestLogging("org.elasticsearch.common.indices.breaker.query:TRACE")
+@IntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 0, supportsDedicatedMasters = false)
 public class CursorITest extends IntegTestCase {
 
     private Properties properties;
@@ -219,6 +222,7 @@ public class CursorITest extends IntegTestCase {
             ResultSet result = statement.executeQuery("fetch from c1");
             assertThat(result.next()).isTrue();
             assertThat(result.getInt(1)).isEqualTo(1);
+            assertThat(result.next()).isFalse();
         }
     }
 

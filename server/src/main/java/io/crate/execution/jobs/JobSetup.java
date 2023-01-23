@@ -21,6 +21,38 @@
 
 package io.crate.execution.jobs;
 
+import static io.crate.execution.dsl.projection.Projections.nodeProjections;
+import static io.crate.execution.dsl.projection.Projections.shardProjections;
+
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.Collection;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+import java.util.function.Predicate;
+import java.util.stream.Collector;
+
+import javax.annotation.Nullable;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.breaker.CircuitBreaker;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.indices.IndicesService;
+import org.elasticsearch.indices.breaker.CircuitBreakerService;
+import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
+import org.elasticsearch.node.Node;
+import org.elasticsearch.threadpool.ThreadPool;
+
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntCollection;
 import com.carrotsearch.hppc.IntContainer;
@@ -33,6 +65,7 @@ import com.carrotsearch.hppc.LongObjectMap;
 import com.carrotsearch.hppc.cursors.IntCursor;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.carrotsearch.hppc.procedures.ObjectProcedure;
+
 import io.crate.Streamer;
 import io.crate.breaker.BlockBasedRamAccounting;
 import io.crate.breaker.ConcurrentRamAccounting;
@@ -93,36 +126,6 @@ import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.node.StreamerVisitor;
 import io.crate.planner.operators.PKAndVersion;
 import io.crate.types.DataTypes;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.breaker.CircuitBreaker;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.indices.IndicesService;
-import org.elasticsearch.indices.breaker.CircuitBreakerService;
-import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
-import org.elasticsearch.node.Node;
-import org.elasticsearch.threadpool.ThreadPool;
-
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.Collection;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
-import java.util.function.Predicate;
-import java.util.stream.Collector;
-
-import static io.crate.execution.dsl.projection.Projections.nodeProjections;
-import static io.crate.execution.dsl.projection.Projections.shardProjections;
 
 @Singleton
 public class JobSetup {
@@ -639,12 +642,14 @@ public class JobSetup {
             CircuitBreaker breaker = breaker();
             int ramAccountingBlockSizeInBytes = BlockBasedRamAccounting.blockSizeInBytes(breaker.getLimit());
             var ramAccounting = ConcurrentRamAccounting.forCircuitBreaker(phase.label(), breaker);
+            var memoryManager = memoryManagerFactory.getMemoryManager(ramAccounting);
             var ramAccountingForMerge = new BlockBasedRamAccounting(
                 ramAccounting::addBytes,
                 ramAccountingBlockSizeInBytes);
+            var memoryManagerForMerge = memoryManagerFactory.getMemoryManager(ramAccounting);
 
             RowConsumer finalRowConsumer = context.getRowConsumer(phase, pageSize, ramAccountingForMerge);
-            MemoryManager memoryManager = memoryManagerFactory.getMemoryManager(ramAccounting);
+
             finalRowConsumer.completionFuture().whenComplete((result, error) -> {
                 memoryManager.close();
                 ramAccounting.close();
@@ -726,6 +731,10 @@ public class JobSetup {
                     DataTypes.getStreamers(phase.inputTypes()),
                     phase.numUpstreams());
             }
+            pageBucketReceiver.completionFuture().whenComplete((result, error) -> {
+                memoryManagerForMerge.close();
+                ramAccountingForMerge.close();
+            });
             context.registerSubContext(new DistResultRXTask(
                 phase.phaseId(),
                 phase.name(),

@@ -143,6 +143,7 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
 
     @Override
     public void close() {
+        ramAccounting.release();
     }
 
     @Override
