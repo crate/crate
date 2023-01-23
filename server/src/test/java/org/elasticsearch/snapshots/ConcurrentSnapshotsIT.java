@@ -550,6 +550,31 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
         assertThat(deleteFuture.get().isAcknowledged()).isTrue();
     }
 
+    @Test
+    public void testAbortNotStartedSnapshotWithoutIO() throws Exception {
+        String masterNode = cluster().startMasterOnlyNode();
+        String dataNode = cluster().startDataOnlyNode();
+        String repoName = "repo1";
+        createRepo(repoName, "mock");
+        createTableWithRecord("tbl1");
+
+        var createSnapshot1Future = startFullSnapshotBlockedOnDataNode("snapshot1", repoName, dataNode);
+        var createSnapshot2Future = startFullSnapshot(repoName, "snapshot2");
+
+        awaitClusterState(masterNode, state -> inProgressSnapshots(state) == 2);
+
+        execute("drop snapshot repo1.snapshot2");
+        assertThat(createSnapshot2Future)
+            .failsWithin(0, TimeUnit.SECONDS)
+            .withThrowableOfType(ExecutionException.class)
+            .withRootCauseExactlyInstanceOf(SnapshotException.class);
+
+        assertThat(createSnapshot1Future.isDone()).isFalse();
+        unblockNode(repoName, dataNode);
+        assertSuccessful(createSnapshot1Future);
+        assertThat(getRepositoryData(repoName).getGenId()).isEqualTo(0L);
+    }
+
     private int inProgressSnapshots(ClusterState state) {
         SnapshotsInProgress inProgress = state.custom(SnapshotsInProgress.TYPE, SnapshotsInProgress.EMPTY);
         return inProgress.entries().size();
