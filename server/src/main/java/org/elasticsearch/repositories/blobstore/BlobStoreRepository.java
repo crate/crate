@@ -35,6 +35,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -2087,6 +2088,26 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
 
     public InputStream maybeRateLimitSnapshots(InputStream stream) {
         return maybeRateLimit(stream, () -> snapshotRateLimiter, snapshotRateLimitingTimeInNanos);
+    }
+
+    @Override
+    public CompletableFuture<IndexShardSnapshotStatus> getShardSnapshotStatus(SnapshotId snapshotId,
+                                                                              IndexId indexId,
+                                                                              ShardId shardId) {
+        try {
+            BlobStoreIndexShardSnapshot snapshot = loadShardSnapshot(shardContainer(indexId, shardId), snapshotId);
+            return CompletableFuture.completedFuture(IndexShardSnapshotStatus.newDone(
+                snapshot.startTime(),
+                snapshot.time(),
+                snapshot.incrementalFileCount(),
+                snapshot.totalFileCount(),
+                snapshot.incrementalSize(),
+                snapshot.totalSize(),
+                null
+            ));
+        } catch (SnapshotException e) {
+            return CompletableFuture.failedFuture(e);
+        }
     }
 
     @Override

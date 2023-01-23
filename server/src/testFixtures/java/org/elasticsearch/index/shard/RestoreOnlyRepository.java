@@ -26,6 +26,7 @@ import static org.elasticsearch.repositories.RepositoryData.EMPTY_REPO_GEN;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
 import javax.annotation.Nullable;
@@ -87,6 +88,11 @@ public abstract class RestoreOnlyRepository implements Repository {
                                          SnapshotId snapshotId,
                                          Collection<IndexId> indexIds,
                                          ActionListener<Collection<IndexMetadata>> listener) {
+    }
+
+    @Override
+    public CompletableFuture<IndexShardSnapshotStatus> getShardSnapshotStatus(SnapshotId snapshotId, IndexId indexId, ShardId shardId) {
+        return CompletableFuture.completedFuture(null);
     }
 
     @Override

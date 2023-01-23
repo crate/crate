@@ -64,6 +64,7 @@ import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.gateway.GatewayAllocator;
+import org.elasticsearch.snapshots.EmptySnapshotsInfoService;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.gateway.TestGatewayAllocator;
 import org.junit.Test;
@@ -139,7 +140,7 @@ public class AllocationServiceTests extends ESTestCase {
                 public ShardAllocationDecision decideShardAllocation(ShardRouting shard, RoutingAllocation allocation) {
                     return ShardAllocationDecision.NOT_TAKEN;
                 }
-            }, EmptyClusterInfoService.INSTANCE);
+            }, EmptyClusterInfoService.INSTANCE, EmptySnapshotsInfoService.INSTANCE);
 
         final String unrealisticAllocatorName = "unrealistic";
         final Map<String, ExistingShardsAllocator> allocatorMap = new HashMap<>();
@@ -233,7 +234,7 @@ public class AllocationServiceTests extends ESTestCase {
     }
 
     public void testExplainsNonAllocationOfShardWithUnknownAllocator() {
-        final AllocationService allocationService = new AllocationService(null, null, null);
+        final AllocationService allocationService = new AllocationService(null, null, null, null);
         allocationService.setExistingShardsAllocators(
             Collections.singletonMap(GatewayAllocator.ALLOCATOR_NAME, new TestGatewayAllocator()));
 
@@ -253,7 +254,7 @@ public class AllocationServiceTests extends ESTestCase {
             .build();
 
         final RoutingAllocation allocation = new RoutingAllocation(new AllocationDeciders(Collections.emptyList()),
-            clusterState.getRoutingNodes(), clusterState, ClusterInfo.EMPTY, 0L);
+            clusterState.getRoutingNodes(), clusterState, ClusterInfo.EMPTY, null,0L);
         allocation.setDebugMode(randomBoolean() ? RoutingAllocation.DebugMode.ON : RoutingAllocation.DebugMode.EXCLUDE_YES_DECISIONS);
 
         final ShardAllocationDecision shardAllocationDecision
