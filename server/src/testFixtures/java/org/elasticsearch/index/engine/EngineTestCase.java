@@ -21,6 +21,7 @@ package org.elasticsearch.index.engine;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.shuffle;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 import static org.elasticsearch.index.engine.Engine.Operation.Origin.PEER_RECOVERY;
 import static org.elasticsearch.index.engine.Engine.Operation.Origin.PRIMARY;
@@ -290,12 +291,14 @@ public abstract class EngineTestCase extends ESTestCase {
             if (engine != null && engine.isClosed.get() == false) {
                 engine.getTranslog().getDeletionPolicy().assertNoOpenTranslogRefs();
                 assertConsistentHistoryBetweenTranslogAndLuceneIndex(engine, createMapperService("test"));
+                assertNoInFlightDocuments(engine);
                 assertMaxSeqNoInCommitUserData(engine);
                 assertAtMostOneLuceneDocumentPerSequenceNumber(engine);
             }
             if (replicaEngine != null && replicaEngine.isClosed.get() == false) {
                 replicaEngine.getTranslog().getDeletionPolicy().assertNoOpenTranslogRefs();
                 assertConsistentHistoryBetweenTranslogAndLuceneIndex(replicaEngine, createMapperService("test"));
+                assertNoInFlightDocuments(replicaEngine);
                 assertMaxSeqNoInCommitUserData(replicaEngine);
                 assertAtMostOneLuceneDocumentPerSequenceNumber(replicaEngine);
             }
@@ -533,6 +536,10 @@ public abstract class EngineTestCase extends ESTestCase {
         return internalEngine;
     }
 
+    public static InternalEngine createEngine(EngineConfig engineConfig, int maxDocs) {
+        return new InternalEngine(engineConfig, maxDocs, LocalCheckpointTracker::new);
+    }
+
     @FunctionalInterface
     public interface IndexWriterFactory {
 
@@ -570,7 +577,7 @@ public abstract class EngineTestCase extends ESTestCase {
                 }
             };
         } else {
-            return new InternalTestEngine(config, localCheckpointTrackerSupplier) {
+            return new InternalTestEngine(config, IndexWriter.MAX_DOCS, localCheckpointTrackerSupplier) {
                 @Override
                 IndexWriter createWriter(Directory directory, IndexWriterConfig iwc) throws IOException {
                     return (indexWriterFactory != null) ?
@@ -1318,5 +1325,17 @@ public abstract class EngineTestCase extends ESTestCase {
             }
         }
         return maxSeqNo;
+    }
+
+    public static long getInFlightDocCount(Engine engine) {
+        if (engine instanceof InternalEngine internalEngine) {
+            return internalEngine.getInFlightDocCount();
+        } else {
+            return 0;
+        }
+    }
+
+    public static void assertNoInFlightDocuments(Engine engine) throws Exception {
+        assertBusy(() -> assertThat(getInFlightDocCount(engine)).isEqualTo(0L));
     }
 }

@@ -21,15 +21,17 @@
 
 package io.crate.replication.logical.engine;
 
-import io.crate.common.annotations.VisibleForTesting;
-import io.crate.exceptions.UnsupportedFeatureException;
+import java.io.IOException;
+
 import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.engine.Engine;
+import org.elasticsearch.index.engine.Engine.Operation.Origin;
 import org.elasticsearch.index.engine.EngineConfig;
 import org.elasticsearch.index.engine.InternalEngine;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 
-import java.io.IOException;
+import io.crate.common.annotations.VisibleForTesting;
+import io.crate.exceptions.UnsupportedFeatureException;
 
 public class SubscriberEngine extends InternalEngine {
 
@@ -47,6 +49,7 @@ public class SubscriberEngine extends InternalEngine {
 
     @Override
     protected boolean assertPrimaryIncomingSequenceNumber(Operation.Origin origin, long seqNo) {
+        assert origin == Origin.PRIMARY : "Expected origin PRIMARY for replicated operations, but was: " + origin;
         assert seqNo != SequenceNumbers.UNASSIGNED_SEQ_NO :
             "Expected valid sequence number for replicated op but was unassigned";
         return true;
@@ -67,12 +70,17 @@ public class SubscriberEngine extends InternalEngine {
     @Override
     protected IndexingStrategy indexingStrategyForOperation(Index index) throws IOException {
         validate(index);
-        return super.indexingStrategyForOperation(index);
+        return planIndexingAsNonPrimary(index);
     }
 
     @Override
     protected DeletionStrategy deletionStrategyForOperation(Delete delete) throws IOException {
         validate(delete);
         return super.deletionStrategyForOperation(delete);
+    }
+
+    @Override
+    protected boolean assertNonPrimaryOrigin(Operation operation) {
+        return true;
     }
 }
