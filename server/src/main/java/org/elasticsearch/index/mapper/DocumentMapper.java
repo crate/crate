@@ -27,6 +27,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Stream;
@@ -145,6 +146,7 @@ public class DocumentMapper implements ToXContentFragment {
                 if (containsInvalidWhitespaceCharacters(objectProperty)) {
                     throw new InvalidArgumentException(
                         String.format(
+                            Locale.ENGLISH,
                             "Column name '%s' contains illegal whitespace character",
                             objectProperty
                         )
