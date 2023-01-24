@@ -98,7 +98,7 @@ should be crossed out as well.
 - [ ] 424b3137841 Adapt Shard Generation Assertion for 7.x (#63625) (#63642)
 - [ ] 9015b50e1b8 Check docs limit before indexing on primary (#63273)
 - [ ] f70391c6cca Fix Broken Snapshot State Machine in Corner Case (#63534) (#63608)
-- [ ] 845ccc22646 [DOCS] Fix dup word in ShardRouting hashcode method. (#63452) (#63583)
+- [x] 845ccc22646 [DOCS] Fix dup word in ShardRouting hashcode method. (#63452) (#63583)
 - [x] 8499924e51e InternalSnapshotsInfoService should also removed failed snapshot shard size infos (#63492) (#63592)
 - [s] 9e52513c7bf Add support for missing value fetchers. (#63585)
 - [x] 56092b1a9fd Flush translog writer before adding new operation (#63505)
