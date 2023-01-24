@@ -71,6 +71,18 @@ Fixes
 - Fixed an issue that caused the returned column names to be missing the
   subscripts when querying sub-columns of nested object arrays.
 
+- Fixed an issue that caused ``ClassCastException`` when accessing a sub-column
+  of a nested object array where the sub-column resolves to a nested array.
+  An example ::
+
+    CREATE TABLE test (
+      "a" ARRAY(OBJECT AS (
+        "b" ARRAY(OBJECT AS (
+          "s" STRING
+        )))));
+    INSERT INTO test (a) VALUES ([{b=[{s='1'}, {s='2'}, {s='3'}]}]);
+    SELECT a['b'] FROM test; // a['b'] is type of array(array(object))
+
 - Added validation to reject inner column names containing whitespace characters
   to avoid invalid schema definitions.
 
