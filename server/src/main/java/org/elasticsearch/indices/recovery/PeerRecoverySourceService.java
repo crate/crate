@@ -103,13 +103,17 @@ public class PeerRecoverySourceService extends AbstractLifecycleComponent implem
 
     @Override
     protected void doStart() {
-        clusterService.addListener(this);
+        if (DiscoveryNode.isDataNode(clusterService.getSettings())) {
+            clusterService.addListener(this);
+        }
     }
 
     @Override
     protected void doStop() {
-        ongoingRecoveries.awaitEmpty();
-        clusterService.removeListener(this);
+        if (DiscoveryNode.isDataNode(clusterService.getSettings())) {
+            ongoingRecoveries.awaitEmpty();
+            clusterService.removeListener(this);
+        }
     }
 
     @Override

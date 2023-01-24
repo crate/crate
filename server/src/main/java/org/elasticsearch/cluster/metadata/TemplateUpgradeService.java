@@ -19,31 +19,7 @@
 
 package org.elasticsearch.cluster.metadata;
 
-import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.message.ParameterizedMessage;
-import org.elasticsearch.Version;
-import org.elasticsearch.action.admin.indices.template.delete.DeleteIndexTemplateRequest;
-import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
-import org.elasticsearch.client.Client;
-import org.elasticsearch.cluster.ClusterChangedEvent;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.ClusterStateListener;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
-import io.crate.common.collections.Tuple;
-import io.crate.common.unit.TimeValue;
-import io.crate.exceptions.SQLExceptions;
-
-import org.elasticsearch.common.xcontent.ToXContent;
-import org.elasticsearch.common.xcontent.XContentHelper;
-import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.gateway.GatewayService;
-import org.elasticsearch.indices.IndexTemplateMissingException;
-import org.elasticsearch.plugins.Plugin;
-import org.elasticsearch.threadpool.ThreadPool;
+import static java.util.Collections.singletonMap;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -56,7 +32,33 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.UnaryOperator;
 
-import static java.util.Collections.singletonMap;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.message.ParameterizedMessage;
+import org.elasticsearch.Version;
+import org.elasticsearch.action.admin.indices.template.delete.DeleteIndexTemplateRequest;
+import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
+import org.elasticsearch.client.Client;
+import org.elasticsearch.cluster.ClusterChangedEvent;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.ClusterStateListener;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.collect.ImmutableOpenMap;
+import org.elasticsearch.common.xcontent.ToXContent;
+import org.elasticsearch.common.xcontent.XContentHelper;
+import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.gateway.GatewayService;
+import org.elasticsearch.indices.IndexTemplateMissingException;
+import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.threadpool.ThreadPool;
+
+import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
+
+import io.crate.common.collections.Tuple;
+import io.crate.common.unit.TimeValue;
+import io.crate.exceptions.SQLExceptions;
 
 /**
  * Upgrades Templates on behalf of installed {@link Plugin}s when a node joins the cluster
@@ -89,12 +91,17 @@ public class TemplateUpgradeService implements ClusterStateListener {
             }
             return upgradedTemplates;
         };
-        clusterService.addListener(this);
+        if (DiscoveryNode.isMasterEligibleNode(clusterService.getSettings())) {
+            clusterService.addListener(this);
+        }
     }
 
     @Override
     public void clusterChanged(ClusterChangedEvent event) {
         ClusterState state = event.state();
+        if (state.nodes().isLocalNodeElectedMaster() == false) {
+            return;
+        }
         if (state.blocks().hasGlobalBlock(GatewayService.STATE_NOT_RECOVERED_BLOCK)) {
             // wait until the gateway has recovered from disk, otherwise we think may not have the index templates,
             // while they actually do exist
@@ -112,10 +119,6 @@ public class TemplateUpgradeService implements ClusterStateListener {
             // we already checked these sets of templates - no reason to check it again
             // we can do identity check here because due to cluster state diffs the actual map will not change
             // if there were no changes
-            return;
-        }
-
-        if (state.nodes().isLocalNodeElectedMaster() == false) {
             return;
         }
 

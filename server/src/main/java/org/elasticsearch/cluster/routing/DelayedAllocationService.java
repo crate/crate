@@ -19,24 +19,26 @@
 
 package org.elasticsearch.cluster.routing;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.cluster.ClusterStateUpdateTask;
+import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.routing.allocation.RoutingAllocation;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
-import io.crate.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.AbstractRunnable;
 import org.elasticsearch.threadpool.Scheduler;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
+import io.crate.common.unit.TimeValue;
 
 /**
  * The {@link DelayedAllocationService} listens to cluster state changes and checks
@@ -137,7 +139,9 @@ public class DelayedAllocationService extends AbstractLifecycleComponent impleme
         this.threadPool = threadPool;
         this.clusterService = clusterService;
         this.allocationService = allocationService;
-        clusterService.addListener(this);
+        if (DiscoveryNode.isMasterEligibleNode(clusterService.getSettings())) {
+            clusterService.addListener(this);
+        }
     }
 
     @Override
@@ -161,8 +165,8 @@ public class DelayedAllocationService extends AbstractLifecycleComponent impleme
 
     @Override
     public void clusterChanged(ClusterChangedEvent event) {
-        long currentNanoTime = currentNanoTime();
-        if (event.state().nodes().isLocalNodeElectedMaster()) {
+        if (event.localNodeMaster()) {
+            long currentNanoTime = currentNanoTime();
             scheduleIfNeeded(currentNanoTime, event.state());
         }
     }
