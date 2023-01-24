@@ -565,7 +565,7 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
 
         execute("drop snapshot repo1.snapshot2");
         assertThat(createSnapshot2Future)
-            .failsWithin(0, TimeUnit.SECONDS)
+            .failsWithin(5, TimeUnit.SECONDS)
             .withThrowableOfType(ExecutionException.class)
             .withRootCauseExactlyInstanceOf(SnapshotException.class);
 

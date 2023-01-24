@@ -80,6 +80,7 @@ import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.test.InternalSettingsPlugin;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Test;
 
 import io.crate.testing.UseRandomizedSchema;
 
@@ -135,7 +136,7 @@ public class DiskThresholdDeciderIT extends IntegTestCase {
         return Collections.singletonList(InternalSettingsPlugin.class);
     }
 
-    public void testHighWatermarkNotExceeded() throws InterruptedException, ExecutionException {
+    public void testHighWatermarkNotExceeded() throws Throwable {
         cluster().startMasterOnlyNode();
         cluster().startDataOnlyNode();
         final String dataNodeName = cluster().startDataOnlyNode();
@@ -158,12 +159,62 @@ public class DiskThresholdDeciderIT extends IntegTestCase {
         // (subtract the translog size since the disk threshold decider ignores this and may therefore move the shard back again)
         fileSystemProvider.getTestFileStore(dataNode0Path).setTotalSpace(minShardSize + WATERMARK_BYTES - 1L);
         refreshDiskUsage();
-        assertThat(getShardRoutings(dataNode0Id, indexName)).isEmpty();
+        assertBusy(() -> assertThat(getShardRoutings(dataNode0Id, indexName)).isEmpty());
 
         // increase disk size of node 0 to allow just enough room for one shard, and check that it's rebalanced back
         fileSystemProvider.getTestFileStore(dataNode0Path).setTotalSpace(minShardSize + WATERMARK_BYTES + 1L);
         refreshDiskUsage();
-        assertThat(getShardRoutings(dataNode0Id, indexName)).hasSize(1);
+        assertBusy(() -> assertThat(getShardRoutings(dataNode0Id, indexName)).hasSize(1));
+    }
+
+    @Test
+    @UseRandomizedSchema(random = false)
+    public void testRestoreSnapshotAllocationDoesNotExceedWatermark() throws Exception {
+        cluster().startMasterOnlyNode();
+        cluster().startDataOnlyNode();
+        final String dataNodeName = cluster().startDataOnlyNode();
+        ensureStableCluster(3);
+
+        execute(
+            "create repository repo type fs with (location = ?, compress = ?)",
+            new Object[] {
+                randomRepoPath().toAbsolutePath().toString(),
+                randomBoolean()
+            }
+        );
+
+        final InternalClusterInfoService clusterInfoService
+            = (InternalClusterInfoService) cluster().getCurrentMasterNodeInstance(ClusterInfoService.class);
+        cluster().getCurrentMasterNodeInstance(ClusterService.class).addListener(event -> clusterInfoService.refresh());
+
+        final String dataNode0Id = cluster().getInstance(NodeEnvironment.class, dataNodeName).nodeId();
+        final Path dataNode0Path = cluster().getInstance(Environment.class, dataNodeName).dataFiles()[0];
+
+        execute("create table tbl (x text) clustered into 6 shards with (number_of_replicas = 0, \"store.stats_refresh_interval\" = '0ms')");
+        final long minShardSize = createReasonableSizedShards("tbl");
+
+        execute("create snapshot repo.snap table tbl with (wait_for_completion = true)");
+        execute("drop table tbl");
+
+        //// reduce disk size of node 0 so that no shards fit below the low watermark, forcing shards to be assigned to the other data node
+        fileSystemProvider.getTestFileStore(dataNode0Path).setTotalSpace(minShardSize + WATERMARK_BYTES - 1L);
+        refreshDiskUsage();
+
+        execute("set global transient \"cluster.routing.rebalance.enable\" = 'none'");
+
+        execute("restore snapshot repo.snap table tbl with (wait_for_completion = true)");
+
+        assertBusy(() -> assertThat(getShardRoutings(dataNode0Id, "tbl")).isEmpty());
+
+
+        execute("reset global \"cluster.routing.rebalance.enable\"");
+
+        //// increase disk size of node 0 to allow just enough room for one shard, and check that it's rebalanced back
+        fileSystemProvider.getTestFileStore(dataNode0Path).setTotalSpace(minShardSize + WATERMARK_BYTES + 1L);
+        assertBusy(() -> {
+            refreshDiskUsage();
+            assertThat(getShardRoutings(dataNode0Id, "tbl")).hasSize(1);
+        });
     }
 
     private Set<ShardRouting> getShardRoutings(String nodeId, String indexName) {

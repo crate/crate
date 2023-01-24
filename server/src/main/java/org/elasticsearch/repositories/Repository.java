@@ -252,6 +252,8 @@ public interface Repository extends LifecycleComponent {
     void restoreShard(Store store, SnapshotId snapshotId, IndexId indexId, ShardId snapshotShardId, RecoveryState recoveryState,
                       ActionListener<Void> listener);
 
+    CompletableFuture<IndexShardSnapshotStatus> getShardSnapshotStatus(SnapshotId snapshotId, IndexId indexId, ShardId shardId);
+
     /**
      * Update the repository with the incoming cluster state. This method is invoked from {@link RepositoriesService#applyClusterState} and
      * thus the same semantics as with {@link org.elasticsearch.cluster.ClusterStateApplier#applyClusterState} apply for the

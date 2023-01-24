@@ -111,7 +111,7 @@ should be crossed out as well.
 - [x] dd4b0d85fe0 Write translog operation bytes to byte stream (#63298)
 - [x] 64bbbaeef1a Do not block Translog add on file write (#63374)
 - [s] f17ca18dfa8 Make array value parsing flag more robust. (#63371)
-- [ ] 87076c32e21 Determine shard size before allocating shards recovering from snapshots (#61906) (#63337)
+- [x] 87076c32e21 Determine shard size before allocating shards recovering from snapshots (#61906) (#63337)
 - [s] ca68298e89c Remove MapperService argument from IndexFieldData.Builder#build (#63197) (#63311)
 - [s] 7405af8060b Convert TypeFieldType to a constant field type (#63214)
 - [x] d7f6812d788 Improve Snapshot Abort Efficiency (#62173) (#63297)

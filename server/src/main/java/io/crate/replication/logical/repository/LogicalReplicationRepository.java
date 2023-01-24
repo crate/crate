@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -521,5 +522,11 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                     LOGGER.error("Releasing publisher resource failed due to ", SQLExceptions.unwrap(err));
                 }
             });
+    }
+
+    @Override
+    public CompletableFuture<IndexShardSnapshotStatus> getShardSnapshotStatus(SnapshotId snapshotId, IndexId indexId, ShardId shardId) {
+        // Should implement this and disallow null in InternalSnapshotsInfoService
+        return CompletableFuture.completedFuture(null);
     }
 }

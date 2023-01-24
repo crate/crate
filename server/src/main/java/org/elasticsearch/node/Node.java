@@ -155,8 +155,10 @@ import org.elasticsearch.plugins.RepositoryPlugin;
 import org.elasticsearch.repositories.RepositoriesModule;
 import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.search.SearchModule;
+import org.elasticsearch.snapshots.InternalSnapshotsInfoService;
 import org.elasticsearch.snapshots.RestoreService;
 import org.elasticsearch.snapshots.SnapshotShardsService;
+import org.elasticsearch.snapshots.SnapshotsInfoService;
 import org.elasticsearch.snapshots.SnapshotsService;
 import org.elasticsearch.threadpool.ExecutorBuilder;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -381,6 +383,7 @@ public class Node implements Closeable {
                 threadPool::relativeTimeInMillis,
                 lazilyInitializedRerouteService
             );
+            final SetOnce<RepositoriesService> repositoriesServiceReference = new SetOnce<>();
             final ClusterInfoService clusterInfoService = newClusterInfoService(
                 settings,
                 clusterService,
@@ -425,10 +428,20 @@ public class Node implements Closeable {
             final MonitorService monitorService = new MonitorService(settings,
                                                                      nodeEnvironment,
                                                                      threadPool);
-            ClusterModule clusterModule = new ClusterModule(settings,
-                                                            clusterService,
-                                                            clusterPlugins,
-                                                            clusterInfoService);
+            SetOnce<RerouteService> rerouteServiceReference = new SetOnce<>();
+            InternalSnapshotsInfoService snapshotsInfoService = new InternalSnapshotsInfoService(
+                settings,
+                clusterService,
+                repositoriesServiceReference::get,
+                rerouteServiceReference::get
+            );
+            ClusterModule clusterModule = new ClusterModule(
+                settings,
+                clusterService,
+                clusterPlugins,
+                clusterInfoService,
+                snapshotsInfoService
+            );
             final FsHealthService fsHealthService = new FsHealthService(settings, clusterService.getClusterSettings(), threadPool,
                 nodeEnvironment);
             modules.add(clusterModule);
@@ -516,7 +529,6 @@ public class Node implements Closeable {
                 forbidPrivateIndexSettings
             );
 
-            final SetOnce<RepositoriesService> repositoriesServiceReference = new SetOnce<>();
             final Collection<Object> pluginComponents = pluginsService.filterPlugins(Plugin.class).stream()
                 .flatMap(p -> p.createComponents(client, clusterService, threadPool,
                                                  xContentRegistry, environment, nodeEnvironment,
@@ -681,6 +693,7 @@ public class Node implements Closeable {
                 clusterService,
                 clusterModule.getAllocationService()::reroute
             );
+            rerouteServiceReference.set(rerouteService);
             lazilyInitializedRerouteService.setRerouteService(rerouteService);
             final DiscoveryModule discoveryModule = new DiscoveryModule(
                 this.settings,
@@ -726,6 +739,7 @@ public class Node implements Closeable {
                     b.bind(NetworkService.class).toInstance(networkService);
                     b.bind(MetadataIndexUpgradeService.class).toInstance(metadataIndexUpgradeService);
                     b.bind(ClusterInfoService.class).toInstance(clusterInfoService);
+                    b.bind(SnapshotsInfoService.class).toInstance(snapshotsInfoService);
                     b.bind(GatewayMetaState.class).toInstance(gatewayMetaState);
                     b.bind(RepositoriesService.class).toInstance(repositoryService);
                     b.bind(SnapshotsService.class).toInstance(snapshotsService);

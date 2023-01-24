@@ -75,6 +75,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.gateway.GatewayAllocator;
 import org.elasticsearch.plugins.ClusterPlugin;
+import org.elasticsearch.snapshots.SnapshotsInfoService;
 
 import io.crate.cluster.gracefulstop.DecommissionAllocationDecider;
 import io.crate.types.DataTypes;
@@ -96,13 +97,13 @@ public class ClusterModule extends AbstractModule {
     private final ShardsAllocator shardsAllocator;
 
     public ClusterModule(Settings settings, ClusterService clusterService, List<ClusterPlugin> clusterPlugins,
-                         ClusterInfoService clusterInfoService) {
+                         ClusterInfoService clusterInfoService, SnapshotsInfoService snapshotsInfoService) {
         this.clusterPlugins = clusterPlugins;
         this.deciderList = createAllocationDeciders(settings, clusterService.getClusterSettings(), clusterPlugins);
         this.allocationDeciders = new AllocationDeciders(deciderList);
         this.shardsAllocator = createShardsAllocator(settings, clusterService.getClusterSettings(), clusterPlugins);
         this.clusterService = clusterService;
-        this.allocationService = new AllocationService(allocationDeciders, shardsAllocator, clusterInfoService);
+        this.allocationService = new AllocationService(allocationDeciders, shardsAllocator, clusterInfoService, snapshotsInfoService);
     }
 
     public static List<Entry> getNamedWriteables() {
