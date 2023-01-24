@@ -37,6 +37,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
@@ -173,9 +174,11 @@ public class InternalSnapshotsInfoServiceTests extends ESTestCase {
         verify(rerouteService, times(numberOfShards)).reroute(anyString(), any(Priority.class), any());
         assertThat(getShardSnapshotStatusCount.get()).isEqualTo(numberOfShards);
 
+        final SnapshotShardSizeInfo snapshotShardSizeInfo = snapshotsInfoService.snapshotShardSizes();
         for (int i = 0; i < numberOfShards; i++) {
             final ShardRouting shardRouting = clusterService.state().routingTable().index(indexName).shard(i).primaryShard();
-            assertThat(snapshotsInfoService.snapshotShardSizes().getShardSize(shardRouting)).isEqualTo(expectedShardSizes[i]);
+            assertThat(snapshotShardSizeInfo.getShardSize(shardRouting)).isEqualTo(expectedShardSizes[i]);
+            assertThat(snapshotShardSizeInfo.getShardSize(shardRouting, Long.MIN_VALUE)).isEqualTo(expectedShardSizes[i]);
         }
     }
 
@@ -186,7 +189,7 @@ public class InternalSnapshotsInfoServiceTests extends ESTestCase {
                 .put(InternalSnapshotsInfoService.INTERNAL_SNAPSHOT_INFO_MAX_CONCURRENT_FETCHES_SETTING.getKey(), randomIntBetween(1, 10))
                 .build(), clusterService, () -> repositoriesService, () -> rerouteService);
 
-        final Map<InternalSnapshotsInfoService.SnapshotShard, Boolean> results = new ConcurrentHashMap<>();
+        final Map<InternalSnapshotsInfoService.SnapshotShard, Long> results = new ConcurrentHashMap<>();
         final Repository mockRepository = mock(Repository.class);
 
         var answer = new Answer<>() {
@@ -197,12 +200,13 @@ public class InternalSnapshotsInfoServiceTests extends ESTestCase {
                 final InternalSnapshotsInfoService.SnapshotShard snapshotShard =
                     new InternalSnapshotsInfoService.SnapshotShard(new Snapshot("_repo", snapshotId), indexId, shardId);
                 if (randomBoolean()) {
-                    results.put(snapshotShard, Boolean.FALSE);
+                    results.put(snapshotShard, Long.MIN_VALUE);
                     throw new SnapshotException(snapshotShard.snapshot(), "simulated");
                 } else {
-                    results.put(snapshotShard, Boolean.TRUE);
+                    final long shardSize = randomNonNegativeLong();
+                    results.put(snapshotShard, shardSize);
                     return CompletableFuture.completedFuture(
-                        IndexShardSnapshotStatus.newDone(0L, 0L, 0, 0, 0L, randomNonNegativeLong(), null));
+                        IndexShardSnapshotStatus.newDone(0L, 0L, 0, 0, 0L, shardSize, null));
                 }
             }
         };
@@ -228,13 +232,32 @@ public class InternalSnapshotsInfoServiceTests extends ESTestCase {
         addSnapshotRestoreIndicesThread.start();
         addSnapshotRestoreIndicesThread.join();
 
+        final Predicate<Long> failedSnapshotShardSizeRetrieval = shardSize -> shardSize == Long.MIN_VALUE;
         assertBusy(() -> {
-            assertThat(snapshotsInfoService.numberOfKnownSnapshotShardSizes())
-                .isEqualTo((int) results.values().stream().filter(result -> result.equals(Boolean.TRUE)).count());
+            assertThat(snapshotsInfoService.numberOfKnownSnapshotShardSizes()).isEqualTo(
+                results.values().stream().filter(size -> failedSnapshotShardSizeRetrieval.test(size) == false).count()
+            );
             assertThat(snapshotsInfoService.numberOfFailedSnapshotShardSizes())
-                .isEqualTo((int) results.values().stream().filter(result -> result.equals(Boolean.FALSE)).count());
+                .isEqualTo((int) results.values().stream().filter(failedSnapshotShardSizeRetrieval).count());
             assertThat(snapshotsInfoService.numberOfUnknownSnapshotShardSizes()).isEqualTo(0);
         });
+
+        final SnapshotShardSizeInfo snapshotShardSizeInfo = snapshotsInfoService.snapshotShardSizes();
+        for (Map.Entry<InternalSnapshotsInfoService.SnapshotShard, Long> snapshotShard : results.entrySet()) {
+            final ShardId shardId = snapshotShard.getKey().shardId();
+            final ShardRouting shardRouting = clusterService.state().routingTable().index(shardId.getIndexName())
+                .shard(shardId.id()).primaryShard();
+            assertThat(shardRouting).isNotNull();
+
+            final boolean success = failedSnapshotShardSizeRetrieval.test(snapshotShard.getValue()) == false;
+            assertThat(snapshotShardSizeInfo.getShardSize(shardRouting)).isEqualTo(
+                (success ? results.get(snapshotShard.getKey()) : ShardRouting.UNAVAILABLE_EXPECTED_SHARD_SIZE)
+            );
+            final long defaultValue = randomNonNegativeLong();
+            assertThat(snapshotShardSizeInfo.getShardSize(shardRouting, defaultValue)).isEqualTo(
+                success ? results.get(snapshotShard.getKey()) : defaultValue
+            );
+        }
     }
 
     @Test

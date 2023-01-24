@@ -107,7 +107,7 @@ should be crossed out as well.
 - [s] c6b915c8e67 Make TextFieldMapper.FAST_PHRASE_SUFFIX private.
 - [s] c4726a2cece Don't emit separate warnings for type filters (#63391)
 - [ ] 244f1a60f92 Selectively Add ClusterState Listeners Depending on Node Roles (#63223) (#63396)
-- [ ] eac99dd594a SnapshotShardSizeInfo should prefer default value when provided (#63390) (#63394)
+- [x] eac99dd594a SnapshotShardSizeInfo should prefer default value when provided (#63390) (#63394)
 - [x] dd4b0d85fe0 Write translog operation bytes to byte stream (#63298)
 - [x] 64bbbaeef1a Do not block Translog add on file write (#63374)
 - [s] f17ca18dfa8 Make array value parsing flag more robust. (#63371)
