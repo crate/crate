@@ -68,6 +68,9 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Added validation to reject inner column names containing whitespace characters
+  to avoid invalid schema definitions.
+
 - Fixed an issue that caused ``IndexOutOfBoundsException`` to be thrown when
   trying to :ref:`FETCH <sql-fetch>` backwards from a ``CURSOR``, past the 1st
   row.

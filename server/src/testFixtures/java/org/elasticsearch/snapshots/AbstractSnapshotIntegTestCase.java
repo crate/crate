@@ -101,6 +101,18 @@ public abstract class AbstractSnapshotIntegTestCase extends IntegTestCase {
         }
     }
 
+    protected void createRepo(String repoName, String type) {
+        execute(
+            "CREATE REPOSITORY \"" + repoName + "\" TYPE \"" + type + "\" WITH (location = ?, compress = ?, chunk_size = ?)",
+            new Object[] {
+                randomRepoPath().toAbsolutePath().toString(),
+                randomBoolean(),
+                randomIntBetween(100, 1000)
+            }
+        );
+    }
+
+
     protected void disableRepoConsistencyCheck(String reason) {
         assertThat(reason).isNotNull();
         skipRepoConsistencyCheckReason = reason;
