@@ -19,6 +19,9 @@
 
 package org.elasticsearch.gateway;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
@@ -30,6 +33,7 @@ import org.elasticsearch.cluster.ClusterStateUpdateTask;
 import org.elasticsearch.cluster.block.ClusterBlock;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.coordination.Coordinator;
+import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -38,14 +42,12 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
-import io.crate.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.AbstractRunnable;
 import org.elasticsearch.discovery.Discovery;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Function;
+import io.crate.common.unit.TimeValue;
 
 public class GatewayService extends AbstractLifecycleComponent implements ClusterStateListener {
 
@@ -146,8 +148,10 @@ public class GatewayService extends AbstractLifecycleComponent implements Cluste
 
     @Override
     protected void doStart() {
-        // use post applied so that the state will be visible to the background recovery thread we spawn in performStateRecovery
-        clusterService.addListener(this);
+        if (DiscoveryNode.isMasterEligibleNode(clusterService.getSettings())) {
+            // use post applied so that the state will be visible to the background recovery thread we spawn in performStateRecovery
+            clusterService.addListener(this);
+        }
     }
 
     @Override
