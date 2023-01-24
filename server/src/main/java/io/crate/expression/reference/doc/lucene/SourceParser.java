@@ -121,7 +121,15 @@ public final class SourceParser {
         } else {
             ArrayList<Object> values = new ArrayList<>();
             Token token = parser.nextToken();
-            if (type instanceof ArrayType) {
+            // Handles nested arrays
+            // ex:
+            //   CREATE TABLE test (
+            //   "a" array(object as (
+            //   "b" array(object as (
+            //   "s" string
+            //   )))));
+            //   SELECT a['b'] from test; -- resolves to array(array(object))
+            while (type instanceof ArrayType) {
                 type = ((ArrayType<?>) type).innerType();
             }
             for (; token != null && token != XContentParser.Token.END_ARRAY; token = parser.nextToken()) {
