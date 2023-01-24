@@ -50,6 +50,7 @@ import org.elasticsearch.repositories.blobstore.BlobStoreTestUtil;
 import org.elasticsearch.snapshots.mockstore.MockRepository;
 import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.threadpool.ThreadPoolStats;
 import org.junit.After;
 
 import io.crate.common.unit.TimeValue;
@@ -187,7 +188,7 @@ public abstract class AbstractSnapshotIntegTestCase extends IntegTestCase {
 
     public static String blockMasterFromFinalizingSnapshotOnIndexFile(final String repositoryName) {
         final String masterName = cluster().getMasterName();
-        mockRepo(repositoryName, masterName).setBlockOnWriteIndexFile(true);
+        mockRepo(repositoryName, masterName).setBlockAndFailOnWriteIndexFile();
         return masterName;
     }
 
@@ -266,4 +267,18 @@ public abstract class AbstractSnapshotIntegTestCase extends IntegTestCase {
             future.get(30L, TimeUnit.SECONDS);
         }
     }
+
+    protected void awaitMasterFinishRepoOperations() throws Exception {
+        logger.info("--> waiting for master to finish all repo operations on its SNAPSHOT pool");
+        final ThreadPool masterThreadPool = cluster().getMasterNodeInstance(ThreadPool.class);
+        assertBusy(() -> {
+            for (ThreadPoolStats.Stats stat : masterThreadPool.stats()) {
+                if (ThreadPool.Names.SNAPSHOT.equals(stat.getName())) {
+                    assertThat(stat.getActive()).isEqualTo(0);
+                    break;
+                }
+            }
+        });
+    }
+
 }

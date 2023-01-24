@@ -466,7 +466,7 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
         var firstDeleteFuture = startDelete(cluster().nonMasterClient(), repoName, firstSnapshot);
         awaitClusterState(cluster().getMasterName(), hasInProgressDeletions(1));
 
-        mockRepo(repoName, dataNode2).blockOnDataFiles(true);
+        mockRepo(repoName, dataNode2).setBlockOnAnyFiles(true);
         var snapshotThreeFuture = createSnapshot(cluster().nonMasterClient(), repoName, "snapshot-three", false);
         waitForBlock(dataNode2, repoName, TimeValue.timeValueSeconds(30L));
 
@@ -574,6 +574,36 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
         assertSuccessful(createSnapshot1Future);
         assertThat(getRepositoryData(repoName).getGenId()).isEqualTo(0L);
     }
+
+    @Test
+    public void testStartWithSuccessfulShardSnapshotPendingFinalization() throws Exception {
+        final String masterName = cluster().startMasterOnlyNode();
+        final String dataNode = cluster().startDataOnlyNode();
+        final String repoName = "test-repo";
+        createRepo(repoName, "mock");
+
+        createTableWithRecord("tbl1");
+        startFullSnapshot(repoName, "first-snapshot").get(5, TimeUnit.SECONDS);
+
+        mockRepo(repoName, masterName).setBlockOnWriteIndexFile();
+        var blockedSnapshot = startFullSnapshot(repoName, "snap-blocked");
+        waitForBlock(masterName, repoName, TimeValue.timeValueSeconds(30L));
+        awaitClusterState(masterName, state -> inProgressSnapshots(state) == 1);
+
+        mockRepo(repoName, dataNode).setBlockOnAnyFiles(true);
+        var otherSnapshot = startFullSnapshot(repoName, "other-snapshot");
+        awaitClusterState(masterName, state -> inProgressSnapshots(state) == 2);
+        assertThat(blockedSnapshot.isDone()).isFalse();
+        unblockNode(repoName, masterName);
+        awaitClusterState(masterName, state -> inProgressSnapshots(state) == 1);
+
+        awaitMasterFinishRepoOperations();
+
+        unblockNode(repoName, dataNode);
+        assertSuccessful(blockedSnapshot);
+        assertSuccessful(otherSnapshot);
+    }
+
 
     private int inProgressSnapshots(ClusterState state) {
         SnapshotsInProgress inProgress = state.custom(SnapshotsInProgress.TYPE, SnapshotsInProgress.EMPTY);
