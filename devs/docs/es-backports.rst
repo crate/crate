@@ -84,7 +84,7 @@ should be crossed out as well.
 - [ ] 0137c1679bb Fix the earliest last modified age of translog stats (#64753)
 - [s] fb84b6710d5 Restore use of default search and search_quote analyzers (#65491) (#65562)
 - [s] 88993e763f9 Fix handling of null values in geo_point (#65307)
-- [ ] feca22729cd [DOCS] Remove duplicated word in replica shard allocator comment (#65295) (#65317)
+- [x] feca22729cd [DOCS] Remove duplicated word in replica shard allocator comment (#65295) (#65317)
 - [s] caf143f4a51 Unused boost parameter should not throw mapping exception (#64999) (#65014)
 - [x] d173ba6b2d7 Fix NPE in toString of FailedShard (#64770) (#64779)
 - [x] 33f703ef1f8 Fix up roles after rolling upgrade (#64693)
