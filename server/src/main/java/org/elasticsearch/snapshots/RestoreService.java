@@ -86,6 +86,7 @@ import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.common.regex.Regex;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.settings.Settings.Builder;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexSettings;
@@ -312,10 +313,14 @@ public class RestoreService implements ClusterStateApplier {
                                                     IndexMetadata.Builder indexMdBuilder = IndexMetadata.builder(snapshotIndexMetadata)
                                                         .state(IndexMetadata.State.OPEN)
                                                         .index(renamedIndexName);
-                                                    indexMdBuilder.settings(Settings.builder()
-                                                                                .put(snapshotIndexMetadata.getSettings())
-                                                                                .put(IndexMetadata.SETTING_INDEX_UUID, UUIDs.randomBase64UUID())
-                                                                                .put(IndexMetadata.SETTING_HISTORY_UUID, UUIDs.randomBase64UUID()));
+                                                    Builder indexSettingsBuilder = Settings.builder()
+                                                        .put(snapshotIndexMetadata.getSettings())
+                                                        .put(IndexMetadata.SETTING_INDEX_UUID, UUIDs.randomBase64UUID());
+                                                    if (snapshotIndexMetadata.getCreationVersion().onOrAfter(Version.V_5_1_0)
+                                                            || currentState.nodes().getMinNodeVersion().onOrAfter(Version.V_5_1_0)) {
+                                                        indexSettingsBuilder.put(IndexMetadata.SETTING_HISTORY_UUID, UUIDs.randomBase64UUID());
+                                                    }
+                                                    indexMdBuilder.settings(indexSettingsBuilder);
 
                                                     shardLimitValidator.validateShardLimit(snapshotIndexMetadata.getSettings(), currentState);
                                                     if (!request.includeAliases() && !snapshotIndexMetadata.getAliases().isEmpty()) {
