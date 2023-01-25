@@ -86,7 +86,7 @@ should be crossed out as well.
 - [s] 88993e763f9 Fix handling of null values in geo_point (#65307)
 - [ ] feca22729cd [DOCS] Remove duplicated word in replica shard allocator comment (#65295) (#65317)
 - [s] caf143f4a51 Unused boost parameter should not throw mapping exception (#64999) (#65014)
-- [ ] d173ba6b2d7 Fix NPE in toString of FailedShard (#64770) (#64779)
+- [x] d173ba6b2d7 Fix NPE in toString of FailedShard (#64770) (#64779)
 - [x] 33f703ef1f8 Fix up roles after rolling upgrade (#64693)
 - [s] 51e9d6f2275 Revert Serializing Outbound Transport Messages on IO Threads (#64632) (#64654)
 - [x] dad3b26560c Fix Typo in Repository Exception Message (#64412) (#64434)
