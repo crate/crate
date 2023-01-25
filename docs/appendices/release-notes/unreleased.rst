@@ -67,6 +67,9 @@ Fixes
 - Added validation to reject inner column names containing special whitespace
   characters to avoid invalid schema definitions.
 
+- Fixed an issue that caused the returned column names to be missing the
+  subscripts when querying sub-columns of nested object arrays.
+
 - Fixed an issue that caused ``IndexOutOfBoundsException`` to be thrown when
   trying to :ref:`FETCH <sql-fetch>` backwards from a ``CURSOR``, past the 1st
   row.
