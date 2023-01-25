@@ -38,6 +38,7 @@ import io.crate.analyze.relations.TableRelation;
 import io.crate.expression.symbol.Aggregation;
 import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.FetchReference;
+import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
@@ -72,7 +73,8 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
             "  \"1a\" int," +
             "  \"select\" byte," +
             "  idx int," +
-            "  s_arr array(text)" +
+            "  s_arr array(text)," +
+            "  a array(object as (b object as (c int)))" +
             ")";
         RelationName name = new RelationName(DocSchemaInfo.NAME, TABLE_NAME);
         DocTableInfo tableInfo = SQLExecutor.tableInfo(
@@ -396,5 +398,13 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
         assertPrintingRoundTrip("foo LIKE ANY (s_arr)", "(doc.formatter.foo LIKE ANY(doc.formatter.s_arr))");
         assertPrintingRoundTrip("foo NOT LIKE ANY (['a', 'b', 'c'])",
                                 "(doc.formatter.foo NOT LIKE ANY(['a', 'b', 'c']))");
+    }
+
+    // tracks a bug: https://github.com/crate/crate/issues/13504
+    @Test
+    public void test_printing_nested_objects() {
+        Symbol symbol = sqlExpressions.asSymbol("a[1]['b']['c']");
+        assertThat(symbol instanceof Function).isTrue();
+        assertPrint(symbol, "a[1]['b']['c']");
     }
 }

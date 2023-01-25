@@ -423,9 +423,7 @@ public class Function implements Symbol, Cloneable {
             builder.append("[");
             builder.append(arguments.get(1).toString(style));
             builder.append("]");
-            builder.append("['");
-            builder.append(ref.column().path().get(0));
-            builder.append("']");
+            ref.column().path().forEach(path -> builder.append("['").append(path).append("']"));
         } else {
             builder.append(base.toString(style));
             builder.append("[");
