@@ -27,6 +27,7 @@ import static org.junit.Assert.assertThat;
 import java.util.Collections;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.function.IntSupplier;
 
 import org.hamcrest.Matchers;
 import org.junit.Before;
@@ -55,6 +56,9 @@ public class MoveConstantJoinConditionsBeneathNestedLoopTest extends CrateDummyC
     private SqlExpressions sqlExpressions;
     private Map<RelationName, AnalyzedRelation> sources;
     private PlanStats planStats;
+    private int id = 0;
+    private IntSupplier ids = () -> id++;
+
 
     @Before
     public void prepare() throws Exception {
@@ -68,15 +72,15 @@ public class MoveConstantJoinConditionsBeneathNestedLoopTest extends CrateDummyC
         var t1 = (AbstractTableRelation<?>) sources.get(T3.T1);
         var t2 = (AbstractTableRelation<?>) sources.get(T3.T2);
 
-        Collect c1 = new Collect(t1, Collections.emptyList(), WhereClause.MATCH_ALL);
-        Collect c2 = new Collect(t2, Collections.emptyList(), WhereClause.MATCH_ALL);
+        Collect c1 = new Collect(1, t1, Collections.emptyList(), WhereClause.MATCH_ALL);
+        Collect c2 = new Collect(2, t2, Collections.emptyList(), WhereClause.MATCH_ALL);
 
         // This condition has a non-constant part `doc.t1.x = doc.t2.y` and a constant part `doc.t2.b = 'abc'`
         var joinCondition = sqlExpressions.asSymbol("doc.t1.x = doc.t2.y and doc.t2.b = 'abc'");
         var nonConstantPart = sqlExpressions.asSymbol("doc.t1.x = doc.t2.y");
         var constantPart = sqlExpressions.asSymbol("doc.t2.b = 'abc'");
 
-        NestedLoopJoin nl = new NestedLoopJoin(c1, c2, JoinType.INNER, joinCondition, false, t1, false, false, false, false);
+        NestedLoopJoin nl = new NestedLoopJoin(1, c1, c2, JoinType.INNER, joinCondition, false, t1, false, false, false, false);
         var rule = new MoveConstantJoinConditionsBeneathNestedLoop();
         Match<NestedLoopJoin> match = rule.pattern().accept(nl, Captures.empty());
 
@@ -88,6 +92,7 @@ public class MoveConstantJoinConditionsBeneathNestedLoopTest extends CrateDummyC
                                                 planStats,
                                                 CoordinatorTxnCtx.systemTransactionContext(),
                                                 sqlExpressions.nodeCtx,
+                                                ids,
                                                 Function.identity());
 
         assertThat(result.joinCondition(), is(nonConstantPart));

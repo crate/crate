@@ -24,9 +24,11 @@ package io.crate.planner.optimizer.rule;
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 
 import java.util.function.Function;
+import java.util.function.IntSupplier;
 
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
+import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.Eval;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.NestedLoopJoin;
@@ -52,6 +54,7 @@ public class ReorderNestedLoopJoin implements Rule<NestedLoopJoin> {
                              PlanStats planStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
+                             IntSupplier ids,
                              Function<LogicalPlan, LogicalPlan> resolvePlan) {
         // We move the smaller table to the right side since benchmarking
         // revealed that this improves performance in most cases.
@@ -63,7 +66,9 @@ public class ReorderNestedLoopJoin implements Rule<NestedLoopJoin> {
                 // We need to keep the same order of the output symbols when lhs/rhs are swapped
                 // therefore we add an Eval on top with original output order
                 return Eval.create(
+                    ids.getAsInt(),
                     new NestedLoopJoin(
+                        ids.getAsInt(),
                         nestedLoop.rhs(),
                         nestedLoop.lhs(),
                         nestedLoop.joinType().invert(),

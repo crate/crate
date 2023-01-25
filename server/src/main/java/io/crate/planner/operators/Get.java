@@ -69,19 +69,26 @@ import io.crate.planner.node.dql.Collect;
 
 public class Get implements LogicalPlan {
 
+    private final int id;
     final DocTableRelation tableRelation;
     final DocKeys docKeys;
     final Symbol query;
     private final List<Symbol> outputs;
 
-    public Get(DocTableRelation table,
+    public Get(int id,
+               DocTableRelation table,
                DocKeys docKeys,
                Symbol query,
                List<Symbol> outputs) {
+        this.id = id;
         this.tableRelation = table;
         this.docKeys = docKeys;
         this.query = query;
         this.outputs = outputs;
+    }
+
+    public int id() {
+        return id;
     }
 
     @Override
@@ -250,7 +257,7 @@ public class Get implements LogicalPlan {
             }
         }
         if (excludedAny) {
-            return new Get(tableRelation, docKeys, query, newOutputs);
+            return new Get(id, tableRelation, docKeys, query, newOutputs);
         }
         return this;
     }

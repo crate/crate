@@ -63,16 +63,16 @@ public class PatternTest {
 
     @Test
     public void test_with_source_matching() {
-        Collect source = new Collect(mock(AbstractTableRelation.class), List.of(), WhereClause.MATCH_ALL);
-        Filter filter = new Filter(source, mock(Symbol.class));
+        Collect source = new Collect(1, mock(AbstractTableRelation.class), List.of(), WhereClause.MATCH_ALL);
+        Filter filter = new Filter(2, source, mock(Symbol.class));
         var pattern = typeOf(Filter.class).with(source(), typeOf(Collect.class));
         assertMatch(pattern, filter);
     }
 
     @Test
     public void test_capture() {
-        Filter source = new Filter(mock(LogicalPlan.class), mock(Symbol.class));
-        Filter filter = new Filter(source, mock(Symbol.class));
+        Filter source = new Filter(1, mock(LogicalPlan.class), mock(Symbol.class));
+        Filter filter = new Filter(2, source, mock(Symbol.class));
         Capture<Filter> capture = new Capture<>();
         var pattern = typeOf(Filter.class).with(source(), typeOf(Filter.class)).capturedAs(capture);
         Match<Filter> match = pattern.accept(filter, Captures.empty());
@@ -82,9 +82,9 @@ public class PatternTest {
 
     @Test
     public void test_with_match_group_referenced_source() {
-        var source = new Collect(mock(AbstractTableRelation.class), List.of(), WhereClause.MATCH_ALL);
-        var groupReferenceSource = new GroupReference(1, source.outputs(), Set.of());
-        var filter = new Filter(groupReferenceSource, mock(Symbol.class));
+        var source = new Collect(1, mock(AbstractTableRelation.class), List.of(), WhereClause.MATCH_ALL);
+        var groupReferenceSource = new GroupReference(2,1, source.outputs(), Set.of());
+        var filter = new Filter(3,groupReferenceSource, mock(Symbol.class));
 
         var memo = new HashMap<Integer, LogicalPlan>();
         memo.put(1, source);
@@ -108,9 +108,9 @@ public class PatternTest {
 
     @Test
     public void test_with_property_match_group_referenced_source() {
-        var source = new Collect(mock(AbstractTableRelation.class), List.of(), WhereClause.MATCH_ALL);
-        var groupReferenceSource = new GroupReference(1, source.outputs(), Set.of());
-        var filter = new Filter(groupReferenceSource, mock(Symbol.class));
+        var source = new Collect(1,mock(AbstractTableRelation.class), List.of(), WhereClause.MATCH_ALL);
+        var groupReferenceSource = new GroupReference(2, 1, source.outputs(), Set.of());
+        var filter = new Filter(3, groupReferenceSource, mock(Symbol.class));
 
         var memo = new HashMap<Integer, LogicalPlan>();
         memo.put(1, source);

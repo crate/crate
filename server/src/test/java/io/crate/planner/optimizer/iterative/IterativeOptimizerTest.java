@@ -25,6 +25,7 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.createNodeContext;
 
 import java.util.List;
+import java.util.function.IntSupplier;
 
 import org.elasticsearch.Version;
 import org.junit.Test;
@@ -46,18 +47,20 @@ public class IterativeOptimizerTest {
     private final NodeContext nodeCtx = createNodeContext();
     private final CoordinatorTxnCtx ctx = CoordinatorTxnCtx.systemTransactionContext();
     private final PlanStats planStats = new PlanStats(nodeCtx, CoordinatorTxnCtx.systemTransactionContext(), new TableStats());
+    private int id = 0;
+    private IntSupplier ids = () -> id++;
 
     @Test
     public void test_match_single_rule_merge_filters() {
         var source = new MemoTest.TestPlan(1, List.of());
-        var filter1 = new Filter(source, Literal.BOOLEAN_TRUE);
-        var filter2 = new Filter(filter1, Literal.BOOLEAN_TRUE);
+        var filter1 = new Filter(1, source, Literal.BOOLEAN_TRUE);
+        var filter2 = new Filter(2, filter1, Literal.BOOLEAN_TRUE);
 
         IterativeOptimizer optimizer = new IterativeOptimizer(nodeCtx,
                                                               () -> Version.CURRENT,
                                                               List.of(new MergeFilters()));
 
-        var result = optimizer.optimize(filter2, planStats, ctx);
+        var result = optimizer.optimize(filter2, planStats, ctx, ids);
         assertThat(result).isEqualTo("Filter[(true AND true)]\n" +
                                              "  └ TestPlan[]");
     }
@@ -65,16 +68,16 @@ public class IterativeOptimizerTest {
     @Test
     public void test_match_multiple_rules_merge_filters_and_orders() {
         var source = new MemoTest.TestPlan(1, List.of());
-        var filter1 = new Filter(source, Literal.BOOLEAN_TRUE);
-        var filter2 = new Filter(filter1, Literal.BOOLEAN_TRUE);
-        var order1 = new Order(filter2, new OrderBy(List.of()));
-        var order2 = new Order(order1, new OrderBy(List.of()));
+        var filter1 = new Filter(1, source, Literal.BOOLEAN_TRUE);
+        var filter2 = new Filter(2, filter1, Literal.BOOLEAN_TRUE);
+        var order1 = new Order(3, filter2, new OrderBy(List.of()));
+        var order2 = new Order(4, order1, new OrderBy(List.of()));
 
         IterativeOptimizer optimizer = new IterativeOptimizer(nodeCtx,
                                                               () -> Version.CURRENT,
                                                               List.of(new MergeFilters(), new DeduplicateOrder()));
 
-        var result = optimizer.optimize(order2, planStats, ctx);
+        var result = optimizer.optimize(order2, planStats, ctx, ids);
         assertThat(result).isEqualTo(
             """
             OrderBy[]
@@ -101,15 +104,15 @@ public class IterativeOptimizerTest {
         //     └ Filter[true]
         //       └ TestPlan[]
         var source = new MemoTest.TestPlan(1, List.of());
-        var order1 = new Order(source, new OrderBy(List.of()));
-        var filter = new Filter(order1, Literal.BOOLEAN_TRUE);
-        var order2 = new Order(filter, new OrderBy(List.of()));
+        var order1 = new Order(1, source, new OrderBy(List.of()));
+        var filter = new Filter(2, order1, Literal.BOOLEAN_TRUE);
+        var order2 = new Order(3, filter, new OrderBy(List.of()));
 
         IterativeOptimizer optimizer = new IterativeOptimizer(nodeCtx,
                                                               () -> Version.CURRENT,
                                                               List.of(new MoveFilterBeneathOrder(), new DeduplicateOrder()));
 
-        var result = optimizer.optimize(order2, planStats, ctx);
+        var result = optimizer.optimize(order2, planStats, ctx, ids);
 
         assertThat(result).isEqualTo(
             """

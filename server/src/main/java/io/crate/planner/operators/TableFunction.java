@@ -53,15 +53,17 @@ import io.crate.planner.node.dql.Collect;
 
 public final class TableFunction implements LogicalPlan {
 
+    private final int id;
     private final TableFunctionRelation relation;
     private final List<Symbol> toCollect;
     final WhereClause where;
 
-    public static LogicalPlan create(TableFunctionRelation relation, List<Symbol> toCollect, WhereClause where) {
-        return new TableFunction(relation, toCollect, where);
+    public static LogicalPlan create(int id, TableFunctionRelation relation, List<Symbol> toCollect, WhereClause where) {
+        return new TableFunction(id, relation, toCollect, where);
     }
 
-    public TableFunction(TableFunctionRelation relation, List<Symbol> toCollect, WhereClause where) {
+    public TableFunction(int id, TableFunctionRelation relation, List<Symbol> toCollect, WhereClause where) {
+        this.id = id;
         this.relation = relation;
         this.toCollect = toCollect;
         this.where = where;
@@ -145,12 +147,17 @@ public final class TableFunction implements LogicalPlan {
         if (outputsToKeep.containsAll(toCollect)) {
             return this;
         }
-        return new TableFunction(relation, List.copyOf(outputsToKeep), where);
+        return new TableFunction(id, relation, List.copyOf(outputsToKeep), where);
     }
 
     @Override
     public Map<LogicalPlan, SelectSymbol> dependencies() {
         return Map.of();
+    }
+
+    @Override
+    public int id() {
+        return id;
     }
 
     @Override

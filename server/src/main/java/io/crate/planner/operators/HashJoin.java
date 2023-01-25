@@ -62,12 +62,15 @@ import io.crate.sql.tree.JoinType;
 
 public class HashJoin extends JoinPlan {
 
+    private final int id;
     private final List<Symbol> outputs;
 
-    public HashJoin(LogicalPlan lhs,
+    public HashJoin(int id,
+                    LogicalPlan lhs,
                     LogicalPlan rhs,
                     Symbol joinCondition) {
         super(lhs, rhs, joinCondition, JoinType.INNER);
+        this.id = id;
         this.outputs = Lists2.concat(lhs.outputs(), rhs.outputs());
     }
 
@@ -216,6 +219,7 @@ public class HashJoin extends JoinPlan {
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
         return new HashJoin(
+            id,
             sources.get(0),
             sources.get(1),
             joinCondition
@@ -238,6 +242,7 @@ public class HashJoin extends JoinPlan {
             return this;
         }
         return new HashJoin(
+            id,
             newLhs,
             newRhs,
             joinCondition
@@ -266,6 +271,7 @@ public class HashJoin extends JoinPlan {
         return new FetchRewrite(
             allReplacedOutputs,
             new HashJoin(
+                id,
                 lhsFetchRewrite == null ? lhs : lhsFetchRewrite.newPlan(),
                 rhsFetchRewrite == null ? rhs : rhsFetchRewrite.newPlan(),
                 joinCondition)
@@ -275,6 +281,11 @@ public class HashJoin extends JoinPlan {
     @Override
     public <C, R> R accept(LogicalPlanVisitor<C, R> visitor, C context) {
         return visitor.visitHashJoin(this, context);
+    }
+
+    @Override
+    public int id() {
+        return id;
     }
 
     @Override

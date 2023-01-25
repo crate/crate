@@ -25,6 +25,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.IntSupplier;
 
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.expression.symbol.DefaultTraversalSymbolVisitor;
@@ -43,11 +44,12 @@ public class SubqueryPlanner {
 
     public record SubQueries(Map<LogicalPlan, SelectSymbol> uncorrelated, Map<SelectSymbol, LogicalPlan> correlated) {
 
-        public LogicalPlan applyCorrelatedJoin(LogicalPlan source) {
+        public LogicalPlan applyCorrelatedJoin(LogicalPlan source, IntSupplier ids) {
             for (var entry : correlated.entrySet()) {
                 LogicalPlan plannedSubQuery = entry.getValue();
                 SelectSymbol subQuery = entry.getKey();
                 source = new CorrelatedJoin(
+                    ids.getAsInt(),
                     source,
                     subQuery,
                     plannedSubQuery

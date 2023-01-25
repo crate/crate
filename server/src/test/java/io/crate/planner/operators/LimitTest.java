@@ -60,8 +60,11 @@ public class LimitTest extends CrateDummyClusterServiceUnitTest {
         QueriedSelectRelation queriedDocTable = e.analyze("select name from users");
 
         LogicalPlan plan = Limit.create(
+            1,
             Limit.create(
+                2,
                 new Collect(
+                    3,
                     ((AbstractTableRelation<?>) queriedDocTable.from().get(0)),
                     queriedDocTable.outputs(),
                     new WhereClause(queriedDocTable.where())

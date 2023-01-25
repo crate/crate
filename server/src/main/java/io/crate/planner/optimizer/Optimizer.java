@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.function.IntSupplier;
 import java.util.function.Supplier;
 
 import org.jetbrains.annotations.Nullable;
@@ -37,6 +38,7 @@ import io.crate.common.collections.Lists2;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
+import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.matcher.Captures;
@@ -58,15 +60,16 @@ public class Optimizer {
         this.nodeCtx = nodeCtx;
     }
 
-    public LogicalPlan optimize(LogicalPlan plan, PlanStats planStats, CoordinatorTxnCtx txnCtx) {
+    public LogicalPlan optimize(LogicalPlan plan, PlanStats planStats, CoordinatorTxnCtx txnCtx, IntSupplier ids) {
         var applicableRules = removeExcludedRules(rules, txnCtx.sessionSettings().excludedOptimizerRules());
-        LogicalPlan optimizedRoot = tryApplyRules(applicableRules, plan, planStats, txnCtx);
-        var optimizedSources = Lists2.mapIfChange(optimizedRoot.sources(), x -> optimize(x, planStats, txnCtx));
+        LogicalPlan optimizedRoot = tryApplyRules(applicableRules, plan, planStats, txnCtx, ids);
+        var optimizedSources = Lists2.mapIfChange(optimizedRoot.sources(), x -> optimize(x, planStats, txnCtx, ids));
         return tryApplyRules(
             applicableRules,
             optimizedSources == optimizedRoot.sources() ? optimizedRoot : optimizedRoot.replaceSources(optimizedSources),
             planStats,
-            txnCtx
+            txnCtx,
+            ids
         );
     }
 
@@ -88,7 +91,11 @@ public class Optimizer {
         return result;
     }
 
-    private LogicalPlan tryApplyRules(List<Rule<?>> rules, LogicalPlan plan, PlanStats planStats, TransactionContext txnCtx) {
+    private LogicalPlan tryApplyRules(List<Rule<?>> rules,
+                                      LogicalPlan plan,
+                                      PlanStats planStats,
+                                      TransactionContext txnCtx,
+                                      IntSupplier ids) {
         final boolean isTraceEnabled = LOGGER.isTraceEnabled();
         LogicalPlan node = plan;
         // Some rules may only become applicable after another rule triggered, so we keep
@@ -103,7 +110,7 @@ public class Optimizer {
                 if (minVersion.before(rule.requiredVersion())) {
                     continue;
                 }
-                LogicalPlan transformedPlan = tryMatchAndApply(rule, node, planStats, nodeCtx, txnCtx, resolvePlan, isTraceEnabled);
+                LogicalPlan transformedPlan = tryMatchAndApply(rule, node, planStats, nodeCtx, txnCtx, ids, resolvePlan, isTraceEnabled);
                 if (transformedPlan != null) {
                     if (isTraceEnabled) {
                         LOGGER.trace("Rule '" + rule.getClass().getSimpleName() + "' transformed the logical plan");
@@ -125,6 +132,7 @@ public class Optimizer {
                                                    PlanStats planStats,
                                                    NodeContext nodeCtx,
                                                    TransactionContext txnCtx,
+                                                   IntSupplier ids,
                                                    Function<LogicalPlan, LogicalPlan> resolvePlan,
                                                    boolean traceEnabled) {
         Match<T> match = rule.pattern().accept(node, Captures.empty(), resolvePlan);
@@ -132,7 +140,7 @@ public class Optimizer {
             if (traceEnabled) {
                 LOGGER.trace("Rule '" + rule.getClass().getSimpleName() + "' matched");
             }
-            return rule.apply(match.value(), match.captures(), planStats, txnCtx, nodeCtx, resolvePlan);
+            return rule.apply(match.value(), match.captures(), planStats, txnCtx, nodeCtx, ids, resolvePlan);
         }
         return null;
     }

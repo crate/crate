@@ -56,17 +56,19 @@ import io.crate.planner.PositionalOrderBy;
 public final class Eval extends ForwardingLogicalPlan {
 
     private final List<Symbol> outputs;
+    private final int id;
 
-    public static LogicalPlan create(LogicalPlan source, List<Symbol> outputs) {
+    public static LogicalPlan create(int id, LogicalPlan source, List<Symbol> outputs) {
         if (source.outputs().equals(outputs)) {
             return source;
         }
-        return new Eval(source, outputs);
+        return new Eval(id, source, outputs);
     }
 
-    Eval(LogicalPlan source, List<Symbol> outputs) {
-        super(source);
+    Eval(int id, LogicalPlan source, List<Symbol> outputs) {
+        super(id, source);
         this.outputs = outputs;
+        this.id = id;
     }
 
     @Override
@@ -95,7 +97,7 @@ public final class Eval extends ForwardingLogicalPlan {
 
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
-        return new Eval(Lists2.getOnlyElement(sources), outputs);
+        return new Eval(id, Lists2.getOnlyElement(sources), outputs);
     }
 
     @Override
@@ -104,7 +106,7 @@ public final class Eval extends ForwardingLogicalPlan {
         if (source == newSource) {
             return this;
         }
-        return new Eval(newSource, List.copyOf(outputsToKeep));
+        return new Eval(id, newSource, List.copyOf(outputsToKeep));
     }
 
     @Nullable
@@ -129,7 +131,7 @@ public final class Eval extends ForwardingLogicalPlan {
                 newOutputs.add(output);
             }
         }
-        return new FetchRewrite(newReplacedOutputs, Eval.create(newSource, newOutputs));
+        return new FetchRewrite(newReplacedOutputs, Eval.create(id, newSource, newOutputs));
     }
 
     private ExecutionPlan addEvalProjection(PlannerContext plannerContext,
@@ -155,6 +157,11 @@ public final class Eval extends ForwardingLogicalPlan {
             newOrderBy
         );
         return executionPlan;
+    }
+
+    @Override
+    public int id() {
+        return id;
     }
 
     @Override

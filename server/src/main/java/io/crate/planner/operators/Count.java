@@ -61,11 +61,14 @@ public class Count implements LogicalPlan {
 
     private static final String COUNT_PHASE_NAME = "count-merge";
 
+    private final int id;
     final AbstractTableRelation<?> tableRelation;
     final WhereClause where;
     private final List<Symbol> outputs;
 
-    public Count(Function countFunction, AbstractTableRelation<?> tableRelation, WhereClause where) {
+
+    public Count(int id, Function countFunction, AbstractTableRelation<?> tableRelation, WhereClause where) {
+        this.id = id;
         this.outputs = List.of(countFunction);
         this.tableRelation = tableRelation;
         this.where = where;
@@ -122,6 +125,11 @@ public class Count implements LogicalPlan {
             null
         );
         return new CountPlan(countPhase, mergePhase);
+    }
+
+    @Override
+    public int id() {
+        return id;
     }
 
     @Override

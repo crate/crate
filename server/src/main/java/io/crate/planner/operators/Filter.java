@@ -46,7 +46,7 @@ public final class Filter extends ForwardingLogicalPlan {
 
     final Symbol query;
 
-    public static LogicalPlan create(LogicalPlan source, @Nullable Symbol query) {
+    public static LogicalPlan create(int id, LogicalPlan source, @Nullable Symbol query) {
         if (query == null) {
             return source;
         }
@@ -55,15 +55,15 @@ public final class Filter extends ForwardingLogicalPlan {
         if (isMatchAll(query)) {
             return source;
         }
-        return new Filter(source, query);
+        return new Filter(id, source, query);
     }
 
     public static boolean isMatchAll(Symbol query) {
         return query instanceof Literal && ((Literal<?>) query).value() == Boolean.TRUE;
     }
 
-    public Filter(LogicalPlan source, Symbol query) {
-        super(source);
+    public Filter(int id, LogicalPlan source, Symbol query) {
+        super(id, source);
         this.query = query;
     }
 
@@ -101,12 +101,17 @@ public final class Filter extends ForwardingLogicalPlan {
         if (newSource == source) {
             return this;
         }
-        return new Filter(newSource, query);
+        return new Filter(id, newSource, query);
     }
 
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
-        return new Filter(Lists2.getOnlyElement(sources), query);
+        return new Filter(id, Lists2.getOnlyElement(sources), query);
+    }
+
+    @Override
+    public int id() {
+        return id;
     }
 
     @Override

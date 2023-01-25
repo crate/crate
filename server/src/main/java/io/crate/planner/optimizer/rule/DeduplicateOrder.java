@@ -35,6 +35,7 @@ import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 import static io.crate.planner.optimizer.matcher.Patterns.source;
 
 import java.util.function.Function;
+import java.util.function.IntSupplier;
 
 /**
  * Transforms
@@ -71,6 +72,7 @@ public final class DeduplicateOrder implements Rule<Order> {
                              PlanStats planStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
+                             IntSupplier ids,
                              Function<LogicalPlan, LogicalPlan> resolvePlan) {
         Order childOrder = captures.get(this.childOrder);
         return plan.replaceSources(childOrder.sources());

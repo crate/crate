@@ -26,6 +26,7 @@ import static io.crate.planner.optimizer.matcher.Patterns.source;
 import static io.crate.planner.optimizer.rule.Util.transpose;
 
 import java.util.function.Function;
+import java.util.function.IntSupplier;
 
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
@@ -60,6 +61,7 @@ public final class MoveFilterBeneathEval implements Rule<Filter> {
                              PlanStats planStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
+                             IntSupplier ids,
                              Function<LogicalPlan, LogicalPlan> resolvePlan) {
         // A filter can do full evaluation as well and "Eval" never adds columns, so this is safe.
         Eval eval = captures.get(evalCapture);

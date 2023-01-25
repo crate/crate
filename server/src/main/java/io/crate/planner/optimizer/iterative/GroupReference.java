@@ -49,13 +49,15 @@ import io.crate.planner.operators.SubQueryResults;
  */
 public class GroupReference implements LogicalPlan {
 
+    private final int id;
     private final int groupId;
     private final List<Symbol> outputs;
     private final Set<RelationName> relationNames;
     private static final String ERROR_MESSAGE =
         "Operation is not supported in GroupReference, it needs to be resolved to it's referenced LogicalPlan";
 
-    public GroupReference(int groupId, List<Symbol> outputs, Collection<RelationName> relationNames) {
+    public GroupReference(int id, int groupId, List<Symbol> outputs, Collection<RelationName> relationNames) {
+        this.id = id;
         this.groupId = groupId;
         this.outputs = List.copyOf(outputs);
         this.relationNames = Set.copyOf(relationNames);
@@ -63,6 +65,10 @@ public class GroupReference implements LogicalPlan {
 
     public int groupId() {
         return groupId;
+    }
+
+    public int id() {
+        return id;
     }
 
     @Override

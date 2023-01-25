@@ -67,22 +67,26 @@ import io.crate.planner.PlannerContext;
  **/
 public class CorrelatedJoin implements LogicalPlan {
 
+    private final int id;
     private final LogicalPlan inputPlan;
     private final LogicalPlan subQueryPlan;
 
     private final List<Symbol> outputs;
     private final SelectSymbol selectSymbol;
 
-    public CorrelatedJoin(LogicalPlan inputPlan,
+    public CorrelatedJoin(int id,
+                          LogicalPlan inputPlan,
                           SelectSymbol selectSymbol,
                           LogicalPlan subQueryPlan) {
-        this(inputPlan, selectSymbol, subQueryPlan, Lists2.concat(inputPlan.outputs(), selectSymbol));
+        this(id, inputPlan, selectSymbol, subQueryPlan, Lists2.concat(inputPlan.outputs(), selectSymbol));
     }
 
-    private CorrelatedJoin(LogicalPlan inputPlan,
+    private CorrelatedJoin(int id,
+                           LogicalPlan inputPlan,
                            SelectSymbol selectSymbol,
                            LogicalPlan subQueryPlan,
                            List<Symbol> outputs) {
+        this.id = id;
         this.inputPlan = inputPlan;
         this.subQueryPlan = subQueryPlan;
         this.selectSymbol = selectSymbol;
@@ -147,10 +151,15 @@ public class CorrelatedJoin implements LogicalPlan {
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
         return new CorrelatedJoin(
+            id,
             Lists2.getOnlyElement(sources),
             selectSymbol,
             subQueryPlan
         );
+    }
+
+    public int id() {
+        return id;
     }
 
     @Override
@@ -170,6 +179,7 @@ public class CorrelatedJoin implements LogicalPlan {
         }
 
         return new CorrelatedJoin(
+            id,
             newInputPlan,
             selectSymbol,
             subQueryPlan,

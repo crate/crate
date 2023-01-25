@@ -22,11 +22,11 @@
 package io.crate.planner.optimizer.rule;
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Collections;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.function.IntSupplier;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -51,6 +51,8 @@ public class MergeFiltersTest extends CrateDummyClusterServiceUnitTest {
     private SqlExpressions e;
     private AbstractTableRelation<?> tr1;
     private PlanStats planStats;
+    private int id = 0;
+    private IntSupplier ids = () -> id++;
 
     @Before
     public void setUp() throws Exception {
@@ -64,9 +66,9 @@ public class MergeFiltersTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testMergeFiltersMatchesOnAFilterWithAnotherFilterAsChild() {
-        Collect source = new Collect(tr1, Collections.emptyList(), WhereClause.MATCH_ALL);
-        Filter sourceFilter = new Filter(source, e.asSymbol("x > 10"));
-        Filter parentFilter = new Filter(sourceFilter, e.asSymbol("y > 10"));
+        Collect source = new Collect(1, tr1, Collections.emptyList(), WhereClause.MATCH_ALL);
+        Filter sourceFilter = new Filter(2, source, e.asSymbol("x > 10"));
+        Filter parentFilter = new Filter(3, sourceFilter, e.asSymbol("y > 10"));
 
         MergeFilters mergeFilters = new MergeFilters();
         Match<Filter> match = mergeFilters.pattern().accept(parentFilter, Captures.empty());
@@ -79,6 +81,7 @@ public class MergeFiltersTest extends CrateDummyClusterServiceUnitTest {
                                                  planStats,
                                                  CoordinatorTxnCtx.systemTransactionContext(),
                                                  e.nodeCtx,
+                                                 ids,
                                                  Function.identity());
         assertThat(mergedFilter.query()).isSQL("((doc.t2.y > 10) AND (doc.t1.x > 10))");
     }

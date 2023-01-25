@@ -61,8 +61,8 @@ public class HashAggregate extends ForwardingLogicalPlan {
     private static final String MERGE_PHASE_NAME = "mergeOnHandler";
     final List<Function> aggregates;
 
-    HashAggregate(LogicalPlan source, List<Function> aggregates) {
-        super(source);
+    HashAggregate(int id, LogicalPlan source, List<Function> aggregates) {
+        super(id, source);
         this.aggregates = aggregates;
     }
 
@@ -179,7 +179,7 @@ public class HashAggregate extends ForwardingLogicalPlan {
 
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
-        return new HashAggregate(Lists2.getOnlyElement(sources), aggregates);
+        return new HashAggregate(id, Lists2.getOnlyElement(sources), aggregates);
     }
 
     @Override
@@ -196,7 +196,7 @@ public class HashAggregate extends ForwardingLogicalPlan {
         if (source == newSource && newAggregates == aggregates) {
             return this;
         }
-        return new HashAggregate(newSource, newAggregates);
+        return new HashAggregate(id, newSource, newAggregates);
     }
 
     @Override

@@ -37,6 +37,7 @@ import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 import static io.crate.planner.optimizer.matcher.Patterns.source;
 
 import java.util.function.Function;
+import java.util.function.IntSupplier;
 
 /**
  * Transforms
@@ -75,10 +76,11 @@ public class MergeFilters implements Rule<Filter> {
                         PlanStats planStats,
                         TransactionContext txnCtx,
                         NodeContext nodeCtx,
+                        IntSupplier ids,
                         Function<LogicalPlan, LogicalPlan> resolvePlan) {
         Filter childFilter = captures.get(child);
         Symbol parentQuery = plan.query();
         Symbol childQuery = childFilter.query();
-        return new Filter(childFilter.source(), AndOperator.of(parentQuery, childQuery));
+        return new Filter(ids.getAsInt(), childFilter.source(), AndOperator.of(parentQuery, childQuery));
     }
 }

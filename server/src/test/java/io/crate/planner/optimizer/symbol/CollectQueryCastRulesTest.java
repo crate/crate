@@ -94,6 +94,7 @@ public class CollectQueryCastRulesTest extends CrateDummyClusterServiceUnitTest 
 
     private void assertCollectQuery(String query, String expected) {
         var collect = new Collect(
+            1,
             tr1,
             Collections.emptyList(),
             new WhereClause(e.asSymbol(query))

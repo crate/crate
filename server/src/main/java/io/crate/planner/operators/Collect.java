@@ -93,6 +93,8 @@ public class Collect implements LogicalPlan {
     WhereClause mutableBoundWhere;
     DetailedQuery detailedQuery;
 
+    private final int id;
+
     public Collect(Collect collect, DetailedQuery detailedQuery) {
         assert detailedQuery.docKeys().isEmpty()
             : "`Collect` operator must not be used with queries that have docKeys. Use the `Get` operator instead";
@@ -104,11 +106,14 @@ public class Collect implements LogicalPlan {
         this.immutableWhere = collect.immutableWhere;
         this.tableInfo = collect.relation.tableInfo();
         this.detailedQuery = detailedQuery;
+        this.id = collect.id;
     }
 
-    public Collect(AbstractTableRelation<?> relation,
+    public Collect(int id,
+                   AbstractTableRelation<?> relation,
                    List<Symbol> outputs,
                    WhereClause where) {
+        this.id = id;
         this.outputs = outputs;
         this.baseTables = List.of(relation);
         if (where.hasQuery() && !(relation instanceof DocTableRelation)) {
@@ -325,6 +330,10 @@ public class Collect implements LogicalPlan {
         return this;
     }
 
+    public int id() {
+        return id;
+    }
+
     @Override
     public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
         ArrayList<Symbol> newOutputs = new ArrayList<>();
@@ -336,7 +345,8 @@ public class Collect implements LogicalPlan {
         if (newOutputs.equals(outputs)) {
             return this;
         }
-        return new Collect(relation, newOutputs, immutableWhere);
+        return new Collect(id, relation, newOutputs, immutableWhere);
+
     }
 
     @Nullable
@@ -376,6 +386,7 @@ public class Collect implements LogicalPlan {
         return new FetchRewrite(
             replacedOutputs,
             new Collect(
+                id,
                 relation,
                 newOutputs,
                 immutableWhere

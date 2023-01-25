@@ -33,6 +33,7 @@ import org.junit.Test;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.WindowFunction;
 import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.WindowAgg;
@@ -45,12 +46,15 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
 
     private SQLExecutor e;
 
+    private PlannerContext plannerContext;
+
     @Before
     public void setUp() throws Exception {
         super.setUp();
         e = SQLExecutor.builder(clusterService)
             .addTable("create table t1 (id int, x int)")
             .build();
+        plannerContext = e.getPlannerContext(clusterService.state());
     }
 
     @Test
@@ -58,10 +62,10 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
         var collect = e.logicalPlan("SELECT id FROM t1");
 
         WindowFunction windowFunction = (WindowFunction) e.asSymbol("ROW_NUMBER() OVER(PARTITION by id)");
-        WindowAgg windowAgg = (WindowAgg) WindowAgg.create(collect, List.of(windowFunction));
+        WindowAgg windowAgg = (WindowAgg) WindowAgg.create(plannerContext::nextLogicalPlanId, collect, List.of(windowFunction));
 
         Symbol query = e.asSymbol("ROW_NUMBER() OVER(PARTITION by id) = 2");
-        Filter filter = new Filter(windowAgg, query);
+        Filter filter = new Filter(plannerContext.nextLogicalPlanId(), windowAgg, query);
 
         var rule = new MoveFilterBeneathWindowAgg();
         Match<Filter> match = rule.pattern().accept(filter, Captures.empty());
@@ -75,6 +79,7 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
             e.planStats(),
             CoordinatorTxnCtx.systemTransactionContext(),
             e.nodeCtx,
+            plannerContext::nextLogicalPlanId,
             Function.identity()
         );
 
@@ -86,10 +91,10 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
         var collect = e.logicalPlan("SELECT id, x FROM t1");
 
         WindowFunction windowFunction = (WindowFunction) e.asSymbol("ROW_NUMBER() OVER(PARTITION by id)");
-        WindowAgg windowAgg = (WindowAgg) WindowAgg.create(collect, List.of(windowFunction));
+        WindowAgg windowAgg = (WindowAgg) WindowAgg.create(plannerContext::nextLogicalPlanId, collect, List.of(windowFunction));
 
         Symbol query = e.asSymbol("x = 1");
-        Filter filter = new Filter(windowAgg, query);
+        Filter filter = new Filter(plannerContext.nextLogicalPlanId(), windowAgg, query);
 
         var rule = new MoveFilterBeneathWindowAgg();
         Match<Filter> match = rule.pattern().accept(filter, Captures.empty());
@@ -103,8 +108,9 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
             e.planStats(),
             CoordinatorTxnCtx.systemTransactionContext(),
             e.nodeCtx,
+            plannerContext::nextLogicalPlanId,
             Function.identity()
-        );
+            );
 
         assertThat(newPlan).isNull();
     }
@@ -114,10 +120,10 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
         var collect = e.logicalPlan("SELECT id FROM t1");
 
         WindowFunction windowFunction = (WindowFunction) e.asSymbol("ROW_NUMBER() OVER(PARTITION BY id)");
-        WindowAgg windowAgg = (WindowAgg) WindowAgg.create(collect, List.of(windowFunction));
+        WindowAgg windowAgg = (WindowAgg) WindowAgg.create(plannerContext::nextLogicalPlanId, collect, List.of(windowFunction));
 
         Symbol query = e.asSymbol("id = 10");
-        Filter filter = new Filter(windowAgg, query);
+        Filter filter = new Filter(plannerContext.nextLogicalPlanId(), windowAgg, query);
 
         var rule = new MoveFilterBeneathWindowAgg();
         Match<Filter> match = rule.pattern().accept(filter, Captures.empty());
@@ -130,6 +136,7 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
             e.planStats(),
             CoordinatorTxnCtx.systemTransactionContext(),
             e.nodeCtx,
+            plannerContext::nextLogicalPlanId,
             Function.identity()
         );
         var expectedPlan =
@@ -147,10 +154,10 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
         var collect = e.logicalPlan("SELECT id FROM t1");
 
         WindowFunction windowFunction = (WindowFunction) e.asSymbol("ROW_NUMBER() OVER(PARTITION BY id)");
-        WindowAgg windowAgg = (WindowAgg) WindowAgg.create(collect, List.of(windowFunction));
+        WindowAgg windowAgg = (WindowAgg) WindowAgg.create(plannerContext::nextLogicalPlanId, collect, List.of(windowFunction));
 
         Symbol query = e.asSymbol("ROW_NUMBER() OVER(PARTITION BY id) = 2 AND id = 10 AND x = 1");
-        Filter filter = new Filter(windowAgg, query);
+        Filter filter = new Filter(plannerContext.nextLogicalPlanId(), windowAgg, query);
 
         var rule = new MoveFilterBeneathWindowAgg();
         Match<Filter> match = rule.pattern().accept(filter, Captures.empty());
@@ -164,6 +171,7 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
             e.planStats(),
             CoordinatorTxnCtx.systemTransactionContext(),
             e.nodeCtx,
+            plannerContext::nextLogicalPlanId,
             Function.identity()
         );
         var expectedPlan =
@@ -182,10 +190,10 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
         var collect = e.logicalPlan("SELECT id FROM t1");
 
         WindowFunction windowFunction = (WindowFunction) e.asSymbol("ROW_NUMBER() OVER(PARTITION BY id)");
-        WindowAgg windowAgg = (WindowAgg) WindowAgg.create(collect, List.of(windowFunction));
+        WindowAgg windowAgg = (WindowAgg) WindowAgg.create(plannerContext::nextLogicalPlanId, collect, List.of(windowFunction));
 
         Symbol query = e.asSymbol("ROW_NUMBER() OVER(PARTITION BY id) = 1 OR id = 10");
-        Filter filter = new Filter(windowAgg, query);
+        Filter filter = new Filter(plannerContext.nextLogicalPlanId(), windowAgg, query);
 
         var rule = new MoveFilterBeneathWindowAgg();
         Match<Filter> match = rule.pattern().accept(filter, Captures.empty());
@@ -199,6 +207,7 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
             e.planStats(),
             CoordinatorTxnCtx.systemTransactionContext(),
             e.nodeCtx,
+            plannerContext::nextLogicalPlanId,
             Function.identity()
         );
         assertThat(newPlan).isNull();

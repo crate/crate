@@ -28,6 +28,7 @@ import static io.crate.planner.optimizer.rule.Util.transpose;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
+import java.util.function.IntSupplier;
 
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.Symbol;
@@ -79,6 +80,7 @@ public final class MoveFilterBeneathGroupBy implements Rule<Filter> {
                              PlanStats planStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
+                             IntSupplier ids,
                              Function<LogicalPlan, LogicalPlan> resolvePlan) {
         // Since something like `SELECT x, sum(y) FROM t GROUP BY x HAVING y > 10` is not valid
         // (y would have to be declared as group key) any parts of a HAVING that is not an aggregation can be moved.
@@ -118,9 +120,9 @@ public final class MoveFilterBeneathGroupBy implements Rule<Filter> {
          * Filter (x = 10)
          */
         LogicalPlan newGroupBy = groupBy.replaceSources(
-            List.of(new Filter(groupBy.source(), AndOperator.join(withoutAggregates))));
-
-        return new Filter(newGroupBy, AndOperator.join(withAggregates));
+            List.of(new Filter(ids.getAsInt(), groupBy.source(), AndOperator.join(withoutAggregates)))
+        );
+        return new Filter(ids.getAsInt(), newGroupBy, AndOperator.join(withAggregates));
     }
 
 }

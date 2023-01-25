@@ -25,12 +25,14 @@ import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 import static io.crate.planner.optimizer.matcher.Patterns.source;
 
 import java.util.function.Function;
+import java.util.function.IntSupplier;
 
 import org.elasticsearch.Version;
 
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
+import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.GroupHashAggregate;
 import io.crate.planner.operators.Limit;
 import io.crate.planner.operators.LimitDistinct;
@@ -172,12 +174,14 @@ public final class RewriteGroupByKeysLimitToLimitDistinct implements Rule<Limit>
                              PlanStats planStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
+                             IntSupplier ids,
                              Function<LogicalPlan, LogicalPlan> resolvePlan) {
         GroupHashAggregate groupBy = captures.get(groupCapture);
         if (!eagerTerminateIsLikely(txnCtx, limit, groupBy, planStats)) {
             return null;
         }
         return new LimitDistinct(
+            ids.getAsInt(),
             groupBy.source(),
             limit.limit(),
             limit.offset(),

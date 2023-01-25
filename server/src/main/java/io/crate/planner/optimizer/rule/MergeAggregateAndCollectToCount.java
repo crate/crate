@@ -40,6 +40,7 @@ import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 import static io.crate.planner.optimizer.matcher.Patterns.source;
 
 import java.util.function.Function;
+import java.util.function.IntSupplier;
 
 public final class MergeAggregateAndCollectToCount implements Rule<HashAggregate> {
 
@@ -67,16 +68,18 @@ public final class MergeAggregateAndCollectToCount implements Rule<HashAggregate
                        PlanStats planStats,
                        TransactionContext txnCtx,
                        NodeContext nodeCtx,
+                       IntSupplier ids,
                        Function<LogicalPlan, LogicalPlan> resolvePlan) {
         Collect collect = captures.get(collectCapture);
         var countAggregate = Lists2.getOnlyElement(aggregate.aggregates());
         if (countAggregate.filter() != null) {
             return new Count(
+                ids.getAsInt(),
                 countAggregate,
                 collect.relation(),
                 collect.where().add(countAggregate.filter()));
         } else {
-            return new Count(countAggregate, collect.relation(), collect.where());
+            return new Count(ids.getAsInt(), countAggregate, collect.relation(), collect.where());
         }
     }
 }

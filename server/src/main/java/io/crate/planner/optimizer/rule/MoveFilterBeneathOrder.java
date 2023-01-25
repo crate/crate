@@ -37,6 +37,7 @@ import static io.crate.planner.optimizer.matcher.Patterns.source;
 import static io.crate.planner.optimizer.rule.Util.transpose;
 
 import java.util.function.Function;
+import java.util.function.IntSupplier;
 
 /**
  * Transforms
@@ -84,6 +85,7 @@ public final class MoveFilterBeneathOrder implements Rule<Filter> {
                              PlanStats planStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
+                             IntSupplier ids,
                              Function<LogicalPlan, LogicalPlan> resolvePlan) {
         return transpose(filter, captures.get(orderCapture));
     }

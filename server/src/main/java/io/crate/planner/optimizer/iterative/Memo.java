@@ -25,6 +25,7 @@ package io.crate.planner.optimizer.iterative;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.function.IntSupplier;
 import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
@@ -74,9 +75,12 @@ public class Memo {
 
     private final IntObjectHashMap<Group> groups = new IntObjectHashMap<>();
 
+    private final IntSupplier ids;
+
     private int nextGroupId = ROOT_GROUP_REF + 1;
 
-    public Memo(LogicalPlan plan) {
+    public Memo(LogicalPlan plan, IntSupplier ids) {
+        this.ids = ids;
         rootGroup = insertRecursive(plan);
         groups.get(rootGroup).incomingReferences.add(ROOT_GROUP_REF);
     }
@@ -198,6 +202,7 @@ public class Memo {
         return node.replaceSources(
             node.sources().stream()
                 .map(child -> new GroupReference(
+                    ids.getAsInt(),
                     insertRecursive(child),
                     child.outputs(),
                     child.getRelationNames()))

@@ -24,9 +24,11 @@ package io.crate.planner.optimizer.rule;
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 
 import java.util.function.Function;
+import java.util.function.IntSupplier;
 
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
+import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.Eval;
 import io.crate.planner.operators.HashJoin;
 import io.crate.planner.operators.LogicalPlan;
@@ -50,6 +52,7 @@ public class ReorderHashJoin implements Rule<HashJoin> {
                              PlanStats planStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
+                             IntSupplier ids,
                              Function<LogicalPlan, LogicalPlan> resolvePlan) {
         var lhStats = planStats.get(plan.lhs());
         var rhStats = planStats.get(plan.rhs());
@@ -60,7 +63,9 @@ public class ReorderHashJoin implements Rule<HashJoin> {
             // We need to preserve the output order even when lhs/rhs are swapped
             // therefore we add an Eval on top
             return Eval.create(
+                ids.getAsInt(),
                 new HashJoin(
+                    ids.getAsInt(),
                     plan.rhs(),
                     plan.lhs(),
                     plan.joinCondition()

@@ -36,6 +36,7 @@ import io.crate.planner.optimizer.matcher.Pattern;
 
 import java.util.List;
 import java.util.function.Function;
+import java.util.function.IntSupplier;
 
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 import static io.crate.planner.optimizer.matcher.Patterns.source;
@@ -62,17 +63,18 @@ public final class MoveFilterBeneathUnion implements Rule<Filter> {
                              PlanStats planStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
+                             IntSupplier ids,
                              Function<LogicalPlan, LogicalPlan> resolvePlan) {
         Union union = captures.get(unionCapture);
         LogicalPlan lhs = union.sources().get(0);
         LogicalPlan rhs = union.sources().get(1);
         return union.replaceSources(List.of(
-            createNewFilter(filter, lhs),
-            createNewFilter(filter, rhs)
+            createNewFilter(filter, lhs, ids),
+            createNewFilter(filter, rhs, ids)
         ));
     }
 
-    private static Filter createNewFilter(Filter filter, LogicalPlan newSource) {
+    private static Filter createNewFilter(Filter filter, LogicalPlan newSource, IntSupplier ids) {
         Symbol newQuery = FieldReplacer.replaceFields(filter.query(), f -> {
             int idx = filter.source().outputs().indexOf(f);
             if (idx < 0) {
@@ -82,6 +84,6 @@ public final class MoveFilterBeneathUnion implements Rule<Filter> {
             }
             return newSource.outputs().get(idx);
         });
-        return new Filter(newSource, newQuery);
+        return new Filter(ids.getAsInt(), newSource, newQuery);
     }
 }

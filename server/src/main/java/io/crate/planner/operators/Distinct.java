@@ -28,10 +28,10 @@ import io.crate.expression.symbol.Symbol;
 
 public final class Distinct {
 
-    public static LogicalPlan create(LogicalPlan source, boolean distinct, List<Symbol> outputs) {
+    public static LogicalPlan create(int id, LogicalPlan source, boolean distinct, List<Symbol> outputs) {
         if (!distinct) {
             return source;
         }
-        return new GroupHashAggregate(source, outputs, Collections.emptyList());
+        return new GroupHashAggregate(id, source, outputs, Collections.emptyList());
     }
 }

@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.function.IntSupplier;
 
 import io.crate.analyze.relations.QuerySplitter;
 import io.crate.expression.operator.AndOperator;
@@ -67,6 +68,7 @@ public class MoveConstantJoinConditionsBeneathNestedLoop implements Rule<NestedL
                              PlanStats planStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
+                             IntSupplier ids,
                              Function<LogicalPlan, LogicalPlan> resolvePlan) {
         var conditions = nl.joinCondition();
         var allConditions = QuerySplitter.split(conditions);
@@ -82,6 +84,7 @@ public class MoveConstantJoinConditionsBeneathNestedLoop implements Rule<NestedL
         if (constantConditions.isEmpty() || nonConstantConditions.isEmpty()) {
             // Nothing to optimize, just mark nestedLoopJoin to skip the rule the next time
             return new NestedLoopJoin(
+                nl.id(),
                 nl.lhs(),
                 nl.rhs(),
                 nl.joinType(),
@@ -99,9 +102,10 @@ public class MoveConstantJoinConditionsBeneathNestedLoop implements Rule<NestedL
             var rhs = resolvePlan.apply(nl.rhs());
             var queryForLhs = constantConditions.remove(lhs.getRelationNames());
             var queryForRhs = constantConditions.remove(rhs.getRelationNames());
-            var newLhs = getNewSource(queryForLhs, lhs);
-            var newRhs = getNewSource(queryForRhs, rhs);
+            var newLhs = getNewSource(queryForLhs, lhs, ids);
+            var newRhs = getNewSource(queryForRhs, rhs, ids);
             return new HashJoin(
+                ids.getAsInt(),
                 newLhs,
                 newRhs,
                 AndOperator.join(nonConstantConditions)

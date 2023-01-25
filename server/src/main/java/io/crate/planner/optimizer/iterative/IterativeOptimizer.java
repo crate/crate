@@ -25,6 +25,7 @@ import static io.crate.planner.optimizer.Optimizer.removeExcludedRules;
 
 import java.util.List;
 import java.util.function.Function;
+import java.util.function.IntSupplier;
 import java.util.function.Supplier;
 
 import org.apache.logging.log4j.LogManager;
@@ -56,8 +57,8 @@ public class IterativeOptimizer {
         this.nodeCtx = nodeCtx;
     }
 
-    public LogicalPlan optimize(LogicalPlan plan, PlanStats planStats, CoordinatorTxnCtx txnCtx) {
-        var memo = new Memo(plan);
+    public LogicalPlan optimize(LogicalPlan plan, PlanStats planStats, CoordinatorTxnCtx txnCtx, IntSupplier ids) {
+        var memo = new Memo(plan, ids);
         var planStatsWithMemo = planStats.withMemo(memo);
 
         // Memo is used to have a mutable view over the tree so it can change nodes without
@@ -71,7 +72,7 @@ public class IterativeOptimizer {
             return node;
         };
         var applicableRules = removeExcludedRules(rules, txnCtx.sessionSettings().excludedOptimizerRules());
-        exploreGroup(memo.getRootGroup(), new Context(memo, groupReferenceResolver, applicableRules, txnCtx, planStatsWithMemo));
+        exploreGroup(memo.getRootGroup(), new Context(memo, groupReferenceResolver, applicableRules, txnCtx, ids, planStatsWithMemo));
         return memo.extract();
     }
 
@@ -127,6 +128,7 @@ public class IterativeOptimizer {
                     context.planStats,
                     nodeCtx,
                     context.txnCtx,
+                    context.ids,
                     resolvePlan,
                     isTraceEnabled
                 );
@@ -169,6 +171,7 @@ public class IterativeOptimizer {
         Function<LogicalPlan, LogicalPlan> groupReferenceResolver,
         List<Rule<?>> rules,
         CoordinatorTxnCtx txnCtx,
+        IntSupplier ids,
         PlanStats planStats
     ) {}
 }

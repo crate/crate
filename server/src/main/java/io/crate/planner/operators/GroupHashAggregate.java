@@ -107,8 +107,8 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
         }
     }
 
-    public GroupHashAggregate(LogicalPlan source, List<Symbol> groupKeys, List<Function> aggregates) {
-        super(source);
+    public GroupHashAggregate(int id, LogicalPlan source, List<Symbol> groupKeys, List<Function> aggregates) {
+        super(id, source);
         this.aggregates = List.copyOf(new LinkedHashSet<>(aggregates));
         this.outputs = Lists2.concat(groupKeys, this.aggregates);
         this.groupKeys = groupKeys;
@@ -265,12 +265,12 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
         if (newSource == source && aggregates.size() == newAggregates.size()) {
             return this;
         }
-        return new GroupHashAggregate(newSource, groupKeys, newAggregates);
+        return new GroupHashAggregate(id, newSource, groupKeys, newAggregates);
     }
 
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
-        return new GroupHashAggregate(Lists2.getOnlyElement(sources), groupKeys, aggregates);
+        return new GroupHashAggregate(id, Lists2.getOnlyElement(sources), groupKeys, aggregates);
     }
 
     private ExecutionPlan createMerge(PlannerContext plannerContext,

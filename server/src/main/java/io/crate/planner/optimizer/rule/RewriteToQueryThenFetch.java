@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.function.IntSupplier;
 
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.expression.symbol.Symbols;
@@ -80,6 +81,7 @@ public final class RewriteToQueryThenFetch implements Rule<Limit> {
                              PlanStats planStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
+                             IntSupplier ids,
                              Function<LogicalPlan, LogicalPlan> resolvePlan) {
         if (Symbols.containsColumn(limit.outputs(), DocSysColumns.FETCHID)) {
             return null;
@@ -91,6 +93,7 @@ public final class RewriteToQueryThenFetch implements Rule<Limit> {
         List<Reference> fetchRefs = fetchRewrite.extractFetchRefs();
         Map<RelationName, FetchSource> fetchSourceByRelation = fetchRewrite.createFetchSources();
         return new Fetch(
+            ids.getAsInt(),
             fetchRewrite.replacedOutputs(),
             fetchRefs,
             fetchSourceByRelation,
@@ -98,20 +101,19 @@ public final class RewriteToQueryThenFetch implements Rule<Limit> {
         );
     }
 
-
-    public static LogicalPlan tryRewrite(AnalyzedRelation relation, LogicalPlan plan) {
+    public static LogicalPlan tryRewrite(AnalyzedRelation relation, LogicalPlan plan, IntSupplier ids) {
         Match<?> match = ORDER_COLLECT.accept(plan, Captures.empty());
         if (match.isPresent()) {
-            return doRewrite(relation, plan);
+            return doRewrite(relation, plan, ids);
         }
         match = RENAME_ORDER_COLLECT.accept(plan, Captures.empty());
         if (match.isPresent()) {
-            return doRewrite(relation, plan);
+            return doRewrite(relation, plan, ids);
         }
         return plan;
     }
 
-    private static LogicalPlan doRewrite(AnalyzedRelation relation, LogicalPlan plan) {
+    private static LogicalPlan doRewrite(AnalyzedRelation relation, LogicalPlan plan, IntSupplier ids) {
         FetchRewrite fetchRewrite = plan.rewriteToFetch(List.of());
         if (fetchRewrite == null) {
             return plan;
@@ -119,12 +121,12 @@ public final class RewriteToQueryThenFetch implements Rule<Limit> {
         List<Reference> fetchRefs = fetchRewrite.extractFetchRefs();
         Map<RelationName, FetchSource> fetchSourceByRelation = fetchRewrite.createFetchSources();
         Fetch fetch = new Fetch(
+            ids.getAsInt(),
             fetchRewrite.replacedOutputs(),
             fetchRefs,
             fetchSourceByRelation,
             fetchRewrite.newPlan()
-
         );
-        return Eval.create(fetch, relation.outputs());
+        return Eval.create(ids.getAsInt(), fetch, relation.outputs());
     }
 }

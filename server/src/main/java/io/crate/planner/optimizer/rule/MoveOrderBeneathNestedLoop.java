@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.IntSupplier;
 
 import io.crate.analyze.OrderBy;
 import io.crate.expression.symbol.FieldsVisitor;
@@ -84,6 +85,7 @@ public final class MoveOrderBeneathNestedLoop implements Rule<Order> {
                              PlanStats planStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
+                             IntSupplier ids,
                              Function<LogicalPlan, LogicalPlan> resolvePlan) {
         NestedLoopJoin nestedLoop = captures.get(nlCapture);
         Set<RelationName> relationsInOrderBy =
@@ -101,6 +103,7 @@ public final class MoveOrderBeneathNestedLoop implements Rule<Order> {
                 LogicalPlan lhs = nestedLoop.sources().get(0);
                 LogicalPlan newLhs = order.replaceSources(List.of(lhs));
                 return new NestedLoopJoin(
+                    ids.getAsInt(),
                     newLhs,
                     nestedLoop.sources().get(1),
                     nestedLoop.joinType(),

@@ -32,6 +32,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.function.IntSupplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -65,10 +66,11 @@ public class JoinPlanBuilder {
                                      Symbol whereClause,
                                      List<JoinPair> joinPairs,
                                      SubQueries subQueries,
-                                     Function<AnalyzedRelation, LogicalPlan> plan) {
+                                     Function<AnalyzedRelation, LogicalPlan> plan,
+                                     IntSupplier ids) {
         if (from.size() == 1) {
-            LogicalPlan source = subQueries.applyCorrelatedJoin(plan.apply(from.get(0)));
-            return Filter.create(source, whereClause);
+            LogicalPlan source = subQueries.applyCorrelatedJoin(plan.apply(from.get(0)), ids);
+            return Filter.create(ids.getAsInt(), source, whereClause);
         }
         Map<Set<RelationName>, Symbol> queryParts = QuerySplitter.split(whereClause);
         List<JoinPair> allJoinPairs = convertImplicitJoinConditionsToJoinPairs(joinPairs, queryParts);
@@ -122,6 +124,7 @@ public class JoinPlanBuilder {
         boolean isFiltered = validWhereConditions.symbolType().isValueSymbol() == false;
 
         LogicalPlan joinPlan = new NestedLoopJoin(
+            ids.getAsInt(),
             plan.apply(lhs),
             plan.apply(rhs),
             joinType,
@@ -130,7 +133,7 @@ public class JoinPlanBuilder {
             lhs,
             false);
 
-        joinPlan = Filter.create(joinPlan, validWhereConditions);
+        joinPlan = Filter.create(ids.getAsInt(), joinPlan, validWhereConditions);
         while (it.hasNext()) {
             AnalyzedRelation nextRel = sources.get(it.next());
             joinPlan = joinWithNext(
@@ -140,17 +143,18 @@ public class JoinPlanBuilder {
                 joinNames,
                 joinPairsByRelations,
                 queryParts,
-                lhs
+                lhs,
+                ids
             );
             joinNames.add(nextRel.relationName());
         }
         if (!queryParts.isEmpty()) {
-            joinPlan = Filter.create(joinPlan, AndOperator.join(queryParts.values()));
+            joinPlan = Filter.create(ids.getAsInt(), joinPlan, AndOperator.join(queryParts.values()));
             queryParts.clear();
         }
-        joinPlan = subQueries.applyCorrelatedJoin(joinPlan);
-        joinPlan = Filter.create(joinPlan, AndOperator.join(correlatedSubQueriesFromJoin.correlatedSubQueries()));
-        joinPlan = Filter.create(joinPlan, AndOperator.join(correlatedSubQueriesFromWhereClause.correlatedSubQueries()));
+        joinPlan = subQueries.applyCorrelatedJoin(joinPlan, ids);
+        joinPlan = Filter.create(ids.getAsInt(), joinPlan, AndOperator.join(correlatedSubQueriesFromJoin.correlatedSubQueries()));
+        joinPlan = Filter.create(ids.getAsInt(), joinPlan, AndOperator.join(correlatedSubQueriesFromWhereClause.correlatedSubQueries()));
         assert joinPairsByRelations.isEmpty() : "Must've applied all joinPairs";
         return joinPlan;
     }
@@ -200,7 +204,8 @@ public class JoinPlanBuilder {
                                             Set<RelationName> joinNames,
                                             Map<Set<RelationName>, JoinPair> joinPairs,
                                             Map<Set<RelationName>, Symbol> queryParts,
-                                            AnalyzedRelation leftRelation) {
+                                            AnalyzedRelation leftRelation,
+                                            IntSupplier ids) {
         RelationName nextName = nextRel.relationName();
 
         JoinPair joinPair = removeMatch(joinPairs, joinNames, nextName);
@@ -239,6 +244,7 @@ public class JoinPlanBuilder {
         );
         boolean isFiltered = query.symbolType().isValueSymbol() == false;
         var joinPlan = new NestedLoopJoin(
+            ids.getAsInt(),
             source,
             nextPlan,
             type,
@@ -246,7 +252,7 @@ public class JoinPlanBuilder {
             isFiltered,
             leftRelation,
             false);
-        return Filter.create(joinPlan, query);
+        return Filter.create(ids.getAsInt(), joinPlan, query);
     }
 
     private static Symbol removeParts(Map<Set<RelationName>, Symbol> queryParts, RelationName lhsName, RelationName rhsName) {

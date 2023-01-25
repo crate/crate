@@ -24,6 +24,7 @@ package io.crate.planner.operators;
 import io.crate.expression.tablefunctions.ValuesFunction;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
+import io.crate.planner.PlannerContext;
 import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.matcher.Capture;
@@ -34,6 +35,7 @@ import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 import static io.crate.planner.optimizer.matcher.Patterns.source;
 
 import java.util.function.Function;
+import java.util.function.IntSupplier;
 
 public class RewriteInsertFromSubQueryToInsertFromValues implements Rule<Insert> {
 
@@ -57,11 +59,12 @@ public class RewriteInsertFromSubQueryToInsertFromValues implements Rule<Insert>
                              PlanStats planStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
+                             IntSupplier ids,
                              Function<LogicalPlan, LogicalPlan> resolvePlan) {
         TableFunction tableFunction = captures.get(this.capture);
         var relation = tableFunction.relation();
         if (relation.function().name().equals(ValuesFunction.NAME)) {
-            return new InsertFromValues(tableFunction.relation(), plan.columnIndexWriterProjection());
+            return new InsertFromValues(ids.getAsInt(), tableFunction.relation(), plan.columnIndexWriterProjection());
         } else {
             return null;
         }

@@ -29,6 +29,7 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
+import java.util.function.IntSupplier;
 import java.util.function.Supplier;
 
 import org.elasticsearch.Version;
@@ -207,7 +208,7 @@ public class LogicalPlanner {
             case SINGLE_COLUMN_EXISTS:
                 // Exists only needs to know if there are any rows
                 fetchSize = 1;
-                maybeApplySoftLimit = plan -> new Limit(plan, Literal.of(1), Literal.of(0));
+                maybeApplySoftLimit = plan -> new Limit(plannerContext.nextLogicalPlanId(), plan, Literal.of(1), Literal.of(0));
                 break;
             case SINGLE_COLUMN_SINGLE_VALUE:
                 // SELECT (SELECT foo FROM t)
@@ -215,7 +216,7 @@ public class LogicalPlanner {
                 // The subquery must return at most 1 row, if more than 1 row is returned semantics require us to throw an error.
                 // So we limit the query to 2 if there is no limit to avoid retrieval of many rows while being able to validate max1row
                 fetchSize = 2;
-                maybeApplySoftLimit = plan -> new Limit(plan, Literal.of(2L), Literal.of(0L));
+                maybeApplySoftLimit = plan -> new Limit(plannerContext.nextLogicalPlanId(), plan, Literal.of(2L), Literal.of(0L));
                 break;
             case SINGLE_COLUMN_MULTIPLE_VALUES:
             default:
@@ -229,23 +230,37 @@ public class LogicalPlanner {
             subqueryPlanner,
             txnCtx,
             plannerContext.planStats(),
-            subSelectPlannerContext.params()
+            subSelectPlannerContext.params(),
+            plannerContext::nextLogicalPlanId
         );
         LogicalPlan plan = relation.accept(planBuilder, relation.outputs());
 
-        plan = tryOptimizeForInSubquery(selectSymbol, relation, plan);
-        LogicalPlan optimizedPlan = optimizer.optimize(maybeApplySoftLimit.apply(plan), plannerContext.planStats(), txnCtx);
-        optimizedPlan = joinOrderOptimizer.optimize(optimizedPlan, plannerContext.planStats(), txnCtx);
+        plan = tryOptimizeForInSubquery(selectSymbol, relation, plan, planBuilder.ids);
+        LogicalPlan optimizedPlan = optimizer.optimize(
+            maybeApplySoftLimit.apply(plan),
+            plannerContext.planStats(),
+            txnCtx,
+            planBuilder.ids
+        );
+        optimizedPlan = joinOrderOptimizer.optimize(
+            optimizedPlan,
+            plannerContext.planStats(),
+            txnCtx,
+            planBuilder.ids
+        );
         LogicalPlan prunedPlan = optimizedPlan.pruneOutputsExcept(relation.outputs());
         assert prunedPlan.outputs().equals(optimizedPlan.outputs()) : "Pruned plan must have the same outputs as original plan";
-        return new RootRelationBoundary(prunedPlan);
+        return new RootRelationBoundary(plannerContext.nextLogicalPlanId(), prunedPlan);
     }
 
     // In case the subselect is inside an IN() or = ANY() apply a "natural" OrderBy to optimize
     // the building of TermInSetQuery which does a sort on the collection of values.
     // See issue https://github.com/crate/crate/issues/6755
     // If the output values are already sorted (even in desc order) no optimization is needed
-    private LogicalPlan tryOptimizeForInSubquery(SelectSymbol selectSymbol, AnalyzedRelation relation, LogicalPlan planBuilder) {
+    private LogicalPlan tryOptimizeForInSubquery(SelectSymbol selectSymbol,
+                                                 AnalyzedRelation relation,
+                                                 LogicalPlan planBuilder,
+                                                 IntSupplier ids) {
         if (selectSymbol.isCorrelated()) {
             return planBuilder;
         }
@@ -259,7 +274,11 @@ public class LogicalPlanner {
             if ((relationOrderBy == null || relationOrderBy.orderBySymbols().get(0).equals(firstOutput) == false)
                 && DataTypes.isPrimitive(firstOutput.valueType())) {
 
-                return Order.create(planBuilder, new OrderBy(Collections.singletonList(firstOutput)));
+                return Order.create(
+                    ids.getAsInt(),
+                    planBuilder,
+                    new OrderBy(Collections.singletonList(firstOutput))
+                );
             }
         }
         return planBuilder;
@@ -276,18 +295,20 @@ public class LogicalPlanner {
             subqueryPlanner,
             coordinatorTxnCtx,
             planStats,
-            plannerContext.params()
+            plannerContext.params(),
+            plannerContext::nextLogicalPlanId
         );
         LogicalPlan logicalPlan = relation.accept(planBuilder, relation.outputs());
-        LogicalPlan optimizedPlan = optimizer.optimize(logicalPlan, planStats, coordinatorTxnCtx);
-        optimizedPlan = joinOrderOptimizer.optimize(optimizedPlan, planStats, coordinatorTxnCtx);
+        LogicalPlan optimizedPlan = optimizer.optimize(logicalPlan, plannerContext.planStats(), coordinatorTxnCtx, plannerContext::nextLogicalPlanId);
+        optimizedPlan = joinOrderOptimizer.optimize(optimizedPlan, plannerContext.planStats(), coordinatorTxnCtx, plannerContext::nextLogicalPlanId);
         assert logicalPlan.outputs().equals(optimizedPlan.outputs()) : "Optimized plan must have the same outputs as original plan";
         LogicalPlan prunedPlan = optimizedPlan.pruneOutputsExcept(relation.outputs());
         assert prunedPlan.outputs().equals(optimizedPlan.outputs()) : "Pruned plan must have the same outputs as original plan";
         LogicalPlan fetchOptimized = fetchOptimizer.optimize(
             prunedPlan,
             planStats,
-            coordinatorTxnCtx
+            coordinatorTxnCtx,
+            plannerContext::nextLogicalPlanId
         );
         if (fetchOptimized != prunedPlan || avoidTopLevelFetch) {
             return fetchOptimized;
@@ -299,7 +320,7 @@ public class LogicalPlanner {
         //
         // The reason for this is that some plans are cheaper to execute as fetch
         // even if there is no operator that reduces the number of records
-        return RewriteToQueryThenFetch.tryRewrite(relation, fetchOptimized);
+        return RewriteToQueryThenFetch.tryRewrite(relation, fetchOptimized, plannerContext::nextLogicalPlanId);
     }
 
     static class PlanBuilder extends AnalyzedRelationVisitor<List<Symbol>, LogicalPlan> {
@@ -307,14 +328,17 @@ public class LogicalPlanner {
         private final SubqueryPlanner subqueryPlanner;
         private final PlanStats planStats;
         private final Row params;
+        private final IntSupplier ids;
 
         private PlanBuilder(SubqueryPlanner subqueryPlanner,
                             CoordinatorTxnCtx txnCtx,
                             PlanStats planStats,
-                            Row params) {
+                            Row params,
+                            IntSupplier ids) {
             this.subqueryPlanner = subqueryPlanner;
             this.planStats = planStats;
             this.params = params;
+            this.ids = ids;
         }
 
         @Override
@@ -331,18 +355,19 @@ public class LogicalPlanner {
             SubQueries subQueries = subqueryPlanner.planSubQueries(relation);
             return MultiPhase.createIfNeeded(
                 subQueries.uncorrelated(),
-                TableFunction.create(relation, relation.outputs(), WhereClause.MATCH_ALL)
+                TableFunction.create(ids.getAsInt(), relation, relation.outputs(), WhereClause.MATCH_ALL),
+                ids
             );
         }
 
         @Override
         public LogicalPlan visitDocTableRelation(DocTableRelation relation, List<Symbol> outputs) {
-            return new Collect(relation, outputs, WhereClause.MATCH_ALL);
+            return new Collect(ids.getAsInt(), relation, outputs, WhereClause.MATCH_ALL);
         }
 
         @Override
         public LogicalPlan visitTableRelation(TableRelation relation, List<Symbol> outputs) {
-            return new Collect(relation, outputs, WhereClause.MATCH_ALL);
+            return new Collect(ids.getAsInt(), relation, outputs, WhereClause.MATCH_ALL);
         }
 
         @Override
@@ -351,12 +376,12 @@ public class LogicalPlanner {
             if (child instanceof AbstractTableRelation<?>) {
                 List<Symbol> mappedOutputs = Lists2.map(outputs, FieldReplacer.bind(relation::resolveField));
                 var source = child.accept(this, mappedOutputs);
-                return new Rename(outputs, relation.relationName(), relation, source);
+                return new Rename(ids.getAsInt(), outputs, relation.relationName(), relation, source);
             } else {
                 // Can't do outputs propagation because field reverse resolving could be ambiguous
                 //  `SELECT * FROM (select * from t as t1, t as t2)` -> x can refer to t1.x or t2.x
                 var source = child.accept(this, child.outputs());
-                return new Rename(relation.outputs(), relation.relationName(), relation, source);
+                return new Rename(ids.getAsInt(), relation.outputs(), relation.relationName(), relation, source);
             }
         }
 
@@ -364,7 +389,7 @@ public class LogicalPlanner {
         public LogicalPlan visitView(AnalyzedView view, List<Symbol> outputs) {
             var child = view.relation();
             var source = child.accept(this, child.outputs());
-            return new Rename(view.outputs(), view.relationName(), view, source);
+            return new Rename(ids.getAsInt(), view.outputs(), view.relationName(), view, source);
         }
 
         @Override
@@ -372,10 +397,13 @@ public class LogicalPlanner {
             var lhsRel = union.left();
             var rhsRel = union.right();
             return Distinct.create(
+                ids.getAsInt(),
                 new Union(
+                    ids.getAsInt(),
                     lhsRel.accept(this, lhsRel.outputs()),
                     rhsRel.accept(this, rhsRel.outputs()),
-                    union.outputs()),
+                    union.outputs()
+                ),
                 union.isDistinct(),
                 union.outputs()
             );
@@ -425,7 +453,8 @@ public class LogicalPlanner {
                         }
                         return rel.accept(this, List.copyOf(toCollect));
                     }
-                }
+                },
+                ids
             );
             Symbol having = relation.having();
             if (having != null && Symbols.containsCorrelatedSubQuery(having)) {
@@ -434,14 +463,23 @@ public class LogicalPlanner {
             return MultiPhase.createIfNeeded(
                 subQueries.uncorrelated(),
                 Eval.create(
+                    ids.getAsInt(),
                     Limit.create(
+                        ids.getAsInt(),
                         Order.create(
+                            ids.getAsInt(),
                             Distinct.create(
+                                ids.getAsInt(),
                                 ProjectSet.create(
+                                    ids.getAsInt(),
                                     WindowAgg.create(
+                                        ids,
                                         Filter.create(
+                                            ids.getAsInt(),
                                             groupByOrAggregate(
+                                                ids,
                                                 ProjectSet.create(
+                                                    ids.getAsInt(),
                                                     source,
                                                     splitPoints.tableFunctionsBelowGroupBy()
                                                 ),
@@ -464,20 +502,22 @@ public class LogicalPlanner {
                         relation.offset()
                     ),
                     outputs
-                )
+                ),
+                ids
             );
         }
     }
 
-    private static LogicalPlan groupByOrAggregate(LogicalPlan source,
-                                           List<Symbol> groupKeys,
-                                           List<Function> aggregates,
-                                           PlanStats planStats) {
+    private static LogicalPlan groupByOrAggregate(IntSupplier ids,
+                                                    LogicalPlan source,
+                                                  List<Symbol> groupKeys,
+                                                  List<Function> aggregates,
+                                                  PlanStats planStats) {
         if (!groupKeys.isEmpty()) {
-            return new GroupHashAggregate(source, groupKeys, aggregates);
+            return new GroupHashAggregate(ids.getAsInt(), source, groupKeys, aggregates);
         }
         if (!aggregates.isEmpty()) {
-            return new HashAggregate(source, aggregates);
+            return new HashAggregate(ids.getAsInt(), source, aggregates);
         }
         return source;
     }
@@ -605,7 +645,7 @@ public class LogicalPlanner {
         public LogicalPlan visitSelectStatement(AnalyzedRelation relation, PlannerContext context) {
             SubqueryPlanner subqueryPlanner = new SubqueryPlanner(s -> planSubSelect(s, context));
             LogicalPlan logicalPlan = plan(relation, context, subqueryPlanner, false);
-            return new RootRelationBoundary(logicalPlan);
+            return new RootRelationBoundary(context.nextLogicalPlanId(), logicalPlan);
         }
 
         @Override
@@ -618,7 +658,8 @@ public class LogicalPlanner {
                     LogicalPlanner.this,
                     subqueryPlanner),
                 context.planStats(),
-                context.transactionContext()
+                context.transactionContext(),
+                context::nextLogicalPlanId
             );
         }
     }

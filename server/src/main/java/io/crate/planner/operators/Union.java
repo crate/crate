@@ -69,11 +69,13 @@ import io.crate.types.DataTypes;
  */
 public class Union implements LogicalPlan {
 
+    private final int id;
     private final List<Symbol> outputs;
     final LogicalPlan lhs;
     final LogicalPlan rhs;
 
-    public Union(LogicalPlan lhs, LogicalPlan rhs, List<Symbol> outputs) {
+    public Union(int id, LogicalPlan lhs, LogicalPlan rhs, List<Symbol> outputs) {
+        this.id = id;
         this.lhs = lhs;
         this.rhs = rhs;
         this.outputs = outputs;
@@ -199,7 +201,7 @@ public class Union implements LogicalPlan {
 
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
-        return new Union(sources.get(0), sources.get(1), outputs);
+        return new Union(id, sources.get(0), sources.get(1), outputs);
     }
 
     @Override
@@ -225,7 +227,12 @@ public class Union implements LogicalPlan {
         if (newLhs == lhs && newRhs == rhs) {
             return this;
         }
-        return new Union(newLhs, newRhs, newOutputs);
+        return new Union(id, newLhs, newRhs, newOutputs);
+    }
+
+    @Override
+    public int id() {
+        return id;
     }
 
     @Override

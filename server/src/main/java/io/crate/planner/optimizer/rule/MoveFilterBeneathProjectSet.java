@@ -29,6 +29,7 @@ import static io.crate.planner.optimizer.rule.Util.transpose;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
+import java.util.function.IntSupplier;
 
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.Symbol;
@@ -67,6 +68,7 @@ public final class MoveFilterBeneathProjectSet implements Rule<Filter> {
                              PlanStats planStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
+                             IntSupplier ids,
                              Function<LogicalPlan, LogicalPlan> resolvePlan) {
         var projectSet = captures.get(projectSetCapture);
 
@@ -88,8 +90,8 @@ public final class MoveFilterBeneathProjectSet implements Rule<Filter> {
             return transpose(filter, projectSet);
         } else {
             var newProjectSet = projectSet.replaceSources(
-                List.of(new Filter(projectSet.source(), AndOperator.join(toPushDown))));
-            return new Filter(newProjectSet, AndOperator.join(toKeep));
+                List.of(new Filter(ids.getAsInt(), projectSet.source(), AndOperator.join(toPushDown))));
+            return new Filter(ids.getAsInt(), newProjectSet, AndOperator.join(toKeep));
         }
     }
 

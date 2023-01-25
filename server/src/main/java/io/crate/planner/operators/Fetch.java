@@ -81,20 +81,23 @@ import io.crate.types.DataType;
  */
 public final class Fetch extends ForwardingLogicalPlan {
 
+    private final int id;
     private final List<Symbol> outputs;
     private final List<Reference> fetchRefs;
     private final Map<RelationName, FetchSource> fetchSourceByRelation;
     private final Map<Symbol, Symbol> replacedOutputs;
 
-    public Fetch(Map<Symbol, Symbol> replacedOutputs,
+    public Fetch(int id,
+                 Map<Symbol, Symbol> replacedOutputs,
                  List<Reference> fetchRefs,
                  Map<RelationName, FetchSource> fetchSourceByRelation,
                  LogicalPlan source) {
-        super(source);
+        super(id, source);
         this.outputs = List.copyOf(replacedOutputs.keySet());
         this.replacedOutputs = replacedOutputs;
         this.fetchRefs = fetchRefs;
         this.fetchSourceByRelation = fetchSourceByRelation;
+        this.id = id;
     }
 
     @Override
@@ -172,7 +175,12 @@ public final class Fetch extends ForwardingLogicalPlan {
 
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
-        return new Fetch(replacedOutputs, fetchRefs, fetchSourceByRelation, Lists2.getOnlyElement(sources));
+        return new Fetch(id, replacedOutputs, fetchRefs, fetchSourceByRelation, Lists2.getOnlyElement(sources));
+    }
+
+    @Override
+    public int id() {
+        return id;
     }
 
     @Override

@@ -374,6 +374,7 @@ public class ExplainPlan implements Plan {
         @Override
         public LogicalPlan visitCollect(Collect collect, PlannerContext context) {
             var optimizedCollect = new Collect(
+                context.nextLogicalPlanId(),
                 collect.relation(),
                 collect.outputs(),
                 collect.where().map(s -> Optimizer.optimizeCasts(s, context))
