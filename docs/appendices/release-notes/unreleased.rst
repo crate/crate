@@ -68,6 +68,9 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Fixed an issue that caused the returned column names to be missing the
+  subscripts when querying sub-columns of nested object arrays.
+
 - Added validation to reject inner column names containing whitespace characters
   to avoid invalid schema definitions.
 
