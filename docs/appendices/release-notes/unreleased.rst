@@ -77,3 +77,6 @@ Fixes
     INSERT INTO test (a) VALUES ([{b=[{s='1'}, {s='2'}, {s='3'}]}]);
     SELECT a['b'] FROM test; // a['b'] is type of array(array(object))
 
+- Fixed an issue in the PostgreSQL wire protocol that would cause
+  de-serialization of arrays to fail if they contained unquoted strings
+  consisting of more than 2 words.

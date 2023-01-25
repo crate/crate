@@ -134,6 +134,28 @@ public class PGArrayTest extends BasePGTypeTest<PGArray> {
     }
 
     @Test
+    public void test_can_decode_unquoted_words_with_multiple_spaces() throws Exception {
+        String s = "{ \ta   b c  , \t d e   f  \t }";
+        List<Object> values = PGArray.VARCHAR_ARRAY.decodeUTF8Text(s.getBytes(StandardCharsets.UTF_8));
+        // leading/trailing whitespaces are ignored in the unquoted strings
+        assertThat(values, contains(
+            "a   b c",
+            "d e   f"
+        ));
+    }
+
+    @Test
+    public void test_can_decode_quoted_words_with_multiple_spaces() throws Exception {
+        String s = "{\" a b c \t \r\n \", \"  d \t\t  \\\" e \"}";
+        List<Object> values = PGArray.VARCHAR_ARRAY.decodeUTF8Text(s.getBytes(StandardCharsets.UTF_8));
+        // Quoting preserves leading/trailing whitespaces
+        assertThat(values, contains(
+            " a b c \t \r\n ",
+            "  d \t\t  \" e "
+        ));
+    }
+
+    @Test
     public void testDecodeUTF8Text() {
         // 1-dimension array
         Object o = pgArray.decodeUTF8Text("{\"10\",\"20\"}".getBytes(StandardCharsets.UTF_8));
