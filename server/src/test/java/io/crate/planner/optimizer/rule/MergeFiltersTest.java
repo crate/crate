@@ -34,12 +34,14 @@ import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.RelationName;
+import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Match;
 import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
 
@@ -47,6 +49,7 @@ public class MergeFiltersTest extends CrateDummyClusterServiceUnitTest {
 
     private SqlExpressions e;
     private AbstractTableRelation<?> tr1;
+    private PlannerContext plannerContext;
 
     @Before
     public void setUp() throws Exception {
@@ -54,13 +57,18 @@ public class MergeFiltersTest extends CrateDummyClusterServiceUnitTest {
         Map<RelationName, AnalyzedRelation> sources = T3.sources(clusterService);
         e = new SqlExpressions(sources);
         tr1 = (AbstractTableRelation<?>) sources.get(T3.T1);
+        plannerContext = SQLExecutor
+            .builder(clusterService)
+            .build()
+            .getPlannerContext(clusterService.state());
+
     }
 
     @Test
     public void testMergeFiltersMatchesOnAFilterWithAnotherFilterAsChild() {
-        Collect source = new Collect(tr1, Collections.emptyList(), WhereClause.MATCH_ALL, 100, 10);
-        Filter sourceFilter = new Filter(source, e.asSymbol("x > 10"));
-        Filter parentFilter = new Filter(sourceFilter, e.asSymbol("y > 10"));
+        Collect source = new Collect(1, tr1, Collections.emptyList(), WhereClause.MATCH_ALL, 100, 10);
+        Filter sourceFilter = new Filter(2, source, e.asSymbol("x > 10"));
+        Filter parentFilter = new Filter(3, sourceFilter, e.asSymbol("y > 10"));
 
         MergeFilters mergeFilters = new MergeFilters();
         Match<Filter> match = mergeFilters.pattern().accept(parentFilter, Captures.empty());
@@ -68,7 +76,12 @@ public class MergeFiltersTest extends CrateDummyClusterServiceUnitTest {
         assertThat(match.isPresent()).isTrue();
         assertThat(match.value()).isSameAs(parentFilter);
 
-        Filter mergedFilter = mergeFilters.apply(match.value(), match.captures(), new TableStats(), CoordinatorTxnCtx.systemTransactionContext(), e.nodeCtx);
+        Filter mergedFilter = mergeFilters.apply(match.value(),
+                                                 match.captures(),
+                                                 new TableStats(),
+                                                 CoordinatorTxnCtx.systemTransactionContext(),
+                                                 e.nodeCtx,
+                                                 plannerContext);
         assertThat(mergedFilter.query()).isSQL("((doc.t2.y > 10) AND (doc.t1.x > 10))");
     }
 }

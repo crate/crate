@@ -66,6 +66,7 @@ import io.crate.statistics.TableStats;
 
 public class NestedLoopJoin implements LogicalPlan {
 
+    private final int id;
     @Nullable
     private final Symbol joinCondition;
     private final AnalyzedRelation topMostLeftRelation;
@@ -80,13 +81,15 @@ public class NestedLoopJoin implements LogicalPlan {
     private boolean rewriteFilterOnOuterJoinToInnerJoinDone = false;
     private final boolean joinConditionOptimised;
 
-    NestedLoopJoin(LogicalPlan lhs,
+    NestedLoopJoin(int id,
+                   LogicalPlan lhs,
                    LogicalPlan rhs,
                    JoinType joinType,
                    @Nullable Symbol joinCondition,
                    boolean isFiltered,
                    AnalyzedRelation topMostLeftRelation,
                    boolean joinConditionOptimised) {
+        this.id = id;
         this.joinType = joinType;
         this.isFiltered = isFiltered || joinCondition != null;
         this.lhs = lhs;
@@ -103,7 +106,8 @@ public class NestedLoopJoin implements LogicalPlan {
         this.joinConditionOptimised = joinConditionOptimised;
     }
 
-    public NestedLoopJoin(LogicalPlan lhs,
+    public NestedLoopJoin(int id,
+                          LogicalPlan lhs,
                           LogicalPlan rhs,
                           JoinType joinType,
                           @Nullable Symbol joinCondition,
@@ -112,7 +116,7 @@ public class NestedLoopJoin implements LogicalPlan {
                           boolean orderByWasPushedDown,
                           boolean rewriteFilterOnOuterJoinToInnerJoinDone,
                           boolean joinConditionOptimised) {
-        this(lhs, rhs, joinType, joinCondition, isFiltered, topMostLeftRelation, joinConditionOptimised);
+        this(id, lhs, rhs, joinType, joinCondition, isFiltered, topMostLeftRelation, joinConditionOptimised);
         this.orderByWasPushedDown = orderByWasPushedDown;
         this.rewriteFilterOnOuterJoinToInnerJoinDone = rewriteFilterOnOuterJoinToInnerJoinDone;
     }
@@ -276,6 +280,7 @@ public class NestedLoopJoin implements LogicalPlan {
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
         return new NestedLoopJoin(
+            id,
             sources.get(0),
             sources.get(1),
             joinType,
@@ -306,6 +311,7 @@ public class NestedLoopJoin implements LogicalPlan {
             return this;
         }
         return new NestedLoopJoin(
+            id,
             newLhs,
             newRhs,
             joinType,
@@ -342,6 +348,7 @@ public class NestedLoopJoin implements LogicalPlan {
         return new FetchRewrite(
             allReplacedOutputs,
             new NestedLoopJoin(
+                id,
                 lhsFetchRewrite == null ? lhs : lhsFetchRewrite.newPlan(),
                 rhsFetchRewrite == null ? rhs : rhsFetchRewrite.newPlan(),
                 joinType,
@@ -415,6 +422,11 @@ public class NestedLoopJoin implements LogicalPlan {
             // We don't have any cardinality estimates, so just take the bigger table
             return Math.max(lhs.numExpectedRows(), rhs.numExpectedRows());
         }
+    }
+
+    @Override
+    public int id() {
+        return id;
     }
 
     @Override

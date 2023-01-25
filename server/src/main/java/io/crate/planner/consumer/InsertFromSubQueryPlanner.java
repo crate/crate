@@ -104,6 +104,6 @@ public final class InsertFromSubQueryPlanner {
         );
         EvalProjection castOutputs = EvalProjection.castValues(
             Symbols.typeView(statement.columns()), plannedSubQuery.outputs());
-        return new Insert(plannedSubQuery, indexWriterProjection, castOutputs);
+        return new Insert(plannerContext.nextLogicalPlanId(), plannedSubQuery, indexWriterProjection, castOutputs);
     }
 }

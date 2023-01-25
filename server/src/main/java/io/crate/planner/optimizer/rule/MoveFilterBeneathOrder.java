@@ -23,6 +23,7 @@ package io.crate.planner.optimizer.rule;
 
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
+import io.crate.planner.PlannerContext;
 import io.crate.statistics.TableStats;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.LogicalPlan;
@@ -81,7 +82,8 @@ public final class MoveFilterBeneathOrder implements Rule<Filter> {
                              Captures captures,
                              TableStats tableStats,
                              TransactionContext txnCtx,
-                             NodeContext nodeCtx) {
+                             NodeContext nodeCtx,
+                             PlannerContext plannerContext) {
         return transpose(filter, captures.get(orderCapture));
     }
 }

@@ -33,21 +33,22 @@ import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.IntSupplier;
 
 final class FilterOnJoinsUtil {
 
     private FilterOnJoinsUtil() {
     }
 
-    static LogicalPlan getNewSource(@Nullable Symbol splitQuery, LogicalPlan source) {
-        return splitQuery == null ? source : new Filter(source, splitQuery);
+    static LogicalPlan getNewSource(@Nullable Symbol splitQuery, LogicalPlan source, IntSupplier ids) {
+        return splitQuery == null ? source : new Filter(ids.getAsInt(), source, splitQuery);
     }
 
-    static LogicalPlan moveQueryBelowJoin(Symbol query, LogicalPlan join) {
+    static LogicalPlan moveQueryBelowJoin(Symbol query, LogicalPlan join, IntSupplier ids) {
         if (!WhereClause.canMatch(query)) {
             return join.replaceSources(List.of(
-                getNewSource(query, join.sources().get(0)),
-                getNewSource(query, join.sources().get(1))
+                getNewSource(query, join.sources().get(0), ids),
+                getNewSource(query, join.sources().get(1), ids)
             ));
         }
         Map<Set<RelationName>, Symbol> splitQuery = QuerySplitter.split(query);
@@ -62,15 +63,15 @@ final class FilterOnJoinsUtil {
         Set<RelationName> rightName = rhs.getRelationNames();
         Symbol queryForLhs = splitQuery.remove(leftName);
         Symbol queryForRhs = splitQuery.remove(rightName);
-        LogicalPlan newLhs = getNewSource(queryForLhs, lhs);
-        LogicalPlan newRhs = getNewSource(queryForRhs, rhs);
+        LogicalPlan newLhs = getNewSource(queryForLhs, lhs, ids);
+        LogicalPlan newRhs = getNewSource(queryForRhs, rhs, ids);
         LogicalPlan newJoin = join.replaceSources(List.of(newLhs, newRhs));
         if (splitQuery.isEmpty()) {
             return newJoin;
         } else if (initialParts == splitQuery.size()) {
             return null;
         } else {
-            return new Filter(newJoin, AndOperator.join(splitQuery.values()));
+            return new Filter(ids.getAsInt(), newJoin, AndOperator.join(splitQuery.values()));
         }
     }
 }

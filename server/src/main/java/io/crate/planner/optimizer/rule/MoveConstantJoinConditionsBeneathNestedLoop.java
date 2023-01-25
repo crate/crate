@@ -34,6 +34,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
+import io.crate.planner.PlannerContext;
 import io.crate.planner.consumer.RelationNameCollector;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.planner.operators.HashJoin;
@@ -65,7 +66,8 @@ public class MoveConstantJoinConditionsBeneathNestedLoop implements Rule<NestedL
                              Captures captures,
                              TableStats tableStats,
                              TransactionContext txnCtx,
-                             NodeContext nodeCtx) {
+                             NodeContext nodeCtx,
+                             PlannerContext plannerContext) {
         var conditions = nl.joinCondition();
         var allConditions = QuerySplitter.split(conditions);
         var constantConditions = new HashMap<Set<RelationName>, Symbol>(allConditions.size());
@@ -80,6 +82,7 @@ public class MoveConstantJoinConditionsBeneathNestedLoop implements Rule<NestedL
         if (constantConditions.isEmpty() || nonConstantConditions.isEmpty()) {
             // Nothing to optimize, just mark nestedLoopJoin to skip the rule the next time
             return new NestedLoopJoin(
+                nl.id(),
                 nl.lhs(),
                 nl.rhs(),
                 nl.joinType(),
@@ -96,9 +99,10 @@ public class MoveConstantJoinConditionsBeneathNestedLoop implements Rule<NestedL
             var rhs = nl.rhs();
             var queryForLhs = constantConditions.remove(lhs.getRelationNames());
             var queryForRhs = constantConditions.remove(rhs.getRelationNames());
-            var newLhs = getNewSource(queryForLhs, lhs);
-            var newRhs = getNewSource(queryForRhs, rhs);
+            var newLhs = getNewSource(queryForLhs, lhs, plannerContext::nextLogicalPlanId);
+            var newRhs = getNewSource(queryForRhs, rhs, plannerContext::nextLogicalPlanId);
             return new HashJoin(
+                plannerContext.nextLogicalPlanId(),
                 newLhs,
                 newRhs,
                 AndOperator.join(nonConstantConditions)

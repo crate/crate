@@ -36,6 +36,7 @@ import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
+import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.ProjectSet;
@@ -66,7 +67,8 @@ public final class MoveFilterBeneathProjectSet implements Rule<Filter> {
                              Captures captures,
                              TableStats tableStats,
                              TransactionContext txnCtx,
-                             NodeContext nodeCtx) {
+                             NodeContext nodeCtx,
+                             PlannerContext plannerContext) {
         var projectSet = captures.get(projectSetCapture);
 
         var queryParts = AndOperator.split(filter.query());
@@ -87,8 +89,8 @@ public final class MoveFilterBeneathProjectSet implements Rule<Filter> {
             return transpose(filter, projectSet);
         } else {
             var newProjectSet = projectSet.replaceSources(
-                List.of(new Filter(projectSet.source(), AndOperator.join(toPushDown))));
-            return new Filter(newProjectSet, AndOperator.join(toKeep));
+                List.of(new Filter(plannerContext.nextLogicalPlanId(), projectSet.source(), AndOperator.join(toPushDown))));
+            return new Filter(plannerContext.nextLogicalPlanId(), newProjectSet, AndOperator.join(toKeep));
         }
     }
 

@@ -24,6 +24,7 @@ package io.crate.planner.optimizer.rule;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
+import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.Eval;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.Order;
@@ -61,7 +62,8 @@ public final class MoveOrderBeneathFetchOrEval implements Rule<Order> {
                              Captures captures,
                              TableStats tableStats,
                              TransactionContext txnCtx,
-                             NodeContext nodeCtx) {
+                             NodeContext nodeCtx,
+                             PlannerContext plannerContext) {
         Eval eval = captures.get(fetchCapture);
         List<Symbol> outputsOfSourceOfFetch = eval.source().outputs();
         List<Symbol> orderBySymbols = plan.orderBy().orderBySymbols();

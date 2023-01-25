@@ -24,6 +24,7 @@ package io.crate.planner.optimizer.rule;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
+import io.crate.planner.PlannerContext;
 import io.crate.statistics.TableStats;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.Order;
@@ -59,18 +60,19 @@ public final class MoveOrderBeneathUnion implements Rule<Order> {
                              Captures captures,
                              TableStats tableStats,
                              TransactionContext txnCtx,
-                             NodeContext nodeCtx) {
+                             NodeContext nodeCtx,
+                             PlannerContext plannerContext) {
         Union union = captures.get(unionCapture);
         List<LogicalPlan> unionSources = union.sources();
         assert unionSources.size() == 2 : "A UNION must have exactly 2 unionSources";
-        Order lhsOrder = updateSources(order, unionSources.get(0));
-        Order rhsOrder = updateSources(order, unionSources.get(1));
+        Order lhsOrder = updateSources(plannerContext.nextLogicalPlanId(), order, unionSources.get(0));
+        Order rhsOrder = updateSources(plannerContext.nextLogicalPlanId(), order, unionSources.get(1));
         return union.replaceSources(List.of(lhsOrder, rhsOrder));
     }
 
-    private static Order updateSources(Order order, LogicalPlan child) {
+    private static Order updateSources(int id, Order order, LogicalPlan child) {
         List<Symbol> sourceOutputs = order.source().outputs();
-        return new Order(child, order.orderBy().map(s -> {
+        return new Order(id, child, order.orderBy().map(s -> {
             int idx = sourceOutputs.indexOf(s);
             if (idx < 0) {
                 throw new IllegalArgumentException(

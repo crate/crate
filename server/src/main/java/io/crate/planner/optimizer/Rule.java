@@ -23,6 +23,7 @@ package io.crate.planner.optimizer;
 
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
+import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
@@ -33,7 +34,12 @@ public interface Rule<T> {
 
     Pattern<T> pattern();
 
-    LogicalPlan apply(T plan, Captures captures, TableStats tableStats, TransactionContext txnCtx, NodeContext nodeCtx);
+    LogicalPlan apply(T plan,
+                      Captures captures,
+                      TableStats tableStats,
+                      TransactionContext txnCtx,
+                      NodeContext nodeCtx,
+                      PlannerContext plannerContext);
 
     /**
      * @return The version all nodes in the cluster must have to be able to use this optimization.

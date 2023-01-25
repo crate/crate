@@ -65,15 +65,18 @@ import io.crate.statistics.TableStats;
  **/
 public class CorrelatedJoin implements LogicalPlan {
 
+    private final int id;
     private final LogicalPlan inputPlan;
     private final LogicalPlan subQueryPlan;
 
     private final List<Symbol> outputs;
     private final SelectSymbol selectSymbol;
 
-    public CorrelatedJoin(LogicalPlan inputPlan,
+    public CorrelatedJoin(int id,
+                          LogicalPlan inputPlan,
                           SelectSymbol selectSymbol,
                           LogicalPlan subQueryPlan) {
+        this.id = id;
         this.inputPlan = inputPlan;
         this.subQueryPlan = subQueryPlan;
         this.selectSymbol = selectSymbol;
@@ -138,6 +141,11 @@ public class CorrelatedJoin implements LogicalPlan {
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
         return this;
+    }
+
+    @Override
+    public int id() {
+        return id;
     }
 
     @Override

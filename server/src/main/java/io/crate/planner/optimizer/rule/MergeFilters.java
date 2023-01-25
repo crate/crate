@@ -25,6 +25,7 @@ import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
+import io.crate.planner.PlannerContext;
 import io.crate.statistics.TableStats;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.optimizer.Rule;
@@ -71,10 +72,11 @@ public class MergeFilters implements Rule<Filter> {
                         Captures captures,
                         TableStats tableStats,
                         TransactionContext txnCtx,
-                        NodeContext nodeCtx) {
+                        NodeContext nodeCtx,
+                        PlannerContext plannerContext) {
         Filter childFilter = captures.get(child);
         Symbol parentQuery = plan.query();
         Symbol childQuery = childFilter.query();
-        return new Filter(childFilter.source(), AndOperator.of(parentQuery, childQuery));
+        return new Filter(plannerContext.nextLogicalPlanId(), childFilter.source(), AndOperator.of(parentQuery, childQuery));
     }
 }

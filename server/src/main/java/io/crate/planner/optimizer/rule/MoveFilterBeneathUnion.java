@@ -25,6 +25,7 @@ import io.crate.expression.symbol.FieldReplacer;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
+import io.crate.planner.PlannerContext;
 import io.crate.statistics.TableStats;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.LogicalPlan;
@@ -60,17 +61,18 @@ public final class MoveFilterBeneathUnion implements Rule<Filter> {
                              Captures captures,
                              TableStats tableStats,
                              TransactionContext txnCtx,
-                             NodeContext nodeCtx) {
+                             NodeContext nodeCtx,
+                             PlannerContext plannerContext) {
         Union union = captures.get(unionCapture);
         LogicalPlan lhs = union.sources().get(0);
         LogicalPlan rhs = union.sources().get(1);
         return union.replaceSources(List.of(
-            createNewFilter(filter, lhs),
-            createNewFilter(filter, rhs)
+            createNewFilter(filter, lhs, plannerContext),
+            createNewFilter(filter, rhs, plannerContext)
         ));
     }
 
-    private static Filter createNewFilter(Filter filter, LogicalPlan newSource) {
+    private static Filter createNewFilter(Filter filter, LogicalPlan newSource, PlannerContext plannerContext) {
         Symbol newQuery = FieldReplacer.replaceFields(filter.query(), f -> {
             int idx = filter.source().outputs().indexOf(f);
             if (idx < 0) {
@@ -80,6 +82,6 @@ public final class MoveFilterBeneathUnion implements Rule<Filter> {
             }
             return newSource.outputs().get(idx);
         });
-        return new Filter(newSource, newQuery);
+        return new Filter(plannerContext.nextLogicalPlanId(), newSource, newQuery);
     }
 }

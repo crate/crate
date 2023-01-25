@@ -23,6 +23,7 @@ package io.crate.planner.optimizer.rule;
 
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
+import io.crate.planner.PlannerContext;
 import io.crate.statistics.TableStats;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.HashJoin;
@@ -57,8 +58,9 @@ public final class MoveFilterBeneathHashJoin implements Rule<Filter> {
                              Captures captures,
                              TableStats tableStats,
                              TransactionContext txnCtx,
-                             NodeContext nodeCtx) {
+                             NodeContext nodeCtx,
+                             PlannerContext plannerContext) {
         HashJoin hashJoin = captures.get(joinCapture);
-        return moveQueryBelowJoin(filter.query(), hashJoin);
+        return moveQueryBelowJoin(filter.query(), hashJoin, plannerContext::nextLogicalPlanId);
     }
 }

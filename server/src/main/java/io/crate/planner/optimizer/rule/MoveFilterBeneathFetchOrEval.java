@@ -24,6 +24,7 @@ package io.crate.planner.optimizer.rule;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
+import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.Eval;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.LogicalPlan;
@@ -57,7 +58,12 @@ public final class MoveFilterBeneathFetchOrEval implements Rule<Filter> {
     }
 
     @Override
-    public LogicalPlan apply(Filter plan, Captures captures, TableStats tableStats, TransactionContext txnCtx, NodeContext nodeCtx) {
+    public LogicalPlan apply(Filter plan,
+                             Captures captures,
+                             TableStats tableStats,
+                             TransactionContext txnCtx,
+                             NodeContext nodeCtx,
+                             PlannerContext plannerContext) {
         Eval eval = captures.get(fetchOrEvalCapture);
         List<Symbol> outputsOfFetchSource = eval.source().outputs();
         if (outputsOfFetchSource.containsAll(extractColumns(plan.query()))) {

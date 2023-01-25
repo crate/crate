@@ -34,6 +34,7 @@ import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
+import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.GroupHashAggregate;
 import io.crate.planner.operators.LogicalPlan;
@@ -77,7 +78,8 @@ public final class MoveFilterBeneathGroupBy implements Rule<Filter> {
                              Captures captures,
                              TableStats tableStats,
                              TransactionContext txnCtx,
-                             NodeContext nodeCtx) {
+                             NodeContext nodeCtx,
+                             PlannerContext plannerContext) {
         // Since something like `SELECT x, sum(y) FROM t GROUP BY x HAVING y > 10` is not valid
         // (y would have to be declared as group key) any parts of a HAVING that is not an aggregation can be moved.
         Symbol predicate = filter.query();
@@ -116,9 +118,9 @@ public final class MoveFilterBeneathGroupBy implements Rule<Filter> {
          * Filter (x = 10)
          */
         LogicalPlan newGroupBy = groupBy.replaceSources(
-            List.of(new Filter(groupBy.source(), AndOperator.join(withoutAggregates))));
-
-        return new Filter(newGroupBy, AndOperator.join(withAggregates));
+            List.of(new Filter(plannerContext.nextLogicalPlanId(), groupBy.source(), AndOperator.join(withoutAggregates)))
+        );
+        return new Filter(plannerContext.nextLogicalPlanId(), newGroupBy, AndOperator.join(withAggregates));
     }
 
 }

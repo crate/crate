@@ -98,13 +98,17 @@ public class Collect implements LogicalPlan {
     WhereClause mutableBoundWhere;
     DetailedQuery detailedQuery;
 
-    public static Collect create(AbstractTableRelation<?> relation,
+    private final int id;
+
+    public static Collect create(int id,
+                                 AbstractTableRelation<?> relation,
                                  List<Symbol> toCollect,
                                  WhereClause where,
                                  TableStats tableStats,
                                  Row params) {
         Stats stats = tableStats.getStats(relation.tableInfo().ident());
         return new Collect(
+            id,
             relation,
             toCollect,
             where,
@@ -126,13 +130,16 @@ public class Collect implements LogicalPlan {
         this.immutableWhere = collect.immutableWhere;
         this.tableInfo = collect.relation.tableInfo();
         this.detailedQuery = detailedQuery;
+        this.id = collect.id;
     }
 
-    public Collect(AbstractTableRelation<?> relation,
+    public Collect(int id,
+                   AbstractTableRelation<?> relation,
                    List<Symbol> outputs,
                    WhereClause where,
                    long numExpectedRows,
                    long estimatedRowSize) {
+        this.id = id;
         this.outputs = outputs;
         this.baseTables = List.of(relation);
         this.numExpectedRows = numExpectedRows;
@@ -352,6 +359,11 @@ public class Collect implements LogicalPlan {
     }
 
     @Override
+    public int id() {
+        return id;
+    }
+
+    @Override
     public LogicalPlan pruneOutputsExcept(TableStats tableStats, Collection<Symbol> outputsToKeep) {
         ArrayList<Symbol> newOutputs = new ArrayList<>();
         for (Symbol output : outputs) {
@@ -364,6 +376,7 @@ public class Collect implements LogicalPlan {
         }
         Stats stats = tableStats.getStats(relation.relationName());
         return new Collect(
+            id,
             relation,
             newOutputs,
             immutableWhere,
@@ -410,6 +423,7 @@ public class Collect implements LogicalPlan {
         return new FetchRewrite(
             replacedOutputs,
             new Collect(
+                id,
                 relation,
                 newOutputs,
                 immutableWhere,

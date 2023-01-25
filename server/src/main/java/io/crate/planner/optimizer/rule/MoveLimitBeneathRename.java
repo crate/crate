@@ -27,6 +27,7 @@ import static io.crate.planner.optimizer.rule.Util.transpose;
 
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
+import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.Limit;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.Rename;
@@ -57,7 +58,8 @@ public class MoveLimitBeneathRename implements Rule<Limit> {
                              Captures captures,
                              TableStats tableStats,
                              TransactionContext txnCtx,
-                             NodeContext nodeCtx) {
+                             NodeContext nodeCtx,
+                             PlannerContext plannerContext) {
         Rename rename = captures.get(renameCapture);
         return transpose(limit, rename);
     }

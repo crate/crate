@@ -34,10 +34,12 @@ import java.util.Set;
 
 public abstract class ForwardingLogicalPlan implements LogicalPlan {
 
+    protected final int id;
     private final List<LogicalPlan> sources;
     final LogicalPlan source;
 
-    public ForwardingLogicalPlan(LogicalPlan source) {
+    public ForwardingLogicalPlan(int id, LogicalPlan source) {
+        this.id = id;
         this.source = source;
         this.sources = List.of(source);
     }
@@ -53,6 +55,11 @@ public abstract class ForwardingLogicalPlan implements LogicalPlan {
             return this;
         }
         return replaceSources(List.of(newSource));
+    }
+
+    @Override
+    public int id() {
+        return id;
     }
 
     @Override

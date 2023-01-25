@@ -56,6 +56,7 @@ public class CollectTest extends CrateDummyClusterServiceUnitTest {
         TableStats tableStats = new TableStats();
         Symbol x = e.asSymbol("x");
         Collect collect = Collect.create(
+            1,
             new DocTableRelation(e.resolveTableInfo("t")),
             List.of(x, e.asSymbol("y")),
             WhereClause.MATCH_ALL,

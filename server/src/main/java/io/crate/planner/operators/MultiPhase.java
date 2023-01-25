@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.IntSupplier;
 
 import javax.annotation.Nullable;
 
@@ -47,16 +48,18 @@ public class MultiPhase extends ForwardingLogicalPlan {
 
     private final Map<LogicalPlan, SelectSymbol> subQueries;
 
-    public static LogicalPlan createIfNeeded(Map<LogicalPlan, SelectSymbol> uncorrelatedSubQueries, LogicalPlan source) {
+    public static LogicalPlan createIfNeeded(Map<LogicalPlan, SelectSymbol> uncorrelatedSubQueries,
+                                             LogicalPlan source,
+                                             IntSupplier ids) {
         if (uncorrelatedSubQueries.isEmpty()) {
             return source;
         } else {
-            return new MultiPhase(source, uncorrelatedSubQueries);
+            return new MultiPhase(ids.getAsInt(), source, uncorrelatedSubQueries);
         }
     }
 
-    private MultiPhase(LogicalPlan source, Map<LogicalPlan, SelectSymbol> subQueries) {
-        super(source);
+    private MultiPhase(int id, LogicalPlan source, Map<LogicalPlan, SelectSymbol> subQueries) {
+        super(id, source);
         HashMap<LogicalPlan, SelectSymbol> allSubQueries = new HashMap<>(source.dependencies());
         allSubQueries.putAll(subQueries);
         this.subQueries = Collections.unmodifiableMap(allSubQueries);
@@ -79,7 +82,7 @@ public class MultiPhase extends ForwardingLogicalPlan {
 
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
-        return new MultiPhase(Lists2.getOnlyElement(sources), subQueries);
+        return new MultiPhase(id, Lists2.getOnlyElement(sources), subQueries);
     }
 
     @Override
@@ -90,6 +93,10 @@ public class MultiPhase extends ForwardingLogicalPlan {
     @Override
     public <C, R> R accept(LogicalPlanVisitor<C, R> visitor, C context) {
         return visitor.visitMultiPhase(this, context);
+    }
+
+    public int id() {
+        return id;
     }
 
     @Override

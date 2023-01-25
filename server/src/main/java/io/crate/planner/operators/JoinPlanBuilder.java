@@ -34,6 +34,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.function.IntSupplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -69,10 +70,11 @@ public class JoinPlanBuilder {
                                      List<JoinPair> joinPairs,
                                      SubQueries subQueries,
                                      Function<AnalyzedRelation, LogicalPlan> plan,
-                                     boolean hashJoinEnabled) {
+                                     boolean hashJoinEnabled,
+                                     IntSupplier ids) {
         if (from.size() == 1) {
-            LogicalPlan source = subQueries.applyCorrelatedJoin(plan.apply(from.get(0)));
-            return Filter.create(source, whereClause);
+            LogicalPlan source = subQueries.applyCorrelatedJoin(plan.apply(from.get(0)), ids);
+            return Filter.create(ids.getAsInt(), source, whereClause);
         }
         Map<Set<RelationName>, Symbol> queryParts = QuerySplitter.split(whereClause);
         List<JoinPair> allJoinPairs = JoinOperations.convertImplicitJoinConditionsToJoinPairs(joinPairs, queryParts);
@@ -131,9 +133,10 @@ public class JoinPlanBuilder {
                 lhs,
                 subQueries,
                 query,
-                hashJoinEnabled);
+                hashJoinEnabled,
+                ids);
         } else {
-            lhsPlan = subQueries.applyCorrelatedJoin(lhsPlan);
+            lhsPlan = subQueries.applyCorrelatedJoin(lhsPlan, ids);
             joinPlan = createJoinPlan(
                 lhsPlan,
                 rhsPlan,
@@ -141,10 +144,11 @@ public class JoinPlanBuilder {
                 joinCondition,
                 lhs,
                 query,
-                hashJoinEnabled);
+                hashJoinEnabled,
+                ids.getAsInt());
         }
 
-        joinPlan = Filter.create(joinPlan, query);
+        joinPlan = Filter.create(ids.getAsInt(), joinPlan, query);
         while (it.hasNext()) {
             AnalyzedRelation nextRel = sources.get(it.next());
             joinPlan = joinWithNext(
@@ -155,12 +159,13 @@ public class JoinPlanBuilder {
                 joinPairsByRelations,
                 queryParts,
                 lhs,
-                hashJoinEnabled
+                hashJoinEnabled,
+                ids
             );
             joinNames.add(nextRel.relationName());
         }
         if (!queryParts.isEmpty()) {
-            joinPlan = Filter.create(joinPlan, AndOperator.join(queryParts.values()));
+            joinPlan = Filter.create(ids.getAsInt(), joinPlan, AndOperator.join(queryParts.values()));
             queryParts.clear();
         }
         assert joinPairsByRelations.isEmpty() : "Must've applied all joinPairs";
@@ -197,7 +202,8 @@ public class JoinPlanBuilder {
         AnalyzedRelation lhs,
         SubQueries subQueries,
         Symbol query,
-        boolean hashJoinEnabled
+        boolean hashJoinEnabled,
+        IntSupplier ids
     ) {
         var validJoinConditions = new ArrayList<Symbol>();
         var joinConditionsForFilters = new ArrayList<Symbol>();
@@ -217,10 +223,11 @@ public class JoinPlanBuilder {
             AndOperator.join(validJoinConditions),
             lhs,
             query,
-            hashJoinEnabled);
+            hashJoinEnabled,
+            ids.getAsInt());
 
-        joinPlan = subQueries.applyCorrelatedJoin(joinPlan);
-        joinPlan = Filter.create(joinPlan, AndOperator.join(joinConditionsForFilters));;
+        joinPlan = subQueries.applyCorrelatedJoin(joinPlan, ids);
+        joinPlan = Filter.create(ids.getAsInt(), joinPlan, AndOperator.join(joinConditionsForFilters));;
 
         return joinPlan;
     }
@@ -246,15 +253,18 @@ public class JoinPlanBuilder {
                                               Symbol joinCondition,
                                               AnalyzedRelation lhs,
                                               Symbol query,
-                                              boolean hashJoinEnabled) {
+                                              boolean hashJoinEnabled,
+                                              int id) {
         if (hashJoinEnabled && isHashJoinPossible(joinType, joinCondition)) {
             return new HashJoin(
+                id,
                 lhsPlan,
                 rhsPlan,
                 joinCondition
             );
         } else {
             return new NestedLoopJoin(
+                id,
                 lhsPlan,
                 rhsPlan,
                 joinType,
@@ -283,7 +293,8 @@ public class JoinPlanBuilder {
                                             Map<Set<RelationName>, JoinPair> joinPairs,
                                             Map<Set<RelationName>, Symbol> queryParts,
                                             AnalyzedRelation leftRelation,
-                                            boolean hashJoinEnabled) {
+                                            boolean hashJoinEnabled,
+                                            IntSupplier ids) {
         RelationName nextName = nextRel.relationName();
 
         JoinPair joinPair = removeMatch(joinPairs, joinNames, nextName);
@@ -305,6 +316,7 @@ public class JoinPlanBuilder {
                 .filter(Objects::nonNull).iterator()
         );
         return Filter.create(
+            ids.getAsInt(),
             createJoinPlan(
                 source,
                 nextPlan,
@@ -312,7 +324,8 @@ public class JoinPlanBuilder {
                 condition,
                 leftRelation,
                 query,
-                hashJoinEnabled),
+                hashJoinEnabled,
+                ids.getAsInt()),
             query
         );
     }
