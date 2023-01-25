@@ -24,7 +24,6 @@ package io.crate.integrationtests;
 import static io.crate.testing.SQLTransportExecutor.REQUEST_TIMEOUT;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.common.util.concurrent.ConcurrentCollections.newConcurrentMap;
-import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertAcked;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -142,8 +141,8 @@ public class DiskThresholdDeciderIT extends IntegTestCase {
         final String dataNodeName = cluster().startDataOnlyNode();
 
         final InternalClusterInfoService clusterInfoService
-                = (InternalClusterInfoService) cluster().getMasterNodeInstance(ClusterInfoService.class);
-        cluster().getMasterNodeInstance(ClusterService.class).addListener(event -> clusterInfoService.refresh());
+                = (InternalClusterInfoService) cluster().getCurrentMasterNodeInstance(ClusterInfoService.class);
+        cluster().getCurrentMasterNodeInstance(ClusterService.class).addListener(event -> clusterInfoService.refresh());
 
         final String dataNode0Id = cluster().getInstance(NodeEnvironment.class, dataNodeName).nodeId();
         final Path dataNode0Path = cluster().getInstance(Environment.class, dataNodeName).dataFiles()[0];
@@ -158,13 +157,17 @@ public class DiskThresholdDeciderIT extends IntegTestCase {
         // reduce disk size of node 0 so that no shards fit below the high watermark, forcing all shards onto the other data node
         // (subtract the translog size since the disk threshold decider ignores this and may therefore move the shard back again)
         fileSystemProvider.getTestFileStore(dataNode0Path).setTotalSpace(minShardSize + WATERMARK_BYTES - 1L);
-        refreshDiskUsage();
-        assertBusy(() -> assertThat(getShardRoutings(dataNode0Id, indexName)).isEmpty());
+        assertBusy(() -> {
+            refreshDiskUsage();
+            assertThat(getShardRoutings(dataNode0Id, indexName)).isEmpty();
+        });
 
         // increase disk size of node 0 to allow just enough room for one shard, and check that it's rebalanced back
         fileSystemProvider.getTestFileStore(dataNode0Path).setTotalSpace(minShardSize + WATERMARK_BYTES + 1L);
-        refreshDiskUsage();
-        assertBusy(() -> assertThat(getShardRoutings(dataNode0Id, indexName)).hasSize(1));
+        assertBusy(() -> {
+            refreshDiskUsage();
+            assertThat(getShardRoutings(dataNode0Id, indexName)).hasSize(1);
+        });
     }
 
     @Test
@@ -262,7 +265,7 @@ public class DiskThresholdDeciderIT extends IntegTestCase {
     }
 
     private void refreshDiskUsage() throws ExecutionException, InterruptedException {
-        ((InternalClusterInfoService) cluster().getMasterNodeInstance(ClusterInfoService.class)).refresh();
+        ((InternalClusterInfoService) cluster().getCurrentMasterNodeInstance(ClusterInfoService.class)).refresh();
         // if the nodes were all under the low watermark already (but unbalanced) then a change in the disk usage doesn't trigger a reroute
         // even though it's now possible to achieve better balance, so we have to do an explicit reroute. TODO fix this?
         final ClusterInfo clusterInfo = cluster().getMasterNodeInstance(ClusterInfoService.class).getClusterInfo();
@@ -271,7 +274,7 @@ public class DiskThresholdDeciderIT extends IntegTestCase {
 
             var clusterRerouteResponse = client().admin().cluster()
                 .execute(ClusterRerouteAction.INSTANCE, new ClusterRerouteRequest()).get();
-            assertAcked(clusterRerouteResponse);
+            assertThat(clusterRerouteResponse.isAcknowledged()).isTrue();
         }
 
         var clusterHealthRequest = new ClusterHealthRequest()
