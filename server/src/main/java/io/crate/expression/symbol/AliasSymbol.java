@@ -22,6 +22,7 @@
 package io.crate.expression.symbol;
 
 import io.crate.expression.symbol.format.Style;
+import io.crate.sql.Identifiers;
 import io.crate.types.DataType;
 
 import org.apache.lucene.util.RamUsageEstimator;
@@ -78,12 +79,12 @@ public final class AliasSymbol implements Symbol {
 
     @Override
     public String toString() {
-        return symbol.toString(Style.UNQUALIFIED) + " AS " + alias;
+        return this.toString(Style.UNQUALIFIED);
     }
 
     @Override
     public String toString(Style style) {
-        return symbol.toString(style) + " AS " + alias;
+        return symbol.toString(style) + " AS " + Identifiers.quoteIfNeeded(alias);
     }
 
     @Override

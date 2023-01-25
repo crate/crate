@@ -1796,11 +1796,11 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
 
     @Test
     public void testCreateTableWithIllegalCustomSchemaCheckedByES() {
-        assertThrowsMatches(() -> execute("create table \"AAA\".t (" +
+        assertThrowsMatches(() -> execute("create table \"AA A\".t (" +
             "   name string," +
             "   d timestamp with time zone" +
             ") partitioned by (d) with (number_of_replicas=0)"),
-                     isSQLError(is("Relation name \"AAA.t\" is invalid."),
+                     isSQLError(is("Relation name \"AA A.t\" is invalid."),
                          INTERNAL_ERROR,
                          BAD_REQUEST,
                          4002));

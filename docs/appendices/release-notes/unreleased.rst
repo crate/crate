@@ -61,6 +61,10 @@ Changes
 - Optimized the evaluation of ``CASE`` expressions to prevent stack overflows
   for very large expressions.
 
+- Allowed schema and table names to contain upper case letters. This can be
+  achieved by quoting the names. Unquoted names with upper case letters are
+  converted to lower cases which has been the existing behaviour.
+
 Fixes
 =====
 
