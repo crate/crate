@@ -72,8 +72,8 @@ should be crossed out as well.
   other patches more difficult
 
 - [ ] 20d2313d4b6 Ensure ReplicationOperation notify listener once (#68256)
-- [ ] b8102b2e0f3 [DOCS] Fix response typo in transport message listener (#68125) (#68169)
-- [ ] e9b798bdb15 [7.10] Make FilterAllocationDecider totally ignore tier-based allocation settings (#67019) (#67034)
+- [x] b8102b2e0f3 [DOCS] Fix response typo in transport message listener (#68125) (#68169)
+- [s] e9b798bdb15 [7.10] Make FilterAllocationDecider totally ignore tier-based allocation settings (#67019) (#67034)
 - [x] 5000ec87caa Fix constructors of NoOpResult (#66269)
 - [x] 7e1fc6dc674 Adjust Cleanup Order of Internal State in SnapshotsService (#66225) (#66244)
 - [s] 8cbb9612d0f [7.10] Create AllocationDeciders in the main method of the ILM step (#65037) (8ac30f9a) (#66070)
