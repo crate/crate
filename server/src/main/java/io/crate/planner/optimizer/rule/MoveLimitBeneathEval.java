@@ -26,9 +26,11 @@ import static io.crate.planner.optimizer.matcher.Patterns.source;
 import static io.crate.planner.optimizer.rule.Util.transpose;
 
 import java.util.function.Function;
+import java.util.function.IntSupplier;
 
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
+import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.Eval;
 import io.crate.planner.operators.Limit;
 import io.crate.planner.operators.LogicalPlan;
@@ -60,6 +62,7 @@ public class MoveLimitBeneathEval implements Rule<Limit> {
                              PlanStats planStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
+                             IntSupplier ids,
                              Function<LogicalPlan, LogicalPlan> resolvePlan) {
         Eval eval = captures.get(evalCapture);
         return transpose(limit, eval);

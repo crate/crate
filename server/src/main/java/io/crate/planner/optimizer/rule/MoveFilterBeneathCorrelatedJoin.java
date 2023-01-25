@@ -27,6 +27,7 @@ import static io.crate.planner.optimizer.matcher.Patterns.source;
 
 import java.util.List;
 import java.util.function.Function;
+import java.util.function.IntSupplier;
 
 import io.crate.analyze.relations.QuerySplitter;
 import io.crate.expression.operator.AndOperator;
@@ -63,6 +64,7 @@ public final class MoveFilterBeneathCorrelatedJoin implements Rule<Filter> {
                              PlanStats planStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
+                             IntSupplier ids,
                              Function<LogicalPlan, LogicalPlan> resolvePlan) {
         var join = captures.get(joinCapture);
         var splitQuery = QuerySplitter.split(filter.query());
@@ -78,8 +80,8 @@ public final class MoveFilterBeneathCorrelatedJoin implements Rule<Filter> {
             return null;
         }
 
-        var newInputPlan = new Filter(inputPlan, AndOperator.join(correlatedSubQueries.remainder()));
+        var newInputPlan = new Filter(ids.getAsInt(), inputPlan, AndOperator.join(correlatedSubQueries.remainder()));
         var newJoin = join.replaceSources(List.of(newInputPlan));
-        return new Filter(newJoin, AndOperator.join(splitQuery.values()));
+        return new Filter(ids.getAsInt(), newJoin, AndOperator.join(splitQuery.values()));
     }
 }

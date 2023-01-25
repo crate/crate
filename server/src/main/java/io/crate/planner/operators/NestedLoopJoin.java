@@ -67,6 +67,7 @@ import io.crate.statistics.TableStats;
 
 public class NestedLoopJoin extends JoinPlan {
 
+    private final int id;
     private final AnalyzedRelation topMostLeftRelation;
     private final boolean isFiltered;
     private final List<Symbol> outputs;
@@ -75,7 +76,8 @@ public class NestedLoopJoin extends JoinPlan {
     private final boolean joinConditionOptimised;
     private boolean rewriteNestedLoopJoinToHashJoinDone = false;
 
-    NestedLoopJoin(LogicalPlan lhs,
+    NestedLoopJoin(int id,
+                   LogicalPlan lhs,
                    LogicalPlan rhs,
                    JoinType joinType,
                    @Nullable Symbol joinCondition,
@@ -83,6 +85,7 @@ public class NestedLoopJoin extends JoinPlan {
                    AnalyzedRelation topMostLeftRelation,
                    boolean joinConditionOptimised) {
         super(lhs, rhs, joinCondition, joinType);
+        this.id = id;
         this.isFiltered = isFiltered || joinCondition != null;
         if (joinType == JoinType.SEMI) {
             this.outputs = lhs.outputs();
@@ -93,7 +96,8 @@ public class NestedLoopJoin extends JoinPlan {
         this.joinConditionOptimised = joinConditionOptimised;
     }
 
-    public NestedLoopJoin(LogicalPlan lhs,
+    public NestedLoopJoin(int id,
+                          LogicalPlan lhs,
                           LogicalPlan rhs,
                           JoinType joinType,
                           @Nullable Symbol joinCondition,
@@ -103,7 +107,7 @@ public class NestedLoopJoin extends JoinPlan {
                           boolean rewriteFilterOnOuterJoinToInnerJoinDone,
                           boolean joinConditionOptimised,
                           boolean rewriteEquiJoinToHashJoinDone) {
-        this(lhs, rhs, joinType, joinCondition, isFiltered, topMostLeftRelation, joinConditionOptimised);
+        this(id, lhs, rhs, joinType, joinCondition, isFiltered, topMostLeftRelation, joinConditionOptimised);
         this.orderByWasPushedDown = orderByWasPushedDown;
         this.rewriteFilterOnOuterJoinToInnerJoinDone = rewriteFilterOnOuterJoinToInnerJoinDone;
         this.rewriteNestedLoopJoinToHashJoinDone = rewriteEquiJoinToHashJoinDone;
@@ -256,6 +260,7 @@ public class NestedLoopJoin extends JoinPlan {
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
         return new NestedLoopJoin(
+            id,
             sources.get(0),
             sources.get(1),
             joinType,
@@ -267,6 +272,11 @@ public class NestedLoopJoin extends JoinPlan {
             joinConditionOptimised,
             rewriteNestedLoopJoinToHashJoinDone
         );
+    }
+
+    @Override
+    public int id() {
+        return id;
     }
 
     @Override
@@ -287,6 +297,7 @@ public class NestedLoopJoin extends JoinPlan {
             return this;
         }
         return new NestedLoopJoin(
+            id,
             newLhs,
             newRhs,
             joinType,
@@ -324,6 +335,7 @@ public class NestedLoopJoin extends JoinPlan {
         return new FetchRewrite(
             allReplacedOutputs,
             new NestedLoopJoin(
+                id,
                 lhsFetchRewrite == null ? lhs : lhsFetchRewrite.newPlan(),
                 rhsFetchRewrite == null ? rhs : rhsFetchRewrite.newPlan(),
                 joinType,

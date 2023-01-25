@@ -37,6 +37,7 @@ import io.crate.planner.optimizer.matcher.Pattern;
 
 import java.util.List;
 import java.util.function.Function;
+import java.util.function.IntSupplier;
 
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 import static io.crate.planner.optimizer.matcher.Patterns.source;
@@ -82,12 +83,13 @@ public final class MoveOrderBeneathRename implements Rule<Order> {
                              PlanStats planStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
+                             IntSupplier ids,
                              Function<LogicalPlan, LogicalPlan> resolvePlan) {
         Rename rename = captures.get(renameCapture);
         Function<? super Symbol, ? extends Symbol> mapField = FieldReplacer.bind(rename::resolveField);
         OrderBy mappedOrderBy = plan.orderBy().map(mapField);
         if (rename.source().outputs().containsAll(mappedOrderBy.orderBySymbols())) {
-            Order newOrder = new Order(rename.source(), mappedOrderBy);
+            Order newOrder = new Order(ids.getAsInt(), rename.source(), mappedOrderBy);
             return rename.replaceSources(List.of(newOrder));
         } else {
             return null;

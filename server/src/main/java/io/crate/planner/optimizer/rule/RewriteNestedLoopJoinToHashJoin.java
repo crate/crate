@@ -24,9 +24,11 @@ package io.crate.planner.optimizer.rule;
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 
 import java.util.function.Function;
+import java.util.function.IntSupplier;
 
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
+import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.EquiJoinDetector;
 import io.crate.planner.operators.HashJoin;
 import io.crate.planner.operators.LogicalPlan;
@@ -53,17 +55,20 @@ public class RewriteNestedLoopJoinToHashJoin implements Rule<NestedLoopJoin> {
                              PlanStats planStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
+                             IntSupplier ids,
                              Function<LogicalPlan, LogicalPlan> resolvePlan) {
 
         if (txnCtx.sessionSettings().hashJoinsEnabled() &&
             EquiJoinDetector.isHashJoinPossible(nl.joinType(), nl.joinCondition())) {
             return new HashJoin(
+                ids.getAsInt(),
                 nl.lhs(),
                 nl.rhs(),
                 nl.joinCondition()
             );
         } else {
             return new NestedLoopJoin(
+                ids.getAsInt(),
                 nl.lhs(),
                 nl.rhs(),
                 nl.joinType(),

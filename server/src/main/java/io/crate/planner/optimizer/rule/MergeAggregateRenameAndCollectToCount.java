@@ -25,6 +25,7 @@ import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 import static io.crate.planner.optimizer.matcher.Patterns.source;
 
 import java.util.function.Function;
+import java.util.function.IntSupplier;
 
 import io.crate.common.collections.Lists2;
 import io.crate.execution.engine.aggregation.impl.CountAggregation;
@@ -79,6 +80,7 @@ public class MergeAggregateRenameAndCollectToCount implements Rule<HashAggregate
                              PlanStats planStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
+                             IntSupplier ids,
                              Function<LogicalPlan, LogicalPlan> resolvePlan) {
         Collect collect = captures.get(collectCapture);
         Rename rename = captures.get(renameCapture);
@@ -87,11 +89,13 @@ public class MergeAggregateRenameAndCollectToCount implements Rule<HashAggregate
         if (filter != null) {
             var mappedFilter = FieldReplacer.replaceFields(filter, rename::resolveField);
             return new Count(
+                ids.getAsInt(),
                 countAggregate,
                 collect.relation(),
-                collect.where().add(mappedFilter));
+                collect.where().add(mappedFilter)
+                );
         } else {
-            return new Count(countAggregate, collect.relation(), collect.where());
+            return new Count(ids.getAsInt(), countAggregate, collect.relation(), collect.where());
         }
     }
 }

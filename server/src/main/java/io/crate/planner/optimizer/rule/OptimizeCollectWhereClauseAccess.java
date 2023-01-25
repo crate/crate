@@ -30,6 +30,7 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
+import io.crate.planner.PlannerContext;
 import io.crate.planner.WhereClauseOptimizer;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.Get;
@@ -41,6 +42,7 @@ import io.crate.planner.optimizer.matcher.Pattern;
 
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.function.IntSupplier;
 
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 
@@ -68,6 +70,7 @@ public final class OptimizeCollectWhereClauseAccess implements Rule<Collect> {
                              PlanStats planStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
+                             IntSupplier ids,
                              Function<LogicalPlan, LogicalPlan> resolvePlan) {
         var relation = (DocTableRelation) collect.relation();
         var normalizer = new EvaluatingNormalizer(nodeCtx, RowGranularity.CLUSTER, null, relation);
@@ -83,6 +86,7 @@ public final class OptimizeCollectWhereClauseAccess implements Rule<Collect> {
         //noinspection OptionalIsPresent no capturing lambda allocation
         if (docKeys.isPresent()) {
             return new Get(
+                ids.getAsInt(),
                 relation,
                 docKeys.get(),
                 detailedQuery.query(),

@@ -28,6 +28,7 @@ import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.WindowFunction;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
+import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.WindowAgg;
@@ -40,6 +41,7 @@ import io.crate.planner.optimizer.matcher.Pattern;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
+import java.util.function.IntSupplier;
 import java.util.function.Predicate;
 
 import static io.crate.planner.operators.LogicalPlanner.extractColumns;
@@ -69,6 +71,7 @@ public final class MoveFilterBeneathWindowAgg implements Rule<Filter> {
                              PlanStats planStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
+                             IntSupplier ids,
                              Function<LogicalPlan, LogicalPlan> resolvePlan) {
         WindowAgg windowAgg = captures.get(windowAggCapture);
         WindowDefinition windowDefinition = windowAgg.windowDefinition();
@@ -141,8 +144,11 @@ public final class MoveFilterBeneathWindowAgg implements Rule<Filter> {
          * Filter (id = 1)
          */
         LogicalPlan newWindowAgg = windowAgg.replaceSources(
-            List.of(new Filter(windowAgg.source(), AndOperator.join(windowPartitionedBasedFilters))));
+            List.of(new Filter(ids.getAsInt(),
+                               windowAgg.source(),
+                               AndOperator.join(windowPartitionedBasedFilters)
+                               )));
 
-        return new Filter(newWindowAgg, AndOperator.join(remainingFilterSymbols));
+        return new Filter(ids.getAsInt(), newWindowAgg, AndOperator.join(remainingFilterSymbols));
     }
 }

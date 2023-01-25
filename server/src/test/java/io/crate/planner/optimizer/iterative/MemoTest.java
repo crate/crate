@@ -62,7 +62,7 @@ public class MemoTest {
     @Test
     public void testInitialization() {
         var plan = plan(plan());
-        Memo memo = new Memo(plan);
+        Memo memo = new Memo(plan, ids);
 
         assertThat(memo.groupCount()).isEqualTo(2);
         assertMatchesStructure(plan, memo.extract());
@@ -76,7 +76,7 @@ public class MemoTest {
     public void testReplaceSubtree() {
         var plan = plan(plan(plan()));
 
-        Memo memo = new Memo(plan);
+        Memo memo = new Memo(plan, ids);
         assertThat(memo.groupCount()).isEqualTo(3);
 
         // replace child of root node with subtree
@@ -96,7 +96,7 @@ public class MemoTest {
         var y = plan(z);
         var x = plan(y);
 
-        Memo memo = new Memo(x);
+        Memo memo = new Memo(x, ids);
         assertThat(memo.groupCount()).isEqualTo(3);
 
         // replace child of root node with another node, retaining child's child
@@ -119,7 +119,7 @@ public class MemoTest {
         var y = plan(z);
         var x = plan(y);
 
-        Memo memo = new Memo(x);
+        Memo memo = new Memo(x, ids);
 
         assertThat(memo.groupCount()).isEqualTo(4);
 
@@ -153,7 +153,7 @@ public class MemoTest {
         var y = plan(z);
         var x = plan(y);
 
-        Memo memo = new Memo(x);
+        Memo memo = new Memo(x, ids);
 
         assertEquals(memo.groupCount(), 3);
         assertThat(memo.groupCount()).isEqualTo(3);
@@ -178,7 +178,7 @@ public class MemoTest {
         var z = plan();
         var x = plan(z);
 
-        Memo memo = new Memo(x);
+        Memo memo = new Memo(x, ids);
 
         assertThat(memo.groupCount()).isEqualTo(2);
 
@@ -206,7 +206,7 @@ public class MemoTest {
         var y = plan(z);
         var x = plan(y);
 
-        Memo memo = new Memo(x);
+        Memo memo = new Memo(x, ids);
         assertThat(memo.groupCount()).isEqualTo(3);
 
         int yGroup = getChildGroup(memo, memo.getRootGroup());
@@ -231,7 +231,7 @@ public class MemoTest {
         var y = plan();
         var x = plan(y);
 
-        Memo memo = new Memo(x);
+        Memo memo = new Memo(x, ids§);
         int xGroup = memo.getRootGroup();
         int yGroup = getChildGroup(memo, memo.getRootGroup());
         var xStats = new Stats(1, 1, Map.of());

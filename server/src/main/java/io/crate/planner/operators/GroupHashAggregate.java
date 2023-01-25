@@ -70,7 +70,6 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
     private final List<Symbol> outputs;
     private final long numExpectedRows;
 
-
     static long approximateDistinctValues(long numSourceRows, TableStats tableStats, List<Symbol> groupKeys) {
         long distinctValues = 1;
         int numKeysWithStats = 0;
@@ -115,8 +114,13 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
         }
     }
 
-    public GroupHashAggregate(LogicalPlan source, List<Symbol> groupKeys, List<Function> aggregates, long numExpectedRows) {
-        super(source);
+    public GroupHashAggregate(int id,
+                              LogicalPlan source,
+                              List<Symbol> groupKeys,
+                              List<Function> aggregates,
+                              long numExpectedRows
+                              ) {
+        super(id, source);
         this.numExpectedRows = numExpectedRows;
         this.aggregates = List.copyOf(new LinkedHashSet<>(aggregates));
         this.outputs = Lists2.concat(groupKeys, this.aggregates);
@@ -268,12 +272,12 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
         if (newSource == source && aggregates.size() == newAggregates.size()) {
             return this;
         }
-        return new GroupHashAggregate(newSource, groupKeys, newAggregates, numExpectedRows);
+        return new GroupHashAggregate(id, newSource, groupKeys, newAggregates, numExpectedRows);
     }
 
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
-        return new GroupHashAggregate(Lists2.getOnlyElement(sources), groupKeys, aggregates, numExpectedRows);
+        return new GroupHashAggregate(id, Lists2.getOnlyElement(sources), groupKeys, aggregates, numExpectedRows);
     }
 
     private ExecutionPlan createMerge(PlannerContext plannerContext,

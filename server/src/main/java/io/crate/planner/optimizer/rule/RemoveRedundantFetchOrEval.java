@@ -24,6 +24,7 @@ package io.crate.planner.optimizer.rule;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.optimizer.costs.PlanStats;
+import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.Eval;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.Rule;
@@ -33,6 +34,7 @@ import io.crate.planner.optimizer.matcher.Pattern;
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 
 import java.util.function.Function;
+import java.util.function.IntSupplier;
 
 /**
  * Eliminates any Eval nodes that have the same output as their source
@@ -57,6 +59,7 @@ public final class RemoveRedundantFetchOrEval implements Rule<Eval> {
                              PlanStats planStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
+                             IntSupplier ids,
                              Function<LogicalPlan, LogicalPlan> resolvePlan) {
         return plan.source();
     }

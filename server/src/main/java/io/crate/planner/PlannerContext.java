@@ -72,6 +72,7 @@ public class PlannerContext {
     private final ClusterState clusterState;
     private final TransactionState transactionState;
     private int executionPhaseId = 0;
+    private int logicalPlanId = 0;
     private final String handlerNode;
     @Nullable
     private final Row params;
@@ -135,6 +136,10 @@ public class PlannerContext {
 
     public int nextExecutionPhaseId() {
         return executionPhaseId++;
+    }
+
+    public int nextLogicalPlanId() {
+        return logicalPlanId++;
     }
 
     public Routing allocateRouting(TableInfo tableInfo,

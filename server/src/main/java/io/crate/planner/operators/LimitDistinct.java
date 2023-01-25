@@ -59,8 +59,8 @@ public final class LimitDistinct extends ForwardingLogicalPlan {
     private final List<Symbol> outputs;
     private final Symbol offset;
 
-    public LimitDistinct(LogicalPlan source, Symbol limit, Symbol offset, List<Symbol> outputs) {
-        super(source);
+    public LimitDistinct(int id, LogicalPlan source, Symbol limit, Symbol offset, List<Symbol> outputs) {
+        super(id, source);
         this.limit = limit;
         this.offset = offset;
         this.outputs = outputs;
@@ -168,13 +168,13 @@ public final class LimitDistinct extends ForwardingLogicalPlan {
         if (prunedSource == source) {
             return this;
         }
-        return new LimitDistinct(prunedSource, limit, offset, outputs);
+        return new LimitDistinct(id, prunedSource, limit, offset, outputs);
     }
 
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
         var source = Lists2.getOnlyElement(sources);
-        return new LimitDistinct(source, limit, offset, outputs);
+        return new LimitDistinct(id, source, limit, offset, outputs);
     }
 
     @Override

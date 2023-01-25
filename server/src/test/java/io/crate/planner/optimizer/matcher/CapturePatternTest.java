@@ -35,7 +35,7 @@ public class CapturePatternTest {
 
     @Test
     public void testCapturePatternAddsToCaptureOnMatch() {
-        Filter filter = new Filter(mock(LogicalPlan.class), Literal.BOOLEAN_TRUE);
+        Filter filter = new Filter(1, mock(LogicalPlan.class), Literal.BOOLEAN_TRUE);
 
         Capture<Filter> captureFilter = new Capture<>();
         Pattern<Filter> filterPattern = Pattern.typeOf(Filter.class).capturedAs(captureFilter);

@@ -31,11 +31,17 @@ import static io.crate.planner.operators.GroupHashAggregate.approximateDistinctV
 
 public final class Distinct {
 
-    public static LogicalPlan create(LogicalPlan source, boolean distinct, List<Symbol> outputs, PlanStats planStats) {
+    public static LogicalPlan create(int id,
+                                     LogicalPlan source,
+                                     boolean distinct,
+                                     List<Symbol> outputs,
+                                     PlanStats planStats) {
         if (!distinct) {
             return source;
         }
-        long numExpectedRows = approximateDistinctValues(planStats.get(source).numDocs(), planStats.tableStats(), outputs);
-        return new GroupHashAggregate(source, outputs, Collections.emptyList(), numExpectedRows);
+        long numExpectedRows = approximateDistinctValues(planStats.get(source).numDocs(),
+                                                         planStats.tableStats(),
+                                                         outputs);
+        return new GroupHashAggregate(id, source, outputs, Collections.emptyList(), numExpectedRows);
     }
 }
