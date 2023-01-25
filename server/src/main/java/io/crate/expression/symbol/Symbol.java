@@ -76,5 +76,9 @@ public interface Symbol extends Writeable, Accountable {
         return CastFunctionResolver.generateCastFunction(this, targetType, modes);
     }
 
+    /**
+     * Converts the symbol to a string format where the string output should be able to be parsed to generate the original symbol.
+     * NOTE: remember to prefer quoted variants over non quoted when converting.
+     */
     String toString(Style style);
 }

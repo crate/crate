@@ -64,6 +64,7 @@ public class IdentifiersTest {
         assertThat(Identifiers.quoteIfNeeded("fhjgadhjgfhs")).isEqualTo("fhjgadhjgfhs");
         assertThat(Identifiers.quoteIfNeeded("fhjgadhjgfhsÖ")).isEqualTo("\"fhjgadhjgfhsÖ\"");
         assertThat(Identifiers.quoteIfNeeded("ABC")).isEqualTo("\"ABC\"");
+        assertThat(Identifiers.quoteIfNeeded("abC")).isEqualTo("\"abC\""); // mixed case
         assertThat(Identifiers.quoteIfNeeded("abc\"")).isEqualTo("\"abc\"\"\"");
         assertThat(Identifiers.quoteIfNeeded("select")).isEqualTo("\"select\""); // keyword
         assertThat(Identifiers.quoteIfNeeded("1column")).isEqualTo("\"1column\"");

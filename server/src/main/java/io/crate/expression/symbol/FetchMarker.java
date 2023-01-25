@@ -88,7 +88,7 @@ public final class FetchMarker implements Symbol {
     @Override
     public String toString(Style style) {
         if (relationName.schema() == null) {
-            return relationName + "." + fetchId.toString(style);
+            return relationName.sqlFqn() + "." + fetchId.toString(style);
         }
         return fetchId.toString(style);
     }

@@ -27,7 +27,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
@@ -280,9 +279,6 @@ public class MetadataIndexTemplateService {
         }
         if (request.name.startsWith("_")) {
             validationErrors.add("name must not start with '_'");
-        }
-        if (!request.name.toLowerCase(Locale.ROOT).equals(request.name)) {
-            validationErrors.add("name must be lower cased");
         }
         for (String indexPattern : request.indexPatterns) {
             if (indexPattern.contains(" ")) {

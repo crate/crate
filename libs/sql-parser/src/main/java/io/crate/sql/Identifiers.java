@@ -38,7 +38,7 @@ import io.crate.sql.tree.QualifiedNameReference;
 
 public class Identifiers {
 
-    private static final Pattern IDENTIFIER = Pattern.compile("(^[a-z_]+[a-z0-9_]*)");
+    private static final Pattern IDENTIFIER = Pattern.compile("(^[a-zA-Z_]+[a-zA-Z0-9_]*)");
     private static final Pattern ESCAPE_REPLACE_RE = Pattern.compile("\"", Pattern.LITERAL);
     private static final String ESCAPE_REPLACEMENT = Matcher.quoteReplacement("\"\"");
 
@@ -132,11 +132,23 @@ public class Identifiers {
     }
 
     private static boolean quotesRequired(String identifier) {
-        return isKeyWord(identifier) || !IDENTIFIER.matcher(identifier).matches();
+        return isKeyWord(identifier) ||
+               // schema names like s, S, "s" are resolved to s (lower case), while "S" (quoted, mixed case) is resolved to S (upper case).
+               // Therefore, mixed case schema names should be quoted whenever necessary. (i.e. printed as a string and to be re-parsed)
+               !IDENTIFIER.matcher(identifier).matches() || isMixedCase(identifier);
     }
 
     public static boolean isKeyWord(String identifier) {
         return RESERVED_KEYWORDS.contains(identifier.toUpperCase(Locale.ENGLISH));
+    }
+
+    private static boolean isMixedCase(String identifier) {
+        for (char c : identifier.toCharArray()) {
+            if (c >= 'A' && c <= 'Z') {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static boolean reserved(String expression) {
@@ -156,8 +168,7 @@ public class Identifiers {
                 continue;
             }
             literal = literal.replace("'", "");
-
-            Matcher matcher = IDENTIFIER.matcher(literal.toLowerCase(Locale.ENGLISH));
+            Matcher matcher = IDENTIFIER.matcher(literal);
             if (matcher.matches()) {
                 candidates.add(new Keyword(literal, reserved(literal)));
             }
