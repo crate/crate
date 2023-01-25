@@ -95,7 +95,7 @@ should be crossed out as well.
 - [su] e02561476ea Fix Broken Clone Snapshot CS Update (#64116) (#64159)
 - [su] bdea16301d7 Fix testMasterFailoverDuringCloneStep1 (#63580) (#64127)
 - [ ] 7ea44d20c3c Try to fix DiskThresholdDeciderIT (#63614) (#63721)
-- [ ] 424b3137841 Adapt Shard Generation Assertion for 7.x (#63625) (#63642)
+- [x] 424b3137841 Adapt Shard Generation Assertion for 7.x (#63625) (#63642)
 - [x] 9015b50e1b8 Check docs limit before indexing on primary (#63273)
 - [x] f70391c6cca Fix Broken Snapshot State Machine in Corner Case (#63534) (#63608)
 - [x] 845ccc22646 [DOCS] Fix dup word in ShardRouting hashcode method. (#63452) (#63583)
