@@ -21,9 +21,11 @@
 
 package io.crate.planner.operators;
 
+import io.crate.planner.optimizer.memo.GroupReference;
+
 public class LogicalPlanVisitor<C, R> {
 
-    protected R visitPlan(LogicalPlan logicalPlan, C context) {
+    public R visitPlan(LogicalPlan logicalPlan, C context) {
         return null;
     }
 
@@ -116,6 +118,10 @@ public class LogicalPlanVisitor<C, R> {
     }
 
     public R visitCorrelatedJoin(CorrelatedJoin apply, C context) {
+        return visitPlan(apply, context);
+    }
+
+    public R visitGroupReference(GroupReference apply, C context) {
         return visitPlan(apply, context);
     }
 }

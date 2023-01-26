@@ -1,0 +1,332 @@
+/*
+ * Licensed to Crate.io GmbH ("Crate") under one or more contributor
+ * license agreements.  See the NOTICE file distributed with this work for
+ * additional information regarding copyright ownership.  Crate licenses
+ * this file to you under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.  You may
+ * obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ *
+ * However, if you have executed another commercial license agreement
+ * with Crate these terms will supersede the license and you may use the
+ * software solely pursuant to the terms of the relevant commercial agreement.
+ */
+
+package io.crate.planner.optimizer.memo;
+
+import static io.crate.common.collections.Iterables.getOnlyElement;
+import static org.junit.Assert.assertEquals;
+
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.IntSupplier;
+
+import javax.annotation.Nullable;
+
+import org.junit.Test;
+
+import io.crate.analyze.OrderBy;
+import io.crate.analyze.relations.AbstractTableRelation;
+import io.crate.data.Row;
+import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
+import io.crate.expression.symbol.SelectSymbol;
+import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.RelationName;
+import io.crate.planner.DependencyCarrier;
+import io.crate.planner.ExecutionPlan;
+import io.crate.planner.PlannerContext;
+import io.crate.planner.operators.LogicalPlan;
+import io.crate.planner.operators.LogicalPlanVisitor;
+import io.crate.planner.operators.PlanHint;
+import io.crate.planner.operators.SubQueryResults;
+import io.crate.statistics.TableStats;
+
+
+public class MemoTest {
+
+    private int id = 0;
+    private IntSupplier ids = () -> id++;
+
+    @Test
+    public void testInitialization() {
+        LogicalPlan plan = plan(plan());
+        Memo memo = new Memo(plan, ids);
+
+        assertEquals(memo.groupCount(), 2);
+        assertMatchesStructure(plan, memo.extract());
+    }
+
+    /*
+      From: X -> Y  -> Z
+      To:   X -> Y' -> Z'
+     */
+    @Test
+    public void testReplaceSubtree() {
+        LogicalPlan plan = plan(plan(plan()));
+
+        Memo memo = new Memo(plan, ids);
+        assertEquals(memo.groupCount(), 3);
+
+        // replace child of root node with subtree
+        LogicalPlan transformed = plan(plan());
+        memo.replace(getChildGroup(memo, memo.getRootGroup()), transformed);
+        assertEquals(memo.groupCount(), 3);
+        assertMatchesStructure(memo.extract(), plan(plan.id(), transformed));
+    }
+
+    /*
+      From: X -> Y  -> Z
+      To:   X -> Y' -> Z
+     */
+    @Test
+    public void testReplaceNode() {
+        LogicalPlan z = plan();
+        LogicalPlan y = plan(z);
+        LogicalPlan x = plan(y);
+
+        Memo memo = new Memo(x, ids);
+        assertEquals(memo.groupCount(), 3);
+
+        // replace child of root node with another node, retaining child's child
+        int yGroup = getChildGroup(memo, memo.getRootGroup());
+        GroupReference zRef = (GroupReference) getOnlyElement(memo.resolve(yGroup).sources());
+        LogicalPlan transformed = plan(zRef);
+        memo.replace(yGroup, transformed);
+        assertEquals(memo.groupCount(), 3);
+        assertMatchesStructure(memo.extract(), plan(x.id(), plan(transformed.id(), z)));
+    }
+
+    /*
+      From: X -> Y  -> Z  -> W
+      To:   X -> Y' -> Z' -> W
+     */
+    @Test
+    public void testReplaceNonLeafSubtree() {
+        LogicalPlan w = plan();
+        LogicalPlan z = plan(w);
+        LogicalPlan y = plan(z);
+        LogicalPlan x = plan(y);
+
+        Memo memo = new Memo(x, ids);
+
+        assertEquals(memo.groupCount(), 4);
+
+        int yGroup = getChildGroup(memo, memo.getRootGroup());
+        int zGroup = getChildGroup(memo, yGroup);
+
+        LogicalPlan rewrittenW = memo.resolve(zGroup).sources().get(0);
+
+        LogicalPlan newZ = plan(rewrittenW);
+        LogicalPlan newY = plan(newZ);
+
+        memo.replace(yGroup, newY);
+
+        assertEquals(memo.groupCount(), 4);
+
+        assertMatchesStructure(
+            memo.extract(),
+            plan(x.id(),
+                 plan(newY.id(),
+                      plan(newZ.id(),
+                           plan(w.id())))));
+    }
+
+    /*
+      From: X -> Y -> Z
+      To:   X -> Z
+     */
+    @Test
+    public void testRemoveNode() {
+        LogicalPlan z = plan();
+        LogicalPlan y = plan(z);
+        LogicalPlan x = plan(y);
+
+        Memo memo = new Memo(x, ids);
+
+        assertEquals(memo.groupCount(), 3);
+
+        int yGroup = getChildGroup(memo, memo.getRootGroup());
+        memo.replace(yGroup, memo.resolve(yGroup).sources().get(0));
+
+        assertEquals(memo.groupCount(), 2);
+
+        assertMatchesStructure(
+            memo.extract(),
+            plan(x.id(),
+                 plan(z.id())));
+    }
+
+    /*
+       From: X -> Z
+       To:   X -> Y -> Z
+     */
+    @Test
+    public void testInsertNode() {
+        LogicalPlan z = plan();
+        LogicalPlan x = plan(z);
+
+        Memo memo = new Memo(x, ids);
+
+        assertEquals(memo.groupCount(), 2);
+
+        int zGroup = getChildGroup(memo, memo.getRootGroup());
+        LogicalPlan y = plan(memo.resolve(zGroup));
+        memo.replace(zGroup, y);
+
+        assertEquals(memo.groupCount(), 3);
+
+        assertMatchesStructure(
+            memo.extract(),
+            plan(x.id(),
+                 plan(y.id(),
+                      plan(z.id()))));
+    }
+
+    /*
+      From: X -> Y -> Z
+      To:   X --> Y1' --> Z
+              \-> Y2' -/
+     */
+    @Test
+    public void testMultipleReferences() {
+        LogicalPlan z = plan();
+        LogicalPlan y = plan(z);
+        LogicalPlan x = plan(y);
+
+        Memo memo = new Memo(x, ids);
+        assertEquals(memo.groupCount(), 3);
+
+        int yGroup = getChildGroup(memo, memo.getRootGroup());
+
+        LogicalPlan rewrittenZ = memo.resolve(yGroup).sources().get(0);
+        LogicalPlan y1 = plan(rewrittenZ);
+        LogicalPlan y2 = plan(rewrittenZ);
+
+        LogicalPlan newX = plan(y1, y2);
+        memo.replace(memo.getRootGroup(), newX);
+        assertEquals(memo.groupCount(), 4);
+
+        assertMatchesStructure(
+            memo.extract(),
+            plan(newX.id(),
+                 plan(y1.id(), plan(z.id())),
+                 plan(y2.id(), plan(z.id()))));
+    }
+
+
+    private static void assertMatchesStructure(LogicalPlan actual, LogicalPlan expected) {
+        assertEquals(actual.getClass(), expected.getClass());
+        assertEquals(actual.id(), expected.id());
+        assertEquals(actual.sources().size(), expected.sources().size());
+
+        for (int i = 0; i < actual.sources().size(); i++) {
+            assertMatchesStructure(actual.sources().get(i), expected.sources().get(i));
+        }
+    }
+
+    private int getChildGroup(Memo memo, int group) {
+        LogicalPlan node = memo.resolve(group);
+        GroupReference child = (GroupReference) node.sources().get(0);
+
+        return child.groupId();
+    }
+
+    private TestPlan plan(int id, LogicalPlan... children) {
+        return new TestPlan(id, List.of(children));
+    }
+
+    private TestPlan plan(LogicalPlan... children) {
+        return plan(ids.getAsInt(), children);
+    }
+
+    private static class TestPlan implements LogicalPlan {
+        private final List<LogicalPlan> sources;
+        private final int id;
+
+        public TestPlan(int id, List<LogicalPlan> sources) {
+            this.id = id;
+            this.sources = List.copyOf(sources);
+        }
+
+        @Override
+        public List<LogicalPlan> sources() {
+            return sources;
+        }
+
+        @Override
+        public List<Symbol> outputs() {
+            return List.of();
+        }
+
+        @Override
+        public ExecutionPlan build(DependencyCarrier dependencyCarrier,
+                                   PlannerContext plannerContext,
+                                   Set<PlanHint> planHints,
+                                   ProjectionBuilder projectionBuilder,
+                                   int limit,
+                                   int offset,
+                                   @Nullable OrderBy order,
+                                   @Nullable Integer pageSizeHint,
+                                   Row params,
+                                   SubQueryResults subQueryResults) {
+            return null;
+        }
+
+
+        @Override
+        public List<AbstractTableRelation<?>> baseTables() {
+            return null;
+        }
+
+
+        @Override
+        public LogicalPlan replaceSources(List<LogicalPlan> sources) {
+            return new TestPlan(id(), sources);
+        }
+
+        @Override
+        public int id() {
+            return id;
+        }
+
+        @Override
+        public LogicalPlan pruneOutputsExcept(TableStats tableStats, Collection<Symbol> outputsToKeep) {
+            return null;
+        }
+
+        @Override
+        public Map<LogicalPlan, SelectSymbol> dependencies() {
+            return null;
+        }
+
+        @Override
+        public long numExpectedRows() {
+            return 0;
+        }
+
+        @Override
+        public long estimatedRowSize() {
+            return 0;
+        }
+
+        @Override
+        public <C, R> R accept(LogicalPlanVisitor<C, R> visitor, C context) {
+            return visitor.visitPlan(this, context);
+        }
+
+        @Override
+        public Set<RelationName> getRelationNames() {
+            return null;
+        }
+    }
+}
+
