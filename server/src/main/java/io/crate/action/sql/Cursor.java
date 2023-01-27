@@ -51,6 +51,7 @@ public final class Cursor implements AutoCloseable {
 
     private final Hold hold;
     private final CompletableFuture<BatchIterator<Row>> queryIterator;
+    private final CompletableFuture<Void> finalResult;
     private final List<Symbol> outputs;
     private final boolean scroll;
     private final List<Object[]> rows = new ArrayList<>();
@@ -63,10 +64,12 @@ public final class Cursor implements AutoCloseable {
                   boolean scroll,
                   Hold hold,
                   CompletableFuture<BatchIterator<Row>> queryIterator,
+                  CompletableFuture<Void> finalResult,
                   List<Symbol> outputs) {
         this.scroll = scroll;
         this.hold = hold;
         this.queryIterator = queryIterator;
+        this.finalResult = finalResult;
         this.outputs = outputs;
         this.rowAccounting = new RowCellsAccountingWithEstimators(
             Symbols.typeView(outputs),
@@ -254,10 +257,16 @@ public final class Cursor implements AutoCloseable {
         rowAccounting.release();
         if (queryIterator.isDone() && !queryIterator.isCompletedExceptionally()) {
             queryIterator.join().close();
+            finalResult.complete(null);
         } else {
             queryIterator.whenComplete((bi, err) -> {
                 if (bi != null) {
                     bi.close();
+                }
+                if (err == null) {
+                    finalResult.complete(null);
+                } else {
+                    finalResult.completeExceptionally(err);
                 }
             });
         }
