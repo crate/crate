@@ -30,8 +30,16 @@ import java.util.concurrent.CompletableFuture;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.junit.Test;
 
+import io.crate.breaker.BlockBasedRamAccounting;
+import io.crate.breaker.RamAccounting;
+import io.crate.breaker.RowAccounting;
+import io.crate.breaker.RowAccountingWithEstimators;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
+import io.crate.data.RowN;
+import io.crate.execution.engine.distribution.merge.BatchPagingIterator;
+import io.crate.execution.engine.distribution.merge.KeyIterable;
+import io.crate.execution.engine.distribution.merge.PagingIterator;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.sql.tree.Declare.Hold;
 import io.crate.sql.tree.Fetch.ScrollMode;
@@ -39,12 +47,14 @@ import io.crate.testing.TestingBatchIterators;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.TestingRowConsumer;
 import io.crate.types.DataTypes;
+import io.crate.types.IntegerType;
 
 public class CursorTest {
 
     @Test
     public void test_calls_consumer_with_failure_if_batchIterator_future_has_failure() throws Exception {
         CompletableFuture<BatchIterator<Row>> queryIterator = new CompletableFuture<>();
+        CompletableFuture<Void> result = new CompletableFuture<>();
         IllegalStateException failure = new IllegalStateException("bad");
         queryIterator.completeExceptionally(failure);
         Cursor cursor = new Cursor(
@@ -52,47 +62,127 @@ public class CursorTest {
             false,
             Hold.WITHOUT,
             queryIterator,
+            result,
             List.of()
         );
         TestingRowConsumer consumer = new TestingRowConsumer();
         cursor.fetch(consumer, ScrollMode.RELATIVE, 1);
 
-        assertThatThrownBy(() -> consumer.getBucket())
+        assertThatThrownBy(consumer::getBucket)
             .isSameAs(failure);
+        assertThat(result).isNotCompleted();
+        cursor.close();
+        assertThat(result).isCompletedExceptionally();
     }
 
     @Test
     public void test_cant_move_backward_without_scroll() throws Exception {
+        CompletableFuture<Void> result = new CompletableFuture<>();
         BatchIterator<Row> rows = TestingBatchIterators.range(1, 6);
         Cursor cursor = new Cursor(
             new NoopCircuitBreaker("dummy"),
             false,
             Hold.WITHOUT,
             CompletableFuture.completedFuture(rows),
+            result,
             List.of()
         );
         TestingRowConsumer consumer = new TestingRowConsumer();
         cursor.fetch(consumer, ScrollMode.RELATIVE, -2);
 
-        assertThatThrownBy(() -> consumer.getBucket())
+        assertThatThrownBy(consumer::getBucket)
             .hasMessage("Cannot move backward if cursor was created with NO SCROLL");
+        assertThat(result).isNotCompleted();
+        cursor.close();
+        assertThat(result).isCompleted();
+    }
+
+    @Test
+    public void test_release_consumer_ram_accounting_after_close() throws Exception {
+        CompletableFuture<Void> result = new CompletableFuture<>();
+        RamAccounting ramAccounting = new BlockBasedRamAccounting(bytes -> {}, 1) ;
+        result.whenComplete((v, e) -> ramAccounting.release());
+
+        RowAccounting<Row> rowAccounting = new RowAccountingWithEstimators(
+            List.of(IntegerType.INSTANCE, IntegerType.INSTANCE),
+            ramAccounting
+        );
+        PagingIterator<Integer, Row> pi = PagingIterator.create(
+            1,
+            true,
+            null,
+            () -> rowAccounting);
+        RowN[] testRows = new RowN[]{
+            new RowN(1, 11),
+            new RowN(2, 22),
+            new RowN(3, 33),
+            new RowN(4, 44),
+            new RowN(5, 55),
+        };
+
+        pi.merge(List.of(new KeyIterable<>(0, List.of(testRows))));
+        BatchIterator<Row> batchIterator = new BatchPagingIterator<>(
+            pi,
+            exhaustedIt -> null,
+            () -> true,
+            throwable -> {}
+        );
+
+        Cursor cursor = new Cursor(
+            new NoopCircuitBreaker("dummy"),
+            false,
+            Hold.WITHOUT,
+            CompletableFuture.completedFuture(batchIterator),
+            result,
+            List.of()
+        );
+        TestingRowConsumer consumer = new TestingRowConsumer();
+        cursor.fetch(consumer, ScrollMode.RELATIVE, 2);
+        assertThat(TestingHelpers.printedTable(consumer.getBucket())).isEqualTo(
+            """
+                1| 11
+                2| 22
+                """
+        );
+        consumer.completionFuture().complete(null);
+
+        consumer = new TestingRowConsumer();
+        cursor.fetch(consumer, ScrollMode.RELATIVE, 3);
+        assertThat(TestingHelpers.printedTable(consumer.getBucket())).isEqualTo(
+            """
+                3| 33
+                4| 44
+                5| 55
+                """
+        );
+        consumer.completionFuture().complete(null);
+
+        assertThat(result).isNotCompleted();
+        assertThat(ramAccounting.totalBytes()).isEqualTo(160L);
+        cursor.close();
+        assertThat(result).isCompleted();
+        assertThat(ramAccounting.totalBytes()).isZero();
     }
 
     @Test
     public void test_can_jump_back_with_absolute_movement_after_moving_forward() throws Exception {
+        CompletableFuture<Void> result = new CompletableFuture<>();
         BatchIterator<Row> rows = TestingBatchIterators.range(1, 6);
         Cursor cursor = new Cursor(
             new NoopCircuitBreaker("dummy"),
             true,
             Hold.WITHOUT,
             CompletableFuture.completedFuture(rows),
+            result,
             List.of(new InputColumn(0, DataTypes.INTEGER))
         );
         TestingRowConsumer consumer = new TestingRowConsumer();
         cursor.fetch(consumer, ScrollMode.RELATIVE, 2);
         assertThat(TestingHelpers.printedTable(consumer.getBucket())).isEqualTo(
-            "1\n" +
-            "2\n"
+            """
+                1
+                2
+                """
         );
 
         consumer = new TestingRowConsumer();
@@ -100,21 +190,26 @@ public class CursorTest {
         assertThat(TestingHelpers.printedTable(consumer.getBucket())).isEqualTo(
             "1\n"
         );
+        assertThat(result).isNotCompleted();
+        cursor.close();
+        assertThat(result).isCompleted();
     }
 
     @Test
     public void test_fetching_backwards_from_cursor_positioned_at_start_returns_empty_result() throws Exception {
+        CompletableFuture<Void> result = new CompletableFuture<>();
         BatchIterator<Row> rows = TestingBatchIterators.range(1, 5);
         Cursor cursor = new Cursor(
             new NoopCircuitBreaker("dummy"),
             true,
             Hold.WITHOUT,
             CompletableFuture.completedFuture(rows),
+            result,
             List.of(new InputColumn(0, DataTypes.INTEGER))
         );
         TestingRowConsumer consumer = new TestingRowConsumer();
         cursor.fetch(consumer, ScrollMode.RELATIVE, -5);
-        assertThat(TestingHelpers.printedTable(consumer.getBucket())).isEqualTo("");
+        assertThat(TestingHelpers.printedTable(consumer.getBucket())).isEmpty();
 
         consumer = new TestingRowConsumer();
         cursor.fetch(consumer, ScrollMode.RELATIVE, 3);
@@ -125,16 +220,21 @@ public class CursorTest {
                 3
                 """
         );
+        assertThat(result).isNotCompleted();
+        cursor.close();
+        assertThat(result).isCompleted();
     }
 
     @Test
     public void test_fetching_absolute_exceeding_last_row() throws Exception {
+        CompletableFuture<Void> result = new CompletableFuture<>();
         BatchIterator<Row> rows = TestingBatchIterators.range(1, 6);
         Cursor cursor = new Cursor(
                 new NoopCircuitBreaker("dummy"),
                 true,
                 Hold.WITHOUT,
                 CompletableFuture.completedFuture(rows),
+                result,
                 List.of(new InputColumn(0, DataTypes.INTEGER))
         );
 
@@ -143,16 +243,21 @@ public class CursorTest {
         assertThatThrownBy(consumer::getBucket)
                 .isExactlyInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Cannot return row: 6, total rows: 5");
+        assertThat(result).isNotCompleted();
+        cursor.close();
+        assertThat(result).isCompleted();
     }
 
     @Test
     public void test_fetch_backward_all() throws Exception {
+        CompletableFuture<Void> result = new CompletableFuture<>();
         BatchIterator<Row> rows = TestingBatchIterators.range(1, 6);
         Cursor cursor = new Cursor(
                 new NoopCircuitBreaker("dummy"),
                 true,
                 Hold.WITHOUT,
                 CompletableFuture.completedFuture(rows),
+                result,
                 List.of(new InputColumn(0, DataTypes.INTEGER))
         );
 
@@ -205,16 +310,22 @@ public class CursorTest {
                 1
                 """
         );
+
+        assertThat(result).isNotCompleted();
+        cursor.close();
+        assertThat(result).isCompleted();
     }
 
     @Test
     public void test_scrolling() throws Exception {
+        CompletableFuture<Void> result = new CompletableFuture<>();
         BatchIterator<Row> rows = TestingBatchIterators.range(1, 6);
         Cursor cursor = new Cursor(
                 new NoopCircuitBreaker("dummy"),
                 true,
                 Hold.WITHOUT,
                 CompletableFuture.completedFuture(rows),
+                result,
                 List.of(new InputColumn(0, DataTypes.INTEGER))
         );
 
@@ -248,7 +359,7 @@ public class CursorTest {
 
         consumer = new TestingRowConsumer();
         cursor.fetch(consumer, ScrollMode.ABSOLUTE, 0);
-        assertThat(TestingHelpers.printedTable(consumer.getBucket())).isEqualTo("");
+        assertThat(TestingHelpers.printedTable(consumer.getBucket())).isEmpty();
 
         // Exceed total rows
         cursor.fetch(consumer, ScrollMode.RELATIVE, 10);
@@ -274,7 +385,7 @@ public class CursorTest {
         // Negative absolute - next fwd == 1st row
         consumer = new TestingRowConsumer();
         cursor.fetch(consumer, ScrollMode.ABSOLUTE, -20);
-        assertThat(TestingHelpers.printedTable(consumer.getBucket())).isEqualTo("");
+        assertThat(TestingHelpers.printedTable(consumer.getBucket())).isEmpty();
         consumer = new TestingRowConsumer();
         cursor.fetch(consumer, ScrollMode.RELATIVE, 2);
         assertThat(TestingHelpers.printedTable(consumer.getBucket())).isEqualTo(
@@ -322,5 +433,9 @@ public class CursorTest {
                 2
                 """
         );
+
+        assertThat(result).isNotCompleted();
+        cursor.close();
+        assertThat(result).isCompleted();
     }
 }
