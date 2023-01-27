@@ -101,6 +101,22 @@ public class SymbolVisitors {
         }
 
         @Override
+        public Void visitAggregation(Aggregation func, Void context) {
+            if (haystack.contains(func)) {
+                consumer.accept((T) func);
+            } else {
+                for (Symbol argument : func.inputs()) {
+                    callConsumerOrVisit(argument);
+                }
+                Symbol filter = func.filter();
+                if (filter != null) {
+                    callConsumerOrVisit(filter);
+                }
+            }
+            return null;
+        }
+
+        @Override
         public Void visitWindowFunction(WindowFunction windowFunc, Void context) {
             if (haystack.contains(windowFunc)) {
                 consumer.accept((T) windowFunc);
@@ -185,6 +201,19 @@ public class SymbolVisitors {
                 return true;
             }
             for (Symbol arg : symbol.arguments()) {
+                if (arg.accept(this, symbolPredicate)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        @Override
+        public Boolean visitAggregation(Aggregation symbol, Predicate<? super Symbol> symbolPredicate) {
+            if (symbolPredicate.test(symbol)) {
+                return true;
+            }
+            for (Symbol arg : symbol.inputs()) {
                 if (arg.accept(this, symbolPredicate)) {
                     return true;
                 }

@@ -215,9 +215,12 @@ public class GeneratedReference implements Reference {
         return ref.valueType();
     }
 
+    /*
     public Symbol cast(DataType<?> targetType, CastMode... modes) {
         return ref.cast(targetType, modes);
     }
+
+     */
 
     @Override
     public Symbol defaultExpression() {

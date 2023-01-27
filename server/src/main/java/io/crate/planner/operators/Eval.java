@@ -59,7 +59,7 @@ public final class Eval extends ForwardingLogicalPlan {
     private final List<Symbol> outputs;
 
     public static LogicalPlan create(LogicalPlan source, List<Symbol> outputs) {
-        if (source.outputs().equals(outputs)) {
+        if (source.outputs().containsAll(outputs)) {
             return source;
         }
         return new Eval(source, outputs);

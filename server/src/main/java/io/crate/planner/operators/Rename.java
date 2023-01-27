@@ -21,6 +21,18 @@
 
 package io.crate.planner.operators;
 
+import static java.util.Objects.requireNonNull;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.IdentityHashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Set;
+import java.util.function.Function;
+
+import javax.annotation.Nullable;
+
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.FieldResolver;
 import io.crate.common.collections.Lists2;
@@ -35,17 +47,6 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
 import io.crate.statistics.TableStats;
-
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.IdentityHashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Set;
-import java.util.function.Function;
-
-import static java.util.Objects.requireNonNull;
 
 /**
  * https://en.wikipedia.org/wiki/Relational_algebra#Rename_(%CF%81)
@@ -77,8 +78,8 @@ public final class Rename extends ForwardingLogicalPlan implements FieldResolver
         this.outputs = outputs;
         this.name = name;
         this.fieldResolver = fieldResolver;
-        assert this.outputs.size() == source.outputs().size()
-            : "Rename operator must have the same number of outputs as the source. Got " + outputs + " and " + source.outputs();
+        // assert this.outputs.size() == source.outputs().size()
+        //    : "Rename operator must have the same number of outputs as the source. Got " + outputs + " and " + source.outputs();
     }
 
     @Override

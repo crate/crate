@@ -415,8 +415,8 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(localMergeNode.projections(), contains(
             instanceOf(AggregationProjection.class),
-            instanceOf(FilterProjection.class),
-            instanceOf(EvalProjection.class)));
+            instanceOf(FilterProjection.class)
+        ));
 
         AggregationProjection aggregationProjection = (AggregationProjection) localMergeNode.projections().get(0);
         assertThat(aggregationProjection.aggregations().size(), is(2));
@@ -426,9 +426,6 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(filterProjection.outputs().get(0), instanceOf(InputColumn.class));
         InputColumn inputColumn = (InputColumn) filterProjection.outputs().get(0);
         assertThat(inputColumn.index(), is(0));
-
-        EvalProjection evalProjection = (EvalProjection) localMergeNode.projections().get(2);
-        assertThat(evalProjection.outputs().size(), is(1));
     }
 
     @Test

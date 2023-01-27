@@ -106,7 +106,7 @@ public class Collect implements LogicalPlan {
         Stats stats = tableStats.getStats(relation.tableInfo().ident());
         return new Collect(
             relation,
-            toCollect,
+            relation.outputs(),
             where,
             SelectivityFunctions.estimateNumRows(stats, where.queryOrFallback(), params),
             stats.estimateSizeForColumns(toCollect)
