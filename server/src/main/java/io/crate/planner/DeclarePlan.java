@@ -74,7 +74,8 @@ public class DeclarePlan implements Plan {
             circuitBreaker,
             declareStmt.scroll(),
             declareStmt.hold(),
-            cursorRowConsumer.result,
+            cursorRowConsumer.declareResult,
+            cursorRowConsumer.finalResult,
             declare.query().outputs()
         );
         cursors.add(declareStmt.cursorName(), cursor);
@@ -83,7 +84,8 @@ public class DeclarePlan implements Plan {
 
     private static class CursorRowConsumer implements RowConsumer {
 
-        private final CompletableFuture<BatchIterator<Row>> result = new CompletableFuture<>();
+        private final CompletableFuture<BatchIterator<Row>> declareResult = new CompletableFuture<>();
+        private final CompletableFuture<Void> finalResult = new CompletableFuture<>();
         private final RowConsumer consumer;
 
         public CursorRowConsumer(RowConsumer consumer) {
@@ -93,17 +95,17 @@ public class DeclarePlan implements Plan {
         @Override
         public void accept(BatchIterator<Row> iterator, @Nullable Throwable failure) {
             if (failure != null) {
-                result.completeExceptionally(failure);
+                declareResult.completeExceptionally(failure);
             } else {
                 // The result of DECLARE itself, not of the query
                 consumer.accept(InMemoryBatchIterator.empty(SentinelRow.SENTINEL), null);
-                result.complete(iterator);
+                declareResult.complete(iterator);
             }
         }
 
         @Override
         public CompletableFuture<?> completionFuture() {
-            return result;
+            return finalResult;
         }
     }
 }
