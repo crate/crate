@@ -840,11 +840,18 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
         QueriedSelectRelation relation = executor.analyze("select * from users u1 " +
                                                  "join users_multi_pk u2 on u1.id = u2.id " +
-                                                 "join users_clustered_by_only u3 on u2.id = u3.id ");
+                                                 "join users_clustered_by_only u3 on u1.id = u3.id ");
         assertThat(relation.where()).isLiteral(true);
 
         assertThat(relation.joinPairs().get(0).condition()).isSQL("(u1.id = u2.id)");
-        assertThat(relation.joinPairs().get(1).condition()).isSQL("(u2.id = u3.id)");
+        assertThat(relation.joinPairs().get(1).condition()).isSQL("(u1.id = u3.id)");
+
+        // condition itself can be fine in the assertions above but actual join pair used to be incorrect
+        assertThat(relation.joinPairs().get(0).left().name()).isEqualTo("u1");
+        assertThat(relation.joinPairs().get(0).right().name()).isEqualTo("u2");
+
+        assertThat(relation.joinPairs().get(1).left().name()).isEqualTo("u1"); // this used to be u2, becasue pair building code relied on concrete indexes sz-1 and sz-2
+        assertThat(relation.joinPairs().get(1).right().name()).isEqualTo("u3");
     }
 
     @Test

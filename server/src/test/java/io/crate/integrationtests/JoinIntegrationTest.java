@@ -1346,4 +1346,54 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute(stmt);
         assertThat(printedTable(response.rows()), is("2| bazinga\n"));
     }
+
+
+    @Test
+    @UseRandomizedSchema(random = false)
+    public void test_debug_nested_join() {
+        // to be replaced by a unit test
+        execute("CREATE TABLE j1 (x INT)");
+        execute("CREATE TABLE j2 (x INT)");
+        execute("CREATE TABLE j3 (x INT)");
+        execute("SELECT * " +
+            "    FROM j1 " +
+            "    JOIN (j2 JOIN j3 ON j2.x = j3.x) " +
+            "    ON j1.x = j2.x");
+
+        //    execute("SELECT * from j1 cross join  j2 cross join j3");
+//       execute("SELECT * from j1 " +
+//           "join j2 ON j1.x = j2.x " +
+//           "join j3 on j1.x = j3.x");
+        assertThat(printedTable(response.rows()), is(""));
+    }
+
+    @Test
+    @UseRandomizedSchema(random = false)
+    public void test_debug_join_condition_involving_multiple_pairs() {
+        // to be replaced by a unit test
+        execute("CREATE TABLE j1 (x INT)");
+        execute("CREATE TABLE j2 (x INT)");
+        execute("CREATE TABLE j3 (x INT)");
+        execute("CREATE TABLE j4 (x INT, y INT)");
+        execute("SELECT * " +
+            "    FROM j1 " +
+            "    JOIN j2 ON j1.x = j2.x " +
+            "    JOIN j3 ON j2.x = j3.x " +
+            "    JOIN j4 ON (j1.x = j4.x and j2.x = j4.y)");
+        assertThat(printedTable(response.rows()), is(""));
+    }
+
+    @Test
+    @UseRandomizedSchema(random = false)
+    public void test_duplicate_pairs_flat_join() {
+        // to be replaced by a unit test
+        execute("CREATE TABLE j1 (x INT)");
+        execute("CREATE TABLE j2 (x INT, y INT)");
+        execute("CREATE TABLE j3 (x INT, y INT)");
+        execute("SELECT * from j1 " +
+            "join j2 ON j1.x = j2.x " +
+            "join j3 on (j1.x = j3.x and j2.y = j3.y)");
+        assertThat(printedTable(response.rows()), is(""));
+        // (t1,t3) is skipped
+    }
 }
