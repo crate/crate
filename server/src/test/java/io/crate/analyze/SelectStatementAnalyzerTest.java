@@ -77,6 +77,7 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.MatchPredicate;
 import io.crate.expression.symbol.ParameterSymbol;
+import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
@@ -1849,7 +1850,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             .build();
         assertThatThrownBy(() -> executor.analyze("select name as n, n[1] from users"))
             .isExactlyInstanceOf(ColumnUnknownException.class)
-            .hasMessage("Column n unknown");
+            .hasMessage("Column n[1] unknown");
     }
 
     @Test
@@ -2986,5 +2987,23 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         analyzed = executor.analyze("select obj['unknown'] from (select obj from c1 union all select obj from c2) alias");
         assertThat(analyzed.outputs()).hasSize(1);
         assertThat(analyzed.outputs().get(0)).isFunction("subscript", isField("obj"), isLiteral("unknown"));
+    }
+
+    @Test
+    public void test_can_find_column_from_aliased_table_with_subscript_expression() throws IOException {
+        var executor = SQLExecutor.builder(clusterService)
+            .addTable(
+                """
+                   CREATE TABLE test (
+                   "a" array(object as (
+                   "b" array(object as (
+                   "s" string
+                   )))));
+                    """
+            )
+            .build();
+        var analyzed = executor.analyze("select a[1]['b']['s'] from (select a[1]['b']['s'] from test) q");
+        ScopedSymbol symbol = (ScopedSymbol) analyzed.outputs().get(0);
+        assertThat(symbol.column().toString()).isEqualTo("a[1]['b']['s']");
     }
 }

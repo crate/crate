@@ -72,6 +72,13 @@ Fixes
   :ref:`cursors <sql-fetch>`, even if the ``CURSOR`` was explicitly or
   automatically (session terminated) closed.
 
+- Fixed an issue that caused ``ColumnUnknownException`` when querying
+  sub-columns of nested object arrays of aliased tables.
+  An example ::
+
+    SELECT a[1]['b']['s'] FROM (SELECT a[1]['b']['s'] FROM test) AS q;
+    ColumnUnknownException[Column a['b']['s'] unknown]
+
 - Fixed an issue that caused the returned column names to be missing the
   subscripts when querying sub-columns of nested object arrays.
 

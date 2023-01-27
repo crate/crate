@@ -711,7 +711,14 @@ public class ExpressionAnalyzer {
                             context
                         );
                     } catch (ColumnUnknownException e2) {
-                        throw e;
+                        // ex) select a[1]['b']['s'] from (select a[1]['b']['s'] from test) q;
+                        //     In this case, a[1]['b']['s'] is not really a subscript expression but a string constant
+                        //     representing a column name.
+                        return fieldProvider.resolveField(
+                            new QualifiedName(node.toString().replace("\"", "")),
+                            null,
+                            operation,
+                            context.errorOnUnknownObjectKey());
                     }
                 }
                 Expression idxExpression = subscriptContext.index();
