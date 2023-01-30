@@ -68,6 +68,10 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Fixed an issue that caused accounted memory not to be released when using
+  :ref:`cursors <sql-fetch>`, even if the ``CURSOR`` was explicitly or
+  automatically (session terminated) closed.
+
 - Fixed an issue that caused the returned column names to be missing the
   subscripts when querying sub-columns of nested object arrays.
 
