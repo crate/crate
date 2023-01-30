@@ -50,7 +50,7 @@ public class SimplifyEqualsOperationOnIdenticalReferences implements Rule<Functi
         this.functionSymbolResolver = functionResolver;
         this.pattern = typeOf(Function.class)
             .with(f -> EqOperator.NAME.equals(f.name()))
-            .with(f -> Optional.of(f.arguments()), typeOf(List.class)
+            .with((f, s) -> Optional.of(f.arguments()), typeOf(List.class)
                 .with(list -> list.get(0) instanceof Reference left &&
                               list.get(1) instanceof Reference right &&
                               left.equals(right))

@@ -37,6 +37,7 @@ import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
+import io.crate.planner.optimizer.memo.GroupReferenceResolver;
 import io.crate.statistics.TableStats;
 
 import java.util.Optional;
@@ -66,7 +67,8 @@ public final class OptimizeCollectWhereClauseAccess implements Rule<Collect> {
                              Captures captures,
                              TableStats tableStats,
                              TransactionContext txnCtx,
-                             NodeContext nodeCtx) {
+                             NodeContext nodeCtx,
+                             GroupReferenceResolver groupReferenceResolver) {
         var relation = (DocTableRelation) collect.relation();
         var normalizer = new EvaluatingNormalizer(nodeCtx, RowGranularity.CLUSTER, null, relation);
         WhereClause where = collect.where();

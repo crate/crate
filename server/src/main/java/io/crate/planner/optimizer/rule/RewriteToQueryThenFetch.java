@@ -48,6 +48,7 @@ import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Match;
 import io.crate.planner.optimizer.matcher.Pattern;
+import io.crate.planner.optimizer.memo.GroupReferenceResolver;
 import io.crate.statistics.TableStats;
 
 public final class RewriteToQueryThenFetch implements Rule<Limit> {
@@ -78,7 +79,8 @@ public final class RewriteToQueryThenFetch implements Rule<Limit> {
                              Captures captures,
                              TableStats tableStats,
                              TransactionContext txnCtx,
-                             NodeContext nodeCtx) {
+                             NodeContext nodeCtx,
+                             GroupReferenceResolver groupReferenceResolver) {
         if (Symbols.containsColumn(limit.outputs(), DocSysColumns.FETCHID)) {
             return null;
         }
@@ -97,12 +99,12 @@ public final class RewriteToQueryThenFetch implements Rule<Limit> {
     }
 
 
-    public static LogicalPlan tryRewrite(AnalyzedRelation relation, LogicalPlan plan, TableStats tableStats) {
-        Match<?> match = ORDER_COLLECT.accept(plan, Captures.empty());
+    public static LogicalPlan tryRewrite(AnalyzedRelation relation, LogicalPlan plan, TableStats tableStats, GroupReferenceResolver groupReferenceResolver) {
+        Match<?> match = ORDER_COLLECT.accept(plan, Captures.empty(), groupReferenceResolver);
         if (match.isPresent()) {
             return doRewrite(relation, plan, tableStats);
         }
-        match = RENAME_ORDER_COLLECT.accept(plan, Captures.empty());
+        match = RENAME_ORDER_COLLECT.accept(plan, Captures.empty(), groupReferenceResolver);
         if (match.isPresent()) {
             return doRewrite(relation, plan, tableStats);
         }

@@ -55,7 +55,7 @@ public class MoveReferenceCastToLiteralCastOnAnyOperatorsWhenRightIsReference im
         this.pattern = typeOf(Function.class)
             .with(f -> AnyOperator.OPERATOR_NAMES.contains(f.name()))
             .with(f -> f.arguments().get(0).symbolType() == SymbolType.LITERAL)
-            .with(f -> Optional.of(f.arguments().get(1)), typeOf(Function.class).capturedAs(castCapture)
+            .with((f, s) -> Optional.of(f.arguments().get(1)), typeOf(Function.class).capturedAs(castCapture)
                 .with(f -> CAST_FUNCTION_NAMES.contains(f.name()))
                 .with(f -> f.arguments().get(0).symbolType() == SymbolType.REFERENCE)
             );

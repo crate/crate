@@ -43,6 +43,7 @@ import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.matcher.Capture;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
+import io.crate.planner.optimizer.memo.GroupReferenceResolver;
 import io.crate.statistics.TableStats;
 
 public final class MoveFilterBeneathProjectSet implements Rule<Filter> {
@@ -66,7 +67,8 @@ public final class MoveFilterBeneathProjectSet implements Rule<Filter> {
                              Captures captures,
                              TableStats tableStats,
                              TransactionContext txnCtx,
-                             NodeContext nodeCtx) {
+                             NodeContext nodeCtx,
+                             GroupReferenceResolver groupReferenceResolver) {
         var projectSet = captures.get(projectSetCapture);
 
         var queryParts = AndOperator.split(filter.query());

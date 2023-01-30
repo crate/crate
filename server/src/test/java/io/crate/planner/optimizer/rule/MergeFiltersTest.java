@@ -63,12 +63,12 @@ public class MergeFiltersTest extends CrateDummyClusterServiceUnitTest {
         Filter parentFilter = new Filter(sourceFilter, e.asSymbol("y > 10"));
 
         MergeFilters mergeFilters = new MergeFilters();
-        Match<Filter> match = mergeFilters.pattern().accept(parentFilter, Captures.empty());
+        Match<Filter> match = mergeFilters.pattern().accept(parentFilter, Captures.empty(), x -> x);
 
         assertThat(match.isPresent()).isTrue();
         assertThat(match.value()).isSameAs(parentFilter);
 
-        Filter mergedFilter = mergeFilters.apply(match.value(), match.captures(), new TableStats(), CoordinatorTxnCtx.systemTransactionContext(), e.nodeCtx);
+        Filter mergedFilter = mergeFilters.apply(match.value(), match.captures(), new TableStats(), CoordinatorTxnCtx.systemTransactionContext(), e.nodeCtx, x -> x);
         assertThat(mergedFilter.query()).isSQL("((doc.t2.y > 10) AND (doc.t1.x > 10))");
     }
 }

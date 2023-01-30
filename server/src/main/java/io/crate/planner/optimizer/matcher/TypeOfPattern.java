@@ -21,6 +21,9 @@
 
 package io.crate.planner.optimizer.matcher;
 
+
+import io.crate.planner.optimizer.memo.GroupReferenceResolver;
+
 class TypeOfPattern<T> extends Pattern<T> {
 
     private Class<T> expectedClass;
@@ -30,7 +33,7 @@ class TypeOfPattern<T> extends Pattern<T> {
     }
 
     @Override
-    public Match<T> accept(Object object, Captures captures) {
+    public Match<T> accept(Object object, Captures captures, GroupReferenceResolver groupReferenceResolver) {
         if (expectedClass.isInstance(object)) {
             return Match.of(expectedClass.cast(object), captures);
         } else {
@@ -38,3 +41,5 @@ class TypeOfPattern<T> extends Pattern<T> {
         }
     }
 }
+
+

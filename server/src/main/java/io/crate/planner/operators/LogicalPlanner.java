@@ -265,7 +265,7 @@ public class LogicalPlanner {
         //
         // The reason for this is that some plans are cheaper to execute as fetch
         // even if there is no operator that reduces the number of records
-        return RewriteToQueryThenFetch.tryRewrite(relation, fetchOptimized, tableStats);
+        return RewriteToQueryThenFetch.tryRewrite(relation, fetchOptimized, tableStats, x -> x);
     }
 
     static class PlanBuilder extends AnalyzedRelationVisitor<List<Symbol>, LogicalPlan> {

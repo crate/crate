@@ -23,6 +23,8 @@ package io.crate.planner.optimizer.matcher;
 
 import java.util.function.Predicate;
 
+import io.crate.planner.optimizer.memo.GroupReferenceResolver;
+
 public class WithPropertyPattern<T> extends Pattern<T> {
 
     private final Pattern<T> pattern;
@@ -34,8 +36,8 @@ public class WithPropertyPattern<T> extends Pattern<T> {
     }
 
     @Override
-    public Match<T> accept(Object object, Captures captures) {
-        Match<T> match = pattern.accept(object, captures);
+    public Match<T> accept(Object object, Captures captures, GroupReferenceResolver groupReferenceResolver) {
+        Match<T> match = pattern.accept(object, captures, groupReferenceResolver);
         return match.flatMap(matchedValue -> {
             if (propertyPredicate.test(matchedValue)) {
                 return match;

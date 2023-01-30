@@ -26,6 +26,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
+import io.crate.planner.optimizer.memo.GroupReferenceResolver;
 import io.crate.statistics.TableStats;
 import org.elasticsearch.Version;
 
@@ -33,7 +34,12 @@ public interface Rule<T> {
 
     Pattern<T> pattern();
 
-    LogicalPlan apply(T plan, Captures captures, TableStats tableStats, TransactionContext txnCtx, NodeContext nodeCtx);
+    LogicalPlan apply(T plan,
+                      Captures captures,
+                      TableStats tableStats,
+                      TransactionContext txnCtx,
+                      NodeContext nodeCtx,
+                      GroupReferenceResolver groupReferenceResolver);
 
     /**
      * @return The version all nodes in the cluster must have to be able to use this optimization.

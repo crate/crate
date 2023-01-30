@@ -22,29 +22,32 @@
 package io.crate.planner.optimizer.matcher;
 
 import java.util.Optional;
-import java.util.function.Function;
+import java.util.function.BiFunction;
+
+import io.crate.planner.optimizer.memo.GroupReferenceResolver;
 
 class WithPattern<T, U, V> extends Pattern<T> {
 
     private final Pattern<T> firstPattern;
-    private final Function<? super T, Optional<U>> getProperty;
+    private final BiFunction<? super T, GroupReferenceResolver, Optional<U>> getProperty;
     private final Pattern<V> propertyPattern;
 
-    WithPattern(Pattern<T> firstPattern, Function<? super T, Optional<U>> getProperty, Pattern<V> propertyPattern) {
+    WithPattern(Pattern<T> firstPattern, BiFunction<? super T, GroupReferenceResolver, Optional<U>> getProperty, Pattern<V> propertyPattern) {
         this.firstPattern = firstPattern;
         this.getProperty = getProperty;
         this.propertyPattern = propertyPattern;
     }
 
     @Override
-    public Match<T> accept(Object object, Captures captures) {
-        Match<T> match = firstPattern.accept(object, captures);
+    public Match<T> accept(Object object, Captures captures, GroupReferenceResolver lookup) {
+        Match<T> match = firstPattern.accept(object, captures, lookup);
         return match.flatMap(matchedValue -> {
-            Optional<?> optProperty = getProperty.apply(matchedValue);
+            Optional<?> optProperty = getProperty.apply(matchedValue, lookup);
             Match<V> propertyMatch = optProperty
-                .map(property -> propertyPattern.accept(property, match.captures()))
+                .map(property -> propertyPattern.accept(property, match.captures(), lookup))
                 .orElse(Match.empty());
             return propertyMatch.map(ignored -> match.value());
         });
     }
+
 }

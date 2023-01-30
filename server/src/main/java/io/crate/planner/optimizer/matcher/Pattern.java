@@ -22,8 +22,11 @@
 package io.crate.planner.optimizer.matcher;
 
 import java.util.Optional;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;
+
+import io.crate.planner.optimizer.memo.GroupReferenceResolver;
 
 public abstract class Pattern<T> {
 
@@ -31,7 +34,7 @@ public abstract class Pattern<T> {
         return new TypeOfPattern<>(expectedClass);
     }
 
-    public <U, V> Pattern<T> with(Function<? super T, Optional<U>> getProperty, Pattern<V> propertyPattern) {
+    public <U, V> Pattern<T> with(BiFunction<? super T, GroupReferenceResolver, Optional<U>> getProperty, Pattern<V> propertyPattern) {
         return new WithPattern<>(this, getProperty, propertyPattern);
     }
 
@@ -43,5 +46,5 @@ public abstract class Pattern<T> {
         return new CapturePattern<>(capture, this);
     }
 
-    public abstract Match<T> accept(Object object, Captures captures);
+    public abstract Match<T> accept(Object object, Captures captures, GroupReferenceResolver groupReferenceResolver);
 }
