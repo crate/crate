@@ -36,6 +36,7 @@ import org.junit.Test;
 import io.crate.common.collections.Maps;
 import io.crate.metadata.ColumnIdent;
 import io.crate.sql.tree.BitString;
+import io.crate.types.ArrayType;
 import io.crate.types.BitStringType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
@@ -212,5 +213,46 @@ public class SourceParserTest extends ESTestCase {
         assertThat(result)
             .extracting("target")
             .isEqualTo("some text");
+    }
+
+    // tracks a bug: https://github.com/crate/crate/issues/13504
+    @Test
+    public void test_nested_array_access() {
+        SourceParser sourceParser = new SourceParser();
+        // ex:
+        //   CREATE TABLE test (
+        //   "a" array(object as (
+        //   "b" array(object as (
+        //   "s" string
+        //   )))));
+        //   SELECT a['b'] from test; -- a['b'] is array(array(object))
+        ArrayType<?> type = new ArrayType<>(new ArrayType<>(ObjectType.builder().setInnerType("s", DataTypes.STRING).build()));
+        sourceParser.register(new ColumnIdent("_doc", List.of("a", "b")), type);
+        var result = sourceParser.parse(new BytesArray(
+            """
+            {
+                "a": [
+                    {
+                        "b": [
+                            { "s": "1" },
+                            { "s": "2" },
+                            { "s": "3" }
+                        ]
+                    }
+                ]
+            }
+            """));
+        assertThat(result).isEqualTo(
+            Map.of("a",
+                   List.of(Map.of("b",
+                                  List.of(
+                                      Map.of("s", "1"),
+                                      Map.of("s", "2"),
+                                      Map.of("s", "3")
+                                  )
+                           )
+                   )
+            )
+        );
     }
 }
