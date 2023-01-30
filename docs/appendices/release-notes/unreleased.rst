@@ -64,6 +64,10 @@ Fixes
 .. stable branch. You can add a version label (`v/X.Y`) to the pull request for
 .. an automated mergify backport.
 
+- Fixed an issue that caused accounted memory not to be released when using
+  :ref:`cursors <sql-fetch>`, even if the ``CURSOR`` was explicitly or
+  automatically (session terminated) closed.
+
 - Added validation to reject inner column names containing special whitespace
   characters to avoid invalid schema definitions.
 
