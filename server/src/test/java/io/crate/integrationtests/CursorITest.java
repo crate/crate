@@ -29,14 +29,12 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.Properties;
 
-import org.apache.lucene.tests.util.CrateLuceneTestCase.AwaitsFix;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.protocols.postgres.PostgresNetty;
 
-@AwaitsFix(bugUrl = "https://github.com/crate/crate/pull/13492")
 public class CursorITest extends IntegTestCase {
 
     private Properties properties;
