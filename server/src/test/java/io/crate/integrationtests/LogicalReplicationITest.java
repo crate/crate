@@ -21,13 +21,11 @@
 
 package io.crate.integrationtests;
 
+import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.assertThrowsMatches;
-import static io.crate.testing.TestingHelpers.printedTable;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
@@ -40,7 +38,6 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
@@ -147,8 +144,7 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
             " FROM pg_publication p" +
             " JOIN pg_publication_tables t ON p.pubname = t.pubname" +
             " ORDER BY p.pubname, schemaname, tablename");
-        assertThat(printedTable(response.rows()),
-                   is("-119974068| pub1| -450373579| false| doc| t1| true| true| true\n"));
+        assertThat(response).hasRows("-119974068| pub1| -450373579| false| doc| t1| true| true| true\n");
     }
 
     @Test
@@ -161,9 +157,9 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
             " FROM pg_publication p" +
             " JOIN pg_publication_tables t ON p.pubname = t.pubname" +
             " ORDER BY p.pubname, schemaname, tablename");
-        assertThat(printedTable(response.rows()),
-                   is("284890074| pub1| -450373579| true| doc| t1| true| true| true\n" +
-                      "284890074| pub1| -450373579| true| my_schema| t2| true| true| true\n"));
+        assertThat(response).hasRows(
+            "284890074| pub1| -450373579| true| doc| t1| true| true| true",
+            "284890074| pub1| -450373579| true| my_schema| t2| true| true| true");
     }
 
     @Test
@@ -173,9 +169,9 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
         executeOnPublisher("DROP PUBLICATION pub2");
 
         var response = executeOnPublisher("SELECT * FROM pg_publication WHERE pubname = 'pub2'");
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response).hasRowCount(0);
         response = executeOnPublisher("SELECT * FROM pg_publication_tables WHERE pubname = 'pub2'");
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response).hasRowCount(0);
     }
 
     @Test
@@ -192,9 +188,9 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
         assertFalse(replicationService.subscriptions().containsKey("sub1"));
 
         var response = executeOnSubscriber("SELECT * FROM pg_subscription");
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response).hasRowCount(0);
         response = executeOnSubscriber("SELECT * FROM pg_subscription_rel");
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response).hasRowCount(0);
     }
 
     @Test
@@ -230,8 +226,10 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
 
         executeOnSubscriber("REFRESH TABLE doc.t1");
         var response = executeOnSubscriber("SELECT * FROM doc.t1 ORDER BY id");
-        assertThat(printedTable(response.rows()), is("1\n" +
-                                                     "2\n"));
+        assertThat(response).hasRows(
+            "1",
+            "2"
+        );
     }
 
     @Test
@@ -266,9 +264,10 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
             " JOIN pg_class r ON sr.srrelid = r.oid" +
             " ORDER BY s.subname, r.relname"
         );
-        assertThat(printedTable(systemTableResponse.rows()),
-            is("530917412| 0| sub1| crate| true| true| false| NULL| NULL| [pub1]| 530917412| 728874843| t1\n" +
-                     "530917412| 0| sub1| crate| true| true| false| NULL| NULL| [pub1]| 530917412| 1737494392| t2\n"));
+        assertThat(systemTableResponse).hasRows(
+            "530917412| 0| sub1| crate| true| true| false| NULL| NULL| [pub1]| 530917412| 728874843| t1",
+            "530917412| 0| sub1| crate| true| true| false| NULL| NULL| [pub1]| 530917412| 1737494392| t2"
+        );
     }
 
     @Test
@@ -306,13 +305,17 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
 
         executeOnSubscriber("REFRESH TABLE doc.t1");
         var response = executeOnSubscriber("SELECT * FROM doc.t1 ORDER BY id");
-        assertThat(printedTable(response.rows()), is("1\n" +
-                                                     "2\n"));
+        assertThat(response).hasRows(
+            "1",
+            "2"
+        );
 
         executeOnSubscriber("REFRESH TABLE doc.t2");
         response = executeOnSubscriber("SELECT * FROM doc.t2 ORDER BY id");
-        assertThat(printedTable(response.rows()), is("3\n" +
-                                                     "4\n"));
+        assertThat(response).hasRows(
+            "3",
+            "4"
+        );
     }
 
     @Test
@@ -328,8 +331,10 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
 
         executeOnSubscriber("REFRESH TABLE doc.t1");
         var response = executeOnSubscriber("SELECT * FROM doc.t1 ORDER BY id");
-        assertThat(printedTable(response.rows()), is("1| 1\n" +
-                                                     "2| 2\n"));
+        assertThat(response).hasRows(
+            "1| 1",
+            "2| 2"
+        );
     }
 
     @Test
@@ -349,13 +354,17 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
 
         executeOnSubscriber("REFRESH TABLE doc.t1");
         var response = executeOnSubscriber("SELECT * FROM doc.t1 ORDER BY id");
-        assertThat(printedTable(response.rows()), is("1| 1\n" +
-                                                     "2| 2\n"));
+        assertThat(response).hasRows(
+            "1| 1",
+            "2| 2"
+        );
 
         executeOnSubscriber("REFRESH TABLE my_schema.t2");
         response = executeOnSubscriber("SELECT * FROM my_schema.t2 ORDER BY id");
-        assertThat(printedTable(response.rows()), is("1\n" +
-                                                     "2\n"));
+        assertThat(response).hasRows(
+            "1",
+            "2"
+        );
     }
 
     @Test
@@ -372,8 +381,10 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
 
         executeOnSubscriber("REFRESH TABLE doc.t1");
         var response = executeOnSubscriber("SELECT * FROM doc.t1 ORDER BY id");
-        assertThat(printedTable(response.rows()), is("1\n" +
-                                                     "2\n"));
+        assertThat(response).hasRows(
+            "1",
+            "2"
+        );
 
         int numDocs = 100; // <- should be greater than REPLICATION_CHANGE_BATCH_SIZE to test repeated polls
         var bulkArgs = new Object[numDocs][1];
@@ -385,7 +396,7 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
         assertBusy(() -> {
             executeOnSubscriber("REFRESH TABLE doc.t1");
             var res = executeOnSubscriber("SELECT * FROM doc.t1");
-            assertThat(res.rowCount(), is((long) (numDocs + 2)));
+            assertThat(res).hasRowCount(numDocs + 2);
         }, 10, TimeUnit.SECONDS);
     }
 
@@ -418,8 +429,10 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
             var r = executeOnSubscriber("SELECT column_name FROM information_schema.columns" +
                 " WHERE table_name = 't1'" +
                 " ORDER BY ordinal_position");
-            assertThat(printedTable(r.rows()), Matchers.is("id\n" +
-                "p\n"));
+            assertThat(r).hasRows(
+                "id",
+                "p"
+            );
         });
 
         assertThrowsMatches(
@@ -483,7 +496,7 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
             " FROM pg_subscription s" +
             " JOIN pg_subscription_rel sr ON s.oid = sr.srsubid" +
             " JOIN pg_class r ON sr.srrelid = r.oid");
-        assertThat(printedTable(res.rows()), is("sub1| t1| r| NULL\n"));
+        assertThat(res).hasRows("sub1| t1| r| NULL\n");
     }
 
     @Test
@@ -501,10 +514,10 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
         executeOnSubscriber("DROP SUBSCRIPTION sub1 ");
 
         var response = executeOnSubscriber("INSERT INTO doc.t1 (id) VALUES(3)");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response).hasRowCount(1L);
 
         response = executeOnSubscriber("INSERT INTO doc.t2 (id, p) VALUES(3, 3)");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response).hasRowCount(1L);
     }
 
     @Test
@@ -518,9 +531,10 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
                 " FROM pg_publication p" +
                 " JOIN pg_publication_tables t ON p.pubname = t.pubname" +
                 " ORDER BY p.pubname, schemaname, tablename");
-        assertThat(printedTable(response.rows()),
-            is("14768324| pub1| -450373579| false| doc| t1| true| true| true\n" +
-                "14768324| pub1| -450373579| false| doc| t2| true| true| true\n"));
+        assertThat(response).hasRows(
+            "14768324| pub1| -450373579| false| doc| t1| true| true| true",
+            "14768324| pub1| -450373579| false| doc| t2| true| true| true"
+        );
     }
 
     /**
@@ -542,7 +556,7 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
         assertBusy(
             () -> {
                 var res = executeOnSubscriber("SELECT id FROM t1 ORDER BY id");
-                assertThat(res.rowCount(), is(4L));
+                assertThat(res).hasRowCount(4L);
             }
         );
     }
@@ -596,7 +610,7 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
                         " FROM pg_subscription s" +
                         " JOIN pg_subscription_rel sr ON s.oid = sr.srsubid" +
                         " JOIN pg_class r ON sr.srrelid = r.oid");
-                assertThat(printedTable(res.rows()), Matchers.is("sub1| t1| r| NULL\n"));
+                assertThat(res).hasRows("sub1| t1| r| NULL\n");
             });
 
             executeOnSubscriber("DROP SUBSCRIPTION sub1");
@@ -616,7 +630,7 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
                     " FROM pg_subscription s" +
                     " JOIN pg_subscription_rel sr ON s.oid = sr.srsubid" +
                     " JOIN pg_class r ON sr.srrelid = r.oid");
-            assertThat(printedTable(res.rows()), Matchers.is("sub1| t1| r| NULL\n"));
+            assertThat(res).hasRows("sub1| t1| r| NULL\n");
         });
     }
 }
