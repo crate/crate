@@ -21,11 +21,8 @@
 
 package io.crate.integrationtests;
 
-import static io.crate.testing.TestingHelpers.printedTable;
-import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -50,15 +47,17 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
         createSubscription("sub1", "pub1");
 
         // Ensure tracker has started
-        assertBusy(() -> assertThat(isTrackerActive(), is(true)));
+        assertBusy(() -> assertThat(isTrackerActive()).isTrue());
 
         executeOnPublisher("ALTER TABLE t1 ADD COLUMN value string");
         assertBusy(() -> {
             var r = executeOnSubscriber("SELECT column_name FROM information_schema.columns" +
                                         " WHERE table_name = 't1'" +
                                         " ORDER BY ordinal_position");
-            assertThat(printedTable(r.rows()), is("id\n" +
-                                                  "value\n"));
+            assertThat(r).hasRows(
+                "id",
+                "value"
+            );
         });
     }
 
@@ -70,7 +69,7 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
         createSubscription("sub1", "pub1");
 
         // Ensure tracker has started
-        assertBusy(() -> assertThat(isTrackerActive(), is(true)));
+        assertBusy(() -> assertThat(isTrackerActive()).isTrue());
 
         executeOnPublisher("ALTER TABLE t1 ADD COLUMN name varchar");
         //This insert is synced to the subscriber and the mapping might not be updated yet
@@ -86,13 +85,14 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
         assertBusy(() -> {
             executeOnSubscriber("REFRESH TABLE t1");
             var r = executeOnSubscriber("SELECT * FROM t1 ORDER BY id");
-            assertThat(printedTable(r.rows()), is("1| NULL| NULL\n" +
-                                                  "2| NULL| NULL\n" +
-                                                  "3| chewbacca| NULL\n" +
-                                                  "4| r2d2| NULL\n" +
-                                                  "5| luke| 37\n" +
-                                                  "6| yoda| 900\n"));
-
+            assertThat(r).hasRows(
+                "1| NULL| NULL",
+                "2| NULL| NULL",
+                "3| chewbacca| NULL",
+                "4| r2d2| NULL",
+                "5| luke| 37",
+                "6| yoda| 900"
+            );
         });
     }
 
@@ -109,7 +109,7 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
         createSubscription("sub1", "pub1");
 
         // Ensure tracker has started
-        assertBusy(() -> assertThat(isTrackerActive(), is(true)));
+        assertBusy(() -> assertThat(isTrackerActive()).isTrue());
 
         for (String tableName : tableNames) {
             executeOnPublisher("ALTER TABLE " + tableName + " ADD COLUMN name varchar");
@@ -120,8 +120,10 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
                 var r = executeOnSubscriber("SELECT column_name FROM information_schema.columns" +
                                             " WHERE table_name = '" + tableName + "'" +
                                             " ORDER BY ordinal_position");
-                assertThat(printedTable(r.rows()), is("id\n" +
-                                                      "name\n"));
+                assertThat(r).hasRows(
+                    "id",
+                    "name"
+                );
             }
         });
     }
@@ -134,7 +136,7 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
         createSubscription("sub1", "pub1");
 
         // Ensure tracker has started
-        assertBusy(() -> assertThat(isTrackerActive(), is(true)));
+        assertBusy(() -> assertThat(isTrackerActive()).isTrue());
 
         // Create new partition
         executeOnPublisher("INSERT INTO t2 (id, p) VALUES (1, 1)");
@@ -146,11 +148,11 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
             var r = executeOnSubscriber("SELECT column_name FROM information_schema.columns" +
                                         " WHERE table_name = 't3'" +
                                         " ORDER BY ordinal_position");
-            assertThat(printedTable(r.rows()), is("id\n"));
+            assertThat(r).hasRows("id\n");
             r = executeOnSubscriber("SELECT values FROM information_schema.table_partitions" +
                                         " WHERE table_name = 't2'" +
                                         " ORDER BY partition_ident");
-            assertThat(printedTable(r.rows()), is("{p=1}\n"));
+            assertThat(r).hasRows("{p=1}\n");
             ensureGreenOnSubscriber();
         }, 50, TimeUnit.SECONDS);
     }
@@ -162,7 +164,7 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
         createSubscription("sub1", "pub1");
 
         // Ensure tracker has started
-        assertBusy(() -> assertThat(isTrackerActive(), is(true)));
+        assertBusy(() -> assertThat(isTrackerActive()).isTrue());
 
         // Create new table
         executeOnPublisher("CREATE TABLE t2 (id INT, p INT) PARTITIONED BY (p)");
@@ -172,8 +174,10 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
             var r = executeOnSubscriber("SELECT column_name FROM information_schema.columns" +
                                         " WHERE table_name = 't2'" +
                                         " ORDER BY ordinal_position");
-            assertThat(printedTable(r.rows()), is("id\n" +
-                                                  "p\n"));
+            assertThat(r).hasRows(
+                "id",
+                "p"
+            );
         });
     }
 
@@ -185,16 +189,16 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
         createSubscription("sub1", "pub1");
 
         // Ensure tracker has started
-        assertBusy(() -> assertThat(isTrackerActive(), is(true)));
+        assertBusy(() -> assertThat(isTrackerActive()).isTrue());
 
         // Wait until table is replicated
         assertBusy(() -> {
             executeOnSubscriber("REFRESH TABLE t1");
             var r = executeOnSubscriber("SELECT id, p FROM t1 ORDER BY id");
-            assertThat(printedTable(r.rows()), is(
-                "1| 1\n" +
-                "2| 2\n"));
-
+            assertThat(r).hasRows(
+                "1| 1",
+                "2| 2"
+            );
         });
 
         // Drop partition
@@ -203,7 +207,7 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
         assertBusy(() -> {
             executeOnSubscriber("REFRESH TABLE t1");
             var r = executeOnSubscriber("SELECT id, p FROM t1 ORDER BY id");
-            assertThat(printedTable(r.rows()), is("2| 2\n"));
+            assertThat(r).hasRows("2| 2\n");
         });
     }
 
@@ -215,15 +219,16 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
         createSubscription("sub1", "pub1");
 
         // Ensure tracker has started
-        assertBusy(() -> assertThat(isTrackerActive(), is(true)));
+        assertBusy(() -> assertThat(isTrackerActive()).isTrue());
 
         // Wait until table is replicated
         assertBusy(() -> {
             executeOnSubscriber("REFRESH TABLE t1");
             var r = executeOnSubscriber("SELECT id, p FROM t1 ORDER BY id");
-            assertThat(printedTable(r.rows()), is(
-                "1| 1\n" +
-                "2| 2\n"));
+            assertThat(r).hasRows(
+                "1| 1",
+                "2| 2"
+            );
         });
 
         // Drop partition
@@ -234,9 +239,10 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
         assertBusy(() -> {
             executeOnSubscriber("REFRESH TABLE t1");
             var r = executeOnSubscriber("SELECT id, p FROM t1 ORDER BY id");
-            assertThat(printedTable(r.rows()), is(
-                "2| 2\n" +
-                    "11| 1\n"));        // <- this must contain the id of the re-created partition
+            assertThat(r).hasRows(
+                "2| 2",
+                "11| 1" // <- this must contain the id of the re-created partition
+            );
         }, 50, TimeUnit.SECONDS);
     }
 
@@ -255,20 +261,20 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
 
         createSubscription("sub1", List.of("pub1", "pub2", "pub3"));
 
-        assertBusy(() -> assertThat(isTrackerActive(), is(true)));
+        assertBusy(() -> assertThat(isTrackerActive()).isTrue());
 
 
         executeOnPublisher("DROP PUBLICATION pub2"); // exclude publication with regular table
         executeOnPublisher("DROP PUBLICATION pub3"); // exclude publication with partitioned table
 
         // Dropping of the one one multiple publications doesn't stop tracking of the whole subscription.
-        assertBusy(() -> assertThat(isTrackerActive(), is(true)));
+        assertBusy(() -> assertThat(isTrackerActive()).isTrue());
 
         // Subscriber keeps receiving updates from non-dropped publication's regular table.
         assertBusy(() -> {
                 executeOnPublisher("INSERT INTO t1 (id) VALUES (3)");
                 var res = executeOnSubscriber("SELECT id FROM t1 ORDER BY id");
-                assertThat(res.rowCount(), greaterThan(2L));
+                assertThat(res.rowCount()).isGreaterThan(2L);
             }
         );
 
@@ -282,7 +288,7 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
                 } catch (OperationOnInaccessibleRelationException e) {
                     throw new AssertionError(e.getMessage());
                 }
-                assertThat(rowCount, is(1L));
+                assertThat(rowCount).isEqualTo(1L);
             }
         );
         assertBusy(
@@ -294,7 +300,7 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
                 } catch (OperationOnInaccessibleRelationException e) {
                     throw new AssertionError(e.getMessage());
                 }
-                assertThat(rowCount, is(1L));
+                assertThat(rowCount).isEqualTo(1L);
             }
         );
     }
@@ -309,13 +315,13 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
 
         createSubscription("sub1", List.of("pub1", "pub2"));
 
-        assertBusy(() -> assertThat(isTrackerActive(), is(true)));
+        assertBusy(() -> assertThat(isTrackerActive()).isTrue());
 
         executeOnPublisher("DROP PUBLICATION pub1");
         executeOnPublisher("DROP PUBLICATION pub2");
 
         // Dropping all publications of the subscription stops tracking.
-        assertBusy(() -> assertThat(isTrackerActive(), is(false)));
+        assertBusy(() -> assertThat(isTrackerActive()).isFalse());
     }
 
     @Test
@@ -340,13 +346,11 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
                         " FROM pg_subscription s" +
                         " LEFT JOIN pg_subscription_rel sr ON s.oid = sr.srsubid" +
                         " ORDER BY s.subname");
-                assertThat(res.rows(),
-                    arrayContainingInAnyOrder(
-                        new Object[] {"sub", "doc.t1", "e", "Relation already exists"},
-                        new Object[] {"sub", "doc.t2", "e", "Relation already exists"}
-                    )
+                assertThat(res).hasRowsInAnyOrder(
+                    new Object[] {"sub", "doc.t1", "e", "Relation already exists"},
+                    new Object[] {"sub", "doc.t2", "e", "Relation already exists"}
                 );
-                assertThat(isTrackerActive(), is(false));
+                assertThat(isTrackerActive()).isFalse();
             }, 20, TimeUnit.SECONDS
         );
 
@@ -362,7 +366,7 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
         createSubscription("sub1", "pub1");
 
         // Wait until tables are restored and tracker is active
-        assertBusy(() -> assertThat(isTrackerActive(), is(true)));
+        assertBusy(() -> assertThat(isTrackerActive()).isTrue());
 
         executeOnPublisher("ALTER PUBLICATION pub1 DROP TABLE t1, p2");
 
@@ -376,7 +380,7 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
                 } catch (OperationOnInaccessibleRelationException e) {
                     throw new AssertionError(e.getMessage());
                 }
-                assertThat(rowCount, is(1L));
+                assertThat(rowCount).isEqualTo(1L);
             }
         );
         assertBusy(
@@ -388,7 +392,7 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
                 } catch (OperationOnInaccessibleRelationException e) {
                     throw new AssertionError(e.getMessage());
                 }
-                assertThat(rowCount, is(1L));
+                assertThat(rowCount).isEqualTo(1L);
             }
         );
     }
