@@ -13,12 +13,13 @@ jobs:
         run: |-
           gh api graphql -F contentId=$PR_ID -f query='
             mutation($contentId: ID!) {
-              addProjectNextItem(input: {projectId: "PN_kwDOAD3FaM4ACoUS" contentId: $contentId}) {
-                projectNextItem {
+              addProjectV2ItemById(input: {projectId: "PVT_kwDOAD3FaM4ACoUS" contentId: $contentId}) {
+                item {
                   id
                 }
               }
-            }'
+            }
+            '
         env:
           PR_ID: ${{github.event.pull_request.node_id}}
           GITHUB_TOKEN: ${{ secrets.JENKINS_USER_TOKEN }}
