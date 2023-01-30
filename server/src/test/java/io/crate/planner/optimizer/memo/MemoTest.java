@@ -23,6 +23,7 @@ package io.crate.planner.optimizer.memo;
 
 import static io.crate.common.collections.Iterables.getOnlyElement;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 import java.util.Collection;
 import java.util.List;
@@ -58,7 +59,7 @@ public class MemoTest {
 
     @Test
     public void testInitialization() {
-        LogicalPlan plan = plan(plan());
+        var plan = plan(plan());
         Memo memo = new Memo(plan, ids);
 
         assertEquals(memo.groupCount(), 2);
@@ -71,7 +72,7 @@ public class MemoTest {
      */
     @Test
     public void testReplaceSubtree() {
-        LogicalPlan plan = plan(plan(plan()));
+        var plan = plan(plan(plan()));
 
         Memo memo = new Memo(plan, ids);
         assertEquals(memo.groupCount(), 3);
@@ -89,9 +90,9 @@ public class MemoTest {
      */
     @Test
     public void testReplaceNode() {
-        LogicalPlan z = plan();
-        LogicalPlan y = plan(z);
-        LogicalPlan x = plan(y);
+        var z = plan();
+        var y = plan(z);
+        var x = plan(y);
 
         Memo memo = new Memo(x, ids);
         assertEquals(memo.groupCount(), 3);
@@ -99,7 +100,7 @@ public class MemoTest {
         // replace child of root node with another node, retaining child's child
         int yGroup = getChildGroup(memo, memo.getRootGroup());
         GroupReference zRef = (GroupReference) getOnlyElement(memo.resolve(yGroup).sources());
-        LogicalPlan transformed = plan(zRef);
+        var transformed = plan(zRef);
         memo.replace(yGroup, transformed);
         assertEquals(memo.groupCount(), 3);
         assertMatchesStructure(memo.extract(), plan(x.id(), plan(transformed.id(), z)));
@@ -111,10 +112,10 @@ public class MemoTest {
      */
     @Test
     public void testReplaceNonLeafSubtree() {
-        LogicalPlan w = plan();
-        LogicalPlan z = plan(w);
-        LogicalPlan y = plan(z);
-        LogicalPlan x = plan(y);
+        var w = plan();
+        var z = plan(w);
+        var y = plan(z);
+        var x = plan(y);
 
         Memo memo = new Memo(x, ids);
 
@@ -125,8 +126,8 @@ public class MemoTest {
 
         LogicalPlan rewrittenW = memo.resolve(zGroup).sources().get(0);
 
-        LogicalPlan newZ = plan(rewrittenW);
-        LogicalPlan newY = plan(newZ);
+        TestPlan newZ = plan(rewrittenW);
+        TestPlan newY = plan(newZ);
 
         memo.replace(yGroup, newY);
 
@@ -146,9 +147,9 @@ public class MemoTest {
      */
     @Test
     public void testRemoveNode() {
-        LogicalPlan z = plan();
-        LogicalPlan y = plan(z);
-        LogicalPlan x = plan(y);
+        var z = plan();
+        var y = plan(z);
+        var x = plan(y);
 
         Memo memo = new Memo(x, ids);
 
@@ -171,15 +172,15 @@ public class MemoTest {
      */
     @Test
     public void testInsertNode() {
-        LogicalPlan z = plan();
-        LogicalPlan x = plan(z);
+        var z = plan();
+        var x = plan(z);
 
         Memo memo = new Memo(x, ids);
 
         assertEquals(memo.groupCount(), 2);
 
         int zGroup = getChildGroup(memo, memo.getRootGroup());
-        LogicalPlan y = plan(memo.resolve(zGroup));
+        var y = plan(memo.resolve(zGroup));
         memo.replace(zGroup, y);
 
         assertEquals(memo.groupCount(), 3);
@@ -198,9 +199,9 @@ public class MemoTest {
      */
     @Test
     public void testMultipleReferences() {
-        LogicalPlan z = plan();
-        LogicalPlan y = plan(z);
-        LogicalPlan x = plan(y);
+        var z = plan();
+        var y = plan(z);
+        var x = plan(y);
 
         Memo memo = new Memo(x, ids);
         assertEquals(memo.groupCount(), 3);
@@ -208,10 +209,10 @@ public class MemoTest {
         int yGroup = getChildGroup(memo, memo.getRootGroup());
 
         LogicalPlan rewrittenZ = memo.resolve(yGroup).sources().get(0);
-        LogicalPlan y1 = plan(rewrittenZ);
-        LogicalPlan y2 = plan(rewrittenZ);
+        var y1 = plan(rewrittenZ);
+        var y2 = plan(rewrittenZ);
 
-        LogicalPlan newX = plan(y1, y2);
+        var newX = plan(y1, y2);
         memo.replace(memo.getRootGroup(), newX);
         assertEquals(memo.groupCount(), 4);
 
@@ -223,13 +224,16 @@ public class MemoTest {
     }
 
 
-    private static void assertMatchesStructure(LogicalPlan actual, LogicalPlan expected) {
-        assertEquals(actual.getClass(), expected.getClass());
-        assertEquals(actual.id(), expected.id());
-        assertEquals(actual.sources().size(), expected.sources().size());
-
-        for (int i = 0; i < actual.sources().size(); i++) {
-            assertMatchesStructure(actual.sources().get(i), expected.sources().get(i));
+    private static void assertMatchesStructure(LogicalPlan a, LogicalPlan e) {
+        if (a instanceof TestPlan actual && e instanceof  TestPlan expected) {
+            assertEquals(actual.getClass(), expected.getClass());
+            assertEquals(actual.id(), expected.id());
+            assertEquals(actual.sources().size(), expected.sources().size());
+            for (int i = 0; i < actual.sources().size(); i++) {
+                assertMatchesStructure(actual.sources().get(i), expected.sources().get(i));
+            }
+        } else {
+            fail("LogicalPlan is not a TestPlan");
         }
     }
 
@@ -293,7 +297,6 @@ public class MemoTest {
             return new TestPlan(id(), sources);
         }
 
-        @Override
         public int id() {
             return id;
         }

@@ -56,12 +56,10 @@ import io.crate.statistics.TableStats;
  */
 public class GroupReference implements LogicalPlan {
 
-    private final int id;
     private final int groupId;
     private final List<Symbol> outputs;
 
-    public GroupReference(int id, int groupId, List<Symbol> outputs) {
-        this.id = id;
+    public GroupReference(int groupId, List<Symbol> outputs) {
         this.groupId = groupId;
         this.outputs = List.copyOf(outputs);
     }
@@ -78,11 +76,6 @@ public class GroupReference implements LogicalPlan {
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
         return this;
-    }
-
-    @Override
-    public int id() {
-        return id;
     }
 
     @Override

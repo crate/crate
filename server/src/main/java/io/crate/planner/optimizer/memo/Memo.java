@@ -24,11 +24,9 @@ package io.crate.planner.optimizer.memo;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.IntSupplier;
 import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
@@ -65,15 +63,13 @@ import io.crate.planner.operators.LogicalPlanVisitor;
 public class Memo {
     private static final int ROOT_GROUP_REF = 0;
 
-    private final IntSupplier ids;
     private final int rootGroup;
 
     private final Map<Integer, Group> groups = new HashMap<>();
 
     private int nextGroupId = ROOT_GROUP_REF + 1;
 
-    public Memo(LogicalPlan plan, IntSupplier ids) {
-        this.ids = ids;
+    public Memo(LogicalPlan plan) {
         rootGroup = insertRecursive(plan);
         groups.get(rootGroup).incomingReferences.add(ROOT_GROUP_REF);
     }
@@ -155,11 +151,17 @@ public class Memo {
         decrementReferenceCounts(deletedNode, group);
     }
 
+    /**
+     * Takes a logicalPlan and replaces all children with GroupReferences and creates for each GroupReferences a
+     * corresponding Group
+     *
+     * @param node
+     * @return The Plan where each Node is replaced by a GroupReference
+     */
     private LogicalPlan insertChildrenAndRewrite(LogicalPlan node) {
         return node.replaceSources(
             node.sources().stream()
                 .map(child -> new GroupReference(
-                    ids.getAsInt(),
                     insertRecursive(child),
                     child.outputs()))
                 .collect(Collectors.toList()));

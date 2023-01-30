@@ -26,7 +26,7 @@ import java.util.function.Function;
 import io.crate.planner.operators.LogicalPlan;
 
 /**
- *
+ * The GroupReferenceResolver resolves a GroupReference to the referenced LogicalPlan
  */
 public interface GroupReferenceResolver {
 
