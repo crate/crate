@@ -44,7 +44,6 @@ import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
-import io.crate.common.unit.TimeValue;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.document.Document;
@@ -89,6 +88,8 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.store.Store;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.index.translog.TranslogStats;
+
+import io.crate.common.unit.TimeValue;
 
 public abstract class Engine implements Closeable {
 

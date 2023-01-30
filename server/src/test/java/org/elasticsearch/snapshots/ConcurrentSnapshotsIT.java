@@ -22,7 +22,6 @@
 package org.elasticsearch.snapshots;
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -35,7 +34,6 @@ import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Predicate;
 
 import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotAction;
 import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotRequest;
@@ -52,6 +50,7 @@ import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.repositories.RepositoryData;
 import org.elasticsearch.snapshots.mockstore.MockRepository;
 import org.elasticsearch.test.IntegTestCase;
+import org.elasticsearch.test.TestCluster;
 import org.elasticsearch.test.transport.MockTransportService;
 import org.junit.Test;
 
@@ -86,7 +85,6 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
     }
 
     @Test
-    @UseRandomizedSchema(random = false)
     public void testLongRunningSnapshotAllowsConcurrentSnapshot() throws Exception {
         cluster().startMasterOnlyNode();
         final String dataNode = cluster().startDataOnlyNode();
@@ -120,7 +118,6 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
     }
 
     @Test
-    @UseRandomizedSchema(random = false)
     public void testDeletesAreBatched() throws Exception {
         cluster().startMasterOnlyNode();
         final String dataNode = cluster().startDataOnlyNode();
@@ -331,7 +328,7 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
         });
 
         var deleteSnapshotsResponse = startDelete(repoName, firstSnapshot);
-        awaitClusterState(masterNode, hasInProgressDeletions(1));
+        awaitClusterState(masterNode, state -> hasInProgressDeletions(state, 1));
 
         logger.info("--> start third snapshot");
         var thirdSnapshotResponse = cluster().client()
@@ -391,7 +388,7 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
         });
 
         var deleteSnapshotsResponse = startDelete(repoName, firstSnapshot);
-        awaitClusterState(cluster().getMasterName(), hasInProgressDeletions(1));
+        awaitClusterState(cluster().getMasterName(), state -> hasInProgressDeletions(state, 1));
 
         var thirdSnapshotResponse = startFullSnapshot(repoName, "snapshot-three");
 
@@ -464,7 +461,7 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
         });
 
         var firstDeleteFuture = startDelete(cluster().nonMasterClient(), repoName, firstSnapshot);
-        awaitClusterState(cluster().getMasterName(), hasInProgressDeletions(1));
+        awaitClusterState(cluster().getMasterName(), state -> hasInProgressDeletions(state, 1));
 
         mockRepo(repoName, dataNode2).setBlockOnAnyFiles(true);
         var snapshotThreeFuture = createSnapshot(cluster().nonMasterClient(), repoName, "snapshot-three", false);
@@ -525,7 +522,6 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
     }
 
     @Test
-    @UseRandomizedSchema(random = false)
     public void testMultiplePartialSnapshotsQueuedAfterDelete() throws Exception {
         final String masterNode = cluster().startMasterOnlyNode();
         cluster().startDataOnlyNode();
@@ -610,9 +606,93 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
         return inProgress.entries().size();
     }
 
-    private Predicate<ClusterState> hasInProgressDeletions(int count) {
-        return state ->
-            state.custom(SnapshotDeletionsInProgress.TYPE, SnapshotDeletionsInProgress.EMPTY).getEntries().size() == count;
+    @Test
+    public void testAssertMultipleSnapshotsAndPrimaryFailOver() throws Exception {
+        cluster().startMasterOnlyNode();
+        final String dataNode = cluster().startDataOnlyNode();
+        final String repoName = "test-repo";
+        createRepo(repoName, "mock");
+
+        final String table = "tbl1";
+        execute(
+            "create table tbl1 (id string primary key, s string) " +
+                "clustered into 1 shards with (number_of_replicas = 1)");
+        execute("insert into tbl1 (id, s) values ('some_id', 'foo')");
+        execute("refresh table tbl1");
+        ensureYellow(table);
+
+        mockRepo(repoName, dataNode).blockOnDataFiles(true);
+        var firstSnapshotResponse = startFullSnapshotFromMasterClient(repoName, "snapshot-one");
+        waitForBlock(dataNode, repoName, TimeValue.timeValueSeconds(30L));
+
+        cluster().startDataOnlyNode();
+        ensureStableCluster(3);
+        ensureGreen(table);
+
+        String secondSnapshot = "snapshot-two";
+        var secondSnapshotResponse = startFullSnapshotFromMasterClient(repoName, secondSnapshot);
+
+        cluster().restartNode(dataNode, TestCluster.EMPTY_CALLBACK);
+        ensureStableCluster(3);
+        ensureGreen(table);
+
+        assertThat(firstSnapshotResponse.get().state()).isEqualTo(SnapshotState.PARTIAL);
+        assertThat(secondSnapshotResponse.get().state()).isEqualTo(SnapshotState.PARTIAL);
+    }
+
+    @Test
+    public void testQueuedDeletesWithFailures() throws Exception {
+        String masterNode = cluster().startMasterOnlyNode();
+        cluster().startDataOnlyNode();
+        String repoName = "test-repo";
+        createRepo(repoName, "mock");
+        createTableWithRecord("tbl1");
+        createNSnapshots(repoName, randomIntBetween(2, 5));
+
+        blockMasterFromFinalizingSnapshotOnIndexFile(repoName);
+
+        var firstDeleteSnapshotFuture = startDelete(cluster().client(), repoName, "*");
+        waitForBlock(masterNode, repoName, TimeValue.timeValueSeconds(30L));
+
+        var snapshotFuture = startFullSnapshot(repoName, "snapshot-queued");
+        awaitClusterState(masterNode, state -> (snapshotsInProgress(state) == 1));
+
+        var secondDeleteSnapshotFuture = startDelete(
+            cluster().client(),
+            repoName,
+            "*"
+        );
+        awaitClusterState(masterNode, state -> hasInProgressDeletions(state, 2));
+
+        unblockNode(repoName, masterNode);
+        assertBusy(() -> assertThat(firstDeleteSnapshotFuture).isCompletedExceptionally());
+
+        // Second delete works out cleanly since the repo is unblocked now
+        assertThat(secondDeleteSnapshotFuture.get().isAcknowledged()).isTrue();
+        // Snapshot should have been aborted
+        assertThatThrownBy(snapshotFuture::get)
+            .hasRootCauseExactlyInstanceOf(SnapshotException.class)
+            .rootCause().hasMessageEndingWith("Snapshot was aborted by deletion");
+
+        assertThat(execute("SELECT count(*) FROM sys.snapshots WHERE repository=?", new Object[]{repoName}))
+            .hasRows("0\n");
+        awaitClusterState(
+            masterNode,
+            state -> snapshotsInProgress(state) == 0 && hasInProgressDeletions(state, 0)
+        );
+    }
+
+    private int snapshotsInProgress(ClusterState state) {
+        var snapshotsInProgress = state.custom(SnapshotsInProgress.TYPE, SnapshotsInProgress.EMPTY);
+        return snapshotsInProgress.entries().size();
+    }
+
+    private boolean hasInProgressDeletions(ClusterState state, int count) {
+        var snapshotDeletionsInProgress = state.custom(
+            SnapshotDeletionsInProgress.TYPE,
+            SnapshotDeletionsInProgress.EMPTY
+        );
+        return snapshotDeletionsInProgress.getEntries().size() == count;
     }
 
     private String[] createNSnapshots(String repoName, int count) throws Exception {
@@ -692,6 +772,11 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
     private CompletableFuture<SnapshotInfo> startFullSnapshot(String repoName,
                                                               String snapshotName) {
         return createSnapshot(cluster().client(), repoName, snapshotName, false);
+    }
+
+    private CompletableFuture<SnapshotInfo> startFullSnapshotFromMasterClient(String repoName,
+                                                                              String snapshotName) {
+        return createSnapshot(cluster().masterClient(), repoName, snapshotName, false);
     }
 
     private CompletableFuture<SnapshotInfo> createSnapshot(Client client,

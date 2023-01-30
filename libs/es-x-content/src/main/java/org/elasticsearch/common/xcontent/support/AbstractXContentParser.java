@@ -19,12 +19,6 @@
 
 package org.elasticsearch.common.xcontent.support;
 
-import io.crate.common.Booleans;
-import org.elasticsearch.common.xcontent.DeprecationHandler;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.XContentParseException;
-import org.elasticsearch.common.xcontent.XContentParser;
-
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -33,6 +27,15 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
+
+import org.elasticsearch.common.xcontent.DeprecationHandler;
+import org.elasticsearch.common.xcontent.NamedXContentRegistry;
+import org.elasticsearch.common.xcontent.XContentParseException;
+import org.elasticsearch.common.xcontent.XContentParser;
+
+import io.crate.common.Booleans;
+import io.crate.common.CheckedFunction;
 
 public abstract class AbstractXContentParser implements XContentParser {
 
@@ -250,6 +253,26 @@ public abstract class AbstractXContentParser implements XContentParser {
         return readMapStrings(this);
     }
 
+
+    @Override
+    public <T> Map<String, T> map(Supplier<Map<String, T>> mapFactory,
+                                  CheckedFunction<XContentParser, T, IOException> mapValueParser) throws IOException {
+        final Map<String, T> map = mapFactory.get();
+        if (findNonEmptyMapStart(this) == false) {
+            return map;
+        }
+        assert currentToken() == Token.FIELD_NAME : "Expected field name but saw [" + currentToken() + "]";
+        do {
+            // Must point to field name
+            String fieldName = currentName();
+            // And then the value...
+            nextToken();
+            T value = mapValueParser.apply(this);
+            map.put(fieldName, value);
+        } while (nextToken() == XContentParser.Token.FIELD_NAME);
+        return map;
+    }
+
     @Override
     public List<Object> list() throws IOException {
         return readList(this);
@@ -397,5 +420,23 @@ public abstract class AbstractXContentParser implements XContentParser {
     @Override
     public DeprecationHandler getDeprecationHandler() {
         return deprecationHandler;
+    }
+
+    /**
+     * Checks if the next current token in the supplied parser is a map start for a non-empty map.
+     * Skips to the next token if the parser does not yet have a current token (i.e. {@link #currentToken()} returns {@code null}) and then
+     * checks it.
+     *
+     * @return true if a map start for a non-empty map is found
+     */
+    private static boolean findNonEmptyMapStart(XContentParser parser) throws IOException {
+        Token token = parser.currentToken();
+        if (token == null) {
+            token = parser.nextToken();
+        }
+        if (token == XContentParser.Token.START_OBJECT) {
+            token = parser.nextToken();
+        }
+        return token == Token.FIELD_NAME;
     }
 }
