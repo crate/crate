@@ -49,15 +49,14 @@ import javax.annotation.Nullable;
 
 import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
-import org.elasticsearch.common.network.NetworkModule;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.test.InternalSettingsPlugin;
-import org.elasticsearch.test.TestCluster;
 import org.elasticsearch.test.MockHttpTransport;
 import org.elasticsearch.test.NodeConfigurationSource;
+import org.elasticsearch.test.TestCluster;
 import org.elasticsearch.test.transport.MockTransportService;
 import org.elasticsearch.threadpool.TestThreadPool;
 import org.elasticsearch.transport.Netty4Plugin;
@@ -228,7 +227,6 @@ public abstract class LogicalReplicationITestCase extends ESTestCase {
         // disables a port scan for other nodes by setting seeds to an empty list
         builder.putList(DISCOVERY_SEED_HOSTS_SETTING.getKey());
         builder.putList(DISCOVERY_SEED_PROVIDERS_SETTING.getKey(), "file");
-        builder.put(NetworkModule.TRANSPORT_TYPE_KEY, getTestTransportType());
         return new NodeConfigurationSource() {
             @Override
             public Settings nodeSettings(int nodeOrdinal) {
