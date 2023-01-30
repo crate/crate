@@ -22,6 +22,7 @@
 package io.crate.integrationtests;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.assertThrowsMatches;
 import static io.crate.testing.SQLErrorMatcher.isSQLError;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
@@ -474,18 +475,12 @@ public class SQLTypeMappingTest extends IntegTestCase {
     public void testDynamicNullArrayAndDouble() throws Exception {
         execute("create table arr (id short primary key, tags array(string)) " +
                 "with (number_of_replicas=0, column_policy = 'dynamic')");
-        ensureYellow();
         execute("insert into arr (id, tags, new) values (3, ['wow', 'much', 'wow'], ?)", new Object[]{new Double[]{null, 42.7}});
-        refresh();
-        waitNoPendingTasksOnAll();
-        awaitBusy(() -> {
-            SQLResponse res = execute("select column_name, data_type from information_schema.columns where table_name='arr'");
-            for (Object[] row : res.rows()) {
-                if ("new".equals(row[0]) && "double_array".equals(row[1])) {
-                    return true;
-                }
-            }
-            return false;
+        assertBusy(() -> {
+            SQLResponse res = execute(
+                "select column_name, data_type from information_schema.columns where " +
+                " table_name='arr' order by ordinal_position desc limit 1");
+            assertThat(res).hasRows("new| real_array\n");
         });
     }
 
