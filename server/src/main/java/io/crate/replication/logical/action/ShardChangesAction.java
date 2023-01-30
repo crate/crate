@@ -21,9 +21,17 @@
 
 package io.crate.replication.logical.action;
 
-import io.crate.common.unit.TimeValue;
-import io.crate.metadata.RelationName;
-import io.crate.replication.logical.exceptions.MissingShardOperationsException;
+import static org.elasticsearch.index.seqno.SequenceNumbers.UNASSIGNED_SEQ_NO;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.concurrent.Executor;
+import java.util.concurrent.TimeoutException;
+
+import javax.annotation.Nullable;
+
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.action.ActionListener;
@@ -43,8 +51,8 @@ import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.engine.MissingHistoryOperationsException;
 import org.elasticsearch.index.seqno.RetentionLease;
 import org.elasticsearch.index.seqno.SeqNoStats;
-import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.shard.GlobalCheckpointListeners.GlobalCheckpointListener;
+import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -52,15 +60,9 @@ import org.elasticsearch.transport.TransportActionProxy;
 import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportService;
 
-import javax.annotation.Nullable;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.concurrent.Executor;
-import java.util.concurrent.TimeoutException;
-
-import static org.elasticsearch.index.seqno.SequenceNumbers.UNASSIGNED_SEQ_NO;
+import io.crate.common.unit.TimeValue;
+import io.crate.metadata.RelationName;
+import io.crate.replication.logical.exceptions.MissingShardOperationsException;
 
 public class ShardChangesAction extends ActionType<ShardChangesAction.Response> {
 
@@ -276,6 +278,11 @@ public class ShardChangesAction extends ActionType<ShardChangesAction.Response> 
 
         public long toSeqNo() {
             return toSeqNo;
+        }
+
+        @Override
+        public String toString() {
+            return "Request{shardId=" + shardId + ", fromSeqNo=" + fromSeqNo + ", toSeqNo=" + toSeqNo + "}";
         }
     }
 
