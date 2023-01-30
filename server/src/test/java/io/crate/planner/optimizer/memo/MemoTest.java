@@ -60,7 +60,7 @@ public class MemoTest {
     @Test
     public void testInitialization() {
         var plan = plan(plan());
-        Memo memo = new Memo(plan, ids);
+        Memo memo = new Memo(plan);
 
         assertEquals(memo.groupCount(), 2);
         assertMatchesStructure(plan, memo.extract());
@@ -74,7 +74,7 @@ public class MemoTest {
     public void testReplaceSubtree() {
         var plan = plan(plan(plan()));
 
-        Memo memo = new Memo(plan, ids);
+        Memo memo = new Memo(plan);
         assertEquals(memo.groupCount(), 3);
 
         // replace child of root node with subtree
@@ -94,7 +94,7 @@ public class MemoTest {
         var y = plan(z);
         var x = plan(y);
 
-        Memo memo = new Memo(x, ids);
+        Memo memo = new Memo(x);
         assertEquals(memo.groupCount(), 3);
 
         // replace child of root node with another node, retaining child's child
@@ -117,7 +117,7 @@ public class MemoTest {
         var y = plan(z);
         var x = plan(y);
 
-        Memo memo = new Memo(x, ids);
+        Memo memo = new Memo(x);
 
         assertEquals(memo.groupCount(), 4);
 
@@ -151,7 +151,7 @@ public class MemoTest {
         var y = plan(z);
         var x = plan(y);
 
-        Memo memo = new Memo(x, ids);
+        Memo memo = new Memo(x);
 
         assertEquals(memo.groupCount(), 3);
 
@@ -175,7 +175,7 @@ public class MemoTest {
         var z = plan();
         var x = plan(z);
 
-        Memo memo = new Memo(x, ids);
+        Memo memo = new Memo(x);
 
         assertEquals(memo.groupCount(), 2);
 
@@ -203,7 +203,7 @@ public class MemoTest {
         var y = plan(z);
         var x = plan(y);
 
-        Memo memo = new Memo(x, ids);
+        Memo memo = new Memo(x);
         assertEquals(memo.groupCount(), 3);
 
         int yGroup = getChildGroup(memo, memo.getRootGroup());
