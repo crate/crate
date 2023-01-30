@@ -449,24 +449,23 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
         String subscriptionName = "sub1";
         final ArrayList<Subscription.State> subscriptionStates = new ArrayList<>();
         ClusterService clusterService = subscriberCluster.getCurrentMasterNodeInstance(ClusterService.class);
-        clusterService.addListener(
-            event -> {
-                if (event.metadataChanged() == false) {
-                    return;
-                }
-                Metadata currentMetadata = event.state().metadata();
-                var metadata = SubscriptionsMetadata.get(currentMetadata);
-                var subscription = metadata.subscription().get(subscriptionName);
-                if (subscription != null) {
-                    var currentState = subscription.relations().get(RelationName.fromIndexName("doc.t1")).state();
-                    synchronized (subscriptionStates) {
-                        var size = subscriptionStates.size();
-                        if (size == 0 || subscriptionStates.get(size - 1).equals(currentState) == false) {
-                            subscriptionStates.add(currentState);
-                        }
+        clusterService.addListener(event -> {
+            if (event.metadataChanged() == false) {
+                return;
+            }
+            Metadata currentMetadata = event.state().metadata();
+            var metadata = SubscriptionsMetadata.get(currentMetadata);
+            var subscription = metadata.subscription().get(subscriptionName);
+            if (subscription != null) {
+                var currentState = subscription.relations().get(RelationName.fromIndexName("doc.t1")).state();
+                synchronized (subscriptionStates) {
+                    var size = subscriptionStates.size();
+                    if (size == 0 || subscriptionStates.get(size - 1).equals(currentState) == false) {
+                        subscriptionStates.add(currentState);
                     }
                 }
-            });
+            }
+        });
 
         executeOnPublisher("CREATE TABLE doc.t1 (id INT) WITH(" +
                            defaultTableSettings() +
