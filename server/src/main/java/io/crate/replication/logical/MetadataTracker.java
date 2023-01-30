@@ -207,7 +207,7 @@ public final class MetadataTracker implements Closeable {
 
     private CompletableFuture<?> processSubscription(String subscriptionName) {
         final ClusterState subscriberState = clusterService.state();
-        var subscription = retrieveSubscription(subscriptionName, subscriberState);
+        var subscription = SubscriptionsMetadata.get(subscriberState.metadata()).get(subscriptionName);
         if (subscription == null) {
             if (LOGGER.isTraceEnabled()) {
                 LOGGER.trace("Subscription {} not found inside current local cluster state", subscriptionName);
@@ -359,16 +359,6 @@ public final class MetadataTracker implements Closeable {
     }
 
     private static class AckMetadataUpdateRequest extends AcknowledgedRequest<AckMetadataUpdateRequest> {
-    }
-
-    @Nullable
-    static Subscription retrieveSubscription(String subscriptionName, ClusterState currentState) {
-        SubscriptionsMetadata subscriptionsMetadata = currentState.metadata().custom(SubscriptionsMetadata.TYPE);
-        if (subscriptionsMetadata == null) {
-            LOGGER.trace("No subscriptions found inside current local cluster state");
-            return null;
-        }
-        return subscriptionsMetadata.subscription().get(subscriptionName);
     }
 
     @VisibleForTesting

@@ -21,7 +21,16 @@
 
 package io.crate.replication.logical.metadata;
 
-import io.crate.metadata.RelationName;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
+
+import javax.annotation.Nullable;
+
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.AbstractNamedDiffable;
@@ -32,23 +41,26 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
+import io.crate.metadata.RelationName;
 
 public class SubscriptionsMetadata extends AbstractNamedDiffable<Metadata.Custom> implements Metadata.Custom {
 
     public static final String TYPE = "subscriptions";
+    private static final SubscriptionsMetadata EMPTY = new SubscriptionsMetadata(Map.of());
 
     public static SubscriptionsMetadata newInstance(SubscriptionsMetadata instance) {
         if (instance == null) {
             return new SubscriptionsMetadata();
         }
         return new SubscriptionsMetadata(new HashMap<>(instance.subscriptionByName));
+    }
+
+    public static SubscriptionsMetadata get(Metadata metadata) {
+        var subscriptionsMetadata = (SubscriptionsMetadata) metadata.custom(SubscriptionsMetadata.TYPE);
+        if (subscriptionsMetadata == null) {
+            return EMPTY;
+        }
+        return subscriptionsMetadata;
     }
 
     private final Map<String, Subscription> subscriptionByName;
@@ -67,6 +79,11 @@ public class SubscriptionsMetadata extends AbstractNamedDiffable<Metadata.Custom
 
     public SubscriptionsMetadata() {
         this(new HashMap<>());
+    }
+
+    @Nullable
+    public Subscription get(String subscriptionName) {
+        return subscriptionByName.get(subscriptionName);
     }
 
     public Map<String, Subscription> subscription() {
