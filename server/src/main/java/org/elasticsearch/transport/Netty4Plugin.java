@@ -95,7 +95,6 @@ public class Netty4Plugin extends Plugin implements NetworkPlugin {
             // here we set the netty4 transport and http transport as the default. This is a set once setting
             // ie. if another plugin does that as well the server will fail - only one default network can exist!
             .put(NetworkModule.HTTP_DEFAULT_TYPE_SETTING.getKey(), NETTY_HTTP_TRANSPORT_NAME)
-            .put(NetworkModule.TRANSPORT_DEFAULT_TYPE_SETTING.getKey(), NETTY_TRANSPORT_NAME)
             .put(HttpTransportSettings.SETTING_HTTP_COMPRESSION.getKey(), false)
             .build();
     }

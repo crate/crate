@@ -110,7 +110,6 @@ import org.elasticsearch.plugins.AnalysisPlugin;
 import org.elasticsearch.test.junit.listeners.LoggingListener;
 import org.elasticsearch.test.junit.listeners.ReproduceInfoPrinter;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.Netty4Plugin;
 import org.joda.time.DateTimeZone;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -867,10 +866,6 @@ public abstract class ESTestCase extends CrateLuceneTestCase {
         }
         // Oh well, we didn't get enough unique things. It'll be ok.
         return things;
-    }
-
-    public static String getTestTransportType() {
-        return Netty4Plugin.NETTY_TRANSPORT_NAME;
     }
 
     /**

@@ -29,10 +29,12 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.test.IntegTestCase.ClusterScope;
 import org.elasticsearch.test.TestCluster;
+import org.junit.Test;
 
 @ClusterScope(scope = IntegTestCase.Scope.TEST, numDataNodes = 0)
 public class InternalTestClusterIT extends IntegTestCase {
 
+    @Test
     public void testStartingAndStoppingNodes() throws IOException {
         logger.info("--> cluster has [{}] nodes", cluster().size());
         if (cluster().size() < 5) {
