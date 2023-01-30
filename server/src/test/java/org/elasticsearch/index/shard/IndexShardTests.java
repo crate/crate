@@ -172,6 +172,8 @@ import org.hamcrest.Matchers;
 import org.junit.Assert;
 import org.junit.Test;
 
+import com.carrotsearch.randomizedtesting.RandomizedTest;
+
 import io.crate.Constants;
 import io.crate.common.collections.Tuple;
 import io.crate.common.unit.TimeValue;
@@ -1079,7 +1081,7 @@ public class IndexShardTests extends IndexShardTestCase {
                         .startObject()
                         .field("count", randomInt())
                         .field("point", randomFloat())
-                        .field("description", randomUnicodeOfCodepointLength(100))
+                        .field("description", RandomizedTest.randomUnicodeOfCodepointLength(100))
                         .endObject()
                 );
                 indexDoc(indexShard, Integer.toString(i), doc);
