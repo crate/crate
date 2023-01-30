@@ -38,6 +38,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.junit.Test;
 
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
@@ -443,6 +444,7 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
     }
 
     @Test
+    @TestLogging("io.crate.replication.logical:TRACE")
     public void test_subscription_state_order() throws Exception {
         String subscriptionName = "sub1";
         final ArrayList<Subscription.State> subscriptionStates = new ArrayList<>();

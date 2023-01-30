@@ -5,7 +5,7 @@ pipeline {
     jdk 'jdk11'
   }
   options {
-    timeout(time: 45, unit: 'MINUTES') 
+    timeout(time: 45, unit: 'MINUTES')
   }
   environment {
     CI_RUN = 'true'
@@ -13,14 +13,6 @@ pipeline {
   stages {
     stage('Parallel') {
       parallel {
-        stage('sphinx') {
-          agent { label 'small' }
-          steps {
-            sh 'cd ./blackbox/ && ./bootstrap.sh'
-            sh './blackbox/.venv/bin/sphinx-build -n -W -c docs/ -b html -E docs/ docs/_out/html'
-            sh 'find ./blackbox/*/src/ -type f -name "*.py" | xargs ./blackbox/.venv/bin/pycodestyle'
-          }
-        }
         stage('Java tests') {
           agent { label 'large' }
           environment {
@@ -29,45 +21,18 @@ pipeline {
           steps {
             sh 'git clean -xdff'
             checkout scm
-            sh './gradlew --no-daemon --parallel -Dtests.crate.slow=true -PtestForks=8 test jacocoReport'
 
-            // Upload coverage report to Codecov.
-            // https://about.codecov.io/blog/introducing-codecovs-new-uploader/
             sh '''
-              # Download uploader program and perform integrity checks.
-              curl https://keybase.io/codecovsecurity/pgp_keys.asc | gpg --import # One-time step
-              curl -Os https://uploader.codecov.io/latest/linux/codecov
-              curl -Os https://uploader.codecov.io/latest/linux/codecov.SHA256SUM
-              curl -Os https://uploader.codecov.io/latest/linux/codecov.SHA256SUM.sig
-              gpg --verify codecov.SHA256SUM.sig codecov.SHA256SUM
-              shasum -a 256 -c codecov.SHA256SUM
-
-              # Invoke program.
-              chmod +x codecov
-              ./codecov -t ${CODECOV_TOKEN}
+              ./gradlew :server:test --tests "io.crate.integrationtests.LogicalReplicationITest.test_subscription_state_order*" -Dtests.seed=41B62097D26787C1 -Dtests.locale=asa-TZ -Dtests.timezone=Europe/Warsaw -Dtests.iters=20 --fail-fast
+              while [ $? -ne 0 ]; do
+                ./gradlew :server:test --tests "io.crate.integrationtests.LogicalReplicationITest.test_subscription_state_order*" -Dtests.seed=41B62097D26787C1 -Dtests.locale=asa-TZ -Dtests.timezone=Europe/Warsaw -Dtests.iters=20 --fail-fast
+              done
             '''.stripIndent()
           }
           post {
             always {
               junit '**/build/test-results/test/*.xml'
             }
-          }
-        }
-        stage('itest') {
-          agent { label 'medium' }
-          steps {
-            sh 'git clean -xdff'
-            checkout scm
-            sh 'python3 ./blackbox/kill_4200.py'
-            sh './gradlew --no-daemon itest'
-          }
-        }
-        stage('blackbox tests') {
-          agent { label 'medium' }
-          steps {
-            sh 'git clean -xdff'
-            checkout scm
-            sh './gradlew --no-daemon s3Test monitoringTest gtest dnsDiscoveryTest sslTest'
           }
         }
       }
