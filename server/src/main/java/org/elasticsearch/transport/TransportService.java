@@ -20,8 +20,6 @@
 package org.elasticsearch.transport;
 
 import static org.elasticsearch.common.settings.Setting.timeSetting;
-import static org.elasticsearch.transport.TransportSettings.TRACE_LOG_EXCLUDE_SETTING;
-import static org.elasticsearch.transport.TransportSettings.TRACE_LOG_INCLUDE_SETTING;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -47,14 +45,12 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionListenerResponseHandler;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.network.NetworkService;
-import org.elasticsearch.common.regex.Regex;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
@@ -98,9 +94,6 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
 
 
     private final Logger tracerLog;
-
-    volatile String[] tracerLogInclude;
-    volatile String[] tracerLogExclude;
 
     /** if set will call requests sent to this id to shortcut and executed locally */
     volatile DiscoveryNode localNode = null;
@@ -163,13 +156,9 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
         this.localNodeFactory = localNodeFactory;
         this.connectionManager = connectionManager;
         this.clusterName = ClusterName.CLUSTER_NAME_SETTING.get(settings);
-        setTracerLogInclude(TRACE_LOG_INCLUDE_SETTING.get(settings));
-        setTracerLogExclude(TRACE_LOG_EXCLUDE_SETTING.get(settings));
         tracerLog = Loggers.getLogger(LOGGER, ".tracer");
         responseHandlers = transport.getResponseHandlers();
         if (clusterSettings != null) {
-            clusterSettings.addSettingsUpdateConsumer(TRACE_LOG_INCLUDE_SETTING, this::setTracerLogInclude);
-            clusterSettings.addSettingsUpdateConsumer(TRACE_LOG_EXCLUDE_SETTING, this::setTracerLogExclude);
             clusterSettings.addSettingsUpdateConsumer(TransportSettings.SLOW_OPERATION_THRESHOLD_SETTING, transport::setSlowLogThreshold);
         }
 
@@ -197,14 +186,6 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
      */
     private Executor getExecutorService() {
         return threadPool.generic();
-    }
-
-    void setTracerLogInclude(List<String> tracerLogInclude) {
-        this.tracerLogInclude = tracerLogInclude.toArray(Strings.EMPTY_ARRAY);
-    }
-
-    void setTracerLogExclude(List<String> tracerLogExclude) {
-        this.tracerLogExclude = tracerLogExclude.toArray(Strings.EMPTY_ARRAY);
     }
 
     @Override
@@ -736,18 +717,6 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
         }
     }
 
-    private boolean shouldTraceAction(String action) {
-        if (tracerLogInclude.length > 0) {
-            if (Regex.simpleMatch(tracerLogInclude, action) == false) {
-                return false;
-            }
-        }
-        if (tracerLogExclude.length > 0) {
-            return !Regex.simpleMatch(tracerLogExclude, action);
-        }
-        return true;
-    }
-
     public TransportAddress[] addressesFromString(String address) throws UnknownHostException {
         return transport.addressesFromString(address);
     }
@@ -834,7 +803,7 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
         if (handleIncomingRequests.get() == false) {
             throw new IllegalStateException("transport not ready yet to handle incoming requests");
         }
-        if (tracerLog.isTraceEnabled() && shouldTraceAction(action)) {
+        if (tracerLog.isTraceEnabled()) {
             tracerLog.trace("[{}][{}] received request", requestId, action);
         }
     }
@@ -846,23 +815,23 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
                               String action,
                               TransportRequest request,
                               TransportRequestOptions options) {
-        if (tracerLog.isTraceEnabled() && shouldTraceAction(action)) {
+        if (tracerLog.isTraceEnabled()) {
             tracerLog.trace("[{}][{}] sent to [{}] (timeout: [{}])", requestId, action, node, options.timeout());
         }
     }
 
     @Override
-    public void onResponseReceived(long requestId, Transport.ResponseContext holder) {
+    public void onResponseReceived(long requestId, Transport.ResponseContext<?> holder) {
         if (holder == null) {
             checkForTimeout(requestId);
-        } else if (tracerLog.isTraceEnabled() && shouldTraceAction(holder.action())) {
+        } else if (tracerLog.isTraceEnabled()) {
             tracerLog.trace("[{}][{}] received response from [{}]", requestId, holder.action(), holder.connection().getNode());
         }
     }
 
     /** called by the {@link Transport} implementation once a response was sent to calling node */
     public void onResponseSent(long requestId, String action, TransportResponse response) {
-        if (tracerLog.isTraceEnabled() && shouldTraceAction(action)) {
+        if (tracerLog.isTraceEnabled()) {
             tracerLog.trace("[{}][{}] sent response", requestId, action);
         }
     }
@@ -870,7 +839,7 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
     /** called by the {@link Transport} implementation after an exception was sent as a response to an incoming request */
     @Override
     public void onResponseSent(long requestId, String action, Exception e) {
-        if (tracerLog.isTraceEnabled() && shouldTraceAction(action)) {
+        if (tracerLog.isTraceEnabled()) {
             tracerLog.trace(() -> new ParameterizedMessage("[{}][{}] sent error response", requestId, action), e);
         }
     }
@@ -904,7 +873,7 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
         if (action == null) {
             assert sourceNode == null;
             tracerLog.trace("[{}] received response but can't resolve it to a request", requestId);
-        } else if (shouldTraceAction(action)) {
+        } else {
             tracerLog.trace("[{}][{}] received response from [{}]", requestId, action, sourceNode);
         }
     }

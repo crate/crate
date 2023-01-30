@@ -28,7 +28,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -44,7 +43,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -61,7 +59,6 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.index.IndexModule;
 import org.elasticsearch.test.ESTestCase;
-import org.elasticsearch.transport.TransportSettings;
 import org.junit.Test;
 
 import io.crate.types.ArrayType;
@@ -482,19 +479,12 @@ public class ScopedSettingsTests extends ESTestCase {
     public void testGet() {
         ClusterSettings settings = new ClusterSettings(Settings.EMPTY, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS);
         // affix setting - complex matcher
-        Setting setting = settings.get("cluster.routing.allocation.require.value");
+        Setting<?> setting = settings.get("cluster.routing.allocation.require.value");
         assertEquals(setting,
             FilterAllocationDecider.CLUSTER_ROUTING_REQUIRE_GROUP_SETTING.getConcreteSetting("cluster.routing.allocation.require.value"));
 
         setting = settings.get("cluster.routing.allocation.total_shards_per_node");
         assertEquals(setting, ShardsLimitAllocationDecider.CLUSTER_TOTAL_SHARDS_PER_NODE_SETTING);
-
-        // array settings - complex matcher
-        assertNotNull(settings.get("transport.tracer.include." + randomIntBetween(1, 100)));
-        assertSame(TransportSettings.TRACE_LOG_INCLUDE_SETTING, settings.get("transport.tracer.include." + randomIntBetween(1, 100)));
-
-        // array settings - complex matcher - only accepts numbers
-        assertNull(settings.get("transport.tracer.include.FOO"));
     }
 
     @Test
@@ -506,10 +496,6 @@ public class ScopedSettingsTests extends ESTestCase {
         assertFalse(settings.isDynamicSetting("foo.bar.baz"));
         assertTrue(settings.isDynamicSetting("foo.bar"));
         assertNotNull(settings.get("foo.bar.baz"));
-        settings = new ClusterSettings(Settings.EMPTY, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS);
-        assertTrue(settings.isDynamicSetting("transport.tracer.include." + randomIntBetween(1, 100)));
-        assertFalse(settings.isDynamicSetting("transport.tracer.include.BOOM"));
-        assertTrue(settings.isDynamicSetting("cluster.routing.allocation.require.value"));
     }
 
     @Test
@@ -632,19 +618,6 @@ public class ScopedSettingsTests extends ESTestCase {
         assertEquals(diff.getAsList("foo.baz.quux", null), Arrays.asList("d", "e", "f"));
         assertThat(diff.getAsInt("foo.bar.baz", null), equalTo(1));
         assertThat(diff.getAsInt("foo.bar", null), equalTo(1));
-    }
-
-    @Test
-    public void testUpdateTracer() {
-        ClusterSettings settings = new ClusterSettings(Settings.EMPTY, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS);
-        AtomicReference<List<String>> ref = new AtomicReference<>();
-        settings.addSettingsUpdateConsumer(TransportSettings.TRACE_LOG_INCLUDE_SETTING, ref::set);
-        settings.applySettings(Settings.builder()
-                .putList("transport.tracer.include", "internal:index/shard/recovery/*", "internal:gateway/local*").build());
-        assertNotNull(ref.get().size());
-        assertEquals(ref.get().size(), 2);
-        assertTrue(ref.get().contains("internal:index/shard/recovery/*"));
-        assertTrue(ref.get().contains("internal:gateway/local*"));
     }
 
     @Test
