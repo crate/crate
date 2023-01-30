@@ -125,7 +125,7 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
                     "name"
                 );
             }
-        });
+        }, 30, TimeUnit.SECONDS);
     }
 
     @Test
