@@ -22,7 +22,6 @@
 package io.crate.replication.logical;
 
 import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_SUBSCRIPTION_NAME;
-import static io.crate.replication.logical.MetadataTracker.retrieveSubscription;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_INDEX_UUID;
 import static org.elasticsearch.cluster.routing.TestShardRouting.newShardRouting;
@@ -269,7 +268,7 @@ public class MetadataTrackerTest extends ESTestCase {
     public void test_mappings_is_transferred_between_two_clustering_for_logical_replication() throws Exception {
         var syncedSubscriberClusterState = MetadataTracker.updateIndexMetadata(
             "sub1",
-            retrieveSubscription("sub1", SUBSCRIBER_CLUSTER_STATE),
+            SubscriptionsMetadata.get(SUBSCRIBER_CLUSTER_STATE.metadata()).get("sub1"),
             SUBSCRIBER_CLUSTER_STATE,
             publicationsStateResponse,
             IndexScopedSettings.DEFAULT_SCOPED_SETTINGS);
@@ -288,7 +287,7 @@ public class MetadataTrackerTest extends ESTestCase {
 
         syncedSubscriberClusterState = MetadataTracker.updateIndexMetadata(
             "sub1",
-            retrieveSubscription("sub1", SUBSCRIBER_CLUSTER_STATE),
+            SubscriptionsMetadata.get(SUBSCRIBER_CLUSTER_STATE.metadata()).get("sub1"),
             SUBSCRIBER_CLUSTER_STATE,
             updatedResponse,
             IndexScopedSettings.DEFAULT_SCOPED_SETTINGS
@@ -312,7 +311,7 @@ public class MetadataTrackerTest extends ESTestCase {
             RelationMetadata.fromMetadata(testTable, updatedPublisherClusterState.metadata())), List.of());
         var syncedSubscriberClusterState = MetadataTracker.updateIndexMetadata(
             "sub1",
-            retrieveSubscription("sub1", SUBSCRIBER_CLUSTER_STATE),
+            SubscriptionsMetadata.get(SUBSCRIBER_CLUSTER_STATE.metadata()).get("sub1"),
             SUBSCRIBER_CLUSTER_STATE,
             updatedResponse,
             IndexScopedSettings.DEFAULT_SCOPED_SETTINGS
@@ -336,7 +335,7 @@ public class MetadataTrackerTest extends ESTestCase {
 
         var syncedSubscriberClusterState = MetadataTracker.updateIndexMetadata(
             "sub1",
-            retrieveSubscription("sub1", SUBSCRIBER_CLUSTER_STATE),
+            SubscriptionsMetadata.get(SUBSCRIBER_CLUSTER_STATE.metadata()).get("sub1"),
             SUBSCRIBER_CLUSTER_STATE,
             updatedResponse,
             IndexScopedSettings.DEFAULT_SCOPED_SETTINGS
@@ -357,7 +356,7 @@ public class MetadataTrackerTest extends ESTestCase {
 
         var syncedSubscriberClusterState = MetadataTracker.updateIndexMetadata(
             "sub1",
-            retrieveSubscription("sub1", SUBSCRIBER_CLUSTER_STATE),
+            SubscriptionsMetadata.get(SUBSCRIBER_CLUSTER_STATE.metadata()).get("sub1"),
             SUBSCRIBER_CLUSTER_STATE,
             updatedResponse,
             IndexScopedSettings.DEFAULT_SCOPED_SETTINGS
@@ -369,7 +368,7 @@ public class MetadataTrackerTest extends ESTestCase {
     @Test
     public void test_restore_and_state_update_has_no_new_relations() {
         var restoreDiff = MetadataTracker.getRestoreDiff(
-            retrieveSubscription("sub1", SUBSCRIBER_CLUSTER_STATE),
+            SubscriptionsMetadata.get(SUBSCRIBER_CLUSTER_STATE.metadata()).get("sub1"),
             SUBSCRIBER_CLUSTER_STATE,
             publicationsStateResponse
         );
@@ -393,7 +392,7 @@ public class MetadataTrackerTest extends ESTestCase {
             RelationMetadata.fromMetadata(table, publisherState.metadata())), List.of());
 
         RestoreDiff restoreDiff = MetadataTracker.getRestoreDiff(
-            retrieveSubscription("sub1", subscriberClusterState),
+            SubscriptionsMetadata.get(subscriberClusterState.metadata()).get("sub1"),
             subscriberClusterState,
             updatedResponse
         );
@@ -419,7 +418,7 @@ public class MetadataTrackerTest extends ESTestCase {
         var publisherStateResponse = new Response(Map.of(p1, RelationMetadata.fromMetadata(p1, publisherState.metadata())), List.of());
 
         var restoreDiff = MetadataTracker.getRestoreDiff(
-            retrieveSubscription("sub1", subscriberClusterState),
+            SubscriptionsMetadata.get(subscriberClusterState.metadata()).get("sub1"),
             subscriberClusterState,
             publisherStateResponse
         );
@@ -446,7 +445,7 @@ public class MetadataTrackerTest extends ESTestCase {
         var publisherStateResponse = new Response(Map.of(newRelation, relationMetadata), List.of());
 
         var restoreDiff = MetadataTracker.getRestoreDiff(
-            retrieveSubscription("sub1", subscriberClusterState),
+            SubscriptionsMetadata.get(subscriberClusterState.metadata()).get("sub1"),
             subscriberClusterState,
             publisherStateResponse
         );
@@ -474,7 +473,7 @@ public class MetadataTrackerTest extends ESTestCase {
         var publisherStateResponse = new Response(Map.of(relationName, relationMetadata), List.of());
 
         var restoreDiff = MetadataTracker.getRestoreDiff(
-            retrieveSubscription("sub1", subscriberClusterState),
+            SubscriptionsMetadata.get(subscriberClusterState.metadata()).get("sub1"),
             subscriberClusterState,
             publisherStateResponse
         );
@@ -507,7 +506,7 @@ public class MetadataTrackerTest extends ESTestCase {
                 publication.resolveCurrentRelations(publisherState, User.CRATE_USER, User.CRATE_USER, "dummy"), List.of());
 
         var restoreDiff = MetadataTracker.getRestoreDiff(
-            retrieveSubscription("sub1", subscriberClusterState),
+            SubscriptionsMetadata.get(subscriberClusterState.metadata()).get("sub1"),
             subscriberClusterState,
             publisherStateResponse
         );
@@ -537,7 +536,7 @@ public class MetadataTrackerTest extends ESTestCase {
                 publication.resolveCurrentRelations(publisherClusterState, User.CRATE_USER, User.CRATE_USER, "dummy"), List.of());
 
         var restoreDiff = MetadataTracker.getRestoreDiff(
-            retrieveSubscription("sub1", subscriberClusterState),
+            SubscriptionsMetadata.get(subscriberClusterState.metadata()).get("sub1"),
             subscriberClusterState,
             publisherStateResponse
         );
