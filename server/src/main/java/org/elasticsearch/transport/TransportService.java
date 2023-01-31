@@ -661,6 +661,7 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
         }
     }
 
+    @SuppressWarnings({"rawtypes", "unchecked"})
     private void sendLocalRequest(long requestId, final String action, final TransportRequest request, TransportRequestOptions options) {
         final DirectResponseChannel channel = new DirectResponseChannel(LOGGER, localNode, action, requestId, this, threadPool);
         try {
@@ -1053,7 +1054,7 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
         @Override
         public void sendResponse(TransportResponse response) throws IOException {
             service.onResponseSent(requestId, action, response);
-            final TransportResponseHandler handler = service.responseHandlers.onResponseReceived(requestId, service);
+            final TransportResponseHandler<?> handler = service.responseHandlers.onResponseReceived(requestId, service);
             // ignore if its null, the service logs it
             if (handler != null) {
                 final String executor = handler.executor();
@@ -1075,7 +1076,7 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
             }
         }
 
-        @SuppressWarnings("unchecked")
+        @SuppressWarnings({"unchecked", "rawtypes"})
         protected void processResponse(TransportResponseHandler handler, TransportResponse response) {
             try {
                 handler.handleResponse(response);
@@ -1087,7 +1088,7 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
         @Override
         public void sendResponse(Exception exception) throws IOException {
             service.onResponseSent(requestId, action, exception);
-            final TransportResponseHandler handler = service.responseHandlers.onResponseReceived(requestId, service);
+            final TransportResponseHandler<?> handler = service.responseHandlers.onResponseReceived(requestId, service);
             // ignore if its null, the service logs it
             if (handler != null) {
                 final RemoteTransportException rtx = wrapInRemote(exception);
@@ -1117,7 +1118,7 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
             return new RemoteTransportException(localNode.getName(), localNode.getAddress(), action, e);
         }
 
-        protected void processException(final TransportResponseHandler handler, final RemoteTransportException rtx) {
+        protected void processException(final TransportResponseHandler<?> handler, final RemoteTransportException rtx) {
             try {
                 handler.handleException(rtx);
             } catch (Exception e) {
